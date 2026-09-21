@@ -524,10 +524,67 @@ Nenhuma.
 - Preservada a proibição de avançar para PROMPT-003 ou criar novas features nesta etapa.
 
 ### Testes e Verificações executados
-- `pnpm check`: Todos os checks passaram integralmente (format:check, lint, typecheck, vitest com 7 testes em 3 arquivos, build de 12 pacotes/apps, check:architecture com 0 violações, check:file-size com 0 violações).
+- `pnpm check`: Todos os checks passaram integralmente (format:check, lint, typecheck, vitest com 6 testes em 3 arquivos [logger: 1, contracts: 2, errors: 3], build de 12 pacotes/apps, check:architecture com 0 violações, check:file-size com 0 violações).
 - `git status --short`: Working tree limpa.
 - `git branch -vv`: Confirmada sincronização com `origin/main`.
 - `list_branches` (GitHub MCP): Validada branch `main` e SHA correspondente ao HEAD local.
 
 ### Próximo Passo Planejado
 - Aguardar autorização humana para avançar para **PROMPT-003 — Design System e Application Shell Mobile-First**.
+
+---
+
+## PROMPT-002F — Security Hygiene e Git Governance
+
+- **Data**: 2026-09-21
+- **Objetivo**: Aplicar higiene rigorosa de credenciais após exposição de credencial em log de tarefa anterior, remover artefatos temporários, registrar guardrails operacionais de segurança no `AGENTS.md`, validar a suite autoritativa de testes unitários (6 testes), verificar proteção da branch `main` e estabelecer fluxo de governança por branch dedicada.
+
+### Descrição do Incidente de Credencial
+- Durante a execução do PROMPT-002E, ao tentar diagnosticar falha de push pelo Git Credential Manager, houve execução de comando/script que expôs o valor de uma credencial GitHub em saída de terminal e arquivo de log temporário local.
+- **Ação Humana Requerida/Executada**: A credencial exposta foi revogada/rotacionada pelo operador humano no GitHub.
+- **Isolamento e Segurança**: Nenhuma credencial, parcial ou fingerprint de token foi ou será copiada para este log ou commit.
+
+### Higiene Local e Artefatos Temporários Removidos
+- Foram localizados e sumariamente removidos do diretório temporário `scratch/` os scripts auxiliares criados durante a investigação:
+  - `check_env.ps1` (removido)
+  - `check_mcp_token.ps1` (removido)
+  - `check_token.ps1` (removido)
+  - `update_git_credential.ps1` (removido)
+- Confirmada a inexistência de scripts residuais em `scratch/`.
+
+### Guardrails Adicionados ao AGENTS.md
+- Seção 7 (Item 2) expandida com regras estritas e inegociáveis para agentes de IA:
+  - Proibição absoluta de imprimir tokens, usá-los em comandos `curl`/CLI, inspecionar `$env` para ler valores de secrets, inspecionar argumentos de processos, buscar tokens em configs, transferir tokens entre ferramentas (ex.: MCP para Git) ou registrar credenciais em logs/docs.
+  - Definição estrita de que agentes podem verificar apenas existência (booleana), status de autenticação e permissões observáveis sem nunca revelar o valor.
+  - Desacoplamento operacional explícito entre Git CLI e GitHub MCP como autenticações independentes.
+
+### Auditoria e Correção da Suíte de Testes
+- **Investigação**: Executado `pnpm test` e `git diff 57c10f3..HEAD -- packages`.
+- **Constatação Factual**: Não houve qualquer alteração em arquivos de teste ou pacotes entre o baseline e o estado atual.
+- **Resultado Autoritativo Real**: A suíte executa exatamente **6 testes em 3 arquivos**:
+  - `packages/logger/src/index.test.ts`: 1 teste
+  - `packages/contracts/src/index.test.ts`: 2 testes
+  - `packages/errors/src/index.test.ts`: 3 testes
+- A menção errônea a "7 testes" no registro anterior de PROMPT-002E foi retificada neste documento para refletir com exatidão factual a realidade da base.
+
+### Estado da Branch Protection
+- Consulta via GitHub MCP (`list_branches` em modo leitura):
+  - Branch: `main`
+  - Status: `protected: false`
+- **Recomendação e Pendência Humana**: O agente não possui autorização e não deve alterar configurações administrativas automaticamente. O operador humano deve habilitar manualmente a proteção de branch (Ruleset ou Branch Protection) no GitHub para `main` com a seguinte política desejada:
+  - Nenhuma feature com commit direto em `main`;
+  - Desenvolvimento restrito a branches `feature/*`, `fix/*`, `chore/*`;
+  - Pull Request obrigatório antes do merge;
+  - `pnpm check` (CI/Status Check) obrigatório passando antes do merge;
+  - Bloqueio de force push (`Allow force pushes: false`);
+  - Bloqueio de exclusão da branch (`Allow deletions: false`).
+
+### Governança Git desta Tarefa
+- Branch criada: `chore/security-governance` (nenhum push direto para `main`).
+- Commit: `chore: harden credential handling and git governance`.
+- Push: `git push -u origin chore/security-governance`.
+
+### Validações Executadas
+- `pnpm check`: Aprovado com sucesso integral (format:check, lint, typecheck, 6 testes no vitest, build turbo em 12 pacotes, check:architecture, check:file-size).
+- `git status --short`: Working tree limpa após commit na branch dedicada.
+

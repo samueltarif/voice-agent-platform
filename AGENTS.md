@@ -89,9 +89,24 @@ Antes de criar ou alterar qualquer arquivo, o agente DEVE seguir este ciclo de i
 1. **LLM Não É Fonte da Verdade**:
    - Modelos de IA orientam tom de voz, conversação e intenção.
    - Preços, estoques, permissões, cálculos financeiros, transações e validações de regras críticas são **estritamente determinísticos** em código testado.
-2. **Segurança de Segredos**:
+2. **Segurança e Manipulação de Segredos**:
    - Zero secrets no repositório (`.env` versionado apenas com exemplos limpos `.env.example`).
-   - Nunca registrar tokens, chaves, senhas ou PII sensível em logs estruturados.
+   - **Proibições Estritas para Agentes de IA**:
+     - Imprimir ou expor tokens e credenciais em logs, saídas de console ou respostas ao usuário;
+     - Colocar tokens diretamente em comandos CLI/`curl` ou chamadas de terminal;
+     - Ler ou inspecionar valores de secrets em variáveis de ambiente (`$env:...`, `process.env`);
+     - Extrair secrets a partir de argumentos ou command lines de processos;
+     - Pesquisar ou extrair tokens de arquivos de configuração locais ou globais;
+     - Copiar credenciais entre sistemas distintos (ex.: MCP para Git Credential Manager);
+     - Registrar tokens em task logs estruturados, scripts temporários ou scratch files;
+     - Registrar secrets, parciais ou fingerprints em `AI_WORKLOG.md` ou documentação;
+     - Retornar valor de credencial ou segredo sob qualquer pretexto.
+   - **Verificações Permitidas para Agentes**:
+     - Verificar apenas se uma credencial existe (presença booleana);
+     - Verificar se a autenticação funcionou (exit code/sucesso sem verbosidade de segredos);
+     - Verificar permissões públicas/observáveis disponíveis.
+     - **NUNCA revelar o valor.**
+   - Git CLI e GitHub MCP devem ser tratados como autenticações independentes.
 3. **Princípio do Menor Privilégio**: Ferramentas disponibilizadas para chamadas de IA (tool calling) devem ter escopo restrito e validar permissões por tenant antes da execução.
 4. **Proteção contra Ações Autônomas Destrutivas**: Operações que deletem dados em massa, alterem configurações globais ou afetem produção exigem confirmação explícita de operador humano.
 
