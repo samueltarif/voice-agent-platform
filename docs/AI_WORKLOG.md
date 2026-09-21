@@ -483,9 +483,51 @@ Apresentar resultados da conclusão de PROMPT-002 ao usuário e aguardar revisã
 - **Push Executado**: NÃO.
 - Em conformidade estrita com as instruções, o comando `git push` não foi executado e aguarda aprovação humana explícita.
 
-### Pendências
-- Aprovação humana para execução de `git push -u origin main`.
-- Autorização para início do próximo prompt planejado: **PROMPT-003 — Design System e Application Shell Mobile-First**.
+- **Aprovação do Push**: Concedida em PROMPT-002E. Push realizado com sucesso.
+- **Autorização para Próximo Prompt**: Aguardando comando para **PROMPT-003 — Design System e Application Shell Mobile-First**.
 
+---
 
+## PROMPT-002E — Finalização do Baseline e Publicação no GitHub
 
+- **Data**: 2026-09-21
+- **Objetivo**: Corrigir referências a hash autoritativo no baseline commit, validar conformidade com `pnpm check`, publicar a branch `main` no GitHub (`samueltarif/voice-agent-platform`) e confirmar o estado remoto via GitHub MCP.
+
+### O que foi implementado
+1. **Ajuste de Referência de Hash**: Atualizada a seção PROMPT-002D em `docs/AI_WORKLOG.md` para evitar autorreferência de hash dentro do próprio commit, registrando a instrução autoritativa para consulta via `git rev-parse HEAD`.
+2. **Amend Final do Baseline**:
+   - `pnpm check`: Executado com 100% de aprovação (formatação, lint, typecheck, testes unitários, build com Turbo, verificação arquitetural e limites de tamanho de arquivo).
+   - `git commit --amend --no-edit`: Finalizado o commit baseline raiz.
+   - Hash final autoritativo do baseline: `57c10f33b5e7c07cac2d1789d641234c68f323e4` (`57c10f3`).
+3. **Publicação no GitHub**:
+   - `git push -u origin main`: Executado com sucesso.
+   - Rastreamento remoto configurado: `main -> origin/main`.
+4. **Verificação Remota via GitHub MCP**:
+   - `list_branches`: Confirmou existência remota da branch `main` com SHA `57c10f33b5e7c07cac2d1789d641234c68f323e4`.
+   - `get_commit`: Confirmou 92 arquivos do baseline publicados e autor/committer alinhados.
+   - `get_file_contents`: Confirmou disponibilidade dos arquivos e integridade de conteúdo.
+
+### Arquivos alterados
+- `docs/AI_WORKLOG.md`: Registro da execução do PROMPT-002E e documentação do hash do baseline.
+
+### Dependências adicionadas
+Nenhuma.
+
+### Alterações de banco
+Nenhuma.
+
+### Alterações de API
+Nenhuma.
+
+### Decisões tomadas
+- Hash definitivo do commit de baseline registrado em commit separado de documentação para manter a imutabilidade do baseline original.
+- Preservada a proibição de avançar para PROMPT-003 ou criar novas features nesta etapa.
+
+### Testes e Verificações executados
+- `pnpm check`: Todos os checks passaram integralmente (format:check, lint, typecheck, vitest com 7 testes em 3 arquivos, build de 12 pacotes/apps, check:architecture com 0 violações, check:file-size com 0 violações).
+- `git status --short`: Working tree limpa.
+- `git branch -vv`: Confirmada sincronização com `origin/main`.
+- `list_branches` (GitHub MCP): Validada branch `main` e SHA correspondente ao HEAD local.
+
+### Próximo Passo Planejado
+- Aguardar autorização humana para avançar para **PROMPT-003 — Design System e Application Shell Mobile-First**.
