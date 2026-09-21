@@ -544,13 +544,14 @@ Nenhuma.
 - **Ação Humana Requerida/Executada**: A credencial exposta foi revogada/rotacionada pelo operador humano no GitHub.
 - **Isolamento e Segurança**: Nenhuma credencial, parcial ou fingerprint de token foi ou será copiada para este log ou commit.
 
-### Higiene Local e Artefatos Temporários Removidos
-- Foram localizados e sumariamente removidos do diretório temporário `scratch/` os scripts auxiliares criados durante a investigação:
+### Higiene Local e Tratamento de Artefatos Temporários
+- **Scripts temporários conhecidos em `scratch/`**: Foram localizados e sumariamente removidos:
   - `check_env.ps1` (removido)
   - `check_mcp_token.ps1` (removido)
   - `check_token.ps1` (removido)
   - `update_git_credential.ps1` (removido)
-- Confirmada a inexistência de scripts residuais em `scratch/`.
+- **Status da credencial**: A credencial exposta foi revogada/rotacionada pelo operador humano e não deve ser reutilizada sob hipótese alguma.
+- **Ressalva sobre logs históricos**: Logs históricos e transientes de sessões anteriores do ambiente Antigravity podem ter registrado a credencial revogada. É estritamente proibido aos agentes reabrir, pesquisar ou imprimir esses valores novamente.
 
 ### Guardrails Adicionados ao AGENTS.md
 - Seção 7 (Item 2) expandida com regras estritas e inegociáveis para agentes de IA:
@@ -575,7 +576,7 @@ Nenhuma.
   - Nenhuma feature com commit direto em `main`;
   - Desenvolvimento restrito a branches `feature/*`, `fix/*`, `chore/*`;
   - Pull Request obrigatório antes do merge;
-  - `pnpm check` (CI/Status Check) obrigatório passando antes do merge;
+  - `pnpm check` obrigatório localmente antes de aprovação/merge (a transformação desse gate em GitHub Status Check remoto ocorrerá quando o workflow de CI for implementado);
   - Bloqueio de force push (`Allow force pushes: false`);
   - Bloqueio de exclusão da branch (`Allow deletions: false`).
 
@@ -587,4 +588,57 @@ Nenhuma.
 ### Validações Executadas
 - `pnpm check`: Aprovado com sucesso integral (format:check, lint, typecheck, 6 testes no vitest, build turbo em 12 pacotes, check:architecture, check:file-size).
 - `git status --short`: Working tree limpa após commit na branch dedicada.
+
+---
+
+## PROMPT-002G — Fechamento de Governança Pré-Frontend
+
+- **Data**: 2026-09-21
+- **Objetivo**: Finalizar a governança do repositório antes do PROMPT-003, ajustando afirmações sobre logs históricos de credenciais, confirmando estado remoto das branches, registrando Pull Request formal para merge em `main`, mantendo registro de proteção de branch sem alterações administrativas automáticas e validando a integridade da base.
+
+### Correção sobre Logs Históricos e Credenciais
+- Ajustada a declaração em PROMPT-002F para evitar afirmações absolutas sobre o disco:
+  - Os scripts temporários conhecidos em `scratch/` foram removidos;
+  - A credencial exposta foi revogada/rotacionada pelo operador humano e está inutilizada;
+  - Logs históricos de sessões passadas do ambiente Antigravity podem conter registros transientes da credencial revogada;
+  - Vigora a proibição absoluta de reabrir, pesquisar por conteúdo ou imprimir esses valores;
+  - A credencial revogada não deve ser reutilizada sob pretexto algum.
+
+### Estado das Branches Remotas (GitHub MCP em Modo Leitura)
+- **`main`**:
+  - HEAD: `7e08e3e23d7cb387f74837066242b41bfa3ebe31`
+  - Proteção: `protected: false`
+- **`chore/security-governance`**:
+  - HEAD remoto anterior: `e4a55982e618f899073487fc4d57d8db033d254b`
+  - Proteção: `protected: false`
+
+### Pull Request Criado
+- **Pull Request**: `#1`
+- **URL**: `https://github.com/samueltarif/voice-agent-platform/pull/1`
+- **Origem (head)**: `chore/security-governance`
+- **Destino (base)**: `main`
+- **Título**: `chore: harden credential handling and git governance`
+- **Status**: Aberto (aguardando revisão e merge humanos — zero auto-merge).
+
+### Governança e Proteção da `main`
+- A branch `main` permanece com `protected: false`.
+- Nenhuma alteração administrativa remota foi realizada automaticamente pelo agente.
+- **Pendência Humana**: Configuração de Branch Protection / Ruleset no GitHub para `main`:
+  - Bloqueio de commits diretos em `main`;
+  - Desenvolvimento exclusivo via branches (`feature/*`, `fix/*`, `chore/*`);
+  - Pull Request obrigatório antes de merge;
+  - `pnpm check` obrigatório localmente antes de aprovação/merge (enquanto não houver workflow de CI no GitHub publicando status check);
+  - Impedir force push;
+  - Impedir exclusão da branch `main`.
+
+### Validação Executada
+- `pnpm check`: Executado com aprovação integral (format:check, lint, typecheck, 6 testes no vitest, build turbo em 12 pacotes, check:architecture, check:file-size).
+- `git status --short`: Working tree limpa após commit de governança.
+
+### Guardrails de Escopo
+- **Nenhuma feature implementada.**
+- **Nenhuma dependência instalada.**
+- **Nenhum código de produto alterado.**
+- **PROMPT-003 NÃO foi iniciado.**
+
 
