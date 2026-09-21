@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "useUnknownInCatchVariables": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@voice-agent/contracts": ["./packages/contracts/src/index.ts"],
+      "@voice-agent/contracts/*": ["./packages/contracts/src/*"],
+      "@voice-agent/errors": ["./packages/errors/src/index.ts"],
+      "@voice-agent/errors/*": ["./packages/errors/src/*"],
+      "@voice-agent/logger": ["./packages/logger/src/index.ts"],
+      "@voice-agent/logger/*": ["./packages/logger/src/*"],
+      "@voice-agent/config": ["./packages/config/src/index.ts"],
+      "@voice-agent/config/*": ["./packages/config/src/*"],
+      "@voice-agent/database": ["./packages/database/src/index.ts"],
+      "@voice-agent/database/*": ["./packages/database/src/*"],
+      "@voice-agent/integrations": ["./packages/integrations/src/index.ts"],
+      "@voice-agent/integrations/*": ["./packages/integrations/src/*"],
+      "@voice-agent/ui": ["./packages/ui/src/index.ts"],
+      "@voice-agent/ui/*": ["./packages/ui/src/*"],
+      "@voice-agent/test-utils": ["./packages/test-utils/src/index.ts"],
+      "@voice-agent/test-utils/*": ["./packages/test-utils/src/*"]
+    }
+  }
+}

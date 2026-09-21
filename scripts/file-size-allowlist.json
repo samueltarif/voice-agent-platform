@@ -1,0 +1,12 @@
+{
+  "$comment": "REGRA DE GOVERNANCA: Agentes de IA estao estritamente proibidos de adicionar entradas nesta allowlist sem aprovacao humana formal.",
+  "entries": [
+    {
+      "path": "example/path/placeholder.ts",
+      "reason": "Exemplo de formato estruturado para excecao de arquivo grande.",
+      "approvedBy": "Human Technical Lead",
+      "decisionRef": "ADR-000",
+      "disabled": true
+    }
+  ]
+}

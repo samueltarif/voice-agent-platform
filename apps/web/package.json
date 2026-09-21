@@ -1,0 +1,17 @@
+{
+  "name": "@voice-agent/web",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@voice-agent/contracts": "workspace:*",
+    "@voice-agent/ui": "workspace:*"
+  },
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  }
+}

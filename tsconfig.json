@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.base.json",
+  "include": [
+    "scripts/**/*.mjs",
+    "scripts/**/*.ts",
+    "eslint.config.mjs",
+    "prettier.config.mjs",
+    "vitest.config.ts"
+  ]
+}

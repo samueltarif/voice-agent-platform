@@ -1,0 +1,16 @@
+# Protect existing architectural documentation from mass stylistic reformatting
+docs/**
+*.md
+FOUNDATION_MASTER.md
+PROJECT_CONSTITUTION.md
+ARCHITECTURE.md
+PROJECT_MAP.md
+AGENTS.md
+README.md
+
+# Build artifacts and dependencies
+dist/**
+node_modules/**
+.turbo/**
+coverage/**
+pnpm-lock.yaml

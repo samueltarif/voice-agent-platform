@@ -1,0 +1,49 @@
+# ========================
+# Secrets e variáveis de ambiente
+# ========================
+.env
+.env.local
+.env.production
+.env.staging
+*.env
+
+# ========================
+# Node.js / pnpm / yarn
+# ========================
+node_modules/
+dist/
+build/
+.turbo/
+.cache/
+*.tsbuildinfo
+
+# ========================
+# Logs
+# ========================
+*.log
+logs/
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ========================
+# Sistema Operacional
+# ========================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ========================
+# IDE
+# ========================
+.idea/
+.vscode/settings.json
+*.suo
+*.user
+
+# ========================
+# Cobertura de testes
+# ========================
+coverage/
+.nyc_output/
