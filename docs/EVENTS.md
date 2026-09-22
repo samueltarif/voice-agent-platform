@@ -58,18 +58,36 @@ O ciclo de vida de uma chamada telefônica é orquestrado através dos seguintes
 
 ---
 
-## 3. Eventos de Pós-Processamento e Analytics
+## 3. Eventos de Gravação e Pós-Processamento de Áudio
 
 | Nome do Evento | Versão | Origem Principal | Descrição |
 | :--- | :--- | :--- | :--- |
-| `call.audio_uploaded` | 1.0 | `apps/voice` | Gravação da chamada armazenada com sucesso no object storage. |
+| `call.recording_started` | 1.0 | `apps/voice` | Sinalização de início de captura e gravação de áudio da chamada telefônica. |
+| `call.audio_uploaded` | 1.0 | `apps/voice` | Gravação bruta da chamada armazenada com sucesso no object storage. |
+| `call.recording_available` | 1.0 | `apps/worker` | Áudio pós-processado, verificado e disponibilizado para reprodução autenticada. |
 | `call.transcription_completed` | 1.0 | `apps/worker` | Transcrição textual completa, alinhada e diarizada gerada com sucesso. |
 | `call.analysis_completed` | 1.0 | `apps/worker` | Análise de sentimento, classificação de desfecho e cálculo de custos consolidados. |
 
 ---
 
-## 4. Diretrizes de Consumo e Idempotência
+## 4. Eventos do Protocolo de Transbordo Humano (Human Handoff)
+
+| Nome do Evento | Versão | Origem Principal | Descrição |
+| :--- | :--- | :--- | :--- |
+| `call.handoff_requested` | 1.0 | `apps/voice` | Solicitação de transbordo iniciada pela IA ou por regra de negócio. |
+| `call.seller_notified` | 1.0 | `apps/api` | Fila comercial notificada sobre a oportunidade com contexto preliminar da chamada. |
+| `call.seller_ready` | 1.0 | `apps/api` | Vendedor específico aceitou a oportunidade e entrou em estado de prontidão. |
+| `call.handoff_ready` | 1.0 | `apps/voice` | IA preparou a transição e o sistema emitiu sinal verde para entrada (`READY_TO_JOIN`). |
+| `call.human_joined` | 1.0 | `apps/voice` / Telephony | Operador humano conectado ativamente no canal de áudio com o cliente. |
+| `call.ai_detached` | 1.0 | `apps/voice` | Agente de IA desvinculado com sucesso da orquestração de fala da chamada. |
+| `call.handoff_failed` | 1.0 | `apps/voice` / Telephony | Falha técnica no estabelecimento da conexão do transbordo. |
+| `call.handoff_canceled` | 1.0 | `apps/api` / `apps/voice` | Protocolo de transbordo cancelado (pelo operador ou por desistência do cliente). |
+
+---
+
+## 5. Diretrizes de Consumo e Idempotência
 
 1. **Garantia de Entrega**: Consumidores de eventos devem ser implementados considerando semântica de entrega *at-least-once*.
 2. **Processamento Idempotente**: Handlers de eventos devem verificar se o `id` do evento já foi processado antes de executar efeitos colaterais críticos (ex.: cobrança financeira ou envio de webhook externo).
 3. **Imutabilidade**: Uma vez publicado, um evento nunca deve ser alterado ou deletado.
+4. **Referência Arquitetural**: Para a máquina de estados completa de handoff e ciclo de vida de gravações, consulte `docs/LIVE_CALLS_AND_HANDOFF.md`.

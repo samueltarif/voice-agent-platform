@@ -36,24 +36,36 @@ Empresas B2B enfrentam desafios críticos em operações de contato por voz:
 
 ---
 
-## 4. Escopo do Dashboard B2B
+## 4. Escopo da Aplicação Web e Painéis
 
-O dashboard administrativo centraliza os seguintes módulos:
+A interface da plataforma é construída sob abordagem **mobile-first** e atende a dois contextos conceituais complementares:
 
+### 4.1. Tenant Application (Operação B2B da Empresa Cliente)
 | Módulo | Responsabilidade |
 | :--- | :--- |
-| **Organizações** | Gestão de dados cadastrais da empresa, planos contratados, limites de concorrência e faturamento. |
-| **Usuários & Acesso** | Controle de membros da equipe, papéis e permissões (RBAC: Admin, Gerente, Operador, Auditor). |
-| **Agent Studio** | Criação e configuração visual de agentes de voz sem editar código: identidade, personalidade, instruções, ferramentas, Knowledge Base, playbooks, voz e versionamento (DRAFT → TEST → PUBLISHED → ARCHIVED). |
-| **Clientes / Contatos** | Cadastro e importação de listas de contatos com campos customizados, tags e status de relacionamento. |
-| **Produtos & Serviços** | Catálogo com preços, especificações e regras de desconto consultáveis via tool calling determinístico. |
-| **Campanhas Ativas** | Configuração e disparo de discagens outbound com regras de cadência, horários permitidos e retentativas. |
-| **Chamadas & Logs** | Histórico detalhado de chamadas telefônicas realizadas e recebidas com métricas de duração, status e desfecho. |
-| **Transcrições & Áudios** | Player com áudio sincronizado, transcrição com separação de canais (diarização) e análise de sentimento. |
-| **Integrações** | Configuração de conexões com provedores de telefonia, CRMs, plataformas de calendário e webhooks. |
-| **Analytics & BI** | Taxas de contato efetivo, tempo médio de conversa, motivos de encerramento e conversão de objetivos. |
-| **Custos & Finanças** | Demonstração detalhada de custos por chamada (telefonia + modelo + síntese) e margens operacionais. |
-| **Configurações Globais** | Definição de números telefônicos de saída (caller IDs), políticas de retenção e segurança. |
+| **Dashboard** | Visão geral de métricas do dia, chamadas ativas, conversão e saldo de minutos. |
+| **Agent Studio** | Configuração visual de agentes de voz sem código: identidade, persona, tools, Knowledge Base, playbooks e versionamento. Consulte `docs/AGENT_STUDIO.md`. |
+| **Campanhas Ativas** | Disparo de discagens outbound com regras de cadência, horários permitidos e retentativas. |
+| **Chamadas & Ao Vivo** | Monitoramento de chamadas em tempo real (telemetria e transcrição ao vivo) e histórico de desfechos. Consulte `docs/LIVE_CALLS_AND_HANDOFF.md`. |
+| **Gravações & Transcrições** | Player com áudio sincronizado via acesso autenticado/temporário, diarização e sinais de interesse/conteúdo. |
+| **Vendedores & Handoff** | Fila de atendimento comercial, disponibilidade e protocolo de transbordo humano assistido. |
+| **Clientes / Contatos** | Cadastro e importação de listas de contatos com campos customizados, tags e histórico. |
+| **Produtos & Serviços** | Catálogo determinístico de itens e regras de desconto consultáveis via tool calling. |
+| **Analytics & BI** | Contato efetivo, tempo médio de conversa, conversão e taxas de sucesso de handoff. |
+| **Custos & Consumo** | Demonstração detalhada de consumo em minutos e custos por chamada. Consulte `docs/COST_MODEL.md`. |
+| **Integrações & Configurações**| DIDs telefônicos, CRMs, calendários, webhooks e políticas de retenção da organização. |
+
+### 4.2. Platform Control Plane (Administração Global do SaaS)
+| Módulo | Responsabilidade |
+| :--- | :--- |
+| **Organizations** | Gestão do ciclo de vida das empresas clientes (criação, suspensão, arquivamento). |
+| **Plans & Entitlements** | Catálogo mestre de planos comerciais e matriz de capacidades/limites efetivos. |
+| **Subscriptions & Grants** | Ciclo de vida de assinaturas e concessões manuais de acesso auditáveis (`CommercialGrant`). |
+| **Usage & Costs** | Rastreamento consolidado de minutos, tokens, storage e custos reais de providers externos. |
+| **Billing** | Modelos de faturamento (`SELF_SERVICE`, `MANUAL`, `COMPLIMENTARY`) e conciliação financeira. |
+| **Platform Audit & Health** | Trilha global de auditoria imutável e monitoramento de saúde operacional do sistema. |
+
+*Para detalhes aprofundados, consulte [docs/PLATFORM_CONTROL_PLANE.md](file:///d:/voice-agent-platform/docs/PLATFORM_CONTROL_PLANE.md) e [docs/LIVE_CALLS_AND_HANDOFF.md](file:///d:/voice-agent-platform/docs/LIVE_CALLS_AND_HANDOFF.md).*
 
 ---
 

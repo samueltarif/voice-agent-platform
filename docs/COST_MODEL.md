@@ -54,3 +54,19 @@ Dependendo da arquitetura adotada pelo provedor de IA:
    - Se o saldo atingir zero durante uma chamada longa, o agente pode encerrar o diálogo de forma educada ou seguir a regra de corte configurada pelo administrador.
 3. **Dashboard de Transparência Financeira**:
    - O módulo financeiro do dashboard web expõe gráficos diários de consumo por agente, por campanha e por minuto, permitindo aos gestores auditar os custos com precisão centesimal.
+
+---
+
+## 4. Separação Conceitual: Usage, Cost e Billing
+
+A plataforma formaliza a distinção entre três domínios que não devem ser acoplados:
+
+1. **Usage (Consumo Factual)**:
+   - Medição física e volumétrica dos recursos consumidos (duração de chamada, segundos de áudio IA, tokens gerados/ingeridos, gigabytes armazenados e execuções de tools).
+   - O rastreamento de Usage é estritamente independente do gateway de pagamento ou forma de liquidação comercial.
+2. **Cost (Custo dos Provedores)**:
+   - Apuração do montante financeiro devido aos carriers e provedores externos com base em tabelas de custos vigentes.
+3. **Billing (Faturamento Comercial)**:
+   - Resolução de cobrança ao cliente conforme plano, entitlements, saldo de créditos ou concessão manual (`CommercialGrant`).
+   - Para a especificação completa do modelo comercial e Platform Control Plane, consulte `docs/PLATFORM_CONTROL_PLANE.md`.
+

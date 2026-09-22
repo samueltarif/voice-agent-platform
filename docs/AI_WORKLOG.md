@@ -642,3 +642,256 @@ Nenhuma.
 - **PROMPT-003 NÃO foi iniciado.**
 
 
+
+
+---
+
+## PROMPT-002H — Commercial Access, Platform Admin, Live Calls, Recording e Human Handoff
+
+- **Data**: 2026-09-22
+- **Objetivo**: Formalizar na arquitetura e documentação do projeto os novos requisitos confirmados pelo proprietário antes de iniciar o frontend (PROMPT-003). Tarefa estritamente documental e arquitetural (sem código de produto, sem banco real, sem migrations, sem auth, sem SDKs de telefonia/IA, sem gateway de pagamento e sem chamadas reais).
+
+### Status Factual dos Componentes e Conceitos
+- **Platform Control Plane**: ARQUITETURA DOCUMENTADA, NÃO IMPLEMENTADA.
+- **Platform Admin Global**: ARQUITETURA DOCUMENTADA, NÃO IMPLEMENTADA.
+- **Modelo Comercial (BillingMode / Entitlements / CommercialGrant)**: ARQUITETURA DOCUMENTADA, NÃO IMPLEMENTADA.
+- **Usage / Cost / Billing Separation**: ARQUITETURA DOCUMENTADA, NÃO IMPLEMENTADA.
+- **Live Call Monitoring (Data/Events via WebSocket)**: ARQUITETURA DOCUMENTADA, NÃO IMPLEMENTADA.
+- **Live Audio Streaming**: STATUS: PLANNED / PROVIDER-DEPENDENT / NÃO VALIDADO COM PROVIDER REAL.
+- **Call Recording**: STATUS: PLANNED / NÃO VALIDADO COM PROVIDER REAL / COMPLIANCE JURÍDICO PENDENTE.
+- **Listen-Only Mode**: STATUS: PLANNED / PROVIDER-DEPENDENT / NÃO VALIDADO COM PROVIDER REAL.
+- **Human Handoff Protocol (State Machine & Fallback)**: ARQUITETURA DOCUMENTADA, NÃO IMPLEMENTADA.
+- **Sales Queue / Seller Availability**: CONCEITO DOCUMENTADO, NÃO IMPLEMENTADO.
+
+### Arquitetura Comercial e Platform Control Plane
+1. **Separação de Contextos**:
+   - **Tenant Application**: Área restrita para empresas clientes (Dashboard, Agentes, Campanhas, Chamadas, Transcrições, Vendedores/Handoffs, Analytics, Integrações, Configurações).
+   - **Platform Control Plane**: Área restrita para a administração/proprietário do SaaS (Organizations, Plans, Access/Entitlements, Subscriptions, Usage, Costs, Billing, Platform Audit, System Health).
+2. **Platform Admin Global**:
+   - Autorização estritamente global (`Platform Admin` / `Master Admin`), completamente isolada de memberships ou papéis de tenant (`Organization`).
+   - Requisito de segurança: Nenhum usuário de tenant pode se auto-elevar a Platform Admin via membership.
+3. **Desacoplamento entre Pagamento e Acesso**:
+   - Rejeição formal do anti-pattern `pagou = liberado`. O direito de acesso é avaliado dinamicamente via Plano + Entitlements + Estado Comercial.
+   - **BillingMode**: `SELF_SERVICE`, `MANUAL`, `COMPLIMENTARY`.
+   - **SubscriptionStatus**: Proposta inicial com `TRIALING`, `ACTIVE`, `PAST_DUE`, `SUSPENDED`, `CANCELED`, `EXPIRED`. Proibido condensar status em booleanos frágeis (`isPremium`, `isActive`).
+   - **CommercialGrant**: Concessão manual auditável de acesso (`organizationId`, `planId`, `startsAt`, `endsAt`, `grantedBy`, `reason`, `reference`).
+   - **Plans e Entitlements**: Proibição de regras espalhadas por plano (`if plan === 'professional'`). Capacidades resolvidas exclusivamente por Entitlements (`agents.max`, `voice.monthlyMinutes`, `recordings.enabled`, `liveMonitoring.enabled`, `humanHandoff.enabled`, etc.).
+4. **Separação de Camadas Financeiras e de Uso**:
+   - `Usage` (consumo bruto operacional) ≠ `Cost` (custo incorrido junto a fornecedores) ≠ `Billing` (faturamento/cobrança contratual ou de gateway). O rastreamento de uso é independente de gateway de pagamento.
+
+### Live Calls, Recording e Human Handoff
+1. **Live Call Monitoring**:
+   - Visualização em tempo real de status, duração, agente ativo, cliente, transcrição ao vivo, eventos, tools executadas, intenções e status de handoff.
+   - Streaming de áudio ao vivo marcado como `STATUS: PLANNED / PROVIDER-DEPENDENT / NOT YET VALIDATED`.
+2. **Call Recording**:
+   - Ativo de gravação armazenado em Object Storage com acesso autenticado estritamente via presigned URLs temporárias com TTL curto.
+   - Requisitos de criptografia em repouso, isolamento por tenant, trilha de auditoria e políticas de retenção/expiração/anonimização configuráveis.
+   - Aviso regulatório mandatório: `COMPLIANCE VERIFICATION REQUIRED BEFORE PRODUCTION` (análise de leis de gravação telefônica, consentimento bilateral e LGPD).
+3. **Human Handoff**:
+   - Protocolo orquestrado determinístico: a IA inicia a transição suavemente enquanto o operador aceita e se prepara, transferindo no evento `READY_TO_JOIN`.
+   - Máquina de estados formalizada: `NONE` → `REQUESTED` → `SELLER_NOTIFIED` → `SELLER_READY` → `AI_PREPARING` → `READY_TO_JOIN` → `HUMAN_CONNECTED` → `AI_DETACHED` (com estados de exceção: `FAILED`, `CANCELED`, `TIMED_OUT`).
+   - Modo Listen-Only: vendedor ouve antes de ingressar; status `PLANNED / PROVIDER-DEPENDENT / NOT YET VALIDATED`.
+   - Regra mandatória de Fallback com Zero Silêncio: a IA nunca deixa o cliente em espera silenciosa indefinida. Na ausência de vendedor ou em timeout, reassume e propõe continuidade, retorno ou agendamento.
+4. **Sales Queue e Vendedores**:
+   - Conceito futuro de fila de vendas, disponibilidade de operadores e atribuição auditada de quem assumiu a chamada.
+5. **Eventos Internos Canônicos**:
+   - Adicionados a `docs/EVENTS.md`: `call.recording_started`, `call.recording_available`, `call.handoff_requested`, `call.seller_notified`, `call.seller_ready`, `call.handoff_ready`, `call.human_joined`, `call.ai_detached`, `call.handoff_failed`, `call.handoff_canceled`.
+
+### Impacto no Roadmap e no Frontend
+- **FASE 3 (Design System + Application Shell)**: Preparada conceitualmente para suportar dois contextos estruturais: Tenant Application e Platform Control Plane.
+- **FASE 4 (Persistência + Auth + Multi-Tenancy)**: Planejada subfase 4.1 para introdução do modelo comercial (Plans, Entitlements, Subscriptions, Commercial Grants, Platform Admin).
+- **FASE 6 e 8**: Implementação do motor de voz, monitoramento em tempo real, gravações e human handoff mantidos estritamente atrelados às fases de telefonia/áudio real.
+
+### Decisões Registradas e Pendências Mantidas
+- **Novas Decisões Arquiteturais (DEC-019 a DEC-024)**:
+  - DEC-019: Separação entre Tenant Application e Platform Control Plane com Platform Admin Global.
+  - DEC-020: Desacoplamento de Pagamento e Direito de Acesso via Entitlements e Commercial Grants.
+  - DEC-021: Separação Conceitual entre Usage, Cost e Billing.
+  - DEC-022: Monitoramento de Chamadas em Tempo Real e Status de Áudio ao Vivo.
+  - DEC-023: Arquitetura de Gravação de Chamadas e Presigned URLs com Compliance Pendente.
+  - DEC-024: Protocolo Determinístico de Human Handoff e Fallback de Zero Silêncio.
+- **Decisões Mantidas Pendentes (Nenhum fornecedor selecionado)**:
+  - Gateway de pagamento, provedor de auth, banco relacional, ORM, fornecedor de telefonia, IA realtime, storage, cache, filas, framework frontend e infraestrutura de cloud.
+
+### Arquivos Criados
+1. `docs/PLATFORM_CONTROL_PLANE.md`: Especificação canônica do Platform Control Plane, Platform Admin Global, Modelo Comercial desacoplado, Entitlements e Governança Financeira.
+2. `docs/LIVE_CALLS_AND_HANDOFF.md`: Especificação canônica de Live Monitoring, Gravações, Compliance, Protocolo Determinístico de Handoff, State Machine, Fallbacks e Filas de Vendedores.
+
+### Arquivos Alterados
+1. `ARCHITECTURE.md`: Atualização das fronteiras do sistema, papéis do voice/worker, isolamento global de Platform Admin e referências a novos documentos.
+2. `FOUNDATION_MASTER.md`: Atualização das seções 1, 7.5 e 19 integrando o Control Plane, modelo comercial, handoff e decisões DEC-019 a DEC-024.
+3. `docs/PROJECT_VISION.md`: Formalização dos escopos Tenant Application vs Platform Control Plane na seção 4.
+4. `docs/VOICE_ARCHITECTURE.md`: Inclusão da Seção 6 com referências canônicas para Live Calls, Recording e Human Handoff.
+5. `docs/EVENTS.md`: Especificação dos eventos de gravação (`call.recording_*`) e de handoff (`call.handoff_*`, `call.seller_*`, `call.human_joined`, `call.ai_detached`).
+6. `docs/SECURITY.md`: Adição de diretrizes de isolamento global para Platform Admin e governança regulatória de mídias.
+7. `docs/COST_MODEL.md`: Inclusão da Seção 4 detalhando a separação conceitual entre `Usage`, `Cost` e `Billing`.
+8. `docs/ROADMAP.md`: Ajustes nas fases 3, 4, 6 e 8; remoção de bloco duplicado legado.
+9. `docs/DECISIONS_LOG.md`: Registro formal de DEC-019 a DEC-024 e atualização da tabela de decisões pendentes com novos itens (18, 19 e 20).
+10. `docs/AI_WORKLOG.md`: Registro cronológico factual e detalhado de PROMPT-002H.
+
+### Ferramentas e MCPs Utilizados
+- Ferramentas nativas de arquivo (`view_file`, `replace_file_content`, `write_to_file`, `run_command`).
+- `github-mcp-server`: Utilizado para criação formal de Pull Request sem auto-merge.
+
+### Comandos Executados e Resultados
+- `git checkout -b docs/platform-control-live-calls`: Branch criada a partir de `main` (`64d3551`).
+- `pnpm check`: Executado em validação pré-commit (aprovação integral: lint, formatting, typecheck, vitest com 6 testes, build turbo de 12 pacotes, architecture e file-size checks).
+- `git status --short`: Verificação de status limpo e controlado.
+- `git add .` e `git commit`: Commit estruturado com a mensagem padronizada.
+- `git push -u origin docs/platform-control-live-calls`: Push da branch remota.
+
+### Riscos e Compliance Pendente
+- **Compliance Regulatório (Telefonia e LGPD)**: Requisitos de consentimento bilateral de gravação, armazenamento seguro e descarte devem ser homologados juridicamente antes de qualquer operação em produção (`COMPLIANCE VERIFICATION REQUIRED BEFORE PRODUCTION`).
+- **Dependência Técnica de Carrier**: Modos Listen-Only e Live Audio Streaming necessitam validação de capacidade real na API/infraestrutura do carrier que for contratado na Fase 8.
+
+### Próximo Passo
+- O arquivo principal para revisão externa é este `docs/AI_WORKLOG.md`.
+- Conclusão da etapa documental e submissão de Pull Request para a branch `main`.
+- Aguardar aprovação do proprietário para dar início ao `PROMPT-003 — Design System e Application Shell Mobile-First`.
+
+
+
+---
+
+## PROMPT-002H-FIX — Precisão Jurídica e Neutralidade de Storage
+
+- **Data**: 2026-09-22
+- **Objetivo**: Corrigir formulações excessivamente específicas sobre regras jurídicas de gravação, prescrição única de mecanismo de acesso a mídias e inferência emocional em monitoramento ao vivo, identificadas durante a revisão externa do PROMPT-002H.
+- **Natureza da Tarefa**: Exclusivamente DOCUMENTAL e de REFINAMENTO TEXTUAL. Sem implementação de features, sem instalação de dependências, sem alteração de banco e sem início de PROMPT-003.
+
+### Diagnóstico e O Que Estava Excessivamente Específico
+1. **Compliance de Gravação e "Consentimento Bilateral"**:
+   - *Problema*: A menção a "consentimento bilateral" como requisito jurídico pressuposto em tabelas e resumos implicava uma determinação legal definitiva não validada formalmente.
+   - *Status Factual*: `LEGAL REQUIREMENT: NÃO VERIFICADO`.
+   - *Ajuste Realizado*: Substituição integral por linguagem juridicamente neutra:
+     > "Requisitos de aviso, ciência, consentimento e/ou outra base legal aplicável à gravação devem ser verificados antes da produção conforme jurisdição, finalidade, tipo de chamada e legislação/regulação vigente."
+   - Mantida a exigência mandatória: `COMPLIANCE VERIFICATION REQUIRED BEFORE PRODUCTION`.
+2. **Neutralidade de Storage e Acesso às Gravações**:
+   - *Problema*: Expressões como "acesso estritamente via presigned URLs" ou "TTL curto obrigatório" foram utilizadas de forma prescritiva como regras arquiteturais absolutas.
+   - *Ajuste Realizado*: Transição para um princípio neutro de segurança da informação:
+     - Mídia privada por padrão no Object Storage;
+     - Autorização e autenticação obrigatórias antes do acesso com isolamento estrito de tenant (`organizationId`);
+     - Acesso através de mecanismo autenticado/autorizado, temporário e auditável quando aplicável (presigned URLs, signed delivery ou streaming via endpoint autenticado);
+     - Presigned URL mantida expressamente como **exemplo de implementação**, não como imposição única;
+     - TTL configurável conforme análise de risco, política de segurança e contexto de deployment;
+     - Provedor de storage mantido estritamente como **Pending Decision**.
+3. **Sinais de Interesse vs. Sentimento no Live Monitoring**:
+   - *Investigação*:
+     - Em `docs/LIVE_CALLS_AND_HANDOFF.md` (seção 1.1): "sentimento" **NÃO FOI ENCONTRADO** — o documento já utilizava a especificação aprovada "Sinais de Interesse / Qualificação: Classificações preliminares de intenção identificadas pelo contexto". Nenhuma alteração foi necessária nesse arquivo para este item.
+     - Em `FOUNDATION_MASTER.md` (seção 7.5): foi identificada a menção "sentimentos e status em tempo real".
+     - Em `docs/PROJECT_VISION.md` (seção 4.1): foi identificada a expressão "diarização e análise de sentimento".
+   - *Ajuste Realizado*: Removida a formalização de inferência emocional/psicológica no monitoramento ao vivo, padronizando para:
+     > "sinais de interesse/intenção baseados no conteúdo da conversa".
+
+### Arquivos Pesquisados
+- `ARCHITECTURE.md`
+- `FOUNDATION_MASTER.md`
+- `docs/LIVE_CALLS_AND_HANDOFF.md`
+- `docs/SECURITY.md`
+- `docs/DECISIONS_LOG.md`
+- `docs/VOICE_ARCHITECTURE.md`
+- `docs/ROADMAP.md`
+- `docs/PROJECT_VISION.md`
+- `docs/PLATFORM_CONTROL_PLANE.md`
+- `docs/EVENTS.md`
+- `docs/COST_MODEL.md`
+- `docs/AI_WORKLOG.md`
+
+### Arquivos Realmente Alterados e Trechos Corrigidos
+1. `ARCHITECTURE.md`:
+   - *Seção 8 (Item 6)*: De "acessados unicamente via URLs temporárias pré-assinadas" para "privados por padrão e acessados apenas via mecanismo autenticado/autorizado, temporário e auditável quando aplicável (como URLs pré-assinadas, signed delivery ou endpoint autenticado), com validação mandatória de `organizationId` e TTL configurável".
+2. `FOUNDATION_MASTER.md`:
+   - *Seção 1.3 (Item 8)*: De "gravação protegida por presigned URLs" para "player integrado com acesso a gravações protegido por mecanismo autenticado e temporário".
+   - *Seção 7.5*: Substituição de "sentimentos" por "sinais de interesse/intenção baseados no conteúdo da conversa", e reformulação neutra do acesso a gravações.
+   - *Seção 11 (Item 4)*: De acesso web restrito a URLs pré-assinadas para mecanismo autenticado/temporário com TTL configurável.
+   - *Seção 19*: Ajuste na descrição de DEC-024 e no item 20 da tabela de decisões pendentes, substituindo "consentimento bilateral" pela fórmula neutra de conformidade jurídica.
+3. `docs/LIVE_CALLS_AND_HANDOFF.md`:
+   - *Seção 2.2*: Reformulada para "Mídia Privada e Acesso Autorizado", definindo presigned URLs como exemplo entre opções temporárias/auditáveis.
+   - *Seção 2.3 (Ressalva Jurídica)*: Substituída menção a consentimento unilateral/bilateral pela fórmula neutra abrangendo aviso, ciência, consentimento ou outra base legal aplicável.
+4. `docs/SECURITY.md`:
+   - *Seção 4 (Item 1)*: Neutralizada a exigência de presigned URLs, estabelecendo mídias privadas por padrão com acesso temporário e auditável sob TTL configurável.
+   - *Seção 4 (Item 5)*: Atualizada a ressalva regulatória pré-produção com linguagem juridicamente neutra.
+5. `docs/DECISIONS_LOG.md`:
+   - *DEC-024*: Atualizado o resumo da decisão para explicitar neutralidade no mecanismo de acesso a mídias e na verificação regulatória.
+6. `docs/VOICE_ARCHITECTURE.md`:
+   - *Seção 6*: Substituído "object storage com URLs pré-assinadas" por "object storage com acesso autenticado/temporário e isolamento por tenant".
+7. `docs/ROADMAP.md`:
+   - *FASE 8*: Substituído "URLs pré-assinadas" por "acesso autenticado/temporário e isolamento por tenant".
+8. `docs/PROJECT_VISION.md`:
+   - *Seção 4.1*: Na linha de Gravações & Transcrições, substituído "URL pré-assinada" e "análise de sentimento" por "acesso autenticado/temporário, diarização e sinais de interesse/conteúdo".
+9. `docs/AI_WORKLOG.md`:
+   - Adicionada esta entrada detalhada para PROMPT-002H-FIX.
+
+### Validação Executada
+- `pnpm check`: Executado com aprovação integral (0 erros, Prettier, ESLint, TypeScript em 12 pacotes, Vitest 6/6 testes, Turbo Build em 12 pacotes, Architecture AST check, File Size check).
+- `git diff`: Revisado para garantir que apenas linguagem documental foi refinada.
+- `git status --short`: Verificada higienização e controle dos arquivos.
+
+### Governança Git e Estado do Pull Request
+- **Branch Ativa**: `docs/platform-control-live-calls` (mantida a mesma branch, sem bifurcação).
+- **Commit**: `docs: refine recording compliance and media access wording`.
+- **Push**: `origin/docs/platform-control-live-calls`.
+- **Pull Request #2**: O PR aberto anteriormente (`https://github.com/samueltarif/voice-agent-platform/pull/2`) é atualizado automaticamente pelo push na branch existente.
+- **Zero Auto-Merge**: O PR permanece aberto aguardando revisão humana.
+- **PROMPT-003**: NÃO iniciado.
+
+---
+
+## PROMPT-002H-CHECK — Imutabilidade de Decisions e Auditabilidade do AI_WORKLOG
+
+- **Data**: 2026-09-22
+- **Objetivo**: Verificar a estabilidade dos identificadores DEC-023 e DEC-024 entre `f00c7f7` e HEAD, sanar divergências de referências cruzadas, formalizar o princípio append-only de auditabilidade no `AGENTS.md` e restaurar o registro histórico original de PROMPT-002H sem reescrever entradas anteriores.
+- **Natureza da Tarefa**: Exclusivamente GOVERNANÇA, AUDITORIA e REFINAMENTO DOCUMENTAL. Sem novas dependências, sem código de produto, sem alteração de banco e sem início de PROMPT-003.
+
+### 1. Auditoria Factual de DEC-023 e DEC-024 (f00c7f7 vs. HEAD)
+- **Comparação Executada**:
+  - `git show f00c7f7:docs/DECISIONS_LOG.md` vs. `docs/DECISIONS_LOG.md` em HEAD.
+- **Evidência Factual da Fonte Autoritativa (`docs/DECISIONS_LOG.md`)**:
+  - Tanto em `f00c7f7` quanto em HEAD:
+    - **DEC-023**: `Protocolo Determinístico de Human Handoff e Prevenção de Abandono`
+    - **DEC-024**: `Governança de Gravações de Chamadas e Compliance Jurídico`
+  - *Houve troca de identidade no DECISIONS_LOG.md?* **NÃO**. A associação de IDs permaneceu estável.
+- **Investigação de Inconsistência de Referências Cruzadas**:
+  - Em `ARCHITECTURE.md`, `docs/VOICE_ARCHITECTURE.md`, `docs/LIVE_CALLS_AND_HANDOFF.md`, `docs/SECURITY.md`, `docs/ROADMAP.md` e `docs/PROJECT_VISION.md`: os identificadores numéricos DEC-023 e DEC-024 **NÃO** são citados.
+  - Em `f00c7f7:FOUNDATION_MASTER.md` e na entrada inicial de `f00c7f7:docs/AI_WORKLOG.md`: ocorreu uma citação textual invertida (Gravação citava DEC-023 e Handoff citava DEC-024).
+  - Em `HEAD:FOUNDATION_MASTER.md`:
+    - Linha 497 citava incorretamente `(DEC-023/DEC-024)` para gravação de chamadas.
+    - Linha 498 citava incorretamente `(DEC-024)` para human handoff.
+- **Correção Necessária e Aplicada**:
+  - **SIM**. Harmonizada a citação em `FOUNDATION_MASTER.md` para respeitar a fonte autoritativa imutável (`docs/DECISIONS_LOG.md`):
+    - Linha 497 (Gravação de chamadas): associada formalmente a **`DEC-024`**.
+    - Linha 498 (Human Handoff): associada formalmente a **`DEC-023`**.
+
+### 2. Formalização do Princípio Append-Only no AGENTS.md
+- Adicionada a **Seção 12 — Regras de Auditabilidade do AI_WORKLOG (Append-Only)** no [`AGENTS.md`](file:///d:/voice-agent-platform/AGENTS.md#L162-L168):
+  1. *Natureza Cronológica*: Entradas históricas em `docs/AI_WORKLOG.md` são registros factuais imutáveis e **NUNCA** devem ser silenciosamente reescritas para refletir decisões futuras.
+  2. *Correções Posteriores*: Qualquer correção de fato superado ou formulação incorreta deve ser registrada exclusivamente em nova entrada cronológica posterior, com indicação do erro, do prompt de origem e da evidência factual.
+  3. *Exceção Estrita*: Remoção emergencial de segredos ou credenciais reais expostas por acidente.
+- Tamanho final do arquivo `AGENTS.md`: **169 linhas** (cumprindo estritamente a meta <= 180 linhas).
+
+### 3. Tratamento e Reversão das Alterações Retrospectivas em docs/AI_WORKLOG.md
+- **Auditoria de Diff**: Executado `git diff f00c7f7 -- docs/AI_WORKLOG.md`.
+- **Constatação**: Durante o `PROMPT-002H-FIX`, a entrada histórica de `PROMPT-002H` havia sido reescrita diretamente para neutralizar o texto de URLs pré-assinadas e consentimento bilateral.
+- **Ação Corretiva Conforme o Princípio Append-Only**:
+  - A entrada histórica original de `PROMPT-002H` (linhas 1 a 751) foi **integralmente restaurada** ao seu estado idêntico ao commit `f00c7f7`.
+  - As correções de texto juridicamente neutro e de armazenamento agnóstico são preservadas integralmente na entrada posterior `PROMPT-002H-FIX`.
+  - Nenhuma credencial ou segredo foi reintroduzido (a restauração contemplou unicamente as formulações conceituais de storage e compliance da tarefa anterior).
+
+### 4. Arquivos Realmente Alterados
+1. [`AGENTS.md`](file:///d:/voice-agent-platform/AGENTS.md): Inclusão da Seção 12 formalizando a regra append-only para o `AI_WORKLOG.md`.
+2. [`FOUNDATION_MASTER.md`](file:///d:/voice-agent-platform/FOUNDATION_MASTER.md): Correção das citações cruzadas (DEC-024 para Gravações; DEC-023 para Human Handoff), harmonizando com `docs/DECISIONS_LOG.md`.
+3. [`docs/AI_WORKLOG.md`](file:///d:/voice-agent-platform/docs/AI_WORKLOG.md): Restauração da entrada histórica de PROMPT-002H e inclusão desta entrada auditável de fechamento (PROMPT-002H-CHECK).
+
+### 5. Comandos Executados e Resultados de Validação
+- `git show f00c7f7:docs/DECISIONS_LOG.md`: Análise factual da atribuição original de DEC-023 e DEC-024.
+- `git show f00c7f7:FOUNDATION_MASTER.md` e `git show f00c7f7:docs/AI_WORKLOG.md`: Rastreamento da divergência de citação.
+- `git diff f00c7f7 -- docs/AI_WORKLOG.md`: Verificação de alterações retrospectivas e confirmação de restauração.
+- `pnpm check`: Executado com aprovação integral (0 erros em Prettier, ESLint, TypeScript em 12 pacotes, Vitest 6/6 testes, Turbo Build em 12 pacotes, Architecture AST check e File Size check).
+- `git status --short`: Inspeção de arquivos alterados antes do commit.
+
+### 6. Governança Git e Pull Request
+- **Branch Ativa**: `docs/platform-control-live-calls` (mantida, sem nova branch).
+- **Commit**: `docs: preserve decision ids and worklog audit history`.
+- **Push**: `origin/docs/platform-control-live-calls`.
+- **Pull Request #2**: Permanece aberto, atualizado automaticamente pela branch remota, em estado `clean` e sem auto-merge.
+- **PROMPT-003**: NÃO iniciado.
