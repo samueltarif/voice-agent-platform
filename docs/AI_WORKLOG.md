@@ -1997,3 +1997,93 @@ A proposta final consolidada apresenta com clareza o status de cada componente t
 ## Arquivos críticos para revisão externa
 1. `docs/AI_WORKLOG.md` *(Contém a síntese executiva completa e rastreabilidade de todas as correções)*.
 2. `docs/research/PHASE_4_DECISION_GATE.md` *(Documento de pesquisa calibrado com as fronteiras de autorização e decisões propostas)*.
+
+---
+
+# PROMPT-004A-FINAL-FIX — Final Technical Precision Corrections
+
+> **Data / Horário**: 22 de Setembro de 2026  
+> **Branch**: `docs/phase4-decision-gate`  
+> **Escopo**: Aplicação de quatro correções factuais e semânticas no documento `docs/research/PHASE_4_DECISION_GATE.md` antes da aprovação humana e merge do PR #4.  
+> **Status de Execução**: SUCESSO (Append-Only)
+
+---
+
+### 1. Correções Técnicas Aplicadas em `docs/research/PHASE_4_DECISION_GATE.md`
+
+1. **Neon SDK/API Lock-in (Zero -> Baixo)**:
+   - Alterada a classificação de lock-in de SDK/API do Neon na matriz comparativa (Seção 14) de `Zero` para `Baixo`.
+   - **Justificativa factual**: A conectividade PostgreSQL padrão (`pg`, `postgres.js`) reduz o acoplamento da aplicação, mas APIs e capacidades específicas do provedor (como branching Copy-on-Write, autoscaling e automação operacional) permanecem *provider-specific*. O termo "zero lock-in" foi categoricamente eliminado.
+
+2. **Correção da Semântica de Métodos HTTP e CSRF**:
+   - Removida em 10.2 a redação que associava proteção CSRF a *"métodos HTTP não-idempotentes (POST, PUT, DELETE)"*, uma vez que `PUT` e `DELETE` possuem semântica idempotente pela RFC 9110 e `PATCH` estava ausente.
+   - Substituída pela formulação neutra: *"Uso de métodos de alteração de estado apropriados, como POST, PUT, PATCH e DELETE, conforme a semântica da operação."*
+   - Desacoplada formalmente a proteção contra CSRF da idempotência dos métodos HTTP.
+
+3. **Distinção entre Transacionalidade e Idempotência em Migrações**:
+   - Corrigida em Seção 13 qualquer afirmação de que controle transacional do runner "assegura idempotência".
+   - Registrado formalmente:
+     - Migrações são sequenciais e versionadas no Git (`packages/database/migrations/*.sql`);
+     - O migration runner deve registrar quais migrações já foram aplicadas (tabela de controle de histórico);
+     - Transações podem fornecer atomicidade quando suportadas pelo banco e pelo comando DDL executado;
+     - Atomicidade NÃO torna uma migração idempotente;
+     - Nenhuma migração deve ser presumida idempotente sem scripts dedicados de guarda;
+     - O comportamento exato depende do tooling efetivamente instalado e configurado na Fase 4B.
+
+4. **Remoção de `Account.password` como Detalhe Físico Antecipado**:
+   - Atualizados o diagrama conceitual e o texto da Seção 8 (`Account / AuthLink`), removendo a suposição antecipada de uma coluna física `Account.password` ou campo de hash.
+   - Registrado o conceito `Account / AuthLink` como vínculo abstrato entre o usuário e o mecanismo/provedor de autenticação (OAuth, credenciais locais, etc.), com campos físicos definidos exclusivamente pela versão instalada do Better Auth.
+   - Adicionada a diretiva mandatória:
+     `CREDENTIAL FIELD LAYOUT: TO BE VERIFIED FROM INSTALLED BETTER AUTH VERSION IN 004B.`
+   - Passwords e hashes permanecem como material confidencial sob gestão estrita da camada de autenticação, sem congelar antecipadamente esquemas físicos.
+
+---
+
+### 2. Preservação Estrita das Decisões Principais (Status Inalterado)
+
+Mantidas rigorosamente todas as decisões propostas sob os status formais já definidos:
+- **PROPOSED / HUMAN APPROVAL REQUIRED**:
+  - Engine: PostgreSQL;
+  - Provedor gerenciado 1ª candidata: Neon;
+  - Provedor gerenciado alternativo: Supabase Postgres;
+  - ORM: Drizzle ORM + drizzle-kit;
+  - Auth: Better Auth somente para Identity + Session;
+  - Plugin organization do Better Auth: DISABLED / NOT PART OF PROPOSAL;
+  - Tenant authorization source of truth: Application Domain (Repositories tipados);
+  - Platform Admin: Autorização global de domínio desacoplada de papéis de tenant;
+  - Web Architecture: `apps/web` como BFF/UI; `apps/api` como boundary de negócio e persistência;
+  - Desenvolvimento local: Docker Compose PostgreSQL;
+  - Row Level Security (RLS): Candidato a defesa em profundidade incremental.
+- **PENDING**:
+  - `INTERNAL SERVICE AUTH MECHANISM: PENDING DECISION`;
+  - `EPHEMERAL STATE / ASYNC EVENT INFRASTRUCTURE: PENDING DECISION`;
+  - `INTERNAL ID STRATEGY: PENDING DECISION`.
+- **DEFERRED**:
+  - `USAGE PERSISTENCE SCHEMA: DEFERRED UNTIL DOMAIN/USAGE REQUIREMENTS ARE CONCRETE`.
+
+---
+
+### 3. Evidências de Validação Automatizada (`pnpm check`)
+
+Execução factual da suíte completa de checagens:
+```bash
+$ pnpm check
+```
+- `prettier --check .`: SUCESSO (All matched files use Prettier code style).
+- `eslint .`: SUCESSO (Zero erros/warnings).
+- `turbo typecheck`: SUCESSO (12 pacotes verificados, Full Turbo).
+- `vitest run`: SUCESSO (6 test files passados, 19 testes unitários aprovados).
+- `turbo build`: SUCESSO (12 pacotes compilados, 8 páginas estáticas do Next.js 15 geradas).
+- `node scripts/check-architecture.mjs`: SUCESSO (Todas as fronteiras e regras arquiteturais respeitadas).
+- `node scripts/check-file-size.mjs`: SUCESSO (64 arquivos de lógica verificados em conformidade).
+
+---
+
+### 4. Governança Git e Estado do Pull Request
+
+- **Branch**: `docs/phase4-decision-gate` (mesma branch, sem criação de novas branches).
+- **Commit**: `docs: correct final phase 4 technical semantics`
+- **Push**: `origin/docs/phase4-decision-gate`
+- **PR #4**: Aberto (`https://github.com/samueltarif/voice-agent-platform/pull/4`), aguardando revisão e aprovação humana.
+- **PROMPT-004B NÃO INICIADO**: Nenhuma dependência instalada, nenhum recurso provisionado, nenhum secret manipulado.
+

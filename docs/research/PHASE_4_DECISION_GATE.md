@@ -178,8 +178,8 @@ Conforme auditoria arquitetural, investigou-se a fundo o funcionamento do Better
 ├──────────────────────────┬─────────────────────────────┤
 │ User                     │ id, email, name, image, ... │
 │ Session                  │ id, token, userId, expiresAt│
-│ Account (AuthLink)       │ id, providerId, accountId,  │
-│                          │ password (hash), userId     │
+│ Account / AuthLink       │ vínculo com provider/auth;  │
+│                          │ schema físico a verificar   │
 │ Verification             │ id, identifier, value, ...  │
 └──────────────────────────┴─────────────────────────────┘
                              │
@@ -206,9 +206,10 @@ Conforme auditoria arquitetural, investigou-se a fundo o funcionamento do Better
   3. Gerar o schema Drizzle oficial conforme a CLI/configuração da versão instalada;
   4. Definir as migrações físicas a partir dessa evidência concreta.
 
-### 8.2. Account e Material de Credencial
-- O modelo `Account` representa genericamente o vínculo entre uma identidade de autenticação externa/local e o usuário interno, conforme o schema oficial da versão instalada do Better Auth.
-- Passwords e seus respectivos hashes são **material confidencial de credencial interno da camada de autenticação**, residindo exclusivamente na infraestrutura do framework de auth (como `Account.password`).
+### 8.2. Account / AuthLink e Material de Credencial
+- O conceito `Account / AuthLink` representa o vínculo entre o usuário e o mecanismo/provedor de autenticação (OAuth, credenciais locais, etc.), com campos físicos definidos pela versão que for efetivamente instalada do Better Auth.
+- **`CREDENTIAL FIELD LAYOUT: TO BE VERIFIED FROM INSTALLED BETTER AUTH VERSION IN 004B`**.
+- Passwords e seus respectivos hashes continuam sendo material confidencial gerenciado estritamente pela camada de autenticação, mas sem antecipar ou congelar uma tabela ou coluna física específica (como uma presumida coluna `Account.password`).
 - O `User.id` gerado pelo framework de auth atua como chave estrangeira (`user_id`) para as tabelas de domínio. `providerUserId` permanece categoricamente **proibido** como chave universal de negócio.
 - **Estratégia de Identificadores Internos**: **`INTERNAL ID STRATEGY: PENDING DECISION`**. (UUIDv7, CUID2 e Nanoid permanecem como candidatas a serem avaliadas na Fase 4B quanto a geração na aplicação vs banco e indexação B-Tree).
 
@@ -261,7 +262,7 @@ Como o plugin `organization` não é utilizado, os papéis residem inteiramente 
     2. Política de `SameSite` apropriada;
     3. Proteção anti-CSRF dedicada (tokens CSRF / Double Submit Cookie / headers customizados) quando exigido pelo fluxo de autenticação;
     4. Restrição rigorosa de políticas de CORS;
-    5. Uso exclusivo de métodos HTTP não-idempotentes (`POST`, `PUT`, `DELETE`) para mutações.
+    5. Uso de métodos de alteração de estado apropriados, como POST, PUT, PATCH e DELETE, conforme a semântica da operação.
 - **Status**: `CSRF MITIGATION: PENDING IMPLEMENTATION / VALIDATE WITH AUTH FRAMEWORK IN 004B`.
 
 ---
@@ -291,7 +292,9 @@ Como o plugin `organization` não é utilizado, os papéis residem inteiramente 
 - As migrações devem seguir as recomendações técnicas do driver e do provedor de banco selecionado.
 - Conexões de sessão direta (unpooled / direct) são fortemente preferidas por ferramentas de migração que dependem de semântica de sessão do PostgreSQL (como advisory locks e comandos DDL).
 - As migrações são sequenciais, versionadas no Git em `packages/database/migrations/*.sql` e aplicadas via pipeline automatizado de CI/CD.
-- Não devem ser presumidas automaticamente idempotentes sem scripts específicos de guarda; a segurança é garantida pela execução transacional do runner de migrações.
+- O migration runner deve registrar quais migrações já foram aplicadas (tabela de controle de histórico de migrações).
+- Transações podem fornecer atomicidade quando suportadas pelo banco e pelo comando executado; porém, atomicidade NÃO torna uma migração idempotente.
+- Nenhuma migração deve ser presumida idempotente; o comportamento exato de isolamento e execução depende do tooling efetivamente instalado e configurado.
 - Alterações estruturais incompatíveis seguem o padrão *Expand and Contract*.
 
 ---
@@ -302,7 +305,7 @@ Como o plugin `organization` não é utilizado, os papéis residem inteiramente 
 | :--- | :--- | :--- | :--- | :--- |
 | **Data Model Portability** | **Alta**: PostgreSQL padrão; exportável via `pg_dump`. | **Alta**: PostgreSQL padrão; exportável via `pg_dump`. | **Alta**: Tabelas SQL padrão no banco da aplicação. | **Alta**: Schemas traduzem diretamente para DDL SQL padrão. |
 | **Operational Lock-in** | **Médio**: APIs de branching e autoscaling criam acoplamento de pipeline CI/CD. | **Médio**: Pooler Supavisor e infraestrutura integrada criam convenções de deploy. | **Baixo**: Executado em Node.js como biblioteca na aplicação. | **Baixo**: Executa via CLI Node padrão sem dependência de nuvem. |
-| **SDK / API Lock-in** | **Zero**: Conexão via drivers padrão (`pg`, `postgres.js`). | **Baixo**: Se usado puramente como PostgreSQL via drivers padrão. | **Baixo**: APIs de auth desacopladas do core de domínio (Option A). | **Baixo**: Código de negócio isolado via Repositories em `packages/database`. |
+| **SDK / API Lock-in** | **Baixo**: Conexão via drivers padrão (`pg`, `postgres.js`), mas APIs e capacidades específicas do provedor (branching, autoscaling e automação operacional) continuam provider-specific. | **Baixo**: Se usado puramente como PostgreSQL via drivers padrão. | **Baixo**: APIs de auth desacopladas do core de domínio (Option A). | **Baixo**: Código de negócio isolado via Repositories em `packages/database`. |
 | **Auth Schema Lock-in** | N/A | **Médio**: Identidades residem no schema interno `auth.users`. | **Baixo a Médio**: Modelos padrão SQL no próprio banco da aplicação. | N/A |
 
 ---
