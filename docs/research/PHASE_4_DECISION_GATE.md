@@ -1,8 +1,8 @@
 # Pesquisa Arquitetural e Portão de Decisão — Fase 4: Persistência, Autenticação e Multi-Tenancy (PHASE_4_DECISION_GATE.md)
 
-> **Status do Documento**: PROPOSED / HUMAN APPROVAL REQUIRED  
+> **Status do Documento**: ACCEPTED BY HUMAN — 2026-09-22 (decisões de fundação aprovadas; itens PENDING e DEFERRED permanecem)  
 > **Data da Consulta / Pesquisa**: 22 de Setembro de 2026  
-> **Origem da Demanda**: PROMPT-004A, PROMPT-004A-FIX & PROMPT-004A-CHECK — Fechamento do Decision Gate antes da Aprovação Humana  
+> **Origem da Demanda**: PROMPT-004A, PROMPT-004A-FIX, PROMPT-004A-CHECK & PROMPT-004A-FINAL-FIX — Aprovação Humana do Decision Gate  
 > **Escopo**: Pesquisa comparativa, avaliação técnica precisa, matriz de decisão e proposta de stack para validação humana.  
 > **Salvaguardas Críticas**: Zero dependências instaladas, zero provisionamento de infraestrutura/cloud, zero secrets criados ou manipulados, zero DDLs ou migrations executadas em código de produção.
 
@@ -344,26 +344,24 @@ O PROMPT-004B implementará exclusivamente a **Fundação de Identidade, Tenant 
 
 ---
 
-## 17. Decisões Propostas Submetidas para Aprovação Humana
+## 17. Decisões Arquiteturais — Status Final
 
-Submete-se formalmente para apreciação e aprovação humana o seguinte conjunto de decisões arquiteturais:
+Aprovação humana explícita recebida em **22 de Setembro de 2026**.
 
-| Item de Decisão | Proposta Técnica Recomendada | Status |
+| Item de Decisão | Decisão Técnica | Status |
 | :--- | :--- | :--- |
-| **ENGINE** | **PostgreSQL** (versão major alinhada ao provedor cloud) | PROPOSED / HUMAN APPROVAL REQUIRED |
-| **MANAGED DB FIRST CANDIDATE** | **Neon** (branching para CI/CD, sa-east-1) | PROPOSED / HUMAN APPROVAL REQUIRED |
-| **MANAGED DB ALTERNATIVE** | **Supabase Postgres** (ecossistema maduro, sa-east-1) | PROPOSED / HUMAN APPROVAL REQUIRED |
-| **ORM** | **Drizzle ORM + drizzle-kit** | PROPOSED / HUMAN APPROVAL REQUIRED |
-| **AUTH** | **Better Auth somente Identity + Session** | PROPOSED / HUMAN APPROVAL REQUIRED |
-| **BETTER AUTH ORGANIZATION PLUGIN** | **DISABLED / NOT PART OF PROPOSAL** | PROPOSED / HUMAN APPROVAL REQUIRED |
-| **TENANT AUTHORIZATION SOURCE OF TRUTH**| **Application Domain** (Repositories tipados) | PROPOSED / HUMAN APPROVAL REQUIRED |
-| **PLATFORM ADMIN** | **Global domain authorization, separate from tenant roles** | PROPOSED / HUMAN APPROVAL REQUIRED |
-| **WEB ARCHITECTURE** | **apps/web as UI/BFF; apps/api as business/persistence boundary** | PROPOSED / HUMAN APPROVAL REQUIRED |
-| **LOCAL DEVELOPMENT** | **Docker Compose PostgreSQL**, subject to human environment availability | PROPOSED / HUMAN APPROVAL REQUIRED |
-| **ROW LEVEL SECURITY (RLS)** | **Incremental defense-in-depth candidate**, not primary mechanism | PROPOSED / HUMAN APPROVAL REQUIRED |
+| **ENGINE** | **PostgreSQL** (versão major alinhada ao provedor cloud) | ACCEPTED BY HUMAN — 2026-09-22 |
+| **MANAGED DB FIRST CANDIDATE** | **Neon** (branching para CI/CD, sa-east-1) | ACCEPTED BY HUMAN — 2026-09-22 |
+| **MANAGED DB ALTERNATIVE** | **Supabase Postgres** (ecossistema maduro, sa-east-1) | ACCEPTED BY HUMAN — 2026-09-22 |
+| **ORM** | **Drizzle ORM + drizzle-kit** | ACCEPTED BY HUMAN — 2026-09-22 |
+| **AUTH** | **Better Auth somente Identity + Session** | ACCEPTED BY HUMAN — 2026-09-22 |
+| **BETTER AUTH ORGANIZATION PLUGIN** | **DISABLED / NOT PART OF PROPOSAL** | ACCEPTED BY HUMAN — 2026-09-22 |
+| **TENANT AUTHORIZATION SOURCE OF TRUTH**| **Application Domain** (Repositories tipados) | ACCEPTED BY HUMAN — 2026-09-22 |
+| **PLATFORM ADMIN** | **Global domain authorization, separate from tenant roles** | ACCEPTED BY HUMAN — 2026-09-22 |
+| **WEB ARCHITECTURE** | **apps/web as UI/BFF; apps/api as business/persistence boundary** | ACCEPTED BY HUMAN — 2026-09-22 |
+| **LOCAL DEVELOPMENT** | **Docker Compose PostgreSQL**, subject to human environment availability | ACCEPTED BY HUMAN — 2026-09-22 |
+| **ROW LEVEL SECURITY (RLS)** | **Incremental defense-in-depth candidate**, not primary mechanism | ACCEPTED BY HUMAN — 2026-09-22 |
 | **INTERNAL SERVICE AUTH** | **PENDING DECISION** | PENDING |
 | **EPHEMERAL/QUEUE INFRASTRUCTURE** | **PENDING DECISION** | PENDING |
 | **INTERNAL ID STRATEGY** | **PENDING DECISION** | PENDING |
 | **USAGE SCHEMA** | **DEFERRED** | DEFERRED |
-
-*Nenhum item possui status Accepted até a manifestação formal do operador humano.*

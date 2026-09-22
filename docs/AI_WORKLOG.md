@@ -2087,3 +2087,78 @@ $ pnpm check
 - **PR #4**: Aberto (`https://github.com/samueltarif/voice-agent-platform/pull/4`), aguardando revisão e aprovação humana.
 - **PROMPT-004B NÃO INICIADO**: Nenhuma dependência instalada, nenhum recurso provisionado, nenhum secret manipulado.
 
+---
+
+# PROMPT-004A-APPROVAL — Human Approval and Architecture Acceptance
+
+> **Data / Horário**: 22 de Setembro de 2026  
+> **Branch**: `docs/phase4-decision-gate`  
+> **Escopo**: Formalização da aprovação humana da arquitetura da Fase 4, conversão das decisões aprovadas para status ACCEPTED, criação de DEC-026 e ADR-008, merge do PR #4.  
+> **Status de Execução**: SUCESSO (Append-Only)
+
+---
+
+### 1. Aprovação Humana Recebida
+
+Em **22 de Setembro de 2026**, o operador humano emitiu aprovação explícita para o conjunto de decisões arquiteturais da Fase 4 (Persistência, Autenticação e Multi-Tenancy).
+
+**Resumo da aprovação**:
+- PostgreSQL como engine relacional;
+- Neon Serverless Postgres como managed DB principal;
+- Supabase Postgres como alternativa;
+- Drizzle ORM + drizzle-kit como camada de persistência e migrations;
+- Better Auth exclusivamente para Identity + Session;
+- Plugin `organization` do Better Auth NÃO será utilizado;
+- Organization, OrganizationMembership, Tenant Roles, PlatformAdminAuthorization, Plans, Entitlements, Subscriptions e CommercialGrants pertencem 100% ao domínio da aplicação;
+- Application Domain é fonte de verdade para autorização tenant;
+- Platform Admin é autorização global separada de tenant roles;
+- `apps/web` atua como UI/BFF; `apps/api` como boundary de negócio e persistência;
+- Docker Compose PostgreSQL aprovado para desenvolvimento local quando disponível;
+- RLS como defesa em profundidade incremental, não mecanismo primário.
+
+### 2. Transição de Status das Decisões
+
+| Item | Status Anterior | Status Atual |
+| :--- | :--- | :--- |
+| ENGINE (PostgreSQL) | PROPOSED / HUMAN APPROVAL REQUIRED | **ACCEPTED BY HUMAN — 2026-09-22** |
+| MANAGED DB FIRST CANDIDATE (Neon) | PROPOSED / HUMAN APPROVAL REQUIRED | **ACCEPTED BY HUMAN — 2026-09-22** |
+| MANAGED DB ALTERNATIVE (Supabase PG) | PROPOSED / HUMAN APPROVAL REQUIRED | **ACCEPTED BY HUMAN — 2026-09-22** |
+| ORM (Drizzle ORM + drizzle-kit) | PROPOSED / HUMAN APPROVAL REQUIRED | **ACCEPTED BY HUMAN — 2026-09-22** |
+| AUTH (Better Auth Identity + Session) | PROPOSED / HUMAN APPROVAL REQUIRED | **ACCEPTED BY HUMAN — 2026-09-22** |
+| BETTER AUTH ORG PLUGIN (DISABLED) | PROPOSED / HUMAN APPROVAL REQUIRED | **ACCEPTED BY HUMAN — 2026-09-22** |
+| TENANT AUTH SOURCE OF TRUTH (Domain) | PROPOSED / HUMAN APPROVAL REQUIRED | **ACCEPTED BY HUMAN — 2026-09-22** |
+| PLATFORM ADMIN (Global separado) | PROPOSED / HUMAN APPROVAL REQUIRED | **ACCEPTED BY HUMAN — 2026-09-22** |
+| WEB ARCHITECTURE (BFF / API boundary) | PROPOSED / HUMAN APPROVAL REQUIRED | **ACCEPTED BY HUMAN — 2026-09-22** |
+| LOCAL DEVELOPMENT (Docker Compose PG) | PROPOSED / HUMAN APPROVAL REQUIRED | **ACCEPTED BY HUMAN — 2026-09-22** |
+| RLS (Incremental defense-in-depth) | PROPOSED / HUMAN APPROVAL REQUIRED | **ACCEPTED BY HUMAN — 2026-09-22** |
+
+### 3. Itens que Permanecem PENDING
+
+- `INTERNAL SERVICE AUTH MECHANISM`: PENDING
+- `EPHEMERAL STATE / ASYNC EVENT INFRASTRUCTURE`: PENDING
+- `INTERNAL ID STRATEGY`: PENDING
+
+### 4. Item DEFERRED
+
+- `USAGE PERSISTENCE SCHEMA`: DEFERRED
+
+### 5. Artefatos Documentais Criados/Atualizados
+
+| Arquivo | Ação |
+| :--- | :--- |
+| `docs/research/PHASE_4_DECISION_GATE.md` | Status do documento e tabela de decisões (Seção 17) atualizados de PROPOSED para ACCEPTED BY HUMAN |
+| `docs/DECISIONS_LOG.md` | DEC-026 adicionado; itens pendentes atualizados para refletir decisões tomadas |
+| `docs/architecture/decisions/ADR-008-persistence-auth-multitenancy.md` | **NOVO** — ADR formal com Context, Decision, Alternatives Considered, Consequences, Trade-offs, Security Boundaries e Pending Decisions |
+| `docs/architecture/decisions/README.md` | ADR-008 adicionado ao índice |
+| `docs/AI_WORKLOG.md` | Esta entrada (PROMPT-004A-APPROVAL) — append-only |
+
+### 6. Salvaguardas Confirmadas
+
+- Zero dependências instaladas;
+- Zero provisionamento de infraestrutura/cloud;
+- Zero secrets criados ou manipulados;
+- Zero migrations geradas ou executadas;
+- Zero alterações em código de produto;
+- Nenhum projeto Neon criado;
+- Nenhum uso do Supabase MCP para provisioning;
+- PROMPT-004B NÃO iniciado.

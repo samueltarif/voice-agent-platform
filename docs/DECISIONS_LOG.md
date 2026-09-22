@@ -35,6 +35,7 @@ Data de Registro Inicial: 21 de Setembro de 2026.
 | **DEC-023** | 2026-09-22 | Voz & Handoff | **Protocolo Determinístico de Human Handoff e Prevenção de Abandono** | Transbordo humano operado por protocolo orquestrado e state machine determinística (`NONE` a `AI_DETACHED`). Proibição de silêncio indefinido com fallbacks automatizados. Consulte `docs/LIVE_CALLS_AND_HANDOFF.md`. |
 | **DEC-024** | 2026-09-22 | Segurança | **Governança de Gravações de Chamadas e Compliance Jurídico** | Gravações privadas por padrão em object storage, acessadas via mecanismo autenticado/autorizado, temporário e auditável quando aplicável (como presigned URLs, signed delivery ou endpoint autenticado), com TTL configurável. Requisitos de aviso, ciência, consentimento e/ou base legal aplicável marcados como `COMPLIANCE VERIFICATION REQUIRED BEFORE PRODUCTION`. |
 | **DEC-025** | 2026-09-22 | Frontend & UI | **Stack Frontend Web, Design System e Application Shell** | Adoção de Next.js 15 (App Router) em `apps/web`, React 19 com peerDependencies em `packages/ui`, Tailwind CSS v4 com CSS variables como Single Source of Truth para tokens visuais (Light Mode como padrão comercial corporativo B2B, Dark Mode secundário), Radix UI primitives com displayNames estáticos, persistência de preferências de UI (`localStorage`) com prevenção de hydration mismatch, e rota `/ui-preview` bloqueada com `notFound()` em produção. |
+| **DEC-026** | 2026-09-22 | Persistência, Auth & Multi-Tenancy | **Fundação de Persistência, Autenticação e Multi-Tenancy (Fase 4)** | PostgreSQL como engine relacional; Neon Serverless Postgres como managed DB principal (sa-east-1, branching para CI/CD), Supabase Postgres como alternativa; Drizzle ORM + drizzle-kit como camada de persistência e migrations; Better Auth exclusivamente para Identity + Session (plugin `organization` desabilitado); Organization, OrganizationMembership, Tenant Roles, PlatformAdminAuthorization, Plans, Entitlements, Subscriptions e CommercialGrants pertencem 100% ao domínio da aplicação; Platform Admin é autorização global separada de tenant roles; `apps/web` atua como UI/BFF, `apps/api` como boundary de negócio e persistência; Docker Compose PostgreSQL para desenvolvimento local; RLS como defesa em profundidade incremental, não mecanismo primário. Permanecem PENDING: Internal Service Auth, Ephemeral/Queue Infrastructure, Internal ID Strategy. DEFERRED: Usage Persistence Schema. Aprovação humana explícita em 2026-09-22. Pesquisa completa em `docs/research/PHASE_4_DECISION_GATE.md` (ADR-008). |
 
 ---
 
@@ -44,18 +45,22 @@ Nenhuma das tecnologias e fornecedores abaixo foi selecionada de forma definitiv
 
 | Tópico | Candidatos em Avaliação | Status |
 | :--- | :--- | :--- |
-| **Motor de Banco de Dados Relacional** | PostgreSQL / MySQL / CockroachDB | **Status: Pending Decision** |
-| **Camada de Acesso a Dados / ORM** | Prisma / Drizzle / Kysely / TypeORM | **Status: Pending Decision** |
+| **Motor de Banco de Dados Relacional** | PostgreSQL | **Status: Decided (DEC-026 / ADR-008)** |
+| **Managed Database Provider** | Neon (principal) / Supabase Postgres (alternativa) | **Status: Decided (DEC-026 / ADR-008)** |
+| **Camada de Acesso a Dados / ORM** | Drizzle ORM + drizzle-kit | **Status: Decided (DEC-026 / ADR-008)** |
+| **Provedor de Autenticação de Usuários** | Better Auth (Identity + Session only) | **Status: Decided (DEC-026 / ADR-008)** |
 | **Linguagem do Voice Engine (`apps/voice`)** | TypeScript (Node) / Python / Go / Rust | **Status: Pending Decision** |
+| **Mecanismo de Auth Interna entre Serviços** | Revalidação de sessão / JWT interno / mTLS / shared secret | **Status: Pending Decision** |
 | **Motor de Sessão em Tempo Real & Cache** | Redis / Valkey / Dragonfly | **Status: Pending Decision** |
 | **Sistema de Filas e Mensageria Assíncrona** | BullMQ (Redis) / RabbitMQ / AWS SQS / Temporal | **Status: Pending Decision** |
+| **Estratégia de Identificadores Internos** | UUIDv7 / CUID2 / Nanoid | **Status: Pending Decision** |
 | **Fornecedor Primário de Telefonia** | Twilio / Telnyx / Plivo / Zadarma | **Status: Pending Decision** |
 | **Fornecedor de Motor de Voz / LLM Realtime**| OpenAI Realtime API / ElevenLabs Conversational / Deepgram + LiveKit | **Status: Pending Decision** |
 | **Provedor de Object Storage** | Cloudflare R2 / AWS S3 / Google Cloud Storage | **Status: Pending Decision** |
-| **Provedor de Autenticação de Usuários** | Custom JWT + Passwordless / Clerk / Auth0 / Supabase Auth | **Status: Pending Decision** |
 | **Framework do Frontend Web (`apps/web`)** | Next.js (App Router) + React 19 + Tailwind v4 | **Status: Decided (DEC-025 / ADR-007)** |
 | **Infraestrutura de Hospedagem / Cloud** | AWS / Google Cloud Platform / Fly.io / Kubernetes | **Status: Pending Decision** |
 | **Gateway de Pagamento / Faturamento SaaS** | Stripe / Asaas / Pagar.me | **Status: Pending Decision** |
 | **Live Audio Stream (Áudio ao Vivo no Navegador)** | WebRTC / WebSockets Audio Broadcast | **Status: Planned / Provider-Dependent / Not Yet Validated** |
 | **Modo Listen-Only do Operador no Handoff** | Muting seletivo de carrier / Audio Bridging | **Status: Planned / Provider-Dependent / Not Yet Validated** |
+| **Usage Persistence Schema** | Particionamento declarativo / tabelas de usage | **Status: Deferred** |
 
