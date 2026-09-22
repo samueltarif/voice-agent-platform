@@ -1655,3 +1655,207 @@ O início da implementação prática (PROMPT-004B) aguardará a aprovação hum
 ## Arquivos críticos para revisão externa
 1. `docs/AI_WORKLOG.md` *(Contém a síntese executiva completa e rastreabilidade integral desta etapa)*.
 2. `docs/research/PHASE_4_DECISION_GATE.md` *(Documento completo de pesquisa, matriz comparativa detalhada, modelo conceitual e plano da Fase 4B)*.
+
+
+---
+
+## PROMPT-004A-FIX — Auth/Tenant Boundaries and Decision Precision
+
+- **Data**: 2026-09-22
+- **Branch Ativa**: `docs/phase4-decision-gate` (mesma branch do PR #4, sem bifurcações).
+- **Objetivo**: Refinar e consolidar as fronteiras arquiteturais entre autenticação e domínio de negócio, eliminar riscos de *dual source of truth*, delimitar com precisão o escopo do PROMPT-004B e corrigir formulações absolutas ou imprecisas no documento de decisão técnica da Fase 4.
+- **Guardrails Estritamente Respeitados**:
+  - Zero dependências instaladas.
+  - Zero provisionamento de recursos em nuvem ou bancos de dados.
+  - Zero alteração no código de produto de `apps/web`.
+  - O MCP do Supabase NÃO foi utilizado para operações de escrita ou provisionamento.
+  - Registro rigorosamente append-only (entradas históricas preservadas sem modificação).
+
+---
+
+### 1. Resolução da Colisão Arquitetural: Better Auth vs. Domínio da Aplicação
+
+Após investigação detalhada da documentação oficial do Better Auth via Context7 (`/better-auth/better-auth`), as questões de governança foram elucidadas:
+
+- **A. Tabelas do Plugin `organization`**: Cria os modelos `organization` (`id`, `name`, `slug`, `logo`, `createdAt`, `metadata`), `member` (`id`, `organizationId`, `userId`, `role`, `createdAt`) e `invitation` (`id`, `organizationId`, `email`, `role`, `status`, `expiresAt`, `inviterId`).
+- **B. Customização e Mapeamento**: O plugin suporta renomear tabelas via `schema.<model>.modelName` e adicionar colunas com `additionalFields`.
+- **C. Funcionamento sem o Plugin**: O núcleo do Better Auth opera de forma 100% autônoma apenas com `user`, `session`, `account`, `verification`. O plugin `organization` é estritamente opcional.
+- **D. Dependência de Convites e Roles**: As APIs automáticas de convite e RBAC do Better Auth dependem estritamente das tabelas do plugin. Sem ele, a lógica de membros e convites reside no código de domínio.
+- **E. Duplicação de Dados**: Manter o plugin e tabelas de domínio próprias duplicaria organizações, membros, convites e papéis em dois schemas concorrentes.
+- **F. Eliminação do Dual Source of Truth**:
+  - **Decisão Formal**: Adoção da **OPTION A**.
+  - **Diretriz**: O Better Auth é adotado **EXCLUSIVAMENTE para Identidade e Sessão** (`user`, `session`, `account`, `verification`). O plugin `organization` **NÃO É ATIVADO**.
+  - **Soberania do Domínio**: As entidades `Organization`, `OrganizationMembership`, `TenantRole` (`OWNER`, `ADMIN`, `MANAGER`, `OPERATOR`, `VIEWER`), `PlatformAdminAuthorization`, `Plan`, `Entitlements`, `CommercialGrant` e `Subscription` pertencem **100% ao domínio da aplicação**, gerenciadas exclusivamente por Repositories tipados em `packages/database`.
+  - **Separação Canônica**: Autenticação responde "quem é você" (Better Auth). Autorização responde "o que você pode fazer" (Domínio da Aplicação). Se o provedor de auth for alterado no futuro, nenhuma regra de negócio ou autorização é impactada.
+
+---
+
+### 2. Refinamento do Modelo de Identidade e Credenciais (`AuthIdentity`)
+
+- **Correção Conceitual**: Esclarecido que senhas e seus respectivos hashes são **material confidencial de credencial interno da camada de autenticação**, e NÃO devem ser confundidos com identificadores de sujeito (`providerSubject`).
+- **Tabela `account` como Implementação de `AuthIdentity`**: O Better Auth já implementa nativamente o conceito de vínculo de identidade através da tabela `account`:
+  - `providerId`: Provedor (`"credential"`, `"google"`, `"magic_link"`);
+  - `accountId`: Identificador do sujeito no provedor externo (`sub` do OIDC/OAuth ou e-mail);
+  - `password`: Hash da senha (armazenado apenas para credenciais locais);
+  - `userId`: Chave estrangeira referenciando `user.id`.
+- **Segregação Clara de Propriedade de Schemas**:
+  - **Tabelas do Framework de Auth (Better Auth)**: `user`, `session`, `account`, `verification`.
+  - **Tabelas do Domínio da Aplicação**: `organizations`, `organization_memberships`, `platform_admin_authorizations`, `plans`, `entitlements`, `subscriptions`, `commercial_grants`.
+
+---
+
+### 3. Estratégia de Usuário Canônico (`User`)
+
+- A tabela `users` gerenciada pelo Better Auth atua como a entidade base de usuário no banco de dados (`id`, `name`, `email`, `emailVerified`, `image`).
+- O `user.id` do Better Auth é utilizado diretamente como chave estrangeira (`user_id`) em tabelas de domínio (`organization_memberships`, `platform_admin_authorizations`, `audit_logs`), garantindo integridade referencial nativa sem tabelas de mapeamento intermediárias.
+- `providerUserId` permanece expressamente **proibido** como chave universal de negócio.
+- **Estratégia de Chaves Primárias Internas**: Definida como `INTERNAL ID STRATEGY: PENDING DECISION`. UUIDv7, CUID2 e Nanoid permanecem como candidatas a serem validadas na Fase 4B quanto a geração na aplicação vs banco e indexação B-Tree.
+
+---
+
+### 4. Papéis Organizacionais (`OrganizationRole`) e Platform Admin
+
+- **Papéis de Tenant**: Como o plugin `organization` não é utilizado (Option A), os papéis residem inteiramente na tabela de domínio `organization_memberships(role)` como um enum rigoroso do PostgreSQL: `OWNER`, `ADMIN`, `MANAGER`, `OPERATOR`, `VIEWER`. As regras de permissão e herança são validadas deterministicamente em código de domínio testado.
+- **Platform Admin Global**: Continua estritamente segregado na tabela técnica `platform_admin_authorizations`, sem escopo de tenant e desacoplado de qualquer papel de organização.
+
+---
+
+### 5. Arquitetura do Fluxo de Autenticação (Browser, Web e API)
+
+Para garantir proteção estrita contra vazamento de tokens e ataques XSS, foi rejeitada qualquer arquitetura que exponha tokens de sessão ao JavaScript do navegador:
+
+- **Fluxo A — BFF Server-to-Server via `apps/web` (Recomendado para a UI Web)**:
+  - O browser autentica-se com `apps/web` utilizando exclusivamente **Cookie HTTP-only seguro** (`SameSite=Lax`, `Secure`).
+  - O JavaScript client-side **nunca** tem acesso ao token de sessão.
+  - Componentes de servidor / Server Actions em `apps/web` validam a sessão no Better Auth e comunicam-se com a `apps/api` de forma server-to-server repassando o contexto autenticado e validado (`X-User-Id`, `X-Organization-Id`, `X-Correlation-Id`).
+  - Mitiga integralmente riscos de CSRF, simplifica CORS e isola a API gateway.
+- **Fluxo B — Acesso Direto do Browser à `apps/api` via Cookie Compartilhado de Subdomínio**:
+  - `app.dominio.com` e `api.dominio.com` compartilhando cookie com escopo `Domain=.dominio.com`. Avaliado como alternativa futura para endpoints de alta frequência da UI, exigindo CORS restrito com `credentials: true` e proteção anti-CSRF com headers customizados.
+- **Fluxo C — Bearer Tokens**:
+  - Restrito a clientes nativos, CLIs, automações e integrações máquina-a-máquina (M2M). Não utilizado para o dashboard web padrão para evitar armazenamento em `localStorage`.
+
+---
+
+### 6. Autenticação de Serviços Internos (`Internal Service Auth`)
+
+- Nenhuma tecnologia (HMAC, JWT interno, API Key) foi fixada antecipadamente para a comunicação entre `apps/voice`, `apps/worker` e `apps/api`.
+- Registro formal: **`INTERNAL SERVICE AUTH MECHANISM: PENDING DECISION`**.
+- Requisitos arquiteturais estabelecidos: autenticação service-to-service segura, capacidade de rotação periódica, princípio do menor privilégio, auditabilidade e obrigatoriedade de contexto com `organizationId` e `correlationId`.
+
+---
+
+### 7. Fronteiras de Acesso ao Banco de Dados
+
+- **`apps/web`**: Interface visual e BFF. Possui acesso estritamente às **tabelas de autenticação** (route handlers do Better Auth em `/api/auth/*`). **ACESSO DIRETO A TABELAS DE DOMÍNIO DE NEGÓCIO É PROIBIDO**. Toda leitura e escrita de regras de negócio passa por `apps/api`.
+- **`apps/api`**: Boundary primário de persistência relacional e regras de negócio síncronas. Executa repositórios tipados de domínio.
+- **`apps/worker`**: Processamento em background assíncrono. Pode utilizar repositórios de domínio para tarefas em lote e consolidação de métricas.
+- **`apps/voice`**: Motor de streaming em tempo real. **NÃO realiza persistência de domínio no caminho crítico de áudio (critical path)**, evitando contenção de conexões em picos de chamadas.
+
+---
+
+### 8. Infraestrutura Efêmera e Filas
+
+- O Redis foi removido como escolha decidida.
+- Registro formal: **`EPHEMERAL STATE / ASYNC EVENT INFRASTRUCTURE: PENDING DECISION`**.
+
+---
+
+### 9. Governança e Semântica de Migrações (Correção de Absolutos)
+
+- Corrigidas generalizações anteriores sobre DDLs e poolers transacionais.
+- Formulação precisa: as migrações devem seguir as diretrizes do driver e provedor selecionado. Conexões de sessão direta (unpooled / direct) são fortemente preferidas por ferramentas de migração que utilizam semântica de sessão do PostgreSQL (como advisory locks e comandos DDL).
+- As migrações são sequenciais e versionadas no Git (`packages/database/migrations/*.sql`), e não devem ser presumidas automaticamente idempotentes sem validação de scripts específicos. Alterações não-triviais seguem o padrão *Expand and Contract*.
+
+---
+
+### 10. Classificação Realista de Lock-in Tecnológico
+
+Removida a afirmação de "zero lock-in". As tecnologias propostas foram classificadas em 4 dimensões:
+- **Data Model Portability**: **Alta** (PostgreSQL padrão; exportável integralmente via `pg_dump`).
+- **Operational Lock-in**: **Médio** (APIs de branching do Neon, Supavisor do Supabase e scripts de deploy criam acoplamento de pipeline).
+- **SDK/API Lock-in**: **Baixo** (Drizzle gera TypeScript puro; Option A isola o domínio das APIs do Better Auth).
+- **Auth Schema Lock-in**: **Baixo a Médio** (Tabelas padrão SQL de `user` e `session` no próprio banco da aplicação).
+
+---
+
+### 11. Justificativa Técnica do Motor Relacional (NoSQL)
+
+- Retificada a justificativa: o PostgreSQL é proposto porque os requisitos fundamentais do produto são predominantemente relacionais, transacionais e fortemente orientados a constraints de integridade e auditoria. Não há justificativa para introduzir NoSQL no core transacional do SaaS, sem necessidade de generalizações sobre a capacidade de outros bancos.
+- A decisão humana nesta etapa é: **`ENGINE: PostgreSQL`**. A versão major exata será fixada no momento da escolha do provedor cloud para garantir que `local == staging == production`.
+
+---
+
+### 12. Escopo Delimitado da Fase 4B (Fundação Enxuta)
+
+Para garantir foco e respeitar o sequenciamento do roadmap, as entidades de fases posteriores (`agents`, `agent_versions`, `calls`, `campaigns`, `contacts`) foram **removidas** do plano inicial da Fase 4B.
+
+O PROMPT-004B contemplará exclusivamente a **Fundação de Identidade, Tenant e Modelo Comercial**:
+1. Schemas e tabelas de autenticação do Better Auth (`users`, `sessions`, `accounts`, `verifications`);
+2. Tabelas de organização: `organizations`, `organization_memberships`;
+3. Tabelas de governança da plataforma: `platform_admin_authorizations`;
+4. Tabelas comerciais: `plans`, `entitlements`, `subscriptions`, `commercial_grants`;
+5. Estrutura mínima de auditoria de autorização (`audit_logs`);
+6. Repositories tipados em `packages/database` com validação obrigatória de `organizationId`;
+7. Suíte de testes automatizados das 7 Invariantes de Segurança.
+*(Tabelas de Usage detalhado serão implementadas com schema simples relacional; particionamento prematuro foi descartado).*
+
+---
+
+### 13. Regiões dos Provedores e Soberania de Dados (LGPD / Latência)
+
+Pesquisa documental oficial confirmou:
+- **Neon**: Suporta oficialmente a região **AWS South America (São Paulo) — `aws-sa-east-1`** (Fonte: `neon.tech/docs/introduction/regions`, consultado em 22/09/2026).
+- **Supabase**: Suporta oficialmente a região **`sa-east-1` (São Paulo, Brasil)** para banco, autenticação e storage (Fonte: `supabase.com/docs/guides/platform/regions`, consultado em 22/09/2026).
+- **Railway**: **NÃO possui região no Brasil/América do Sul**; instâncias operam em US West, US East, Europe West e Asia Southeast (Fonte: `docs.railway.com`, consultado em 22/09/2026).
+- *Conclusão*: Neon e Supabase atendem aos requisitos de baixa latência e soberania de dados para clientes corporativos brasileiros; Railway apresenta latência de rede transcontinental.
+
+---
+
+### 14. Custos e Licenciamento do Better Auth
+
+- **Custo de Licenciamento**: **US$ 0** (Software livre sob Licença MIT).
+- **Custo Operacional**: Requer computação própria, banco de dados, provedor de e-mail transacional (SMTP/Resend) e monitoramento.
+
+---
+
+### 15. Proposta Revisada para Aprovação Humana
+
+| Componente | Opção Recomendada | Alternativa de 1ª Linha |
+| :--- | :--- | :--- |
+| **Motor de Banco de Dados** | **PostgreSQL** (versão alinhada ao provedor cloud) | *(Unânime)* |
+| **Provedor Gerenciado** | **Neon Serverless Postgres** (1ª Candidata) | **Supabase Postgres** (Alternativa) |
+| **Camada ORM / Persistência** | **Drizzle ORM + drizzle-kit** | **Kysely** |
+| **Sistema de Autenticação** | **Better Auth (Option A: Identidade + Sessão)** | **Clerk** (se aprovado lock-in por conveniência) |
+| **Autorização de Tenants** | **100% no Domínio da Aplicação via Repositories** | **Defesa em Profundidade com RLS incremental** |
+| **Papéis de Tenant** | **Enum de Domínio (`OWNER`, `ADMIN`, `MANAGER`, `OPERATOR`, `VIEWER`)** | *(Integrado em organization_memberships)* |
+| **Platform Admin** | **Tabela Global `platform_admin_authorizations`** | *(Isolada de qualquer tenant role)* |
+| **Desenvolvimento Local** | **Docker Compose (PostgreSQL limpo)** | **Neon branch efêmera de dev** |
+
+*Status da Proposta: `PROPOSED / HUMAN APPROVAL REQUIRED`.*
+
+---
+
+### 16. Validação do Monorepo (`pnpm check`)
+- `pnpm format:check`: SUCESSO (100% de conformidade com Prettier).
+- `pnpm lint`: SUCESSO (0 erros, 0 avisos em todo o monorepo).
+- `pnpm typecheck`: SUCESSO (12 workspaces compilados em modo FULL TURBO).
+- `pnpm test`: SUCESSO (19 testes passando em 6 arquivos de teste no Vitest).
+- `pnpm build`: SUCESSO (12 pacotes compilados; 8 páginas estáticas geradas pelo Next.js 15).
+- `scripts/check-architecture.mjs`: SUCESSO (0 violações de AST).
+- `scripts/check-file-size.mjs`: SUCESSO (64 arquivos de lógica de produção em estrita conformidade).
+
+---
+
+### 17. Governança Git
+- **Branch**: `docs/phase4-decision-gate` (mesma branch do PR #4).
+- **Working Tree**: Limpa.
+- **Commit Sugerido**: `docs: refine phase 4 auth and tenancy decisions`
+- **Push**: `origin/docs/phase4-decision-gate` (atualizando o PR #4).
+- **PR #4**: Aberto para revisão humana / Zero auto-merge.
+- **PROMPT-004B NÃO INICIADO**: Aguardando aprovação humana formal.
+
+---
+
+## Arquivos críticos para revisão externa
+1. `docs/AI_WORKLOG.md` *(Contém a síntese executiva completa e rastreabilidade de todas as correções)*.
+2. `docs/research/PHASE_4_DECISION_GATE.md` *(Documento de pesquisa atualizado com as fronteiras de autorização e escopo enxuto da Fase 4B)*.
