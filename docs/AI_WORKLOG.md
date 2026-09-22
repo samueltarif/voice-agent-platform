@@ -895,3 +895,65 @@ Nenhuma.
 - **Push**: `origin/docs/platform-control-live-calls`.
 - **Pull Request #2**: Permanece aberto, atualizado automaticamente pela branch remota, em estado `clean` e sem auto-merge.
 - **PROMPT-003**: NÃO iniciado.
+
+---
+
+## PROMPT-002H-MERGE — Fechamento da Arquitetura Pré-Frontend
+
+- **Data**: 2026-09-22
+- **Objetivo**: Integrar o Pull Request #2 (`docs/platform-control-live-calls`) à branch `main` com validação pós-merge completa e formalização do fechamento arquitetural antes do PROMPT-003.
+- **Escopo e Guardrails**:
+  - Sem implementação de frontend.
+  - Sem instalação de dependências.
+  - PROMPT-003 NÃO foi iniciado.
+
+### 1. Auditoria e Integração do Pull Request #2
+- **Pull Request**: [#2 — docs: define platform access and live call architecture](https://github.com/samueltarif/voice-agent-platform/pull/2)
+- **Status Inicial**: `open`
+- **Condição de Merge**: `mergeable: true`, `mergeable_state: "clean"` (sem conflitos)
+- **Sequência de Commits Confirmada**:
+  1. `f00c7f7`: `docs: define platform access and live call architecture` (PROMPT-002H)
+  2. `b261b23`: `docs: refine recording compliance and media access wording` (PROMPT-002H-FIX)
+  3. `3e86030`: `docs: preserve decision ids and worklog audit history` (PROMPT-002H-CHECK)
+- **Merge Realizado**: `MERGED` via GitHub MCP (`merge_pull_request` com merge method `merge`).
+- **Merge Commit no GitHub**: `c731b27691be765df11aa15381f6e743fbd8206a`
+
+### 2. Sincronização da Branch Main
+- **Comandos**:
+  - `git checkout main`
+  - `git pull --ff-only origin main`
+- **Status de Sincronização**: `SYNCED`
+- **HEAD Local**: `c731b27691be765df11aa15381f6e743fbd8206a`
+- **HEAD origin/main**: `c731b27691be765df11aa15381f6e743fbd8206a`
+- Ambos apontam para o mesmo commit de merge.
+
+### 3. Validação Pós-Merge
+- **Comando**: `pnpm check`
+- **Status**: `VALIDATED` (código de saída 0 em todas as etapas).
+- **Resultados Fatuais**:
+  - `prettier --check .`: Todos os arquivos em conformidade de estilo.
+  - `eslint .`: 0 erros, 0 avisos.
+  - `turbo typecheck`: 12 pacotes em conformidade estrita (TypeScript sem erros).
+  - `vitest run`: **6 testes em 3 arquivos** (todos aprovados em ~1.89s):
+    - `packages/contracts/src/index.test.ts`: 2 testes
+    - `packages/logger/src/index.test.ts`: 1 teste
+    - `packages/errors/src/index.test.ts`: 3 testes
+  - `turbo build`: 12 pacotes compilados com sucesso via tsc.
+  - `scripts/check-architecture.mjs`: SUCESSO integral via AST do TypeScript.
+  - `scripts/check-file-size.mjs`: SUCESSO (19 arquivos de lógica verificados, 0 avisos).
+
+### 4. Limpeza da Branch Local
+- **Comando**: `git branch -d docs/platform-control-live-calls`
+- **Resultado**: Branch local removida com sucesso após confirmação do merge.
+- **Branch Remota**: Mantida em `origin/docs/platform-control-live-calls` (remoção não obrigatória nesta tarefa).
+
+### 5. Estado da Branch Protection
+- **Status Verificado via GitHub MCP (`list_branches`)**:
+  - `main`: `protected: false`
+- **Registro Factual**: A proteção de branch na `main` **NÃO ESTÁ HABILITADA** (`protected: false`).
+- **Pendência Humana**: O operador humano deve configurar as regras de proteção no repositório GitHub para `main` (bloqueio de force push, PR obrigatório, bloqueio de deleção).
+
+### 6. Estado Final do Repositório
+- **Branch Atual**: `main`
+- **Working Tree**: Limpa (`git status --short` vazio).
+- **PROMPT-003**: NÃO iniciado. Base documental e arquitetural pronta para o início do frontend sob aprovação humana.
