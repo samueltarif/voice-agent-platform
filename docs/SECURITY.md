@@ -14,6 +14,10 @@ Este documento estabelece as normas mandatórias de proteção de dados, gestão
    - O pacote `packages/logger` deve implementar mascaramento (*redaction*) automático em tempo de serialização para campos sensíveis conhecidos.
 3. **Injeção de Configuração em Produção**:
    - Configurações e segredos são injetados exclusivamente via variáveis de ambiente fornecidas por gerenciadores dedicados (ex.: AWS Secrets Manager, HashiCorp Vault ou Doppler).
+4. **Autenticação e Sessões (Better Auth - DEC-026)**:
+   - Better Auth opera exclusivamente para Identidade e Sessão em `apps/web`.
+   - O plugin `organization` do Better Auth é desabilitado; a governança de organizações, membros e permissões pertence integralmente ao domínio da aplicação.
+   - Segredos de autenticação (`BETTER_AUTH_SECRET`) e credenciais de banco (`DATABASE_URL`) são obrigatórios apenas em runtime e estritamente proibidos de inclusão em repositório ou logs.
 
 ---
 

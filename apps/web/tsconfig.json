@@ -13,7 +13,11 @@
     ],
     "allowJs": true,
     "noEmit": true,
-    "incremental": true
+    "incremental": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
   "include": ["src/**/*", ".next/types/**/*.ts"],
   "exclude": ["node_modules"]

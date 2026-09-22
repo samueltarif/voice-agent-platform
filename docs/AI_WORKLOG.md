@@ -2162,3 +2162,156 @@ Em **22 de Setembro de 2026**, o operador humano emitiu aprovação explícita p
 - Nenhum projeto Neon criado;
 - Nenhum uso do Supabase MCP para provisioning;
 - PROMPT-004B NÃO iniciado.
+
+---
+
+## PROMPT-004B1 — Local Persistence & Auth Foundation
+
+**Data**: 22 de Setembro de 2026
+**Branch**: `feature/persistence-auth-foundation`
+**Tipo**: Feature / Infraestrutura Local / Persistência & Autenticação
+
+---
+
+### 1. Contexto e Objetivo
+
+Implementar localmente a fundação real de Persistência, Identidade, Multi-Tenancy e Modelo Comercial aprovada em DEC-026 / ADR-008.
+Esta tarefa cria a primeira camada real de banco de dados e autenticação estritamente em ambiente local e controlado, sem provisionamento em nuvem (Neon/Supabase), sem implementação prematura de módulos funcionais (Agent Studio, Agents, Calls, Campaigns, Contacts, Usage, Telefonia, IA ou Billing Providers).
+
+---
+
+### 2. Diagnóstico de Pré-Condições e Ambiente
+
+1. **Git**:
+   - Branch criada e ativa: `feature/persistence-auth-foundation` a partir de `main` sincronizada.
+   - Zero commits automáticos na `main`.
+2. **Warnings Preexistentes de Tamanho de Arquivo**:
+   - `apps/web/src/features/calls/live-call-card.tsx` (154 linhas, alvo 80–150).
+   - `apps/web/src/shell/mobile-menu-drawer.tsx` (157 linhas, alvo 80–150).
+   - Ambos abaixo do teto rígido de 180 linhas (2 warnings documentados mantidos intactos).
+3. **Diagnóstico Docker**:
+   - `docker --version`: Docker version 29.6.2, build dfc4efb
+   - `docker compose version`: Docker Compose version v5.3.1
+   - Docker Desktop ativo no kernel WSL2 (6.6.87.2).
+   - **Status**: `DOCKER LOCAL DB: AVAILABLE`.
+4. **PostgreSQL Major Version**:
+   - Suporte Neon confirmado via documentação oficial (`neon.tech`): PostgreSQL 14, 15, 16, 17.
+   - Versão major selecionada: **PostgreSQL 16** (`postgres:16-alpine`), padrão estável LTS para consistência entre desenvolvimento local, staging e produção.
+
+---
+
+### 3. Consultas Context7 e Documentação Oficial
+
+- **Drizzle ORM (`/drizzle-team/drizzle-orm-docs`)**:
+  - Padrão de conexão `node-postgres` (`pg` Pool / `drizzle(pool, { schema })`).
+  - Configuração `drizzle-kit` (`dialect: "postgresql"`, schema path, migrations out).
+  - Execução de migrations via CLI (`drizzle-kit migrate`) e migrator programático.
+- **Better Auth (`/better-auth/better-auth`)**:
+  - Drizzle adapter: `betterAuth({ database: drizzleAdapter(db, { provider: "pg", schema }) })`.
+  - Mecanismo de geração física de schema via `@better-auth/cli generate`.
+  - Schema de tabelas básicas de autenticação inspecionado: `user`, `session`, `account`, `verification`.
+  - Plugin `organization`: **DESABILITADO** conforme ADR-008.
+
+---
+
+### 4. Resolução da Estratégia de Identificadores Internos (DEC-027)
+
+- **Auth Models (`user`, `session`, `account`, `verification`)**: Utilizam o tipo string padrão gerado pelo Better Auth (`text PRIMARY KEY`).
+- **Domain Foreign Keys para User (`userId`)**: Utilizam estritamente o tipo físico compatível (`text("user_id") REFERENCES "user"("id") ON DELETE CASCADE`).
+- **Entidades de Domínio (`organizations`, `organization_memberships`, `platform_admin_authorizations`, `plans`, `entitlements`, `subscriptions`, `commercial_grants`, `audit_logs`)**:
+  - Utilizam o tipo PostgreSQL nativo `uuid` com geração default no banco via `defaultRandom()` (`gen_random_uuid()`).
+  - Geração app-side via `crypto.randomUUID()` nativo do Node.js (zero dependências adicionais).
+- **URLs Amigáveis**: Coluna `slug` indexada com restrição única (`UNIQUE INDEX`).
+- **Decisão Formal**: Registrada como **DEC-027** em `docs/DECISIONS_LOG.md` e refletida em `docs/DATABASE.md`.
+
+---
+
+### 5. Dependências Instaladas e Versões Resolvidas
+
+| Pacote | Escopo | Declaração | Versão Resolvida | Justificativa |
+| :--- | :--- | :--- | :--- | :--- |
+| `drizzle-orm` | `@voice-agent/database` (prod) | `^0.45.3` | `0.45.3` | ORM tipado e query builder aprovado |
+| `pg` | `@voice-agent/database` (prod) | `^8.23.0` | `8.23.0` | Driver PostgreSQL agnóstico padrão Node.js |
+| `@types/pg` | `@voice-agent/database` (dev) | `^8.23.1` | `8.23.1` | Tipagens TypeScript do node-postgres |
+| `drizzle-kit` | `@voice-agent/database` (dev) | `^0.31.11` | `0.31.11` | Tooling de DDL, migrations e schema checking |
+| `better-auth` | `@voice-agent/web` (prod) | `^1.7.5` | `1.7.5` | Framework de identidade e sessão App Router |
+
+**Lifecycle Scripts**: Zero scripts de build bloqueados pelo pnpm. Apenas `esbuild` executou pós-instalação (previamente autorizado em `pnpm-workspace.yaml`).
+
+---
+
+### 6. Arquitetura e Modelagem Física Implementada
+
+Total de **12 tabelas relacionais** criadas na migration inicial `0000_wooden_warpath.sql`:
+
+1. **Autenticação (Better Auth - Identity + Session)**:
+   - `user`: `id` (text PK), `name`, `email` (unique), `email_verified`, `image`, `created_at`, `updated_at`.
+   - `session`: `id` (text PK), `token` (unique), `user_id` (FK -> user.id on delete cascade), `expires_at`, `ip_address`, `user_agent`, `created_at`, `updated_at`.
+   - `account`: `id` (text PK), `user_id` (FK -> user.id on delete cascade), `account_id`, `provider_id`, `access_token`, `refresh_token`, `password`, `created_at`, `updated_at`.
+   - `verification`: `id` (text PK), `identifier`, `value`, `expires_at`, `created_at`, `updated_at`.
+2. **Domínio Multi-Tenant**:
+   - `organizations`: `id` (uuid PK), `slug` (unique), `name`, `status`, `created_at`, `updated_at`.
+   - `organization_memberships`: `id` (uuid PK), `organization_id` (FK -> organizations.id on delete cascade), `user_id` (FK -> user.id on delete cascade), `role` (`OWNER`, `ADMIN`, `MANAGER`, `OPERATOR`, `VIEWER`), `status` (`INVITED`, `ACTIVE`, `SUSPENDED`), `created_at`, `updated_at`. Constraint: `UNIQUE(organization_id, user_id)`.
+3. **Plano de Controle Global (Platform Control Plane)**:
+   - `platform_admin_authorizations`: `id` (uuid PK), `user_id` (FK -> user.id on delete cascade), `status` (`ACTIVE`, `REVOKED`), `granted_at`, `granted_by`, `revoked_at`, `revoked_by`, `created_at`, `updated_at`. **Tabela puramente global sem `organization_id`**.
+4. **Modelo Comercial**:
+   - `plans`: `id` (uuid PK), `code` (unique), `name`, `description`, `billing_mode` (`SELF_SERVICE`, `MANUAL`, `COMPLIMENTARY`), `price_cents` (integer cents), `currency`, `status`, `created_at`, `updated_at`.
+   - `entitlements`: `id` (uuid PK), `plan_id` (FK -> plans.id on delete cascade), `feature_key`, `value_type`, `boolean_value`, `numeric_limit`, `string_value`, `created_at`, `updated_at`. Constraint: `UNIQUE(plan_id, feature_key)`.
+   - `subscriptions`: `id` (uuid PK), `organization_id` (FK -> organizations.id on delete cascade), `plan_id` (FK -> plans.id on delete restrict), `status`, `billing_mode`, `current_period_start`, `current_period_end`, `cancel_at_period_end`, `canceled_at`, `created_at`, `updated_at`. **Entidade estritamente tenant-scoped**.
+   - `commercial_grants`: `id` (uuid PK), `organization_id` (FK -> organizations.id on delete cascade), `plan_id` (FK -> plans.id on delete set null), `feature_key`, `override_value`, `starts_at`, `ends_at`, `granted_by`, `reason`, `reference`, `created_at`, `updated_at`.
+5. **Governança e Auditoria**:
+   - `audit_logs`: `id` (uuid PK), `organization_id` (FK -> organizations.id on delete set null, opcional para ações globais), `actor_id`, `actor_type`, `action`, `target_type`, `target_id`, `metadata`, `created_at`.
+
+---
+
+### 7. Repositórios Tipados Implementados
+
+- `OrganizationRepository`: criação, busca por id, busca por slug, atualização de status.
+- `MembershipRepository`: operações tenant-scoped exigindo obrigatoriamente `organizationId` em todos os métodos (`createMembership`, `findMembership`, `findMembershipById`, `listMemberships`, `updateMembershipRole`, `updateMembershipStatus`).
+- `PlatformAdminRepository`: concessão global (`grantPlatformAdmin`), verificação de autorização ativa (`findActiveAuthorizationByUserId`), e revogação auditada (`revokePlatformAdmin`).
+- `CommercialRepository`: gerenciamento de planos, entitlements, subscrições tenant-scoped e concessões comerciais (`createCommercialGrant`, `listCommercialGrants`).
+- `AuditRepository`: registro estruturado de auditoria com isolamento por organização ou escopo de plataforma.
+
+---
+
+### 8. Validação e Testes Automatizados
+
+1. **Testes de Unidade (`tenant-isolation.test.ts`)**:
+   - Validação de que memberships `INVITED` ou `SUSPENDED` não concedem acesso operacional (apenas `ACTIVE`).
+   - Validação de que papel `OWNER` de organização nunca concede autorização de `Platform Admin`.
+   - Avaliação determinística de hierarquia de `entitlements` com suporte a overrides por `CommercialGrant`.
+   - Garantia de que direitos de acesso nunca confiam em booleano direto do cliente.
+2. **Testes de Integração PostgreSQL (`postgres-integration.test.ts`)**:
+   - Execução real contra container Docker PostgreSQL 16 Alpine (`voice-agent-postgres`).
+   - Verificação de isolamento cross-tenant: queries da Org A não retornam dados da Org B.
+   - Verificação de constraint de unicidade `UNIQUE(organization_id, user_id)`.
+   - Verificação de separação estrutural e ciclo de vida de `PlatformAdminAuthorization` (grant -> active -> revoke -> null).
+   - Verificação de isolamento de subscrições e planos comerciais por organização.
+3. **Testes de Integração Better Auth (`auth.test.ts`)**:
+   - Verificação da instância Better Auth sem plugins de organização.
+   - Fluxo real de registro de usuário (`auth.api.signUpEmail`) e geração de sessão com persistência no PostgreSQL local.
+4. **Resultados Vitest**:
+   - 9 test files executados (29 testes passados, 100% verde).
+
+---
+
+### 9. Qualidade e Conformidade do Monorepo (`pnpm check`)
+
+- `pnpm format:check`: 100% de conformidade com Prettier.
+- `pnpm lint`: 0 erros, 0 warnings no ESLint 9 (regras de complexidade <= 8 e nesting <= 3 respeitadas).
+- `pnpm typecheck`: 12 packages validados com TypeScript strict (`exactOptionalPropertyTypes`, `noUncheckedIndexedAccess`).
+- `pnpm test`: 9 suítes, 29 testes passando.
+- `pnpm build`: 12 pacotes compilados via Turborepo; build de produção do Next.js 15 gerado com sucesso incluindo rotas `/api/auth/[...all]`.
+- `pnpm check:architecture`: Todas as fronteiras e regras arquiteturais respeitadas (AST checker verde).
+- `pnpm check:file-size`: 82 arquivos de lógica verificados; 2 warnings preexistentes mantidos; 0 novos warnings; todos os novos arquivos entre 20 e 135 linhas (abaixo do teto de 180 linhas).
+
+---
+
+### 10. O que Permanece PENDENTE ou DEFERRED
+
+- **INTERNAL SERVICE AUTH**: PENDING.
+- **EPHEMERAL / QUEUE INFRASTRUCTURE**: PENDING.
+- **USAGE PERSISTENCE SCHEMA**: DEFERRED.
+- **PROVISIONAMENTO CLOUD (Neon / Supabase)**: NÃO iniciado.
+- **ENTIDADES DE DOMÍNIO ESPECÍFICAS (Agents, Calls, Campaigns, Contacts)**: NÃO iniciadas (escopo de fases posteriores).
+

@@ -5,13 +5,14 @@ Este documento apresenta a estrutura de alto nível para o monorepo `voice-agent
 ```
 voice-agent-platform/
 ├── apps/
-│   ├── web/              # Aplicação Next.js 15 App Router: Shell responsivo, Dashboard operacional, Live Calls preview e Platform Control Plane.
-│   │   ├── src/app/          # Rotas Next.js (/, /dashboard, /calls, /platform, /ui-preview) e globals.css com tokens semânticos.
+│   ├── web/              # Aplicação Next.js 15 App Router: Shell responsivo, Dashboard operacional, Live Calls preview, Platform Control Plane e Better Auth endpoints.
+│   │   ├── src/app/          # Rotas Next.js (/, /dashboard, /calls, /platform, /ui-preview, /api/auth/[...all]) e globals.css.
 │   │   ├── src/shell/        # TenantShell, DesktopSidebar colapsável, MobileBottomNav, MobileMenuDrawer e AppTopbar.
 │   │   ├── src/features/     # Vertical slices: dashboard metrics, live-calls, command-palette e platform admin.
+│   │   ├── src/lib/auth/     # Configuração Better Auth (Identity + Session) e client React de autenticação.
 │   │   ├── src/mocks/        # Mocks determinísticos tipados com valores monetários estritamente em integer cents.
 │   │   └── src/preferences/  # Módulo puro ui-preferences-storage e context de persistência de tema/densidade sem hydration mismatch.
-│   ├── api/              # API HTTP e Gateway para autenticação, regras multi-tenant, webhooks e orquestração de recursos.
+│   ├── api/              # API HTTP e Gateway para regras de negócio, persistência multi-tenant, webhooks e orquestração.
 │   ├── voice/            # Motor de baixa latência em tempo real para streaming de áudio, transcrição, diálogo e síntese de voz.
 │   └── worker/           # Processamento em background para tarefas assíncronas, transcrições em lote, analytics e campanhas.
 │
@@ -20,7 +21,11 @@ voice-agent-platform/
 │   │   ├── src/tokens/       # Contratos puros de tokens e tipos de preferências (CSS variables em globals.css como SSOT).
 │   │   ├── src/components/   # Primitives (Button, Card, Badge, Avatar, Input, Separator, Tooltip, DropdownMenu, Sheet, Dialog, Progress, Table, Command).
 │   │   └── src/class-names.ts# Utilitário puro de merge de classes CSS (clsx + tailwind-merge).
-│   ├── database/         # Placeholder arquitetural para schemas, migrations e repositories multi-tenant (zero ORM/conexão na Fase 0).
+│   ├── database/         # Camada de persistência real (PostgreSQL 16, Drizzle ORM, schemas físicos de auth e domínio, repositories tipados).
+│   │   ├── src/client/       # Pool lazy agnóstico (node-postgres pg) e migrator versionado seguro.
+│   │   ├── src/schema/       # Schemas por domínio: auth, organizations, platform-admin, commercial e audit.
+│   │   ├── src/repositories/ # Repositórios tipados isolados exigindo organizationId obrigatório em operações tenant.
+│   │   └── src/migrations/   # Migrations SQL versionadas geradas pelo Drizzle Kit.
 │   ├── contracts/        # Contratos canônicos neutros, tipos compartilhados, DTOs, eventos e portas de domínio (TelephonyPort, etc.).
 │   ├── config/           # Centralização de validação e carregamento tipado de variáveis de ambiente para todos os módulos.
 │   ├── logger/           # Utilitário de logging estruturado com suporte a correlationId e organizationId.
