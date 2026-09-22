@@ -1279,3 +1279,175 @@ Saída real de `pnpm --filter @voice-agent/ui list --depth 0`:
 Nenhum.
 *(Todas as pendências e auditorias técnicas foram sanadas com evidências concretas. O arquivo principal para conferência e revisão externa é este `docs/AI_WORKLOG.md`).*
 
+---
+
+## PROMPT-003-MERGE — Fechamento da Fase 3 Frontend
+
+- **Data**: 2026-09-22
+- **Objetivo**: Integrar o Pull Request #3 à branch `main`, sincronizar o repositório local e remoto, executar validações de qualidade pós-merge, realizar smoke tests via Playwright e consolidar o fechamento formal da Fase 3 (Frontend).
+- **Guardrails**:
+  - PROMPT-004 NÃO iniciado.
+  - Zero criação ou configuração de banco de dados / Supabase.
+  - Zero configuração de autenticação real.
+  - Zero novas dependências instaladas.
+  - Entradas históricas do AI_WORKLOG preservadas intactas (registro estritamente append-only).
+
+---
+
+### 1. Auditoria do Pull Request #3
+- **PR Auditado via GitHub MCP**: Pull Request #3 (`feature/design-system-shell` -> `main`).
+- **Estado Antes do Merge**:
+  - `status`: `open`
+  - `mergeable`: `true`
+  - `mergeable_state`: `clean`
+  - `conflicts`: ausência de conflitos
+  - `auto-merge`: desabilitado
+- **Commits Confirmados no HEAD da branch**:
+  1. `2e10cd8`: `feat: establish responsive design system and application shell`
+  2. `4912332`: `fix: close frontend validation and traceability gaps`
+- **Status da Auditoria**: `VALIDATED`
+
+---
+
+### 2. Merge do Pull Request #3
+- **Execução**: Realizado merge do PR #3 via GitHub MCP (`merge_pull_request`) sem rebase destrutivo, sem force push e sem alteração de commits históricos.
+- **Resultado da Operação**:
+  - `merged`: `true`
+  - `message`: `Pull Request successfully merged`
+  - `merge_commit_sha`: `9f0cf9ecdd011149db6c912f66d0d827548b151f`
+- **Status do Merge**: `MERGED`
+
+---
+
+### 3. Sincronização da Branch Main
+- **Comandos Executados**:
+  ```bash
+  git checkout main
+  git pull --ff-only origin main
+  ```
+- **Verificação de SHAs**:
+  - `git rev-parse HEAD`: `9f0cf9ecdd011149db6c912f66d0d827548b151f`
+  - `git rev-parse origin/main`: `9f0cf9ecdd011149db6c912f66d0d827548b151f`
+  - Ambos os hashes coincidem exatamente com o merge commit do GitHub.
+- **Status de Sincronização**: `SYNCED`
+
+---
+
+### 4. Validação Pós-Merge (`pnpm check`)
+- **Instalação com Lockfile Congelado**:
+  - Comando: `pnpm install --frozen-lockfile`
+  - Resultado: 0 warnings, 0 peer dependency warnings, 0 scripts bloqueados (tempo de execução: 164ms).
+  - Status: `VALIDATED`
+- **Pipeline Completo de Qualidade**:
+  - Comando: `pnpm check`
+  - Código de Saída: `0` (Sucesso em todos os 7 gates).
+  - **Métricas Reais Observadas**:
+    - `pnpm format:check`: SUCESSO (100% de conformidade com Prettier).
+    - `pnpm lint`: SUCESSO (0 erros, 0 avisos em todo o monorepo).
+    - `pnpm typecheck`: SUCESSO (12 workspaces compilados via Turbo e TypeScript em modo FULL TURBO).
+    - `pnpm test`: SUCESSO (**19 testes passando** em **6 arquivos de teste** no Vitest):
+      - `@voice-agent/contracts`: 2 testes em 1 arquivo.
+      - `@voice-agent/logger`: 1 teste em 1 arquivo.
+      - `@voice-agent/errors`: 3 testes em 1 arquivo.
+      - `@voice-agent/ui`: 3 testes em 1 arquivo (`src/class-names.test.ts`).
+      - `@voice-agent/web`: 10 testes em 2 arquivos (`dashboard-view-model.test.ts` [5 testes], `ui-preferences-storage.test.ts` [5 testes]).
+    - `pnpm build`: SUCESSO (12 pacotes compilados; 8 páginas estáticas otimizadas geradas pelo Next.js 15.5.25: `/`, `/_not-found`, `/calls`, `/dashboard`, `/platform`, `/ui-preview`).
+    - `scripts/check-architecture.mjs`: SUCESSO (0 violações de limites arquiteturais ou imports proibidos).
+    - `scripts/check-file-size.mjs`: SUCESSO (**64 arquivos de lógica de produção** analisados; 0 arquivos acima do limite de 180 linhas; zero adições à allowlist).
+- **Status da Validação**: `VALIDATED`
+
+---
+
+### 5. Smoke Test Frontend (Playwright MCP)
+- **Ambiente**: Servidor de desenvolvimento Next.js executado diretamente a partir da branch `main` consolidada.
+- **Rotas e Viewports Inspecionados**:
+  - `/dashboard`: viewports `375x667` (mobile) e `1440x900` (desktop).
+  - `/calls`: viewports `375x667` (mobile) e `1440x900` (desktop).
+  - `/platform`: viewports `375x667` (mobile) e `1440x900` (desktop).
+- **Evidências Observadas**:
+  - **Renderização**: Sucesso completo em todas as três rotas em ambos os viewports.
+  - **Overflow Global**: Zero overflow horizontal (`scrollWidth <= innerWidth` em mobile e desktop).
+  - **Console do Navegador**: Zero erros relevantes de console.
+  - **Navegação Básica**: Transições suaves e funcionais entre o Platform Control Plane e o Tenant Shell.
+  - **Storage Limpo**: Com `localStorage` zerado, a aplicação inicializa no tema Light padrão (`theme="light"`, `data-theme="light"`) e densidade padrão (`density="default"`, `data-density="default"`).
+  - **Persistência de Preferências**: Carregamento e sincronização com o DOM funcionando perfeitamente.
+- **Status do Smoke Test**: `VALIDATED`
+
+---
+
+### 6. Proteção de Rota `/ui-preview` em Produção
+- **Metodologia de Teste**:
+  - Build de produção compilado com Next.js (`NODE_ENV=production`).
+  - Servidor de produção iniciado em porta isolada (`next start -p 3001`).
+  - Invocação HTTP via `curl.exe -I http://localhost:3001/ui-preview`.
+- **Resultado Observado**:
+  - Resposta real: `HTTP/1.1 404 Not Found` (header `x-nextjs-prerender: 1`, acionando a página 404 padrão de produção).
+  - Checagem de controle: `curl.exe -I http://localhost:3001/dashboard` retornou `HTTP/1.1 200 OK`.
+- **Status da Proteção**: `VALIDATED`
+
+---
+
+### 7. Governança Git e Limpeza Local
+- **Remoção Segura de Branch Local**:
+  - Executado: `git branch -d feature/design-system-shell`
+  - Resposta do Git: `Deleted branch feature/design-system-shell (was 4912332).`
+  - A branch remota `origin/feature/design-system-shell` permanece intacta no GitHub.
+- **Estado do Git**:
+  - `git status --short`: Working tree limpa.
+  - `git branch -vv`: Apenas `* main 9f0cf9e [origin/main] Merge pull request #3 from samueltarif/feature/design-system-shell`.
+  - `git log -6 --oneline`:
+    ```
+    9f0cf9e Merge pull request #3 from samueltarif/feature/design-system-shell
+    4912332 fix: close frontend validation and traceability gaps
+    2e10cd8 feat: establish responsive design system and application shell
+    6b38c20 fix: address review findings and strengthen validation
+    a3e3518 fix: remediate code review findings
+    5d564fa docs: record prompt-002 review fixes and add missing decision records
+    ```
+- **Status da Limpeza**: `VALIDATED`
+
+---
+
+### 8. Auditoria de Branch Protection
+- **Verificação via GitHub MCP**: Inspecionada a branch `main` via ferramenta `list_branches`.
+- **Estado Observado**:
+  - `main.protected`: `false`
+- **Registro Obrigatório**:
+  - `PENDÊNCIA HUMANA — MAIN AINDA NÃO PROTEGIDA.`
+  - Nenhuma alteração administrativa ou automação foi executada na governança de branches do GitHub. Requer intervenção manual pelo administrador do repositório nas configurações do GitHub Settings.
+- **Status**: `PENDING`
+
+---
+
+### 9. Nota Técnica — MCP shadcn-ui
+- **Constatação**: O MCP `shadcn-ui` atualmente disponibilizado no ambiente retorna componentes para templates `shadcn-vue` (Reka-UI / Vue).
+- **Diretriz**:
+  - `SHADCN REACT CANONICAL VERIFICATION VIA THIS MCP: NÃO APLICÁVEL / NÃO USAR COMO AUTORIDADE REACT.`
+  - Esta constatação NÃO invalida de nenhuma forma os componentes React já implementados, testados e validados em `packages/ui` (construídos sobre primitivos Radix UI React oficiais).
+  - Nenhum MCP alternativo foi instalado nesta etapa.
+- **Status**: `NON-BLOCKING TECHNICAL DEBT`
+
+---
+
+### 10. Nota Técnica — Theme Bootstrap / Content Security Policy (CSP)
+- **Constatação**: O script síncrono inline atualmente inserido no `<head>` de `apps/web/src/app/layout.tsx` para aplicar classes de tema (`dark`/`light`) e densidade (`data-density`) antes do primeiro paint do navegador (eliminando FOUC) é seguro no estágio atual, mas exigirá ajuste arquitetural quando uma política estrita de Content Security Policy (CSP com `nonce` ou `hash`) for configurada no servidor.
+- **Diretriz**:
+  - `FUTURE SECURITY HARDENING CONCERN / NÃO BLOQUEANTE PARA FASE 3.`
+  - Não foram feitas alterações no script inline na Fase 3, mantendo estabilidade e 100% de aprovação nos testes e smoke tests.
+- **Status**: `NON-BLOCKING TECHNICAL DEBT`
+
+---
+
+### 11. Confirmação de Escopo e Não Início do PROMPT-004
+- **Escopo Respeitado**:
+  - O PROMPT-004 **NÃO** foi iniciado sob nenhum aspecto.
+  - Não há conexão, script ou migration para Supabase ou qualquer banco de dados.
+  - Não há configuração de provedores de autenticação ou chaves de serviço.
+  - A camada de dados de produto permanece 100% isolada e mockada na camada de apresentação da Fase 3.
+- **Status**: `VALIDATED`
+
+---
+
+## Arquivos críticos para revisão externa
+`docs/AI_WORKLOG.md`
+*(Nenhum outro arquivo de lógica ou infraestrutura precisou ser alterado nesta etapa de fechamento e merge).*
