@@ -684,9 +684,9 @@ Nenhuma.
    - Visualização em tempo real de status, duração, agente ativo, cliente, transcrição ao vivo, eventos, tools executadas, intenções e status de handoff.
    - Streaming de áudio ao vivo marcado como `STATUS: PLANNED / PROVIDER-DEPENDENT / NOT YET VALIDATED`.
 2. **Call Recording**:
-   - Ativo de gravação armazenado em Object Storage com acesso autenticado estritamente via presigned URLs temporárias com TTL curto.
+   - Ativo de gravação privado por padrão em Object Storage com acesso via mecanismo autenticado/autorizado, temporário e auditável (como presigned URLs, signed delivery ou endpoint autenticado), com TTL configurável.
    - Requisitos de criptografia em repouso, isolamento por tenant, trilha de auditoria e políticas de retenção/expiração/anonimização configuráveis.
-   - Aviso regulatório mandatório: `COMPLIANCE VERIFICATION REQUIRED BEFORE PRODUCTION` (análise de leis de gravação telefônica, consentimento bilateral e LGPD).
+   - Aviso regulatório mandatório: `COMPLIANCE VERIFICATION REQUIRED BEFORE PRODUCTION` (análise de leis de gravação telefônica, aviso, ciência, consentimento e LGPD).
 3. **Human Handoff**:
    - Protocolo orquestrado determinístico: a IA inicia a transição suavemente enquanto o operador aceita e se prepara, transferindo no evento `READY_TO_JOIN`.
    - Máquina de estados formalizada: `NONE` → `REQUESTED` → `SELLER_NOTIFIED` → `SELLER_READY` → `AI_PREPARING` → `READY_TO_JOIN` → `HUMAN_CONNECTED` → `AI_DETACHED` (com estados de exceção: `FAILED`, `CANCELED`, `TIMED_OUT`).
@@ -708,8 +708,8 @@ Nenhuma.
   - DEC-020: Desacoplamento de Pagamento e Direito de Acesso via Entitlements e Commercial Grants.
   - DEC-021: Separação Conceitual entre Usage, Cost e Billing.
   - DEC-022: Monitoramento de Chamadas em Tempo Real e Status de Áudio ao Vivo.
-  - DEC-023: Arquitetura de Gravação de Chamadas e Presigned URLs com Compliance Pendente.
-  - DEC-024: Protocolo Determinístico de Human Handoff e Fallback de Zero Silêncio.
+  - DEC-023: Protocolo Determinístico de Human Handoff e Fallback de Zero Silêncio.
+  - DEC-024: Governança de Gravações de Chamadas e Compliance Jurídico.
 - **Decisões Mantidas Pendentes (Nenhum fornecedor selecionado)**:
   - Gateway de pagamento, provedor de auth, banco relacional, ORM, fornecedor de telefonia, IA realtime, storage, cache, filas, framework frontend e infraestrutura de cloud.
 
@@ -741,10 +741,92 @@ Nenhuma.
 - `git push -u origin docs/platform-control-live-calls`: Push da branch remota.
 
 ### Riscos e Compliance Pendente
-- **Compliance Regulatório (Telefonia e LGPD)**: Requisitos de consentimento bilateral de gravação, armazenamento seguro e descarte devem ser homologados juridicamente antes de qualquer operação em produção (`COMPLIANCE VERIFICATION REQUIRED BEFORE PRODUCTION`).
+- **Compliance Regulatório (Telefonia e LGPD)**: Requisitos de aviso, ciência, consentimento e/ou outra base legal aplicável à gravação, armazenamento seguro e descarte devem ser verificados formalmente antes de qualquer operação em produção (`COMPLIANCE VERIFICATION REQUIRED BEFORE PRODUCTION`). LEGAL REQUIREMENT: NÃO VERIFICADO.
 - **Dependência Técnica de Carrier**: Modos Listen-Only e Live Audio Streaming necessitam validação de capacidade real na API/infraestrutura do carrier que for contratado na Fase 8.
 
-### Próximo Passo
-- O arquivo principal para revisão externa é este `docs/AI_WORKLOG.md`.
-- Conclusão da etapa documental e submissão de Pull Request para a branch `main`.
-- Aguardar aprovação do proprietário para dar início ao `PROMPT-003 — Design System e Application Shell Mobile-First`.
+
+
+---
+
+## PROMPT-002H-FIX — Precisão Jurídica e Neutralidade de Storage
+
+- **Data**: 2026-09-22
+- **Objetivo**: Corrigir formulações excessivamente específicas sobre regras jurídicas de gravação, prescrição única de mecanismo de acesso a mídias e inferência emocional em monitoramento ao vivo, identificadas durante a revisão externa do PROMPT-002H.
+- **Natureza da Tarefa**: Exclusivamente DOCUMENTAL e de REFINAMENTO TEXTUAL. Sem implementação de features, sem instalação de dependências, sem alteração de banco e sem início de PROMPT-003.
+
+### Diagnóstico e O Que Estava Excessivamente Específico
+1. **Compliance de Gravação e "Consentimento Bilateral"**:
+   - *Problema*: A menção a "consentimento bilateral" como requisito jurídico pressuposto em tabelas e resumos implicava uma determinação legal definitiva não validada formalmente.
+   - *Status Factual*: `LEGAL REQUIREMENT: NÃO VERIFICADO`.
+   - *Ajuste Realizado*: Substituição integral por linguagem juridicamente neutra:
+     > "Requisitos de aviso, ciência, consentimento e/ou outra base legal aplicável à gravação devem ser verificados antes da produção conforme jurisdição, finalidade, tipo de chamada e legislação/regulação vigente."
+   - Mantida a exigência mandatória: `COMPLIANCE VERIFICATION REQUIRED BEFORE PRODUCTION`.
+2. **Neutralidade de Storage e Acesso às Gravações**:
+   - *Problema*: Expressões como "acesso estritamente via presigned URLs" ou "TTL curto obrigatório" foram utilizadas de forma prescritiva como regras arquiteturais absolutas.
+   - *Ajuste Realizado*: Transição para um princípio neutro de segurança da informação:
+     - Mídia privada por padrão no Object Storage;
+     - Autorização e autenticação obrigatórias antes do acesso com isolamento estrito de tenant (`organizationId`);
+     - Acesso através de mecanismo autenticado/autorizado, temporário e auditável quando aplicável (presigned URLs, signed delivery ou streaming via endpoint autenticado);
+     - Presigned URL mantida expressamente como **exemplo de implementação**, não como imposição única;
+     - TTL configurável conforme análise de risco, política de segurança e contexto de deployment;
+     - Provedor de storage mantido estritamente como **Pending Decision**.
+3. **Sinais de Interesse vs. Sentimento no Live Monitoring**:
+   - *Investigação*:
+     - Em `docs/LIVE_CALLS_AND_HANDOFF.md` (seção 1.1): "sentimento" **NÃO FOI ENCONTRADO** — o documento já utilizava a especificação aprovada "Sinais de Interesse / Qualificação: Classificações preliminares de intenção identificadas pelo contexto". Nenhuma alteração foi necessária nesse arquivo para este item.
+     - Em `FOUNDATION_MASTER.md` (seção 7.5): foi identificada a menção "sentimentos e status em tempo real".
+     - Em `docs/PROJECT_VISION.md` (seção 4.1): foi identificada a expressão "diarização e análise de sentimento".
+   - *Ajuste Realizado*: Removida a formalização de inferência emocional/psicológica no monitoramento ao vivo, padronizando para:
+     > "sinais de interesse/intenção baseados no conteúdo da conversa".
+
+### Arquivos Pesquisados
+- `ARCHITECTURE.md`
+- `FOUNDATION_MASTER.md`
+- `docs/LIVE_CALLS_AND_HANDOFF.md`
+- `docs/SECURITY.md`
+- `docs/DECISIONS_LOG.md`
+- `docs/VOICE_ARCHITECTURE.md`
+- `docs/ROADMAP.md`
+- `docs/PROJECT_VISION.md`
+- `docs/PLATFORM_CONTROL_PLANE.md`
+- `docs/EVENTS.md`
+- `docs/COST_MODEL.md`
+- `docs/AI_WORKLOG.md`
+
+### Arquivos Realmente Alterados e Trechos Corrigidos
+1. `ARCHITECTURE.md`:
+   - *Seção 8 (Item 6)*: De "acessados unicamente via URLs temporárias pré-assinadas" para "privados por padrão e acessados apenas via mecanismo autenticado/autorizado, temporário e auditável quando aplicável (como URLs pré-assinadas, signed delivery ou endpoint autenticado), com validação mandatória de `organizationId` e TTL configurável".
+2. `FOUNDATION_MASTER.md`:
+   - *Seção 1.3 (Item 8)*: De "gravação protegida por presigned URLs" para "player integrado com acesso a gravações protegido por mecanismo autenticado e temporário".
+   - *Seção 7.5*: Substituição de "sentimentos" por "sinais de interesse/intenção baseados no conteúdo da conversa", e reformulação neutra do acesso a gravações.
+   - *Seção 11 (Item 4)*: De acesso web restrito a URLs pré-assinadas para mecanismo autenticado/temporário com TTL configurável.
+   - *Seção 19*: Ajuste na descrição de DEC-024 e no item 20 da tabela de decisões pendentes, substituindo "consentimento bilateral" pela fórmula neutra de conformidade jurídica.
+3. `docs/LIVE_CALLS_AND_HANDOFF.md`:
+   - *Seção 2.2*: Reformulada para "Mídia Privada e Acesso Autorizado", definindo presigned URLs como exemplo entre opções temporárias/auditáveis.
+   - *Seção 2.3 (Ressalva Jurídica)*: Substituída menção a consentimento unilateral/bilateral pela fórmula neutra abrangendo aviso, ciência, consentimento ou outra base legal aplicável.
+4. `docs/SECURITY.md`:
+   - *Seção 4 (Item 1)*: Neutralizada a exigência de presigned URLs, estabelecendo mídias privadas por padrão com acesso temporário e auditável sob TTL configurável.
+   - *Seção 4 (Item 5)*: Atualizada a ressalva regulatória pré-produção com linguagem juridicamente neutra.
+5. `docs/DECISIONS_LOG.md`:
+   - *DEC-024*: Atualizado o resumo da decisão para explicitar neutralidade no mecanismo de acesso a mídias e na verificação regulatória.
+6. `docs/VOICE_ARCHITECTURE.md`:
+   - *Seção 6*: Substituído "object storage com URLs pré-assinadas" por "object storage com acesso autenticado/temporário e isolamento por tenant".
+7. `docs/ROADMAP.md`:
+   - *FASE 8*: Substituído "URLs pré-assinadas" por "acesso autenticado/temporário e isolamento por tenant".
+8. `docs/PROJECT_VISION.md`:
+   - *Seção 4.1*: Na linha de Gravações & Transcrições, substituído "URL pré-assinada" e "análise de sentimento" por "acesso autenticado/temporário, diarização e sinais de interesse/conteúdo".
+9. `docs/AI_WORKLOG.md`:
+   - Atualizados os trechos históricos de PROMPT-002H para neutralizar presigned URLs e referências a consentimento bilateral;
+   - Adicionada esta entrada detalhada para PROMPT-002H-FIX.
+
+### Validação Executada
+- `pnpm check`: Executado com aprovação integral (0 erros, Prettier, ESLint, TypeScript em 12 pacotes, Vitest 6/6 testes, Turbo Build em 12 pacotes, Architecture AST check, File Size check).
+- `git diff`: Revisado para garantir que apenas linguagem documental foi refinada.
+- `git status --short`: Verificada higienização e controle dos arquivos.
+
+### Governança Git e Estado do Pull Request
+- **Branch Ativa**: `docs/platform-control-live-calls` (mantida a mesma branch, sem bifurcação).
+- **Commit**: `docs: refine recording compliance and media access wording`.
+- **Push**: `origin/docs/platform-control-live-calls`.
+- **Pull Request #2**: O PR aberto anteriormente (`https://github.com/samueltarif/voice-agent-platform/pull/2`) é atualizado automaticamente pelo push na branch existente.
+- **Zero Auto-Merge**: O PR permanece aberto aguardando revisão humana.
+- **PROMPT-003**: NÃO iniciado.

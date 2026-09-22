@@ -155,7 +155,7 @@ O sistema adota limites orientados a eventos para manter os módulos desacoplado
 3. **Credenciais e Secrets**: Injeção via variáveis de ambiente/secret manager. Nunca em disco ou logs.
 4. **Tool Calling Seguro**: Chamadas de ferramentas executadas pelos agentes de IA durante uma ligação de voz só acessam recursos explicitamente concedidos àquela organização com validação estrita de permissões.
 5. **Isolamento do Platform Admin**: `Platform Admin` (Master Admin) é uma autorização estritamente global, independente da hierarquia de tenants. Usuários de tenant não podem se auto-elevar a administradores da plataforma.
-6. **Segurança de Gravações e Áudios**: Áudios no object storage são privados, acessados unicamente via URLs temporárias pré-assinadas (*presigned URLs*) com TTL configurável e validação mandatória de `organizationId`.
+6. **Segurança de Gravações e Áudios**: Gravações e áudios no object storage são privados por padrão e acessados apenas via mecanismo autenticado/autorizado, temporário e auditável quando aplicável (como URLs pré-assinadas, signed delivery ou endpoint autenticado), com validação mandatória de `organizationId` e TTL configurável.
 
 ---
 

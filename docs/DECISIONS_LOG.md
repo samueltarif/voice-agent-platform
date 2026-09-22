@@ -33,7 +33,7 @@ Data de Registro Inicial: 21 de Setembro de 2026.
 | **DEC-021** | 2026-09-22 | Comercial | **Resolução de Capacidades Estritamente por Entitlements** | Proibição de condicionais hardcoded (`if (plan === 'x')`). Capacidades e cotas operacionais são resolvidas dinamicamente via Entitlements por organização. |
 | **DEC-022** | 2026-09-22 | Financeiro | **Separação Estrutural entre Usage, Cost e Billing** | Consumo volumétrico factual (`Usage`), custo real de provedores (`Cost`) e faturamento comercial (`Billing`) operam desacoplados; `Usage` é agnóstico ao gateway de pagamento. |
 | **DEC-023** | 2026-09-22 | Voz & Handoff | **Protocolo Determinístico de Human Handoff e Prevenção de Abandono** | Transbordo humano operado por protocolo orquestrado e state machine determinística (`NONE` a `AI_DETACHED`). Proibição de silêncio indefinido com fallbacks automatizados. Consulte `docs/LIVE_CALLS_AND_HANDOFF.md`. |
-| **DEC-024** | 2026-09-22 | Segurança | **Governança de Gravações de Chamadas e Compliance Jurídico** | Gravações privadas em object storage acessadas unicamente por URLs temporárias pré-assinadas com TTL configurável. Requisitos legais de gravação e retenção marcados como `COMPLIANCE VERIFICATION REQUIRED BEFORE PRODUCTION`. |
+| **DEC-024** | 2026-09-22 | Segurança | **Governança de Gravações de Chamadas e Compliance Jurídico** | Gravações privadas por padrão em object storage, acessadas via mecanismo autenticado/autorizado, temporário e auditável quando aplicável (como presigned URLs, signed delivery ou endpoint autenticado), com TTL configurável. Requisitos de aviso, ciência, consentimento e/ou base legal aplicável marcados como `COMPLIANCE VERIFICATION REQUIRED BEFORE PRODUCTION`. |
 
 ---
 

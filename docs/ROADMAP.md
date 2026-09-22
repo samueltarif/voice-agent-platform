@@ -94,7 +94,7 @@ Este documento estabelece as fases sequenciais de implementação da plataforma.
 ### 📞 FASE 8 — Telefonia Real
 - Integração com provedor de telefonia real (Pending Decision).
 - Recepção de chamadas receptivas (inbound) com DIDs dedicados.
-- **Call Recording & Storage**: Ingestão e upload de gravações para object storage com URLs pré-assinadas e isolamento por tenant.
+- **Call Recording & Storage**: Ingestão e upload de gravações para object storage com acesso autenticado/temporário e isolamento por tenant.
 - **Conexão Real de Transbordo**: Bridging de linha telefônica e transferência SIP/WebSockets para operadores humanos.
 - Implementação de adaptadores para CRM e Calendário.
 

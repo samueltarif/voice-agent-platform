@@ -57,7 +57,7 @@ Gerenciamento completo e adaptativo para empresas clientes:
 5. **Produtos & Serviços** (catálogo determinístico de itens e preços consultáveis por tools);
 6. **Campanhas** (disparo cadenciado de ligações com horários e regras de discagem);
 7. **Chamadas** (listagem em tempo real, monitoramento ao vivo e desfechos);
-8. **Transcrições & Áudios** (player integrado com gravação protegida por presigned URLs);
+8. **Transcrições & Áudios** (player integrado com acesso a gravações protegido por mecanismo autenticado e temporário);
 9. **Integrações** (configuração de telefonia, CRMs, calendários e webhooks);
 10. **Analytics** (taxas de conversão, duração média, handoffs e métricas operacionais);
 11. **Custos & Finanças** (apropriação transparente de custos e saldo de créditos);
@@ -263,8 +263,8 @@ O **Agent Studio** é o ambiente de configuração e evolução de agentes de vo
 - Nenhuma avaliação negativa altera agente em produção automaticamente
 
 ### 7.5. Live Calls, Recording e Human Handoff
-- **Monitoramento ao Vivo**: Transcrição, eventos, sentimentos e status em tempo real via WebSocket. Áudio ao vivo classificado como `STATUS: PLANNED / PROVIDER-DEPENDENT / NOT YET VALIDATED`.
-- **Gravação de Chamadas**: Armazenamento em object storage com presigned URLs temporárias, isolamento multi-tenant e trilha de auditoria. Governança jurídica: `COMPLIANCE VERIFICATION REQUIRED BEFORE PRODUCTION`.
+- **Monitoramento ao Vivo**: Transcrição, eventos, sinais de interesse/intenção baseados no conteúdo da conversa e status em tempo real via WebSocket. Áudio ao vivo classificado como `STATUS: PLANNED / PROVIDER-DEPENDENT / NOT YET VALIDATED`.
+- **Gravação de Chamadas**: Gravações privadas por padrão em object storage acessadas via mecanismo autenticado/autorizado, temporário e auditável (como presigned URLs, signed delivery ou endpoint autenticado), com isolamento multi-tenant e trilha de auditoria. Governança jurídica: `COMPLIANCE VERIFICATION REQUIRED BEFORE PRODUCTION`.
 - **Protocolo de Human Handoff**: Orquestração determinística (máquina de estados: `NONE` → `REQUESTED` → `SELLER_NOTIFIED` → `SELLER_READY` → `AI_PREPARING` → `READY_TO_JOIN` → `HUMAN_CONNECTED` → `AI_DETACHED`).
 - **Modo Listen-Only**: Vendedor escuta antes de entrar; classificado como `STATUS: PLANNED / PROVIDER-DEPENDENT / NOT YET VALIDATED`.
 - **Regra de Zero Silêncio**: Se o vendedor não atender ou ocorrer timeout, a IA reassume deterministicamente sem deixar o cliente aguardando em silêncio.
@@ -343,7 +343,7 @@ Todos os eventos internos adotam o envelope canônico com identificadores de cor
    - Escopo mínimo estrito por organização;
    - Validação forte de schemas de parâmetros enviados pelo modelo;
    - Ações financeiras ou destrutivas exigem confirmação em duas etapas ou mediação humana.
-4. **Mídias Protegidas**: Arquivos de áudio são privados. Acesso web apenas via URLs pré-assinadas com TTL configurável emitidas após autenticação.
+4. **Mídias Protegidas**: Arquivos de áudio são privados por padrão. Acesso concedido apenas através de mecanismo autenticado/autorizado, temporário e auditável quando aplicável (como URLs pré-assinadas, signed delivery ou endpoint autenticado), com TTL configurável conforme política de segurança.
 5. **Políticas de Dados**: Audit trail imutável; gravações, transcrições e PII gerenciados por políticas configuráveis de retenção, expiração, anonimização e exclusão. Períodos legais definidos após pesquisa jurídica.
 
 ---
@@ -494,7 +494,7 @@ Consulte [`docs/ROADMAP.md`](file:///D:/voice-agent-platform/docs/ROADMAP.md) pa
 - Desacoplamento de Pagamento e Direito de Acesso via Entitlements e CommercialGrants (DEC-020);
 - Separação conceitual entre Usage, Cost e Billing (DEC-021);
 - Monitoramento de chamadas ao vivo com dados/eventos realtime; áudio ao vivo marcado como dependente de provedor e não validado (DEC-022);
-- Gravação de chamadas em Object Storage com presigned URLs temporárias e verificação regulatória pendente (DEC-023);
+- Gravação de chamadas em Object Storage com acesso autenticado/temporário (ex.: presigned URLs) e verificação regulatória pendente (DEC-023/DEC-024);
 - Protocolo determinístico de Human Handoff com fallback de zero silêncio; Listen-Only planejado e não validado (DEC-024).
 
 ### Decisões com Status: Proposed Default (Aguardam Aprovação Humana para Tornar-se Definitivas):
@@ -526,7 +526,7 @@ Nenhum agente de IA deve implementar dependências concretas para estes tópicos
 | 17 | Períodos de retenção de dados (LGPD/GDPR) | Aguarda pesquisa jurídica | **Pending Decision** |
 | 18 | Live Audio Streaming | WebRTC / WebSocket de áudio via provider telefônico | **STATUS: PLANNED / PROVIDER-DEPENDENT / NOT YET VALIDATED** |
 | 19 | Listen-Only Mode na Telefonia | Conferência / Whisper / Dual-stream PSTN | **STATUS: PLANNED / PROVIDER-DEPENDENT / NOT YET VALIDATED** |
-| 20 | Call Recording Compliance & Retenção | Análise jurídica de consentimento bilateral / LGPD | **COMPLIANCE VERIFICATION REQUIRED BEFORE PRODUCTION** |
+| 20 | Call Recording Compliance & Retenção | Requisitos de aviso, ciência, consentimento e/ou outra base legal aplicável (conforme jurisdição, finalidade e regulação vigente) | **COMPLIANCE VERIFICATION REQUIRED BEFORE PRODUCTION** |
 
 ---
 

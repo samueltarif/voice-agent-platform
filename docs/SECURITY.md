@@ -50,10 +50,10 @@ A execução de ferramentas por agentes de voz durante chamadas telefônicas apr
 
 ## 4. Proteção de Chamadas Telefônicas e Áudio
 
-1. **URLs de Áudio Privadas com Acesso Autenticado**:
-   - Arquivos de gravação de chamadas armazenados no object storage nunca devem possuir acesso pública direto.
-   - O acesso ocorre exclusivamente via URLs pré-assinadas emitidas apenas após autenticação e validação do tenant.
-   - O **TTL (tempo de vida) das URLs pré-assinadas é configurável** conforme política de segurança de cada deployment — nenhum valor específico de minutos é tratado como regra constitucional imutável.
+1. **Mídias Privadas com Acesso Autorizado**:
+   - Arquivos de gravação de chamadas armazenados no object storage são privados por padrão e nunca devem possuir acesso público direto.
+   - O acesso deve ocorrer apenas através de mecanismo autenticado/autorizado, temporário e auditável quando aplicável (como URLs pré-assinadas, signed delivery ou endpoint autenticado), após validação estrita de autenticação e tenant (`organizationId`).
+   - O **tempo de expiração (TTL)** de tokens de acesso ou URLs é configurável conforme política de segurança e risco de cada deployment — nenhum valor numérico fixo é tratado como regra imutável.
 2. **Separação Conceitual de Dados Sensíveis**:
    Os seguintes tipos de dados possuem natureza e tratamento distintos e devem ser gerenciados por políticas separadas:
    - **Audit trail**: Registros imútáveis de ações críticas de usuários e agentes.
@@ -69,7 +69,7 @@ A execução de ferramentas por agentes de voz durante chamadas telefônicas apr
    - Suporte a expurgo programado de áudio e transcrição mediante solicitação de exclusão do titular.
 5. **Verificação Regulatória Obrigatória Pré-Produção**:
    - `STATUS: COMPLIANCE VERIFICATION REQUIRED BEFORE PRODUCTION`.
-   - As normas jurídicas vigentes sobre consentimento de gravação, regras de telecomunicações (Anatel) e retenção mandatória não estão verificadas nesta fase; nenhuma regra jurídica é assumida sem parecer jurídico formal. Consulte `docs/LIVE_CALLS_AND_HANDOFF.md`.
+   - Requisitos de aviso, ciência, consentimento e/ou outra base legal aplicável à gravação devem ser verificados antes da produção conforme jurisdição, finalidade, tipo de chamada e legislação/regulação vigente (incluindo telecomunicações e proteção de dados pessoais/LGPD). Prazos de retenção e conformidade serão definidos estritamente após parecer jurídico formal. Consulte `docs/LIVE_CALLS_AND_HANDOFF.md`.
 
 ---
 

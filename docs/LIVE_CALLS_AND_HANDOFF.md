@@ -49,8 +49,8 @@ Cada chamada telefônica finalizada pode conter os seguintes componentes correla
 
 ### 2.2. Reprodução e Segurança de Acesso
 - Usuários autorizados da organização poderão reproduzir gravações diretamente na aplicação web.
-- **Acesso Restrito via URLs Pré-Assinadas**: O acesso a arquivos de áudio armazenados no object storage ocorre exclusivamente através de URLs temporárias pré-assinadas (*presigned URLs*), emitidas sob demanda após validação de autenticação e tenant (`organizationId`).
-- O **tempo de expiração (TTL)** das URLs é configurável por ambiente.
+- **Mídia Privada e Acesso Autorizado**: Recording assets devem ser privados por padrão e acessados apenas através de mecanismo autenticado/autorizado, temporário e auditável quando aplicável (como presigned URLs, signed delivery ou endpoint autenticado de streaming), com validação rigorosa de tenant (`organizationId`).
+- O **tempo de expiração (TTL)** de URLs temporárias ou tokens de acesso deve ser configurável segundo a política de segurança, risco e contexto do deployment.
 
 ### 2.3. Diretrizes de Infraestrutura e Governança
 - **Object Storage**: Acesso encapsulado estritamente via `StorageProvider`;
@@ -62,7 +62,7 @@ Cada chamada telefônica finalizada pode conter os seguintes componentes correla
 > [!WARNING]
 > **Ressalva de Conformidade Jurídica**:
 > `COMPLIANCE VERIFICATION REQUIRED BEFORE PRODUCTION`
-> As normas jurídicas aplicáveis a gravação de chamadas, consentimento do interlocutor, regulamentação de telecomunicações (Anatel) e proteção de dados pessoais (LGPD/GDPR) NÃO estão verificadas nesta tarefa. Requisitos definitivos de aviso sonoro e prazos de retenção serão estabelecidos após parecer jurídico formal antes de produção.
+> Requisitos de aviso, ciência, consentimento e/ou outra base legal aplicável à gravação devem ser verificados antes da produção conforme jurisdição, finalidade, tipo de chamada e legislação/regulação vigente (incluindo regulação de telecomunicações e proteção de dados pessoais/LGPD). Prazos de retenção, expurgo e eventuais mecanismos de notificação serão estabelecidos estritamente após parecer jurídico formal antes de produção.
 
 ---
 

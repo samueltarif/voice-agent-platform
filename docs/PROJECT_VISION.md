@@ -47,7 +47,7 @@ A interface da plataforma é construída sob abordagem **mobile-first** e atende
 | **Agent Studio** | Configuração visual de agentes de voz sem código: identidade, persona, tools, Knowledge Base, playbooks e versionamento. Consulte `docs/AGENT_STUDIO.md`. |
 | **Campanhas Ativas** | Disparo de discagens outbound com regras de cadência, horários permitidos e retentativas. |
 | **Chamadas & Ao Vivo** | Monitoramento de chamadas em tempo real (telemetria e transcrição ao vivo) e histórico de desfechos. Consulte `docs/LIVE_CALLS_AND_HANDOFF.md`. |
-| **Gravações & Transcrições** | Player com áudio sincronizado via URL pré-assinada, diarização e análise de sentimento. |
+| **Gravações & Transcrições** | Player com áudio sincronizado via acesso autenticado/temporário, diarização e sinais de interesse/conteúdo. |
 | **Vendedores & Handoff** | Fila de atendimento comercial, disponibilidade e protocolo de transbordo humano assistido. |
 | **Clientes / Contatos** | Cadastro e importação de listas de contatos com campos customizados, tags e histórico. |
 | **Produtos & Serviços** | Catálogo determinístico de itens e regras de desconto consultáveis via tool calling. |
