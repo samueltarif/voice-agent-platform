@@ -9,8 +9,11 @@ export default tseslint.config(
       '**/node_modules/**',
       '**/dist/**',
       '**/.turbo/**',
+      '**/.next/**',
+      '**/out/**',
       '**/coverage/**',
       '**/pnpm-lock.yaml',
+      '**/next-env.d.ts',
     ],
   },
   // Base configuration for JS/TS
@@ -22,6 +25,15 @@ export default tseslint.config(
       globals: {
         ...globals.node,
         ...globals.es2022,
+      },
+    },
+  },
+  // Frontend-scoped browser environment (strictly scoped to web and ui)
+  {
+    files: ['apps/web/src/**/*.{ts,tsx}', 'packages/ui/src/**/*.{ts,tsx}'],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
       },
     },
   },
@@ -48,6 +60,13 @@ export default tseslint.config(
         'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
+    },
+  },
+  // React TSX components: allow up to 75 lines to accommodate declarative JSX markup
+  {
+    files: ['apps/web/src/**/*.tsx', 'packages/ui/src/**/*.tsx'],
+    rules: {
+      'max-lines-per-function': ['error', { max: 75, skipBlankLines: true, skipComments: true }],
     },
   },
   // Overrides for test files (allow descriptive tests without artificial fragmentation)

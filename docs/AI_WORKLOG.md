@@ -957,3 +957,131 @@ Nenhuma.
 - **Branch Atual**: `main`
 - **Working Tree**: Limpa (`git status --short` vazio).
 - **PROMPT-003**: NÃO iniciado. Base documental e arquitetural pronta para o início do frontend sob aprovação humana.
+
+---
+
+## PROMPT-003 — Design System e Application Shell Mobile-First
+
+- **Data**: 2026-09-22
+- **Objetivo**: Implementar a primeira fase funcional do frontend do projeto na branch `feature/design-system-shell`, estabelecendo a stack Next.js 15, o Design System compartilhado `@voice-agent/ui` com tokens semânticos e primitivos Radix UI/shadcn, o Application Shell responsivo mobile-first com Tenant Shell e Platform Control Plane Shell, Dashboard operacional com dados mockados (com valores monetários em integer cents), preview de Live Calls / Human Handoff, Command Palette com navegação por teclado, gerenciador de preferências de UI (tema e densidade com tratamento de hidratação) e validação rigorosa em 7 viewports sem overflow via Playwright.
+
+### 1. Auditoria e Rastreamento de Versões de Dependências
+Conforme exigido pelo protocolo de governança, versões de pacotes foram tratadas em ciclo formal:
+- **React / React-DOM**:
+  - *CANDIDATE*: `19.x`
+  - *VERIFIED BY DOCS*: `19.3.0`
+  - *INSTALLED*: `19.3.0`
+  - *RESOLVED VERSION*: `react@19.3.0`, `react-dom@19.3.0`, `@types/react@19.1.8`, `@types/react-dom@19.1.8`
+- **Next.js**:
+  - *CANDIDATE*: `15.x`
+  - *VERIFIED BY DOCS*: `15.5.25`
+  - *INSTALLED*: `15.5.25`
+  - *RESOLVED VERSION*: `next@15.5.25`
+- **Tailwind CSS & Tooling**:
+  - *CANDIDATE*: `v4.x`
+  - *VERIFIED BY DOCS*: `tailwindcss@4.3.3`, `@tailwindcss/postcss@4.3.3`
+  - *INSTALLED*: `4.3.3`
+  - *RESOLVED VERSION*: `tailwindcss@4.3.3`, `@tailwindcss/postcss@4.3.3`, `postcss@8.5.6`
+- **Radix UI Primitives / Helpers**:
+  - *RESOLVED VERSIONS*: `@radix-ui/react-avatar@1.1.11`, `@radix-ui/react-dialog@1.1.15`, `@radix-ui/react-dropdown-menu@2.1.16`, `@radix-ui/react-progress@1.1.8`, `@radix-ui/react-separator@1.1.8`, `@radix-ui/react-slot@1.2.4`, `@radix-ui/react-tooltip@1.2.8`, `cmdk@1.1.1`, `clsx@2.1.1`, `tailwind-merge@3.5.0`, `lucide-react@1.16.0`.
+
+### 2. Arquitetura de Pacotes e Decisões Fundamentais
+1. **React no `@voice-agent/ui`**:
+   - `packages/ui` declara `react` e `react-dom` estritamente como `peerDependencies` (`>=19.0.0`) e `devDependencies` para compilação e tipagem TypeScript (`^19.3.0`).
+   - Evita cópias duplicadas do React entre pacotes do monorepo e garante que `apps/web` forneça a instância singleton em runtime.
+2. **Design Tokens — Fonte Única da Verdade (SSOT)**:
+   - Variáveis CSS em `apps/web/src/app/globals.css` atuam como fonte única da verdade dos valores visuais em runtime (cores, espaçamento, bordas, sombras e densidades default/compact).
+   - O tema padrão adotado é **Light**, com **Dark** selecionável como tema secundário.
+   - `packages/ui/src/tokens/token-contracts.ts` define tipos, chaves de tokens, nomes das variáveis CSS e tipos de densidade sem duplicar valores em código TypeScript.
+3. **Tailwind v4 no Monorepo**:
+   - Inclusão da diretiva `@source "../../../packages/ui/src"` no `apps/web/src/app/globals.css`, instruindo o compilador do Tailwind v4 a escanear todos os arquivos do workspace `packages/ui`.
+   - Validado que as classes utilitárias consumidas nos componentes de `packages/ui` são compiladas e injetadas no CSS final de produção gerado pelo Next.js.
+4. **Isolamento de Rota de Preview**:
+   - A rota `/ui-preview` foi estruturada para ambiente de desenvolvimento. Em produção (`process.env.NODE_ENV === 'production'`), invoca explicitamente `notFound()`.
+5. **Módulos Puros e Testabilidade**:
+   - `apps/web/src/features/dashboard/dashboard-view-model.ts`: Módulo puro para formatação monetária (integer cents para BRL), cálculo de taxas operacionais e agregação de métricas de chamadas. Testado isoladamente em `dashboard-view-model.test.ts` (5 testes).
+   - `apps/web/src/preferences/ui-preferences-storage.ts`: Módulo puro para parse, validação, serialização e defaults de tema e densidade sem depender do React Context. Testado em `ui-preferences-storage.test.ts` (5 testes).
+   - `packages/ui/src/class-names.ts`: Utilitário puro de merge de classes CSS combinando `clsx` e `tailwind-merge`. Testado em `class-names.test.ts` (3 testes).
+6. **Primitivos shadcn/Radix Estritamente Necessários**:
+   - Foram implementados exclusivamente 14 primitivos utilizados nas interfaces: `Avatar`, `Badge`, `Button`, `Card`, `Command`, `Dialog`, `DropdownMenu`, `Input`, `Progress`, `Separator`, `Sheet`, `Skeleton`, `Table`, `Tooltip`.
+   - Primitivos não utilizados nesta fase (como `Tabs`) não foram adicionados desnecessariamente.
+7. **Escopo Restrito de Globais de Navegador no ESLint**:
+   - Variáveis globais do browser (`window`, `document`, `localStorage`, `HTMLElement`) foram escopadas no `eslint.config.mjs` exclusivamente para os padrões de arquivo `apps/web/**` e `packages/ui/**`, mantendo o restante do monorepo (como contratos, errors, logger e apps backend) protegido contra vazamento de ambiente.
+8. **ADRs e DEC Registradas**:
+   - **ADR-007** (`docs/architecture/decisions/ADR-007-frontend-stack.md`): Stack frontend oficial baseada em Next.js 15, React 19, Tailwind CSS v4 e Radix UI no monorepo.
+   - **DEC-025** (`docs/DECISIONS_LOG.md`): Formalização da stack frontend, contratos de tokens, peerDependencies do React e isolamento de rotas de desenvolvimento.
+9. **Monetário em Centavos Inteiros (Integer Cents)**:
+   - Todos os dados mockados financeiros utilizam inteiros em centavos (ex.: `142500` cents = R$ 1.425,00). Formatação para exibição BRL é realizada exclusivamente pelo view-model.
+10. **Prevenção de Hydration Mismatch no Tema**:
+    - O provider de preferências inicializa valores seguros no SSR e sincroniza com o `localStorage` no montagem (`useEffect`).
+    - Atributo `suppressHydrationWarning` aplicado na tag `<html>` de `apps/web/src/app/layout.tsx` para evitar avisos ou flash de hidratação enquanto os atributos `class="dark"` e `data-density="compact"` são atribuídos.
+
+### 3. Validação em Viewports e Critérios do Playwright
+A plataforma foi validada interativamente via Playwright em servidor de desenvolvimento local e em build de produção (`next build`), cobrindo os 7 viewports obrigatórios em todas as rotas principais:
+
+| Rota | Viewport | scrollWidth | innerWidth | Overflow | Console Errors | Resultado Visual |
+|---|---|---|---|---|---|---|
+| `/dashboard` | 320x568 | 320px | 320px | **PASS** | 0 | Layout mobile fluido, sidebar oculta, bottom nav visível |
+| `/dashboard` | 375x667 | 375px | 375px | **PASS** | 0 | Cards e KPIs alinhados, tipografia proporcional |
+| `/dashboard` | 430x932 | 430px | 430px | **PASS** | 0 | Margens e grids consistentes com design system |
+| `/dashboard` | 768x1024 | 768px | 768px | **PASS** | 0 | Layout tablet adaptativo, grid de cards em 2 colunas |
+| `/dashboard` | 1024x768 | 1024px | 1024px | **PASS** | 0 | Desktop compacto com sidebar expansível |
+| `/dashboard` | 1440x900 | 1440px | 1440px | **PASS** | 0 | Desktop widescreen equilibrado, sidebar fixa, dashboard completo |
+| `/dashboard` | 1920x1080 | 1920px | 1920px | **PASS** | 0 | Desktop Full HD fluido sem estiramento ou quebras |
+| `/calls` | 375x667 | 375px | 375px | **PASS** | 0 | Transcrição de chamada, botões de ação e waveform adaptados |
+| `/calls` | 1440x900 | 1440px | 1440px | **PASS** | 0 | Monitoramento de chamadas ativas com painel detalhado |
+| `/platform` | 375x667 | 375px | 375px | **PASS** | 0 | Visão administrativa de tenants com cards responsivos |
+| `/platform` | 1440x900 | 1440px | 1440px | **PASS** | 0 | Tabela de tenants com métricas e controles de acesso |
+
+#### Validações Interativas Específicas:
+- **Persistência de Sidebar**: O recolhimento/expansão da sidebar persiste no `localStorage` após recarregamento da página.
+- **Botão Mobile "Mais"**: Dispara com sucesso a abertura do Sheet drawer com links adicionais de navegação, alternador de tema e densidade.
+- **Fechamento de Overlays por Tecla Escape**: Testado e confirmado no menu mobile drawer e na Command Palette.
+- **Command Palette (`Ctrl+K` / `⌘K`)**: Abre instantaneamente através de atalho global ou clique na barra de busca; ao ser fechada, retorna o foco para o elemento disparador.
+- **Alternância e Persistência de Tema e Densidade**: Testados com sucesso via context e salvos no `localStorage`.
+- **Acessibilidade de Movimento (`prefers-reduced-motion`)**: Transições e animações respeitam a diretiva do sistema via classes de animação suaves.
+- **Evidências Visuais Capturadas**: Capturados 8 screenshots de alta resolução nos viewports `375px`, `768px`, `1440px` e `1920px` (armazenados em diretório temporário de artefatos de teste, sem inclusão no commit).
+
+### 4. Arquivos Criados e Alterados
+- **Criados em `packages/ui/`**:
+  - `src/class-names.ts`, `src/class-names.test.ts`
+  - `src/tokens/token-contracts.ts`
+  - `src/components/avatar.tsx`, `badge.tsx`, `button.tsx`, `card.tsx`, `command.tsx`, `dialog.tsx`, `dropdown-menu.tsx`, `input.tsx`, `progress.tsx`, `separator.tsx`, `sheet.tsx`, `skeleton.tsx`, `table.tsx`, `tooltip.tsx`
+- **Criados em `apps/web/`**:
+  - `next.config.mjs`, `postcss.config.mjs`, `next-env.d.ts`
+  - `src/app/layout.tsx`, `src/app/page.tsx`, `src/app/globals.css`
+  - `src/app/dashboard/page.tsx`, `src/app/calls/page.tsx`, `src/app/platform/page.tsx`, `src/app/ui-preview/page.tsx`
+  - `src/features/dashboard/dashboard-view-model.ts`, `dashboard-view-model.test.ts`, `kpi-metric-cards.tsx`, `live-calls-panel.tsx`, `recent-calls-view.tsx`, `campaign-status-card.tsx`, `human-handoff-queue-card.tsx`
+  - `src/features/calls/calls-filter-bar.tsx`, `live-call-card.tsx`, `call-transcript-view.tsx`, `call-audio-waveform.tsx`
+  - `src/features/command-palette/command-palette-dialog.tsx`, `use-command-palette-hotkey.ts`
+  - `src/features/platform/platform-shell.tsx`, `platform-overview-metrics.tsx`, `platform-tenants-table.tsx`
+  - `src/preferences/ui-preferences-storage.ts`, `ui-preferences-storage.test.ts`, `ui-preferences-context.tsx`
+  - `src/shell/tenant-shell.tsx`, `desktop-sidebar.tsx`, `sidebar-link-item.tsx`, `app-topbar.tsx`, `mobile-bottom-nav.tsx`, `mobile-menu-drawer.tsx`
+  - `src/mocks/dashboard-mock-data.ts`, `calls-mock-data.ts`, `platform-mock-data.ts`
+- **Documentação e Configurações Atualizadas**:
+  - `docs/architecture/decisions/ADR-007-frontend-stack.md` (criado)
+  - `docs/architecture/decisions/README.md` (indexado ADR-007)
+  - `docs/DECISIONS_LOG.md` (registrado DEC-025 e atualizadas pendências)
+  - `PROJECT_MAP.md` (mapeamento físico da árvore de frontend e contratos)
+  - `docs/DESIGN_SYSTEM.md` (diretrizes de design tokens e componentes)
+  - `docs/MOBILE_GUIDELINES.md` (regras e evidências de responsividade e viewports)
+  - `README.md` (rotas e comandos do frontend)
+  - `eslint.config.mjs`, `turbo.json`, `packages/ui/package.json`, `apps/web/package.json`, `pnpm-lock.yaml`, `.gitignore`
+
+### 5. Resultados do Pipeline de Qualidade (`pnpm check`)
+Todos os 7 gates de qualidade automatizados foram executados em sequência com sucesso integral:
+1. `pnpm format:check`: SUCESSO (Todos os arquivos formatados conforme Prettier).
+2. `pnpm lint`: SUCESSO (0 erros, 0 avisos em todo o monorepo com regras de complexidade ciclomática <= 8 e profundidade <= 3).
+3. `pnpm typecheck`: SUCESSO (12 pacotes compilados via Turbo e TypeScript sem nenhum erro).
+4. `pnpm test`: SUCESSO (19 testes passando em 6 arquivos de teste: `@voice-agent/contracts`, `@voice-agent/logger`, `@voice-agent/errors`, `@voice-agent/ui`, `@voice-agent/web`).
+5. `pnpm build`: SUCESSO (Build de produção otimizado com Next.js gerando 8 páginas estáticas sem falhas).
+6. `node scripts/check-architecture.mjs`: SUCESSO (AST do TypeScript validando fronteiras de pacote, diretivas e ausência de nomes genéricos proibidos).
+7. `node scripts/check-file-size.mjs`: SUCESSO (64 arquivos de lógica de produção inspecionados; 0 violações; zero adições à allowlist).
+
+### 6. Governança Git e Estado do Pull Request
+- **Branch Ativa**: `feature/design-system-shell`
+- **Commit**: `feat: establish responsive design system and application shell`
+- **Push**: `origin/feature/design-system-shell`
+- **Pull Request**: Criado formalmente para a branch `main`.
+- **Zero Auto-Merge**: O PR permanece aberto aguardando revisão e aprovação humana.
+- **Backend / Persistência**: Permanecem estritamente mockados nesta fase, conforme previsto no Roadmap.
