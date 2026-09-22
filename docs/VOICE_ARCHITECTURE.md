@@ -127,3 +127,15 @@ Exemplos de parâmetros configuráveis (valores são exemplos ilustrativos, não
   - Modelo B: **Pipeline Modular em Cascata** (Deepgram Nova-2 STT + LLM rápido streaming + ElevenLabs / Cartesia TTS).
 - **Decisão Definitiva**: **Status: Pending Decision**.
   A arquitetura isola essa escolha no pacote `packages/integrations`, permitindo suportar qualquer uma das abordagens via `RealtimeAIProvider`.
+
+---
+
+## 6. Monitoramento em Tempo Real, Gravações e Transbordo Humano
+
+O motor de voz integra-se nativamente aos subsistemas de acompanhamento de chamadas ativas e transferência de controle:
+- **Live Call Telemetry**: Transmissão contínua de transcrições parciais, eventos e métricas de turno;
+- **Call Recording**: Gravação da sessão para object storage com URLs pré-assinadas e isolamento por tenant;
+- **Human Handoff Protocol**: Transbordo assistido para operadores humanos com máquina de estados determinística (`NONE` → `REQUESTED` → `SELLER_NOTIFIED` → `SELLER_READY` → `AI_PREPARING` → `READY_TO_JOIN` → `HUMAN_CONNECTED` → `AI_DETACHED`).
+
+> Para a especificação completa de fluxos, estados, modo listen-only e eventos canônicos de gravação e handoff, consulte [docs/LIVE_CALLS_AND_HANDOFF.md](file:///d:/voice-agent-platform/docs/LIVE_CALLS_AND_HANDOFF.md).
+

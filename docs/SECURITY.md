@@ -27,6 +27,10 @@ Este documento estabelece as normas mandatórias de proteção de dados, gestão
    - Autorização verifica:
      1. Se o usuário pertence à organização solicitada;
      2. Se o papel do usuário (RBAC) possui a permissão requerida para a ação (`calls:create`, `agents:edit`, `billing:read`).
+3. **Isolamento Estrutural do Platform Admin (Master Admin)**:
+   - `Platform Admin` é uma autorização estritamente **GLOBAL**, desacoplada da hierarquia de tenants.
+   - Não é modelada como um papel interno a uma `Organization`.
+   - Um usuário de tenant está categoricamente impossibilitado de se auto-elevar a Platform Admin por alteração de memberships ou papéis organizacionais. Consulte `docs/PLATFORM_CONTROL_PLANE.md`.
 
 ---
 
@@ -63,6 +67,9 @@ A execução de ferramentas por agentes de voz durante chamadas telefônicas apr
 4. **Conformidade com Privacidade**:
    - Notificação explícita ao interlocutor no início da chamada informando sobre a gravação e processamento por IA, quando exigido pela regulamentação aplicável.
    - Suporte a expurgo programado de áudio e transcrição mediante solicitação de exclusão do titular.
+5. **Verificação Regulatória Obrigatória Pré-Produção**:
+   - `STATUS: COMPLIANCE VERIFICATION REQUIRED BEFORE PRODUCTION`.
+   - As normas jurídicas vigentes sobre consentimento de gravação, regras de telecomunicações (Anatel) e retenção mandatória não estão verificadas nesta fase; nenhuma regra jurídica é assumida sem parecer jurídico formal. Consulte `docs/LIVE_CALLS_AND_HANDOFF.md`.
 
 ---
 

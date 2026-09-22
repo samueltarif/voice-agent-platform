@@ -28,6 +28,12 @@ Data de Registro Inicial: 21 de Setembro de 2026.
 | **DEC-016** | 2026-09-21 | Observabilidade| **Logs Estruturados e Rastreamento Ponta a Ponta** | Proibido `console.log` em produção. Operações utilizam `requestId`, `callId`, `jobId`, `campaignId`. |
 | **DEC-017** | 2026-09-21 | Testes | **TDD Obrigatório para Correção de Bugs e Regras** | Todo bug deve iniciar pela reprodução em teste automatizado; testes de unidade nunca realizam chamadas a APIs pagas reais. |
 | **DEC-018** | 2026-09-21 | Tooling | **Stack de Tooling, Monorepo e Guardrails Automáticos** | Adoção de Node.js v24.20.0 (suporte a Node v22 LTS em produção), pnpm v12 workspaces, Turborepo 2.x, TypeScript strict, ESLint 9 Flat Config com regras de complexidade, Prettier, Vitest 3.2.7, e guardrails automáticos via scripts com AST do TypeScript. |
+| **DEC-019** | 2026-09-22 | Arquitetura | **Separação entre Tenant App e Platform Control Plane** | Formalizada a segregação estrutural entre a área de clientes e o plano de controle global do SaaS. `Platform Admin` (Master Admin) é autorização global independente de tenant; auto-elevação é impossível. Consulte `docs/PLATFORM_CONTROL_PLANE.md`. |
+| **DEC-020** | 2026-09-22 | Comercial | **Desacoplamento entre Pagamento e Direito de Acesso** | Direitos de uso resolvidos por Plano + Entitlements + Estado Comercial (não por boolean ingênuo). Modos `SELF_SERVICE`, `MANUAL`, `COMPLIMENTARY` e concessões manuais auditáveis (`CommercialGrant`). |
+| **DEC-021** | 2026-09-22 | Comercial | **Resolução de Capacidades Estritamente por Entitlements** | Proibição de condicionais hardcoded (`if (plan === 'x')`). Capacidades e cotas operacionais são resolvidas dinamicamente via Entitlements por organização. |
+| **DEC-022** | 2026-09-22 | Financeiro | **Separação Estrutural entre Usage, Cost e Billing** | Consumo volumétrico factual (`Usage`), custo real de provedores (`Cost`) e faturamento comercial (`Billing`) operam desacoplados; `Usage` é agnóstico ao gateway de pagamento. |
+| **DEC-023** | 2026-09-22 | Voz & Handoff | **Protocolo Determinístico de Human Handoff e Prevenção de Abandono** | Transbordo humano operado por protocolo orquestrado e state machine determinística (`NONE` a `AI_DETACHED`). Proibição de silêncio indefinido com fallbacks automatizados. Consulte `docs/LIVE_CALLS_AND_HANDOFF.md`. |
+| **DEC-024** | 2026-09-22 | Segurança | **Governança de Gravações de Chamadas e Compliance Jurídico** | Gravações privadas em object storage acessadas unicamente por URLs temporárias pré-assinadas com TTL configurável. Requisitos legais de gravação e retenção marcados como `COMPLIANCE VERIFICATION REQUIRED BEFORE PRODUCTION`. |
 
 ---
 
@@ -49,3 +55,6 @@ Nenhuma das tecnologias e fornecedores abaixo foi selecionada de forma definitiv
 | **Framework do Frontend Web (`apps/web`)** | Next.js (App Router) / Vite + React SPA | **Status: Pending Decision** |
 | **Infraestrutura de Hospedagem / Cloud** | AWS / Google Cloud Platform / Fly.io / Kubernetes | **Status: Pending Decision** |
 | **Gateway de Pagamento / Faturamento SaaS** | Stripe / Asaas / Pagar.me | **Status: Pending Decision** |
+| **Live Audio Stream (Áudio ao Vivo no Navegador)** | WebRTC / WebSockets Audio Broadcast | **Status: Planned / Provider-Dependent / Not Yet Validated** |
+| **Modo Listen-Only do Operador no Handoff** | Muting seletivo de carrier / Audio Bridging | **Status: Planned / Provider-Dependent / Not Yet Validated** |
+

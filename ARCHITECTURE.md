@@ -47,7 +47,9 @@ O sistema é concebido como um **Monorepo Modular** centrado no domínio do neg�
 O monorepo divide o ciclo de vida da execução em quatro processos fundamentais:
 
 ### 2.1. `apps/web` (Dashboard Administrativo)
-- **Papel**: Interface visual B2B mobile-first para gestão de organizações, agentes de voz, campanhas, clientes, histórico de chamadas, transcrições, catálogo de produtos/serviços e métricas de custo.
+- **Papel**: Interface visual B2B mobile-first atendendo a dois contextos arquiteturais distintos:
+  1. **Tenant Application**: Gestão das empresas clientes (agentes, campanhas, contatos, chamadas ao vivo e gravadas, transbordo, catálogo, analytics e equipe);
+  2. **Platform Control Plane**: Gestão global do SaaS pelo proprietário (organizações, planos, assinaturas, entitlements, concessões comerciais, usage e auditoria da plataforma). Consulte `docs/PLATFORM_CONTROL_PLANE.md`.
 - **Natureza**: Renderização web moderna, adaptativa, comunicando-se exclusivamente com a API através de contratos tipados compartilhados (`packages/contracts`).
 
 ### 2.2. `apps/api` (Core Business & HTTP Gateway)
@@ -55,7 +57,7 @@ O monorepo divide o ciclo de vida da execução em quatro processos fundamentais
 - **Diretriz**: Rotas e controllers enxutos; zero lógica de negócio em controllers. Todas as operações orquestram serviços e publicam eventos de domínio.
 
 ### 2.3. `apps/voice` (Motor de Voz em Tempo Real)
-- **Papel**: Orquestrador de sessões de voz ativas com baixa latência e suporte a interrupção de fala (*barge-in*).
+- **Papel**: Orquestrador de sessões de voz ativas com baixa latência, suporte a interrupção de fala (*barge-in*), monitoramento de chamadas e transbordo determinístico para humanos (*Human Handoff*). Consulte `docs/LIVE_CALLS_AND_HANDOFF.md`.
 - **Funcionamento**: Gerencia o pipeline de áudio bidirecional:
   1. Recepção do fluxo de áudio da telefonia;
   2. Transcrição / Ingestão de áudio em tempo real (STT / Realtime Model);
@@ -65,7 +67,7 @@ O monorepo divide o ciclo de vida da execução em quatro processos fundamentais
 
 ### 2.4. `apps/worker` (Processamento Assíncrono)
 - **Papel**: Execução de tarefas desacopladas de longa duração ou em lote.
-- **Responsabilidades**: Pós-processamento de gravações, geração de transcrições detalhadas, extração de insights e sumarização de conversas via IA, disparo cadenciado de campanhas ativas e sincronizações de CRM/calendário.
+- **Responsabilidades**: Pós-processamento e ingestão segura de gravações em object storage, geração de transcrições detalhadas com diarização, extração de insights e sumarização via IA, consolidação de custos/uso e disparo cadenciado de campanhas ativas. Consulte `docs/LIVE_CALLS_AND_HANDOFF.md`.
 
 ---
 
@@ -152,3 +154,18 @@ O sistema adota limites orientados a eventos para manter os módulos desacoplado
 2. **Ambiente de Produção Protegido**: Bloqueio de execuções automatizadas autônomas destrutivas por IAs.
 3. **Credenciais e Secrets**: Injeção via variáveis de ambiente/secret manager. Nunca em disco ou logs.
 4. **Tool Calling Seguro**: Chamadas de ferramentas executadas pelos agentes de IA durante uma ligação de voz só acessam recursos explicitamente concedidos àquela organização com validação estrita de permissões.
+5. **Isolamento do Platform Admin**: `Platform Admin` (Master Admin) é uma autorização estritamente global, independente da hierarquia de tenants. Usuários de tenant não podem se auto-elevar a administradores da plataforma.
+6. **Segurança de Gravações e Áudios**: Áudios no object storage são privados, acessados unicamente via URLs temporárias pré-assinadas (*presigned URLs*) com TTL configurável e validação mandatória de `organizationId`.
+
+---
+
+## 9. Documentos Canônicos de Especialização
+
+Para especificações detalhadas de subsistemas complexos, consulte os documentos canônicos dedicados:
+- [Platform Control Plane e Modelo Comercial](file:///d:/voice-agent-platform/docs/PLATFORM_CONTROL_PLANE.md) (`docs/PLATFORM_CONTROL_PLANE.md`)
+- [Monitoramento ao Vivo, Gravações e Transbordo Humano](file:///d:/voice-agent-platform/docs/LIVE_CALLS_AND_HANDOFF.md) (`docs/LIVE_CALLS_AND_HANDOFF.md`)
+- [Agent Studio, Configuração e Versionamento](file:///d:/voice-agent-platform/docs/AGENT_STUDIO.md) (`docs/AGENT_STUDIO.md`)
+- [Arquitetura do Motor de Voz e Barge-in](file:///d:/voice-agent-platform/docs/VOICE_ARCHITECTURE.md) (`docs/VOICE_ARCHITECTURE.md`)
+- [Modelo de Custos e Rastreamento Financeiro](file:///d:/voice-agent-platform/docs/COST_MODEL.md) (`docs/COST_MODEL.md`)
+- [Arquitetura Orientada a Eventos](file:///d:/voice-agent-platform/docs/EVENTS.md) (`docs/EVENTS.md`)
+

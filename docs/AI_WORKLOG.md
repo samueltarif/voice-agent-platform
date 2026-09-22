@@ -642,3 +642,109 @@ Nenhuma.
 - **PROMPT-003 NÃO foi iniciado.**
 
 
+
+
+---
+
+## PROMPT-002H — Commercial Access, Platform Admin, Live Calls, Recording e Human Handoff
+
+- **Data**: 2026-09-22
+- **Objetivo**: Formalizar na arquitetura e documentação do projeto os novos requisitos confirmados pelo proprietário antes de iniciar o frontend (PROMPT-003). Tarefa estritamente documental e arquitetural (sem código de produto, sem banco real, sem migrations, sem auth, sem SDKs de telefonia/IA, sem gateway de pagamento e sem chamadas reais).
+
+### Status Factual dos Componentes e Conceitos
+- **Platform Control Plane**: ARQUITETURA DOCUMENTADA, NÃO IMPLEMENTADA.
+- **Platform Admin Global**: ARQUITETURA DOCUMENTADA, NÃO IMPLEMENTADA.
+- **Modelo Comercial (BillingMode / Entitlements / CommercialGrant)**: ARQUITETURA DOCUMENTADA, NÃO IMPLEMENTADA.
+- **Usage / Cost / Billing Separation**: ARQUITETURA DOCUMENTADA, NÃO IMPLEMENTADA.
+- **Live Call Monitoring (Data/Events via WebSocket)**: ARQUITETURA DOCUMENTADA, NÃO IMPLEMENTADA.
+- **Live Audio Streaming**: STATUS: PLANNED / PROVIDER-DEPENDENT / NÃO VALIDADO COM PROVIDER REAL.
+- **Call Recording**: STATUS: PLANNED / NÃO VALIDADO COM PROVIDER REAL / COMPLIANCE JURÍDICO PENDENTE.
+- **Listen-Only Mode**: STATUS: PLANNED / PROVIDER-DEPENDENT / NÃO VALIDADO COM PROVIDER REAL.
+- **Human Handoff Protocol (State Machine & Fallback)**: ARQUITETURA DOCUMENTADA, NÃO IMPLEMENTADA.
+- **Sales Queue / Seller Availability**: CONCEITO DOCUMENTADO, NÃO IMPLEMENTADO.
+
+### Arquitetura Comercial e Platform Control Plane
+1. **Separação de Contextos**:
+   - **Tenant Application**: Área restrita para empresas clientes (Dashboard, Agentes, Campanhas, Chamadas, Transcrições, Vendedores/Handoffs, Analytics, Integrações, Configurações).
+   - **Platform Control Plane**: Área restrita para a administração/proprietário do SaaS (Organizations, Plans, Access/Entitlements, Subscriptions, Usage, Costs, Billing, Platform Audit, System Health).
+2. **Platform Admin Global**:
+   - Autorização estritamente global (`Platform Admin` / `Master Admin`), completamente isolada de memberships ou papéis de tenant (`Organization`).
+   - Requisito de segurança: Nenhum usuário de tenant pode se auto-elevar a Platform Admin via membership.
+3. **Desacoplamento entre Pagamento e Acesso**:
+   - Rejeição formal do anti-pattern `pagou = liberado`. O direito de acesso é avaliado dinamicamente via Plano + Entitlements + Estado Comercial.
+   - **BillingMode**: `SELF_SERVICE`, `MANUAL`, `COMPLIMENTARY`.
+   - **SubscriptionStatus**: Proposta inicial com `TRIALING`, `ACTIVE`, `PAST_DUE`, `SUSPENDED`, `CANCELED`, `EXPIRED`. Proibido condensar status em booleanos frágeis (`isPremium`, `isActive`).
+   - **CommercialGrant**: Concessão manual auditável de acesso (`organizationId`, `planId`, `startsAt`, `endsAt`, `grantedBy`, `reason`, `reference`).
+   - **Plans e Entitlements**: Proibição de regras espalhadas por plano (`if plan === 'professional'`). Capacidades resolvidas exclusivamente por Entitlements (`agents.max`, `voice.monthlyMinutes`, `recordings.enabled`, `liveMonitoring.enabled`, `humanHandoff.enabled`, etc.).
+4. **Separação de Camadas Financeiras e de Uso**:
+   - `Usage` (consumo bruto operacional) ≠ `Cost` (custo incorrido junto a fornecedores) ≠ `Billing` (faturamento/cobrança contratual ou de gateway). O rastreamento de uso é independente de gateway de pagamento.
+
+### Live Calls, Recording e Human Handoff
+1. **Live Call Monitoring**:
+   - Visualização em tempo real de status, duração, agente ativo, cliente, transcrição ao vivo, eventos, tools executadas, intenções e status de handoff.
+   - Streaming de áudio ao vivo marcado como `STATUS: PLANNED / PROVIDER-DEPENDENT / NOT YET VALIDATED`.
+2. **Call Recording**:
+   - Ativo de gravação armazenado em Object Storage com acesso autenticado estritamente via presigned URLs temporárias com TTL curto.
+   - Requisitos de criptografia em repouso, isolamento por tenant, trilha de auditoria e políticas de retenção/expiração/anonimização configuráveis.
+   - Aviso regulatório mandatório: `COMPLIANCE VERIFICATION REQUIRED BEFORE PRODUCTION` (análise de leis de gravação telefônica, consentimento bilateral e LGPD).
+3. **Human Handoff**:
+   - Protocolo orquestrado determinístico: a IA inicia a transição suavemente enquanto o operador aceita e se prepara, transferindo no evento `READY_TO_JOIN`.
+   - Máquina de estados formalizada: `NONE` → `REQUESTED` → `SELLER_NOTIFIED` → `SELLER_READY` → `AI_PREPARING` → `READY_TO_JOIN` → `HUMAN_CONNECTED` → `AI_DETACHED` (com estados de exceção: `FAILED`, `CANCELED`, `TIMED_OUT`).
+   - Modo Listen-Only: vendedor ouve antes de ingressar; status `PLANNED / PROVIDER-DEPENDENT / NOT YET VALIDATED`.
+   - Regra mandatória de Fallback com Zero Silêncio: a IA nunca deixa o cliente em espera silenciosa indefinida. Na ausência de vendedor ou em timeout, reassume e propõe continuidade, retorno ou agendamento.
+4. **Sales Queue e Vendedores**:
+   - Conceito futuro de fila de vendas, disponibilidade de operadores e atribuição auditada de quem assumiu a chamada.
+5. **Eventos Internos Canônicos**:
+   - Adicionados a `docs/EVENTS.md`: `call.recording_started`, `call.recording_available`, `call.handoff_requested`, `call.seller_notified`, `call.seller_ready`, `call.handoff_ready`, `call.human_joined`, `call.ai_detached`, `call.handoff_failed`, `call.handoff_canceled`.
+
+### Impacto no Roadmap e no Frontend
+- **FASE 3 (Design System + Application Shell)**: Preparada conceitualmente para suportar dois contextos estruturais: Tenant Application e Platform Control Plane.
+- **FASE 4 (Persistência + Auth + Multi-Tenancy)**: Planejada subfase 4.1 para introdução do modelo comercial (Plans, Entitlements, Subscriptions, Commercial Grants, Platform Admin).
+- **FASE 6 e 8**: Implementação do motor de voz, monitoramento em tempo real, gravações e human handoff mantidos estritamente atrelados às fases de telefonia/áudio real.
+
+### Decisões Registradas e Pendências Mantidas
+- **Novas Decisões Arquiteturais (DEC-019 a DEC-024)**:
+  - DEC-019: Separação entre Tenant Application e Platform Control Plane com Platform Admin Global.
+  - DEC-020: Desacoplamento de Pagamento e Direito de Acesso via Entitlements e Commercial Grants.
+  - DEC-021: Separação Conceitual entre Usage, Cost e Billing.
+  - DEC-022: Monitoramento de Chamadas em Tempo Real e Status de Áudio ao Vivo.
+  - DEC-023: Arquitetura de Gravação de Chamadas e Presigned URLs com Compliance Pendente.
+  - DEC-024: Protocolo Determinístico de Human Handoff e Fallback de Zero Silêncio.
+- **Decisões Mantidas Pendentes (Nenhum fornecedor selecionado)**:
+  - Gateway de pagamento, provedor de auth, banco relacional, ORM, fornecedor de telefonia, IA realtime, storage, cache, filas, framework frontend e infraestrutura de cloud.
+
+### Arquivos Criados
+1. `docs/PLATFORM_CONTROL_PLANE.md`: Especificação canônica do Platform Control Plane, Platform Admin Global, Modelo Comercial desacoplado, Entitlements e Governança Financeira.
+2. `docs/LIVE_CALLS_AND_HANDOFF.md`: Especificação canônica de Live Monitoring, Gravações, Compliance, Protocolo Determinístico de Handoff, State Machine, Fallbacks e Filas de Vendedores.
+
+### Arquivos Alterados
+1. `ARCHITECTURE.md`: Atualização das fronteiras do sistema, papéis do voice/worker, isolamento global de Platform Admin e referências a novos documentos.
+2. `FOUNDATION_MASTER.md`: Atualização das seções 1, 7.5 e 19 integrando o Control Plane, modelo comercial, handoff e decisões DEC-019 a DEC-024.
+3. `docs/PROJECT_VISION.md`: Formalização dos escopos Tenant Application vs Platform Control Plane na seção 4.
+4. `docs/VOICE_ARCHITECTURE.md`: Inclusão da Seção 6 com referências canônicas para Live Calls, Recording e Human Handoff.
+5. `docs/EVENTS.md`: Especificação dos eventos de gravação (`call.recording_*`) e de handoff (`call.handoff_*`, `call.seller_*`, `call.human_joined`, `call.ai_detached`).
+6. `docs/SECURITY.md`: Adição de diretrizes de isolamento global para Platform Admin e governança regulatória de mídias.
+7. `docs/COST_MODEL.md`: Inclusão da Seção 4 detalhando a separação conceitual entre `Usage`, `Cost` e `Billing`.
+8. `docs/ROADMAP.md`: Ajustes nas fases 3, 4, 6 e 8; remoção de bloco duplicado legado.
+9. `docs/DECISIONS_LOG.md`: Registro formal de DEC-019 a DEC-024 e atualização da tabela de decisões pendentes com novos itens (18, 19 e 20).
+10. `docs/AI_WORKLOG.md`: Registro cronológico factual e detalhado de PROMPT-002H.
+
+### Ferramentas e MCPs Utilizados
+- Ferramentas nativas de arquivo (`view_file`, `replace_file_content`, `write_to_file`, `run_command`).
+- `github-mcp-server`: Utilizado para criação formal de Pull Request sem auto-merge.
+
+### Comandos Executados e Resultados
+- `git checkout -b docs/platform-control-live-calls`: Branch criada a partir de `main` (`64d3551`).
+- `pnpm check`: Executado em validação pré-commit (aprovação integral: lint, formatting, typecheck, vitest com 6 testes, build turbo de 12 pacotes, architecture e file-size checks).
+- `git status --short`: Verificação de status limpo e controlado.
+- `git add .` e `git commit`: Commit estruturado com a mensagem padronizada.
+- `git push -u origin docs/platform-control-live-calls`: Push da branch remota.
+
+### Riscos e Compliance Pendente
+- **Compliance Regulatório (Telefonia e LGPD)**: Requisitos de consentimento bilateral de gravação, armazenamento seguro e descarte devem ser homologados juridicamente antes de qualquer operação em produção (`COMPLIANCE VERIFICATION REQUIRED BEFORE PRODUCTION`).
+- **Dependência Técnica de Carrier**: Modos Listen-Only e Live Audio Streaming necessitam validação de capacidade real na API/infraestrutura do carrier que for contratado na Fase 8.
+
+### Próximo Passo
+- O arquivo principal para revisão externa é este `docs/AI_WORKLOG.md`.
+- Conclusão da etapa documental e submissão de Pull Request para a branch `main`.
+- Aguardar aprovação do proprietário para dar início ao `PROMPT-003 — Design System e Application Shell Mobile-First`.
