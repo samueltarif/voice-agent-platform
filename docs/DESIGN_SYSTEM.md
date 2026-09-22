@@ -70,3 +70,17 @@ Os valores abaixo são referência recomendada, não decisão definitiva aprovad
 1. **Acessibilidade Nativa (a11y)**: Navegabilidade completa via teclado, atributos ARIA adequados e contraste cromático mínimo em conformidade com WCAG 2.1 AA.
 2. **Isolamento e Reusabilidade**: Componentes visuais em `packages/ui` são agnósticos de regra de negócio e de rotas específicas da aplicação.
 3. **Áreas de Toque Adequadas**: Elementos interativos (botões, switches, itens de menu) devem respeitar a área mínima de toque de 44x44px em viewports móveis.
+
+---
+
+## 4. Arquitetura de Implementação em Runtime (Fase 1 — PROMPT-003)
+
+1. **Fonte Única da Verdade (SSOT)**:
+   - **Variáveis CSS (`globals.css`)**: Fonte factual única dos valores visuais em runtime (`--background`, `--foreground`, `--primary`, `--border`, etc.).
+   - **TypeScript (`token-contracts.ts`)**: Define apenas os contratos tipados (`UiThemeMode`, `UiDensityMode`, `SemanticColorKey`), sem duplicar valores hexadecimais ou medidas brutas.
+2. **Tema Corporativo Padrão**:
+   - **Light Mode como Padrão**: A interface é carregada inicialmente em tema claro corporativo de alto contraste, com suporte a Dark Mode selecionável.
+3. **Controle de Densidade**:
+   - Suporte a 3 modos de densidade via atributo `data-density="compact | default | comfortable"` no elemento raiz, ajustando a escala dimensional harmônica de padding e tipografia.
+4. **Primitivos Radix UI**:
+   - Primitives integrados com exportação de displayNames literais estáticos e transição responsiva de drawer/modal para mobile.

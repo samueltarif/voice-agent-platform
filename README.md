@@ -6,9 +6,9 @@ Bem-vindo ao repositório central da plataforma SaaS B2B de agentes de voz com i
 
 ## 📌 Status Atual do Repositório
 
-> **Aviso de Fase Atual**: O projeto concluiu a **Etapa 2 (PROMPT-002): Monorepo, Tooling e Guardrails**.
-> O monorepo executável está configurado com pnpm workspaces, Turborepo, TypeScript strict, ESLint 9 Flat Config com limites de complexidade, Prettier, Vitest e guardrails automatizados de arquitetura e tamanho de arquivos.
-> **Zero integrações externas reais ou decisões prematuras de produto** (sem ORM, sem schema, sem banco real, sem Next.js/Fastify) foram introduzidas nesta etapa.
+> **Aviso de Fase Atual**: O projeto concluiu a **Fase 3 (PROMPT-003): Design System e Application Shell Mobile-First**.
+> A primeira implementação real de frontend está operacional em `apps/web` (Next.js 15 App Router, React 19, Tailwind CSS v4) e `packages/ui` (Design System compartilhado com tokens semânticos via CSS variables como SSOT, tema Light corporativo por padrão, Dark mode secundário, densidade dinâmica e Command Palette acessível via `Ctrl+K`).
+> Todo o shell responsivo foi validado em 7 viewports (`320px` a `1920px`) com dados mockados tipados determinísticos (valores monetários estritamente em integer cents), sem introdução de backend real, ORM, Supabase ou telefonia real nesta fase.
 
 ---
 
@@ -86,8 +86,11 @@ A documentação está estruturada para fornecer contexto imediato e sem ambigui
 - [ADR-004: Padrão Provider/Adapter para Serviços Externos](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-004-provider-adapter-pattern.md)
 - [ADR-005: Fronteiras Orientadas a Eventos Internos Versionáveis](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-005-event-driven-boundaries.md)
 - [ADR-006: Abordagem de Interface Mobile-First Unificada](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-006-mobile-first.md)
+- [ADR-007: Stack Frontend Oficial (Next.js 15, React 19, Tailwind v4 e Radix UI)](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-007-frontend-stack.md)
 
 ---
 
 ## ⚡ Próximos Passos
-Aguardar autorização humana para o avanço para o próximo prompt planejado: **PROMPT-003 — Design System e Application Shell Mobile-First**.
+Conclusão da revisão técnica e merge da branch `feature/design-system-shell` (Pull Request #3).
+Após autorização humana, avanço para a **FASE 4 — Persistência, Autenticação e Multi-Tenancy** conforme planejado em `docs/ROADMAP.md` (decisão do banco de dados relacional e ORM, modelagem multi-tenant com `organizationId` mandatória, autenticação segregada e Subfase 4.1 para o modelo comercial e governança da plataforma).
+

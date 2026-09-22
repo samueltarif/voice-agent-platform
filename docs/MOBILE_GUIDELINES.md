@@ -49,3 +49,15 @@ O reprodutor de chamadas é peça central do produto:
 - No mobile, o player de áudio deve ser compacto, fixável no rodapé durante a leitura da transcrição.
 - A transcrição deve apresentar bolhas de diálogo verticais distinguindo claramente o agente e o interlocutor com cores e alinhamentos contextuais.
 - Suporte a rolagem sincronizada (*auto-scroll*) que acompanha a reprodução do áudio sem desorientar o usuário em telas compactas.
+
+---
+
+## 5. Implementação Validada no Monorepo (Fase 1 — PROMPT-003)
+
+1. **Navegação Móvel Operacional (`< 768px`)**:
+   - `MobileBottomNav`: Barra inferior fixa com 5 slots ergonômicos na *thumb zone* (`Início`, `Chamadas`, `Admin`, `Tema`, `Mais`), todos com altura mínima de 48px e feedback tátil/visual.
+   - `MobileMenuDrawer`: Gaveta lateral acionada pelo botão "Mais", contendo módulos secundários, seletor de densidade, controle de tema e atalhos rápidos.
+2. **Transformação Fluida Tabela -> Cards**:
+   - Componentes `RecentCallsView` e `PlatformTenantsTable` renderizam tabela multidimensional em `md:` (`>= 768px`) e se transformam automaticamente em lista de cartões empilhados verticais em telas `< 768px`.
+3. **Auditoria de Viewports Obrigatórios**:
+   - Aprovado com zero overflow horizontal (`scrollWidth <= innerWidth`) nas 7 resoluções mandatórias: `320px` (iPhone SE min), `375px` (iPhone padrão), `430px` (iPhone Pro Max), `768px` (iPad Portrait), `1024px` (iPad Landscape / Desktop compacto), `1440px` (Desktop) e `1920px` (Full HD).

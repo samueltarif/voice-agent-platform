@@ -34,6 +34,7 @@ Data de Registro Inicial: 21 de Setembro de 2026.
 | **DEC-022** | 2026-09-22 | Financeiro | **Separação Estrutural entre Usage, Cost e Billing** | Consumo volumétrico factual (`Usage`), custo real de provedores (`Cost`) e faturamento comercial (`Billing`) operam desacoplados; `Usage` é agnóstico ao gateway de pagamento. |
 | **DEC-023** | 2026-09-22 | Voz & Handoff | **Protocolo Determinístico de Human Handoff e Prevenção de Abandono** | Transbordo humano operado por protocolo orquestrado e state machine determinística (`NONE` a `AI_DETACHED`). Proibição de silêncio indefinido com fallbacks automatizados. Consulte `docs/LIVE_CALLS_AND_HANDOFF.md`. |
 | **DEC-024** | 2026-09-22 | Segurança | **Governança de Gravações de Chamadas e Compliance Jurídico** | Gravações privadas por padrão em object storage, acessadas via mecanismo autenticado/autorizado, temporário e auditável quando aplicável (como presigned URLs, signed delivery ou endpoint autenticado), com TTL configurável. Requisitos de aviso, ciência, consentimento e/ou base legal aplicável marcados como `COMPLIANCE VERIFICATION REQUIRED BEFORE PRODUCTION`. |
+| **DEC-025** | 2026-09-22 | Frontend & UI | **Stack Frontend Web, Design System e Application Shell** | Adoção de Next.js 15 (App Router) em `apps/web`, React 19 com peerDependencies em `packages/ui`, Tailwind CSS v4 com CSS variables como Single Source of Truth para tokens visuais (Light Mode como padrão comercial corporativo B2B, Dark Mode secundário), Radix UI primitives com displayNames estáticos, persistência de preferências de UI (`localStorage`) com prevenção de hydration mismatch, e rota `/ui-preview` bloqueada com `notFound()` em produção. |
 
 ---
 
@@ -52,7 +53,7 @@ Nenhuma das tecnologias e fornecedores abaixo foi selecionada de forma definitiv
 | **Fornecedor de Motor de Voz / LLM Realtime**| OpenAI Realtime API / ElevenLabs Conversational / Deepgram + LiveKit | **Status: Pending Decision** |
 | **Provedor de Object Storage** | Cloudflare R2 / AWS S3 / Google Cloud Storage | **Status: Pending Decision** |
 | **Provedor de Autenticação de Usuários** | Custom JWT + Passwordless / Clerk / Auth0 / Supabase Auth | **Status: Pending Decision** |
-| **Framework do Frontend Web (`apps/web`)** | Next.js (App Router) / Vite + React SPA | **Status: Pending Decision** |
+| **Framework do Frontend Web (`apps/web`)** | Next.js (App Router) + React 19 + Tailwind v4 | **Status: Decided (DEC-025 / ADR-007)** |
 | **Infraestrutura de Hospedagem / Cloud** | AWS / Google Cloud Platform / Fly.io / Kubernetes | **Status: Pending Decision** |
 | **Gateway de Pagamento / Faturamento SaaS** | Stripe / Asaas / Pagar.me | **Status: Pending Decision** |
 | **Live Audio Stream (Áudio ao Vivo no Navegador)** | WebRTC / WebSockets Audio Broadcast | **Status: Planned / Provider-Dependent / Not Yet Validated** |

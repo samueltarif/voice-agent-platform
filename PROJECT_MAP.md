@@ -5,13 +5,21 @@ Este documento apresenta a estrutura de alto nível para o monorepo `voice-agent
 ```
 voice-agent-platform/
 ├── apps/
-│   ├── web/              # Dashboard B2B mobile-first para gestão de agentes, campanhas, chamadas e configurações.
+│   ├── web/              # Aplicação Next.js 15 App Router: Shell responsivo, Dashboard operacional, Live Calls preview e Platform Control Plane.
+│   │   ├── src/app/          # Rotas Next.js (/, /dashboard, /calls, /platform, /ui-preview) e globals.css com tokens semânticos.
+│   │   ├── src/shell/        # TenantShell, DesktopSidebar colapsável, MobileBottomNav, MobileMenuDrawer e AppTopbar.
+│   │   ├── src/features/     # Vertical slices: dashboard metrics, live-calls, command-palette e platform admin.
+│   │   ├── src/mocks/        # Mocks determinísticos tipados com valores monetários estritamente em integer cents.
+│   │   └── src/preferences/  # Módulo puro ui-preferences-storage e context de persistência de tema/densidade sem hydration mismatch.
 │   ├── api/              # API HTTP e Gateway para autenticação, regras multi-tenant, webhooks e orquestração de recursos.
 │   ├── voice/            # Motor de baixa latência em tempo real para streaming de áudio, transcrição, diálogo e síntese de voz.
 │   └── worker/           # Processamento em background para tarefas assíncronas, transcrições em lote, analytics e campanhas.
 │
 ├── packages/
-│   ├── ui/               # Biblioteca compartilhada de componentes visuais responsivos baseados em design tokens unificados.
+│   ├── ui/               # Biblioteca compartilhada de componentes (Radix/Tailwind v4) com peerDependencies de React.
+│   │   ├── src/tokens/       # Contratos puros de tokens e tipos de preferências (CSS variables em globals.css como SSOT).
+│   │   ├── src/components/   # Primitives (Button, Card, Badge, Avatar, Input, Separator, Tooltip, DropdownMenu, Sheet, Dialog, Progress, Table, Command).
+│   │   └── src/class-names.ts# Utilitário puro de merge de classes CSS (clsx + tailwind-merge).
 │   ├── database/         # Placeholder arquitetural para schemas, migrations e repositories multi-tenant (zero ORM/conexão na Fase 0).
 │   ├── contracts/        # Contratos canônicos neutros, tipos compartilhados, DTOs, eventos e portas de domínio (TelephonyPort, etc.).
 │   ├── config/           # Centralização de validação e carregamento tipado de variáveis de ambiente para todos os módulos.

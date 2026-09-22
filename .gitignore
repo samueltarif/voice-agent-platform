@@ -47,3 +47,19 @@ desktop.ini
 # ========================
 coverage/
 .nyc_output/
+
+# ========================
+# Next.js
+# ========================
+.next/
+out/
+
+# ========================
+# Playwright & Screenshots
+# ========================
+.playwright-mcp/
+test-results/
+playwright-report/
+*.png
+*.webp
+

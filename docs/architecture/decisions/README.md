@@ -1,4 +1,4 @@
-﻿# Architecture Decision Records (ADRs)
+# Architecture Decision Records (ADRs)
 
 Este diretório contém o histórico oficial de decisões arquiteturais do projeto registradas no formato Architecture Decision Record (ADR).
 
@@ -25,4 +25,5 @@ Cada registro segue rigorosamente a seguinte anatomia:
 | [ADR-004](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-004-provider-adapter-pattern.md) | Padrão Provider/Adapter para Serviços Externos | 2026-09-21 | Accepted |
 | [ADR-005](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-005-event-driven-boundaries.md) | Fronteiras Orientadas a Eventos Internos Versionáveis | 2026-09-21 | Accepted |
 | [ADR-006](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-006-mobile-first.md) | Abordagem de Interface Mobile-First Unificada | 2026-09-21 | Accepted |
+| [ADR-007](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-007-frontend-stack.md) | Stack Frontend Web, Design System Compartilhado e Application Shell Mobile-First | 2026-09-22 | Accepted |
 
