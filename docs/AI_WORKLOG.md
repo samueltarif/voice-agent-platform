@@ -1451,3 +1451,207 @@ Nenhum.
 ## Arquivos críticos para revisão externa
 `docs/AI_WORKLOG.md`
 *(Nenhum outro arquivo de lógica ou infraestrutura precisou ser alterado nesta etapa de fechamento e merge).*
+---
+
+## PROMPT-004A — Persistence, Auth & Multi-Tenancy Decision Gate
+
+- **Data**: 2026-09-22
+- **Branch Ativa**: `docs/phase4-decision-gate` (criada a partir de `main` limpa e sincronizada).
+- **Objetivo**: Conduzir pesquisa exaustiva e comparativa, documentar capacidades factuais atuais de fornecedores/bibliotecas e propor a stack técnica da Fase 4 (Banco Relacional, Provedor Gerenciado, ORM/Query Layer, Migrações, Autenticação, Multi-Tenancy, Modelo de Identidade, Autorização de Platform Admin e Políticas de Conexão).
+- **Guardrails Estritamente Respeitados**:
+  - Tarefa 100% restrita a **PESQUISA + DECISÃO PROPOSTA + DOCUMENTAÇÃO**.
+  - Zero dependências instaladas (sem `pnpm add`).
+  - Zero criação de schemas ou migrations.
+  - Zero recursos cloud ou instâncias de banco provisionadas.
+  - O MCP do Supabase NÃO foi utilizado para criar tabelas, projetos ou buckets.
+  - Zero secrets ou variáveis `.env` criadas ou lidas.
+  - Zero alterações no código de produto de `apps/web`.
+  - Entradas anteriores do AI_WORKLOG preservadas intactas (registro estritamente append-only).
+
+---
+
+### 1. Documentos Obrigatórios Lidos e Revisados
+A etapa foi iniciada pela leitura e confrontação com os 16 documentos canônicos do projeto:
+- `AGENTS.md` (regras operacionais e limites para IAs);
+- `PROJECT_CONSTITUTION.md` (leis fundamentais: multi-tenancy inegociável, portas/adaptadores, determinismo, zero DDL manual em produção);
+- `ARCHITECTURE.md` (divisão entre `apps/web`, `apps/api`, `apps/voice`, `apps/worker` e pacotes compartilhados);
+- `PROJECT_MAP.md` (mapa de arquivos e fronteiras de pacotes);
+- `FOUNDATION_MASTER.md` (regras mestras consolidadas);
+- `docs/DATABASE.md` (governança de dados, repositórios tipados, migrations versionadas e regras de índices);
+- `docs/SECURITY.md` (segregação de segredos, autorização em camadas, mídias privadas e isolamento de Platform Admin);
+- `docs/PLATFORM_CONTROL_PLANE.md` (separação estrutural entre Tenant App e Platform Control Plane; desacoplamento entre pagamento e direito de acesso; resolução de capacidades via Entitlements; separação entre Usage, Cost e Billing);
+- `docs/PROJECT_VISION.md` (visão de produto do SaaS B2B de voz);
+- `docs/ROADMAP.md` (planejamento da Fase 4: Persistência, Autenticação e Multi-Tenancy);
+- `docs/DECISIONS_LOG.md` (decisões DEC-001 a DEC-025 e pendências em aberto);
+- `docs/DEPLOYMENT.md` (segregação de ambientes `dev`, `staging` e `production`, gate humano para produção);
+- `docs/OBSERVABILITY.md` (logs estruturados, rastreamento por `correlationId`, `organizationId` e métricas de latência);
+- `docs/AI_WORKLOG.md` (histórico append-only);
+- `docs/architecture/decisions/ADR-003-multi-tenant.md` (isolamento lógico nativo por `organizationId`);
+- `docs/architecture/decisions/ADR-004-provider-adapter-pattern.md` (padrão de portas e adaptadores para serviços externos);
+- `docs/architecture/decisions/ADR-007-frontend-stack.md` (stack frontend consolidada na Fase 3).
+
+---
+
+### 2. Ferramentas, MCPs e Consultas a Documentação Oficial Recente
+Para cumprir a exigência mandatória de **NUNCA confiar em memória estática de versões ou APIs**, foram realizadas consultas técnicas reais através do **Context7 MCP** e pesquisas em documentações oficiais:
+
+1. **Context7 MCP — Bibliotecas e Versões Inspecionadas**:
+   - `/drizzle-team/drizzle-orm-docs`: Verificados padrões de conexão com `pg.Pool`, driver `postgres.js`, geração de migrações com `drizzle-kit generate:pg`, e suporte nativo a RLS via `pgTable.withRLS` e transações com `set_config('request.jwt.claims', ...)`.
+   - `/websites/prisma_io`: Inspecionada a arquitetura do Prisma ORM v7, uso de Client Extensions (`$extends`), gerador de cliente, suporte a driver adapters (`@prisma/adapter-pg`) e necessidade de `DIRECT_URL` para o CLI e `DATABASE_URL` para o pooler PgBouncer.
+   - `/kysely-org/kysely`: Verificada a classe `Migrator`, migrações com suporte a DDL transacional (`supportsTransactionalDdl`), dialect Postgres (`PostgresDialect` com `pg.Pool`) e tipagem estática pura sem build step.
+   - `/neondatabase/website`: Inspecionados endpoints de conexão pooled (`-pooler` PgBouncer até 10.000 conexões em modo transação), endpoint direto (unpooled para migrations), separação de storage e computação, autoscaling, scale-to-zero e API de branching automatizado (`createBranch`).
+   - `/supabase/supabase`: Inspecionada a arquitetura do pooler **Supavisor** (porta 6543 em modo transação para serverless/APIs; porta 5432 em modo sessão para migrações), estrutura de JWT com claims personalizadas e avaliação de RLS via `auth.uid()` / `auth.jwt()`.
+   - `/better-auth/better-auth`: Inspecionado o suporte ao plugin nativo de organizações (`organizationClient` no client e `organization` no server), papéis customizados (`owner`, `admin`, `member`, custom roles), plugin `bearer` para envio de tokens de sessão em headers `Authorization: Bearer <token>`, plugin `apiKey` para chaves de API com escopo de organização e adaptadores diretos para Drizzle e Kysely.
+   - `/clerk/clerk-docs`: Inspecionada a biblioteca `@clerk/backend` e método `verifyToken` com verificação de assinatura JWT sem tráfego de rede (`jwtKey`) ou via JWKS, suporte a organizations B2B e restrições de domínios autorizados (`authorizedParties`).
+   - `/websites/authjs_dev`: Inspecionado o Auth.js (NextAuth v5), adaptadores de banco de dados (`DrizzleAdapter`, `PrismaAdapter`) e confirmada a ausência de suporte nativo a primitivos B2B de organizações (requer modelagem customizada manual).
+2. **Fontes Web Oficiais Complementares de Pricing (Verificação com Data e Moeda)**:
+   - **Neon Pricing (22/09/2026)**: Free a US$ 0/mês (0.5 GB storage, 100 CU-horas/mês). Launch e Scale operam em modelo puramente baseado em consumo sem taxa mensal mínima fixa; computação a US$ 0.106/CU-hora (Launch) e US$ 0.222/CU-hora (Scale); storage a US$ 0.35/GB-mês.
+   - **Supabase Pricing (22/09/2026)**: Free a US$ 0/mês (500 MB DB, pausa após 1 semana de inatividade). Pro a partir de US$ 25/mês (8 GB DB, US$ 10 de créditos de computação mensal cobrindo instância Micro, backups de 7 dias). Team a partir de US$ 599/mês.
+   - **Railway Pricing (22/09/2026)**: Hobby a US$ 5/mês e Pro a US$ 20/mês (taxa base com créditos equivalentes). Consumo medido por minuto: RAM a US$ 10/GB-mês, CPU a US$ 20/vCPU-mês, Storage a US$ 0.15/GB-mês.
+   - **Clerk Pricing (22/09/2026)**: Free a US$ 0/mês (até 50.000 Monthly Retained Users - MRU). Pro a partir de US$ 25/mês + US$ 0.02 por MRU adicional. Business a partir de US$ 250/mês.
+   - **Better Auth Pricing (22/09/2026)**: Software 100% Open-Source (Licença MIT). Custo de licenciamento: **US$ 0**. Hospedagem no próprio banco e compute da aplicação.
+
+---
+
+### 3. Análise e Matriz Comparativa Resumida
+
+#### A. Motor de Banco Relacional (Engine)
+- **PostgreSQL**: Confirmado como o único motor adequado. Fornece integridade referencial forte (`ON DELETE RESTRICT/CASCADE`), transações ACID para dedução de saldos/cotas determinísticas, índices B-Tree compostos com `organization_id`, tipos `NUMERIC`/`BIGINT` exatos para faturamento, suporte nativo a `JSONB` indexável para tool calling e compatibilidade futura com `pgvector` para Knowledge Base de agentes de voz.
+- **Bancos NoSQL (Document / Key-Value)**: Considerados tecnicamente inadequados para o core do SaaS devido à falta de consistência transacional forte entre múltiplas entidades e alto risco de vazamento ou corrupção de cotas/billing.
+- **Status**: `PROPOSED ENGINE: PostgreSQL` (Status: `VERIFIED`).
+
+#### B. Managed Database Provider
+1. **Neon Serverless Postgres**:
+   - *Pontos Fortes*: Database Branching instantâneo (Copy-on-Write) que viabiliza clonar schemas/dados em segundos para CI/CD e PRs; autoscaling e scale-to-zero com custo zero ocioso em ambientes de desenvolvimento; PgBouncer integrado para até 10.000 conexões.
+   - *Trade-offs*: Exige conexão direta para migrations DDL; potencial cold start em scale-to-zero se não configurado com nós fixos em produção.
+   - *Fit*: Altíssimo para o monorepo.
+2. **Supabase Postgres**:
+   - *Pontos Fortes*: PostgreSQL padrão robusto; pooler Supavisor de altíssima escala operando nativamente em portas separadas (6543 para transação/serverless e 5432 para sessão/migrações); interface rica; backups consolidados.
+   - *Trade-offs*: Pausa de projetos inativos no plano Free (7 dias); forte tentação de acoplamento com SDKs proprietários caso a disciplina arquitetural seja relaxada.
+   - *Fit*: Altíssimo como PostgreSQL puro.
+3. **Railway PostgreSQL**:
+   - *Pontos Fortes*: Controle simples de contêineres e suporte a clusters Patroni HA com failover automático e PgBouncer via CLI.
+   - *Trade-offs*: Sem branching nativo para pipelines de PR; precificação dinâmica por recurso que pode oscilar em picos contínuos.
+   - *Fit*: Bom para deploys tradicionais.
+
+#### C. Camada de Persistência / ORM
+1. **Drizzle ORM**:
+   - *Pontos Fortes*: Definido em TypeScript estrito puro (`pgTable`); zero overhead de compilação ou engine intermediário; migrações geradas em arquivos SQL padrão limpos e revisáveis por humanos em PRs (`drizzle-kit`); suporte nativo a índices compostos e SQL tipado; isolamento completo de `packages/contracts`.
+   - *Trade-offs*: Comunidade mais recente em relação ao Prisma, embora já amplamente consolidada na indústria.
+   - *Fit*: Máximo para nossos guardrails arquiteturais.
+2. **Prisma ORM**:
+   - *Pontos Fortes*: Ecossistema tradicional maduro e tipagem robusta em CRUDs simples.
+   - *Trade-offs*: DSL proprietária (`schema.prisma`) fora do TypeScript; geração de cliente pesado com engine Rust/WASM; dependência de *shadow database* para aplicar migrações com segurança; maior consumo de memória em serverless/containers.
+   - *Fit*: Médio.
+3. **Kysely**:
+   - *Pontos Fortes*: Query builder extremamente performático e type-safe; zero overhead em runtime.
+   - *Trade-offs*: Não oferece ferramenta integrada de geração automática de migrations a partir de declarações TypeScript (exige escrita manual de SQL ou setup de CLI complementar).
+   - *Fit*: Alto, porém com menor ergonomia de migrations integradas em comparação ao Drizzle.
+
+#### D. Autenticação e Gestão de Sessões
+1. **Better Auth**:
+   - *Pontos Fortes*: 100% TypeScript e open-source (MIT); armazena identidades e sessões no PostgreSQL da própria aplicação via adaptador Drizzle; plugin nativo de organizações (`organization`) com suporte a papéis (`owner`, `admin`, `member`, custom) e convites; plugin `bearer` para envio seguro de sessões para `apps/api` externa; zero custos por usuário ou taxas de licença.
+   - *Trade-offs*: Projeto mais jovem que Clerk ou Auth.js, demandando acompanhamento próximo de atualizações.
+   - *Fit*: Máximo para os requisitos e independência tecnológica do projeto.
+2. **Clerk**:
+   - *Pontos Fortes*: Componentes prontos de alta qualidade; experiência impecável; suporte nativo a B2B Organizations e SAML.
+   - *Trade-offs*: Alto vendor lock-in proprietário; dados residem em nuvem fechada de terceiros; custos que escalam exponencialmente em B2B corporativo (a partir de US$ 25/mês + US$ 0.02/MRU após 50k).
+   - *Fit*: Médio.
+3. **Supabase Auth**:
+   - *Pontos Fortes*: Open-source e integrado ao ecossistema PostgreSQL com emissão de JWTs e suporte a RLS.
+   - *Trade-offs*: Amarra a identidade ao schema interno `auth.users`; gestão de múltiplos tenants B2B requer implementação de tabelas adicionais e claims personalizadas manuais.
+   - *Fit*: Alto apenas se o projeto adotar a stack Supabase de ponta a ponta.
+4. **Auth.js (NextAuth v5)**:
+   - *Pontos Fortes*: Open-source popular na comunidade Next.js.
+   - *Trade-offs*: Não possui modelo nativo de organizações B2B; complexo para consumir sessões fora do ecossistema App Router em APIs backend dedicadas como `apps/api`.
+   - *Fit*: Baixo para SaaS B2B com múltiplos tenants.
+
+---
+
+### 4. Proposta de Stack Técnica Recomendada para Aprovação Humana
+
+Submetida formalmente para apreciação humana no relatório de pesquisa:
+
+| Componente | Opção Recomendada | Alternativa Primária |
+| :--- | :--- | :--- |
+| **Engine de Banco de Dados** | **PostgreSQL 16+** | *(Nenhuma alternativa sugerida — unânime)* |
+| **Provedor Gerenciado** | **Neon Serverless Postgres** | **Supabase Postgres** |
+| **Camada ORM / Query** | **Drizzle ORM + drizzle-kit** | **Kysely** |
+| **Autenticação e Sessões** | **Better Auth** (com plugins Organization & Bearer)| **Clerk** (se aprovado lock-in por conveniência visual) |
+| **Isolamento Multi-Tenant** | **Repositories Tipados com `organizationId` obrigatório** | **Defesa em Profundidade com RLS incremental** |
+| **Ambiente de Dev Local** | **Docker Compose (PostgreSQL limpo)** | **Neon branch efêmera de dev** |
+
+*Status Geral da Proposta: `PROPOSED / HUMAN APPROVAL REQUIRED`.*
+
+---
+
+### 5. Definições Conceituais de Arquitetura da Fase 4
+
+1. **Modelo de Identidade**:
+   - Separadas categoricamente: `User` (identificador interno canônico `id`), `AuthIdentity` (sujeito no provedor de credenciais), `Organization` (tenant corporativo), `OrganizationMembership` (papel do usuário na organização) e `PlatformAdminAuthorization` (autorização estritamente global, externa a tenants).
+   - `providerUserId` é expressamente banido como chave de domínio universal.
+2. **Estratégia de Multi-Tenancy**:
+   - Adoção de **Isolamento em Nível de Persistência via Repositories Tipados**. Todo repositório de dados tenant-scoped em `packages/database` exige `organizationId` como parâmetro obrigatório em 100% dos métodos de consulta, inserção e deleção.
+   - Schemas preparados para ativação complementar de PostgreSQL Row Level Security (RLS) como camada de defesa em profundidade em tabelas críticas de faturamento e chamadas.
+3. **Fonte da Verdade e Autorização**:
+   - A autenticação responde "quem é você".
+   - A autorização responde "o que você pode fazer", sendo resolvida deterministicamente pelo banco de dados relacional (consultando membros, papéis, limites de plano e entitlements concedidos). O provedor de auth **nunca** dita regras comerciais ou limites de serviço.
+4. **Resolução de Organização Ativa**:
+   - Resolução via rota `/org/[slug]` e contexto de sessão verificado pelo servidor.
+   - **Regra de Segurança**: O servidor valida em toda requisição se o `userId` autenticado possui vínculo ativo (`OrganizationMembership.status === 'ACTIVE'`) com o `organizationId` contextual. O client nunca tem autoridade para forçar acesso passando apenas headers.
+5. **Arquitetura de Conexões da API e Serviços**:
+   - `apps/web`: Conexão em modo Pooler (PgBouncer/Supavisor) para requisições curtas de interface.
+   - `apps/api`: Conexão em modo Pooler com pool dedicado para gateway HTTP.
+   - `apps/worker`: Conexão direta ou sessão persistente para execução de jobs assíncronos e locks de fila.
+   - `apps/voice`: Acesso mínimo direto ao banco de dados durante turnos de chamadas telefônicas; estado volátil gerenciado via Redis e eventos publicados para ingestão desacoplada por workers, prevenindo esgotamento de conexões em rajadas de chamadas.
+   - `CLI de Migrations`: Exige obrigatoriamente conexão direta (`DIRECT_URL`), pois DDLs falham em poolers transacionais.
+6. **Governança de Migrações**:
+   - Migrações versionadas em arquivos SQL limpos em `packages/database/migrations/*.sql`.
+   - Execução automatizada via pipeline de CI/CD em deploys.
+   - Proibição absoluta de DDL manual em produção. Adoção do padrão *Expand and Contract* para alterações estruturais incompatíveis.
+7. **Invariantes Mínimas de Segurança para a Fase 4B**:
+   - 7 invariantes formais definidas para validação obrigatória por testes automatizados (isolamento cross-tenant absoluto, bloqueio de membership inativa, isolamento inviolável de Platform Admin, obrigatoriedade de `organizationId` em repositórios, restrições únicas compostas por tenant, contexto em jobs e autorização estritamente determinística no servidor).
+
+---
+
+### 6. Decisões que Exigem Aprovação Humana Formal
+O início da implementação prática (PROMPT-004B) aguardará a aprovação humana expressa dos seguintes pontos:
+1. Aprovação da escolha do **PostgreSQL 16+** como motor relacional.
+2. Definição do provedor gerenciado oficial entre **Neon Serverless Postgres** e **Supabase Postgres**.
+3. Aprovação da adoção do **Drizzle ORM** em `packages/database`.
+4. Aprovação da adoção do **Better Auth** para o sistema de identidade e sessões B2B.
+5. Aprovação do uso de contêiner local `docker-compose.yml` para desenvolvimento offline de engenheiros e agentes.
+
+---
+
+### 7. Arquivos Criados e Alterados nesta Etapa
+- `docs/research/PHASE_4_DECISION_GATE.md`: Documento de pesquisa arquitetural abrangente e aprofundado, contendo metodologia, fontes, análises críticas, matrizes de decisão, modelo de dados conceitual e plano de implementação para a Fase 4B.
+- `docs/AI_WORKLOG.md`: Adicionada esta entrada factual detalhada (append-only).
+
+---
+
+### 8. Validações do Repositório (`pnpm check`)
+- `pnpm format:check`: SUCESSO (100% de conformidade com Prettier).
+- `pnpm lint`: SUCESSO (0 erros, 0 avisos em todo o monorepo).
+- `pnpm typecheck`: SUCESSO (12 workspaces compilados em modo FULL TURBO).
+- `pnpm test`: SUCESSO (19 testes passando em 6 arquivos de teste no Vitest).
+- `pnpm build`: SUCESSO (12 pacotes compilados; 8 páginas estáticas otimizadas geradas pelo Next.js 15).
+- `scripts/check-architecture.mjs`: SUCESSO (0 violações arquiteturais).
+- `scripts/check-file-size.mjs`: SUCESSO (64 arquivos de lógica de produção em estrita conformidade).
+
+---
+
+### 9. Governança Git e Estado do Pull Request
+- **Branch Ativa**: `docs/phase4-decision-gate`
+- **Working Tree**: Limpa.
+- **Commit**: `docs: evaluate persistence auth and multi-tenant stack`
+- **Push**: `origin/docs/phase4-decision-gate`
+- **Pull Request**: Criado formalmente para a branch `main`.
+- **Zero Auto-Merge**: O PR permanece aberto aguardando revisão e aprovação humana.
+- **Fase 4B**: NÃO INICIADA. Nenhuma alteração de código ou banco executada.
+
+---
+
+## Arquivos críticos para revisão externa
+1. `docs/AI_WORKLOG.md` *(Contém a síntese executiva completa e rastreabilidade integral desta etapa)*.
+2. `docs/research/PHASE_4_DECISION_GATE.md` *(Documento completo de pesquisa, matriz comparativa detalhada, modelo conceitual e plano da Fase 4B)*.
