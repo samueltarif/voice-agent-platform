@@ -2,8 +2,8 @@
 
 > **Status do Documento**: PROPOSED / HUMAN APPROVAL REQUIRED  
 > **Data da Consulta / Pesquisa**: 22 de Setembro de 2026  
-> **Origem da Demanda**: PROMPT-004A & PROMPT-004A-FIX — Refinamento de Fronteiras de Auth, Multi-Tenancy e Escopo  
-> **Escopo**: Pesquisa comparativa, avaliação técnica precisa, matriz de decisão e proposta de stack.  
+> **Origem da Demanda**: PROMPT-004A, PROMPT-004A-FIX & PROMPT-004A-CHECK — Fechamento do Decision Gate antes da Aprovação Humana  
+> **Escopo**: Pesquisa comparativa, avaliação técnica precisa, matriz de decisão e proposta de stack para validação humana.  
 > **Salvaguardas Críticas**: Zero dependências instaladas, zero provisionamento de infraestrutura/cloud, zero secrets criados ou manipulados, zero DDLs ou migrations executadas em código de produção.
 
 ---
@@ -27,7 +27,7 @@ Conforme estabelecido na [Constituição do Projeto](file:///d:/voice-agent-plat
 
 ## 2. Metodologia de Pesquisa e Fontes Consultadas
 
-Todas as tecnologias foram investigadas através de documentação oficial recente via **Context7 MCP** (com identificadores de biblioteca verificados) e documentação pública complementar oficial consultada em **22 de Setembro de 2026**.
+Todas as tecnologias foram investigadas através de documentação oficial recente via **Context7 MCP** (com identificadores de biblioteca verificados) e documentação pública complementar consultada em **22 de Setembro de 2026**.
 
 | Tecnologia / Tópico | Ferramenta / Fonte | Identificador / Referência Oficial | Data da Consulta | Status |
 | :--- | :--- | :--- | :--- | :--- |
@@ -64,43 +64,51 @@ A proposta de adoção do **PostgreSQL** fundamenta-se nos requisitos técnicos 
 
 ### 3.2. Conclusão sobre Motores Não-Relacionais (NoSQL)
 - O PostgreSQL é proposto porque os requisitos essenciais do projeto são predominantemente relacionais, transacionais e fortemente orientados a constraints de integridade e auditoria.
-- A decisão de não adotar NoSQL no core da plataforma baseia-se na perfeita adequação do modelo relacional ao domínio de SaaS B2B corporativo, sem necessidade de desqualificar genericamente engines NoSQL para outros casos de uso.
+- A decisão de não adotar NoSQL no core da plataforma baseia-se na perfeita adequação do modelo relacional ao domínio de SaaS B2B corporativo, sem necessidade de generalizar genericamente sobre a capacidade de outros bancos.
 - **Status**: `PROPOSED ENGINE: PostgreSQL`. *(A versão major exata será fixada no momento da seleção do provedor cloud para garantir que `local == staging == production`).*
 
 ---
 
 ## 4. Categoria 2 — Managed Database Provider
 
-Comparação técnica entre três fornecedores consolidados de PostgreSQL gerenciado:
+Comparação técnica entre fornecedores consolidados de PostgreSQL gerenciado:
 
 ### 4.1. Neon Serverless Postgres
 - **Arquitetura**: Separação completa entre computação (stateless compute) e armazenamento distribuído (Neon storage).
-- **Connection Pooling**: PgBouncer nativo integrado via endpoints dedicados (`-pooler`). Suporta modo transação para conexões concorrentes e disponibiliza endpoint direto (unpooled) para ferramentas que dependam de semântica de sessão.
-- **Database Branching (Copy-on-Write)**: Criação instantânea de branches do banco de dados (schema + dados) em segundos via API (`createBranch`), permitindo ambientes isolados de CI/CD para testar migrations em Pull Requests.
+- **Connection Pooling**: PgBouncer integrado via endpoints dedicados (`-pooler`). Suporta modo transação para conexões de aplicação e disponibiliza endpoint direto (unpooled) para ferramentas que dependam de semântica de sessão.
+- **Database Branching (Copy-on-Write)**: Criação de branches do banco de dados (schema + dados) via API (`createBranch`), permitindo ambientes isolados de CI/CD para testar migrations em Pull Requests.
 - **Autoscaling e Scale-to-Zero**: Nós de computação podem escalar e entrar em suspensão após período de inatividade em desenvolvimento.
-- **Região e Soberania de Dados**: Suporta a região **AWS South America (São Paulo) — `aws-sa-east-1`** (Fonte: `neon.tech/docs/introduction/regions`, consultado em 22/09/2026), garantindo baixa latência e compatibilidade com requisitos de soberania de dados para clientes no Brasil.
-- **Preços Oficiais Verificados (22/09/2026 — `neon.tech/pricing`)**:
-  - *Free*: US$ 0/mês (0.5 GB storage, 100 CU-horas/mês).
-  - *Launch / Scale*: Baseado em consumo real sem taxa mensal fixa; computação a US$ 0.106/CU-hora (Launch) e US$ 0.222/CU-hora (Scale); storage a US$ 0.35/GB-mês.
-- **Pontos de Atenção**: Potencial latência de cold start em ambientes onde compute nodes entrem em suspensão (em produção, o compute deve ser configurado como sempre ativo).
+- **Localização de Dados (Data Locality)**:
+  - `PRIMARY DATABASE REGION / DATA LOCALITY`: São Paulo (`aws-sa-east-1`) disponível — **VERIFIED** (Fonte: `https://neon.tech/docs/introduction/regions`, consultado em 22/09/2026).
+  - `BACKUP RESIDENCY`: **NOT VERIFIED** (depende de configuração de storage do provedor cloud subjacente).
+  - `LOG/TELEMETRY RESIDENCY`: **NOT VERIFIED**.
+  - `SUPPORT/PROCESSING RESIDENCY`: **NOT VERIFIED**.
+  - `LGPD COMPLIANCE`: **NÃO INFERIDO DA REGIÃO. LEGAL/COMPLIANCE VERIFICATION REQUIRED BEFORE PRODUCTION**. A mera presença de datacenter no Brasil não atesta, isoladamente, conformidade jurídica com a LGPD.
+- **Precificação e Limites (Status de Verificação)**:
+  - *Free Tier*: US$ 0/mês — **VERIFIED** em `neon.tech/pricing`.
+  - *Modelo Launch/Scale*: Baseado em consumo de computação e armazenamento — **VERIFIED** em `neon.tech/pricing`.
+  - *Pausa / Scale-to-zero*: Recurso documentado; detalhes específicos de retenção e limites de conexões simultâneas sujeitos a termos de serviço atualizados da conta.
+- **Pontos de Atenção**: Latência de cold start em ambientes com compute suspenso (em produção, o compute deve ser configurado como sempre ativo).
 
 ### 4.2. Supabase Postgres
 - **Arquitetura**: PostgreSQL dedicado em contêiner gerenciado acompanhado do pooler **Supavisor**.
 - **Connection Pooling**: Supavisor nativo operando na porta 6543 (modo transação para serverless/APIs) e na porta 5432 (modo sessão para migrations e ferramentas de DDL).
-- **Extensões**: Suporte nativo completo a `pgvector`, `pgcrypto`, `uuid-ossp`, com interface gráfica administrativa madura.
-- **Região e Soberania de Dados**: Suporta a região **`sa-east-1` (São Paulo, Brasil)** para banco de dados, autenticação e storage (Fonte: `supabase.com/docs/guides/platform/regions`, consultado em 22/09/2026).
-- **Preços Oficiais Verificados (22/09/2026 — `supabase.com/pricing`)**:
-  - *Free*: US$ 0/mês (500 MB database; projetos pausam após 1 semana de inatividade).
-  - *Pro*: A partir de US$ 25/mês (8 GB database incluído, US$ 10 de crédito de computação mensal cobrindo instância Micro, backups diários de 7 dias).
-  - *Team*: A partir de US$ 599/mês (SOC 2, SSO corporativo).
-- **Pontos de Atenção**: O plano Free pausa projetos inativos após 7 dias. O uso deve permanecer restrito ao PostgreSQL padrão para evitar acoplamento a SDKs proprietários.
+- **Extensões**: Suporte nativo completo a `pgvector`, `pgcrypto`, `uuid-ossp`, com interface gráfica administrativa.
+- **Localização de Dados (Data Locality)**:
+  - `PRIMARY DATABASE REGION / DATA LOCALITY`: São Paulo (`sa-east-1`) disponível — **VERIFIED** (Fonte: `https://supabase.com/docs/guides/platform/regions`, consultado em 22/09/2026).
+  - `BACKUP RESIDENCY`: **NOT VERIFIED** (região primária confirmada para dados; replicação de backup requer confirmação contratual).
+  - `LOG/TELEMETRY RESIDENCY`: **NOT VERIFIED**.
+  - `SUPPORT/PROCESSING RESIDENCY`: **NOT VERIFIED**.
+  - `LGPD COMPLIANCE`: **NÃO INFERIDO DA REGIÃO. LEGAL/COMPLIANCE VERIFICATION REQUIRED BEFORE PRODUCTION**.
+- **Precificação e Limites (Status de Verificação)**:
+  - *Free / Pro Plans*: Níveis de serviço e valores base documentados em `supabase.com/pricing` — **VERIFIED**.
+  - *Pausa de Projetos*: Pausa de projetos inativos no plano gratuito documentada nas políticas de uso.
+- **Pontos de Atenção**: O uso deve permanecer estritamente restrito ao PostgreSQL padrão para evitar acoplamento a SDKs proprietários.
 
 ### 4.3. Railway PostgreSQL
-- **Arquitetura**: PostgreSQL em contêiner com suporte a clusters Patroni HA e PgBouncer comutável via CLI ou dashboard.
-- **Regiões Suportadas**: US West, US East, Europe West e Asia Southeast (Fonte: `docs.railway.com`, consultado em 22/09/2026). **NÃO possui região no Brasil/América do Sul**, o que acarreta latência transcontinental para aplicações rodando próximas aos usuários brasileiros.
-- **Preços Oficiais Verificados (22/09/2026 — `railway.com/pricing`)**:
-  - *Hobby*: US$ 5/mês; *Pro*: US$ 20/mês (com créditos correspondentes). Cobrança por recurso consumido por minuto: RAM a US$ 10/GB-mês; CPU a US$ 20/vCPU-mês; Storage a US$ 0.15/GB-mês.
-- **Pontos de Atenção**: Ausência de datacenter na América do Sul e ausência de branching nativo copy-on-write para testes de PR.
+- **Arquitetura**: PostgreSQL em contêiner com suporte a clusters Patroni HA e PgBouncer.
+- **Regiões Suportadas**: US West, US East, Europe West e Asia Southeast (Fonte: `docs.railway.com`, consultado em 22/09/2026). **NÃO possui região no Brasil/América do Sul**, gerando latência transcontinental para chamadas originadas no Brasil.
+- **Status Geral**: Descartado como primeira opção devido à ausência de datacenter na América do Sul e ausência de branching nativo copy-on-write para testes de PR.
 
 ---
 
@@ -119,7 +127,7 @@ Comparação técnica entre três fornecedores consolidados de PostgreSQL gerenc
 | **Manutenibilidade por IA** | Altíssima (código TypeScript explícito)| Boa em CRUD; exige atenção em tipos gerados| Altíssima |
 
 ### Justificativa Técnica da Escolha do Drizzle ORM
-1. **Definição de Schemas em TypeScript Puro**: As tabelas são declaradas diretamente em código TypeScript estrito (`pgTable`), sem necessidade de aprender uma DSL externa ou manter arquivos de schema desacoplados da tipagem do projeto.
+1. **Definição de Schemas em TypeScript Puro**: As tabelas são declaradas diretamente em código TypeScript estrito (`pgTable`), sem necessidade de DSL proprietária externa.
 2. **Migrações Transparentes em SQL Puro**: O `drizzle-kit generate` produz arquivos `.sql` legíveis e auditáveis que são versionados no Git e revisados linha por linha em Pull Requests por humanos e agentes de IA.
 3. **Isolamento Arquitetural**: O domínio (`packages/contracts`) permanece completamente neutro. Apenas `packages/database` importa o Drizzle e expõe Repositories tipados para a aplicação.
 
@@ -141,51 +149,38 @@ Comparação técnica entre três fornecedores consolidados de PostgreSQL gerenc
 
 ---
 
-## 7. Better Auth vs. Domínio — Análise de Fonte da Verdade e Decisão de Fronteiras
+## 7. Better Auth vs. Domínio — Resolução de Fronteiras de Autorização
 
-Conforme exigido na auditoria arquitetural, investigou-se a fundo o funcionamento do Better Auth para resolver qualquer risco de *dual source of truth* entre o framework de autenticação e as entidades de negócio.
+Conforme auditoria arquitetural, investigou-se a fundo o funcionamento do Better Auth para eliminar qualquer risco de *dual source of truth* entre a camada de autenticação e as entidades de negócio.
 
-### 7.1. Respostas Técnicas às Questões Fundamentais
-- **A. Tabelas criadas/esperadas pelo plugin `organization` do Better Auth**:
-  - `organization` (`id`, `name`, `slug`, `logo`, `createdAt`, `metadata`);
-  - `member` (`id`, `organizationId`, `userId`, `role`, `createdAt`);
-  - `invitation` (`id`, `organizationId`, `email`, `role`, `status`, `expiresAt`, `inviterId`).
-- **B. Customização de nomes e mapeamento**:
-  - O Better Auth suporta customizar o nome das tabelas via `schema.<model>.modelName` (ex.: mapear `organization` para `"organizations"`, `member` para `"organization_memberships"`) e adicionar campos extras via `additionalFields`.
-- **C. Funcionamento sem se tornar a fonte canônica das organizações**:
-  - **SIM**. O Better Auth pode operar perfeitamente **SEM** o plugin `organization`. Nesse modo, o Better Auth gerencia exclusivamente **Identidade e Sessão** (`user`, `session`, `account`, `verification`).
-- **D. Dependência de convites e roles nas tabelas do plugin**:
-  - As APIs embutidas de convite e RBAC do Better Auth dependem estritamente das tabelas `member` e `invitation`. Se o plugin não for utilizado, a gestão de membros, papéis e convites fica 100% a cargo do domínio da aplicação.
-- **E. Dados que seriam duplicados se mantivéssemos nossas tabelas e o plugin**:
-  - Nome da organização, slug, papéis de usuário, status de membership e convites existiriam duplamente: uma vez no ecossistema do plugin e outra nas tabelas de domínio.
-- **F. Como evitar dual source of truth**:
-  - Adotando uma fronteira conceitual estrita: **Autenticação responde "quem é você"**, enquanto **Autorização de Domínio responde "o que você pode fazer"**.
+### 7.1. Análise Técnica
+- O Better Auth possui um plugin opcional `organization` que cria tabelas internas (`organization`, `member`, `invitation`).
+- O núcleo do Better Auth funciona de forma autônoma e completa **SEM** esse plugin, gerenciando exclusivamente **Identidade e Sessão** através dos modelos conceituais `User`, `Session`, `Account` e `Verification`.
+- Ativar o plugin de organização geraria concorrência direta com as tabelas de negócio da plataforma, criando dual source of truth para organizações, membros e permissões.
 
-### 7.2. Comparação das Opções Estratégicas
-- **OPTION A (Recomendada)**:
-  - **Better Auth utilizado EXCLUSIVAMENTE para Identidade e Sessão** (`user`, `session`, `account`, `verification`).
-  - O plugin `organization` do Better Auth **NÃO É ATIVADO**.
+### 7.2. Proposta Arquitetural
+- **PROPOSTA RECOMENDADA — HUMAN APPROVAL REQUIRED (Option A)**:
+  - **Better Auth utilizado EXCLUSIVAMENTE para Identidade e Sessão** (modelos conceituais `User`, `Session`, `Account`, `Verification`).
+  - O plugin `organization` do Better Auth **NÃO É ATIVADO** (`DISABLED / NOT PART OF PROPOSAL`).
   - As entidades `Organization`, `OrganizationMembership`, `TenantRole`, `PlatformAdminAuthorization`, `Plan`, `Entitlements`, `CommercialGrant` e `Subscription` pertencem **100% ao domínio da aplicação**, implementadas via Drizzle ORM e Repositories tipados em `packages/database`.
-  - *Vantagens*: Zero risco de duas fontes de verdade; zero duplicação de dados; total liberdade para modelar regras comerciais complexas (entitlements, concessões manuais, planos corporativos); se o provedor de auth for substituído no futuro, nenhuma regra de negócio ou autorização é afetada.
-- **OPTION B**:
-  - Utilizar o plugin `organization` do Better Auth como backing técnico, customizando campos com `additionalFields`.
-  - *Descarte*: Gera acoplamento desnecessário entre regras comerciais do nosso SaaS e convenções do plugin do Better Auth; dificulta a segregação estrutural de Platform Admin e a gestão de CommercialGrants.
+  - **Separação Canônica**:
+    - **Autenticação (Better Auth)**: Responde estritamente *"quem é o usuário"*.
+    - **Autorização de Domínio (Aplicação)**: Responde estritamente *"o que o usuário pode fazer"*.
+    - Se o provedor de autenticação for alterado no futuro, nenhuma regra de negócio ou autorização é impactada.
 
 ---
 
-## 8. Modelo de Identidade e Separação de Tabelas
-
-A arquitetura estabelece uma divisão nítida entre tabelas de autenticação (gerenciadas pelo framework) e tabelas de domínio (gerenciadas pela aplicação):
+## 8. Modelo Conceitual de Identidade e Separação de Schemas
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│            AUTH TABLES (Owned by Better Auth)          │
+│        AUTH MODELS (Owned by Better Auth Framework)    │
 ├──────────────────────────┬─────────────────────────────┤
-│ user                     │ id, email, name, image, ... │
-│ session                  │ id, token, userId, expiresAt│
-│ account (AuthIdentity)   │ id, providerId, accountId,  │
+│ User                     │ id, email, name, image, ... │
+│ Session                  │ id, token, userId, expiresAt│
+│ Account (AuthLink)       │ id, providerId, accountId,  │
 │                          │ password (hash), userId     │
-│ verification             │ id, identifier, value, ...  │
+│ Verification             │ id, identifier, value, ...  │
 └──────────────────────────┴─────────────────────────────┘
                              │
                              │ userId (FK de Domínio)
@@ -202,25 +197,27 @@ A arquitetura estabelece uma divisão nítida entre tabelas de autenticação (g
 └──────────────────────────┴─────────────────────────────┘
 ```
 
-### 8.1. Esclarecimento sobre `AuthIdentity` e Credenciais
-- Passwords e seus respectivos hashes são **material confidencial de credencial da camada de autenticação**, residindo exclusivamente na coluna `account.password` do Better Auth.
-- O conceito de `AuthIdentity` é plenamente atendido pela tabela `account` do Better Auth, que vincula:
-  - `providerId`: Provedor de identidade (ex.: `"credential"`, `"google"`, `"magic_link"`);
-  - `accountId`: Identificador do sujeito no provedor externo (ex.: `sub` do OIDC ou ID da conta social);
-  - `userId`: Chave estrangeira referenciando o `user.id` interno canônico.
+### 8.1. Modelos Conceituais vs. Schema Físico do Better Auth
+- **PHYSICAL AUTH SCHEMA: TO BE VERIFIED FROM INSTALLED BETTER AUTH VERSION IN 004B**.
+- Nomes físicos de tabela (`users`, `sessions`, `accounts`, `verifications` ou prefixos equivalentes) e suas tipagens exatas não devem ser congelados antecipadamente antes da instalação real da versão aprovada.
+- No PROMPT-004B, o procedimento obrigatório será:
+  1. Consultar documentação oficial da versão exata a instalar;
+  2. Instalar a dependência e verificar a versão resolvida no `pnpm-lock.yaml`;
+  3. Gerar o schema Drizzle oficial conforme a CLI/configuração da versão instalada;
+  4. Definir as migrações físicas a partir dessa evidência concreta.
 
-### 8.2. Usuário Canônico (`User`)
-- A tabela `users` do Better Auth atua como o registro de usuário base da plataforma (`id`, `name`, `email`, `emailVerified`, `image`).
-- O `id` do usuário gerado pelo Better Auth é utilizado como referência para chaves estrangeiras (`user_id`) em tabelas de domínio (`organization_memberships`, `platform_admin_authorizations`, `audit_logs`).
-- `providerUserId` continua **expressamente proibido** como chave universal de domínio.
-- **Estratégia de Identificadores Internos**: `INTERNAL ID STRATEGY: PENDING DECISION`. (Candidatas: UUIDv7, CUID2, Nanoid; a ser homologada no início do PROMPT-004B avaliando geração na aplicação vs banco e indexação).
+### 8.2. Account e Material de Credencial
+- O modelo `Account` representa genericamente o vínculo entre uma identidade de autenticação externa/local e o usuário interno, conforme o schema oficial da versão instalada do Better Auth.
+- Passwords e seus respectivos hashes são **material confidencial de credencial interno da camada de autenticação**, residindo exclusivamente na infraestrutura do framework de auth (como `Account.password`).
+- O `User.id` gerado pelo framework de auth atua como chave estrangeira (`user_id`) para as tabelas de domínio. `providerUserId` permanece categoricamente **proibido** como chave universal de negócio.
+- **Estratégia de Identificadores Internos**: **`INTERNAL ID STRATEGY: PENDING DECISION`**. (UUIDv7, CUID2 e Nanoid permanecem como candidatas a serem avaliadas na Fase 4B quanto a geração na aplicação vs banco e indexação B-Tree).
 
 ---
 
 ## 9. Papéis de Tenant (`OrganizationRole`) e Platform Admin
 
 ### 9.1. Papéis de Tenant
-Como adotamos a **Option A**, os papéis organizacionais residem inteiramente na tabela de domínio `organization_memberships` através de um tipo enum estrito do PostgreSQL:
+Como o plugin `organization` não é utilizado, os papéis residem inteiramente na tabela de domínio `organization_memberships(role)` como um enum rigoroso do PostgreSQL:
 - **`OWNER`**: Proprietário da conta do tenant; controle total de equipe, agentes e contratos.
 - **`ADMIN`**: Administrador da organização; gestão de configurações, campanhas e membros.
 - **`MANAGER`**: Gestor de operações; gestão de agentes e acompanhamento de relatórios.
@@ -234,9 +231,7 @@ Como adotamos a **Option A**, os papéis organizacionais residem inteiramente na
 
 ---
 
-## 10. Fluxo de Autenticação: Browser, Web e API
-
-Para assegurar proteção contra vazamentos de tokens e ataques XSS, estabelecemos o seguinte fluxo:
+## 10. Fluxo de Autenticação e Trust Boundaries (Browser, Web e API)
 
 ```
 [Browser] ──── (Cookie HttpOnly Seguro / SameSite=Lax) ────► [apps/web (BFF)]
@@ -247,63 +242,68 @@ Para assegurar proteção contra vazamentos de tokens e ataques XSS, estabelecem
                     [apps/api] ◄────────────── (Internal Service Auth - PENDING) ────────────── [apps/worker / voice]
 ```
 
-### 10.1. Análise Comparativa dos Fluxos
-1. **Fluxo A — BFF Server-to-Server via `apps/web` (Recomendado para a UI Web)**:
-   - O browser comunica-se com `apps/web` através de **Cookie HTTP-only seguro**, `SameSite=Lax`, `Secure`.
-   - O JavaScript do navegador **NUNCA** tem acesso ao token de sessão (imunidade contra roubo de tokens via XSS).
-   - Componentes de servidor / Server Actions do `apps/web` validam a sessão no Better Auth e comunicam-se com a `apps/api` de forma server-to-server.
-   - *Segurança*: CSRF mitigado por SameSite e verificação de headers; CORS simplificado (mesma origem para o browser); isolamento da API.
-2. **Fluxo B — Acesso Direto do Browser à `apps/api` via Cookie Compartilhado de Subdomínio**:
-   - `apps/web` em `app.dominio.com` e `apps/api` em `api.dominio.com`, compartilhando cookie com escopo `Domain=.dominio.com`.
-   - *Desafios*: Exige configuração rigorosa de CORS com `credentials: true` e proteção anti-CSRF explícita (custom header `X-Requested-With` ou tokens CSRF); complexidade de cookies em portas locais distintas (`localhost:3000` vs `localhost:3001`).
-3. **Fluxo C — Bearer Tokens para Clientes Nativos, CLIs e Integrações M2M**:
-   - O Better Auth suporta o plugin `bearer` para clientes que não suportam cookies (scripts de automação, integrações externas).
-   - *Regra*: Não utilizar Bearer tokens armazenados em `localStorage` no browser para a aplicação web padrão.
+### 10.1. Trust Boundary entre `apps/web` e `apps/api`
+- **Regra Fundamental de Segurança**: Headers de contexto como `X-User-Id` e `X-Organization-Id` **NÃO constituem prova autônoma de identidade ou autorização**.
+- A `apps/api` **NÃO PODE CONFIAR** em valores arbitrários enviados por um cliente não autenticado.
+- Headers de contexto só podem ser considerados confiáveis **após a autenticação e validação estrita da chamada server-to-server** na fronteira da API.
+- O mecanismo concreto de autenticação interna entre processos permanece:
+  **`INTERNAL SERVICE AUTH MECHANISM: PENDING DECISION`**.
+  - Opções a avaliar na Fase 4B: revalidação de sessão, assertions internas assinadas (JWT interno), mTLS ou shared secret token com autorização explícita.
+  - O fluxo não deve ser tratado como pronto até a definição desse mecanismo.
+- `X-Correlation-Id` é estritamente **metadado de rastreabilidade distribuída**, não possuindo função de controle de acesso ou autorização.
 
-### 10.2. Autenticação de Serviços Internos (`Internal Service Auth`)
-- Para a comunicação entre `apps/worker`, `apps/voice` e `apps/api`:
-- **`INTERNAL SERVICE AUTH MECHANISM: PENDING DECISION`**.
-- *Requisitos Arquiteturais*: Autenticação máquina-a-máquina (M2M) segura, capacidade de rotação de credenciais, princípio do menor privilégio, auditabilidade e propagação obrigatória de `organizationId` e `correlationId` em todo envelope de mensagem.
+### 10.2. Mitigação de Riscos de CSRF e Proteção de Sessões
+- **Precisão Técnica sobre Cookies e CSRF**:
+  - `HttpOnly`: Protege o cookie de sessão contra leitura direta por JavaScript (mitigação essencial contra roubo de tokens via XSS), mas **NÃO É um mecanismo de proteção contra CSRF**.
+  - `SameSite=Lax` (ou `Strict`): Reduz significativamente a superfície de ataques CSRF para navegações cruzadas comuns, mas **não deve ser tratado como proteção universal ou infalível**.
+  - Para mutações de estado e requisições HTTP críticas, a arquitetura futura deverá contemplar:
+    1. Validação estrita de cabeçalhos `Origin` e `Host`;
+    2. Política de `SameSite` apropriada;
+    3. Proteção anti-CSRF dedicada (tokens CSRF / Double Submit Cookie / headers customizados) quando exigido pelo fluxo de autenticação;
+    4. Restrição rigorosa de políticas de CORS;
+    5. Uso exclusivo de métodos HTTP não-idempotentes (`POST`, `PUT`, `DELETE`) para mutações.
+- **Status**: `CSRF MITIGATION: PENDING IMPLEMENTATION / VALIDATE WITH AUTH FRAMEWORK IN 004B`.
 
 ---
 
 ## 11. Fronteiras de Acesso ao Banco de Dados
 
-| Serviço / Processo | Papel Arquitetural | Acesso a Tabelas de Auth | Acesso a Tabelas de Domínio |
+| Serviço / Processo | Papel Arquitetural | Acesso a Modelos de Auth | Acesso a Tabelas de Domínio |
 | :--- | :--- | :--- | :--- |
 | **`apps/web`** | Interface Web / BFF | **SIM** (via route handlers do Better Auth) | **NÃO** (acesso a dados de negócio ocorre exclusivamente via `apps/api`) |
 | **`apps/api`** | Gateway HTTP e Core Business | **SIM** (leitura de sessões para validação) | **SIM** (boundary primário de persistência via Repositories) |
-| **`apps/worker`** | Processamento Assíncrono | **NÃO** (não manipula sessões) | **SIM** (via Repositories para jobs e consolidações) |
+| **`apps/worker`** | Processamento Assíncrono | **NÃO** | **SIM** (via Repositories para jobs e consolidações) |
 | **`apps/voice`** | Motor Realtime de Streaming | **NÃO** | **NÃO** no critical path (utiliza infraestrutura efêmera e publica eventos) |
+
+- **Regra de Isolamento**: O acesso direto de `apps/web` a tabelas de domínio é **EXPRESSAMENTE PROIBIDO**. `apps/web` atua como BFF e consome regras de negócio exclusivamente através de endpoints autenticados de `apps/api`.
 
 ---
 
 ## 12. Infraestrutura Efêmera e Filas
 
-- A tecnologia para gerenciamento de estado em tempo real, cache de sessões ativas de chamadas telefônicas e filas assíncronas permanece como:
+- O gerenciamento de estado em tempo real, cache de sessões de chamadas e filas de eventos permanece neutro:
   **`EPHEMERAL STATE / ASYNC EVENT INFRASTRUCTURE: PENDING DECISION`**.
-- Candidatas futuras: Redis, Valkey, Dragonfly, BullMQ, RabbitMQ. Nenhuma escolha foi fixada nesta fase.
 
 ---
 
 ## 13. Governança e Semântica de Migrações Versionadas
 
-- As migrações devem seguir rigorosamente as recomendações técnicas do driver e do provedor de banco selecionado.
+- As migrações devem seguir as recomendações técnicas do driver e do provedor de banco selecionado.
 - Conexões de sessão direta (unpooled / direct) são fortemente preferidas por ferramentas de migração que dependem de semântica de sessão do PostgreSQL (como advisory locks e comandos DDL).
 - As migrações são sequenciais, versionadas no Git em `packages/database/migrations/*.sql` e aplicadas via pipeline automatizado de CI/CD.
-- Não devem ser chamadas automaticamente de "idempotentes" sem scripts de guarda específicos; a idempotência deve ser assegurada pelo controle transacional do runner de migrações.
-- Alterações estruturais incompatíveis devem seguir o padrão *Expand and Contract*.
+- Não devem ser presumidas automaticamente idempotentes sem scripts específicos de guarda; a segurança é garantida pela execução transacional do runner de migrações.
+- Alterações estruturais incompatíveis seguem o padrão *Expand and Contract*.
 
 ---
 
-## 14. Análise Realista de Lock-in Tecnológico
+## 14. Classificação Realista de Lock-in Tecnológico
 
 | Dimensão de Lock-in | Neon Postgres | Supabase Postgres | Better Auth | Drizzle ORM |
 | :--- | :--- | :--- | :--- | :--- |
 | **Data Model Portability** | **Alta**: PostgreSQL padrão; exportável via `pg_dump`. | **Alta**: PostgreSQL padrão; exportável via `pg_dump`. | **Alta**: Tabelas SQL padrão no banco da aplicação. | **Alta**: Schemas traduzem diretamente para DDL SQL padrão. |
 | **Operational Lock-in** | **Médio**: APIs de branching e autoscaling criam acoplamento de pipeline CI/CD. | **Médio**: Pooler Supavisor e infraestrutura integrada criam convenções de deploy. | **Baixo**: Executado em Node.js como biblioteca na aplicação. | **Baixo**: Executa via CLI Node padrão sem dependência de nuvem. |
 | **SDK / API Lock-in** | **Zero**: Conexão via drivers padrão (`pg`, `postgres.js`). | **Baixo**: Se usado puramente como PostgreSQL via drivers padrão. | **Baixo**: APIs de auth desacopladas do core de domínio (Option A). | **Baixo**: Código de negócio isolado via Repositories em `packages/database`. |
-| **Auth Schema Lock-in** | N/A | **Médio**: Identidades residem no schema interno `auth.users`. | **Baixo a Médio**: Tabelas `user` e `session` com colunas documentadas. | N/A |
+| **Auth Schema Lock-in** | N/A | **Médio**: Identidades residem no schema interno `auth.users`. | **Baixo a Médio**: Modelos padrão SQL no próprio banco da aplicação. | N/A |
 
 ---
 
@@ -321,52 +321,46 @@ A implementação futura na Fase 4B deverá obrigatoriamente possuir testes auto
 
 ---
 
-## 16. Escopo Delimitado da Fase 4B (Fundação de Persistência e Auth)
+## 16. Escopo Delimitado da Fase 4B (Fundação Enxuta)
 
-Para garantir foco e respeitar o sequenciamento do roadmap, as entidades de fases posteriores (`agents`, `agent_versions`, `calls`, `campaigns`, `contacts`) foram **removidas** do escopo da Fase 4B.
+Para assegurar foco rigoroso e respeitar o sequenciamento do roadmap, as entidades de fases posteriores (`agents`, `agent_versions`, `calls`, `campaigns`, `contacts`) foram **removidas** do escopo da Fase 4B.
 
 O PROMPT-004B implementará exclusivamente a **Fundação de Identidade, Tenant e Comercial**:
-1. Schemas e tabelas do framework de autenticação: `users`, `sessions`, `accounts`, `verifications`;
-2. Schemas e tabelas de organização: `organizations`, `organization_memberships`;
-3. Schemas e tabelas de governança global: `platform_admin_authorizations`;
-4. Schemas e tabelas do modelo comercial: `plans`, `entitlements`, `subscriptions`, `commercial_grants`;
+1. Schemas físicos gerados a partir da versão instalada do Better Auth (`User`, `Session`, `Account`, `Verification`);
+2. Tabelas de organização de domínio: `organizations`, `organization_memberships`;
+3. Tabelas de governança da plataforma: `platform_admin_authorizations`;
+4. Tabelas do modelo comercial: `plans`, `entitlements`, `subscriptions`, `commercial_grants`;
 5. Estrutura mínima de trilha de auditoria (`audit_logs`) necessária à governança de autorização;
 6. Repositories tipados em `packages/database` com validação de `organizationId`;
 7. Suíte de testes automatizados das 7 Invariantes de Segurança.
 
-*(Tabelas volumétricas de Usage serão mantidas com schema simples não-particionado; particionamento declarativo será avaliado empiricamente apenas sob demanda de escala).*
+### 16.1. Tratamento do Módulo de Usage
+- **`USAGE PERSISTENCE SCHEMA: DEFERRED UNTIL DOMAIN/USAGE REQUIREMENTS ARE CONCRETE`**.
+- Nesta fase, apenas os conceitos, tipos contratuais neutros e interfaces de telemetria serão mantidos.
+- Nenhuma tabela de usage detalhado ou particionamento declarativo antecipado será criado na Fase 4B.
 
 ---
 
-## 17. Recomendação Proposta para Aprovação Humana
+## 17. Decisões Propostas Submetidas para Aprovação Humana
 
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│                   RECOMMENDED STACK (PROPOSED)                         │
-├──────────────────────────┬─────────────────────────────────────────────┤
-│ Componente               │ Tecnologia Proposta                         │
-├──────────────────────────┼─────────────────────────────────────────────┤
-│ Motor de Banco de Dados  │ PostgreSQL (versão major alinhada ao cloud) │
-│ Provedor de Banco Cloud  │ Neon Serverless Postgres (1ª Candidata)     │
-│                          │ Supabase Postgres (Alternativa de 1ª Linha) │
-│ Camada ORM / Persistência│ Drizzle ORM + drizzle-kit                   │
-│ Driver de Conexão Node   │ postgres.js ou pg com connection pooling    │
-│ Sistema de Autenticação  │ Better Auth (Option A: Identidade + Sessão) │
-│ Autorização de Tenants   │ 100% no Domínio via Repositories Tipados    │
-│ Papéis de Tenant         │ Enum de Domínio (OWNER..VIEWER)             │
-│ Platform Admin           │ Tabela Global platform_admin_authorizations │
-│ Desenvolvimento Local    │ Docker Compose (PostgreSQL limpo)           │
-└──────────────────────────┴─────────────────────────────────────────────┘
-```
+Submete-se formalmente para apreciação e aprovação humana o seguinte conjunto de decisões arquiteturais:
 
----
+| Item de Decisão | Proposta Técnica Recomendada | Status |
+| :--- | :--- | :--- |
+| **ENGINE** | **PostgreSQL** (versão major alinhada ao provedor cloud) | PROPOSED / HUMAN APPROVAL REQUIRED |
+| **MANAGED DB FIRST CANDIDATE** | **Neon** (branching para CI/CD, sa-east-1) | PROPOSED / HUMAN APPROVAL REQUIRED |
+| **MANAGED DB ALTERNATIVE** | **Supabase Postgres** (ecossistema maduro, sa-east-1) | PROPOSED / HUMAN APPROVAL REQUIRED |
+| **ORM** | **Drizzle ORM + drizzle-kit** | PROPOSED / HUMAN APPROVAL REQUIRED |
+| **AUTH** | **Better Auth somente Identity + Session** | PROPOSED / HUMAN APPROVAL REQUIRED |
+| **BETTER AUTH ORGANIZATION PLUGIN** | **DISABLED / NOT PART OF PROPOSAL** | PROPOSED / HUMAN APPROVAL REQUIRED |
+| **TENANT AUTHORIZATION SOURCE OF TRUTH**| **Application Domain** (Repositories tipados) | PROPOSED / HUMAN APPROVAL REQUIRED |
+| **PLATFORM ADMIN** | **Global domain authorization, separate from tenant roles** | PROPOSED / HUMAN APPROVAL REQUIRED |
+| **WEB ARCHITECTURE** | **apps/web as UI/BFF; apps/api as business/persistence boundary** | PROPOSED / HUMAN APPROVAL REQUIRED |
+| **LOCAL DEVELOPMENT** | **Docker Compose PostgreSQL**, subject to human environment availability | PROPOSED / HUMAN APPROVAL REQUIRED |
+| **ROW LEVEL SECURITY (RLS)** | **Incremental defense-in-depth candidate**, not primary mechanism | PROPOSED / HUMAN APPROVAL REQUIRED |
+| **INTERNAL SERVICE AUTH** | **PENDING DECISION** | PENDING |
+| **EPHEMERAL/QUEUE INFRASTRUCTURE** | **PENDING DECISION** | PENDING |
+| **INTERNAL ID STRATEGY** | **PENDING DECISION** | PENDING |
+| **USAGE SCHEMA** | **DEFERRED** | DEFERRED |
 
-## 18. Decisões Técnicas que Exigem Aprovação Humana Formal
-
-Antes do início da implementação prática (PROMPT-004B), os seguintes itens requerem validação expressa pelo operador humano:
-
-1. **Aprovação do Motor PostgreSQL** como padrão relacional unificado.
-2. **Definição do Provedor Cloud Oficial** entre **Neon Serverless Postgres** (vantagem em branching para CI/CD e suporte a `sa-east-1`) e **Supabase Postgres** (vantagem em ecossistema integrado e suporte a `sa-east-1`).
-3. **Aprovação da Adoção do Drizzle ORM** em `packages/database`.
-4. **Aprovação do Better Auth sob a Option A** (Better Auth para identidade e sessão; autorização de organizações e memberships 100% no domínio).
-5. **Aprovação do Uso de Docker Compose Local** para desenvolvimento offline de engenheiros e agentes de IA (sujeito à disponibilidade do Docker no ambiente do usuário).
+*Nenhum item possui status Accepted até a manifestação formal do operador humano.*

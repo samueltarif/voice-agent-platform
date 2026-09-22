@@ -1859,3 +1859,141 @@ Pesquisa documental oficial confirmou:
 ## Arquivos críticos para revisão externa
 1. `docs/AI_WORKLOG.md` *(Contém a síntese executiva completa e rastreabilidade de todas as correções)*.
 2. `docs/research/PHASE_4_DECISION_GATE.md` *(Documento de pesquisa atualizado com as fronteiras de autorização e escopo enxuto da Fase 4B)*.
+
+
+---
+
+## PROMPT-004A-CHECK — Final Decision Gate Precision Review
+
+- **Data**: 2026-09-22
+- **Branch Ativa**: `docs/phase4-decision-gate` (mesma branch do PR #4, sem bifurcações).
+- **Objetivo**: Fechar o portão de decisão da Fase 4 com o mais alto rigor técnico antes da submissão para aprovação humana, corrigindo semântica de decisões propostas, delimitando trust boundaries entre `apps/web` e `apps/api`, eliminando formulações absolutas sobre CSRF e soberania de dados, e adiando detalhes físicos para o momento da instalação de dependências.
+- **Guardrails Estritamente Respeitados**:
+  - Zero dependências instaladas (`package.json` e `pnpm-lock.yaml` inalterados).
+  - Zero provisionamento de recursos em nuvem ou bancos de dados.
+  - O MCP do Supabase NÃO foi utilizado para escritas ou provisionamento.
+  - Zero secrets ou variáveis `.env` criadas.
+  - Zero alteração no código de produto de `apps/web`.
+  - Registro rigorosamente append-only (entradas históricas preservadas sem modificação).
+
+---
+
+### 1. Correção Semântica: Option A Reclassificada Formalmente como Proposta
+
+- **Retificação no Documento de Pesquisa**: Onde constava anteriormente a redação de decisão consumada ("Decisão Formal: Option A"), o texto de `docs/research/PHASE_4_DECISION_GATE.md` foi corrigido para:
+  **`PROPOSTA RECOMENDADA — HUMAN APPROVAL REQUIRED (Option A)`**.
+- **Princípio de Governança**: Nenhuma escolha técnica deste decision gate constitui decisão aceita (ADR/DEC Accepted) antes da validação e aprovação humana formal.
+- **Registro Histórico**: A entrada anterior `PROMPT-004A-FIX` no AI_WORKLOG foi mantida intacta por força da política append-only; esta entrada registra formalmente a correção semântica.
+
+---
+
+### 2. Trust Boundary entre `apps/web` e `apps/api`
+
+- **Headers de Contexto NÃO São Prova Autônoma**: Cabeçalhos HTTP como `X-User-Id` e `X-Organization-Id` **não constituem prova autônoma de identidade ou autorização**.
+- **Proteção da API**: A `apps/api` **NÃO confia** em valores arbitrários recebidos de clientes não autenticados. Headers contextuais só adquirem validade após a autenticação da chamada server-to-server.
+- **Mecanismo de Autenticação Interna**: Mantido categoricamente como:
+  **`INTERNAL SERVICE AUTH MECHANISM: PENDING DECISION`**.
+  - O fluxo server-to-server não é descrito como implementação pronta. Alternativas futuras (revalidação de sessão, assertions internas assinadas, mTLS) serão decididas na implementação da API.
+- **Papel do `X-Correlation-Id`**: Esclarecido que é estritamente **metadado de rastreabilidade distribuída**, não exercendo papel de autorização ou controle de acesso.
+
+---
+
+### 3. Eliminação de Absolutos sobre CSRF e Proteção de Sessões
+
+- **Remoção de Formulações Imprecisas**: Foram removidas do research doc afirmações que sugeriam "imunidade a CSRF" ou "mitigação integral" apenas pelo uso de cookies HttpOnly ou SameSite.
+- **Precisão Técnica**:
+  - `HttpOnly`: Protege o cookie contra leitura direta por JavaScript (mitigação contra roubo via XSS), mas **NÃO é mecanismo anti-CSRF**.
+  - `SameSite=Lax`: Reduz a superfície de ataques em navegações comuns, mas **não é proteção universal**.
+  - Para mutações e fluxos críticos, a arquitetura futura deverá contemplar validação de cabeçalhos `Origin`/`Host`, verificação anti-CSRF específica, métodos HTTP apropriados e CORS restrito.
+  - Status formal: **`CSRF MITIGATION: PENDING IMPLEMENTATION / VALIDATE WITH AUTH FRAMEWORK IN 004B`**.
+
+---
+
+### 4. Distinção entre Localização de Dados, Região e Conformidade LGPD
+
+- **Correção de Inferências Automáticas**: Corrigidos títulos e conclusões que inferiam "soberania de dados garantida" ou "compliance LGPD atendido" a partir da mera disponibilidade de uma região de datacenter.
+- **Classificação Precisa**:
+  - `PRIMARY DATABASE REGION / DATA LOCALITY`: São Paulo disponível em Neon (`aws-sa-east-1`) e Supabase (`sa-east-1`) — **VERIFIED** via documentações oficiais registradas.
+  - `BACKUP RESIDENCY`: **NOT VERIFIED** (depende de configuração de storage do provedor cloud).
+  - `LOG/TELEMETRY RESIDENCY`: **NOT VERIFIED**.
+  - `SUPPORT/PROCESSING RESIDENCY`: **NOT VERIFIED**.
+  - `LGPD COMPLIANCE`: **NÃO INFERIDO DA REGIÃO. LEGAL/COMPLIANCE VERIFICATION REQUIRED BEFORE PRODUCTION**. A presença de datacenter no país é um fator técnico relevante, mas não atesta isoladamente conformidade jurídica.
+
+---
+
+### 5. Calibração de Evidências e Fatos de Fornecedores
+
+- Claims baseados exclusivamente em snippets de mecanismos de busca que não tiveram a página oficial aberta e lida integralmente foram reclassificados para **`NOT VERIFIED`** (especialmente valores numéricos de limites de conexão, períodos exatos de retenção de histórico e pausas específicas de free tier).
+- O documento de pesquisa preserva apenas as URLs oficiais consultadas e fatos diretamente confirmados, evitando falsa precisão numérica.
+
+---
+
+### 6. Better Auth: Modelos Conceituais vs. Schema Físico
+
+- **Nomes Físicos Não Congelados Antecipadamente**: Nomes exatos de tabelas físicas (`users`, `sessions`, `accounts`, `verifications`) não foram fixados como fato prévio.
+- **Adoção de Nomes Conceituais**: O documento de pesquisa adota as entidades conceituais `User`, `Session`, `Account` e `Verification`.
+- **Status Formal**: **`PHYSICAL AUTH SCHEMA: TO BE VERIFIED FROM INSTALLED BETTER AUTH VERSION IN 004B`**.
+- **Procedimento Obrigatório para o PROMPT-004B**:
+  1. Consultar documentação oficial da versão exata;
+  2. Instalar a versão aprovada e verificar a versão resolvida no lockfile;
+  3. Utilizar o gerador oficial de schema Drizzle daquela versão;
+  4. Definir as migrações físicas a partir dessa evidência concreta.
+- **Account e Credenciais**: Account representa o vínculo de autenticação/provider conforme schema oficial da versão instalada. Passwords e seus respectivos hashes permanecem exclusivamente material confidencial de credencial gerenciado pela camada de auth.
+
+---
+
+### 7. Módulo de Usage e Estratégia de Identificadores
+
+- **Usage Schema Deferido**: Registrado formalmente como **`USAGE PERSISTENCE SCHEMA: DEFERRED UNTIL DOMAIN/USAGE REQUIREMENTS ARE CONCRETE`**. A Fase 4B preservará apenas conceitos e contratos neutros; nenhuma tabela de usage detalhado ou particionamento declarativo antecipado será criado.
+- **Estratégia de IDs**: Mantida como **`INTERNAL ID STRATEGY: PENDING DECISION`** (UUIDv7, CUID2 e Nanoid como candidatas a homologar na Fase 4B).
+
+---
+
+### 8. Quadro Final do Decision Gate para Aprovação Humana
+
+A proposta final consolidada apresenta com clareza o status de cada componente técnico:
+
+| Componente | Proposta Técnica | Status Formal |
+| :--- | :--- | :--- |
+| **ENGINE** | **PostgreSQL** (major version alinhada ao cloud) | PROPOSED / HUMAN APPROVAL REQUIRED |
+| **MANAGED DB FIRST CANDIDATE** | **Neon** (branching para CI/CD, sa-east-1) | PROPOSED / HUMAN APPROVAL REQUIRED |
+| **MANAGED DB ALTERNATIVE** | **Supabase Postgres** (ecossistema maduro, sa-east-1) | PROPOSED / HUMAN APPROVAL REQUIRED |
+| **ORM** | **Drizzle ORM + drizzle-kit** | PROPOSED / HUMAN APPROVAL REQUIRED |
+| **AUTH** | **Better Auth somente Identity + Session** | PROPOSED / HUMAN APPROVAL REQUIRED |
+| **BETTER AUTH ORGANIZATION PLUGIN** | **DISABLED / NOT PART OF PROPOSAL** | PROPOSED / HUMAN APPROVAL REQUIRED |
+| **TENANT AUTHORIZATION SOURCE OF TRUTH**| **Application Domain** (Repositories tipados) | PROPOSED / HUMAN APPROVAL REQUIRED |
+| **PLATFORM ADMIN** | **Global domain authorization, separate from tenant roles** | PROPOSED / HUMAN APPROVAL REQUIRED |
+| **WEB ARCHITECTURE** | **apps/web as UI/BFF; apps/api as business/persistence boundary** | PROPOSED / HUMAN APPROVAL REQUIRED |
+| **LOCAL DEVELOPMENT** | **Docker Compose PostgreSQL**, sujeito à disponibilidade | PROPOSED / HUMAN APPROVAL REQUIRED |
+| **ROW LEVEL SECURITY (RLS)** | **Incremental defense-in-depth candidate**, não primário | PROPOSED / HUMAN APPROVAL REQUIRED |
+| **INTERNAL SERVICE AUTH** | **PENDING DECISION** | PENDING |
+| **EPHEMERAL/QUEUE INFRASTRUCTURE** | **PENDING DECISION** | PENDING |
+| **INTERNAL ID STRATEGY** | **PENDING DECISION** | PENDING |
+| **USAGE SCHEMA** | **DEFERRED** | DEFERRED |
+
+---
+
+### 9. Validações do Monorepo (`pnpm check`)
+- `pnpm format:check`: SUCESSO (100% de conformidade com Prettier).
+- `pnpm lint`: SUCESSO (0 erros, 0 avisos em todo o monorepo).
+- `pnpm typecheck`: SUCESSO (12 workspaces compilados em modo FULL TURBO).
+- `pnpm test`: SUCESSO (19 testes passando em 6 arquivos de teste no Vitest).
+- `pnpm build`: SUCESSO (12 pacotes compilados; 8 páginas estáticas geradas pelo Next.js 15).
+- `scripts/check-architecture.mjs`: SUCESSO (0 violações arquiteturais).
+- `scripts/check-file-size.mjs`: SUCESSO (64 arquivos de lógica de produção em estrita conformidade).
+
+---
+
+### 10. Governança Git e Estado do Pull Request
+- **Branch**: `docs/phase4-decision-gate` (mesma branch do PR #4).
+- **Working Tree**: Limpa.
+- **Commit Sugerido**: `docs: close phase 4 decision gate precision gaps`
+- **Push**: `origin/docs/phase4-decision-gate` (atualizando o PR #4).
+- **PR #4**: Aberto para revisão e aprovação humana / Zero auto-merge.
+- **PROMPT-004B NÃO INICIADO**: Nenhuma dependência instalada, nenhum schema de código gerado.
+
+---
+
+## Arquivos críticos para revisão externa
+1. `docs/AI_WORKLOG.md` *(Contém a síntese executiva completa e rastreabilidade de todas as correções)*.
+2. `docs/research/PHASE_4_DECISION_GATE.md` *(Documento de pesquisa calibrado com as fronteiras de autorização e decisões propostas)*.
