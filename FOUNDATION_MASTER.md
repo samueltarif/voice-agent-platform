@@ -494,8 +494,8 @@ Consulte [`docs/ROADMAP.md`](file:///D:/voice-agent-platform/docs/ROADMAP.md) pa
 - Desacoplamento de Pagamento e Direito de Acesso via Entitlements e CommercialGrants (DEC-020);
 - Separação conceitual entre Usage, Cost e Billing (DEC-021);
 - Monitoramento de chamadas ao vivo com dados/eventos realtime; áudio ao vivo marcado como dependente de provedor e não validado (DEC-022);
-- Gravação de chamadas em Object Storage com acesso autenticado/temporário (ex.: presigned URLs) e verificação regulatória pendente (DEC-023/DEC-024);
-- Protocolo determinístico de Human Handoff com fallback de zero silêncio; Listen-Only planejado e não validado (DEC-024).
+- Gravação de chamadas em Object Storage com acesso autenticado/temporário (ex.: presigned URLs) e verificação regulatória pendente (DEC-024);
+- Protocolo determinístico de Human Handoff com fallback de zero silêncio; Listen-Only planejado e não validado (DEC-023).
 
 ### Decisões com Status: Proposed Default (Aguardam Aprovação Humana para Tornar-se Definitivas):
 - Tipografia de UI: Inter / Geist Sans;

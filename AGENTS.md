@@ -157,3 +157,12 @@ Uma tarefa só é considerada concluída quando:
 1. **Proibição de Aprovação em Massa**: Agentes de IA **NUNCA** devem executar `pnpm approve-builds --all` automaticamente.
 2. **Análise Individual de Scripts**: Novos lifecycle/build scripts de dependências devem ser analisados individualmente antes de serem autorizados.
 3. **`onlyBuiltDependencies` Mínimo**: A lista de dependências autorizadas para build em `pnpm-workspace.yaml` deve permanecer explícita e estritamente mínima.
+
+---
+
+## 12. Regras de Auditabilidade do AI_WORKLOG (Append-Only)
+
+1. **Natureza Cronológica Append-Only**: Entradas históricas em `docs/AI_WORKLOG.md` são registros factuais imutáveis e **NUNCA** devem ser silenciosamente reescritas para refletir decisões futuras.
+2. **Correções Posteriores Obrigatórias**: Informações incorretas ou superadas devem ser corrigidas exclusivamente em nova entrada posterior, registrando: afirmação incorreta, prompt de origem, informação corrigida e evidência utilizada.
+3. **Exceção Exclusiva**: Remoção emergencial de segredos ou credenciais reais expostas por acidente.
+

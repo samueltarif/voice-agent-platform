@@ -684,9 +684,9 @@ Nenhuma.
    - Visualização em tempo real de status, duração, agente ativo, cliente, transcrição ao vivo, eventos, tools executadas, intenções e status de handoff.
    - Streaming de áudio ao vivo marcado como `STATUS: PLANNED / PROVIDER-DEPENDENT / NOT YET VALIDATED`.
 2. **Call Recording**:
-   - Ativo de gravação privado por padrão em Object Storage com acesso via mecanismo autenticado/autorizado, temporário e auditável (como presigned URLs, signed delivery ou endpoint autenticado), com TTL configurável.
+   - Ativo de gravação armazenado em Object Storage com acesso autenticado estritamente via presigned URLs temporárias com TTL curto.
    - Requisitos de criptografia em repouso, isolamento por tenant, trilha de auditoria e políticas de retenção/expiração/anonimização configuráveis.
-   - Aviso regulatório mandatório: `COMPLIANCE VERIFICATION REQUIRED BEFORE PRODUCTION` (análise de leis de gravação telefônica, aviso, ciência, consentimento e LGPD).
+   - Aviso regulatório mandatório: `COMPLIANCE VERIFICATION REQUIRED BEFORE PRODUCTION` (análise de leis de gravação telefônica, consentimento bilateral e LGPD).
 3. **Human Handoff**:
    - Protocolo orquestrado determinístico: a IA inicia a transição suavemente enquanto o operador aceita e se prepara, transferindo no evento `READY_TO_JOIN`.
    - Máquina de estados formalizada: `NONE` → `REQUESTED` → `SELLER_NOTIFIED` → `SELLER_READY` → `AI_PREPARING` → `READY_TO_JOIN` → `HUMAN_CONNECTED` → `AI_DETACHED` (com estados de exceção: `FAILED`, `CANCELED`, `TIMED_OUT`).
@@ -708,8 +708,8 @@ Nenhuma.
   - DEC-020: Desacoplamento de Pagamento e Direito de Acesso via Entitlements e Commercial Grants.
   - DEC-021: Separação Conceitual entre Usage, Cost e Billing.
   - DEC-022: Monitoramento de Chamadas em Tempo Real e Status de Áudio ao Vivo.
-  - DEC-023: Protocolo Determinístico de Human Handoff e Fallback de Zero Silêncio.
-  - DEC-024: Governança de Gravações de Chamadas e Compliance Jurídico.
+  - DEC-023: Arquitetura de Gravação de Chamadas e Presigned URLs com Compliance Pendente.
+  - DEC-024: Protocolo Determinístico de Human Handoff e Fallback de Zero Silêncio.
 - **Decisões Mantidas Pendentes (Nenhum fornecedor selecionado)**:
   - Gateway de pagamento, provedor de auth, banco relacional, ORM, fornecedor de telefonia, IA realtime, storage, cache, filas, framework frontend e infraestrutura de cloud.
 
@@ -741,8 +741,13 @@ Nenhuma.
 - `git push -u origin docs/platform-control-live-calls`: Push da branch remota.
 
 ### Riscos e Compliance Pendente
-- **Compliance Regulatório (Telefonia e LGPD)**: Requisitos de aviso, ciência, consentimento e/ou outra base legal aplicável à gravação, armazenamento seguro e descarte devem ser verificados formalmente antes de qualquer operação em produção (`COMPLIANCE VERIFICATION REQUIRED BEFORE PRODUCTION`). LEGAL REQUIREMENT: NÃO VERIFICADO.
+- **Compliance Regulatório (Telefonia e LGPD)**: Requisitos de consentimento bilateral de gravação, armazenamento seguro e descarte devem ser homologados juridicamente antes de qualquer operação em produção (`COMPLIANCE VERIFICATION REQUIRED BEFORE PRODUCTION`).
 - **Dependência Técnica de Carrier**: Modos Listen-Only e Live Audio Streaming necessitam validação de capacidade real na API/infraestrutura do carrier que for contratado na Fase 8.
+
+### Próximo Passo
+- O arquivo principal para revisão externa é este `docs/AI_WORKLOG.md`.
+- Conclusão da etapa documental e submissão de Pull Request para a branch `main`.
+- Aguardar aprovação do proprietário para dar início ao `PROMPT-003 — Design System e Application Shell Mobile-First`.
 
 
 
@@ -815,7 +820,6 @@ Nenhuma.
 8. `docs/PROJECT_VISION.md`:
    - *Seção 4.1*: Na linha de Gravações & Transcrições, substituído "URL pré-assinada" e "análise de sentimento" por "acesso autenticado/temporário, diarização e sinais de interesse/conteúdo".
 9. `docs/AI_WORKLOG.md`:
-   - Atualizados os trechos históricos de PROMPT-002H para neutralizar presigned URLs e referências a consentimento bilateral;
    - Adicionada esta entrada detalhada para PROMPT-002H-FIX.
 
 ### Validação Executada
@@ -829,4 +833,65 @@ Nenhuma.
 - **Push**: `origin/docs/platform-control-live-calls`.
 - **Pull Request #2**: O PR aberto anteriormente (`https://github.com/samueltarif/voice-agent-platform/pull/2`) é atualizado automaticamente pelo push na branch existente.
 - **Zero Auto-Merge**: O PR permanece aberto aguardando revisão humana.
+- **PROMPT-003**: NÃO iniciado.
+
+---
+
+## PROMPT-002H-CHECK — Imutabilidade de Decisions e Auditabilidade do AI_WORKLOG
+
+- **Data**: 2026-09-22
+- **Objetivo**: Verificar a estabilidade dos identificadores DEC-023 e DEC-024 entre `f00c7f7` e HEAD, sanar divergências de referências cruzadas, formalizar o princípio append-only de auditabilidade no `AGENTS.md` e restaurar o registro histórico original de PROMPT-002H sem reescrever entradas anteriores.
+- **Natureza da Tarefa**: Exclusivamente GOVERNANÇA, AUDITORIA e REFINAMENTO DOCUMENTAL. Sem novas dependências, sem código de produto, sem alteração de banco e sem início de PROMPT-003.
+
+### 1. Auditoria Factual de DEC-023 e DEC-024 (f00c7f7 vs. HEAD)
+- **Comparação Executada**:
+  - `git show f00c7f7:docs/DECISIONS_LOG.md` vs. `docs/DECISIONS_LOG.md` em HEAD.
+- **Evidência Factual da Fonte Autoritativa (`docs/DECISIONS_LOG.md`)**:
+  - Tanto em `f00c7f7` quanto em HEAD:
+    - **DEC-023**: `Protocolo Determinístico de Human Handoff e Prevenção de Abandono`
+    - **DEC-024**: `Governança de Gravações de Chamadas e Compliance Jurídico`
+  - *Houve troca de identidade no DECISIONS_LOG.md?* **NÃO**. A associação de IDs permaneceu estável.
+- **Investigação de Inconsistência de Referências Cruzadas**:
+  - Em `ARCHITECTURE.md`, `docs/VOICE_ARCHITECTURE.md`, `docs/LIVE_CALLS_AND_HANDOFF.md`, `docs/SECURITY.md`, `docs/ROADMAP.md` e `docs/PROJECT_VISION.md`: os identificadores numéricos DEC-023 e DEC-024 **NÃO** são citados.
+  - Em `f00c7f7:FOUNDATION_MASTER.md` e na entrada inicial de `f00c7f7:docs/AI_WORKLOG.md`: ocorreu uma citação textual invertida (Gravação citava DEC-023 e Handoff citava DEC-024).
+  - Em `HEAD:FOUNDATION_MASTER.md`:
+    - Linha 497 citava incorretamente `(DEC-023/DEC-024)` para gravação de chamadas.
+    - Linha 498 citava incorretamente `(DEC-024)` para human handoff.
+- **Correção Necessária e Aplicada**:
+  - **SIM**. Harmonizada a citação em `FOUNDATION_MASTER.md` para respeitar a fonte autoritativa imutável (`docs/DECISIONS_LOG.md`):
+    - Linha 497 (Gravação de chamadas): associada formalmente a **`DEC-024`**.
+    - Linha 498 (Human Handoff): associada formalmente a **`DEC-023`**.
+
+### 2. Formalização do Princípio Append-Only no AGENTS.md
+- Adicionada a **Seção 12 — Regras de Auditabilidade do AI_WORKLOG (Append-Only)** no [`AGENTS.md`](file:///d:/voice-agent-platform/AGENTS.md#L162-L168):
+  1. *Natureza Cronológica*: Entradas históricas em `docs/AI_WORKLOG.md` são registros factuais imutáveis e **NUNCA** devem ser silenciosamente reescritas para refletir decisões futuras.
+  2. *Correções Posteriores*: Qualquer correção de fato superado ou formulação incorreta deve ser registrada exclusivamente em nova entrada cronológica posterior, com indicação do erro, do prompt de origem e da evidência factual.
+  3. *Exceção Estrita*: Remoção emergencial de segredos ou credenciais reais expostas por acidente.
+- Tamanho final do arquivo `AGENTS.md`: **169 linhas** (cumprindo estritamente a meta <= 180 linhas).
+
+### 3. Tratamento e Reversão das Alterações Retrospectivas em docs/AI_WORKLOG.md
+- **Auditoria de Diff**: Executado `git diff f00c7f7 -- docs/AI_WORKLOG.md`.
+- **Constatação**: Durante o `PROMPT-002H-FIX`, a entrada histórica de `PROMPT-002H` havia sido reescrita diretamente para neutralizar o texto de URLs pré-assinadas e consentimento bilateral.
+- **Ação Corretiva Conforme o Princípio Append-Only**:
+  - A entrada histórica original de `PROMPT-002H` (linhas 1 a 751) foi **integralmente restaurada** ao seu estado idêntico ao commit `f00c7f7`.
+  - As correções de texto juridicamente neutro e de armazenamento agnóstico são preservadas integralmente na entrada posterior `PROMPT-002H-FIX`.
+  - Nenhuma credencial ou segredo foi reintroduzido (a restauração contemplou unicamente as formulações conceituais de storage e compliance da tarefa anterior).
+
+### 4. Arquivos Realmente Alterados
+1. [`AGENTS.md`](file:///d:/voice-agent-platform/AGENTS.md): Inclusão da Seção 12 formalizando a regra append-only para o `AI_WORKLOG.md`.
+2. [`FOUNDATION_MASTER.md`](file:///d:/voice-agent-platform/FOUNDATION_MASTER.md): Correção das citações cruzadas (DEC-024 para Gravações; DEC-023 para Human Handoff), harmonizando com `docs/DECISIONS_LOG.md`.
+3. [`docs/AI_WORKLOG.md`](file:///d:/voice-agent-platform/docs/AI_WORKLOG.md): Restauração da entrada histórica de PROMPT-002H e inclusão desta entrada auditável de fechamento (PROMPT-002H-CHECK).
+
+### 5. Comandos Executados e Resultados de Validação
+- `git show f00c7f7:docs/DECISIONS_LOG.md`: Análise factual da atribuição original de DEC-023 e DEC-024.
+- `git show f00c7f7:FOUNDATION_MASTER.md` e `git show f00c7f7:docs/AI_WORKLOG.md`: Rastreamento da divergência de citação.
+- `git diff f00c7f7 -- docs/AI_WORKLOG.md`: Verificação de alterações retrospectivas e confirmação de restauração.
+- `pnpm check`: Executado com aprovação integral (0 erros em Prettier, ESLint, TypeScript em 12 pacotes, Vitest 6/6 testes, Turbo Build em 12 pacotes, Architecture AST check e File Size check).
+- `git status --short`: Inspeção de arquivos alterados antes do commit.
+
+### 6. Governança Git e Pull Request
+- **Branch Ativa**: `docs/platform-control-live-calls` (mantida, sem nova branch).
+- **Commit**: `docs: preserve decision ids and worklog audit history`.
+- **Push**: `origin/docs/platform-control-live-calls`.
+- **Pull Request #2**: Permanece aberto, atualizado automaticamente pela branch remota, em estado `clean` e sem auto-merge.
 - **PROMPT-003**: NÃO iniciado.
