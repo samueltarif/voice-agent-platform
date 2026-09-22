@@ -26,4 +26,5 @@ Cada registro segue rigorosamente a seguinte anatomia:
 | [ADR-005](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-005-event-driven-boundaries.md) | Fronteiras Orientadas a Eventos Internos Versionáveis | 2026-09-21 | Accepted |
 | [ADR-006](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-006-mobile-first.md) | Abordagem de Interface Mobile-First Unificada | 2026-09-21 | Accepted |
 | [ADR-007](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-007-frontend-stack.md) | Stack Frontend Web, Design System Compartilhado e Application Shell Mobile-First | 2026-09-22 | Accepted |
+| [ADR-008](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-008-persistence-auth-multitenancy.md) | Fundação de Persistência, Autenticação e Multi-Tenancy (Fase 4) | 2026-09-22 | Accepted |
 

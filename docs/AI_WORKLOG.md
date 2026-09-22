@@ -1451,3 +1451,714 @@ Nenhum.
 ## Arquivos críticos para revisão externa
 `docs/AI_WORKLOG.md`
 *(Nenhum outro arquivo de lógica ou infraestrutura precisou ser alterado nesta etapa de fechamento e merge).*
+---
+
+## PROMPT-004A — Persistence, Auth & Multi-Tenancy Decision Gate
+
+- **Data**: 2026-09-22
+- **Branch Ativa**: `docs/phase4-decision-gate` (criada a partir de `main` limpa e sincronizada).
+- **Objetivo**: Conduzir pesquisa exaustiva e comparativa, documentar capacidades factuais atuais de fornecedores/bibliotecas e propor a stack técnica da Fase 4 (Banco Relacional, Provedor Gerenciado, ORM/Query Layer, Migrações, Autenticação, Multi-Tenancy, Modelo de Identidade, Autorização de Platform Admin e Políticas de Conexão).
+- **Guardrails Estritamente Respeitados**:
+  - Tarefa 100% restrita a **PESQUISA + DECISÃO PROPOSTA + DOCUMENTAÇÃO**.
+  - Zero dependências instaladas (sem `pnpm add`).
+  - Zero criação de schemas ou migrations.
+  - Zero recursos cloud ou instâncias de banco provisionadas.
+  - O MCP do Supabase NÃO foi utilizado para criar tabelas, projetos ou buckets.
+  - Zero secrets ou variáveis `.env` criadas ou lidas.
+  - Zero alterações no código de produto de `apps/web`.
+  - Entradas anteriores do AI_WORKLOG preservadas intactas (registro estritamente append-only).
+
+---
+
+### 1. Documentos Obrigatórios Lidos e Revisados
+A etapa foi iniciada pela leitura e confrontação com os 16 documentos canônicos do projeto:
+- `AGENTS.md` (regras operacionais e limites para IAs);
+- `PROJECT_CONSTITUTION.md` (leis fundamentais: multi-tenancy inegociável, portas/adaptadores, determinismo, zero DDL manual em produção);
+- `ARCHITECTURE.md` (divisão entre `apps/web`, `apps/api`, `apps/voice`, `apps/worker` e pacotes compartilhados);
+- `PROJECT_MAP.md` (mapa de arquivos e fronteiras de pacotes);
+- `FOUNDATION_MASTER.md` (regras mestras consolidadas);
+- `docs/DATABASE.md` (governança de dados, repositórios tipados, migrations versionadas e regras de índices);
+- `docs/SECURITY.md` (segregação de segredos, autorização em camadas, mídias privadas e isolamento de Platform Admin);
+- `docs/PLATFORM_CONTROL_PLANE.md` (separação estrutural entre Tenant App e Platform Control Plane; desacoplamento entre pagamento e direito de acesso; resolução de capacidades via Entitlements; separação entre Usage, Cost e Billing);
+- `docs/PROJECT_VISION.md` (visão de produto do SaaS B2B de voz);
+- `docs/ROADMAP.md` (planejamento da Fase 4: Persistência, Autenticação e Multi-Tenancy);
+- `docs/DECISIONS_LOG.md` (decisões DEC-001 a DEC-025 e pendências em aberto);
+- `docs/DEPLOYMENT.md` (segregação de ambientes `dev`, `staging` e `production`, gate humano para produção);
+- `docs/OBSERVABILITY.md` (logs estruturados, rastreamento por `correlationId`, `organizationId` e métricas de latência);
+- `docs/AI_WORKLOG.md` (histórico append-only);
+- `docs/architecture/decisions/ADR-003-multi-tenant.md` (isolamento lógico nativo por `organizationId`);
+- `docs/architecture/decisions/ADR-004-provider-adapter-pattern.md` (padrão de portas e adaptadores para serviços externos);
+- `docs/architecture/decisions/ADR-007-frontend-stack.md` (stack frontend consolidada na Fase 3).
+
+---
+
+### 2. Ferramentas, MCPs e Consultas a Documentação Oficial Recente
+Para cumprir a exigência mandatória de **NUNCA confiar em memória estática de versões ou APIs**, foram realizadas consultas técnicas reais através do **Context7 MCP** e pesquisas em documentações oficiais:
+
+1. **Context7 MCP — Bibliotecas e Versões Inspecionadas**:
+   - `/drizzle-team/drizzle-orm-docs`: Verificados padrões de conexão com `pg.Pool`, driver `postgres.js`, geração de migrações com `drizzle-kit generate:pg`, e suporte nativo a RLS via `pgTable.withRLS` e transações com `set_config('request.jwt.claims', ...)`.
+   - `/websites/prisma_io`: Inspecionada a arquitetura do Prisma ORM v7, uso de Client Extensions (`$extends`), gerador de cliente, suporte a driver adapters (`@prisma/adapter-pg`) e necessidade de `DIRECT_URL` para o CLI e `DATABASE_URL` para o pooler PgBouncer.
+   - `/kysely-org/kysely`: Verificada a classe `Migrator`, migrações com suporte a DDL transacional (`supportsTransactionalDdl`), dialect Postgres (`PostgresDialect` com `pg.Pool`) e tipagem estática pura sem build step.
+   - `/neondatabase/website`: Inspecionados endpoints de conexão pooled (`-pooler` PgBouncer até 10.000 conexões em modo transação), endpoint direto (unpooled para migrations), separação de storage e computação, autoscaling, scale-to-zero e API de branching automatizado (`createBranch`).
+   - `/supabase/supabase`: Inspecionada a arquitetura do pooler **Supavisor** (porta 6543 em modo transação para serverless/APIs; porta 5432 em modo sessão para migrações), estrutura de JWT com claims personalizadas e avaliação de RLS via `auth.uid()` / `auth.jwt()`.
+   - `/better-auth/better-auth`: Inspecionado o suporte ao plugin nativo de organizações (`organizationClient` no client e `organization` no server), papéis customizados (`owner`, `admin`, `member`, custom roles), plugin `bearer` para envio de tokens de sessão em headers `Authorization: Bearer <token>`, plugin `apiKey` para chaves de API com escopo de organização e adaptadores diretos para Drizzle e Kysely.
+   - `/clerk/clerk-docs`: Inspecionada a biblioteca `@clerk/backend` e método `verifyToken` com verificação de assinatura JWT sem tráfego de rede (`jwtKey`) ou via JWKS, suporte a organizations B2B e restrições de domínios autorizados (`authorizedParties`).
+   - `/websites/authjs_dev`: Inspecionado o Auth.js (NextAuth v5), adaptadores de banco de dados (`DrizzleAdapter`, `PrismaAdapter`) e confirmada a ausência de suporte nativo a primitivos B2B de organizações (requer modelagem customizada manual).
+2. **Fontes Web Oficiais Complementares de Pricing (Verificação com Data e Moeda)**:
+   - **Neon Pricing (22/09/2026)**: Free a US$ 0/mês (0.5 GB storage, 100 CU-horas/mês). Launch e Scale operam em modelo puramente baseado em consumo sem taxa mensal mínima fixa; computação a US$ 0.106/CU-hora (Launch) e US$ 0.222/CU-hora (Scale); storage a US$ 0.35/GB-mês.
+   - **Supabase Pricing (22/09/2026)**: Free a US$ 0/mês (500 MB DB, pausa após 1 semana de inatividade). Pro a partir de US$ 25/mês (8 GB DB, US$ 10 de créditos de computação mensal cobrindo instância Micro, backups de 7 dias). Team a partir de US$ 599/mês.
+   - **Railway Pricing (22/09/2026)**: Hobby a US$ 5/mês e Pro a US$ 20/mês (taxa base com créditos equivalentes). Consumo medido por minuto: RAM a US$ 10/GB-mês, CPU a US$ 20/vCPU-mês, Storage a US$ 0.15/GB-mês.
+   - **Clerk Pricing (22/09/2026)**: Free a US$ 0/mês (até 50.000 Monthly Retained Users - MRU). Pro a partir de US$ 25/mês + US$ 0.02 por MRU adicional. Business a partir de US$ 250/mês.
+   - **Better Auth Pricing (22/09/2026)**: Software 100% Open-Source (Licença MIT). Custo de licenciamento: **US$ 0**. Hospedagem no próprio banco e compute da aplicação.
+
+---
+
+### 3. Análise e Matriz Comparativa Resumida
+
+#### A. Motor de Banco Relacional (Engine)
+- **PostgreSQL**: Confirmado como o único motor adequado. Fornece integridade referencial forte (`ON DELETE RESTRICT/CASCADE`), transações ACID para dedução de saldos/cotas determinísticas, índices B-Tree compostos com `organization_id`, tipos `NUMERIC`/`BIGINT` exatos para faturamento, suporte nativo a `JSONB` indexável para tool calling e compatibilidade futura com `pgvector` para Knowledge Base de agentes de voz.
+- **Bancos NoSQL (Document / Key-Value)**: Considerados tecnicamente inadequados para o core do SaaS devido à falta de consistência transacional forte entre múltiplas entidades e alto risco de vazamento ou corrupção de cotas/billing.
+- **Status**: `PROPOSED ENGINE: PostgreSQL` (Status: `VERIFIED`).
+
+#### B. Managed Database Provider
+1. **Neon Serverless Postgres**:
+   - *Pontos Fortes*: Database Branching instantâneo (Copy-on-Write) que viabiliza clonar schemas/dados em segundos para CI/CD e PRs; autoscaling e scale-to-zero com custo zero ocioso em ambientes de desenvolvimento; PgBouncer integrado para até 10.000 conexões.
+   - *Trade-offs*: Exige conexão direta para migrations DDL; potencial cold start em scale-to-zero se não configurado com nós fixos em produção.
+   - *Fit*: Altíssimo para o monorepo.
+2. **Supabase Postgres**:
+   - *Pontos Fortes*: PostgreSQL padrão robusto; pooler Supavisor de altíssima escala operando nativamente em portas separadas (6543 para transação/serverless e 5432 para sessão/migrações); interface rica; backups consolidados.
+   - *Trade-offs*: Pausa de projetos inativos no plano Free (7 dias); forte tentação de acoplamento com SDKs proprietários caso a disciplina arquitetural seja relaxada.
+   - *Fit*: Altíssimo como PostgreSQL puro.
+3. **Railway PostgreSQL**:
+   - *Pontos Fortes*: Controle simples de contêineres e suporte a clusters Patroni HA com failover automático e PgBouncer via CLI.
+   - *Trade-offs*: Sem branching nativo para pipelines de PR; precificação dinâmica por recurso que pode oscilar em picos contínuos.
+   - *Fit*: Bom para deploys tradicionais.
+
+#### C. Camada de Persistência / ORM
+1. **Drizzle ORM**:
+   - *Pontos Fortes*: Definido em TypeScript estrito puro (`pgTable`); zero overhead de compilação ou engine intermediário; migrações geradas em arquivos SQL padrão limpos e revisáveis por humanos em PRs (`drizzle-kit`); suporte nativo a índices compostos e SQL tipado; isolamento completo de `packages/contracts`.
+   - *Trade-offs*: Comunidade mais recente em relação ao Prisma, embora já amplamente consolidada na indústria.
+   - *Fit*: Máximo para nossos guardrails arquiteturais.
+2. **Prisma ORM**:
+   - *Pontos Fortes*: Ecossistema tradicional maduro e tipagem robusta em CRUDs simples.
+   - *Trade-offs*: DSL proprietária (`schema.prisma`) fora do TypeScript; geração de cliente pesado com engine Rust/WASM; dependência de *shadow database* para aplicar migrações com segurança; maior consumo de memória em serverless/containers.
+   - *Fit*: Médio.
+3. **Kysely**:
+   - *Pontos Fortes*: Query builder extremamente performático e type-safe; zero overhead em runtime.
+   - *Trade-offs*: Não oferece ferramenta integrada de geração automática de migrations a partir de declarações TypeScript (exige escrita manual de SQL ou setup de CLI complementar).
+   - *Fit*: Alto, porém com menor ergonomia de migrations integradas em comparação ao Drizzle.
+
+#### D. Autenticação e Gestão de Sessões
+1. **Better Auth**:
+   - *Pontos Fortes*: 100% TypeScript e open-source (MIT); armazena identidades e sessões no PostgreSQL da própria aplicação via adaptador Drizzle; plugin nativo de organizações (`organization`) com suporte a papéis (`owner`, `admin`, `member`, custom) e convites; plugin `bearer` para envio seguro de sessões para `apps/api` externa; zero custos por usuário ou taxas de licença.
+   - *Trade-offs*: Projeto mais jovem que Clerk ou Auth.js, demandando acompanhamento próximo de atualizações.
+   - *Fit*: Máximo para os requisitos e independência tecnológica do projeto.
+2. **Clerk**:
+   - *Pontos Fortes*: Componentes prontos de alta qualidade; experiência impecável; suporte nativo a B2B Organizations e SAML.
+   - *Trade-offs*: Alto vendor lock-in proprietário; dados residem em nuvem fechada de terceiros; custos que escalam exponencialmente em B2B corporativo (a partir de US$ 25/mês + US$ 0.02/MRU após 50k).
+   - *Fit*: Médio.
+3. **Supabase Auth**:
+   - *Pontos Fortes*: Open-source e integrado ao ecossistema PostgreSQL com emissão de JWTs e suporte a RLS.
+   - *Trade-offs*: Amarra a identidade ao schema interno `auth.users`; gestão de múltiplos tenants B2B requer implementação de tabelas adicionais e claims personalizadas manuais.
+   - *Fit*: Alto apenas se o projeto adotar a stack Supabase de ponta a ponta.
+4. **Auth.js (NextAuth v5)**:
+   - *Pontos Fortes*: Open-source popular na comunidade Next.js.
+   - *Trade-offs*: Não possui modelo nativo de organizações B2B; complexo para consumir sessões fora do ecossistema App Router em APIs backend dedicadas como `apps/api`.
+   - *Fit*: Baixo para SaaS B2B com múltiplos tenants.
+
+---
+
+### 4. Proposta de Stack Técnica Recomendada para Aprovação Humana
+
+Submetida formalmente para apreciação humana no relatório de pesquisa:
+
+| Componente | Opção Recomendada | Alternativa Primária |
+| :--- | :--- | :--- |
+| **Engine de Banco de Dados** | **PostgreSQL 16+** | *(Nenhuma alternativa sugerida — unânime)* |
+| **Provedor Gerenciado** | **Neon Serverless Postgres** | **Supabase Postgres** |
+| **Camada ORM / Query** | **Drizzle ORM + drizzle-kit** | **Kysely** |
+| **Autenticação e Sessões** | **Better Auth** (com plugins Organization & Bearer)| **Clerk** (se aprovado lock-in por conveniência visual) |
+| **Isolamento Multi-Tenant** | **Repositories Tipados com `organizationId` obrigatório** | **Defesa em Profundidade com RLS incremental** |
+| **Ambiente de Dev Local** | **Docker Compose (PostgreSQL limpo)** | **Neon branch efêmera de dev** |
+
+*Status Geral da Proposta: `PROPOSED / HUMAN APPROVAL REQUIRED`.*
+
+---
+
+### 5. Definições Conceituais de Arquitetura da Fase 4
+
+1. **Modelo de Identidade**:
+   - Separadas categoricamente: `User` (identificador interno canônico `id`), `AuthIdentity` (sujeito no provedor de credenciais), `Organization` (tenant corporativo), `OrganizationMembership` (papel do usuário na organização) e `PlatformAdminAuthorization` (autorização estritamente global, externa a tenants).
+   - `providerUserId` é expressamente banido como chave de domínio universal.
+2. **Estratégia de Multi-Tenancy**:
+   - Adoção de **Isolamento em Nível de Persistência via Repositories Tipados**. Todo repositório de dados tenant-scoped em `packages/database` exige `organizationId` como parâmetro obrigatório em 100% dos métodos de consulta, inserção e deleção.
+   - Schemas preparados para ativação complementar de PostgreSQL Row Level Security (RLS) como camada de defesa em profundidade em tabelas críticas de faturamento e chamadas.
+3. **Fonte da Verdade e Autorização**:
+   - A autenticação responde "quem é você".
+   - A autorização responde "o que você pode fazer", sendo resolvida deterministicamente pelo banco de dados relacional (consultando membros, papéis, limites de plano e entitlements concedidos). O provedor de auth **nunca** dita regras comerciais ou limites de serviço.
+4. **Resolução de Organização Ativa**:
+   - Resolução via rota `/org/[slug]` e contexto de sessão verificado pelo servidor.
+   - **Regra de Segurança**: O servidor valida em toda requisição se o `userId` autenticado possui vínculo ativo (`OrganizationMembership.status === 'ACTIVE'`) com o `organizationId` contextual. O client nunca tem autoridade para forçar acesso passando apenas headers.
+5. **Arquitetura de Conexões da API e Serviços**:
+   - `apps/web`: Conexão em modo Pooler (PgBouncer/Supavisor) para requisições curtas de interface.
+   - `apps/api`: Conexão em modo Pooler com pool dedicado para gateway HTTP.
+   - `apps/worker`: Conexão direta ou sessão persistente para execução de jobs assíncronos e locks de fila.
+   - `apps/voice`: Acesso mínimo direto ao banco de dados durante turnos de chamadas telefônicas; estado volátil gerenciado via Redis e eventos publicados para ingestão desacoplada por workers, prevenindo esgotamento de conexões em rajadas de chamadas.
+   - `CLI de Migrations`: Exige obrigatoriamente conexão direta (`DIRECT_URL`), pois DDLs falham em poolers transacionais.
+6. **Governança de Migrações**:
+   - Migrações versionadas em arquivos SQL limpos em `packages/database/migrations/*.sql`.
+   - Execução automatizada via pipeline de CI/CD em deploys.
+   - Proibição absoluta de DDL manual em produção. Adoção do padrão *Expand and Contract* para alterações estruturais incompatíveis.
+7. **Invariantes Mínimas de Segurança para a Fase 4B**:
+   - 7 invariantes formais definidas para validação obrigatória por testes automatizados (isolamento cross-tenant absoluto, bloqueio de membership inativa, isolamento inviolável de Platform Admin, obrigatoriedade de `organizationId` em repositórios, restrições únicas compostas por tenant, contexto em jobs e autorização estritamente determinística no servidor).
+
+---
+
+### 6. Decisões que Exigem Aprovação Humana Formal
+O início da implementação prática (PROMPT-004B) aguardará a aprovação humana expressa dos seguintes pontos:
+1. Aprovação da escolha do **PostgreSQL 16+** como motor relacional.
+2. Definição do provedor gerenciado oficial entre **Neon Serverless Postgres** e **Supabase Postgres**.
+3. Aprovação da adoção do **Drizzle ORM** em `packages/database`.
+4. Aprovação da adoção do **Better Auth** para o sistema de identidade e sessões B2B.
+5. Aprovação do uso de contêiner local `docker-compose.yml` para desenvolvimento offline de engenheiros e agentes.
+
+---
+
+### 7. Arquivos Criados e Alterados nesta Etapa
+- `docs/research/PHASE_4_DECISION_GATE.md`: Documento de pesquisa arquitetural abrangente e aprofundado, contendo metodologia, fontes, análises críticas, matrizes de decisão, modelo de dados conceitual e plano de implementação para a Fase 4B.
+- `docs/AI_WORKLOG.md`: Adicionada esta entrada factual detalhada (append-only).
+
+---
+
+### 8. Validações do Repositório (`pnpm check`)
+- `pnpm format:check`: SUCESSO (100% de conformidade com Prettier).
+- `pnpm lint`: SUCESSO (0 erros, 0 avisos em todo o monorepo).
+- `pnpm typecheck`: SUCESSO (12 workspaces compilados em modo FULL TURBO).
+- `pnpm test`: SUCESSO (19 testes passando em 6 arquivos de teste no Vitest).
+- `pnpm build`: SUCESSO (12 pacotes compilados; 8 páginas estáticas otimizadas geradas pelo Next.js 15).
+- `scripts/check-architecture.mjs`: SUCESSO (0 violações arquiteturais).
+- `scripts/check-file-size.mjs`: SUCESSO (64 arquivos de lógica de produção em estrita conformidade).
+
+---
+
+### 9. Governança Git e Estado do Pull Request
+- **Branch Ativa**: `docs/phase4-decision-gate`
+- **Working Tree**: Limpa.
+- **Commit**: `docs: evaluate persistence auth and multi-tenant stack`
+- **Push**: `origin/docs/phase4-decision-gate`
+- **Pull Request**: Criado formalmente para a branch `main`.
+- **Zero Auto-Merge**: O PR permanece aberto aguardando revisão e aprovação humana.
+- **Fase 4B**: NÃO INICIADA. Nenhuma alteração de código ou banco executada.
+
+---
+
+## Arquivos críticos para revisão externa
+1. `docs/AI_WORKLOG.md` *(Contém a síntese executiva completa e rastreabilidade integral desta etapa)*.
+2. `docs/research/PHASE_4_DECISION_GATE.md` *(Documento completo de pesquisa, matriz comparativa detalhada, modelo conceitual e plano da Fase 4B)*.
+
+
+---
+
+## PROMPT-004A-FIX — Auth/Tenant Boundaries and Decision Precision
+
+- **Data**: 2026-09-22
+- **Branch Ativa**: `docs/phase4-decision-gate` (mesma branch do PR #4, sem bifurcações).
+- **Objetivo**: Refinar e consolidar as fronteiras arquiteturais entre autenticação e domínio de negócio, eliminar riscos de *dual source of truth*, delimitar com precisão o escopo do PROMPT-004B e corrigir formulações absolutas ou imprecisas no documento de decisão técnica da Fase 4.
+- **Guardrails Estritamente Respeitados**:
+  - Zero dependências instaladas.
+  - Zero provisionamento de recursos em nuvem ou bancos de dados.
+  - Zero alteração no código de produto de `apps/web`.
+  - O MCP do Supabase NÃO foi utilizado para operações de escrita ou provisionamento.
+  - Registro rigorosamente append-only (entradas históricas preservadas sem modificação).
+
+---
+
+### 1. Resolução da Colisão Arquitetural: Better Auth vs. Domínio da Aplicação
+
+Após investigação detalhada da documentação oficial do Better Auth via Context7 (`/better-auth/better-auth`), as questões de governança foram elucidadas:
+
+- **A. Tabelas do Plugin `organization`**: Cria os modelos `organization` (`id`, `name`, `slug`, `logo`, `createdAt`, `metadata`), `member` (`id`, `organizationId`, `userId`, `role`, `createdAt`) e `invitation` (`id`, `organizationId`, `email`, `role`, `status`, `expiresAt`, `inviterId`).
+- **B. Customização e Mapeamento**: O plugin suporta renomear tabelas via `schema.<model>.modelName` e adicionar colunas com `additionalFields`.
+- **C. Funcionamento sem o Plugin**: O núcleo do Better Auth opera de forma 100% autônoma apenas com `user`, `session`, `account`, `verification`. O plugin `organization` é estritamente opcional.
+- **D. Dependência de Convites e Roles**: As APIs automáticas de convite e RBAC do Better Auth dependem estritamente das tabelas do plugin. Sem ele, a lógica de membros e convites reside no código de domínio.
+- **E. Duplicação de Dados**: Manter o plugin e tabelas de domínio próprias duplicaria organizações, membros, convites e papéis em dois schemas concorrentes.
+- **F. Eliminação do Dual Source of Truth**:
+  - **Decisão Formal**: Adoção da **OPTION A**.
+  - **Diretriz**: O Better Auth é adotado **EXCLUSIVAMENTE para Identidade e Sessão** (`user`, `session`, `account`, `verification`). O plugin `organization` **NÃO É ATIVADO**.
+  - **Soberania do Domínio**: As entidades `Organization`, `OrganizationMembership`, `TenantRole` (`OWNER`, `ADMIN`, `MANAGER`, `OPERATOR`, `VIEWER`), `PlatformAdminAuthorization`, `Plan`, `Entitlements`, `CommercialGrant` e `Subscription` pertencem **100% ao domínio da aplicação**, gerenciadas exclusivamente por Repositories tipados em `packages/database`.
+  - **Separação Canônica**: Autenticação responde "quem é você" (Better Auth). Autorização responde "o que você pode fazer" (Domínio da Aplicação). Se o provedor de auth for alterado no futuro, nenhuma regra de negócio ou autorização é impactada.
+
+---
+
+### 2. Refinamento do Modelo de Identidade e Credenciais (`AuthIdentity`)
+
+- **Correção Conceitual**: Esclarecido que senhas e seus respectivos hashes são **material confidencial de credencial interno da camada de autenticação**, e NÃO devem ser confundidos com identificadores de sujeito (`providerSubject`).
+- **Tabela `account` como Implementação de `AuthIdentity`**: O Better Auth já implementa nativamente o conceito de vínculo de identidade através da tabela `account`:
+  - `providerId`: Provedor (`"credential"`, `"google"`, `"magic_link"`);
+  - `accountId`: Identificador do sujeito no provedor externo (`sub` do OIDC/OAuth ou e-mail);
+  - `password`: Hash da senha (armazenado apenas para credenciais locais);
+  - `userId`: Chave estrangeira referenciando `user.id`.
+- **Segregação Clara de Propriedade de Schemas**:
+  - **Tabelas do Framework de Auth (Better Auth)**: `user`, `session`, `account`, `verification`.
+  - **Tabelas do Domínio da Aplicação**: `organizations`, `organization_memberships`, `platform_admin_authorizations`, `plans`, `entitlements`, `subscriptions`, `commercial_grants`.
+
+---
+
+### 3. Estratégia de Usuário Canônico (`User`)
+
+- A tabela `users` gerenciada pelo Better Auth atua como a entidade base de usuário no banco de dados (`id`, `name`, `email`, `emailVerified`, `image`).
+- O `user.id` do Better Auth é utilizado diretamente como chave estrangeira (`user_id`) em tabelas de domínio (`organization_memberships`, `platform_admin_authorizations`, `audit_logs`), garantindo integridade referencial nativa sem tabelas de mapeamento intermediárias.
+- `providerUserId` permanece expressamente **proibido** como chave universal de negócio.
+- **Estratégia de Chaves Primárias Internas**: Definida como `INTERNAL ID STRATEGY: PENDING DECISION`. UUIDv7, CUID2 e Nanoid permanecem como candidatas a serem validadas na Fase 4B quanto a geração na aplicação vs banco e indexação B-Tree.
+
+---
+
+### 4. Papéis Organizacionais (`OrganizationRole`) e Platform Admin
+
+- **Papéis de Tenant**: Como o plugin `organization` não é utilizado (Option A), os papéis residem inteiramente na tabela de domínio `organization_memberships(role)` como um enum rigoroso do PostgreSQL: `OWNER`, `ADMIN`, `MANAGER`, `OPERATOR`, `VIEWER`. As regras de permissão e herança são validadas deterministicamente em código de domínio testado.
+- **Platform Admin Global**: Continua estritamente segregado na tabela técnica `platform_admin_authorizations`, sem escopo de tenant e desacoplado de qualquer papel de organização.
+
+---
+
+### 5. Arquitetura do Fluxo de Autenticação (Browser, Web e API)
+
+Para garantir proteção estrita contra vazamento de tokens e ataques XSS, foi rejeitada qualquer arquitetura que exponha tokens de sessão ao JavaScript do navegador:
+
+- **Fluxo A — BFF Server-to-Server via `apps/web` (Recomendado para a UI Web)**:
+  - O browser autentica-se com `apps/web` utilizando exclusivamente **Cookie HTTP-only seguro** (`SameSite=Lax`, `Secure`).
+  - O JavaScript client-side **nunca** tem acesso ao token de sessão.
+  - Componentes de servidor / Server Actions em `apps/web` validam a sessão no Better Auth e comunicam-se com a `apps/api` de forma server-to-server repassando o contexto autenticado e validado (`X-User-Id`, `X-Organization-Id`, `X-Correlation-Id`).
+  - Mitiga integralmente riscos de CSRF, simplifica CORS e isola a API gateway.
+- **Fluxo B — Acesso Direto do Browser à `apps/api` via Cookie Compartilhado de Subdomínio**:
+  - `app.dominio.com` e `api.dominio.com` compartilhando cookie com escopo `Domain=.dominio.com`. Avaliado como alternativa futura para endpoints de alta frequência da UI, exigindo CORS restrito com `credentials: true` e proteção anti-CSRF com headers customizados.
+- **Fluxo C — Bearer Tokens**:
+  - Restrito a clientes nativos, CLIs, automações e integrações máquina-a-máquina (M2M). Não utilizado para o dashboard web padrão para evitar armazenamento em `localStorage`.
+
+---
+
+### 6. Autenticação de Serviços Internos (`Internal Service Auth`)
+
+- Nenhuma tecnologia (HMAC, JWT interno, API Key) foi fixada antecipadamente para a comunicação entre `apps/voice`, `apps/worker` e `apps/api`.
+- Registro formal: **`INTERNAL SERVICE AUTH MECHANISM: PENDING DECISION`**.
+- Requisitos arquiteturais estabelecidos: autenticação service-to-service segura, capacidade de rotação periódica, princípio do menor privilégio, auditabilidade e obrigatoriedade de contexto com `organizationId` e `correlationId`.
+
+---
+
+### 7. Fronteiras de Acesso ao Banco de Dados
+
+- **`apps/web`**: Interface visual e BFF. Possui acesso estritamente às **tabelas de autenticação** (route handlers do Better Auth em `/api/auth/*`). **ACESSO DIRETO A TABELAS DE DOMÍNIO DE NEGÓCIO É PROIBIDO**. Toda leitura e escrita de regras de negócio passa por `apps/api`.
+- **`apps/api`**: Boundary primário de persistência relacional e regras de negócio síncronas. Executa repositórios tipados de domínio.
+- **`apps/worker`**: Processamento em background assíncrono. Pode utilizar repositórios de domínio para tarefas em lote e consolidação de métricas.
+- **`apps/voice`**: Motor de streaming em tempo real. **NÃO realiza persistência de domínio no caminho crítico de áudio (critical path)**, evitando contenção de conexões em picos de chamadas.
+
+---
+
+### 8. Infraestrutura Efêmera e Filas
+
+- O Redis foi removido como escolha decidida.
+- Registro formal: **`EPHEMERAL STATE / ASYNC EVENT INFRASTRUCTURE: PENDING DECISION`**.
+
+---
+
+### 9. Governança e Semântica de Migrações (Correção de Absolutos)
+
+- Corrigidas generalizações anteriores sobre DDLs e poolers transacionais.
+- Formulação precisa: as migrações devem seguir as diretrizes do driver e provedor selecionado. Conexões de sessão direta (unpooled / direct) são fortemente preferidas por ferramentas de migração que utilizam semântica de sessão do PostgreSQL (como advisory locks e comandos DDL).
+- As migrações são sequenciais e versionadas no Git (`packages/database/migrations/*.sql`), e não devem ser presumidas automaticamente idempotentes sem validação de scripts específicos. Alterações não-triviais seguem o padrão *Expand and Contract*.
+
+---
+
+### 10. Classificação Realista de Lock-in Tecnológico
+
+Removida a afirmação de "zero lock-in". As tecnologias propostas foram classificadas em 4 dimensões:
+- **Data Model Portability**: **Alta** (PostgreSQL padrão; exportável integralmente via `pg_dump`).
+- **Operational Lock-in**: **Médio** (APIs de branching do Neon, Supavisor do Supabase e scripts de deploy criam acoplamento de pipeline).
+- **SDK/API Lock-in**: **Baixo** (Drizzle gera TypeScript puro; Option A isola o domínio das APIs do Better Auth).
+- **Auth Schema Lock-in**: **Baixo a Médio** (Tabelas padrão SQL de `user` e `session` no próprio banco da aplicação).
+
+---
+
+### 11. Justificativa Técnica do Motor Relacional (NoSQL)
+
+- Retificada a justificativa: o PostgreSQL é proposto porque os requisitos fundamentais do produto são predominantemente relacionais, transacionais e fortemente orientados a constraints de integridade e auditoria. Não há justificativa para introduzir NoSQL no core transacional do SaaS, sem necessidade de generalizações sobre a capacidade de outros bancos.
+- A decisão humana nesta etapa é: **`ENGINE: PostgreSQL`**. A versão major exata será fixada no momento da escolha do provedor cloud para garantir que `local == staging == production`.
+
+---
+
+### 12. Escopo Delimitado da Fase 4B (Fundação Enxuta)
+
+Para garantir foco e respeitar o sequenciamento do roadmap, as entidades de fases posteriores (`agents`, `agent_versions`, `calls`, `campaigns`, `contacts`) foram **removidas** do plano inicial da Fase 4B.
+
+O PROMPT-004B contemplará exclusivamente a **Fundação de Identidade, Tenant e Modelo Comercial**:
+1. Schemas e tabelas de autenticação do Better Auth (`users`, `sessions`, `accounts`, `verifications`);
+2. Tabelas de organização: `organizations`, `organization_memberships`;
+3. Tabelas de governança da plataforma: `platform_admin_authorizations`;
+4. Tabelas comerciais: `plans`, `entitlements`, `subscriptions`, `commercial_grants`;
+5. Estrutura mínima de auditoria de autorização (`audit_logs`);
+6. Repositories tipados em `packages/database` com validação obrigatória de `organizationId`;
+7. Suíte de testes automatizados das 7 Invariantes de Segurança.
+*(Tabelas de Usage detalhado serão implementadas com schema simples relacional; particionamento prematuro foi descartado).*
+
+---
+
+### 13. Regiões dos Provedores e Soberania de Dados (LGPD / Latência)
+
+Pesquisa documental oficial confirmou:
+- **Neon**: Suporta oficialmente a região **AWS South America (São Paulo) — `aws-sa-east-1`** (Fonte: `neon.tech/docs/introduction/regions`, consultado em 22/09/2026).
+- **Supabase**: Suporta oficialmente a região **`sa-east-1` (São Paulo, Brasil)** para banco, autenticação e storage (Fonte: `supabase.com/docs/guides/platform/regions`, consultado em 22/09/2026).
+- **Railway**: **NÃO possui região no Brasil/América do Sul**; instâncias operam em US West, US East, Europe West e Asia Southeast (Fonte: `docs.railway.com`, consultado em 22/09/2026).
+- *Conclusão*: Neon e Supabase atendem aos requisitos de baixa latência e soberania de dados para clientes corporativos brasileiros; Railway apresenta latência de rede transcontinental.
+
+---
+
+### 14. Custos e Licenciamento do Better Auth
+
+- **Custo de Licenciamento**: **US$ 0** (Software livre sob Licença MIT).
+- **Custo Operacional**: Requer computação própria, banco de dados, provedor de e-mail transacional (SMTP/Resend) e monitoramento.
+
+---
+
+### 15. Proposta Revisada para Aprovação Humana
+
+| Componente | Opção Recomendada | Alternativa de 1ª Linha |
+| :--- | :--- | :--- |
+| **Motor de Banco de Dados** | **PostgreSQL** (versão alinhada ao provedor cloud) | *(Unânime)* |
+| **Provedor Gerenciado** | **Neon Serverless Postgres** (1ª Candidata) | **Supabase Postgres** (Alternativa) |
+| **Camada ORM / Persistência** | **Drizzle ORM + drizzle-kit** | **Kysely** |
+| **Sistema de Autenticação** | **Better Auth (Option A: Identidade + Sessão)** | **Clerk** (se aprovado lock-in por conveniência) |
+| **Autorização de Tenants** | **100% no Domínio da Aplicação via Repositories** | **Defesa em Profundidade com RLS incremental** |
+| **Papéis de Tenant** | **Enum de Domínio (`OWNER`, `ADMIN`, `MANAGER`, `OPERATOR`, `VIEWER`)** | *(Integrado em organization_memberships)* |
+| **Platform Admin** | **Tabela Global `platform_admin_authorizations`** | *(Isolada de qualquer tenant role)* |
+| **Desenvolvimento Local** | **Docker Compose (PostgreSQL limpo)** | **Neon branch efêmera de dev** |
+
+*Status da Proposta: `PROPOSED / HUMAN APPROVAL REQUIRED`.*
+
+---
+
+### 16. Validação do Monorepo (`pnpm check`)
+- `pnpm format:check`: SUCESSO (100% de conformidade com Prettier).
+- `pnpm lint`: SUCESSO (0 erros, 0 avisos em todo o monorepo).
+- `pnpm typecheck`: SUCESSO (12 workspaces compilados em modo FULL TURBO).
+- `pnpm test`: SUCESSO (19 testes passando em 6 arquivos de teste no Vitest).
+- `pnpm build`: SUCESSO (12 pacotes compilados; 8 páginas estáticas geradas pelo Next.js 15).
+- `scripts/check-architecture.mjs`: SUCESSO (0 violações de AST).
+- `scripts/check-file-size.mjs`: SUCESSO (64 arquivos de lógica de produção em estrita conformidade).
+
+---
+
+### 17. Governança Git
+- **Branch**: `docs/phase4-decision-gate` (mesma branch do PR #4).
+- **Working Tree**: Limpa.
+- **Commit Sugerido**: `docs: refine phase 4 auth and tenancy decisions`
+- **Push**: `origin/docs/phase4-decision-gate` (atualizando o PR #4).
+- **PR #4**: Aberto para revisão humana / Zero auto-merge.
+- **PROMPT-004B NÃO INICIADO**: Aguardando aprovação humana formal.
+
+---
+
+## Arquivos críticos para revisão externa
+1. `docs/AI_WORKLOG.md` *(Contém a síntese executiva completa e rastreabilidade de todas as correções)*.
+2. `docs/research/PHASE_4_DECISION_GATE.md` *(Documento de pesquisa atualizado com as fronteiras de autorização e escopo enxuto da Fase 4B)*.
+
+
+---
+
+## PROMPT-004A-CHECK — Final Decision Gate Precision Review
+
+- **Data**: 2026-09-22
+- **Branch Ativa**: `docs/phase4-decision-gate` (mesma branch do PR #4, sem bifurcações).
+- **Objetivo**: Fechar o portão de decisão da Fase 4 com o mais alto rigor técnico antes da submissão para aprovação humana, corrigindo semântica de decisões propostas, delimitando trust boundaries entre `apps/web` e `apps/api`, eliminando formulações absolutas sobre CSRF e soberania de dados, e adiando detalhes físicos para o momento da instalação de dependências.
+- **Guardrails Estritamente Respeitados**:
+  - Zero dependências instaladas (`package.json` e `pnpm-lock.yaml` inalterados).
+  - Zero provisionamento de recursos em nuvem ou bancos de dados.
+  - O MCP do Supabase NÃO foi utilizado para escritas ou provisionamento.
+  - Zero secrets ou variáveis `.env` criadas.
+  - Zero alteração no código de produto de `apps/web`.
+  - Registro rigorosamente append-only (entradas históricas preservadas sem modificação).
+
+---
+
+### 1. Correção Semântica: Option A Reclassificada Formalmente como Proposta
+
+- **Retificação no Documento de Pesquisa**: Onde constava anteriormente a redação de decisão consumada ("Decisão Formal: Option A"), o texto de `docs/research/PHASE_4_DECISION_GATE.md` foi corrigido para:
+  **`PROPOSTA RECOMENDADA — HUMAN APPROVAL REQUIRED (Option A)`**.
+- **Princípio de Governança**: Nenhuma escolha técnica deste decision gate constitui decisão aceita (ADR/DEC Accepted) antes da validação e aprovação humana formal.
+- **Registro Histórico**: A entrada anterior `PROMPT-004A-FIX` no AI_WORKLOG foi mantida intacta por força da política append-only; esta entrada registra formalmente a correção semântica.
+
+---
+
+### 2. Trust Boundary entre `apps/web` e `apps/api`
+
+- **Headers de Contexto NÃO São Prova Autônoma**: Cabeçalhos HTTP como `X-User-Id` e `X-Organization-Id` **não constituem prova autônoma de identidade ou autorização**.
+- **Proteção da API**: A `apps/api` **NÃO confia** em valores arbitrários recebidos de clientes não autenticados. Headers contextuais só adquirem validade após a autenticação da chamada server-to-server.
+- **Mecanismo de Autenticação Interna**: Mantido categoricamente como:
+  **`INTERNAL SERVICE AUTH MECHANISM: PENDING DECISION`**.
+  - O fluxo server-to-server não é descrito como implementação pronta. Alternativas futuras (revalidação de sessão, assertions internas assinadas, mTLS) serão decididas na implementação da API.
+- **Papel do `X-Correlation-Id`**: Esclarecido que é estritamente **metadado de rastreabilidade distribuída**, não exercendo papel de autorização ou controle de acesso.
+
+---
+
+### 3. Eliminação de Absolutos sobre CSRF e Proteção de Sessões
+
+- **Remoção de Formulações Imprecisas**: Foram removidas do research doc afirmações que sugeriam "imunidade a CSRF" ou "mitigação integral" apenas pelo uso de cookies HttpOnly ou SameSite.
+- **Precisão Técnica**:
+  - `HttpOnly`: Protege o cookie contra leitura direta por JavaScript (mitigação contra roubo via XSS), mas **NÃO é mecanismo anti-CSRF**.
+  - `SameSite=Lax`: Reduz a superfície de ataques em navegações comuns, mas **não é proteção universal**.
+  - Para mutações e fluxos críticos, a arquitetura futura deverá contemplar validação de cabeçalhos `Origin`/`Host`, verificação anti-CSRF específica, métodos HTTP apropriados e CORS restrito.
+  - Status formal: **`CSRF MITIGATION: PENDING IMPLEMENTATION / VALIDATE WITH AUTH FRAMEWORK IN 004B`**.
+
+---
+
+### 4. Distinção entre Localização de Dados, Região e Conformidade LGPD
+
+- **Correção de Inferências Automáticas**: Corrigidos títulos e conclusões que inferiam "soberania de dados garantida" ou "compliance LGPD atendido" a partir da mera disponibilidade de uma região de datacenter.
+- **Classificação Precisa**:
+  - `PRIMARY DATABASE REGION / DATA LOCALITY`: São Paulo disponível em Neon (`aws-sa-east-1`) e Supabase (`sa-east-1`) — **VERIFIED** via documentações oficiais registradas.
+  - `BACKUP RESIDENCY`: **NOT VERIFIED** (depende de configuração de storage do provedor cloud).
+  - `LOG/TELEMETRY RESIDENCY`: **NOT VERIFIED**.
+  - `SUPPORT/PROCESSING RESIDENCY`: **NOT VERIFIED**.
+  - `LGPD COMPLIANCE`: **NÃO INFERIDO DA REGIÃO. LEGAL/COMPLIANCE VERIFICATION REQUIRED BEFORE PRODUCTION**. A presença de datacenter no país é um fator técnico relevante, mas não atesta isoladamente conformidade jurídica.
+
+---
+
+### 5. Calibração de Evidências e Fatos de Fornecedores
+
+- Claims baseados exclusivamente em snippets de mecanismos de busca que não tiveram a página oficial aberta e lida integralmente foram reclassificados para **`NOT VERIFIED`** (especialmente valores numéricos de limites de conexão, períodos exatos de retenção de histórico e pausas específicas de free tier).
+- O documento de pesquisa preserva apenas as URLs oficiais consultadas e fatos diretamente confirmados, evitando falsa precisão numérica.
+
+---
+
+### 6. Better Auth: Modelos Conceituais vs. Schema Físico
+
+- **Nomes Físicos Não Congelados Antecipadamente**: Nomes exatos de tabelas físicas (`users`, `sessions`, `accounts`, `verifications`) não foram fixados como fato prévio.
+- **Adoção de Nomes Conceituais**: O documento de pesquisa adota as entidades conceituais `User`, `Session`, `Account` e `Verification`.
+- **Status Formal**: **`PHYSICAL AUTH SCHEMA: TO BE VERIFIED FROM INSTALLED BETTER AUTH VERSION IN 004B`**.
+- **Procedimento Obrigatório para o PROMPT-004B**:
+  1. Consultar documentação oficial da versão exata;
+  2. Instalar a versão aprovada e verificar a versão resolvida no lockfile;
+  3. Utilizar o gerador oficial de schema Drizzle daquela versão;
+  4. Definir as migrações físicas a partir dessa evidência concreta.
+- **Account e Credenciais**: Account representa o vínculo de autenticação/provider conforme schema oficial da versão instalada. Passwords e seus respectivos hashes permanecem exclusivamente material confidencial de credencial gerenciado pela camada de auth.
+
+---
+
+### 7. Módulo de Usage e Estratégia de Identificadores
+
+- **Usage Schema Deferido**: Registrado formalmente como **`USAGE PERSISTENCE SCHEMA: DEFERRED UNTIL DOMAIN/USAGE REQUIREMENTS ARE CONCRETE`**. A Fase 4B preservará apenas conceitos e contratos neutros; nenhuma tabela de usage detalhado ou particionamento declarativo antecipado será criado.
+- **Estratégia de IDs**: Mantida como **`INTERNAL ID STRATEGY: PENDING DECISION`** (UUIDv7, CUID2 e Nanoid como candidatas a homologar na Fase 4B).
+
+---
+
+### 8. Quadro Final do Decision Gate para Aprovação Humana
+
+A proposta final consolidada apresenta com clareza o status de cada componente técnico:
+
+| Componente | Proposta Técnica | Status Formal |
+| :--- | :--- | :--- |
+| **ENGINE** | **PostgreSQL** (major version alinhada ao cloud) | PROPOSED / HUMAN APPROVAL REQUIRED |
+| **MANAGED DB FIRST CANDIDATE** | **Neon** (branching para CI/CD, sa-east-1) | PROPOSED / HUMAN APPROVAL REQUIRED |
+| **MANAGED DB ALTERNATIVE** | **Supabase Postgres** (ecossistema maduro, sa-east-1) | PROPOSED / HUMAN APPROVAL REQUIRED |
+| **ORM** | **Drizzle ORM + drizzle-kit** | PROPOSED / HUMAN APPROVAL REQUIRED |
+| **AUTH** | **Better Auth somente Identity + Session** | PROPOSED / HUMAN APPROVAL REQUIRED |
+| **BETTER AUTH ORGANIZATION PLUGIN** | **DISABLED / NOT PART OF PROPOSAL** | PROPOSED / HUMAN APPROVAL REQUIRED |
+| **TENANT AUTHORIZATION SOURCE OF TRUTH**| **Application Domain** (Repositories tipados) | PROPOSED / HUMAN APPROVAL REQUIRED |
+| **PLATFORM ADMIN** | **Global domain authorization, separate from tenant roles** | PROPOSED / HUMAN APPROVAL REQUIRED |
+| **WEB ARCHITECTURE** | **apps/web as UI/BFF; apps/api as business/persistence boundary** | PROPOSED / HUMAN APPROVAL REQUIRED |
+| **LOCAL DEVELOPMENT** | **Docker Compose PostgreSQL**, sujeito à disponibilidade | PROPOSED / HUMAN APPROVAL REQUIRED |
+| **ROW LEVEL SECURITY (RLS)** | **Incremental defense-in-depth candidate**, não primário | PROPOSED / HUMAN APPROVAL REQUIRED |
+| **INTERNAL SERVICE AUTH** | **PENDING DECISION** | PENDING |
+| **EPHEMERAL/QUEUE INFRASTRUCTURE** | **PENDING DECISION** | PENDING |
+| **INTERNAL ID STRATEGY** | **PENDING DECISION** | PENDING |
+| **USAGE SCHEMA** | **DEFERRED** | DEFERRED |
+
+---
+
+### 9. Validações do Monorepo (`pnpm check`)
+- `pnpm format:check`: SUCESSO (100% de conformidade com Prettier).
+- `pnpm lint`: SUCESSO (0 erros, 0 avisos em todo o monorepo).
+- `pnpm typecheck`: SUCESSO (12 workspaces compilados em modo FULL TURBO).
+- `pnpm test`: SUCESSO (19 testes passando em 6 arquivos de teste no Vitest).
+- `pnpm build`: SUCESSO (12 pacotes compilados; 8 páginas estáticas geradas pelo Next.js 15).
+- `scripts/check-architecture.mjs`: SUCESSO (0 violações arquiteturais).
+- `scripts/check-file-size.mjs`: SUCESSO (64 arquivos de lógica de produção em estrita conformidade).
+
+---
+
+### 10. Governança Git e Estado do Pull Request
+- **Branch**: `docs/phase4-decision-gate` (mesma branch do PR #4).
+- **Working Tree**: Limpa.
+- **Commit Sugerido**: `docs: close phase 4 decision gate precision gaps`
+- **Push**: `origin/docs/phase4-decision-gate` (atualizando o PR #4).
+- **PR #4**: Aberto para revisão e aprovação humana / Zero auto-merge.
+- **PROMPT-004B NÃO INICIADO**: Nenhuma dependência instalada, nenhum schema de código gerado.
+
+---
+
+## Arquivos críticos para revisão externa
+1. `docs/AI_WORKLOG.md` *(Contém a síntese executiva completa e rastreabilidade de todas as correções)*.
+2. `docs/research/PHASE_4_DECISION_GATE.md` *(Documento de pesquisa calibrado com as fronteiras de autorização e decisões propostas)*.
+
+---
+
+# PROMPT-004A-FINAL-FIX — Final Technical Precision Corrections
+
+> **Data / Horário**: 22 de Setembro de 2026  
+> **Branch**: `docs/phase4-decision-gate`  
+> **Escopo**: Aplicação de quatro correções factuais e semânticas no documento `docs/research/PHASE_4_DECISION_GATE.md` antes da aprovação humana e merge do PR #4.  
+> **Status de Execução**: SUCESSO (Append-Only)
+
+---
+
+### 1. Correções Técnicas Aplicadas em `docs/research/PHASE_4_DECISION_GATE.md`
+
+1. **Neon SDK/API Lock-in (Zero -> Baixo)**:
+   - Alterada a classificação de lock-in de SDK/API do Neon na matriz comparativa (Seção 14) de `Zero` para `Baixo`.
+   - **Justificativa factual**: A conectividade PostgreSQL padrão (`pg`, `postgres.js`) reduz o acoplamento da aplicação, mas APIs e capacidades específicas do provedor (como branching Copy-on-Write, autoscaling e automação operacional) permanecem *provider-specific*. O termo "zero lock-in" foi categoricamente eliminado.
+
+2. **Correção da Semântica de Métodos HTTP e CSRF**:
+   - Removida em 10.2 a redação que associava proteção CSRF a *"métodos HTTP não-idempotentes (POST, PUT, DELETE)"*, uma vez que `PUT` e `DELETE` possuem semântica idempotente pela RFC 9110 e `PATCH` estava ausente.
+   - Substituída pela formulação neutra: *"Uso de métodos de alteração de estado apropriados, como POST, PUT, PATCH e DELETE, conforme a semântica da operação."*
+   - Desacoplada formalmente a proteção contra CSRF da idempotência dos métodos HTTP.
+
+3. **Distinção entre Transacionalidade e Idempotência em Migrações**:
+   - Corrigida em Seção 13 qualquer afirmação de que controle transacional do runner "assegura idempotência".
+   - Registrado formalmente:
+     - Migrações são sequenciais e versionadas no Git (`packages/database/migrations/*.sql`);
+     - O migration runner deve registrar quais migrações já foram aplicadas (tabela de controle de histórico);
+     - Transações podem fornecer atomicidade quando suportadas pelo banco e pelo comando DDL executado;
+     - Atomicidade NÃO torna uma migração idempotente;
+     - Nenhuma migração deve ser presumida idempotente sem scripts dedicados de guarda;
+     - O comportamento exato depende do tooling efetivamente instalado e configurado na Fase 4B.
+
+4. **Remoção de `Account.password` como Detalhe Físico Antecipado**:
+   - Atualizados o diagrama conceitual e o texto da Seção 8 (`Account / AuthLink`), removendo a suposição antecipada de uma coluna física `Account.password` ou campo de hash.
+   - Registrado o conceito `Account / AuthLink` como vínculo abstrato entre o usuário e o mecanismo/provedor de autenticação (OAuth, credenciais locais, etc.), com campos físicos definidos exclusivamente pela versão instalada do Better Auth.
+   - Adicionada a diretiva mandatória:
+     `CREDENTIAL FIELD LAYOUT: TO BE VERIFIED FROM INSTALLED BETTER AUTH VERSION IN 004B.`
+   - Passwords e hashes permanecem como material confidencial sob gestão estrita da camada de autenticação, sem congelar antecipadamente esquemas físicos.
+
+---
+
+### 2. Preservação Estrita das Decisões Principais (Status Inalterado)
+
+Mantidas rigorosamente todas as decisões propostas sob os status formais já definidos:
+- **PROPOSED / HUMAN APPROVAL REQUIRED**:
+  - Engine: PostgreSQL;
+  - Provedor gerenciado 1ª candidata: Neon;
+  - Provedor gerenciado alternativo: Supabase Postgres;
+  - ORM: Drizzle ORM + drizzle-kit;
+  - Auth: Better Auth somente para Identity + Session;
+  - Plugin organization do Better Auth: DISABLED / NOT PART OF PROPOSAL;
+  - Tenant authorization source of truth: Application Domain (Repositories tipados);
+  - Platform Admin: Autorização global de domínio desacoplada de papéis de tenant;
+  - Web Architecture: `apps/web` como BFF/UI; `apps/api` como boundary de negócio e persistência;
+  - Desenvolvimento local: Docker Compose PostgreSQL;
+  - Row Level Security (RLS): Candidato a defesa em profundidade incremental.
+- **PENDING**:
+  - `INTERNAL SERVICE AUTH MECHANISM: PENDING DECISION`;
+  - `EPHEMERAL STATE / ASYNC EVENT INFRASTRUCTURE: PENDING DECISION`;
+  - `INTERNAL ID STRATEGY: PENDING DECISION`.
+- **DEFERRED**:
+  - `USAGE PERSISTENCE SCHEMA: DEFERRED UNTIL DOMAIN/USAGE REQUIREMENTS ARE CONCRETE`.
+
+---
+
+### 3. Evidências de Validação Automatizada (`pnpm check`)
+
+Execução factual da suíte completa de checagens:
+```bash
+$ pnpm check
+```
+- `prettier --check .`: SUCESSO (All matched files use Prettier code style).
+- `eslint .`: SUCESSO (Zero erros/warnings).
+- `turbo typecheck`: SUCESSO (12 pacotes verificados, Full Turbo).
+- `vitest run`: SUCESSO (6 test files passados, 19 testes unitários aprovados).
+- `turbo build`: SUCESSO (12 pacotes compilados, 8 páginas estáticas do Next.js 15 geradas).
+- `node scripts/check-architecture.mjs`: SUCESSO (Todas as fronteiras e regras arquiteturais respeitadas).
+- `node scripts/check-file-size.mjs`: SUCESSO (64 arquivos de lógica verificados em conformidade).
+
+---
+
+### 4. Governança Git e Estado do Pull Request
+
+- **Branch**: `docs/phase4-decision-gate` (mesma branch, sem criação de novas branches).
+- **Commit**: `docs: correct final phase 4 technical semantics`
+- **Push**: `origin/docs/phase4-decision-gate`
+- **PR #4**: Aberto (`https://github.com/samueltarif/voice-agent-platform/pull/4`), aguardando revisão e aprovação humana.
+- **PROMPT-004B NÃO INICIADO**: Nenhuma dependência instalada, nenhum recurso provisionado, nenhum secret manipulado.
+
+---
+
+# PROMPT-004A-APPROVAL — Human Approval and Architecture Acceptance
+
+> **Data / Horário**: 22 de Setembro de 2026  
+> **Branch**: `docs/phase4-decision-gate`  
+> **Escopo**: Formalização da aprovação humana da arquitetura da Fase 4, conversão das decisões aprovadas para status ACCEPTED, criação de DEC-026 e ADR-008, merge do PR #4.  
+> **Status de Execução**: SUCESSO (Append-Only)
+
+---
+
+### 1. Aprovação Humana Recebida
+
+Em **22 de Setembro de 2026**, o operador humano emitiu aprovação explícita para o conjunto de decisões arquiteturais da Fase 4 (Persistência, Autenticação e Multi-Tenancy).
+
+**Resumo da aprovação**:
+- PostgreSQL como engine relacional;
+- Neon Serverless Postgres como managed DB principal;
+- Supabase Postgres como alternativa;
+- Drizzle ORM + drizzle-kit como camada de persistência e migrations;
+- Better Auth exclusivamente para Identity + Session;
+- Plugin `organization` do Better Auth NÃO será utilizado;
+- Organization, OrganizationMembership, Tenant Roles, PlatformAdminAuthorization, Plans, Entitlements, Subscriptions e CommercialGrants pertencem 100% ao domínio da aplicação;
+- Application Domain é fonte de verdade para autorização tenant;
+- Platform Admin é autorização global separada de tenant roles;
+- `apps/web` atua como UI/BFF; `apps/api` como boundary de negócio e persistência;
+- Docker Compose PostgreSQL aprovado para desenvolvimento local quando disponível;
+- RLS como defesa em profundidade incremental, não mecanismo primário.
+
+### 2. Transição de Status das Decisões
+
+| Item | Status Anterior | Status Atual |
+| :--- | :--- | :--- |
+| ENGINE (PostgreSQL) | PROPOSED / HUMAN APPROVAL REQUIRED | **ACCEPTED BY HUMAN — 2026-09-22** |
+| MANAGED DB FIRST CANDIDATE (Neon) | PROPOSED / HUMAN APPROVAL REQUIRED | **ACCEPTED BY HUMAN — 2026-09-22** |
+| MANAGED DB ALTERNATIVE (Supabase PG) | PROPOSED / HUMAN APPROVAL REQUIRED | **ACCEPTED BY HUMAN — 2026-09-22** |
+| ORM (Drizzle ORM + drizzle-kit) | PROPOSED / HUMAN APPROVAL REQUIRED | **ACCEPTED BY HUMAN — 2026-09-22** |
+| AUTH (Better Auth Identity + Session) | PROPOSED / HUMAN APPROVAL REQUIRED | **ACCEPTED BY HUMAN — 2026-09-22** |
+| BETTER AUTH ORG PLUGIN (DISABLED) | PROPOSED / HUMAN APPROVAL REQUIRED | **ACCEPTED BY HUMAN — 2026-09-22** |
+| TENANT AUTH SOURCE OF TRUTH (Domain) | PROPOSED / HUMAN APPROVAL REQUIRED | **ACCEPTED BY HUMAN — 2026-09-22** |
+| PLATFORM ADMIN (Global separado) | PROPOSED / HUMAN APPROVAL REQUIRED | **ACCEPTED BY HUMAN — 2026-09-22** |
+| WEB ARCHITECTURE (BFF / API boundary) | PROPOSED / HUMAN APPROVAL REQUIRED | **ACCEPTED BY HUMAN — 2026-09-22** |
+| LOCAL DEVELOPMENT (Docker Compose PG) | PROPOSED / HUMAN APPROVAL REQUIRED | **ACCEPTED BY HUMAN — 2026-09-22** |
+| RLS (Incremental defense-in-depth) | PROPOSED / HUMAN APPROVAL REQUIRED | **ACCEPTED BY HUMAN — 2026-09-22** |
+
+### 3. Itens que Permanecem PENDING
+
+- `INTERNAL SERVICE AUTH MECHANISM`: PENDING
+- `EPHEMERAL STATE / ASYNC EVENT INFRASTRUCTURE`: PENDING
+- `INTERNAL ID STRATEGY`: PENDING
+
+### 4. Item DEFERRED
+
+- `USAGE PERSISTENCE SCHEMA`: DEFERRED
+
+### 5. Artefatos Documentais Criados/Atualizados
+
+| Arquivo | Ação |
+| :--- | :--- |
+| `docs/research/PHASE_4_DECISION_GATE.md` | Status do documento e tabela de decisões (Seção 17) atualizados de PROPOSED para ACCEPTED BY HUMAN |
+| `docs/DECISIONS_LOG.md` | DEC-026 adicionado; itens pendentes atualizados para refletir decisões tomadas |
+| `docs/architecture/decisions/ADR-008-persistence-auth-multitenancy.md` | **NOVO** — ADR formal com Context, Decision, Alternatives Considered, Consequences, Trade-offs, Security Boundaries e Pending Decisions |
+| `docs/architecture/decisions/README.md` | ADR-008 adicionado ao índice |
+| `docs/AI_WORKLOG.md` | Esta entrada (PROMPT-004A-APPROVAL) — append-only |
+
+### 6. Salvaguardas Confirmadas
+
+- Zero dependências instaladas;
+- Zero provisionamento de infraestrutura/cloud;
+- Zero secrets criados ou manipulados;
+- Zero migrations geradas ou executadas;
+- Zero alterações em código de produto;
+- Nenhum projeto Neon criado;
+- Nenhum uso do Supabase MCP para provisioning;
+- PROMPT-004B NÃO iniciado.
