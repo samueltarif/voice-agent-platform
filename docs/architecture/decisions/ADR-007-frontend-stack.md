@@ -28,7 +28,7 @@ O projeto Voice Agent Platform necessita de sua primeira implementação real de
    - O tema padrão (Default) é o **Light Mode**, em linha com o padrão de templates corporativos B2B de alto nível.
 
 3. **Tailwind CSS v4 no Monorepo**:
-   - O scanner de utilitários do Tailwind v4 inclui explicitamente os arquivos de `packages/ui` através da diretiva `@source "../../../packages/ui/src/**/*.{js,ts,jsx,tsx}"` no `globals.css`.
+   - O scanner de utilitários do Tailwind v4 inclui explicitamente os arquivos de `packages/ui` através da diretiva `@source "../../../../packages/ui/src"` no `globals.css`.
    - Transpilação via `transpilePackages: ['@voice-agent/ui']` no `next.config.mjs`.
 
 4. **Persistência de Preferências e Hidratação Segura**:

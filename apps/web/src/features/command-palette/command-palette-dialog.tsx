@@ -59,21 +59,17 @@ export function CommandPaletteDialog({ open, onOpenChange }: CommandPaletteDialo
             )}
             <span>Alternar para tema {theme === 'dark' ? 'Claro' : 'Escuro'}</span>
           </CommandItem>
-          <CommandItem
-            onSelect={() =>
-              handleSelect(() =>
-                setDensity(
-                  density === 'compact'
-                    ? 'default'
-                    : density === 'default'
-                      ? 'comfortable'
-                      : 'compact',
-                ),
-              )
-            }
-          >
+          <CommandItem onSelect={() => handleSelect(() => setDensity('compact'))}>
             <Sliders className="mr-2 h-4 w-4" />
-            <span>Alternar densidade (Atual: {density})</span>
+            <span>Densidade: Compacta {density === 'compact' && '✓'}</span>
+          </CommandItem>
+          <CommandItem onSelect={() => handleSelect(() => setDensity('default'))}>
+            <Sliders className="mr-2 h-4 w-4" />
+            <span>Densidade: Padrão {density === 'default' && '✓'}</span>
+          </CommandItem>
+          <CommandItem onSelect={() => handleSelect(() => setDensity('comfortable'))}>
+            <Sliders className="mr-2 h-4 w-4" />
+            <span>Densidade: Espaçosa (Confortável) {density === 'comfortable' && '✓'}</span>
           </CommandItem>
         </CommandGroup>
       </CommandList>
