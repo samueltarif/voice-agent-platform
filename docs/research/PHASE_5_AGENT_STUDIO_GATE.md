@@ -1,8 +1,8 @@
 # Agent Studio, API Boundary & Internal Auth Decision Gate (PHASE_5_AGENT_STUDIO_GATE.md)
 
 > **Documento de Pesquisa e Proposta de Arquitetura — Fase 5**  
-> **Data**: 23 de Setembro de 2026 (Revisão Final de Invariantes — PROMPT-005A-FINAL-CHECK)  
-> **Status**: PROPOSED / HUMAN APPROVAL REQUIRED (Nenhuma decisão nova tratada como ACCEPTED sem aprovação humana explícita)
+> **Data**: 23 de Setembro de 2026 (Formalização Arquitetural e Aceitação — PROMPT-005A-APPROVE-MERGE)  
+> **Status**: APPROVED / ACCEPTED BY HUMAN — 2026-09-23 (Decisões arquiteturais centrais aceitas formalmente; detalhes técnicos pendentes e deferidos preservados)
 
 ---
 
@@ -436,41 +436,61 @@ Refinamento da matriz de autorização para proteger prompts e regras sensíveis
 
 ---
 
-## 20. Tabela Consolidada de Decisões Propostas (Proposed Decisions)
+## 20. Tabela Consolidada de Decisões Aprovadas (Approved Architecture Decisions)
 
-Todas as propostas abaixo são independentes e aguardam **aprovação humana explícita**:
+Todas as propostas abaixo foram formalmente aceitas via **Aprovação Humana Explícita em 2026-09-23**:
 
 | ID da Proposta | Dimensão Arquitetural | Proposta Técnica | Status |
 | :--- | :--- | :--- | :--- |
-| **PROP-005A-01** | **Agente Aggregate** | Identidade estável `Agent` desacoplada da configuração em `AgentVersion`. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
-| **PROP-005A-02** | **Fonte da Versão Publicada** | **Opção A**: Status `PUBLISHED` em `AgentVersion` com índice parcial único. Tabela `Agent` sem ponteiro redundante. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
-| **PROP-005A-03** | **Single Active Draft** | No máximo um draft por agente garantido por índice parcial único no banco. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
-| **PROP-005A-04** | **Supercessão de Ciclo de Vida**| Ciclo canônico `DRAFT → PUBLISHED → ARCHIVED` (`TEST` como atividade pontual). | **PROPOSED / HUMAN APPROVAL REQUIRED** |
-| **PROP-005A-05** | **Descarte de Rascunhos** | Hard delete permitido exclusivamente para `DRAFT`s nunca publicados (gerando `versionNumber`s monotônicos não-contíguos). | **PROPOSED / HUMAN APPROVAL REQUIRED** |
-| **PROP-005A-06** | **Arquivo / Reativação de Agente**| `Agent.status` e `AgentVersion.status` são desacoplados. Arquivamento não altera versão publicada. Reativação valida `agents.max`. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
-| **PROP-005A-07** | **Invariantes de Metadata** | Constraint CHECK impondo que `DRAFT` possui `published_* IS NULL` e `PUBLISHED`/`ARCHIVED` possuem `published_* IS NOT NULL`. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
-| **PROP-005A-08** | **Schema Versioning Explícito** | Coluna `configuration_schema_version integer NOT NULL CHECK (> 0)` sem default implícito. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
-| **PROP-005A-09** | **Snapshot v1 Realista** | Somente campos semânticos reais (Persona, Idioma, Regras). Tools, Voice avançado e Knowledge deferidos. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
-| **PROP-005A-10** | **Persistência Híbrida** | **Opção C**: Metadados relacionais indexáveis + snapshot JSONB tipado e validado. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
-| **PROP-005A-11** | **Validation Library** | Adoção de `zod` em `packages/contracts` como validador neutro compartilhado para 005B e 005C. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
-| **PROP-005A-12** | **Concorrência de `agents.max`**| Validação de cota e inserção/reativação serializadas por lock de linha na Organization (`FOR UPDATE`). | **PROPOSED / HUMAN APPROVAL REQUIRED** |
-| **PROP-005A-13** | **Proteção Confidencial RBAC** | Separação entre `agent.read` (metadados) e `agent.config.read` (prompt/regras restrito a MANAGER+). | **PROPOSED / HUMAN APPROVAL REQUIRED** |
-| **PROP-005A-14** | **Internal Service Auth** | Asserção assimétrica unificada em dev/staging/production (Web assina com chave privada, API verifica com pública). | **PROPOSED / HUMAN APPROVAL REQUIRED** |
-| **PROP-005A-15** | **Framework HTTP de API** | Hono com `@hono/node-server` e `@hono/zod-openapi` para Node 22/24. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
-| **PROP-005A-16** | **Fatiamento em Slices** | Execução sequencial em 005B (Persistência), 005C (API/Auth) e 005D (Frontend UI). | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-01** | **Agente Aggregate** | Identidade estável `Agent` desacoplada da configuração em `AgentVersion`. | **APPROVED / ACCEPTED BY HUMAN — 2026-09-23** |
+| **PROP-005A-02** | **Fonte da Versão Publicada** | **Opção A**: Status `PUBLISHED` em `AgentVersion` com índice parcial único. Tabela `Agent` sem ponteiro redundante. | **APPROVED / ACCEPTED BY HUMAN — 2026-09-23** |
+| **PROP-005A-03** | **Single Active Draft** | No máximo um draft por agente garantido por índice parcial único no banco. | **APPROVED / ACCEPTED BY HUMAN — 2026-09-23** |
+| **PROP-005A-04** | **Supercessão de Ciclo de Vida**| Ciclo canônico `DRAFT → PUBLISHED → ARCHIVED` (`TEST` como atividade pontual). | **APPROVED / ACCEPTED BY HUMAN — 2026-09-23** |
+| **PROP-005A-05** | **Descarte de Rascunhos** | Hard delete permitido exclusivamente para `DRAFT`s nunca publicados (gerando `versionNumber`s monotônicos não-contíguos). | **APPROVED / ACCEPTED BY HUMAN — 2026-09-23** |
+| **PROP-005A-06** | **Arquivo / Reativação de Agente**| `Agent.status` e `AgentVersion.status` são desacoplados. Arquivamento não altera versão publicada. Reativação valida `agents.max`. | **APPROVED / ACCEPTED BY HUMAN — 2026-09-23** |
+| **PROP-005A-07** | **Invariantes de Metadata** | Constraint CHECK impondo que `DRAFT` possui `published_* IS NULL` e `PUBLISHED`/`ARCHIVED` possuem `published_* IS NOT NULL`. | **APPROVED / ACCEPTED BY HUMAN — 2026-09-23** |
+| **PROP-005A-08** | **Schema Versioning Explícito** | Coluna `configuration_schema_version integer NOT NULL CHECK (> 0)` sem default implícito. | **APPROVED / ACCEPTED BY HUMAN — 2026-09-23** |
+| **PROP-005A-09** | **Snapshot v1 Realista** | Somente campos semânticos reais (Persona, Idioma, Regras). Tools, Voice avançado e Knowledge deferidos. | **APPROVED / ACCEPTED BY HUMAN — 2026-09-23** |
+| **PROP-005A-10** | **Persistência Híbrida** | **Opção C**: Metadados relacionais indexáveis + snapshot JSONB tipado e validado. | **APPROVED / ACCEPTED BY HUMAN — 2026-09-23** |
+| **PROP-005A-11** | **Validation Library** | Adoção de `zod` em `packages/contracts` como validador neutro compartilhado para 005B e 005C (instalação em 005B). | **APPROVED / ACCEPTED BY HUMAN — 2026-09-23** |
+| **PROP-005A-12** | **Concorrência de `agents.max`**| Validação de cota e inserção/reativação serializadas por lock de linha na Organization (`FOR UPDATE`). | **APPROVED / ACCEPTED BY HUMAN — 2026-09-23** |
+| **PROP-005A-13** | **Proteção Confidencial RBAC** | Separação entre `agent.read` (metadados) e `agent.config.read` (prompt/regras restrito a MANAGER+). | **APPROVED / ACCEPTED BY HUMAN — 2026-09-23** |
+| **PROP-005A-14** | **Internal Service Auth** | Asserção assimétrica unificada em dev/staging/production (Web assina com chave privada, API verifica com pública). | **APPROVED / ACCEPTED BY HUMAN — 2026-09-23** |
+| **PROP-005A-15** | **Framework HTTP de API** | Hono com `@hono/node-server` e `@hono/zod-openapi` para Node 22/24 (instalação em 005C). | **APPROVED / ACCEPTED BY HUMAN — 2026-09-23** |
+| **PROP-005A-16** | **Fatiamento em Slices** | Execução sequencial em 005B (Persistência), 005C (API/Auth) e 005D (Frontend UI). | **APPROVED / ACCEPTED BY HUMAN — 2026-09-23** |
 
 ---
 
-## 21. Checklist para Aprovação Humana (Human Review Required)
+## 21. Checklist de Aprovação Humana Concluído (Human Approval Completed)
 
-- [ ] Aprova a eliminação do ponteiro duplicado `currentPublishedVersionId`, adotando a **Opção A** (Status em `AgentVersion` com índice parcial único como fonte única da verdade)?
-- [ ] Aprova a **supercessão formal de ciclo de vida**, adotando `DRAFT → PUBLISHED → ARCHIVED` e tratando `TEST` como atividade pontual?
-- [ ] Aprova a política de descarte de drafts nunca publicados com numeração monotônica não-contígua?
-- [ ] Aprova a separação das state machines de `Agent.status` (ACTIVE/ARCHIVED) e `AgentVersion.status` (DRAFT/PUBLISHED/ARCHIVED)?
-- [ ] Aprova a inclusão de `configuration_schema_version` sem default implícito?
-- [ ] Aprova o snapshot v1 realista sem campos fictícios de tools ou knowledge?
-- [ ] Aprova a serialização de concorrência de `agents.max` com lock de linha na organização?
-- [ ] Aprova a adoção formal de `zod` em `packages/contracts` para validação de schema a partir do Slice 005B?
-- [ ] Aprova a autenticação interna assimétrica unificada para dev, staging e production (seleção de algoritmo no 005C)?
-- [ ] Aprova a escolha de Hono (`@hono/node-server` + `@hono/zod-openapi`) para `apps/api`?
-- [ ] Autoriza o fatiamento e início do desenvolvimento no Slice 005B (`Domain Core & Database Persistence`)?
+Todos os itens foram explicitamente aprovados pelo operador humano em 2026-09-23:
+
+- [x] **Opção A Aprovada**: Eliminação do ponteiro duplicado `currentPublishedVersionId`; status `PUBLISHED` em `AgentVersion` com índice parcial único é a fonte única da verdade.
+- [x] **Supercessão Formal de Ciclo de Vida Aprovada**: `DRAFT → PUBLISHED → ARCHIVED` (`TEST` como atividade pontual/validação independente).
+- [x] **Descarte de Rascunhos Aprovado**: Hard delete restrito a drafts nunca publicados sob invariantes de auditoria/tenant; monotonia não-contígua aceita.
+- [x] **Desacoplamento de Ciclos Aprovado**: `Agent.status` (ACTIVE/ARCHIVED) e `AgentVersion.status` (DRAFT/PUBLISHED/ARCHIVED) operam independentes; arquivar agente não altera versão publicada.
+- [x] **Schema Versioning Aprovado**: `configuration_schema_version` obrigatório, positivo e explícito, sem default implícito.
+- [x] **Snapshot v1 Realista Aprovado**: Escopo delimitado a Persona, Idioma e Regras; sem campos mockados de tools ou RAG.
+- [x] **Concorrência de `agents.max` Aprovada**: Serialização por lock transacional na `Organization` (`FOR UPDATE`).
+- [x] **Adoção do Zod Aprovada**: Decisão aceita para `packages/contracts` (instalação e compatibilidade a executar no Slice 005B).
+- [x] **Internal Service Auth Assimétrico Aprovado**: Mesmo modelo criptográfico unificado em dev, staging e production (avaliação de algoritmo e biblioteca no 005C).
+- [x] **Escolha do Hono Aprovada**: `@hono/node-server` + `@hono/zod-openapi` para `apps/api` (instalação no 005C).
+- [x] **Fatiamento da Fase 5 Aprovado**: 005B (Domínio/Persistência), 005C (API/Auth) e 005D (Frontend UI). Slice 005B será iniciado em tarefa posterior dedicada.
+
+---
+
+## 22. Itens Estritamente Mantidos como PENDING / DEFERRED
+
+Os seguintes itens **NÃO** foram congelados ou aprovados nesta etapa e permanecem pendentes ou diferidos para suas fases de direito:
+
+1. **Algoritmo Concreto da Asserção Interna**: Ed25519 vs ES256 (`PENDING 005C`).
+2. **Biblioteca JWT / JWS**: Biblioteca específica a ser selecionada com base em manutenção e ecossistema (`PENDING 005C`).
+3. **Formato e Serialização das Chaves**: Formato PEM vs JWK (`PENDING 005C`).
+4. **TTL Concreto da Asserção**: Valor numérico exato de expiração (`PENDING 005C`).
+5. **Prevenção Stateful de Replay**: Dependência de cache/store efêmero de nonces (`PENDING EPHEMERAL INFRASTRUCTURE`).
+6. **Infraestrutura Efêmera e Filas**: Redis / BullMQ (`PENDING`).
+7. **Persistência de Consumo (Usage)**: Esquema de partição e persistência (`DEFERRED`).
+8. **Provedor e Parâmetros Avançados de Voz**: Seleção de motor e parâmetros finos (`DEFERRED FASE 6`).
+9. **Execução Real de Tools**: Invocation runtime e sandboxing (`DEFERRED FASE 7`).
+10. **Base de Conhecimento e RAG**: Vetores, embeddings e ingestão documental (`DEFERRED FASE 7`).
+11. **Ambiente de Produção**: Provisionamento, topologia e deployment (`DEFERRED`).

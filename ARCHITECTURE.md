@@ -53,7 +53,8 @@ O monorepo divide o ciclo de vida da execução em quatro processos fundamentais
 - **Natureza**: Renderização web moderna, adaptativa, comunicando-se exclusivamente com a API através de contratos tipados compartilhados (`packages/contracts`).
 
 ### 2.2. `apps/api` (Core Business & HTTP Gateway)
-- **Papel**: Ponto central de validação de autenticação, autorização multi-tenant, gestão de recursos, recepção de webhooks de telefonia e disparo de chamadas ativas (outbound).
+- **Papel**: Ponto central de validação de autenticação interna (Internal Service Auth assimétrica via DEC-029/ADR-010), autorização multi-tenant, gestão de recursos e persistência.
+- **Framework HTTP**: **Hono** para Node.js (Node 22/24) com `@hono/node-server` e `@hono/zod-openapi` selecionado formalmente via DEC-029 / ADR-010 (*NOT YET INSTALLED/IMPLEMENTED* — instalação e endpoints a executar no Slice 005C).
 - **Diretriz**: Rotas e controllers enxutos; zero lógica de negócio em controllers. Todas as operações orquestram serviços e publicam eventos de domínio.
 
 ### 2.3. `apps/voice` (Motor de Voz em Tempo Real)
@@ -85,6 +86,7 @@ O fluxo de dependências segue uma hierarquia unidirecional estrita:
 
 - **Regra de Isolamento**: Módulos de aplicação (`apps/*`) nunca importam código interno uns dos outros diretamente. Compartilhamento ocorre unicamente através de pacotes tipados em `packages/*`.
 - **Regra de Domínio**: `packages/contracts` e a camada de domínio não conhecem detalhes de implementação de banco de dados nem de SDKs externos.
+- **Contratos e Validação de Schemas**: `packages/contracts` centraliza interfaces compartilhadas, DTOs e schemas canônicos de validação (biblioteca Zod selecionada via DEC-028/ADR-009, sem dependências de framework ou banco; instalação no Slice 005B).
 
 ---
 

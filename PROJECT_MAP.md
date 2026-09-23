@@ -12,7 +12,7 @@ voice-agent-platform/
 │   │   ├── src/lib/auth/     # Configuração Better Auth (Identity + Session) e client React de autenticação.
 │   │   ├── src/mocks/        # Mocks determinísticos tipados com valores monetários estritamente em integer cents.
 │   │   └── src/preferences/  # Módulo puro ui-preferences-storage e context de persistência de tema/densidade sem hydration mismatch.
-│   ├── api/              # API HTTP e Gateway para regras de negócio, persistência multi-tenant, webhooks e orquestração.
+│   ├── api/              # API HTTP e Gateway para regras de negócio, persistência multi-tenant, webhooks e orquestração (Framework Hono selecionado via DEC-029/ADR-010; NOT YET INSTALLED/IMPLEMENTED).
 │   ├── voice/            # Motor de baixa latência em tempo real para streaming de áudio, transcrição, diálogo e síntese de voz.
 │   └── worker/           # Processamento em background para tarefas assíncronas, transcrições em lote, analytics e campanhas.
 │
@@ -26,7 +26,7 @@ voice-agent-platform/
 │   │   ├── src/schema/       # Schemas por domínio: auth, organizations, platform-admin, commercial e audit.
 │   │   ├── src/repositories/ # Repositórios tipados isolados exigindo organizationId obrigatório em operações tenant.
 │   │   └── src/migrations/   # Migrations SQL versionadas geradas pelo Drizzle Kit.
-│   ├── contracts/        # Contratos canônicos neutros, tipos compartilhados, DTOs, eventos e portas de domínio (TelephonyPort, etc.).
+│   ├── contracts/        # Contratos canônicos neutros, tipos compartilhados, DTOs, eventos, schemas de validação do Agent Studio (Zod selecionado via DEC-028/ADR-009; instalação no Slice 005B) e portas de domínio.
 │   ├── config/           # Centralização de validação e carregamento tipado de variáveis de ambiente para todos os módulos.
 │   ├── logger/           # Utilitário de logging estruturado com suporte a correlationId e organizationId.
 │   ├── errors/           # Hierarquia padronizada de erros operacionais e de domínio (AppError, NotFoundError, UnauthorizedError).
@@ -67,12 +67,12 @@ voice-agent-platform/
 ## Responsabilidades Resumidas
 
 - **`apps/web`**: Dashboard administrativo e operacional responsivo para clientes B2B interagirem com o ecossistema.
-- **`apps/api`**: Ponto de entrada HTTP seguro que valida regras de negócio e expõe endpoints determinísticos.
+- **`apps/api`**: Ponto de entrada HTTP seguro para regras de negócio e persistência (Hono selecionado via DEC-029/ADR-010; NOT YET INSTALLED/IMPLEMENTED).
 - **`apps/voice`**: Orquestrador bidirecional de streaming de voz projetado para mínima latência e interrupção humana natural.
 - **`apps/worker`**: Consumidor de filas para processamento pesado assíncrono e tarefas em lote desacopladas do fluxo síncrono.
 - **`packages/ui`**: Sistema de design reutilizável e agnóstico de tela com foco mobile-first.
 - **`packages/database`**: Camada única e tipada de acesso e migração de dados relacionais protegida por multi-tenancy.
-- **`packages/contracts`**: Contratos canônicos de interfaces, payloads, eventos e portas consumidos por múltiplos módulos.
+- **`packages/contracts`**: Contratos canônicos de interfaces, schemas canônicos de validação de configuração do Agent Studio (Zod selecionado via DEC-028/ADR-009; instalação no Slice 005B), eventos e portas consumidos por múltiplos módulos.
 - **`packages/config`**: Carregamento seguro e validação estrita de configurações de ambiente em tempo de inicialização.
 - **`packages/logger`**: Coletor de telemetria e logs em formato JSON estruturado com injeção de correlation IDs.
 - **`packages/errors`**: Catálogo centralizado de classes e códigos de erro previsíveis para toda a aplicação.

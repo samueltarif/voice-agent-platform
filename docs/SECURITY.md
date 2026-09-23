@@ -23,7 +23,14 @@ Este documento estabelece as normas mandatórias de proteção de dados, gestão
    - Conexões ao PostgreSQL gerenciado em nuvem (Neon) exigem criptografia em trânsito TLS mandatória (`sslmode=require`).
    - É estritamente proibido desabilitar a validação de certificados da Autoridade Certificadora (`rejectUnauthorized: false` é terminantemente proibido).
    - Segregação de endpoints: o runtime utiliza o endpoint com pool gerenciado (`DATABASE_URL`), enquanto migrações de schema exigem conexão direta (`MIGRATION_DATABASE_URL`) com validação *fail-closed*.
-   - Zero segredos em repositório: arquivos `.env.staging` e `.env.production` permanecem estritamente não rastreados e cobertos pelo `.gitignore`.
+6. **Fronteira de Confiança e Autenticação Interna de Serviços (DEC-029 / ADR-010)**:
+   - **Browser ──► Web**: Usuários do navegador comunicam-se com `apps/web` (BFF) através de sessões protegidas por Better Auth e mecanismos de proteção contra CSRF.
+   - **Web ──► API**: Comunicação entre serviços utiliza asserção assinada assimetricamente de curta duração (*Short-Lived Asymmetric Signed Service Assertion*). `apps/web` detém material privado de assinatura e `apps/api` detém estritamente o material público de verificação.
+   - **Contenção de Blast Radius**: O material privado nunca reside na API; o comprometimento de `apps/api` não permite forjar novas asserções de serviço.
+   - **Modelo de Confiança Unificado**: Dev, Staging e Produção adotam exatamente o mesmo modelo criptográfico assimétrico, segregando apenas as chaves por ambiente.
+   - **Defesa em Profundidade**: A verificação da assinatura na API não anula a autorização de domínio; `apps/api` revalida membership (`OrganizationMembership`), status do membro, RBAC (`agent.read`, `agent.config.read`) e quotas (`agents.max`).
+   - **Janela de Replay**: A expiração curta da asserção delimita a janela de reutilização; prevenção stateful de reutilização *one-time* não está implementada nesta fase (`PENDING EPHEMERAL INFRASTRUCTURE`).
+   - **Zero Segredos no Código**: Chaves privadas são injetadas estritamente via variáveis de ambiente/secret manager em runtime. Algoritmo concreto e biblioteca serão definidos no Slice 005C.
 
 
 ---

@@ -63,12 +63,16 @@ Este documento estabelece as fases sequenciais de implementação da plataforma.
 
 ---
 
-### 🏪 FASE 5 — Domínios Base: Clientes, Produtos, Serviços e Campanhas
+### 🏪 FASE 5 — Domínios Base e Agent Studio
+- Arquitetura aprovada formalmente (DEC-028, DEC-029, ADR-009, ADR-010).
+- **Fatiamento Sequencial Aprovado**:
+  - **005B**: Domain Core & Database Persistence (`Agent` e `AgentVersion`, schema Drizzle, PostgreSQL 16, migration, Repositories, validação Zod neutra em `packages/contracts`, concorrência `agents.max` com lock transacional).
+  - **005C**: API Framework, Internal Auth & /v1 Endpoints (Hono para Node.js, `@hono/node-server`, `@hono/zod-openapi`, Short-Lived Asymmetric Signed Service Assertion, endpoints REST /v1).
+  - **005D**: Frontend Agent Studio UI (Dashboard B2B em `apps/web`, editor de draft, publicação transacional).
 - CRUD de organizações, usuários e controle de acesso (RBAC).
-- Gestão de contatos e bases de discagem.
-- Catálogo determinístico de produtos e serviços.
-- Configuração e disparo de campanhas outbound.
-- Agent Studio: Criação e configuração de agentes via interface (sem código).
+- Gestão de contatos e bases de discagem (subfases subsequentes).
+- Catálogo determinístico de produtos e serviços (subfases subsequentes).
+- Configuração e disparo de campanhas outbound (subfases subsequentes).
 
 ---
 
@@ -86,7 +90,7 @@ Este documento estabelece as fases sequenciais de implementação da plataforma.
 ### 🤖 FASE 7 — Agente IA e Tools
 - API Core e orquestração outbound (`apps/api`).
 - Definição e implementação das tools disponíveis para agentes.
-- Versionamento de agentes: ciclo DRAFT → TEST → PUBLISHED → ARCHIVED.
+- Versionamento de agentes: ciclo canônico DRAFT → PUBLISHED → ARCHIVED (supersedendo o ciclo anterior com TEST como status persistente; TEST é atividade pontual de validação — DEC-028 / ADR-009).
 - Knowledge Base: integração de dados estruturados (determinístico) e não estruturados (RAG — Pending Decision).
 
 ---

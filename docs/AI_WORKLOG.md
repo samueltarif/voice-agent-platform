@@ -3143,3 +3143,88 @@ Executada auditoria completa da suíte de qualidade com todos os checks aprovado
 - **Push**: `origin/docs/phase5-agent-studio-gate`
 - **PR #7**: Continua **aberto** para revisão humana antes do merge ([PR #7](https://github.com/samueltarif/voice-agent-platform/pull/7)). **NÃO MERGEAR**.
 - **Slice 005B**: **NÃO INICIADO**. Nenhuma dependência instalada, nenhum schema alterado, nenhum banco modificado.
+
+---
+
+## PROMPT-005A-APPROVAL — Human Approval and Architecture Acceptance
+
+- **Data**: 2026-09-23
+- **Branch Ativa**: `docs/phase5-agent-studio-gate`
+- **Objetivo**: Formalizar as decisões de arquitetura aceitas após aprovação humana explícita do Decision Gate da Fase 5, alinhar toda a documentação canônica, registrar novos DECs e ADRs, validar e preparar o merge do PR #7.
+
+### 1. Aprovação Humana Explícita e Transição de Propostas
+Em 2026-09-23, o operador humano emitiu aprovação explícita e categórica para todas as propostas arquiteturais consolidadas no Decision Gate da Fase 5:
+- Todas as propostas técnicas de **PROP-005A-01** a **PROP-005A-16** passaram formalmente do status `PROPOSED / HUMAN APPROVAL REQUIRED` para **`APPROVED / ACCEPTED BY HUMAN — 2026-09-23`**.
+- Autorizado o fatiamento sequencial da Fase 5 em três slices verticais:
+  - **005B**: Domain Core & Database Persistence;
+  - **005C**: API Framework, Internal Auth & /v1 Endpoints;
+  - **005D**: Frontend Agent Studio UI.
+- O Slice 005B **NÃO** foi iniciado nesta tarefa.
+
+### 2. Supersessão Formal do Ciclo de Vida
+- Formalizada a supersessão do ciclo de vida conceitual anterior (`DRAFT → TEST → PUBLISHED → ARCHIVED`) pelo ciclo canônico:
+  ```
+  DRAFT ──────► PUBLISHED ──────► ARCHIVED
+  ```
+- **Natureza de TEST**: O estado `TEST` deixa de ser um status relacional persistente da entidade `AgentVersion` e passa a ser modelado como atividade/execução pontual independente de validação (*Agent Test Run / Validation Activity*).
+- Esta mudança foi devidamente registrada nos documentos canônicos como **SUPERSESSÃO FORMAL**, e não como apagamento histórico.
+
+### 3. Registro de Decisões Formais (DECs e ADRs)
+Foram formalizadas duas decisões arquiteturais separadas para manter granularidade e coesão:
+
+1. **`DEC-028` / `ADR-009` — Agent Studio Aggregate, Versioning and Persistence**:
+   - Separação entre identidade estável (`Agent`) e configuração versionada 1:N (`AgentVersion`);
+   - Fonte única da verdade para versão publicada ativa em `AgentVersion.status = 'PUBLISHED'` com índice parcial único; sem coluna redundante `currentPublishedVersionId` em `Agent`;
+   - No máximo 1 versão `PUBLISHED` e no máximo 1 `DRAFT` ativo por agente garantidos por índices parciais únicos;
+   - Ciclo canônico `DRAFT → PUBLISHED → ARCHIVED`;
+   - Imutabilidade estrita no domínio para versões `PUBLISHED` e `ARCHIVED`;
+   - Descarte físico (*hard delete*) autorizado exclusivamente para rascunhos nunca publicados sob invariantes de tenant/auditoria, gerando numeração `versionNumber` monotônica não-contígua;
+   - Ciclo de vida do `Agent` (`ACTIVE` <-> `ARCHIVED`) desacoplado de `AgentVersion`; arquivar agente não altera versão publicada; reativação valida cota `agents.max`;
+   - Quota `agents.max` afere agregados `Agent` com `status = 'ACTIVE'`; concorrência serializada via lock pessimista transacional na `Organization` (`FOR UPDATE`);
+   - Persistência híbrida (Opção C): metadados relacionais indexáveis + snapshot de configuração `JSONB` validado em runtime;
+   - Coluna `configuration_schema_version` obrigatória, positiva e sem default implícito;
+   - Snapshot v1 realista (Persona, idioma/locale e regras conversacionais);
+   - Adoção de `zod` em `packages/contracts` como validador neutro (instalação no Slice 005B);
+   - Segregação RBAC entre `agent.read` (metadados) e `agent.config.read` (prompt/regras confidenciais).
+
+2. **`DEC-029` / `ADR-010` — API Boundary and Asymmetric Internal Service Authentication**:
+   - `apps/web` opera estritamente como Backend-for-Frontend (BFF) gerenciando sessões Better Auth e CSRF; `apps/api` opera como boundary central de persistência e negócio;
+   - Adoção do framework **Hono** para Node.js (Node 22/24) com `@hono/node-server` e `@hono/zod-openapi` para `apps/api` (instalação no Slice 005C);
+   - Internal Service Auth via **Short-Lived Asymmetric Signed Service Assertion**: `apps/web` assina com chave privada e `apps/api` valida com chave pública (contenção de blast radius);
+   - Unificação de confiança: exatamente o **mesmo modelo assimétrico é adotado em dev, staging e production**, segregando exclusivamente as chaves por ambiente (rejeição de fallback simétrico em dev);
+   - Defesa em profundidade: a validação criptográfica na API não substitui a autorização de domínio; a API revalida obrigatoriamente membership, status do membro, RBAC e cotas;
+   - Janela de replay delimitada por expiração curta (TTL); prevenção stateful *one-time* depende de infraestrutura efêmera pendente.
+
+### 4. Alinhamento Documental Canônico
+Todos os documentos canônicos correntes foram alinhados às decisões aceitas:
+- `docs/research/PHASE_5_AGENT_STUDIO_GATE.md`: status atualizado para `APPROVED / ACCEPTED BY HUMAN — 2026-09-23`, checklist preenchido, tabela atualizada;
+- `docs/AGENT_STUDIO.md`: status atualizado para Arquitetura Aceita (DEC-028/ADR-009) — NOT YET IMPLEMENTED; ciclo canônico e supersessão de TEST documentados; invariantes de agregados e publicação detalhadas; tabela de decisões atualizada;
+- `docs/DECISIONS_LOG.md`: adicionados `DEC-028` e `DEC-029`; tabela de decisões técnicas pendentes atualizada com status Decided para Framework de API, Auth Interna e Biblioteca de Schema;
+- `docs/architecture/decisions/README.md`: índice atualizado com `ADR-009` e `ADR-010`;
+- `docs/architecture/decisions/ADR-009-agent-studio-aggregate-versioning-persistence.md`: criado com status `Accepted`;
+- `docs/architecture/decisions/ADR-010-api-boundary-asymmetric-internal-service-auth.md`: criado com status `Accepted`;
+- `docs/ROADMAP.md`: atualizado com fatiamento sequencial aprovado (005B, 005C, 005D) e ciclo canônico supersedido;
+- `docs/SECURITY.md`: adicionado item 6 sobre fronteira de confiança, asserção assimétrica, contenção de blast radius e semântica de replay;
+- `ARCHITECTURE.md`: atualizada seção 2.2 para registrar seleção do framework Hono (NOT YET INSTALLED) e contratos Zod em `packages/contracts`;
+- `PROJECT_MAP.md`: atualizada árvore e sumário com notas de seleção de Hono e Zod.
+
+### 5. Itens Estritamente Mantidos como PENDING / DEFERRED
+Nenhum detalhe técnico ainda não resolvido foi congelado:
+- Algoritmo concreto da asserção (Ed25519 vs ES256): `PENDING 005C`
+- Biblioteca JWT/JWS: `PENDING 005C`
+- Formato e serialização de chaves (PEM vs JWK): `PENDING 005C`
+- TTL concreto numérico: `PENDING 005C`
+- Prevenção stateful de replay (nonce store): `PENDING EPHEMERAL INFRASTRUCTURE`
+- Infraestrutura efêmera e filas (Redis / BullMQ): `PENDING`
+- Persistência de consumo (Usage): `DEFERRED`
+- Provedor e parâmetros avançados de voz: `DEFERRED FASE 6`
+- Execução real de tools: `DEFERRED FASE 7`
+- Base de conhecimento e RAG: `DEFERRED FASE 7`
+- Ambiente de Produção: `DEFERRED`
+
+### 6. Garantias de Não-Implementação e Preservação de Escopo
+- **Zero instalações**: Zod NÃO foi instalado; Hono NÃO foi instalado.
+- **Zero banco**: Nenhum schema Drizzle criado/alterado; nenhuma migration gerada; banco Docker local e Neon Staging 100% inalterados.
+- **Zero código de API**: Nenhum endpoint, controller ou rota implementado.
+- **Slice 005B**: **NÃO INICIADO**. Aguarda tarefa posterior dedicada.
+
