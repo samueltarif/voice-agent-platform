@@ -13,10 +13,12 @@ import { AgentVersionRepository } from './repositories/agent-version-repository.
 import { AgentDraftService } from './repositories/agent-draft-service.js';
 import { AgentDraftDiscardService } from './repositories/agent-draft-discard-service.js';
 import { AgentPublicationService } from './repositories/agent-publication-service.js';
+import { allocateNextAgentVersionNumber } from './repositories/agent-version-allocator.js';
 import { user } from './schema/auth.js';
 import { organizations } from './schema/organizations.js';
 import { commercialGrants } from './schema/commercial.js';
 import { auditLogs } from './schema/audit.js';
+import { agents } from './schema/agents.js';
 import { eq } from 'drizzle-orm';
 
 const testDbUrl =
@@ -231,6 +233,9 @@ describe('Agent Lifecycle, Immutability & Concurrency (Postgres Integration)', (
     });
     expect(versions).toHaveLength(1);
     expect(versions[0]!.status).toBe('DRAFT');
+
+    const [agentInDb] = await db.select().from(agents).where(eq(agents.id, agent.id));
+    expect(agentInDb!.nextVersionNumber).toBe(2);
   });
 
   it('versionNumber: monotonic and NOT reused after draft discard', async () => {
@@ -320,6 +325,9 @@ describe('Agent Lifecycle, Immutability & Concurrency (Postgres Integration)', (
       at: now,
     });
     expect(draft4.versionNumber).toBe(4);
+
+    const [agentRow] = await db.select().from(agents).where(eq(agents.id, agent.id));
+    expect(agentRow!.nextVersionNumber).toBe(5);
   });
 
   it('two concurrent publishDraft calls: exactly one PUBLISHED is maintained', async () => {
@@ -469,5 +477,108 @@ describe('Agent Lifecycle, Immutability & Concurrency (Postgres Integration)', (
         expect(log.metadata).not.toContain('api_key');
       }
     }
+  });
+
+  it('failed transaction: if draft creation fails after allocation, transaction rolls back and next_version_number does not advance', async () => {
+    const org = await createOrgWithQuota(5);
+    const agent = await lifecycleService.createAgent({
+      organizationId: org.id,
+      name: 'Rollback Test Agent',
+      slug: 'rollback-agent',
+      createdBy: userId,
+      at: now,
+    });
+
+    const [initialAgent] = await db.select().from(agents).where(eq(agents.id, agent.id));
+    expect(initialAgent!.nextVersionNumber).toBe(1);
+
+    // Simulate an aborted transaction where allocateNextAgentVersionNumber is executed but an error occurs before commit
+    await expect(
+      db.transaction(async (tx) => {
+        await allocateNextAgentVersionNumber(tx, org.id, agent.id);
+        throw new Error('Simulated failure before commit');
+      }),
+    ).rejects.toThrow('Simulated failure before commit');
+
+    // Verify counter did NOT advance on agents table because PostgreSQL rolled back
+    const [agentAfterAbort] = await db.select().from(agents).where(eq(agents.id, agent.id));
+    expect(agentAfterAbort!.nextVersionNumber).toBe(1);
+
+    // Create a real draft: MUST receive version 1 (no gap created by aborted transaction)
+    const realDraft = await draftService.createDraft({
+      organizationId: org.id,
+      agentId: agent.id,
+      configuration: validConfig,
+      createdBy: userId,
+      at: now,
+    });
+    expect(realDraft.versionNumber).toBe(1);
+
+    const [agentAfterSuccess] = await db.select().from(agents).where(eq(agents.id, agent.id));
+    expect(agentAfterSuccess!.nextVersionNumber).toBe(2);
+  });
+
+  it('published history: v1 published, v2 discarded, next draft is v3 without relying on audit_logs', async () => {
+    const org = await createOrgWithQuota(5);
+    const agent = await lifecycleService.createAgent({
+      organizationId: org.id,
+      name: 'History Agent',
+      slug: 'history-agent',
+      createdBy: userId,
+      at: now,
+    });
+
+    // 1. Create and publish v1
+    const draft1 = await draftService.createDraft({
+      organizationId: org.id,
+      agentId: agent.id,
+      configuration: validConfig,
+      createdBy: userId,
+      at: now,
+    });
+    expect(draft1.versionNumber).toBe(1);
+
+    await publicationService.publishDraft({
+      organizationId: org.id,
+      agentId: agent.id,
+      draftVersionId: draft1.id,
+      publishedBy: userId,
+      at: now,
+    });
+
+    // 2. Create draft v2
+    const draft2 = await draftService.createDraft({
+      organizationId: org.id,
+      agentId: agent.id,
+      configuration: validConfig,
+      createdBy: userId,
+      at: now,
+    });
+    expect(draft2.versionNumber).toBe(2);
+
+    // Discard v2
+    await discardService.discardDraft({
+      organizationId: org.id,
+      agentId: agent.id,
+      versionId: draft2.id,
+      actorId: userId,
+      at: now,
+    });
+
+    // Purge any audit_logs for this agent to PROVE allocation does not consult audit_logs
+    await db.delete(auditLogs).where(eq(auditLogs.targetId, agent.id));
+
+    // 3. Create next draft: MUST receive version 3
+    const draft3 = await draftService.createDraft({
+      organizationId: org.id,
+      agentId: agent.id,
+      configuration: validConfig,
+      createdBy: userId,
+      at: now,
+    });
+    expect(draft3.versionNumber).toBe(3);
+
+    const [agentRow] = await db.select().from(agents).where(eq(agents.id, agent.id));
+    expect(agentRow!.nextVersionNumber).toBe(4);
   });
 });

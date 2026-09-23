@@ -3552,5 +3552,68 @@ Executados diretamente contra PostgreSQL 16 Docker local:
 - **Slices 005C e 005D**: NÃO INICIADOS (zero rotas Hono, zero UI).
 - **PR #8**: Permanece ABERTO e NÃO MERGEADO.
 
+---
 
+## 23/09/2026 — PROMPT-005B-REVIEW-FIX — Durable Agent Version Allocation
 
+### 1. Contexto e Risco Arquitetural Identificado
+Durante revisão externa do PROMPT-005B antes do merge do PR #8, foi identificado um risco de persistência na alocação de `versionNumber`:
+- O `AgentVersionAllocator` utilizava a união de `MAX(agent_versions.version_number)` com o histórico de eventos `agent.draft_created` em `audit_logs` para evitar reuso de numeração de drafts descartados (hard-deleted).
+- **Inadequação**: `audit_logs` é uma trilha de auditoria e compliance, não a autoridade ou fonte durável de verdade para alocação de estado transacional. Futuras políticas de retenção, arquivamento ou purga de logs de auditoria corromperiam a semântica de numeração dos agentes.
+
+### 2. Nova Fonte Durável: `agents.next_version_number`
+Implementada autoridade durável e desacoplada de `audit_logs` no aggregate `Agent`:
+- **Coluna**: `next_version_number integer NOT NULL DEFAULT 1` na tabela `agents`.
+- **Constraint**: `CHECK (next_version_number > 0)`.
+- **Semântica Transacional**:
+  - Leitura sob lock pessimista: `SELECT agent ... FOR UPDATE`.
+  - Alocação: `allocatedVersion = next_version_number`.
+  - Incremento atômico: `UPDATE agents SET next_version_number = next_version_number + 1 WHERE id = ...`.
+  - Inserção do Draft: `INSERT INTO agent_versions (..., version_number = allocatedVersion)`.
+  - **Rollback em Transação Abortada**: Se a transação abortar antes do commit, o PostgreSQL reverte o update de `next_version_number` para o valor anterior, evitando gaps acidentais de falhas transitórias.
+  - **Permanência pós-Commit**: Uma vez comitada a criação do draft, o contador `next_version_number` não retrocede mesmo que o draft seja posteriormente descartado via `discardDraft`.
+- **Remoção Completa de `audit_logs` do Allocator**:
+  - `agent-version-allocator.ts` foi completamente reescrito para ler e atualizar exclusivamente `agents.next_version_number`. Nenhuma query a `audit_logs` ou `agent_versions` é executada para alocar o próximo número de versão.
+  - `audit_logs` continua registrando os eventos `agent.draft_created`, `agent.draft_discarded` e `agent.version_published` exclusivamente para auditoria e compliance.
+
+### 3. Retificações de Vocabulário e Precisão Arquitetural
+1. **Integridade Referencial `agent_versions -> agents`**:
+   - Retificação de documentação: a Foreign Key composta `agent_versions(agent_id, organization_id) REFERENCES agents(id, organization_id)` está configurada com **`ON DELETE RESTRICT`** (e **NÃO** `CASCADE`), impedindo a exclusão acidental de um aggregate Agent que possua versões vinculadas.
+2. **Precisão sobre Idempotência de Migrations SQL**:
+   - Retificação conceitual: migrations SQL individuais geradas (ex.: `0001_numerous_eddie_brock.sql`) **não são presumidas idempotentes isoladamente**; a idempotência e o controle de aplicação sequencial/histórico cabem ao runner versionado (`drizzle-kit migrate` com controle da tabela `drizzle.__drizzle_migrations`).
+
+### 4. Regeneração e Auditoria da Migration Incremental
+- Como a migration `0001` ainda não havia sido aplicada no Neon e o PR #8 permanecia aberto, a migration `0001_wooden_risque.sql` foi descartada e regenerada de forma limpa como `0001_numerous_eddie_brock.sql` via `drizzle-kit generate`.
+- **Auditoria Linha a Linha da Migration `0001_numerous_eddie_brock.sql` (45 linhas)**:
+  - 2 enums de domínio: `agent_status` (`ACTIVE`, `ARCHIVED`) e `agent_version_status` (`DRAFT`, `PUBLISHED`, `ARCHIVED`);
+  - Tabela `agents` com coluna `next_version_number integer DEFAULT 1 NOT NULL`, constraint `agents_next_version_number_chk` (`CHECK (next_version_number > 0)`), constraint de unicidade composta `agents_id_org_id_unique (id, organization_id)`;
+  - Tabela `agent_versions` com checks de integridade (`version_number > 0`, `configuration_schema_version > 0`, `jsonb_typeof(configuration) = 'object'`, e invariante de metadados de publicação `published_at/published_by`);
+  - Foreign Keys estritas com `ON DELETE RESTRICT` (incluindo FK composta multi-tenant `agent_versions_agent_org_fk`);
+  - Índices únicos parciais: `agent_versions_single_draft_uidx` (`WHERE status = 'DRAFT'`) e `agent_versions_single_published_uidx` (`WHERE status = 'PUBLISHED'`);
+  - **Zero DROPs**, zero alterações comerciais legadas, zero alterações de auth.
+- **Validação Local PostgreSQL 16 (Docker)**:
+  - **Fresh Migration (0000 + 0001)**: Validada em banco limpo via `drizzle-kit migrate`. Todas as tabelas, colunas, enums, checks e índices criados com sucesso.
+  - **Incremental Migration (0000 -> 0001)**: Validada em banco limpo aplicando `0000_dizzy_runaways.sql` (verificando ausência de `agents`/`agent_versions`) e em seguida aplicando `0001_numerous_eddie_brock.sql`. Schema resultante idêntico ao fresh.
+
+### 5. Cobertura de Testes Automatizados (PostgreSQL 16 Docker)
+Foram adicionados testes de concorrência e rollback em `agent-lifecycle-concurrency.integration.test.ts`:
+- **Concorrência e Incremento Único**: Verificado que duas chamadas simultâneas de `createDraft` resultam em exatamente 1 draft criado e `next_version_number` avança exatamente 1 unidade (de 1 para 2).
+- **Monotonicidade sem Reuso**: Criado draft v1, descartado; próximo draft criado recebe estritamente v2; publicado v2; criado draft v3, descartado; próximo draft criado recebe v4. `next_version_number` avança duravelmente para 5.
+- **Rollback em Falha Transacional**: Criado teste onde a alocação `allocateNextAgentVersionNumber` é executada dentro de transação que aborta antes do commit. Comprovado que o rollback do PostgreSQL restaura `next_version_number` para 1, sem criação de gaps numéricos. A transação subsequente recebe versão 1 perfeitamente.
+- **Independência Total de `audit_logs`**: Executado teste onde v1 é publicado, v2 é descartado e **todos os registros de `audit_logs` do agente são expurgados**. O próximo draft criado recebe garantidamente a versão v3, provando desassociação completa da autoridade de alocação em relação a logs.
+
+### 6. Contagens Reais da Suíte de Testes e Qualidade
+- `pnpm test`: **15 test files passed, 3 skipped (93 passed, 11 skipped)** (aumento de 91 para 93 testes passando, com zero falhas).
+- `pnpm format:check`: 100% compliant.
+- `pnpm lint`: 0 erros, 0 avisos.
+- `pnpm typecheck`: 12 packages compilando com zero erros.
+- `pnpm build`: monorepo e Next.js compilando com sucesso.
+- `pnpm check:architecture`: 100% compliant.
+- `pnpm check:file-size`: 101 arquivos de lógica verificados; todos os arquivos de lógica <= 180 linhas (zero adições a allowlist).
+- `pnpm check`: Suíte de verificação integrada 100% aprovada.
+
+### 7. Isolamento de Produção e Staging
+- **Neon Staging**: 100% INTOCADO (zero migrations executadas remotamente).
+- **Ambiente Staging**: `.env.staging` não carregado; migrations remotas não executadas.
+- **Slices 005C e 005D**: NÃO INICIADOS.
+- **PR #8**: Permanece ABERTO e NÃO MERGEADO.

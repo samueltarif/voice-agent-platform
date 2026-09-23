@@ -26,9 +26,11 @@ CREATE TABLE "agents" (
 	"name" text NOT NULL,
 	"slug" text NOT NULL,
 	"status" "agent_status" DEFAULT 'ACTIVE' NOT NULL,
+	"next_version_number" integer DEFAULT 1 NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "agents_id_org_id_unique" UNIQUE("id","organization_id")
+	CONSTRAINT "agents_id_org_id_unique" UNIQUE("id","organization_id"),
+	CONSTRAINT "agents_next_version_number_chk" CHECK ("agents"."next_version_number" > 0)
 );
 --> statement-breakpoint
 ALTER TABLE "agent_versions" ADD CONSTRAINT "agent_versions_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."user"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint

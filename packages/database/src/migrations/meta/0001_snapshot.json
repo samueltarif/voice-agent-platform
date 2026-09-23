@@ -1,5 +1,5 @@
 {
-  "id": "88185ed0-88cc-4395-a22e-bebe57145bc2",
+  "id": "87d0efd6-5546-4069-bf0a-4f15b69207f3",
   "prevId": "5bfd6902-692d-46f5-af87-a83db7db5ce9",
   "version": "7",
   "dialect": "postgresql",
@@ -1602,6 +1602,13 @@
           "notNull": true,
           "default": "'ACTIVE'"
         },
+        "next_version_number": {
+          "name": "next_version_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -1681,7 +1688,12 @@
         }
       },
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "agents_next_version_number_chk": {
+          "name": "agents_next_version_number_chk",
+          "value": "\"agents\".\"next_version_number\" > 0"
+        }
+      },
       "isRLSEnabled": false
     }
   },

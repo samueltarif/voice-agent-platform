@@ -1,41 +1,36 @@
 import { and, eq, sql } from 'drizzle-orm';
-import { agentVersions } from '../schema/agents.js';
-import { auditLogs } from '../schema/audit.js';
+import { NotFoundError } from '@voice-agent/errors';
+import { agents } from '../schema/agents.js';
 import type { DatabaseExecutor } from './database-executor.js';
 
-export async function resolveNextAgentVersionNumber(
+export async function allocateNextAgentVersionNumber(
   db: DatabaseExecutor,
   organizationId: string,
   agentId: string,
 ): Promise<number> {
-  const [dbMaxRow] = await db
-    .select({ max: sql<number>`COALESCE(MAX(${agentVersions.versionNumber}), 0)::int` })
-    .from(agentVersions)
-    .where(eq(agentVersions.agentId, agentId));
+  const [agent] = await db
+    .select({
+      id: agents.id,
+      nextVersionNumber: agents.nextVersionNumber,
+    })
+    .from(agents)
+    .where(and(eq(agents.id, agentId), eq(agents.organizationId, organizationId)))
+    .for('update');
 
-  const auditRows = await db
-    .select({ metadata: auditLogs.metadata })
-    .from(auditLogs)
-    .where(
-      and(
-        eq(auditLogs.organizationId, organizationId),
-        eq(auditLogs.targetId, agentId),
-        eq(auditLogs.action, 'agent.draft_created'),
-      ),
-    );
-
-  let maxAuditVersion = 0;
-  for (const row of auditRows) {
-    if (!row.metadata) continue;
-    try {
-      const parsed = JSON.parse(row.metadata) as { versionNumber?: number };
-      if (typeof parsed.versionNumber === 'number' && parsed.versionNumber > maxAuditVersion) {
-        maxAuditVersion = parsed.versionNumber;
-      }
-    } catch {
-      // ignore non-json metadata
-    }
+  if (!agent) {
+    throw new NotFoundError(`Agent '${agentId}' not found in organization`);
   }
 
-  return Math.max(dbMaxRow?.max ?? 0, maxAuditVersion) + 1;
+  const allocated = agent.nextVersionNumber;
+
+  await db
+    .update(agents)
+    .set({
+      nextVersionNumber: sql`${agents.nextVersionNumber} + 1`,
+    })
+    .where(and(eq(agents.id, agentId), eq(agents.organizationId, organizationId)));
+
+  return allocated;
 }
+
+export const resolveNextAgentVersionNumber = allocateNextAgentVersionNumber;

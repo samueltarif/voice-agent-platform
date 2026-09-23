@@ -93,6 +93,7 @@ export class AgentLifecycleService {
           name: input.name,
           slug: input.slug,
           status: 'ACTIVE',
+          nextVersionNumber: 1,
           createdAt: at,
           updatedAt: at,
         })

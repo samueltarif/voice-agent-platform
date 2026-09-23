@@ -33,6 +33,7 @@ export const agents = pgTable(
     name: text('name').notNull(),
     slug: text('slug').notNull(),
     status: agentStatusEnum('status').notNull().default('ACTIVE'),
+    nextVersionNumber: integer('next_version_number').notNull().default(1),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true })
       .defaultNow()
@@ -43,6 +44,7 @@ export const agents = pgTable(
     uniqueIndex('agents_org_slug_uidx').on(table.organizationId, table.slug),
     unique('agents_id_org_id_unique').on(table.id, table.organizationId),
     index('agents_org_status_idx').on(table.organizationId, table.status),
+    check('agents_next_version_number_chk', sql`${table.nextVersionNumber} > 0`),
   ],
 );
 
