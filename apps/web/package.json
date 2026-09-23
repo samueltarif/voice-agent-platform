@@ -10,7 +10,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:staging": "node --env-file=../../.env.staging ../../node_modules/vitest/vitest.mjs run src/lib/auth/auth.staging.test.ts"
   },
   "dependencies": {
     "@voice-agent/contracts": "workspace:*",

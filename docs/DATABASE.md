@@ -2,16 +2,21 @@
 
 Este documento estabelece as regras estritas de modelagem, migração, acesso e governança de dados relacionais para o monorepo.
 
-> **Revisado em**: 22 de Setembro de 2026 (PROMPT-004B1 — DEC-026 / DEC-027)
+> **Revisado em**: 23 de Setembro de 2026 (PROMPT-004B2 — DEC-026 / DEC-027 / ADR-008)
 
 ---
 
 ## 1. Status de Seleção de Tecnologias
 
-- **Motor de Banco Relacional**: **PostgreSQL 16** (selected stable major; Aprovado em DEC-026 / ADR-008. Local: Docker Compose `postgres:16-alpine`; Cloud target futuro: Neon Serverless Postgres. CLOUD PARITY: NOT YET VALIDATED — NO NEON PROJECT EXISTS).
+- **Motor de Banco Relacional**: **PostgreSQL 16** (selected stable major; Aprovado em DEC-026 / ADR-008. Local: Docker Compose `postgres:16-alpine`; Cloud Staging: Neon Serverless Postgres em `aws-sa-east-1` / São Paulo. **CLOUD PARITY VALIDATED FOR PERSISTENCE/AUTH FOUNDATION** — 23/09/2026).
 - **Camada de Persistência / ORM**: **Drizzle ORM + drizzle-kit** (Aprovado em DEC-026 / ADR-008).
 - **Provedor de Identidade e Sessão**: **Better Auth** (Aprovado em DEC-026; exclusivamente Identity + Session, plugin `organization` desabilitado).
 - **Driver de Conexão**: **node-postgres (`pg`)** padrão agnóstico (sem lock-in a SDK proprietário).
+- **Modelo de Conexão em Staging (Neon)**:
+  - **Runtime da Aplicação**: Endpoint com pool de conexões gerenciado via PgBouncer em transaction mode (`-pooler`) associado a `DATABASE_URL` com TLS obrigatório (`sslmode=require`).
+  - **Migrations / DDL Administrativo**: Endpoint direto sem pooler (`MIGRATION_DATABASE_URL`) exigido de forma *fail-closed* pelo comando de migração staging (`db:migrate:staging`).
+  - *Nota de Precisão Arquitetural*: O uso de endpoint direto para migrations e pooled para runtime é diretriz e recomendação oficial do provedor (PgBouncer em transaction mode não preserva o estado de sessão requerido por runners de migration), diferenciando-se de uma restrição universal do engine PostgreSQL.
+
 
 ---
 

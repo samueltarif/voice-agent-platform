@@ -11,8 +11,21 @@ export interface RunMigrationsOptions {
 }
 
 export async function runMigrations(options: RunMigrationsOptions = {}): Promise<void> {
+  const isStaging = process.env.APP_ENV === 'staging';
+  let connectionString = options.connectionString || process.env.MIGRATION_DATABASE_URL;
+
+  if (isStaging) {
+    if (!connectionString || connectionString.trim() === '') {
+      throw new Error(
+        'MIGRATION_DATABASE_URL is required when APP_ENV=staging. Fallback to DATABASE_URL is prohibited.',
+      );
+    }
+  } else {
+    connectionString = connectionString || process.env.DATABASE_URL;
+  }
+
   const { db, pool } = createDatabaseConnection({
-    connectionString: options.connectionString,
+    connectionString,
     maxConnections: 1,
   });
 
