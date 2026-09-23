@@ -1,13 +1,14 @@
 # Agent Studio — Conceito, Componentes e Versionamento (AGENT_STUDIO.md)
 
-> **Status**: Requisito Arquitetural Formal — Documentação Conceitual
-> **Fase de Implementação**: FASE 5 (Domínios base) e FASE 6 (Motor de Voz) e posteriores
-> **Data de Incorporação**: 21 de Setembro de 2026
+> **Status**: Arquitetura Aceita (DEC-028 / ADR-009) — NOT YET IMPLEMENTED
+> **Fase de Planejamento**: FASE 5 (Domínios Base & Agent Studio)
+> **Data de Criação**: 21 de Setembro de 2026
+> **Data de Aceitação Arquitetural**: 23 de Setembro de 2026 (Aprovação Humana Formal)
 
-Este documento formaliza o conceito de **Agent Studio** como requisito fundamental de produto da plataforma, definindo os componentes configuráveis de um agente de voz, o modelo de versionamento e os requisitos para avaliação e feedback supervisionado.
+Este documento formaliza o conceito de **Agent Studio** como subsistema central da plataforma, definindo os agregados de domínio (`Agent` e `AgentVersion`), o ciclo de vida formal, as regras de publicação e integridade, e o escopo de evolução por fases.
 
 > [!IMPORTANT]
-> Este documento é conceitual e arquitetural. Nenhum schema de banco, código ou interface deve ser implementado com base neste documento até aprovação explícita das fases correspondentes do roadmap.
+> **ARCHITECTURE ACCEPTED vs IMPLEMENTED**: A arquitetura de domínio, versionamento, persistência e invariantes de integridade do Agent Studio foram formalmente aceitas via **DEC-028** e **ADR-009** (Aprovação Humana em 2026-09-23). A implementação técnica ocorrerá de forma particionada a partir do Slice 005B (`packages/database` e `packages/contracts`), 005C (`apps/api`) e 005D (`apps/web`). Nenhuma implementação prévia deve ser presumida antes da conclusão dos respectivos slices.
 
 ---
 
@@ -104,48 +105,97 @@ Documentos que o agente pode consultar como contexto conversacional:
 
 ---
 
-## 3. Versionamento de Agentes
+## 3. Modelo de Domínio e Versionamento de Agentes (DEC-028 / ADR-009)
 
-### 3.1. Ciclo de Vida de uma Versão
+### 3.1. Agregados do Domínio: Identidade Estável vs. Configuração Versionada
+
+Para garantir desacoplamento entre a entidade de negócio e suas alterações operacionais frequentes, adota-se a separação estrita em dois agregados:
+
+1. **`Agent` (Aggregate Root — Identidade Estável)**:
+   - Representa a âncora relacional e comercial do agente dentro do tenant (`organizationId`).
+   - Atributos centrais: `id` (UUID), `organizationId` (UUID), `name`, `slug`, `status` (`ACTIVE` / `ARCHIVED`), `createdAt`, `updatedAt`.
+   - **Não armazena prompts, parâmetros de voz ou regras de negócio em colunas soltas**.
+   - **Não possui ponteiro redundante de versão publicada** (`currentPublishedVersionId` foi expressamente rejeitado para evitar dual source of truth).
+   - **Ciclo de Vida do Agent**: `ACTIVE` <──► `ARCHIVED`.
+   - **Isolamento de Estado**: Arquivar um agente **não altera nem remove** a versão `PUBLISHED` existente em `agent_versions`. Reativar um agente **não cria nem publica** nenhuma versão implicitamente e deve revalidar a quota `agents.max`.
+
+2. **`AgentVersion` (Configuração Versionada 1:N)**:
+   - Representa um snapshot declarativo e auditável de configuração associado a um agente.
+   - Atributos centrais: `id` (UUID), `agentId` (UUID FK), `organizationId` (UUID FK), `versionNumber` (inteiro monotônico crescente), `status` (`DRAFT`, `PUBLISHED`, `ARCHIVED`), `configurationSchemaVersion` (inteiro NOT NULL sem default), `configuration` (JSONB validado por schema), `changelog`, `createdBy`, `publishedAt`, `publishedBy`, `createdAt`, `updatedAt`.
+
+---
+
+### 3.2. Ciclo de Vida Canônico da Versão e Supersessão do Lifecycle Anterior
 
 ```
-DRAFT ──► TEST ──► PUBLISHED ──► ARCHIVED
-  │                    │
-  │◄── revisão ────────┘
+┌────────────────────────────────────────────────────────┐
+│   Ciclo Canônico de Versão (AgentVersion.status):      │
+│                                                        │
+│         DRAFT ──────► PUBLISHED ──────► ARCHIVED       │
+│           │                                            │
+│           └─► (Descarte Físico / Hard Delete)          │
+└────────────────────────────────────────────────────────┘
 ```
 
-- **DRAFT**: Versão em edição. Não afeta chamadas em produção.
-- **TEST**: Versão em avaliação controlada. Usada em Agent Evals e testes manuais.
-- **PUBLISHED**: Versão ativa em produção. Apenas uma versão pode estar publicada por vez por agente.
-- **ARCHIVED**: Versão histórica. Preservada para auditoria, comparação e rollback.
+#### Estados Canônicos:
+- **`DRAFT`**: Rascunho em edição. Não afeta chamadas em produção. Cada agente pode possuir no máximo **um único DRAFT ativo por vez**, garantido por índice parcial único no banco:
+  ```sql
+  CREATE UNIQUE INDEX unique_active_draft_per_agent 
+  ON agent_versions (agent_id) 
+  WHERE status = 'DRAFT';
+  ```
+- **`PUBLISHED`**: Versão ativa em produção e **FONTE ÚNICA DA VERDADE** da versão publicada atual. No máximo **uma versão publicada por agente**, garantida fisicamente por índice parcial único:
+  ```sql
+  CREATE UNIQUE INDEX unique_published_version_per_agent 
+  ON agent_versions (agent_id) 
+  WHERE status = 'PUBLISHED';
+  ```
+- **`ARCHIVED`**: Versão histórica arquivada após publicação de uma versão mais nova. Preservada para histórico, comparação e auditoria.
 
-**Princípio crítico**: Alterar a configuração de um agente **não altera imediatamente** o comportamento em produção. Uma nova versão deve ser criada, testada e publicada explicitamente.
+#### Nota de Supersessão Formal (2026-09-23):
+> **SUPERSESSÃO DE `TEST` COMO STATUS**: O ciclo de vida conceitual anterior (`DRAFT → TEST → PUBLISHED → ARCHIVED`) foi **formalmente superado**. O estado `TEST` deixa de ser um status persistente da entidade `AgentVersion` e passa a ser modelado como uma **atividade/execução de validação independente** (*Agent Test Run / Validation Activity*). Rascunhos (`DRAFT`) ou versões ativas podem ser submetidos a simulações de teste sem que o status relacional da versão seja poluído com estados transitórios. Esta alteração é um registro formal de supersessão arquitetural e não constitui apagamento histórico.
 
-### 3.2. Componentes Versionados Independentemente
+---
 
-Os seguintes componentes possuem histórico de versão rastreável:
+### 3.3. Invariantes de Domínio e Políticas de Integridade
 
-| Componente | Propósito do Versionamento |
-|:---|:---|
-| **AgentConfig** | Configurações gerais e de atendimento |
-| **Instructions** | Instruções, regras e limites de comportamento |
-| **Prompt** | System prompt e template do diálogo |
-| **Playbook** | Roteiros de abordagem e tratamento de objeções |
-| **Knowledge Base** | Documentos de referência e FAQs |
-| **Toolset** | Ferramentas autorizadas e seus parâmetros |
-| **VoiceConfig** | Configuração de voz sintética e idioma |
+1. **Imutabilidade Estrita de Versões Publicadas e Arquivadas**:
+   - Uma vez que uma versão atinge o status `PUBLISHED` ou `ARCHIVED`, seu conteúdo de configuração (`configuration`) e metadados tornam-se **estritamente imutáveis**.
+   - Qualquer ajuste exige a geração de um novo `DRAFT` derivado.
+2. **Política de Descarte de Rascunhos (Draft Discard)**:
+   - Um `DRAFT` que nunca foi publicado pode ser fisicamente descartado (*hard delete*), liberando o slot de draft para o agente.
+   - Condições obrigatórias para descarte: validação de tenant (`organizationId`), autorização do usuário, inexistência de referências históricas ou de auditoria vinculadas à versão.
+   - O descarte pode gerar lacunas na numeração `versionNumber`, o que é aceito arquiteturalmente (a numeração é estritamente monotônica crescente por agente, mas não contígua).
+3. **Versionamento Explícito de Schema (`configuration_schema_version`)**:
+   - A coluna `configuration_schema_version` é obrigatória, positiva (`CHECK (configuration_schema_version > 0)`) e explícita, sem valor default implícito.
+4. **Governança de Quotas (`agents.max`) e Concorrência**:
+   - O entitlement `agents.max` afere a quantidade de agregados `Agent` com `status = 'ACTIVE'` na organização.
+   - Operações de `Create Agent` e `Reactivate Agent` consomem/verificam `agents.max`. Publicar uma nova versão de um agente já ativo não consome quota adicional.
+   - Para prevenir *race conditions* de estouro de cota, as operações de criação e reativação serializam a concorrência via lock pessimista transacional na linha da `Organization` (`SELECT id FROM organizations WHERE id = $1 FOR UPDATE`).
 
-### 3.3. Rastreabilidade por Chamada
+---
 
-Cada chamada realizada deve futuramente registrar as versões efetivamente utilizadas:
-- `agentConfigVersion`, `instructionsVersion`, `promptVersion`, `playbookVersion`, `knowledgeBaseVersion`, `toolsetVersion`, `voiceConfigVersion`.
+### 3.4. Escopo do Snapshot Declarativo v1 e Deferrals por Fase
 
-Isso permitirá:
-- **Reprodução**: Reproduzir exatamente uma chamada passada com a configuração que estava ativa.
-- **Auditoria**: Verificar qual versão do agente realizou cada interação.
-- **Comparação**: Comparar o desempenho de diferentes versões em condições equivalentes.
-- **Rollback**: Reverter rapidamente para versão anterior aprovada.
-- **Avaliações Históricas**: Executar evals sobre versões anteriores.
+O snapshot de configuração armazenado no campo `configuration` (JSONB) no Slice 005B contempla estritamente o que possui semântica executável real:
+- **Snapshot v1 (Fase 5)**:
+  - **Persona / Identidade Básica**: nome operacional, papel, objetivos.
+  - **Idioma e Locale**: idioma base (ex.: `pt-BR`, `en-US`).
+  - **Instruções e Regras**: diretrizes operacionais determinísticas e limites de comportamento.
+  - **Playbooks e Exemplos**: diálogos de referência quando contemplados pelo schema v1.
+- **Capacidades Diferidas (Deferred)**:
+  - **Voice Avançado**: Parâmetros de síntese e provedores reais diferidos para a **Fase 6** (*Motor de Voz*).
+  - **Execução Real de Tools**: Registro dinâmico de tools e sandboxing diferidos para a **Fase 7** (*Agente IA e Tools*).
+  - **Knowledge Base e RAG**: Ingestão de embeddings vetoriais e busca semântica diferidos para a **Fase 7**.
+
+---
+
+### 3.5. Rastreabilidade por Chamada e Matriz de Permissões (RBAC)
+
+1. **Rastreabilidade**: Futuras chamadas telefônicas e logs de execução registrarão a tupla imutável `(agentId, agentVersionId)`.
+2. **Proteção Confidencial (RBAC)**:
+   - `agent.read`: Permissão para visualizar metadados do agente (nome, status, versão atual publicada, datas).
+   - `agent.config.read`: Permissão segregada e restrita a perfis com privilégio superior (ex.: `MANAGER`, `ADMIN`, `OWNER`) para acessar regras de prompt, instruções e conteúdos confidenciais de negócio.
 
 ---
 
@@ -249,12 +299,15 @@ A implementação ocorrerá nas fases de Motor de Voz (FASE 6) e Telefonia Real 
 
 ---
 
-## 7. Decisões Pendentes Relacionadas ao Agent Studio
+## 7. Status de Decisões Arquiteturais do Agent Studio
 
-| Tópico | Status |
-|:---|:---|
-| Framework de Agent Evals | **Pending Decision** |
-| Estratégia de RAG para Knowledge Base não estruturada | **Pending Decision** |
-| Formato de armazenamento de versões de agentes | **Pending Decision** (definir na fase de persistência) |
-| Provider de síntese de voz (VoiceConfig) | **Pending Decision** |
-| Interface do Agent Studio no dashboard | **Pending Decision** (definir na fase de Design System) |
+| Tópico | Status | Referência |
+|:---|:---|:---|
+| **Agregados, Versionamento e Ciclo de Vida** | **Decided / Accepted** | DEC-028 / ADR-009 (Aprovação Humana em 2026-09-23) |
+| **Formato de Persistência (Metadados + JSONB)** | **Decided / Accepted** | DEC-028 / ADR-009 (Opção C: Relacional + JSONB) |
+| **Biblioteca de Validação de Schema (Zod)** | **Decided / Accepted** | DEC-028 / ADR-009 (`packages/contracts`, instalação no Slice 005B) |
+| **Interface do Agent Studio (Web UI)** | **Planejada para Slice 005D** | FASE 5 (Fatiamento aprovado) |
+| **Provider de síntese de voz (VoiceConfig)** | **Deferred Fase 6** | Motor de Voz (FASE 6) |
+| **Execução Real de Tools** | **Deferred Fase 7** | Agente IA e Tools (FASE 7) |
+| **Estratégia de RAG para Knowledge Base** | **Deferred Fase 7** | Agente IA e Tools (FASE 7) |
+| **Framework de Agent Evals** | **Pending Decision** | Observabilidade e Evals (FASE 9) |

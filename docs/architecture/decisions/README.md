@@ -27,4 +27,6 @@ Cada registro segue rigorosamente a seguinte anatomia:
 | [ADR-006](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-006-mobile-first.md) | Abordagem de Interface Mobile-First Unificada | 2026-09-21 | Accepted |
 | [ADR-007](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-007-frontend-stack.md) | Stack Frontend Web, Design System Compartilhado e Application Shell Mobile-First | 2026-09-22 | Accepted |
 | [ADR-008](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-008-persistence-auth-multitenancy.md) | Fundação de Persistência, Autenticação e Multi-Tenancy (Fase 4) | 2026-09-22 | Accepted |
+| [ADR-009](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-009-agent-studio-aggregate-versioning-persistence.md) | Agent Studio Aggregate, Versioning and Persistence | 2026-09-23 | Accepted |
+| [ADR-010](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-010-api-boundary-asymmetric-internal-service-auth.md) | API Boundary and Asymmetric Internal Service Authentication | 2026-09-23 | Accepted |
 

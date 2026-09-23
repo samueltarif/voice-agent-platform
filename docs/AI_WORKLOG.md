@@ -2812,7 +2812,419 @@ Execução offline/local independente de rede ou provedores externos:
 - **Status de Produção**: **NOT PROVISIONED**.
 - **Fase 5 (Agent Studio & Domínios)**: **NÃO iniciada** (reservada para o próximo ciclo de desenvolvimento).
 
+---
 
+## 23/09/2026 — PROMPT-005A — Agent Studio, API Boundary & Internal Auth Decision Gate
 
+### 1. Contexto e Objetivo da Tarefa
 
+Abertura formal da **Fase 5 (Domínios Base + Agent Studio)** exclusivamente como um **Decision Gate Arquitetural**.
+Nenhum código de aplicação, schema de banco, migration ou endpoint foi implementado nesta etapa. O objetivo foi desenhar a arquitetura canônica do Agent Studio, modelar o versionamento e ciclo de vida de agentes, definir o particionamento do primeiro slice implementável, resolver a fronteira de confiança e autenticação entre `apps/web` e `apps/api`, comparar frameworks HTTP para a API e estruturar as propostas técnicas para aprovação humana.
+
+### 2. Rastreabilidade Git Inicial e Housekeeping de Segurança
+
+- **Branch Criada**: `docs/phase5-agent-studio-gate` a partir de `main` sincronizada (`012d0d5`).
+- **Working Tree Inicial**: Limpo (`clean`).
+- **Housekeeping de Governança em `docs/SECURITY.md`**:
+  - Corrigida a redação que limitava o versionamento estritamente ao `.env.example`.
+  - Nova redação alinhada com as Fases 4B1/4B2: permite templates de ambiente sanitizados e sem segredos com sufixo `*.example` (como `.env.example`, `.env.staging.example`, `.env.production.example`), mantendo estritamente proibidos de versionamento arquivos de ambiente reais (`.env`, `.env.staging`, `.env.production`) ou quaisquer arquivos contendo credenciais reais.
+
+### 3. Leitura e Auditoria de Código Executada
+
+- **Documentos de Governança e Arquitetura Lidos**:
+  `AGENTS.md`, `PROJECT_CONSTITUTION.md`, `ARCHITECTURE.md`, `FOUNDATION_MASTER.md`, `PROJECT_MAP.md`, `README.md`, `docs/ROADMAP.md`, `docs/AGENT_STUDIO.md`, `docs/DATABASE.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/TESTING_STRATEGY.md`, `docs/EVENTS.md`, `docs/INTEGRATIONS.md`, `docs/DECISIONS_LOG.md`, `docs/PLATFORM_CONTROL_PLANE.md`, `ADR-002`, `ADR-003`, `ADR-004`, `ADR-005`, `ADR-008`.
+- **Código Auditado**:
+  - `apps/web`: Next.js 15 App Router, rotas Better Auth em `/api/auth/[...all]`, UI components, Tailwind CSS v4 tokens.
+  - `apps/api`: Pacote modular com `createApiContext()`, `@voice-agent/contracts`, `@voice-agent/errors` e `@voice-agent/logger`; zero frameworks HTTP ou rotas instaladas.
+  - `packages/contracts`: Definições de `TenantScoped`, `DomainEvent` e interfaces de portas (`TelephonyPort`, `RealtimeAIPort`, `StoragePort`).
+  - `packages/database`: 12 tabelas relacionais em Drizzle ORM, 8 enums PostgreSQL e repositories tipados.
+  - `packages/errors`: `AppError`, `NotFoundError`, `UnauthorizedError`.
+  - `packages/logger`: Logger estruturado com níveis e redaction.
+- **Auditoria de Dependências de Validação**: Confirmado que nenhuma biblioteca de validação (`zod`, `valibot`, `typebox`) está atualmente instalada no monorepo.
+
+### 4. Pesquisa de Fatos Externos via Context7
+
+1. **Fastify (`/fastify/fastify`)**:
+   - Fastify v5 removeu a opção legada `jsonShortHand`, exigindo JSON schema explícito para querystrings, params, body e responses.
+   - Suporte oficial via type providers: `@fastify/type-provider-typebox`, `@fastify/type-provider-json-schema-to-ts` e `@fastify/type-provider-zod`.
+   - Geração de documentação OpenAPI via `@fastify/swagger` e `@fastify/swagger-ui`.
+2. **Hono (`/websites/hono_dev`)**:
+   - Construído sobre Web Standards nativos (`Request`, `Response`, `fetch`), com suporte total a Node 22/24 via `@hono/node-server`.
+   - Pacote oficial `@hono/zod-openapi`: unifica validação com Zod, rotas tipadas com `createRoute` e documentação automática OpenAPI 3.0/3.1 em `/doc` com Swagger UI integrado.
+   - Excelente testabilidade com `app.request()` sem abrir portas TCP locais.
+3. **Better Auth (`/better-auth/better-auth`)**:
+   - No servidor, `auth.api.getSession({ headers })` valida sessões diretamente a partir dos headers de requisição (cookies ou bearer tokens via plugin `bearer`).
+   - Em Next.js 15, `auth.api.getSession` opera em Node.js runtime consumindo `headers()` assíncronos.
+
+### 5. Desenho Arquitetural do Agent Studio (Documentado em `docs/research/PHASE_5_AGENT_STUDIO_GATE.md`)
+
+- **Agente com Identidade Estável (`Agent`) vs. Configuração Versionada (`AgentVersion`)**:
+  - `Agent` contém apenas metadados estáveis (`id`, `organization_id`, `name`, `slug`, `status`, `current_published_version_id`, timestamps).
+  - Toda a inteligência e parâmetros operacionais residem em `AgentVersion` (`version_number`, `status`, `configuration`).
+- **Modelo de Versionamento Monotônico**:
+  - `version_number` sequencial (1, 2, 3...) único por agente (`UNIQUE(agent_id, version_number)`), gerado deterministicamente sob lock pessimista no banco.
+  - Regra de **Single Active Draft** por agente (índice parcial único `status = 'DRAFT'`), prevenindo divergências operacionais e simplificando a interface.
+- **Ciclo de Vida da Versão (`DRAFT → PUBLISHED → ARCHIVED`)**:
+  - Avaliação crítica de `TEST`: recomendou-se tratar `TEST` como atividade/execução pontual (`test runs` / `validation results`) em vez de um status persistido da versão, evitando versões zumbis "presas em teste".
+  - **Imutabilidade Estrita**: Uma vez atingido o status `PUBLISHED`, a versão é 100% imutável. Qualquer edição exige criação de um novo `DRAFT`.
+- **Transação Atômica de Publicação**:
+  - Lock pessimista na linha do agente (`FOR UPDATE`);
+  - Validação de integridade semântica da configuração;
+  - Validação de entitlements do tenant (`agents.max`);
+  - Arquivamento da versão publicada anterior (`PUBLISHED → ARCHIVED`);
+  - Promoção do draft para `PUBLISHED`;
+  - Atualização do ponteiro `currentPublishedVersionId` no agente e registro em `audit_logs`.
+- **Opções de Persistência**:
+  - Comparadas as Opções A (Tabelas normalizadas), B (JSONB puro) e C (Híbrido relacional + JSONB tipado).
+  - Recomendada a **Opção C**: metadados relacionais indexáveis para integridade e multi-tenancy + snapshot JSONB tipado e validado por schema para a configuração, permitindo clonagem O(1) de drafts e leitura atômica sem múltiplos `JOIN`s no runtime.
+- **Classificação das Dimensões de Configuração**:
+  - Persona, Voz (provider-neutral), Regras e Playbook: *Versioned Persisted Config*.
+  - Catálogo de Produtos e Conhecimento: *Reference to Domain/Versioned Resource* (sem RAG ou embeddings na Fase 5).
+  - Permissões de Ferramentas: *Versioned Allowlist* (sem execução real).
+  - RuntimeContext: *Runtime-only Context*.
+- **Fronteira de Confiança API & Internal Service Auth**:
+  - Threat model formalizado: o navegador não é confiável e headers de contexto (`X-User-Id`, `X-Organization-Id`) desprotegidos são proibidos.
+  - Comparadas as opções de auth interna: recomendada a **Opção 1 — Short-Lived Signed Service Assertion (JWT/HMAC)** emitida pelo BFF com TTL de 30-60s e validada no middleware da API.
+- **Framework HTTP de `apps/api`**:
+  - Recomendado **Hono (com `@hono/node-server` e `@hono/zod-openapi`)** pela simplicidade, código idiomático para IA, alinhamento com Web Standards e suporte oficial a OpenAPI sem boilerplate.
+  - Alternativa técnica documentada: Fastify v5 com TypeBox/Zod.
+- **Particionamento do Primeiro Slice da Fase 5**:
+  - `005B`: Domain Core & Database Persistence (schemas `agents` e `agent_versions`, migration incremental, repositories e transação de publicação);
+  - `005C`: API Framework, Internal Service Auth & /v1 Endpoints;
+  - `005D`: Frontend Agent Studio UI.
+
+### 6. Matriz de Propostas e Status de Decisões
+
+| ID da Proposta | Descrição | Status |
+| :--- | :--- | :--- |
+| **PROPOSAL-005A-1** | Modelo de Agente com Identidade Estável (`Agent`) + Versões Imutáveis (`AgentVersion`) | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROPOSAL-005A-2** | Persistência Híbrida: Metadados Relacionais + Snapshot JSONB Tipado | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROPOSAL-005A-3** | Single Active Draft por Agente com Ciclo `DRAFT → PUBLISHED → ARCHIVED` (`TEST` como atividade) | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROPOSAL-005A-4** | Transação Atômica de Publicação com Lock Pessimista e Validação de Entitlements | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROPOSAL-005A-5** | Internal Service Auth via Short-Lived Signed Service Assertion (JWT/HMAC) entre Web e API | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROPOSAL-005A-6** | Framework HTTP de `apps/api`: Hono com `@hono/node-server` e `@hono/zod-openapi` | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROPOSAL-005A-7** | Fatiamento da Fase 5 em 005B (Persistência), 005C (API/Auth) e 005D (Frontend) | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **RAG / Vector Database** | Ingestão vetorial e busca semântica para Base de Conhecimento | **DEFERRED (Fase 7)** |
+| **Provider de Síntese de Voz** | Escolha de fornecedor de áudio concreto | **PENDING (Fase 6)** |
+| **LLM Evals com Juiz** | Framework automatizado de avaliação com modelos pagos | **PENDING (Fase 9)** |
+| **Topologia de Produção** | Recursos e dimensionamento de infraestrutura de banco de produção | **NOT PROVISIONED (Pending Design)** |
+| **Fila / Cache Efêmero** | Redis / BullMQ | **PENDING** |
+| **Usage Persistence** | Persistência de métricas de uso | **DEFERRED** |
+
+### 7. Validação da Suíte Local de Qualidade (`pnpm check`)
+
+Executada verificação estrita de qualidade em todo o repositório:
+- **Prettier**: 100% formatado (`All matched files use Prettier code style!`).
+- **ESLint**: 0 erros, 0 avisos.
+- **Turborepo Typecheck**: 12/12 pacotes aprovados com sucesso (`FULL TURBO`).
+- **Vitest (Contagem Exata)**:
+  - **Test Files**: **9 passed | 3 skipped (12 total)**
+  - **Tests**: **34 passed | 11 skipped (45 total)**
+  - *Skipped files*: `staging-connection.test.ts` (4 skipped), `staging-domain-integrity.test.ts` (5 skipped), `auth.staging.test.ts` (2 skipped) — ativados exclusivamente via `APP_ENV=staging` e `STAGING_SMOKE_TESTS=true`.
+- **Turborepo Build**: 12/12 pacotes construídos com sucesso (build de produção do Next.js 15.5.25 limpo).
+- **AST Architecture Check**: 100% em conformidade com as regras arquiteturais.
+- **File Size Check**: 82 arquivos de lógica de produção em conformidade com o limite de 180 linhas (3 avisos de arquivos recomendados entre 80-150 linhas mantidos: `live-call-card.tsx` com 154, `mobile-menu-drawer.tsx` com 157, `commercial.ts` com 177).
+
+### 8. Rastreabilidade Git e Próximos Passos
+
+- **Arquivos Alterados/Criados**:
+  - `docs/SECURITY.md`: Atualizada a política de templates sanitizados `*.example`.
+  - `docs/research/PHASE_5_AGENT_STUDIO_GATE.md`: Documento exaustivo de pesquisa e decisão arquitetural da Fase 5.
+  - `docs/AI_WORKLOG.md`: Registro append-only desta crônica.
+- **Pull Request**: Submetido para revisão humana e aprovação do operador antes de qualquer implementação.
+
+---
+
+## 23/09/2026 — PROMPT-005A-FIX — Agent Studio Invariant & Trust Boundary Review
+
+### 1. Contexto e Motivação
+
+Revisão externa minuciosa do **PROMPT-005A** identificou imprecisões conceituais, potenciais fontes duplas de verdade (*dual source of truth*), claims técnicos imprecisos sobre JSONB e lacunas de arquitetura criptográfica que precisavam de saneamento formal antes de qualquer aprovação humana ou merge do PR #7.
+Esta etapa foi executada mantendo a regra de **zero implementação** (nenhuma dependência instalada, nenhum schema alterado, nenhuma migration gerada, nenhum endpoint codificado).
+
+### 2. Retificações Arquiteturais e Fatuais Aplicadas em `docs/research/PHASE_5_AGENT_STUDIO_GATE.md`
+
+1. **Eliminação de Dual Source of Truth (Versão Publicada Canônica)**:
+   - Identificado que manter `Agent.currentPublishedVersionId` juntamente com `AgentVersion.status = 'PUBLISHED'` criava dependência circular de Foreign Keys e risco de descompasso de dados.
+   - **Opção A Aprovada como Proposta**: A tabela `Agent` não terá coluna de ponteiro. O status `PUBLISHED` na tabela `agent_versions`, garantido pelo índice parcial único `CREATE UNIQUE INDEX unique_published_version_per_agent ON agent_versions (agent_id) WHERE status = 'PUBLISHED'`, é a **fonte única e absoluta da verdade**.
+2. **Versionamento do Schema de Configuração (`configurationSchemaVersion`)**:
+   - Introduzido o conceito de `configurationSchemaVersion integer NOT NULL DEFAULT 1` na tabela `agent_versions`.
+   - Garante que snapshots históricos publicados permaneçam intactos e imutáveis mesmo quando a plataforma evoluir suas estruturas de dados em versões futuras.
+3. **Retificação Técnica sobre JSONB e Complexidade**:
+   - Removida a alegação imprecisa de "clonagem O(1)". Retificado para: *"clonagem em uma única operação SQL atômica, com custo proporcional ao tamanho do snapshot copiado"*.
+   - Removida a afirmação incorreta de que JSONB "é impossível de indexar" (o PostgreSQL suporta índices GIN `jsonb_path_ops` e índices de expressão). Esclarecido que a rejeição da opção puramente JSONB decorre da perda de integridade relacional, ausência de constraints de Foreign Key nativas e menor clareza de governança multi-tenant.
+4. **Precisão sobre "Typed JSONB" e Localização Canônica do Schema**:
+   - Esclarecido que o PostgreSQL não possui JSONB "tipado" nativamente. A segurança de tipos provém da validação determinística de runtime combinada com TypeScript.
+   - Definido que o schema canônico da configuração residirá em **`packages/contracts`** (`@voice-agent/contracts`), pacote neutro e livre de dependências de Hono ou Drizzle.
+5. **Decisão Isolada da Validation Schema Library (`zod`)**:
+   - Registrada a lacuna de que o Slice 005B (Persistência) precisa de uma biblioteca de validação antes da existência do Slice 005C (API).
+   - Proposta formal e separada de adoção de **`zod`** em `packages/contracts`, permitindo que os schemas sejam utilizados pelo repositório em 005B e reutilizados diretamente por `@hono/zod-openapi` em 005C sem duplicação de definições.
+6. **Retificação sobre Ataques de Replay no Internal Service Auth**:
+   - Corrigida a afirmação de que "TTL curto previne ataques de replay". A formulação tecnicamente correta é: *"TTL curto LIMITA a janela de oportunidade de replay, mas não impede a reutilização de uma asserção dentro do seu período de validade"*.
+   - Registrado formalmente: `REPLAY WINDOW: BOUNDED BY ASSERTION EXPIRATION` e `REPLAY PREVENTION: NOT IMPLEMENTED / REQUIRES ADDITIONAL MECHANISM` (prevenção one-time estrita requer cache stateful de nonces, dependente de infraestrutura efêmera atualmente `PENDING`).
+7. **Separação Rigorosa: Asserção Simétrica (HMAC) vs. Assimétrica (Par de Chaves)**:
+   - Separada a análise que antes agrupava "JWT/HMAC".
+   - Detalhado que no modelo HMAC (`HS256`), um comprometimento de `apps/api` permite ao invasor assinar asserções como qualquer usuário.
+   - Proposta recomendada: **Asserção Assimétrica de Curta Duração (`Ed25519` / `ES256`)**, onde `apps/web` detém a chave privada de assinatura e `apps/api` detém estritamente a chave pública de verificação, garantindo contenção de blast radius e suporte a rotação via claim `kid`.
+8. **Claims da Asserção e Governança de Autorização**:
+   - Claims conceituais obrigatórias: `sub`, `orgId`, `iss`, `aud`, `iat`, `exp`, `jti`, `kid`.
+   - TTL definido como **Short Configurable TTL** (valor concreto a ser testado no Slice 005C).
+   - Reafirmado que `orgId` na asserção é contexto autenticado pelo BFF, mas `apps/api` obrigatoriamente revalida o membership, status do usuário e permissões RBAC no banco de dados.
+9. **Janela de Consistência na Revogação de Sessão**:
+   - Documentado que o logout no Better Auth possui uma janela de consistência eventual onde uma asserção emitida imediatamente antes permanece criptograficamente válida até seu `exp` (30-60s).
+10. **Segurança CSRF no Browser**:
+    - Esclarecido que a asserção de serviço opera exclusivamente no canal interno Web → API. Proteções contra CSRF no canal Navegador → Web dependem estritamente das diretrizes do BFF (cookies `HttpOnly`, `SameSite`, validação de `Origin`/`Host`).
+11. **Fatos Oficiais de Frameworks HTTP (Context7)**:
+    - Retificada a descrição do `@hono/zod-openapi`: o pacote oficial gera o documento OpenAPI (`/doc`), enquanto a interface interativa (Swagger UI) exige middleware dedicado (`@hono/swagger-ui` ou `@scalar/hono-api-reference`).
+    - Removidas métricas não evidenciadas ("alucinação de IA"), substituídas por critérios objetivos de footprint conceitual, composição e ergonomia de testes com `app.request()`.
+12. **Portabilidade de Framework vs. Portabilidade de Aplicação**:
+    - Diferenciada a capacidade multi-runtime do Hono dos requisitos reais de `apps/api` (PostgreSQL, `pg`, Drizzle ORM).
+    - Registrado: `CURRENT API RUNTIME TARGET: Node.js (v22/v24)` e `EDGE DEPLOYMENT: NOT A REQUIREMENT / NOT VERIFIED`.
+13. **Semântica Canônica de `agents.max`**:
+    - Definido expressamente: `agents.max` mede a quantidade de Agentes agregados com `status = 'ACTIVE'`.
+    - Consumido exclusivamente em `Create Agent` e `Reactivate Agent`.
+    - `Publish Version` valida a regularidade comercial do tenant, mas **não consome cota adicional**.
+    - Criar ou manter múltiplos drafts e versões históricas não consome quota (número de versões != número de agentes).
+14. **Precisão sobre Imutabilidade de Versões**:
+    - Ajustado o claim de imutabilidade para `INTENDED DOMAIN INVARIANT: published versions are immutable`. A imposição será implementada e testada no Slice 005B através de mutation guards nos repositórios (`WHERE status = 'DRAFT'`).
+15. **Supercessão Formal de Ciclo de Vida**:
+    - Registrada a proposta formal de supercessão do ciclo histórico `DRAFT → TEST → PUBLISHED → ARCHIVED` para `DRAFT → PUBLISHED → ARCHIVED` com `TEST` tratado como atividade pontual.
+16. **Eliminação de Pseudo-Portabilidade em VoiceConfig**:
+    - Removidos parâmetros numéricos não universais (`pitch`, `stability`, `speedRate`, `providerHint`).
+    - Fase 5 retém apenas idioma e perfil neutro interno; parâmetros avançados marcados como `PENDING PROVIDER CAPABILITY VALIDATION (FASE 6)`.
+17. **Knowledge & Tools Scoping**:
+    - Proibido o uso de arrays de IDs de documentos sem entidades de banco persistidas (deferido para a Fase 7).
+    - Permissões de ferramentas reduzidas a contrato placeholder neutro sem execução real.
+18. **Proteção RBAC a Configurações Confidenciais**:
+    - Matriz refinada separando `agent.read` (metadados gerais, aberto a VIEWER+) de `agent.config.read` (prompts e regras sensíveis, restrito a MANAGER+).
+19. **Eventos de Domínio e Modelo de Entrega**:
+    - Eventos classificados como `DOMAIN EVENT CONTRACTS / PLANNED`. Nenhuma tabela de outbox ou mensageria assíncrona será adicionada prematuramente em 005B.
+
+### 3. Tabela Consolidada de Decisões Propostas (Proposed Decisions)
+
+| ID da Proposta | Dimensão Arquitetural | Proposta Técnica | Status |
+| :--- | :--- | :--- | :--- |
+| **PROP-005A-01** | **Agente Aggregate** | Identidade estável `Agent` desacoplada da configuração em `AgentVersion`. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-02** | **Fonte da Versão Publicada** | **Opção A**: Status `PUBLISHED` em `AgentVersion` com índice parcial único. Tabela `Agent` sem ponteiro redundante. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-03** | **Single Active Draft** | No máximo um draft por agente garantido por índice parcial único no banco. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-04** | **Supercessão de Ciclo de Vida**| Ciclo canônico `DRAFT → PUBLISHED → ARCHIVED` (`TEST` como atividade pontual). | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-05** | **Imutabilidade Publicada** | Versões com status `PUBLISHED` são imutáveis; mutações bloqueadas no repositório (`WHERE status = 'DRAFT'`). | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-06** | **Schema Versioning** | Coluna relacional `configurationSchemaVersion` protegendo snapshots históricos. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-07** | **Persistência Híbrida** | **Opção C**: Metadados relacionais indexáveis + snapshot JSONB tipado e validado. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-08** | **Validation Library** | Adoção de `zod` em `packages/contracts` como validador neutro compartilhado para 005B e 005C. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-09** | **Semântica de `agents.max`** | Cota mede quantidade de agentes `ACTIVE`. Consumido em Create/Reactivate. Publish não consome cota adicional. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-10** | **Voice Config Neutro** | Domínio da Fase 5 retém apenas idioma e perfil neutro; parâmetros avançados deferidos para a Fase 6. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-11** | **Knowledge & Tools Scope** | Referências não estruturadas de conhecimento e execução de tools deferidas para a Fase 7. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-12** | **Proteção Confidencial RBAC** | Separação entre `agent.read` (metadados) e `agent.config.read` (prompt/regras restrito a MANAGER+). | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-13** | **Internal Service Auth** | Asserção assimétrica de curta duração (`apps/web` assina com chave privada, `apps/api` verifica com pública). | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-14** | **Framework HTTP de API** | Hono com `@hono/node-server` e `@hono/zod-openapi` para Node 22/24. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-15** | **Fatiamento em Slices** | Execução sequencial em 005B (Persistência), 005C (API/Auth) e 005D (Frontend UI). | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+
+### 4. Validação da Suíte Local de Qualidade (`pnpm check`)
+
+- **Prettier**: 100% formatado (`All matched files use Prettier code style!`).
+- **ESLint**: 0 erros, 0 avisos.
+- **Turborepo Typecheck**: 12/12 pacotes bem-sucedidos (`FULL TURBO`).
+- **Vitest (Contagem Exata)**:
+  - **Passed Test Files**: 9
+  - **Skipped Test Files**: 3 (smoke tests de cloud staging isolados por guardrails).
+  - **Passed Tests**: 34
+  - **Skipped Tests**: 11
+  - **Total Auditado**: 12 arquivos (45 testes).
+- **Turborepo Build**: 12/12 pacotes construídos com sucesso (build do Next.js 15.5.25 limpo).
+- **AST Architecture Check**: 100% das fronteiras respeitadas.
+- **File Size Check**: 82 arquivos de lógica de produção em conformidade com o teto de 180 linhas (3 avisos de arquivos recomendados mantidos: `live-call-card.tsx` com 154, `mobile-menu-drawer.tsx` com 157, `commercial.ts` com 177).
+
+### 5. Estado Git e Finalização
+
+- **Branch**: `docs/phase5-agent-studio-gate` (mesma branch mantida).
+- **Pull Request**: [#7](https://github.com/samueltarif/voice-agent-platform/pull/7) atualizado e pronto para análise humana. **NÃO MERGEADO**.
+- **Slice 005B**: **NÃO INICIADO**. Nenhuma dependência instalada, nenhum schema alterado, nenhum banco modificado.
+
+---
+
+## 23/09/2026 — PROMPT-005A-FINAL-CHECK — Lifecycle, Quota & Snapshot-v1 Closure
+
+### 1. Contexto e Motivação
+
+Fechamento das últimas invariantes conceituais e restrições de consistência requeridas pelo Slice 005B (`Domain Core & Database Persistence`) antes da submissão para aprovação humana e merge do PR #7.
+Esta etapa operou em conformidade com a política de governança documental: nenhuma dependência adicionada, nenhum schema alterado, nenhuma migration gerada, nenhum endpoint codificado e nenhuma alteração em Neon Staging ou Produção.
+
+### 2. Invariantes Fechadas em `docs/research/PHASE_5_AGENT_STUDIO_GATE.md`
+
+1. **Internal Service Auth — Modelo Assimétrico Unificado em Todos os Ambientes**:
+   - Removida qualquer proposta de fallback simétrico (HMAC) em ambiente de desenvolvimento.
+   - Ambientes `dev`, `staging` e `production` utilizam o **MESMO modelo criptográfico de confiança**: *Short-Lived Asymmetric Signed Service Assertion*.
+   - Apenas o material criptográfico (chaves) e parâmetros de configuração variam por ambiente, eliminando discrepâncias de segurança no desenvolvimento e integração.
+   - `apps/web` detém exclusivamente a chave privada de assinatura; `apps/api` detém estritamente a chave pública de verificação (nenhuma chave privada no Git).
+   - O algoritmo concreto (`Ed25519`, `ES256`), biblioteca JWT e formato de serialização de chaves permanecem **`TO BE VERIFIED AND SELECTED IN 005C`** via documentação atual e bibliotecas mantidas, sem criptografia proprietária.
+2. **Separação de Máquinas de Estado: `Agent.status` vs. `AgentVersion.status`**:
+   - `Agent.status`: `ACTIVE`, `ARCHIVED`.
+   - `AgentVersion.status`: `DRAFT`, `PUBLISHED`, `ARCHIVED`.
+   - **Arquivamento de Agente**: `Agent.status -> ARCHIVED`. A versão `PUBLISHED` ativa existente **não é alterada** (preserva o último estado histórico operacional). Agentes arquivados não podem iniciar chamadas em tempo real, não contam para a cota `agents.max` e rejeitam mutações/publicações fechando com erro de domínio.
+   - **Reativação de Agente**: `Agent.status -> ACTIVE`. Valida a cota `agents.max` em transação. A versão `PUBLISHED` existente (se houver) é mantida. Nenhuma versão nova é criada ou publicada implicitamente na reativação.
+3. **Política de Descarte de Rascunhos (Draft Discard)**:
+   - Em conformidade com o princípio de *Single Active Draft*, um `AgentVersion` com status `DRAFT` pode sofrer hard delete físico (`DELETE FROM agent_versions`) **somente quando**:
+     - Possui status `DRAFT`;
+     - Nunca foi promovido a `PUBLISHED` (`published_at IS NULL`);
+     - Não possui referências históricas externas;
+     - `organizationId` foi validado sob o tenant;
+     - Operação autorizada pelo papel do ator e registrada em `audit_logs`.
+   - Versões com status `PUBLISHED` e `ARCHIVED` têm hard delete expressamente proibido.
+   - O status `ARCHIVED` **não é reutilizado** para drafts abandonados.
+4. **Numeração de Versão Monotônica e Não-Contígua**:
+   - Como consequência direta do descarte de drafts, `versionNumber` é estritamente **monotônico crescente, mas não necessariamente contíguo** (ex.: sequência 1, 2, 4 caso o draft 3 tenha sido descartado antes da publicação).
+5. **Versionamento Explícito de Schema (`configuration_schema_version`)**:
+   - Definido DDL: `configuration_schema_version integer NOT NULL CHECK (configuration_schema_version > 0)`.
+   - **Sem `DEFAULT` implícito**: callers de domínio que criam ou clonam drafts devem especificar a versão do schema explicitamente (valor inicial `1`), prevenindo que alterações futuras rotulem configurações novas silenciosamente como schema antigo.
+6. **Snapshot v1 Realista e Eliminação de Fake References**:
+   - O snapshot inicial v1 restringe-se a propriedades com semântica genuína: Persona (`role`, `companyName`, `objective`, `tone`, `greetingPhrase`, `closingPhrase`, `fallbackPhrase`), Idioma neutro (`languageCode: 'pt-BR' | 'en-US' | 'es-ES'`) e Regras (`conversational`, `deterministic`).
+   - Propriedades avançadas de voz (`pitch`, `stability`, `voiceProfileKey` arbitrário) são **`DEFERRED (FASE 6)`**.
+   - Ferramentas (`toolKeys` livres) e Base de Conhecimento (IDs de documentos inexistentes) são **`DEFERRED (FASE 7)`**.
+7. **Concorrência Transacional e Serialização de `agents.max`**:
+   - A invariante de cota (`agents.max` = contagem de agregados `Agent` com status `ACTIVE`) deve ser executada atomicamente no PostgreSQL no Slice 005B.
+   - Proibida validação não serializada (`SELECT count` seguido de `INSERT`).
+   - Inclusão de lock pessimista na linha do tenant: `SELECT id FROM organizations WHERE id = :orgId FOR UPDATE;` garantindo que duas requisições simultâneas não excedam a cota, sem necessidade de Redis ou lock distribuído.
+8. **Transação Atômica de Publicação**:
+   - Processo unificado em 7 passos sob a mesma transação: Lock pessimista no Agente (`FOR UPDATE`), verificação do draft elegível, validação de schema do snapshot, checagem comercial, arquivamento da versão publicada anterior, promoção do draft para `PUBLISHED` e registro em `audit_logs`.
+   - Falha em qualquer etapa dispara rollback total automático.
+9. **Invariantes e Consistência de Metadados de Publicação**:
+   - Como drafts descartados sofrem hard delete, `ARCHIVED` representa apenas versões historicamente publicadas.
+   - Regra relacional imposta via constraint `CHECK`:
+     - `status = 'DRAFT'`: `published_at IS NULL AND published_by IS NULL`;
+     - `status IN ('PUBLISHED', 'ARCHIVED')`: `published_at IS NOT NULL AND published_by IS NOT NULL`.
+10. **Fronteira Arquitetural de `packages/contracts`**:
+    - Pode depender de `zod` como biblioteca neutra de validação de schemas.
+    - É terminantemente proibido depender de Hono, Drizzle, Better Auth ou SDKs de terceiros.
+    - `@hono/zod-openapi` será restrito a `apps/api` no Slice 005C.
+
+### 3. Tabela Consolidada de Decisões Propostas (Proposed Decisions)
+
+| ID da Proposta | Dimensão Arquitetural | Proposta Técnica | Status |
+| :--- | :--- | :--- | :--- |
+| **PROP-005A-01** | **Agente Aggregate** | Identidade estável `Agent` desacoplada da configuração em `AgentVersion`. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-02** | **Fonte da Versão Publicada** | **Opção A**: Status `PUBLISHED` em `AgentVersion` com índice parcial único. Tabela `Agent` sem ponteiro redundante. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-03** | **Single Active Draft** | No máximo um draft por agente garantido por índice parcial único no banco. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-04** | **Supercessão de Ciclo de Vida**| Ciclo canônico `DRAFT → PUBLISHED → ARCHIVED` (`TEST` como atividade pontual). | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-05** | **Descarte de Rascunhos** | Hard delete permitido exclusivamente para `DRAFT`s nunca publicados (gerando `versionNumber`s monotônicos não-contíguos). | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-06** | **Arquivo / Reativação de Agente**| `Agent.status` e `AgentVersion.status` são desacoplados. Arquivamento não altera versão publicada. Reativação valida `agents.max`. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-07** | **Invariantes de Metadata** | Constraint CHECK impondo que `DRAFT` possui `published_* IS NULL` e `PUBLISHED`/`ARCHIVED` possuem `published_* IS NOT NULL`. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-08** | **Schema Versioning Explícito** | Coluna `configuration_schema_version integer NOT NULL CHECK (> 0)` sem default implícito. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-09** | **Snapshot v1 Realista** | Somente campos semânticos reais (Persona, Idioma, Regras). Tools, Voice avançado e Knowledge deferidos. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-10** | **Persistência Híbrida** | **Opção C**: Metadados relacionais indexáveis + snapshot JSONB tipado e validado. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-11** | **Validation Library** | Adoção de `zod` em `packages/contracts` como validador neutro compartilhado para 005B e 005C. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-12** | **Concorrência de `agents.max`**| Validação de cota e inserção/reativação serializadas por lock de linha na Organization (`FOR UPDATE`). | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-13** | **Proteção Confidencial RBAC** | Separação entre `agent.read` (metadados) e `agent.config.read` (prompt/regras restrito a MANAGER+). | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-14** | **Internal Service Auth** | Asserção assimétrica unificada em dev/staging/production (Web assina com chave privada, API verifica com pública). | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-15** | **Framework HTTP de API** | Hono com `@hono/node-server` e `@hono/zod-openapi` para Node 22/24. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-16** | **Fatiamento em Slices** | Execução sequencial em 005B (Persistência), 005C (API/Auth) e 005D (Frontend UI). | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+
+### 4. Validação da Suíte Local de Qualidade (`pnpm check`)
+
+Executada auditoria completa da suíte de qualidade com todos os checks aprovados (exit code 0):
+- **Prettier**: 100% dos arquivos formatados (`All matched files use Prettier code style!`).
+- **ESLint**: 0 erros, 0 avisos.
+- **Turborepo Typecheck**: 12/12 pacotes aprovados com sucesso (`FULL TURBO`).
+- **Vitest (Contagem Autoritativa Real)**:
+  - **Passed Test Files**: **9 passed**
+  - **Skipped Test Files**: **3 skipped** (`staging-connection.test.ts`, `staging-domain-integrity.test.ts`, `auth.staging.test.ts`)
+  - **Total Test Files**: **12 files**
+  - **Passed Tests**: **34 passed**
+  - **Skipped Tests**: **11 skipped**
+  - **Total Tests**: **45 tests**
+- **Turborepo Build**: 12/12 pacotes construídos com sucesso (build otimizado de produção do Next.js 15.5.25 limpo).
+- **AST Architecture Check**: 100% das fronteiras arquiteturais respeitadas (`scripts/check-architecture.mjs`).
+- **File Size Check**: 82 arquivos de lógica de produção em conformidade com o teto de 180 linhas (3 avisos de arquivos recomendados mantidos: `live-call-card.tsx` com 154, `mobile-menu-drawer.tsx` com 157, `commercial.ts` com 177).
+
+### 5. Estado Git e Finalização
+
+- **Branch**: `docs/phase5-agent-studio-gate` mantida.
+- **Commit**: `docs: close phase 5 agent lifecycle and quota invariants`
+- **Push**: `origin/docs/phase5-agent-studio-gate`
+- **PR #7**: Continua **aberto** para revisão humana antes do merge ([PR #7](https://github.com/samueltarif/voice-agent-platform/pull/7)). **NÃO MERGEAR**.
+- **Slice 005B**: **NÃO INICIADO**. Nenhuma dependência instalada, nenhum schema alterado, nenhum banco modificado.
+
+---
+
+## PROMPT-005A-APPROVAL — Human Approval and Architecture Acceptance
+
+- **Data**: 2026-09-23
+- **Branch Ativa**: `docs/phase5-agent-studio-gate`
+- **Objetivo**: Formalizar as decisões de arquitetura aceitas após aprovação humana explícita do Decision Gate da Fase 5, alinhar toda a documentação canônica, registrar novos DECs e ADRs, validar e preparar o merge do PR #7.
+
+### 1. Aprovação Humana Explícita e Transição de Propostas
+Em 2026-09-23, o operador humano emitiu aprovação explícita e categórica para todas as propostas arquiteturais consolidadas no Decision Gate da Fase 5:
+- Todas as propostas técnicas de **PROP-005A-01** a **PROP-005A-16** passaram formalmente do status `PROPOSED / HUMAN APPROVAL REQUIRED` para **`APPROVED / ACCEPTED BY HUMAN — 2026-09-23`**.
+- Autorizado o fatiamento sequencial da Fase 5 em três slices verticais:
+  - **005B**: Domain Core & Database Persistence;
+  - **005C**: API Framework, Internal Auth & /v1 Endpoints;
+  - **005D**: Frontend Agent Studio UI.
+- O Slice 005B **NÃO** foi iniciado nesta tarefa.
+
+### 2. Supersessão Formal do Ciclo de Vida
+- Formalizada a supersessão do ciclo de vida conceitual anterior (`DRAFT → TEST → PUBLISHED → ARCHIVED`) pelo ciclo canônico:
+  ```
+  DRAFT ──────► PUBLISHED ──────► ARCHIVED
+  ```
+- **Natureza de TEST**: O estado `TEST` deixa de ser um status relacional persistente da entidade `AgentVersion` e passa a ser modelado como atividade/execução pontual independente de validação (*Agent Test Run / Validation Activity*).
+- Esta mudança foi devidamente registrada nos documentos canônicos como **SUPERSESSÃO FORMAL**, e não como apagamento histórico.
+
+### 3. Registro de Decisões Formais (DECs e ADRs)
+Foram formalizadas duas decisões arquiteturais separadas para manter granularidade e coesão:
+
+1. **`DEC-028` / `ADR-009` — Agent Studio Aggregate, Versioning and Persistence**:
+   - Separação entre identidade estável (`Agent`) e configuração versionada 1:N (`AgentVersion`);
+   - Fonte única da verdade para versão publicada ativa em `AgentVersion.status = 'PUBLISHED'` com índice parcial único; sem coluna redundante `currentPublishedVersionId` em `Agent`;
+   - No máximo 1 versão `PUBLISHED` e no máximo 1 `DRAFT` ativo por agente garantidos por índices parciais únicos;
+   - Ciclo canônico `DRAFT → PUBLISHED → ARCHIVED`;
+   - Imutabilidade estrita no domínio para versões `PUBLISHED` e `ARCHIVED`;
+   - Descarte físico (*hard delete*) autorizado exclusivamente para rascunhos nunca publicados sob invariantes de tenant/auditoria, gerando numeração `versionNumber` monotônica não-contígua;
+   - Ciclo de vida do `Agent` (`ACTIVE` <-> `ARCHIVED`) desacoplado de `AgentVersion`; arquivar agente não altera versão publicada; reativação valida cota `agents.max`;
+   - Quota `agents.max` afere agregados `Agent` com `status = 'ACTIVE'`; concorrência serializada via lock pessimista transacional na `Organization` (`FOR UPDATE`);
+   - Persistência híbrida (Opção C): metadados relacionais indexáveis + snapshot de configuração `JSONB` validado em runtime;
+   - Coluna `configuration_schema_version` obrigatória, positiva e sem default implícito;
+   - Snapshot v1 realista (Persona, idioma/locale e regras conversacionais);
+   - Adoção de `zod` em `packages/contracts` como validador neutro (instalação no Slice 005B);
+   - Segregação RBAC entre `agent.read` (metadados) e `agent.config.read` (prompt/regras confidenciais).
+
+2. **`DEC-029` / `ADR-010` — API Boundary and Asymmetric Internal Service Authentication**:
+   - `apps/web` opera estritamente como Backend-for-Frontend (BFF) gerenciando sessões Better Auth e CSRF; `apps/api` opera como boundary central de persistência e negócio;
+   - Adoção do framework **Hono** para Node.js (Node 22/24) com `@hono/node-server` e `@hono/zod-openapi` para `apps/api` (instalação no Slice 005C);
+   - Internal Service Auth via **Short-Lived Asymmetric Signed Service Assertion**: `apps/web` assina com chave privada e `apps/api` valida com chave pública (contenção de blast radius);
+   - Unificação de confiança: exatamente o **mesmo modelo assimétrico é adotado em dev, staging e production**, segregando exclusivamente as chaves por ambiente (rejeição de fallback simétrico em dev);
+   - Defesa em profundidade: a validação criptográfica na API não substitui a autorização de domínio; a API revalida obrigatoriamente membership, status do membro, RBAC e cotas;
+   - Janela de replay delimitada por expiração curta (TTL); prevenção stateful *one-time* depende de infraestrutura efêmera pendente.
+
+### 4. Alinhamento Documental Canônico
+Todos os documentos canônicos correntes foram alinhados às decisões aceitas:
+- `docs/research/PHASE_5_AGENT_STUDIO_GATE.md`: status atualizado para `APPROVED / ACCEPTED BY HUMAN — 2026-09-23`, checklist preenchido, tabela atualizada;
+- `docs/AGENT_STUDIO.md`: status atualizado para Arquitetura Aceita (DEC-028/ADR-009) — NOT YET IMPLEMENTED; ciclo canônico e supersessão de TEST documentados; invariantes de agregados e publicação detalhadas; tabela de decisões atualizada;
+- `docs/DECISIONS_LOG.md`: adicionados `DEC-028` e `DEC-029`; tabela de decisões técnicas pendentes atualizada com status Decided para Framework de API, Auth Interna e Biblioteca de Schema;
+- `docs/architecture/decisions/README.md`: índice atualizado com `ADR-009` e `ADR-010`;
+- `docs/architecture/decisions/ADR-009-agent-studio-aggregate-versioning-persistence.md`: criado com status `Accepted`;
+- `docs/architecture/decisions/ADR-010-api-boundary-asymmetric-internal-service-auth.md`: criado com status `Accepted`;
+- `docs/ROADMAP.md`: atualizado com fatiamento sequencial aprovado (005B, 005C, 005D) e ciclo canônico supersedido;
+- `docs/SECURITY.md`: adicionado item 6 sobre fronteira de confiança, asserção assimétrica, contenção de blast radius e semântica de replay;
+- `ARCHITECTURE.md`: atualizada seção 2.2 para registrar seleção do framework Hono (NOT YET INSTALLED) e contratos Zod em `packages/contracts`;
+- `PROJECT_MAP.md`: atualizada árvore e sumário com notas de seleção de Hono e Zod.
+
+### 5. Itens Estritamente Mantidos como PENDING / DEFERRED
+Nenhum detalhe técnico ainda não resolvido foi congelado:
+- Algoritmo concreto da asserção (Ed25519 vs ES256): `PENDING 005C`
+- Biblioteca JWT/JWS: `PENDING 005C`
+- Formato e serialização de chaves (PEM vs JWK): `PENDING 005C`
+- TTL concreto numérico: `PENDING 005C`
+- Prevenção stateful de replay (nonce store): `PENDING EPHEMERAL INFRASTRUCTURE`
+- Infraestrutura efêmera e filas (Redis / BullMQ): `PENDING`
+- Persistência de consumo (Usage): `DEFERRED`
+- Provedor e parâmetros avançados de voz: `DEFERRED FASE 6`
+- Execução real de tools: `DEFERRED FASE 7`
+- Base de conhecimento e RAG: `DEFERRED FASE 7`
+- Ambiente de Produção: `DEFERRED`
+
+### 6. Garantias de Não-Implementação e Preservação de Escopo
+- **Zero instalações**: Zod NÃO foi instalado; Hono NÃO foi instalado.
+- **Zero banco**: Nenhum schema Drizzle criado/alterado; nenhuma migration gerada; banco Docker local e Neon Staging 100% inalterados.
+- **Zero código de API**: Nenhum endpoint, controller ou rota implementado.
+- **Slice 005B**: **NÃO INICIADO**. Aguarda tarefa posterior dedicada.
 
