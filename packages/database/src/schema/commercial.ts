@@ -1,16 +1,6 @@
 import { relations, sql } from 'drizzle-orm';
-import {
-  pgTable,
-  uuid,
-  text,
-  timestamp,
-  integer,
-  boolean,
-  uniqueIndex,
-  index,
-  pgEnum,
-  check,
-} from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, integer, boolean } from 'drizzle-orm/pg-core';
+import { uniqueIndex, index, pgEnum, check } from 'drizzle-orm/pg-core';
 import { organizations } from './organizations.js';
 
 export const billingModeEnum = pgEnum('billing_mode', ['SELF_SERVICE', 'MANUAL', 'COMPLIMENTARY']);
@@ -76,7 +66,11 @@ export const entitlements = pgTable(
     index('entitlements_feature_key_idx').on(table.featureKey),
     check(
       'entitlements_value_integrity_chk',
-      sql`(${table.valueType} = 'BOOLEAN' AND ${table.booleanValue} IS NOT NULL AND ${table.numericLimit} IS NULL AND ${table.stringValue} IS NULL) OR (${table.valueType} = 'NUMERIC' AND ${table.numericLimit} IS NOT NULL AND ${table.numericLimit} >= 0 AND ${table.booleanValue} IS NULL AND ${table.stringValue} IS NULL) OR (${table.valueType} = 'STRING' AND ${table.stringValue} IS NOT NULL AND ${table.booleanValue} IS NULL AND ${table.numericLimit} IS NULL)`,
+      sql`(
+        (${table.valueType} = 'BOOLEAN' AND ${table.booleanValue} IS NOT NULL AND ${table.numericLimit} IS NULL AND ${table.stringValue} IS NULL) OR
+        (${table.valueType} = 'NUMERIC' AND ${table.numericLimit} IS NOT NULL AND ${table.numericLimit} >= 0 AND ${table.booleanValue} IS NULL AND ${table.stringValue} IS NULL) OR
+        (${table.valueType} = 'STRING' AND ${table.stringValue} IS NOT NULL AND ${table.booleanValue} IS NULL AND ${table.numericLimit} IS NULL)
+      )`,
     ),
   ],
 );

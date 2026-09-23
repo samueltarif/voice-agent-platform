@@ -109,10 +109,13 @@ Para manter a neutralidade e permitir a substituição de qualquer fornecedor ex
 
 ### 5.1. Banco de Dados Principal
 - **Decisão Arquitetural**: Banco de dados relacional com integridade referencial, suporte a transações ACID e controle de concorrência.
+- **Engine Relacional**: PostgreSQL 16 (DEC-026 / ADR-008).
+- **Camada de Acesso / ORM**: Drizzle ORM + drizzle-kit (DEC-026 / ADR-008).
 - **Acesso**: Exclusivo através de repositories e modelos tipados. Queries inline descontroladas no código de negócio são vedadas.
 - **Multi-Tenancy**: Particionamento lógico com coluna obrigatória `organizationId` em todas as tabelas com escopo de tenant.
-- **Migrations**: Versionadas, reversíveis e executadas via pipeline automatizado (sem DDL manual em produção).
-- **Status do Fornecedor / Motor**: *Pending Decision* (candidato prioritário: PostgreSQL).
+- **Migrations**: Sequenciais e versionadas, executadas via pipeline automatizado (sem DDL manual em produção; reversibilidade/rollback não são presumidos universalmente conforme `docs/DATABASE.md`).
+- **Provedor Managed Staging**: Neon Serverless Postgres (`aws-sa-east-1` / São Paulo).
+- **Recurso de Banco em Produção**: **NOT PROVISIONED** (desenho de topologia e alta disponibilidade pendentes).
 
 ### 5.2. Sessões, Cache e Estado Volátil (Redis / In-Memory Store)
 - **Decisão Arquitetural**: Armazenamento em memória para controle de chamadas em andamento, rate limiting, cache de tokens e barramento Pub/Sub local para coordenação de instâncias.

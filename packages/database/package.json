@@ -24,6 +24,8 @@
     "test:staging": "node --env-file=../../.env.staging ../../node_modules/vitest/vitest.mjs run src/staging-connection.test.ts src/staging-domain-integrity.test.ts"
   },
   "dependencies": {
+    "@voice-agent/contracts": "workspace:*",
+    "@voice-agent/errors": "workspace:*",
     "drizzle-orm": "^0.45.3",
     "pg": "^8.23.0"
   },

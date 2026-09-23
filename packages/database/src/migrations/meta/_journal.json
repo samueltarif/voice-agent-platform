@@ -8,6 +8,13 @@
       "when": 1790160502093,
       "tag": "0000_dizzy_runaways",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790186136584,
+      "tag": "0001_numerous_eddie_brock",
+      "breakpoints": true
     }
   ]
 }

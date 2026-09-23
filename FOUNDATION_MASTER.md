@@ -507,16 +507,16 @@ Nenhum agente de IA deve implementar dependências concretas para estes tópicos
 
 | # | Tópico | Candidatos | Status |
 |:---|:---|:---|:---|
-| 1 | Motor de Banco de Dados | PostgreSQL / MySQL / CockroachDB | **Pending Decision** |
-| 2 | Camada ORM / Query Builder | Drizzle / Kysely / Prisma | **Pending Decision** |
+| 1 | Motor de Banco de Dados | PostgreSQL 16 (Local: Docker; Staging: Neon) | **Status: Decided (DEC-026 / ADR-008)** |
+| 2 | Camada ORM / Query Builder | Drizzle ORM + drizzle-kit | **Status: Decided (DEC-026 / ADR-008)** |
 | 3 | Linguagem do Voice Engine (`apps/voice`) | TypeScript / Python / Go / Rust | **Pending Decision** |
 | 4 | Cache & Sessões em Tempo Real | Redis / Valkey | **Pending Decision** |
 | 5 | Filas & Mensageria | BullMQ / RabbitMQ / AWS SQS / Temporal | **Pending Decision** |
 | 6 | Fornecedor Primário de Telefonia | Twilio / Telnyx / Plivo | **Pending Decision** |
 | 7 | Motor de IA Realtime | OpenAI Realtime / Cascata (Deepgram + LLM + ElevenLabs) | **Pending Decision** |
 | 8 | Object Storage | Cloudflare R2 / AWS S3 / GCS | **Pending Decision** |
-| 9 | Autenticação de Usuários | Custom JWT / Clerk / Auth0 / Supabase Auth | **Pending Decision** |
-| 10 | Framework Frontend (`apps/web`) | Next.js App Router / Vite + React SPA | **Pending Decision** |
+| 9 | Autenticação de Usuários | Better Auth (Identity + Session only) | **Status: Decided (DEC-026 / ADR-008)** |
+| 10 | Framework Frontend (`apps/web`) | Next.js 15 (App Router) + React 19 + Tailwind v4 | **Status: Decided (DEC-025 / ADR-007)** |
 | 11 | Cloud & Hospedagem | AWS / GCP / Fly.io / Kubernetes | **Pending Decision** |
 | 12 | Gateway de Pagamento SaaS | Stripe / Asaas / Pagar.me | **Pending Decision** |
 | 13 | Framework de Agent Evals | A definir | **Pending Decision** |

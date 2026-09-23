@@ -3228,3 +3228,449 @@ Nenhum detalhe técnico ainda não resolvido foi congelado:
 - **Zero código de API**: Nenhum endpoint, controller ou rota implementado.
 - **Slice 005B**: **NÃO INICIADO**. Aguarda tarefa posterior dedicada.
 
+---
+
+## Entrada: 2026-09-23 — PROMPT-005B — Agent Domain Core & Local Database Persistence
+
+### Objetivo
+Implementar localmente o primeiro slice real do Agent Studio aprovado em DEC-028 / ADR-009:
+- contratos e schema validation do `AgentConfigurationSnapshot` v1 com Zod;
+- agregados `Agent` e `AgentVersion`;
+- schemas Drizzle e migration incremental versionada;
+- validação de constraints físicas e integridade referencial multi-tenant no PostgreSQL 16 local;
+- auditoria canônica de precedência de entitlements (`agents.max`) e regularidade comercial de publicação conforme seções 20, 21 e 47.
+
+Esta tarefa é estritamente **LOCAL-FIRST**: zero alterações no Neon Staging, sem carregamento de `.env.staging`, sem endpoints HTTP e sem Hono.
+
+---
+
+### 1. Estado Inicial do Git e Canonical Doc Pre-Flight
+- **Branch base**: `main` sincronizada contendo o merge do PR #7 (`c8e5d698024f22a3d1881e357d69c33c37c5eea0`).
+- **Branch de trabalho**: `feature/agent-domain-persistence` criada a partir de `main`.
+- **Pre-flight de documentos canônicos**:
+  - `ARCHITECTURE.md` (seção 5.1): corrigida declaração obsoleta de "PostgreSQL ... Pending Decision" para fatos vigentes (PostgreSQL 16, Drizzle ORM + drizzle-kit, Neon Staging, produção não provisionada, reversibilidade não universal).
+  - `FOUNDATION_MASTER.md`: alinhamento na tabela de decisões canônicas.
+  - Commit intermediário: `e1c9b0b` (*docs: align canonical docs on database and frontend decisions*).
+
+---
+
+### 2. Supply Chain e Instalação Neutra do Zod
+- **Pacote**: `zod@^3.24.2` instalado exclusivamente em `packages/contracts` (`zod@3.25.76` resolvido).
+- **Supply chain review**:
+  - `packages/contracts/package.json` atualizado com dependência `zod`.
+  - `pnpm-lock.yaml` atualizado.
+  - `pnpm-workspace.yaml`: inalterado, zero adições automáticas a `allowBuilds` / `onlyBuiltDependencies`.
+  - Nenhum build script bloqueado pelo pnpm.
+  - `packages/contracts` permanece 100% agnóstico a banco, Hono, Better Auth e SDKs externos.
+
+---
+
+### 3. Contratos de Domínio do Agent Studio (`packages/contracts`)
+Criados módulos pequenos e coesos em `packages/contracts/src/agents/`:
+1. `agent-status.ts`: enum e Zod schema para `AgentStatus` (`ACTIVE`, `ARCHIVED`).
+2. `agent-version-status.ts`: enum e Zod schema para `AgentVersionStatus` (`DRAFT`, `PUBLISHED`, `ARCHIVED`).
+3. `agent-configuration-v1.ts`:
+   - `AGENT_CONFIGURATION_SCHEMA_VERSION_V1 = 1` explícito.
+   - Schema Zod estrito (`.strict()`) contemplando Persona, Idioma/Locale (`pt-BR`, `en-US`, `es-ES`), Regras determinísticas e conversacionais, Playbook e Exemplos de conversação.
+   - Rejeição estrita de campos desconhecidos e capacidades diferidas (tools, knowledge IDs, voiceProfileKey, pitch, etc.).
+   - Tipos TypeScript inferidos via `z.infer` sem duplicação manual.
+4. `agent-contracts.ts`: DTOs e validações Zod para operações (`createAgent`, `createDraft`, `updateDraft`, `publishDraft`, `discardDraft`, `archiveAgent`, `reactivateAgent`) com validação determinística de `slug`.
+5. `agent-commercial-policy.ts`: separação explícita de interfaces/ports para verificação comercial (`CommercialPublicationPolicy`) e resolução de cotas (`EntitlementResolver`), desacoplando a camada de domínio das regras comerciais pendentes.
+6. `agent-configuration-v1.test.ts`: 8 testes unitários cobrindo aceitação de snapshot válido, rejeição de chaves desconhecidas em múltiplos níveis, validação de tone/locale, obrigatoriedade de campos e rejeição de tools/knowledge. (10 testes no pacote, todos verdes).
+
+---
+
+### 4. Schemas Drizzle e Migration Incremental (`packages/database`)
+1. **Modelagem Relacional (`packages/database/src/schema/agents.ts`)**:
+   - `agent_status` enum PostgreSQL (`ACTIVE`, `ARCHIVED`).
+   - `agent_version_status` enum PostgreSQL (`DRAFT`, `PUBLISHED`, `ARCHIVED`).
+   - Tabela `agents`: `id` (UUID PK), `organization_id` (UUID FK `organizations.id` `ON DELETE RESTRICT`), `name`, `slug`, `status` (`ACTIVE` default), timestamps.
+     - `UNIQUE(organization_id, slug)` (unicidade por tenant).
+     - `UNIQUE(id, organization_id)` (chave composta para suportar integridade referencial da FK composta).
+     - `INDEX(organization_id, status)`.
+   - Tabela `agent_versions`: `id` (UUID PK), `agent_id` (UUID), `organization_id` (UUID), `version_number` (int NOT NULL), `status` (`DRAFT` default), `configuration_schema_version` (int NOT NULL sem default), `configuration` (JSONB NOT NULL), `changelog`, `created_by` (FK `user.id` `ON DELETE RESTRICT`), `published_at`, `published_by` (FK `user.id` `ON DELETE RESTRICT`), timestamps.
+     - Composite Foreign Key: `(agent_id, organization_id) REFERENCES agents(id, organization_id) ON DELETE RESTRICT`.
+     - `UNIQUE(agent_id, version_number)`.
+     - Partial Unique Index: `(agent_id) WHERE status = 'DRAFT'` (Single Active Draft).
+     - Partial Unique Index: `(agent_id) WHERE status = 'PUBLISHED'` (Single Published Version / Fonte Única da Verdade).
+     - Check: `version_number > 0`.
+     - Check: `configuration_schema_version > 0`.
+     - Check: `jsonb_typeof(configuration) = 'object'`.
+     - Check: consistência de metadados de publicação:
+       `(status = 'DRAFT' AND published_at IS NULL AND published_by IS NULL) OR (status IN ('PUBLISHED', 'ARCHIVED') AND published_at IS NOT NULL AND published_by IS NOT NULL)`.
+2. **Geração e Inspeção da Migration**:
+   - Comando executado: `pnpm --filter @voice-agent/database db:generate`.
+   - Arquivo gerado: `packages/database/src/migrations/0001_wooden_risque.sql`.
+   - Investigação de diff: detectada tentativa inicial de drop/add em `entitlements_value_integrity_chk` decorrente de quebra de linhas na template string SQL em `commercial.ts` em relação ao snapshot 0000; ajustada formatação em `commercial.ts` e regenerado.
+   - Inspeção linha por linha confirmada:
+     - 2 enums novos (`agent_status`, `agent_version_status`);
+     - 2 tabelas novas (`agents`, `agent_versions`);
+     - Foreign keys e composite FK com `ON DELETE RESTRICT`;
+     - 2 índices parciais únicos;
+     - 4 restrições `CHECK`;
+     - ZERO drops;
+     - ZERO alterações em tabelas de autenticação ou tabelas anteriores.
+3. **Validação de Dois Caminhos de Migração (Local Docker Postgres 16)**:
+   - **Caminho A (Upgrade Incremental)**: banco local existente em `0000` migrado com sucesso via `drizzle-kit migrate`.
+   - **Caminho B (Fresh Database)**: banco temporário isolado `voice_agent_fresh_test` criado e migrado do zero (`0000` + `0001`); ambas as migrations aplicadas com sucesso e banco temporário descartado.
+
+---
+
+### 5. Erros de Domínio (`packages/errors`)
+Criado `packages/errors/src/domain-errors.ts`:
+- `InvalidStateTransitionError` (`409`, `INVALID_STATE_TRANSITION`)
+- `ConflictError` (`409`, `CONFLICT`)
+- `EntitlementExceededError` (`403`, `ENTITLEMENT_EXCEEDED`)
+
+---
+
+### 6. Testes de Integração PostgreSQL Real (15 Invariantes Físicas)
+Executados diretamente contra o contêiner Docker `postgres:16-alpine` em `packages/database`:
+- `agent-schema-constraints.integration.test.ts` (11 testes):
+  1. Slug duplicado na mesma organização rejeitado;
+  2. Mesmo slug em organizações diferentes permitido;
+  3. FK composta impede `agent_version` referenciar Agent da Org A com `organization_id` da Org B;
+  4. `version_number <= 0` rejeitado por CHECK;
+  5. `configuration_schema_version <= 0` rejeitado por CHECK;
+  6. `configuration` não-objeto rejeitado por CHECK `jsonb_typeof`;
+  7. Segundo DRAFT do mesmo Agent rejeitado pelo índice parcial único;
+  8. Segunda versão PUBLISHED do mesmo Agent rejeitada pelo índice parcial único;
+  9. DRAFT com `published_at/by` preenchido rejeitado por CHECK;
+  10. PUBLISHED sem `published_at/by` rejeitado por CHECK;
+  11. ARCHIVED sem metadados históricos de publicação rejeitado por CHECK.
+- `agent-referential-integrity.integration.test.ts` (4 testes):
+  12. Deleção de Organization com Agent bloqueada por `ON DELETE RESTRICT`;
+  13. Deleção de Agent com versions bloqueada por `ON DELETE RESTRICT`;
+  14. Deleção de User referenciado por `created_by` bloqueada por `ON DELETE RESTRICT`;
+  15. Predicado de tenant impede vazamento de Agents entre organizações.
+- **Resultado dos 15 testes de invariantes**: 15 passed, 0 failed.
+
+---
+
+### 7. Auditoria de Precedência de Entitlements e Regularidade Comercial (Seções 20, 21 e 47)
+Em estrita conformidade com as seções 20 e 21 do PROMPT-005B, foi realizada a auditoria prévia nas entidades `plans`, `entitlements`, `subscriptions`, `commercial_grants`, `CommercialRepository` e nos documentos `ADR-008`, `ADR-009`, `PLATFORM_CONTROL_PLANE.md` e `DECISIONS_LOG.md`:
+
+1. **Ausência de Resolver Existente**:
+   - `CommercialRepository` possui apenas operações pontuais de inserção e busca por ID/status (`findActiveSubscription`, `listCommercialGrants`, `listEntitlementsByPlan`).
+   - Não existe no monorepo nenhum serviço ou query que resolva de forma combinada o entitlement efetivo de uma organização a partir do banco de dados.
+   - Em `tenant-isolation.test.ts`, existe apenas uma função auxiliar unitária isolada `evaluateEntitlement({ grantedOverride, numericLimit, booleanValue })` para teste de lógica pura de override sobre valor numérico.
+
+2. **Ambiguidade Canônica de Precedência (Seção 20)**:
+   - A tabela `commercial_grants` possui dois modos de concessão (`commercial_grants_effect_chk`): concessão de um plano completo (`plan_id`) OU concessão de override pontual (`feature_key` + `override_value`).
+   - Não está definido canonicamente em nenhum documento aceito:
+     a) Qual a precedência se uma organização possuir uma assinatura ativa para o Plano A (ex: `agents.max = 2`) e simultaneamente uma `commercial_grant` ativa apontando para o Plano B (ex: `agents.max = 5`);
+     b) Se múltiplos `commercial_grants` ativos com períodos sobrepostos competem pelo maior valor (*max wins*), pela concessão mais recente (*latest wins*), ou se concessão manual sempre sobrepõe assinatura (*grant always wins*);
+     c) Como os status de `subscription_status` (`TRIALING`, `ACTIVE`, `PAST_DUE`, `SUSPENDED`, `CANCELED`, `EXPIRED`) e modos de faturamento (`SELF_SERVICE`, `MANUAL`, `COMPLIMENTARY`) impactam a concessão de entitlements (ex: assinatura `TRIALING` concede `agents.max`? `PAST_DUE` congela a criação de novos agentes ou permite até o limite?).
+
+3. **Ambiguidade Canônica de Elegibilidade para Publicação (Seção 21)**:
+   - O ADR-009 exige verificar regularidade comercial antes de promover uma versão a `PUBLISHED`.
+   - Não está definido canonicamente quais status habilitam a publicação: se apenas `ACTIVE`, ou se `TRIALING`, `COMPLIMENTARY` e contas com `CommercialGrant` ativo também autorizam a publicação de novas versões.
+   - Conforme instrução da Seção 21, a publicação foi separada em uma porta explícita (`CommercialPublicationPolicy`), evitando hardcoding arbitrário de `status === 'ACTIVE'`.
+
+4. **Acionamento da Condição de Parada (Stop Condition — Seções 20, 21 e 47)**:
+   - A Seção 20 instrui expressamente:
+     > *"Se a precedência NÃO estiver definida: PARAR. Reportar: 'agents.max cannot be implemented safely because commercial entitlement precedence is not canonically defined' e mostrar exatamente a ambiguidade. NÃO inventar 'grant always wins', 'max wins' etc."*
+   - A Seção 21 instrui expressamente:
+     > *"separar a publicação em uma policy/port explícita e PARAR antes de assumir semântica comercial."*
+   - A Seção 47 define como Stop Condition mandatória:
+     > *"PARAR e pedir humano somente se: ... entitlement precedence não estiver canonicamente definida; commercial publish eligibility não estiver canonicamente definida;"*
+
+Portanto, o trabalho neste slice foi pausado exatamente nesta fronteira conceitual para alinhamento com o operador humano antes da implementação dos métodos de repository que dependem dessas regras de negócio.
+
+---
+
+### 8. Métricas de Qualidade e Conformidade
+- **Testes Automatizados**:
+  - Testes totais da suíte: 57 passed, 11 skipped (testes cloud do Neon Staging, isolados intencionalmente).
+  - Test Files: 12 passed, 3 skipped.
+  - Zero testes chamando APIs pagas ou provedores externos.
+- **Checagens Estáticas**:
+  - `pnpm format:check`: 100% compliant.
+  - `pnpm lint`: 0 erros, 0 avisos.
+  - `pnpm typecheck`: 12 packages compilando com zero erros.
+  - `pnpm check:architecture`: todas as barreiras arquiteturais respeitadas.
+  - `pnpm check:file-size`: 90 arquivos verificados; todos os arquivos de lógica <= 175 linhas (teto máximo 180 linhas respeitado sem adições à allowlist).
+- **Isolamento de Staging**:
+  - Neon Staging: **100% INTOCADO**.
+  - `.env.staging`: NÃO carregado.
+  - Testes de staging: NÃO executados.
+- **Slices Seguintes**:
+  - Slice 005C: **NÃO INICIADO**.
+  - Slice 005D: **NÃO INICIADO**.
+
+---
+
+## Entrada de Execução: 23 de Setembro de 2026 — PROMPT-005B-UNBLOCK — Commercial Access Policy and Repository Completion
+
+### 1. Resumo Executivo
+Implementação e conclusão do slice de persistência e domínio do **Agent Studio** com resolução determinística de acesso comercial e cotas (PROMPT-005B-UNBLOCK), destravado por aprovação humana explícita recebida em 23 de Setembro de 2026:
+- Formalizada decisão comercial e arquitetural em **DEC-030** e **ADR-011** (`Commercial Entitlement Resolution and Access Eligibility`);
+- Atualizado `docs/PLATFORM_CONTROL_PLANE.md` delimitando resolução determinística de entitlements vs processamento financeiro e fail-closed em conflitos;
+- Refinados contratos em `@voice-agent/contracts` com tipo explícito `ResolvedNumericEntitlement` e fonte temporal determinística (`options?: ResolveEntitlementOptions | Date`);
+- Implementado `CommercialEntitlementResolver` e `resolveCommercialPlanSource` executando o algoritmo em 15 passos com fail-closed para duplicidades;
+- Implementado `DefaultCommercialPublicationPolicy` garantindo `Organization.status = 'ACTIVE'` e `effective agents.max > 0`;
+- Implementado `AgentLifecycleService` gerenciando criação e reativação de agentes com lock pessimista na organização (`SELECT ... FOR UPDATE`), resolução de quota no mesmo contexto transacional e auditoria estruturada;
+- Implementado `AgentRepository` tenant-scoped para consultas e arquivamento;
+- Implementado `AgentDraftService`, `AgentDraftDiscardService` e `resolveNextAgentVersionNumber` garantindo single active draft, numeração estritamente monotônica crescente não-reutilizada após descarte (*hard delete* de rascunhos nunca promovidos) e imutabilidade de versões publicadas/arquivadas;
+- Implementado `AgentPublicationService` para publicação atômica, supersessão da versão anterior para `ARCHIVED`, promoção para `PUBLISHED` e trilha de auditoria;
+- Executados testes de integração reais contra PostgreSQL 16 Docker: 91 testes aprovados (11 skipped no Neon Staging), cobrindo mais de 20 cenários de precedência e concorrência;
+- Pipeline completo validado: `pnpm check` (`format:check`, `lint`, `typecheck`, `test`, `build`, `check:architecture`, `check:file-size`) 100% verde;
+- **Neon Staging**: 100% intocado; zero migrations cloud; zero chamadas a serviços externos.
+
+---
+
+### 2. Formalização de Decisão e Governança Comercial
+1. **Aprovação Humana Explícita**:
+   - Política comercial aprovada pelo operador humano em 2026-09-23 para complementar DEC-020, DEC-021, DEC-028 e ADR-009.
+2. **DEC-030 e ADR-011 Registrados**:
+   - `docs/DECISIONS_LOG.md`: adicionado DEC-030.
+   - `docs/architecture/decisions/ADR-011-commercial-entitlement-resolution-access-eligibility.md`: criado com status *Accepted*.
+   - `docs/architecture/decisions/README.md`: índice atualizado.
+   - `docs/PLATFORM_CONTROL_PLANE.md`: atualizado registrando distinção entre resolução determinística de entitlements e billing processing, além da semântica fail-closed de conflitos.
+3. **Princípios Estabelecidos**:
+   - **Payment != Access**: `BillingMode` (`SELF_SERVICE`, `MANUAL`, `COMPLIMENTARY`) descreve faturamento e não concede nem revoga acesso por si só.
+   - **Organization Status**: `ACTIVE` é mandatório para `Create Agent`, `Reactivate Agent` e `Publish AgentVersion`. Organização `SUSPENDED` ou `ARCHIVED` falha fechada imediatamente. Operações de redução (`Archive Agent`, `Discard Draft`) continuam permitidas sob autorização de tenant.
+   - **Elegibilidade de Subscription**: status `TRIALING` ou `ACTIVE` dentro da janela `current_period_start <= at < current_period_end`. Status `PAST_DUE`, `SUSPENDED`, `CANCELED`, `EXPIRED` negam criação/reativação/publicação isoladamente. `cancel_at_period_end = true` mantém acesso enquanto dentro do período vigente.
+   - **CommercialGrant Vigente**: `starts_at <= at` e `ends_at IS NULL OR at < ends_at`. Concessão válida confere acesso autônomo mesmo sem assinatura ou sob assinatura `PAST_DUE`.
+   - **Precedência de Resolução**:
+     1. Active Feature-Specific Commercial Grant Override (`feature_key` + `override_value`);
+     2. Active Plan Commercial Grant (`plan_id`);
+     3. Eligible Subscription Plan (`plan_id` de assinatura elegível);
+     4. Deny / Entitlement Absent.
+     Proibidas heurísticas como *highest wins*, *latest wins*, *created_at wins*.
+   - **Conflitos — Fail-Closed**:
+     - >1 CommercialGrant com `plan_id` ativo => `ConflictError`;
+     - >1 CommercialGrant para a mesma `feature_key` ativo => `ConflictError`;
+     - >1 Subscription elegível simultânea => `ConflictError`.
+   - **Tipo e Semântica de `agents.max`**:
+     - Override interpretado estritamente como inteiro não-negativo (`/^\d+$/`). Valores como `"cinco"`, `"5.5"`, `"-1"`, `""`, `"NaN"` falham fechados com `ConflictError`. Override `"0"` concede entitlement com limite 0.
+     - Contabiliza exclusivamente agregados `Agent` com `status = 'ACTIVE'` no tenant.
+   - **Política Comercial de Publicação**:
+     - Exige `Organization.status = 'ACTIVE'`, `agents.max` concedido e limite `agents.max > 0`.
+     - Não executa `count(ACTIVE agents) < agents.max`: quotas controlam agregados Agent, não versões. Tenants temporariamente acima da cota por downgrade podem publicar novas versões de agentes já ativos.
+   - **Semântica de Plan ARCHIVED**: planos arquivados continuam resolvendo entitlements para assinaturas e grants vigentes que já os referenciam.
+   - **Fonte de Tempo Determinística**: aceita `at: Date` (clock port explícito) em resolvers e políticas.
+
+---
+
+### 3. Implementação dos Repositórios e Serviços de Domínio (`packages/database`)
+1. **Contratos (`packages/contracts`)**:
+   - `packages/contracts/src/agents/agent-commercial-policy.ts`:
+     - `ResolvedNumericEntitlement`: `{ granted, featureKey, limit, sourceKind?: 'FEATURE_GRANT' | 'PLAN_GRANT' | 'SUBSCRIPTION_PLAN' }`.
+     - `ResolveEntitlementOptions`: `{ at?: Date; executor?: unknown }`.
+     - Interfaces provider-neutral: `CommercialPublicationPolicy`, `EntitlementResolver`.
+2. **Resolução Comercial e Acesso**:
+   - `packages/database/src/repositories/commercial-plan-source-resolver.ts`: resolução isolada de plano elegível com detecção determinística de conflitos duplicados.
+   - `packages/database/src/repositories/commercial-entitlement-resolver.ts`: implementação dos 15 passos do algoritmo aprovado no ADR-011.
+   - `packages/database/src/repositories/commercial-publication-policy.ts`: verificação de tenant ativo e limite de agentes > 0.
+3. **Agregado Agent e Quotas**:
+   - `packages/database/src/repositories/agent-lifecycle-service.ts`: transação com lock pessimista na organização (`SELECT id, status FROM organizations WHERE id = :id FOR UPDATE`), verificação transacional de `agents.max`, validação de unicidade de slug e escrita auditável `agent.created` e `agent.reactivated`.
+   - `packages/database/src/repositories/agent-repository.ts`: consultas tenant-scoped (`getAgentById`, `listAgentsByOrganization`) e arquivamento `archiveAgent` com log `agent.archived`.
+4. **Agregado AgentVersion, Rascunhos e Versionamento**:
+   - `packages/database/src/repositories/agent-version-allocator.ts`: alocação de `versionNumber` combinando o maior número persistido em `agent_versions` com os registros históricos em `audit_logs` para garantir que rascunhos descartados não tenham sua numeração reutilizada.
+   - `packages/database/src/repositories/agent-draft-service.ts`: criação e edição de rascunhos com lock no agente, validação estrita via `agentConfigurationSnapshotV1Schema` (Zod), garantia de single active draft e escrita auditável `agent.draft_created`.
+   - `packages/database/src/repositories/agent-draft-discard-service.ts`: descarte físico (*hard delete*) restrito a versões em status `DRAFT` sem publicação histórica (`publishedAt IS NULL`), com registro auditável `agent.draft_discarded`.
+   - `packages/database/src/repositories/agent-version-repository.ts`: consultas de versões (`getCurrentPublishedVersion`, `listVersionsByAgent`).
+5. **Publicação Atômica**:
+   - `packages/database/src/repositories/agent-publication-service.ts`: transação atômica serializada que valida agente ativo, invoca a política de elegibilidade comercial, valida schema Zod da configuração, arquiva a versão atualmente publicada (`status = 'ARCHIVED'`), promove o rascunho (`status = 'PUBLISHED'`) e emite log estruturado `agent.version_published`.
+6. **Auditoria Estruturada**:
+   - Registrados eventos para todas as ações (`agent.created`, `agent.archived`, `agent.reactivated`, `agent.draft_created`, `agent.draft_discarded`, `agent.version_published`).
+   - Metadados restritos a identificadores e números de versão, sem snapshots completos de configuração, sem prompts e sem credenciais.
+
+---
+
+### 4. Auditoria de Migration e `commercial.ts`
+1. **Reauditoria da Migration `0001_wooden_risque.sql`**:
+   - Confirmado que a migration contém exclusivamente enums `agent_status`, `agent_version_status`, tabelas `agents` e `agent_versions`, FKs com `ON DELETE RESTRICT`, índices parciais e restrições `CHECK`.
+   - Zero drops; zero alterações de tabelas comerciais ou de autenticação.
+2. **Auditoria de `packages/database/src/schema/commercial.ts`**:
+   - Confirmado que a alteração registrada no commit `88f9699` foi unicamente de quebra/condensação de linhas de imports e template string de check constraint para cumprimento do limite de 180 linhas.
+   - Semântica física 100% inalterada; zero drift de schema no Drizzle.
+3. **Ausência de Necessidade de Migration 0002**:
+   - A implementação da política comercial e dos repositórios não exigiu nenhuma alteração de schema adicional. Nenhuma migration foi gerada ou alterada.
+
+---
+
+### 5. Testes de Integração PostgreSQL Real (91 Passed)
+Executados diretamente contra PostgreSQL 16 Docker local:
+1. `commercial-entitlement-resolver.integration.test.ts` (20 testes):
+   - Subscription ACTIVE fornece agents.max;
+   - Subscription TRIALING fornece agents.max;
+   - PAST_DUE sozinho nega;
+   - SUSPENDED, CANCELED, EXPIRED negam;
+   - Period expired nega mesmo se ACTIVE;
+   - cancel_at_period_end mantém acesso antes de period_end;
+   - Active feature grant override vence subscription;
+   - Feature grant funciona sem subscription;
+   - Plan grant vence subscription;
+   - Active grant funciona sob subscription PAST_DUE;
+   - Grant futuro é ignorado;
+   - Grant expirado é ignorado;
+   - 2 feature overrides ativos falham com ConflictError;
+   - 2 plan grants ativos falham com ConflictError;
+   - 2 eligible subscriptions simultâneas falham com ConflictError;
+   - Overrides inválidos ("cinco", "5.5", "-1", "", "NaN") falham com ConflictError;
+   - Override 0 concede com limite 0;
+   - Archived plan já referenciado continua resolvível;
+   - Missing entitlement retorna não concedido;
+   - Organização SUSPENDED ou ARCHIVED nega imediatamente.
+2. `agent-publication.integration.test.ts` (7 testes):
+   - agents.max > 0 permite publicação;
+   - agents.max = 0 nega publicação;
+   - Entitlement ausente nega publicação;
+   - PAST_DUE sem grant nega publicação;
+   - PAST_DUE + active grant autoriza publicação;
+   - Tenant acima da quota por downgrade ainda pode publicar nova versão de agente ativo;
+   - Publicar não cria novo aggregate Agent nem consome cota.
+3. `agent-lifecycle-concurrency.integration.test.ts` (7 testes):
+   - Quota agents.max = 1 + dois creates concorrentes: exatamente 1 criado, o outro falha com EntitlementExceededError;
+   - Create e reactivate concorrentes respeitam o teto da quota;
+   - Dois createDraft concorrentes: exatamente 1 draft criado, o outro falha com ConflictError;
+   - Numeração monotônica de versionNumber preservada sem reutilização após descarte de draft;
+   - Dois publish concorrentes: exatamente 1 versão PUBLISHED preservada;
+   - Imutabilidade de versões publicadas: tentativa de edição em PUBLISHED rejeitada com InvalidStateTransitionError;
+   - Auditoria estruturada gravada para todos os eventos de ciclo de vida.
+4. **Contagem Consolidada da Suíte**:
+   - `vitest run`: **15 test files passed, 3 skipped (91 passed, 11 skipped)**.
+
+---
+
+### 6. Conformidade e Qualidade Estática
+- `pnpm format:check`: 100% compliant.
+- `pnpm lint`: 0 erros, 0 avisos.
+- `pnpm typecheck`: 12 packages compilando com zero erros.
+- `pnpm build`: monorepo compilando com sucesso.
+- `pnpm check:architecture`: todas as regras de limites arquiteturais respeitadas.
+- `pnpm check:file-size`: 101 arquivos verificados; todos os arquivos de lógica <= 180 linhas (zero adições a allowlist).
+- `pnpm check`: suíte de verificação integrada 100% aprovada com exit code 0.
+
+---
+
+### 7. Isolamento de Produção e Staging
+- **Neon Staging**: 100% INTOCADO.
+- **Ambiente Staging**: `.env.staging` não carregado; migrations remotas não executadas.
+- **Slices 005C e 005D**: NÃO INICIADOS (zero rotas Hono, zero UI).
+- **PR #8**: Permanece ABERTO e NÃO MERGEADO.
+
+---
+
+## 23/09/2026 — PROMPT-005B-REVIEW-FIX — Durable Agent Version Allocation
+
+### 1. Contexto e Risco Arquitetural Identificado
+Durante revisão externa do PROMPT-005B antes do merge do PR #8, foi identificado um risco de persistência na alocação de `versionNumber`:
+- O `AgentVersionAllocator` utilizava a união de `MAX(agent_versions.version_number)` com o histórico de eventos `agent.draft_created` em `audit_logs` para evitar reuso de numeração de drafts descartados (hard-deleted).
+- **Inadequação**: `audit_logs` é uma trilha de auditoria e compliance, não a autoridade ou fonte durável de verdade para alocação de estado transacional. Futuras políticas de retenção, arquivamento ou purga de logs de auditoria corromperiam a semântica de numeração dos agentes.
+
+### 2. Nova Fonte Durável: `agents.next_version_number`
+Implementada autoridade durável e desacoplada de `audit_logs` no aggregate `Agent`:
+- **Coluna**: `next_version_number integer NOT NULL DEFAULT 1` na tabela `agents`.
+- **Constraint**: `CHECK (next_version_number > 0)`.
+- **Semântica Transacional**:
+  - Leitura sob lock pessimista: `SELECT agent ... FOR UPDATE`.
+  - Alocação: `allocatedVersion = next_version_number`.
+  - Incremento atômico: `UPDATE agents SET next_version_number = next_version_number + 1 WHERE id = ...`.
+  - Inserção do Draft: `INSERT INTO agent_versions (..., version_number = allocatedVersion)`.
+  - **Rollback em Transação Abortada**: Se a transação abortar antes do commit, o PostgreSQL reverte o update de `next_version_number` para o valor anterior, evitando gaps acidentais de falhas transitórias.
+  - **Permanência pós-Commit**: Uma vez comitada a criação do draft, o contador `next_version_number` não retrocede mesmo que o draft seja posteriormente descartado via `discardDraft`.
+- **Remoção Completa de `audit_logs` do Allocator**:
+  - `agent-version-allocator.ts` foi completamente reescrito para ler e atualizar exclusivamente `agents.next_version_number`. Nenhuma query a `audit_logs` ou `agent_versions` é executada para alocar o próximo número de versão.
+  - `audit_logs` continua registrando os eventos `agent.draft_created`, `agent.draft_discarded` e `agent.version_published` exclusivamente para auditoria e compliance.
+
+### 3. Retificações de Vocabulário e Precisão Arquitetural
+1. **Integridade Referencial `agent_versions -> agents`**:
+   - Retificação de documentação: a Foreign Key composta `agent_versions(agent_id, organization_id) REFERENCES agents(id, organization_id)` está configurada com **`ON DELETE RESTRICT`** (e **NÃO** `CASCADE`), impedindo a exclusão acidental de um aggregate Agent que possua versões vinculadas.
+2. **Precisão sobre Idempotência de Migrations SQL**:
+   - Retificação conceitual: migrations SQL individuais geradas (ex.: `0001_numerous_eddie_brock.sql`) **não são presumidas idempotentes isoladamente**; a idempotência e o controle de aplicação sequencial/histórico cabem ao runner versionado (`drizzle-kit migrate` com controle da tabela `drizzle.__drizzle_migrations`).
+
+### 4. Regeneração e Auditoria da Migration Incremental
+- Como a migration `0001` ainda não havia sido aplicada no Neon e o PR #8 permanecia aberto, a migration `0001_wooden_risque.sql` foi descartada e regenerada de forma limpa como `0001_numerous_eddie_brock.sql` via `drizzle-kit generate`.
+- **Auditoria Linha a Linha da Migration `0001_numerous_eddie_brock.sql` (45 linhas)**:
+  - 2 enums de domínio: `agent_status` (`ACTIVE`, `ARCHIVED`) e `agent_version_status` (`DRAFT`, `PUBLISHED`, `ARCHIVED`);
+  - Tabela `agents` com coluna `next_version_number integer DEFAULT 1 NOT NULL`, constraint `agents_next_version_number_chk` (`CHECK (next_version_number > 0)`), constraint de unicidade composta `agents_id_org_id_unique (id, organization_id)`;
+  - Tabela `agent_versions` com checks de integridade (`version_number > 0`, `configuration_schema_version > 0`, `jsonb_typeof(configuration) = 'object'`, e invariante de metadados de publicação `published_at/published_by`);
+  - Foreign Keys estritas com `ON DELETE RESTRICT` (incluindo FK composta multi-tenant `agent_versions_agent_org_fk`);
+  - Índices únicos parciais: `agent_versions_single_draft_uidx` (`WHERE status = 'DRAFT'`) e `agent_versions_single_published_uidx` (`WHERE status = 'PUBLISHED'`);
+  - **Zero DROPs**, zero alterações comerciais legadas, zero alterações de auth.
+- **Validação Local PostgreSQL 16 (Docker)**:
+  - **Fresh Migration (0000 + 0001)**: Validada em banco limpo via `drizzle-kit migrate`. Todas as tabelas, colunas, enums, checks e índices criados com sucesso.
+  - **Incremental Migration (0000 -> 0001)**: Validada em banco limpo aplicando `0000_dizzy_runaways.sql` (verificando ausência de `agents`/`agent_versions`) e em seguida aplicando `0001_numerous_eddie_brock.sql`. Schema resultante idêntico ao fresh.
+
+### 5. Cobertura de Testes Automatizados (PostgreSQL 16 Docker)
+Foram adicionados testes de concorrência e rollback em `agent-lifecycle-concurrency.integration.test.ts`:
+- **Concorrência e Incremento Único**: Verificado que duas chamadas simultâneas de `createDraft` resultam em exatamente 1 draft criado e `next_version_number` avança exatamente 1 unidade (de 1 para 2).
+- **Monotonicidade sem Reuso**: Criado draft v1, descartado; próximo draft criado recebe estritamente v2; publicado v2; criado draft v3, descartado; próximo draft criado recebe v4. `next_version_number` avança duravelmente para 5.
+- **Rollback em Falha Transacional**: Criado teste onde a alocação `allocateNextAgentVersionNumber` é executada dentro de transação que aborta antes do commit. Comprovado que o rollback do PostgreSQL restaura `next_version_number` para 1, sem criação de gaps numéricos. A transação subsequente recebe versão 1 perfeitamente.
+- **Independência Total de `audit_logs`**: Executado teste onde v1 é publicado, v2 é descartado e **todos os registros de `audit_logs` do agente são expurgados**. O próximo draft criado recebe garantidamente a versão v3, provando desassociação completa da autoridade de alocação em relação a logs.
+
+### 6. Contagens Reais da Suíte de Testes e Qualidade
+- `pnpm test`: **15 test files passed, 3 skipped (93 passed, 11 skipped)** (aumento de 91 para 93 testes passando, com zero falhas).
+- `pnpm format:check`: 100% compliant.
+- `pnpm lint`: 0 erros, 0 avisos.
+- `pnpm typecheck`: 12 packages compilando com zero erros.
+- `pnpm build`: monorepo e Next.js compilando com sucesso.
+- `pnpm check:architecture`: 100% compliant.
+- `pnpm check:file-size`: 101 arquivos de lógica verificados; todos os arquivos de lógica <= 180 linhas (zero adições a allowlist).
+- `pnpm check`: Suíte de verificação integrada 100% aprovada.
+
+### 7. Isolamento de Produção e Staging
+- **Neon Staging**: 100% INTOCADO (zero migrations executadas remotamente).
+- **Ambiente Staging**: `.env.staging` não carregado; migrations remotas não executadas.
+- **Slices 005C e 005D**: NÃO INICIADOS.
+- **PR #8**: Permanece ABERTO e NÃO MERGEADO.
+
+---
+
+## 23/09/2026 — PROMPT-005B-CLOSE — Migrator Upgrade Verification and Merge Readiness
+
+### 1. Estado da Migration e Journal
+- **Migration Final**: `packages/database/src/migrations/0001_numerous_eddie_brock.sql` (45 linhas). A versão transitória `0001_wooden_risque.sql` foi removida do working tree e do branch.
+- **Drizzle Journal (`meta/_journal.json`)**: Coerente e canônico, contendo estritamente:
+  - `idx: 0`: `0000_dizzy_runaways`
+  - `idx: 1`: `0001_numerous_eddie_brock`
+
+### 2. Teste Real do Migrator Drizzle (0000 -> 0001)
+Executado teste de migração em banco isolado temporário `voice_agent_migrator_upgrade_test` no PostgreSQL 16 Docker local utilizando o migrator oficial (`drizzle-orm/node-postgres/migrator`):
+1. **Pass 1 — Estado 0000-only comprovado**:
+   - Migrator executado fornecendo exclusivamente a migration 0000.
+   - `drizzle.__drizzle_migrations`: exatamente 1 registro (`0000_dizzy_runaways`).
+   - Verificado no catálogo PostgreSQL: `to_regclass('public.agents') = null` e `to_regclass('public.agent_versions') = null` (tabelas de agentes comprovadamente ausentes no estado 0000).
+2. **Pass 2 — Upgrade Real 0000 -> 0001**:
+   - Migrator executado com o conjunto completo (0000 + 0001).
+   - O migrator detectou a presença prévia de 0000 no journal e aplicou **estritamente e exclusivamente** a migration `0001_numerous_eddie_brock.sql`.
+   - `drizzle.__drizzle_migrations`: exatamente 2 registros (0000 e 0001).
+   - Verificado no catálogo: `agents` e `agent_versions` criados com sucesso.
+3. **Pass 3 — Repeat-Safe (Terceira Execução)**:
+   - Migrator executado uma terceira vez sobre o mesmo banco.
+   - Resultado: zero novas migrations aplicadas, zero erros, zero DDL repetido. O migrator é repeat-safe porque controla migrations já aplicadas pelo journal.
+
+### 3. Auditoria do Schema Resultante Pós-Upgrade
+- **Tabela `agents`**:
+  - `next_version_number`: `integer NOT NULL DEFAULT 1`;
+  - Constraint: `agents_next_version_number_chk CHECK (next_version_number > 0)`;
+  - Unicidade composta: `UNIQUE(id, organization_id)`;
+  - Unicidade de slug por tenant: `UNIQUE(organization_id, slug)`.
+- **Tabela `agent_versions`**:
+  - Foreign key composta com `ON DELETE RESTRICT`: `(agent_id, organization_id) REFERENCES agents(id, organization_id)`;
+  - Índices parciais únicos: `agent_versions_single_draft_uidx` (`WHERE status = 'DRAFT'`) e `agent_versions_single_published_uidx` (`WHERE status = 'PUBLISHED'`);
+  - Check constraints: integridade de configuração JSONB, integridade de número de versão e consistência de metadados de publicação.
+- **Tabelas Pré-existentes**: Tabelas de autenticação (`user`, `session`, etc.) e comerciais (`plans`, `subscriptions`, `commercial_grants`, `entitlements`) permaneceram 100% íntegras e intocadas.
+
+### 4. Cleanup e Higiene do Ambiente
+- Banco temporário `voice_agent_migrator_upgrade_test` destruído via `DROP DATABASE`.
+- Nenhum arquivo temporário ou artefato espúrio deixado no repositório. Working tree 100% limpa.
+
+### 5. Verificação e Qualidade Consolidada (`pnpm check`)
+- `vitest run`: **15 test files passed, 3 skipped (93 passed, 11 skipped, 0 failed)**.
+- `pnpm format:check`: 100% compliant.
+- `pnpm lint`: 0 erros, 0 avisos.
+- `pnpm typecheck`: 12 packages compilando com zero erros (Full Turbo).
+- `turbo build`: monorepo e Next.js compilando com sucesso (Full Turbo).
+- `pnpm check:architecture`: 100% compliant.
+- `pnpm check:file-size`: 101 arquivos de lógica verificados, todos <= 180 linhas (zero adições a allowlist).
+- Exit code final: 0.
+
+### 6. Isolamento e Prontidão para Merge
+- **Neon Staging**: 100% INTOCADO (zero migrations executadas remotamente, `.env.staging` não carregado).
+- **Slices 005C e 005D**: NÃO INICIADOS.
+- **PR #8**: Pronto para merge seguro e sincronização da branch `main`.
+
