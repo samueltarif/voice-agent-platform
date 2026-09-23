@@ -3617,3 +3617,60 @@ Foram adicionados testes de concorrência e rollback em `agent-lifecycle-concurr
 - **Ambiente Staging**: `.env.staging` não carregado; migrations remotas não executadas.
 - **Slices 005C e 005D**: NÃO INICIADOS.
 - **PR #8**: Permanece ABERTO e NÃO MERGEADO.
+
+---
+
+## 23/09/2026 — PROMPT-005B-CLOSE — Migrator Upgrade Verification and Merge Readiness
+
+### 1. Estado da Migration e Journal
+- **Migration Final**: `packages/database/src/migrations/0001_numerous_eddie_brock.sql` (45 linhas). A versão transitória `0001_wooden_risque.sql` foi removida do working tree e do branch.
+- **Drizzle Journal (`meta/_journal.json`)**: Coerente e canônico, contendo estritamente:
+  - `idx: 0`: `0000_dizzy_runaways`
+  - `idx: 1`: `0001_numerous_eddie_brock`
+
+### 2. Teste Real do Migrator Drizzle (0000 -> 0001)
+Executado teste de migração em banco isolado temporário `voice_agent_migrator_upgrade_test` no PostgreSQL 16 Docker local utilizando o migrator oficial (`drizzle-orm/node-postgres/migrator`):
+1. **Pass 1 — Estado 0000-only comprovado**:
+   - Migrator executado fornecendo exclusivamente a migration 0000.
+   - `drizzle.__drizzle_migrations`: exatamente 1 registro (`0000_dizzy_runaways`).
+   - Verificado no catálogo PostgreSQL: `to_regclass('public.agents') = null` e `to_regclass('public.agent_versions') = null` (tabelas de agentes comprovadamente ausentes no estado 0000).
+2. **Pass 2 — Upgrade Real 0000 -> 0001**:
+   - Migrator executado com o conjunto completo (0000 + 0001).
+   - O migrator detectou a presença prévia de 0000 no journal e aplicou **estritamente e exclusivamente** a migration `0001_numerous_eddie_brock.sql`.
+   - `drizzle.__drizzle_migrations`: exatamente 2 registros (0000 e 0001).
+   - Verificado no catálogo: `agents` e `agent_versions` criados com sucesso.
+3. **Pass 3 — Repeat-Safe (Terceira Execução)**:
+   - Migrator executado uma terceira vez sobre o mesmo banco.
+   - Resultado: zero novas migrations aplicadas, zero erros, zero DDL repetido. O migrator é repeat-safe porque controla migrations já aplicadas pelo journal.
+
+### 3. Auditoria do Schema Resultante Pós-Upgrade
+- **Tabela `agents`**:
+  - `next_version_number`: `integer NOT NULL DEFAULT 1`;
+  - Constraint: `agents_next_version_number_chk CHECK (next_version_number > 0)`;
+  - Unicidade composta: `UNIQUE(id, organization_id)`;
+  - Unicidade de slug por tenant: `UNIQUE(organization_id, slug)`.
+- **Tabela `agent_versions`**:
+  - Foreign key composta com `ON DELETE RESTRICT`: `(agent_id, organization_id) REFERENCES agents(id, organization_id)`;
+  - Índices parciais únicos: `agent_versions_single_draft_uidx` (`WHERE status = 'DRAFT'`) e `agent_versions_single_published_uidx` (`WHERE status = 'PUBLISHED'`);
+  - Check constraints: integridade de configuração JSONB, integridade de número de versão e consistência de metadados de publicação.
+- **Tabelas Pré-existentes**: Tabelas de autenticação (`user`, `session`, etc.) e comerciais (`plans`, `subscriptions`, `commercial_grants`, `entitlements`) permaneceram 100% íntegras e intocadas.
+
+### 4. Cleanup e Higiene do Ambiente
+- Banco temporário `voice_agent_migrator_upgrade_test` destruído via `DROP DATABASE`.
+- Nenhum arquivo temporário ou artefato espúrio deixado no repositório. Working tree 100% limpa.
+
+### 5. Verificação e Qualidade Consolidada (`pnpm check`)
+- `vitest run`: **15 test files passed, 3 skipped (93 passed, 11 skipped, 0 failed)**.
+- `pnpm format:check`: 100% compliant.
+- `pnpm lint`: 0 erros, 0 avisos.
+- `pnpm typecheck`: 12 packages compilando com zero erros (Full Turbo).
+- `turbo build`: monorepo e Next.js compilando com sucesso (Full Turbo).
+- `pnpm check:architecture`: 100% compliant.
+- `pnpm check:file-size`: 101 arquivos de lógica verificados, todos <= 180 linhas (zero adições a allowlist).
+- Exit code final: 0.
+
+### 6. Isolamento e Prontidão para Merge
+- **Neon Staging**: 100% INTOCADO (zero migrations executadas remotamente, `.env.staging` não carregado).
+- **Slices 005C e 005D**: NÃO INICIADOS.
+- **PR #8**: Pronto para merge seguro e sincronização da branch `main`.
+
