@@ -18,6 +18,12 @@ Este documento estabelece as normas mandatórias de proteção de dados, gestão
    - Better Auth opera exclusivamente para Identidade e Sessão em `apps/web`.
    - O plugin `organization` do Better Auth é desabilitado; a governança de organizações, membros e permissões pertence integralmente ao domínio da aplicação.
    - Segredos de autenticação (`BETTER_AUTH_SECRET`) e credenciais de banco (`DATABASE_URL`) são obrigatórios apenas em runtime e estritamente proibidos de inclusão em repositório ou logs.
+5. **Governança de Conexões Gerenciadas em Nuvem e TLS Estrito**:
+   - Conexões ao PostgreSQL gerenciado em nuvem (Neon) exigem criptografia em trânsito TLS mandatória (`sslmode=require`).
+   - É estritamente proibido desabilitar a validação de certificados da Autoridade Certificadora (`rejectUnauthorized: false` é terminantemente proibido).
+   - Segregação de endpoints: o runtime utiliza o endpoint com pool gerenciado (`DATABASE_URL`), enquanto migrações de schema exigem conexão direta (`MIGRATION_DATABASE_URL`) com validação *fail-closed*.
+   - Zero segredos em repositório: arquivos `.env.staging` e `.env.production` permanecem estritamente não rastreados e cobertos pelo `.gitignore`.
+
 
 ---
 

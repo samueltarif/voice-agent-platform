@@ -2630,5 +2630,136 @@ Substituição de `CASCADE` e `SET NULL` indiscriminados por `ON DELETE RESTRICT
 | **PROMPT-004B2 (Neon Staging)** | NOT STARTED | PENDING PR #5 MERGE | NOT VERIFIED |
 | **Fase 5 (Agent Studio)** | NOT STARTED | RESERVED TO PHASE 5 | NOT VERIFIED |
 
+---
+
+## PROMPT-004B2 — Neon Staging Provisioning & Persistence Validation
+
+- **Data/Hora**: 2026-09-23T10:30:00-03:00
+- **Branch**: `feature/neon-staging-validation`
+- **Estado Inicial**: `main` sincronizada no commit `274f2b4` (merge do PR #5 da Fase 4B1). Branch dedicada criada a partir de main limpa.
+- **Ambiente Validado**: Exclusivamente **STAGING** (Homologação). Zero recursos de produção provisionados.
+
+### 1. Pesquisa Oficial e Gates de Decisão (Context7 & Fontes Oficiais)
+
+- **PostgreSQL Major Version Gate**:
+  - Consulta oficial Context7 (`/neondatabase/website` - `content/docs/reference/compatibility.md` e `content/changelog/2025-01-10.md`).
+  - Fato observado: O Postgres 17 é o default recente para novos projetos, porém o **PostgreSQL 16** continua oficialmente suportado e selecionável via UI e flag CLI (`--pg-version 16`). Status: `VERIFIED`. Gate aprovado.
+- **Região Geográfica Gate**:
+  - Consulta oficial (`content/changelog/2025-02-28.md` e `content/docs/introduction/regions.md`).
+  - Fato observado: Região `aws-sa-east-1` (AWS South America - São Paulo) encontra-se em status **Generally Available (GA)**. Status: `VERIFIED`. Gate aprovado.
+- **Pricing & Payment Gate**:
+  - Consulta oficial (`neon.com/pricing` e `neon.com/docs/introduction/plans`).
+  - Fato observado: Free tier não exige cartão de crédito nem forma de pagamento para protótipos e testes. Não há cobrança de overage no plano Free (operações sofrem throttle/suspensão se quotas forem atingidas). Status: `VERIFIED`. Gate aprovado.
+- **Connection Model & Pooling Gate**:
+  - Consulta oficial (`content/docs/guides/serverless-connection-pooling.md` e `content/docs/guides/better-drizzle.md`).
+  - Fato observado: O Neon recomenda PgBouncer em transaction mode (`-pooler`) para runtime da aplicação e endpoint direto (sem `-pooler`) para ferramentas de migration (Drizzle Kit / Prisma), pois pools transacionais não retêm o estado de sessão requerido por runners. Status: `VERIFIED`.
+
+### 2. Ações Humanas e Provisionamento Staging
+
+- **Criação do Projeto**: Realizada manualmente pelo operador humano via console oficial Neon (`console.neon.tech`).
+  - **Identificador Não Sensível**: Projeto de staging criado com nome conceitual `voice-agent-platform-staging` (Host na região `sa-east-1.aws.neon.tech`).
+  - **Major Version**: PostgreSQL 16.
+  - **Região**: São Paulo (`aws-sa-east-1`).
+  - **Branch Utilizada**: Branch `staging` (a branch padrão do Neon foi mantida estritamente segregada de qualquer conotação de produção).
+- **Governança de Segredos**:
+  - Nomes das variáveis configuradas no arquivo local `.env.staging` (untracked, gitignored):
+    - `APP_ENV=staging`
+    - `STAGING_SMOKE_TESTS=true`
+    - `DATABASE_URL` (endpoint pooled com `-pooler` e `sslmode=require`)
+    - `MIGRATION_DATABASE_URL` (endpoint direto sem `-pooler` e `sslmode=require`)
+    - `BETTER_AUTH_SECRET` (chave de 32+ caracteres)
+    - `BETTER_AUTH_URL=http://localhost:3000`
+  - Zero valores de segredos, senhas ou tokens impressos em console, chat ou registrados em logs.
+  - Verificação restrita à presença booleana de variáveis (`present: true`).
+
+### 3. Migração em Nuvem (Neon Cloud Migration)
+
+- **Comando Executado**: `pnpm --filter @voice-agent/database run db:migrate:staging`
+- **Runner**: Drizzle Kit v0.31.11 com driver `pg` consumindo nativamente `MIGRATION_DATABASE_URL` (endpoint direto).
+- **Mecanismo Fail-Closed**: `packages/database/drizzle.config.ts` e `packages/database/src/client/migrate.ts` impõem obrigatoriedade estrita de `MIGRATION_DATABASE_URL` quando `APP_ENV=staging`. Caso ausente, aborta com erro seguro sem fallback acidental para o pooler.
+- **Resultado da Execução**:
+  - Exit code: `0`.
+  - Saída do runner: `[✓] migrations applied successfully!`
+  - Migration versionada aplicada: `0000_dizzy_runaways.sql`.
+  - Tabelas e tipos criados no Neon: todas as 12 tabelas relacionais (`user`, `session`, `account`, `verification`, `organizations`, `organization_memberships`, `platform_admin_authorizations`, `plans`, `entitlements`, `subscriptions`, `commercial_grants`, `audit_logs`) e 8 enums PostgreSQL (`pgEnum`).
+
+### 4. Validação de TLS e Topologia de Conexão
+
+- **Criptografia em Trânsito**: `TLS-VERIFIED`.
+  - O driver `node-postgres` estabelece conexão TLS estrita com o proxy do Neon (`stream.encrypted = true`, `stream.authorized = true` validando o certificado da CA).
+  - Protocolo observado: `TLSv1.3` com cifra `TLS_AES_256_GCM_SHA384`.
+  - Configuração: `rejectUnauthorized: true` mantido (proibição de desativação de validação de certificados).
+  - Nota arquitetural: O proxy de terminação do Neon (`neon-proxy`) descriptografa o tráfego de borda e encaminha para o compute local, motivo pelo qual `pg_stat_ssl` no backend process reporta loopback interno enquanto a conexão do cliente é criptografada e autenticada via TLSv1.3.
+
+### 5. Testes de Fumaça em Staging (Opt-In Cloud Smoke Tests)
+
+A suíte foi dividida em três arquivos modulares com guardrail duplo (`APP_ENV=staging` e `STAGING_SMOKE_TESTS=true`), executados via `pnpm test:staging`:
+
+1. **Conexão e Infraestrutura** (`packages/database/src/staging-connection.test.ts`):
+   - Conexão ao PostgreSQL gerenciado: Major confirmada como `PostgreSQL 16` (`SELECT version()`).
+   - Criptografia TLS validada na stream do cliente (`encrypted: true`, `authorized: true`).
+   - Catálogo do schema público verificado: todas as 12 tabelas presentes.
+   - Status: 4/4 testes passando.
+2. **Integridade de Domínio e Multi-Tenancy** (`packages/database/src/staging-domain-integrity.test.ts`):
+   - Isolamento cross-tenant: Organização A não acessa membros nem dados da Organização B.
+   - Restrição de unicidade: Associação duplicada para o mesmo usuário e organização rejeitada.
+   - Restrições físicas CHECK: Planos com preço negativo rejeitados pelo banco.
+   - Platform Admin Único Ativo: Tentativa de múltiplos admins ativos para o mesmo usuário rejeitada pelo índice parcial único.
+   - `ON DELETE RESTRICT`: Bloqueio de deleção de organizações com associações ativas.
+   - Limpeza pontual de fixtures (scoped cleanup via ID sintético `smoke-u-*` e `smoke-org-*`), sem operações destrutivas (`DROP`/`TRUNCATE`).
+   - Status: 5/5 testes passando.
+3. **Autenticação em Nuvem** (`apps/web/src/lib/auth/auth.staging.test.ts`):
+   - Better Auth inicializado contra o banco Neon de staging.
+   - Signup de usuário de teste sintético (`signUpEmail`).
+   - Persistência e hash de credenciais validados nas tabelas `user` e `account`.
+   - Login ponta a ponta (`signInEmail`) com emissão de token de sessão válido.
+   - Limpeza segura dos registros do usuário de teste ao final do teste.
+   - Status: 2/2 testes passando.
+
+**Total**: 11 testes de fumaça cloud executados e aprovados contra o Neon staging real.
+
+### 6. Isolamento e Suíte de Qualidade Local
+
+- O comando padrão `pnpm test` e `pnpm check` executa offline sem depender de credenciais ou conexão com o Neon (os 3 arquivos de staging são automaticamente pulados via `describe.skip` quando as variáveis de staging não estão ativas).
+- **Resultados de `pnpm check`**:
+  - Prettier: 100% formatado.
+  - ESLint: 0 erros.
+  - Turborepo Typecheck: 12/12 pacotes bem-sucedidos.
+  - Vitest: 9 arquivos locais passando (34 testes) + 3 arquivos de staging pulados (10 testes) = 44 testes auditados.
+  - Turborepo Build: 12/12 pacotes construídos com sucesso (Next.js compilado com sucesso).
+  - AST Architecture Check: 100% das fronteiras modulares respeitadas.
+  - File-Size Check: 82 arquivos de lógica de produção em conformidade (3 avisos de arquivos <= 180 linhas mantidos; `commercial.ts` com 177 linhas).
+
+### 7. Limitações Conhecidas da Validação de Staging
+
+Esta validação comprova que a fundação de persistência e autenticação (Fase 4B1) é 100% compatível com o PostgreSQL gerenciado no Neon. Ela **NÃO** valida:
+- Caminhos de rede de produção ou edge (ex.: Vercel Edge Runtime / Cloudflare Workers para Neon);
+- Comportamento sob concorrência maciça de chamadas telefônicas em produção;
+- Restore via Point-in-Time Recovery (PITR) em produção;
+- Resolução de cold start sob escala zero em tráfego de produção em tempo real;
+- Domínios de produto da Fase 5 (Agent Studio, Agents, Calls, etc.).
+
+### 8. Matriz de Precisão de Status Atualizada
+
+| Componente / Recurso | Status de Implementação | Tipo de Imposição | Cobertura de Testes |
+| :--- | :--- | :--- | :--- |
+| **Identidade & Sessões (Better Auth)** | IMPLEMENTED | APP-ENFORCED + DB-MAPPED | AUTH-INTEGRATION-TESTED + AUTH-NEON-INTEGRATION-TESTED |
+| **Neon PostgreSQL Staging** | PROVISIONED | MANAGED CLOUD (AWS sa-east-1) | TLS-VERIFIED + NEON-INTEGRATION-TESTED |
+| **Migrations em Nuvem** | MIGRATED (v0000) | DATABASE-ENFORCED (Drizzle Kit) | DIRECT-ENDPOINT-MIGRATED |
+| **Multi-Tenancy por `organizationId`** | IMPLEMENTED | DATABASE-ENFORCED + APP-ENFORCED | NEON-INTEGRATION-TESTED (Cross-tenant tested) |
+| **Papéis de Tenant (`tenant_role`)** | IMPLEMENTED | DATABASE-ENFORCED (`pgEnum`) | NEON-INTEGRATION-TESTED |
+| **Status de Membro (`membership_status`)** | IMPLEMENTED (Fail-Closed) | DATABASE-ENFORCED (`pgEnum`, NO DEFAULT) | NEON-INTEGRATION-TESTED |
+| **Platform Admin Active Único** | IMPLEMENTED | DATABASE-ENFORCED (Unique Partial Index) | NEON-INTEGRATION-TESTED |
+| **Integridade de Entitlements** | IMPLEMENTED | DATABASE-ENFORCED (Check Constraint) | NEON-INTEGRATION-TESTED |
+| **Integridade de Commercial Grants** | IMPLEMENTED | DATABASE-ENFORCED (Check Constraint) | NEON-INTEGRATION-TESTED |
+| **Integridade de Subscriptions/Planos** | IMPLEMENTED | DATABASE-ENFORCED (Check Constraint) | NEON-INTEGRATION-TESTED |
+| **Proteção contra Deleção Acidental** | IMPLEMENTED | DATABASE-ENFORCED (`ON DELETE RESTRICT`) | NEON-INTEGRATION-TESTED |
+| **Paridade Cloud Neon** | VALIDATED | MANAGED CLOUD VALIDATED | CLOUD PARITY VALIDATED FOR PERSISTENCE/AUTH |
+| **Internal Service Auth** | PENDING | PENDING | NOT VERIFIED |
+| **Ephemeral / Queue** | PENDING | PENDING | NOT VERIFIED |
+| **Usage Persistence** | DEFERRED | PENDING DOMAIN PHASE | NOT VERIFIED |
+| **Fase 5 (Agent Studio)** | NOT STARTED | RESERVED TO PHASE 5 | NOT VERIFIED |
+
+
 
 

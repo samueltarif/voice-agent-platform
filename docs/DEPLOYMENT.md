@@ -18,11 +18,12 @@ Nenhuma configuração proprietária de cloud deve ser fixada antes da decisão 
 
 O sistema adota três ambientes estritamente segregados, com bancos de dados, credenciais e configurações isoladas:
 
-| Ambiente | Propósito | Acesso a Provedores Externos | Permissão de IA |
-| :--- | :--- | :--- | :--- |
-| **Desenvolvimento (`dev`)** | Desenvolvimento local de engenheiros e agentes de IA. | Fakes e emuladores locais (sem custo). | Leitura e escrita em código local. Sem acesso a secrets reais. |
-| **Homologação (`staging`)** | Validação integrada de deploys, testes E2E e testes de carga. | Contas de sandbox de telefonia/IA com limites financeiros rígidos. | Execução de testes automatizados via pipeline de CI. |
-| **Produção (`production`)** | Operação real com tráfego telefônico de clientes corporativos. | Provedores oficiais de produção com SLA e alta disponibilidade. | **Acesso direto bloqueado.** Nenhuma ação autônoma destrutiva. |
+| Ambiente | Propósito | Acesso a Provedores Externos | Permissão de IA | Banco de Dados Relacional |
+| :--- | :--- | :--- | :--- | :--- |
+| **Desenvolvimento (`dev`)** | Desenvolvimento local de engenheiros e agentes de IA. | Fakes e emuladores locais (sem custo). | Leitura e escrita em código local. Sem acesso a secrets reais. | Docker Compose `postgres:16-alpine` local. |
+| **Homologação (`staging`)** | Validação integrada de deploys, testes E2E e testes de carga. | Contas de sandbox de telefonia/IA com limites financeiros rígidos. | Execução de testes automatizados via pipeline de CI. | Neon Managed PostgreSQL 16 (`aws-sa-east-1` / São Paulo). |
+| **Produção (`production`)** | Operação real com tráfego telefônico de clientes corporativos. | Provedores oficiais de produção com SLA e alta disponibilidade. | **Acesso direto bloqueado.** Nenhuma ação autônoma destrutiva. | **Não provisionado** (Pending Decision). |
+
 
 ---
 

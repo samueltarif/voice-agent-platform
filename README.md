@@ -104,6 +104,7 @@ A documentação está estruturada para fornecer contexto imediato e sem ambigui
 
 ## ⚡ Próximos Passos
 1. **Fase 4B1 Concluída e Integrada**: Persistência local, Better Auth, multi-tenancy e integridade relacional validados localmente (PR #5).
-2. **PROMPT-004B2 (Próxima Etapa)**: *Neon Staging Provisioning & Persistence Validation* — provisionar o primeiro managed PostgreSQL no Neon (staging), validar PostgreSQL major, configurar secrets com segurança, executar migrations versionadas, validar Better Auth, repositories e pooling/TLS em nuvem (sem Agent Studio).
-3. **Fase 5 (Etapa Futura)**: *Domínios base + Agent Studio* — configuração visual de agentes, playbooks, ferramentas e persistência de agentes reservadas exclusivamente para a Fase 5 conforme o roadmap.
+2. **Fase 4B2 Concluída (Validação Neon Staging)**: Managed PostgreSQL 16 provisionado no Neon (região `aws-sa-east-1` / São Paulo), migrations versionadas aplicadas com sucesso, connection model auditado (runtime pooled vs direct migrations fail-closed), TLSv1.3 validado, testes opt-in de isolamento multi-tenant, enums físicos, constraints e Better Auth validados em nuvem.
+3. **Fase 5 (Próxima Etapa)**: *Domínios base + Agent Studio* — modelagem e persistência de agentes, catálogo de produtos/serviços, contatos, campanhas e interface visual do Agent Studio conforme o roadmap.
+
 
