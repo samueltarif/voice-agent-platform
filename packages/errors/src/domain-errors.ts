@@ -20,3 +20,10 @@ export class EntitlementExceededError extends AppError {
     this.name = 'EntitlementExceededError';
   }
 }
+
+export class CommercialAccessDeniedError extends AppError {
+  constructor(message = 'Commercial access denied or entitlement unavailable') {
+    super(message, 403, 'COMMERCIAL_ACCESS_DENIED');
+    this.name = 'CommercialAccessDeniedError';
+  }
+}

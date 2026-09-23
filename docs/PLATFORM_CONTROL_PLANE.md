@@ -177,11 +177,41 @@ A plataforma reforça a separação conceitual estrita entre três domínios cor
    - Cobrança efetiva do cliente conforme o modelo de contrato (pré-pago, pós-pago, fatura mensal, overage de minutos).
    - Operado via gateway automatizado ou conciliação manual.
 
+
 ---
 
-## 8. Status de Implementação e Decisões Pendentes
+## 9. Política de Resolução de Entitlements e Acesso Comercial (DEC-030 / ADR-011)
 
-- **Status Geral**: **Requisito Arquitetural Documentado — Não Implementado**.
+Aprovada formalmente em 23 de Setembro de 2026, a governança de acesso comercial estabelece distinções e regras determinísticas para o runtime:
+
+### 9.1. Distinção entre Resolução de Entitlements e Processamento Financeiro
+- **Effective Entitlement Resolution**: Mecanismo determinístico de domínio que calcula dinamicamente as capacidades e limites vigentes do tenant a partir de `Organization.status`, `Subscription` elegível, `CommercialGrant` vigente e `Entitlements`. Opera com isolamento e zero acoplamento com gateways externos.
+- **Billing / Payment Processing**: Ciclo financeiro desacoplado responsável por cobranças, faturas, meios de pagamento e webhooks de conciliação. O status financeiro alimenta o ciclo de vida das assinaturas, mas não concede nem revoga acessos diretamente.
+
+### 9.2. Precedência Determinística de Resolução
+Para apurar o valor de qualquer capability/limite (ex.: `agents.max`):
+1. **Feature-Specific Commercial Grant Override**: Vigente para a feature solicitada (`starts_at <= at` e `ends_at IS NULL OR at < ends_at`).
+2. **Plan Commercial Grant**: Vigente associado a um `plan_id`.
+3. **Eligible Subscription Plan**: Assinatura em status `TRIALING` ou `ACTIVE` dentro da janela `current_period_start <= at < current_period_end`.
+4. **Deny / Entitlement Absent**: Acesso negado se nenhuma fonte conceder a capacidade.
+
+### 9.3. Conflitos de Fontes no Mesmo Nível — Fail-Closed
+Configurações com duplicidade de fontes no mesmo nível hierárquico constituem **anomalia administrativa / configuração inválida** e falham estritamente fechadas (`ConflictError`):
+- Mais de 1 `CommercialGrant` com `plan_id` vigente simultâneo para a mesma organização;
+- Mais de 1 `CommercialGrant` de override para a mesma `feature_key` vigente simultâneo para a mesma organização;
+- Mais de 1 `Subscription` comercialmente elegível simultânea para a mesma organização.
+
+O Platform Control Plane futuro será responsável por impedir e corrigir essas duplicidades na interface e nas regras de governança administrativa global.
+
+> [!NOTE]
+> **Status da Interface Administrativa**: A UI do Platform Control Plane ainda **NÃO existe**. Operações de governança global e concessões manuais iniciais são operadas diretamente em nível de persistência/banco por operadores autorizados.
+
+---
+
+## 10. Status de Implementação e Decisões Pendentes
+
+- **Status Geral**: **Modelo Comercial e Resolução de Entitlements Aprovados (DEC-030 / ADR-011)**; Persistência de Planos, Assinaturas, Entitlements e Grants implementada no banco de dados relacional (Fase 4 / Slice 005B).
+- **Interface Administrativa (UI do Control Plane)**: **Não implementada**.
 - **Fornecedor de Gateway de Pagamento**: *Status: Pending Decision* (Candidatos: Stripe, Asaas, Pagar.me).
-- **Provedor de Autenticação / Identidade**: *Status: Pending Decision*.
-- **Modelagem de Tabelas de Billing/Admin**: Planejada para a FASE 4 (Persistência e Multi-Tenancy) do roadmap.
+- **Provedor de Autenticação / Identidade**: *Better Auth* adotado (DEC-026 / ADR-008).
+

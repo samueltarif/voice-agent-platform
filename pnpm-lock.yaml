@@ -289,6 +289,12 @@ importers:
 
   packages/database:
     dependencies:
+      '@voice-agent/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@voice-agent/errors':
+        specifier: workspace:*
+        version: link:../errors
       drizzle-orm:
         specifier: ^0.45.3
         version: 0.45.3(@types/pg@8.23.1)(kysely@0.29.6)(pg@8.23.0)
