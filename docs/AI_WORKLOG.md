@@ -3846,3 +3846,68 @@ Criada suíte opt-in exclusiva para execução controlada no staging, garantindo
   - Slice 005C (Agent APIs & Internal Service Auth): **NÃO INICIADO**.
   - Slice 005D (Agent Studio UI): **NÃO INICIADO**.
 - **Pull Request**: Criado a partir de `chore/agent-staging-validation` apontando para `main`. **Permanece ABERTO e NÃO MERGEADO**.
+
+---
+
+## 23/09/2026 — PROMPT-005B-STAGING-CLOSE — Fixture Cleanup Hardening & PR #9 Merge Readiness
+
+### 1. Contexto e Revisão de Robustez
+Durante revisão externa da validação do Slice 005B no Neon Staging, foram identificados pontos de melhoria no isolamento e na observabilidade do teardown de fixtures em `packages/database/src/agent-domain.staging.test.ts`:
+1. **Marcador de Execução**: O `runId` anterior utilizava `Math.random()`, enquanto entidades com UUID eram geradas no PostgreSQL via `gen_random_uuid()`. Substituído pelo gerador criptográfico nativo do Node (`crypto.randomUUID()`) como identificador sintético inequívoco da execução.
+2. **Desacoplamento do Usuário Técnico**: No runner anterior, o cleanup de `user` estava condicionado a `createdOrgIds.length > 0`. Em um cenário de falha precoce antes da criação da primeira organização, a fixture `testUser` poderia ficar órfã.
+3. **Cleanup Fail-Visible**: Erros nas etapas de limpeza de fixtures eram apenas registrados via `console.error`, permitindo que um teardown incompleto passasse silenciosamente verde.
+4. **Verificação de Resíduos (Zero-Leftovers)**: A execução anterior executou o cleanup no caminho feliz, mas não continha verificação automatizada provando formalmente a inexistência de fixtures residuais após a conclusão. (Nota: não foi demonstrada existência de resíduos anteriores; a intervenção visa robustez preventiva e comprovação auditável).
+5. **Neon Hostname Guard**: O guardrail de host utilizava `hostname.includes('neon.tech')`, sendo agora endurecido para `parsed.hostname === 'neon.tech' || parsed.hostname.endsWith('.neon.tech')`. Registra-se a limitação formal de que a terminação de domínio comprova o provedor gerenciado Neon, mas não diferencia por si só staging vs production (o isolamento de staging decorre estritamente de `APP_ENV=staging`, `STAGING_SMOKE_TESTS=true` e do fato do banco de produção permanecer não provisionado).
+
+---
+
+### 2. Implementação do Hardening
+- **Importação Criptográfica**: `import { randomUUID } from 'node:crypto'` adicionado para gerar `runId` e compor slugs/códigos sintéticos exclusivos.
+- **Teardown por Classes com Acumulação de Erros**: O bloco `afterAll` foi reestruturado para tentar individualmente a remoção de cada classe de fixture (`audit_logs`, `agent_versions`, `agents`, `commercial_grants`, `subscriptions`, `entitlements`, `plans`, `organizations` e `user`), acumulando quaisquer exceções em um array `cleanupErrors` sem interromper as etapas subsequentes.
+- **Cleanup Incondicional de Usuário**: A remoção de `user` (`createdUserIds`) agora é executada independentemente de `createdOrgIds.length`.
+- **Verificação Automatizada Zero-Leftover**: Antes de encerrar o pool de conexões, queries diretas ao catálogo do Neon Staging inspecionam a contagem remanescente de todos os IDs rastreados nesta execução (`user`, `organizations`, `plans`, `agents`, `agent_versions`, `commercial_grants`, `subscriptions`, `audit_logs`). Se qualquer contagem for maior que zero, um erro de fixture residual é adicionado e propagado.
+- **Fechamento do Pool em `finally`**: O encerramento de conexões (`pool.end()`) é executado em bloco `finally`, garantindo desalocação de recursos mesmo sob falhas.
+- **Ajuste de Timeout para Operações Remotas em Nuvem**: Configurado timeout de 20.000ms no bloco `describeStaging` para prevenir timeouts espúrios ocasionados por latência WAN de round-trips e handshakes transacionais contra o proxy Neon Serverless.
+
+---
+
+### 3. Pre-Flight e Confirmação de Estado do Staging
+Executada verificação de pré-condições no Neon Staging via `.env.staging`:
+- `APP_ENV === "staging"`: Confirmado.
+- `STAGING_SMOKE_TESTS === "true"`: Confirmado.
+- Journal `drizzle.__drizzle_migrations`: exatamente 2 registros confirmados (`0000_dizzy_runaways` e `0001_numerous_eddie_brock`).
+- Schema: tabelas `agents` e `agent_versions` presentes e funcionais no catálogo.
+
+---
+
+### 4. Execução da Suíte Staging e Prova de Zero-Leftover
+- **Comando**: `pnpm test:staging`.
+- **Resultado `test:staging:db`**:
+  - `staging-connection.test.ts`: 4 testes aprovados.
+  - `staging-domain-integrity.test.ts`: 5 testes aprovados.
+  - `agent-domain.staging.test.ts`: 7 testes aprovados.
+- **Resultado `test:staging:web`**:
+  - `auth.staging.test.ts`: 2 testes aprovados.
+- **Contagem Consolidada Staging**: **4 test files passed, 18 tests passed, 0 failed (100% GREEN)**.
+- **Verificação de Fixtures**:
+  - Execução da query independente pós-teste contra a tabela `user` e `organizations` do Neon Staging: `{ remainingUsers: 0, remainingOrgs: 0 }`.
+  - **STAGING FIXTURE CLEANUP VERIFIED: ZERO LEFTOVERS**.
+
+---
+
+### 5. Execução da Suíte Local Padrão (`pnpm check`)
+Executada a verificação local padrão sem as variáveis de ambiente staging:
+- Testes Cloud: Automaticamente marcados como **SKIPPED** (zero chamadas remotas ao Neon).
+- `vitest run`: **15 test files passed, 4 skipped (93 passed, 18 skipped, 0 failed)**.
+- `turbo build`: 12 packages compilando com sucesso (Next.js production build concluído).
+- `check:architecture`: 100% de conformidade arquitetural.
+- `check:file-size`: 101 arquivos de lógica verificados, todos <= 180 linhas (zero adições a allowlist).
+- Exit code final: 0.
+
+---
+
+### 6. Isolamento e Prontidão para Merge
+- **Ambiente de Produção**: 100% INTOCADO / NÃO PROVISIONADO.
+- **Slices 005C e 005D**: NÃO INICIADOS.
+- **Pull Request #9**: Reauditado, limpo, mergeable, pronto para merge.
+
