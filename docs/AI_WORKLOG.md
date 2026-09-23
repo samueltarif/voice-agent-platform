@@ -3674,3 +3674,240 @@ Executado teste de migração em banco isolado temporário `voice_agent_migrator
 - **Slices 005C e 005D**: NÃO INICIADOS.
 - **PR #8**: Pronto para merge seguro e sincronização da branch `main`.
 
+---
+
+## 23/09/2026 — PROMPT-005B-STAGING-VALIDATION — Agent Persistence on Neon Staging
+
+### 1. Resumo Executivo e Contexto
+- **Objetivo**: Aplicar no ambiente Neon STAGING a migration incremental `0001_numerous_eddie_brock.sql` sobre a base 0000 previamente validada na Fase 4, executando auditoria física do schema e suíte de testes de integração na nuvem cobrindo o domínio de persistência do Agent Studio (Agent, AgentVersion, ciclo de vida, alocação de versão, cota `agents.max`, resolução comercial e isolamento multi-tenant).
+- **Ambiente de Destino**: Neon Cloud Managed PostgreSQL 16 (`sa-east-1` / São Paulo).
+- **Branch de Trabalho**: `chore/agent-staging-validation`.
+- **Base SHA**: `5299389860a7328ed6a21337b926a2dea23c4f77` (`origin/main` sincronizada após merge do PR #8).
+- **Classificação da Mudança**: ADDITIVE. Envolve a criação de 2 novos enums, 2 novas tabelas, índices e constraints de integridade, com zero DROP e zero ALTER destrutivo sobre tabelas pré-existentes. Não há rollback automático; não foi executada migração DOWN.
+
+---
+
+### 2. Validação de Segredos e Guardrails de Ambiente
+- **Arquivo de Configuração**: `.env.staging` (local, estritamente gitignored).
+- **Verificação Booleana de Segredos**: Confirmada a presença de todas as variáveis obrigatórias sem expor, imprimir, logar ou exibir connection strings, tokens ou senhas:
+  - `APP_ENV === "staging"`: Confirmado.
+  - `STAGING_SMOKE_TESTS === "true"`: Confirmado.
+  - `DATABASE_URL`: Presente (pooled runtime connection).
+  - `MIGRATION_DATABASE_URL`: Presente (direct migration connection).
+  - `BETTER_AUTH_SECRET`: Presente.
+  - `BETTER_AUTH_URL`: Presente.
+- **Fail-Closed**: Guardrail de ambiente ativo; qualquer execução com `APP_ENV=production` ou ausência de flags de staging é rejeitada imediatamente.
+
+---
+
+### 3. Pre-Flight do Neon Staging
+Antes de qualquer operação DDL, foram consultados metadados seguros no Neon Staging:
+- **Versão do PostgreSQL**: PostgreSQL 16 (confirmado).
+- **Catálogo de Tabelas Antes da Migração**:
+  - `to_regclass('public.agents') IS NULL`: Confirmado (tabela inexistente).
+  - `to_regclass('public.agent_versions') IS NULL`: Confirmado (tabela inexistente).
+- **Journal de Migrations Antes da Migração (`drizzle.__drizzle_migrations`)**:
+  - Exatamente 1 registro presente:
+    - Hash: `ac8e46d0ae36a730bbbb1477113f1db55666a3a7c7725802066d779a5c5ee2b8` (`0000_dizzy_runaways`, timestamp `1790160502093`).
+  - Migration `0001` comprovadamente ausente do catálogo remoto.
+
+---
+
+### 4. Aplicação da Migration e Repeat-Safe Migrator
+- **Runner Oficial**: Migrador versionado do Drizzle (`drizzle-orm/node-postgres/migrator`) invocado via `pnpm db:migrate:staging` sobre `MIGRATION_DATABASE_URL`.
+- **Execução 1 (Aplicação Incremental)**:
+  - Migration aplicada: `0001_numerous_eddie_brock.sql`.
+  - Exit code: 0.
+  - Resultado: Migration reconhecida e aplicada com sucesso.
+- **Auditoria do Journal Pós-Migração**:
+  - Tabela `drizzle.__drizzle_migrations` passou a conter exatamente 2 registros na ordem cronológica correta:
+    1. `0000_dizzy_runaways` (hash `ac8e46d0...`)
+    2. `0001_numerous_eddie_brock` (hash `e71d25f204d4ed2787b33dec55cef99c1f8c818240817c7935cf28eeadc02edc`, timestamp `1790186136584`).
+- **Execução 2 (Teste Repeat-Safe)**:
+  - Migrador executado novamente sobre o mesmo banco.
+  - Resultado: 0 novas migrations aplicadas, 0 erros, 0 DDL repetido.
+  - Classificação: **STAGING MIGRATOR REPEAT-SAFE** (garantido pelo controle transacional do journal Drizzle).
+
+---
+
+### 5. Auditoria Física do Schema no Neon Staging
+Inspecionado o catálogo físico do PostgreSQL 16 no Neon:
+1. **Enums de Domínio**:
+   - `agent_status`: `['ACTIVE', 'ARCHIVED']`.
+   - `agent_version_status`: `['DRAFT', 'PUBLISHED', 'ARCHIVED']`.
+2. **Tabela `agents`**:
+   - Colunas: `id` (uuid, PK), `organization_id` (uuid, NOT NULL), `name` (text, NOT NULL), `slug` (text, NOT NULL), `status` (`agent_status`, default `ACTIVE`), `next_version_number` (`integer NOT NULL DEFAULT 1`), `created_at` (timestamptz), `updated_at` (timestamptz).
+   - Constraints:
+     - Check: `agents_next_version_number_chk (CHECK (next_version_number > 0))`.
+     - Unicidade Composta: `agents_id_org_id_unique UNIQUE(id, organization_id)`.
+     - Unicidade Slug por Tenant: `agents_org_slug_unique UNIQUE(organization_id, slug)`.
+   - Índices: `agents_org_status_idx (organization_id, status)`.
+3. **Tabela `agent_versions`**:
+   - Colunas: `id` (uuid, PK), `agent_id` (uuid, NOT NULL), `organization_id` (uuid, NOT NULL), `version_number` (integer, NOT NULL), `status` (`agent_version_status`, default `DRAFT`), `configuration_schema_version` (integer, NOT NULL), `configuration` (jsonb, NOT NULL), `changelog` (text), `created_by` (text, NOT NULL), `published_at` (timestamptz), `published_by` (text), `created_at` (timestamptz), `updated_at` (timestamptz).
+   - Check Constraints:
+     - `agent_versions_version_number_chk (CHECK (version_number > 0))`.
+     - `agent_versions_config_schema_version_chk (CHECK (configuration_schema_version > 0))`.
+     - `agent_versions_config_json_object_chk (CHECK (jsonb_typeof(configuration) = 'object'))`.
+     - `agent_versions_publication_metadata_chk (CHECK ((status = 'PUBLISHED' AND published_at IS NOT NULL AND published_by IS NOT NULL) OR (status <> 'PUBLISHED')))`.
+   - Foreign Keys (todas `ON DELETE RESTRICT`):
+     - FK Composta Multi-Tenant: `agent_versions_agent_org_fk (agent_id, organization_id) REFERENCES agents(id, organization_id)`.
+     - FK de Auditoria Usuário: `agent_versions_created_by_user_id_fk (created_by) REFERENCES user(id)`.
+     - FK de Publicação Usuário: `agent_versions_published_by_user_id_fk (published_by) REFERENCES user(id)`.
+   - Índices Parciais Únicos:
+     - Draft único por agente: `agent_versions_single_draft_uidx UNIQUE(agent_id) WHERE status = 'DRAFT'`.
+     - Publicada única por agente: `agent_versions_single_published_uidx UNIQUE(agent_id) WHERE status = 'PUBLISHED'`.
+     - Unicidade de número por agente: `agent_versions_agent_id_version_number_unique UNIQUE(agent_id, version_number)`.
+
+---
+
+### 6. Suíte de Testes no Neon Staging (`packages/database/src/agent-domain.staging.test.ts`)
+Criada suíte opt-in exclusiva para execução controlada no staging, garantindo isolamento total por fixture sintética:
+- **Estratégia de Fixtures**: Gerados UUIDs aleatórios exclusivos por rodada de teste (`v4()`), entidades prefixadas sinteticamente (`[STAGING-TEST-...]`), zero reutilização de tenants reais e zero operações `TRUNCATE`/`DROP`. Cleanup rigoroso em blocos `finally`/`afterAll` respeitando a árvore de FKs.
+- **Cenários Validados no Neon Staging (7 testes)**:
+  1. *Schema & Tenant Integrity Constraints*:
+     - Rejeição de slug duplicado no mesmo tenant (`unique constraint violation`).
+     - Aceitação do mesmo slug em organizações distintas (isolamento multi-tenant).
+     - Rejeição de `AgentVersion` vinculada com `organization_id` divergente do Agent pai (FK composta).
+     - Rejeição de inserção direta de segundo DRAFT (índice parcial).
+     - Rejeição de inserção direta de segunda versão PUBLISHED (índice parcial).
+     - Rejeição de `configuration_schema_version <= 0`.
+     - Rejeição de `configuration` que não seja objeto JSON (ex.: array).
+     - Rejeição de status PUBLISHED sem metadados de publicação (`published_at`/`published_by`).
+  2. *Durable Version Allocation*:
+     - Criação do agente -> inicialização de `next_version_number = 1`.
+     - Criação do Draft v1 -> `next_version_number` avança duravelmente para 2.
+     - Descarte do Draft v1 -> `next_version_number` permanece 2.
+     - Criação de novo Draft -> recebe versão 2 (número 1 nunca reutilizado).
+  3. *Concurrency & Quota `agents.max`*:
+     - Provisionamento de plano comercial com quota `agents.max = 1`.
+     - Disparo de duas criações concorrentes do aggregate Agent na mesma organização via serviço de ciclo de vida.
+     - Resultado: exatamente 1 agente ACTIVE criado com sucesso; a segunda chamada concorrente falhou de forma controlada com `EntitlementExceededError`.
+  4. *Commercial Entitlement Resolution*:
+     - Tenant com assinatura ACTIVE elegível -> concede criação respeitando `agents.max`.
+     - Tenant com CommercialGrant ativo específico -> grant ativo sobrepõe limites de plano.
+     - Tenant com assinatura PAST_DUE sem grant -> nega acesso imediatamente.
+     - Tenant com assinatura PAST_DUE com active feature grant -> concede acesso por concessão explícita.
+     - Tenant com dois grants ativos conflitantes no mesmo nível -> falha fechada com `CommercialResolutionConflictError`.
+  5. *Atomic Publication Lifecycle*:
+     - Criação de Agent e Draft v1.
+     - Publicação de v1 via `AgentPublicationService` -> v1 transiciona para PUBLISHED com `published_at` e `published_by` gravados.
+     - Criação de Draft v2 -> `next_version_number` avança para 3.
+     - Publicação de v2 -> v1 é automaticamente arquivada (ARCHIVED) e v2 torna-se a única PUBLISHED.
+  6. *Transactional Rollback*:
+     - Injeção de transação abortada durante criação de draft no Neon Staging.
+     - Comprovado que o rollback do PostgreSQL 16 restaura `next_version_number` para o valor original sem gaps numéricos acidentais.
+  7. *Tenant Read Isolation*:
+     - Criação de duas organizações sintéticas A e B com agentes próprios.
+     - Leitura via `AgentRepository` no escopo da Organização A retorna estritamente os agentes de A; agentes da Organização B jamais são acessíveis.
+
+---
+
+### 7. Verificação de Conexão e TLS
+- **Status TLS**: `PREVIOUSLY VERIFIED IN 004B2 / CONNECTION LAYER UNCHANGED`.
+- Conexão externa encriptada mantida com o Neon Cloud Proxy via biblioteca `pg` (Node.js) utilizando certificados de CA confiáveis e SNI.
+
+---
+
+### 8. Resultados da Execução de Testes
+1. **Suíte Staging (`pnpm test:staging`)**:
+   - `packages/database`: 3 test files, 16 testes aprovados:
+     - `staging-connection.test.ts`: 4 testes (conexão pool, direta, SSL, metadados PG16).
+     - `staging-domain-integrity.test.ts`: 5 testes (integridade de auth, tenant isolation Fase 4).
+     - `agent-domain.staging.test.ts`: 7 testes (schema, alocação, concorrência, cota, lifecycle, rollback, isolamento).
+   - `apps/web`: 1 test file, 2 testes aprovados (`auth.staging.test.ts`).
+   - **Total Staging**: **4 test files passed, 18 tests passed, 0 failed (100% GREEN)**.
+2. **Suíte Local Padrão (`pnpm check` sem ambiente staging)**:
+   - Os testes de staging cloud foram automaticamente identificados como SKIPPED na ausência de `APP_ENV=staging`.
+   - `vitest run`: **15 test files passed, 4 skipped (93 passed, 18 skipped, 0 failed)**.
+   - `pnpm format:check`: 100% compliant.
+   - `pnpm lint`: 0 erros, 0 avisos.
+   - `pnpm typecheck`: 12 packages compilando com zero erros.
+   - `pnpm build`: monorepo compilando com sucesso.
+   - `pnpm check:architecture`: 100% compliant.
+   - `pnpm check:file-size`: 101 arquivos de lógica verificados, todos <= 180 linhas (zero adições a allowlist).
+   - Exit code final: 0.
+
+---
+
+### 9. Arquivos Alterados
+- `package.json`: inclusão do novo arquivo de teste no script `test:staging:db`.
+- `packages/database/package.json`: inclusão do novo arquivo de teste no script `test:staging`.
+- `packages/database/src/agent-domain.staging.test.ts`: suíte de integração cloud no Neon staging.
+- `docs/DATABASE.md`: status de migration atualizado com `0001` aplicado no Neon Staging.
+- `docs/DEPLOYMENT.md`: status de banco staging atualizado para `0000 + 0001` aplicado e validado.
+- `docs/AGENT_STUDIO.md`: status de persistência do Agent Studio atualizado para `STAGING MIGRATED / STAGING INTEGRATION TESTED`.
+- `docs/AI_WORKLOG.md`: este registro append-only.
+
+---
+
+### 10. Isolamento de Produção e Próximos Passos
+- **Ambiente de Produção**: 100% INTOCADO / NÃO PROVISIONADO. Nenhuma credencial de produção existe no repositório ou foi utilizada.
+- **Slices Futuros**:
+  - Slice 005C (Agent APIs & Internal Service Auth): **NÃO INICIADO**.
+  - Slice 005D (Agent Studio UI): **NÃO INICIADO**.
+- **Pull Request**: Criado a partir de `chore/agent-staging-validation` apontando para `main`. **Permanece ABERTO e NÃO MERGEADO**.
+
+---
+
+## 23/09/2026 — PROMPT-005B-STAGING-CLOSE — Fixture Cleanup Hardening & PR #9 Merge Readiness
+
+### 1. Contexto e Revisão de Robustez
+Durante revisão externa da validação do Slice 005B no Neon Staging, foram identificados pontos de melhoria no isolamento e na observabilidade do teardown de fixtures em `packages/database/src/agent-domain.staging.test.ts`:
+1. **Marcador de Execução**: O `runId` anterior utilizava `Math.random()`, enquanto entidades com UUID eram geradas no PostgreSQL via `gen_random_uuid()`. Substituído pelo gerador criptográfico nativo do Node (`crypto.randomUUID()`) como identificador sintético inequívoco da execução.
+2. **Desacoplamento do Usuário Técnico**: No runner anterior, o cleanup de `user` estava condicionado a `createdOrgIds.length > 0`. Em um cenário de falha precoce antes da criação da primeira organização, a fixture `testUser` poderia ficar órfã.
+3. **Cleanup Fail-Visible**: Erros nas etapas de limpeza de fixtures eram apenas registrados via `console.error`, permitindo que um teardown incompleto passasse silenciosamente verde.
+4. **Verificação de Resíduos (Zero-Leftovers)**: A execução anterior executou o cleanup no caminho feliz, mas não continha verificação automatizada provando formalmente a inexistência de fixtures residuais após a conclusão. (Nota: não foi demonstrada existência de resíduos anteriores; a intervenção visa robustez preventiva e comprovação auditável).
+5. **Neon Hostname Guard**: O guardrail de host utilizava `hostname.includes('neon.tech')`, sendo agora endurecido para `parsed.hostname === 'neon.tech' || parsed.hostname.endsWith('.neon.tech')`. Registra-se a limitação formal de que a terminação de domínio comprova o provedor gerenciado Neon, mas não diferencia por si só staging vs production (o isolamento de staging decorre estritamente de `APP_ENV=staging`, `STAGING_SMOKE_TESTS=true` e do fato do banco de produção permanecer não provisionado).
+
+---
+
+### 2. Implementação do Hardening
+- **Importação Criptográfica**: `import { randomUUID } from 'node:crypto'` adicionado para gerar `runId` e compor slugs/códigos sintéticos exclusivos.
+- **Teardown por Classes com Acumulação de Erros**: O bloco `afterAll` foi reestruturado para tentar individualmente a remoção de cada classe de fixture (`audit_logs`, `agent_versions`, `agents`, `commercial_grants`, `subscriptions`, `entitlements`, `plans`, `organizations` e `user`), acumulando quaisquer exceções em um array `cleanupErrors` sem interromper as etapas subsequentes.
+- **Cleanup Incondicional de Usuário**: A remoção de `user` (`createdUserIds`) agora é executada independentemente de `createdOrgIds.length`.
+- **Verificação Automatizada Zero-Leftover**: Antes de encerrar o pool de conexões, queries diretas ao catálogo do Neon Staging inspecionam a contagem remanescente de todos os IDs rastreados nesta execução (`user`, `organizations`, `plans`, `agents`, `agent_versions`, `commercial_grants`, `subscriptions`, `audit_logs`). Se qualquer contagem for maior que zero, um erro de fixture residual é adicionado e propagado.
+- **Fechamento do Pool em `finally`**: O encerramento de conexões (`pool.end()`) é executado em bloco `finally`, garantindo desalocação de recursos mesmo sob falhas.
+- **Ajuste de Timeout para Operações Remotas em Nuvem**: Configurado timeout de 20.000ms no bloco `describeStaging` para prevenir timeouts espúrios ocasionados por latência WAN de round-trips e handshakes transacionais contra o proxy Neon Serverless.
+
+---
+
+### 3. Pre-Flight e Confirmação de Estado do Staging
+Executada verificação de pré-condições no Neon Staging via `.env.staging`:
+- `APP_ENV === "staging"`: Confirmado.
+- `STAGING_SMOKE_TESTS === "true"`: Confirmado.
+- Journal `drizzle.__drizzle_migrations`: exatamente 2 registros confirmados (`0000_dizzy_runaways` e `0001_numerous_eddie_brock`).
+- Schema: tabelas `agents` e `agent_versions` presentes e funcionais no catálogo.
+
+---
+
+### 4. Execução da Suíte Staging e Prova de Zero-Leftover
+- **Comando**: `pnpm test:staging`.
+- **Resultado `test:staging:db`**:
+  - `staging-connection.test.ts`: 4 testes aprovados.
+  - `staging-domain-integrity.test.ts`: 5 testes aprovados.
+  - `agent-domain.staging.test.ts`: 7 testes aprovados.
+- **Resultado `test:staging:web`**:
+  - `auth.staging.test.ts`: 2 testes aprovados.
+- **Contagem Consolidada Staging**: **4 test files passed, 18 tests passed, 0 failed (100% GREEN)**.
+- **Verificação de Fixtures**:
+  - Execução da query independente pós-teste contra a tabela `user` e `organizations` do Neon Staging: `{ remainingUsers: 0, remainingOrgs: 0 }`.
+  - **STAGING FIXTURE CLEANUP VERIFIED: ZERO LEFTOVERS**.
+
+---
+
+### 5. Execução da Suíte Local Padrão (`pnpm check`)
+Executada a verificação local padrão sem as variáveis de ambiente staging:
+- Testes Cloud: Automaticamente marcados como **SKIPPED** (zero chamadas remotas ao Neon).
+- `vitest run`: **15 test files passed, 4 skipped (93 passed, 18 skipped, 0 failed)**.
+- `turbo build`: 12 packages compilando com sucesso (Next.js production build concluído).
+- `check:architecture`: 100% de conformidade arquitetural.
+- `check:file-size`: 101 arquivos de lógica verificados, todos <= 180 linhas (zero adições a allowlist).
+- Exit code final: 0.
+
+---
+
+### 6. Isolamento e Prontidão para Merge
+- **Ambiente de Produção**: 100% INTOCADO / NÃO PROVISIONADO.
+- **Slices 005C e 005D**: NÃO INICIADOS.
+- **Pull Request #9**: Reauditado, limpo, mergeable, pronto para merge.
+

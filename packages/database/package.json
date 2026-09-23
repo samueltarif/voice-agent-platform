@@ -21,7 +21,7 @@
     "db:check": "drizzle-kit check",
     "db:migrate": "drizzle-kit migrate",
     "db:migrate:staging": "node --env-file=../../.env.staging ./node_modules/drizzle-kit/bin.cjs migrate",
-    "test:staging": "node --env-file=../../.env.staging ../../node_modules/vitest/vitest.mjs run src/staging-connection.test.ts src/staging-domain-integrity.test.ts"
+    "test:staging": "node --env-file=../../.env.staging ../../node_modules/vitest/vitest.mjs run src/staging-connection.test.ts src/staging-domain-integrity.test.ts src/agent-domain.staging.test.ts"
   },
   "dependencies": {
     "@voice-agent/contracts": "workspace:*",

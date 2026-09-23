@@ -8,7 +8,7 @@ Este documento estabelece as regras estritas de modelagem, migração, acesso e 
 
 ## 1. Status de Seleção de Tecnologias
 
-- **Motor de Banco Relacional**: **PostgreSQL 16** (selected stable major; Aprovado em DEC-026 / ADR-008. Local: Docker Compose `postgres:16-alpine`; Cloud Staging: Neon Serverless Postgres em `aws-sa-east-1` / São Paulo. **CLOUD PARITY VALIDATED FOR PERSISTENCE/AUTH FOUNDATION** — 23/09/2026).
+- **Motor de Banco Relacional**: **PostgreSQL 16** (selected stable major; Aprovado em DEC-026 / ADR-008. Local: Docker Compose `postgres:16-alpine`; Cloud Staging: Neon Serverless Postgres em `aws-sa-east-1` / São Paulo. **CLOUD PARITY VALIDATED FOR PERSISTENCE/AUTH FOUNDATION AND AGENT DOMAIN PERSISTENCE** — Migration `0001_numerous_eddie_brock.sql` APPLIED & INTEGRATION TESTED on Neon Staging — 23/09/2026).
 - **Camada de Persistência / ORM**: **Drizzle ORM + drizzle-kit** (Aprovado em DEC-026 / ADR-008).
 - **Provedor de Identidade e Sessão**: **Better Auth** (Aprovado em DEC-026; exclusivamente Identity + Session, plugin `organization` desabilitado).
 - **Driver de Conexão**: **node-postgres (`pg`)** padrão agnóstico (sem lock-in a SDK proprietário).
