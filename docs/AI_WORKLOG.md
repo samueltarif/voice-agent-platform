@@ -3228,3 +3228,174 @@ Nenhum detalhe técnico ainda não resolvido foi congelado:
 - **Zero código de API**: Nenhum endpoint, controller ou rota implementado.
 - **Slice 005B**: **NÃO INICIADO**. Aguarda tarefa posterior dedicada.
 
+---
+
+## Entrada: 2026-09-23 — PROMPT-005B — Agent Domain Core & Local Database Persistence
+
+### Objetivo
+Implementar localmente o primeiro slice real do Agent Studio aprovado em DEC-028 / ADR-009:
+- contratos e schema validation do `AgentConfigurationSnapshot` v1 com Zod;
+- agregados `Agent` e `AgentVersion`;
+- schemas Drizzle e migration incremental versionada;
+- validação de constraints físicas e integridade referencial multi-tenant no PostgreSQL 16 local;
+- auditoria canônica de precedência de entitlements (`agents.max`) e regularidade comercial de publicação conforme seções 20, 21 e 47.
+
+Esta tarefa é estritamente **LOCAL-FIRST**: zero alterações no Neon Staging, sem carregamento de `.env.staging`, sem endpoints HTTP e sem Hono.
+
+---
+
+### 1. Estado Inicial do Git e Canonical Doc Pre-Flight
+- **Branch base**: `main` sincronizada contendo o merge do PR #7 (`c8e5d698024f22a3d1881e357d69c33c37c5eea0`).
+- **Branch de trabalho**: `feature/agent-domain-persistence` criada a partir de `main`.
+- **Pre-flight de documentos canônicos**:
+  - `ARCHITECTURE.md` (seção 5.1): corrigida declaração obsoleta de "PostgreSQL ... Pending Decision" para fatos vigentes (PostgreSQL 16, Drizzle ORM + drizzle-kit, Neon Staging, produção não provisionada, reversibilidade não universal).
+  - `FOUNDATION_MASTER.md`: alinhamento na tabela de decisões canônicas.
+  - Commit intermediário: `e1c9b0b` (*docs: align canonical docs on database and frontend decisions*).
+
+---
+
+### 2. Supply Chain e Instalação Neutra do Zod
+- **Pacote**: `zod@^3.24.2` instalado exclusivamente em `packages/contracts` (`zod@3.25.76` resolvido).
+- **Supply chain review**:
+  - `packages/contracts/package.json` atualizado com dependência `zod`.
+  - `pnpm-lock.yaml` atualizado.
+  - `pnpm-workspace.yaml`: inalterado, zero adições automáticas a `allowBuilds` / `onlyBuiltDependencies`.
+  - Nenhum build script bloqueado pelo pnpm.
+  - `packages/contracts` permanece 100% agnóstico a banco, Hono, Better Auth e SDKs externos.
+
+---
+
+### 3. Contratos de Domínio do Agent Studio (`packages/contracts`)
+Criados módulos pequenos e coesos em `packages/contracts/src/agents/`:
+1. `agent-status.ts`: enum e Zod schema para `AgentStatus` (`ACTIVE`, `ARCHIVED`).
+2. `agent-version-status.ts`: enum e Zod schema para `AgentVersionStatus` (`DRAFT`, `PUBLISHED`, `ARCHIVED`).
+3. `agent-configuration-v1.ts`:
+   - `AGENT_CONFIGURATION_SCHEMA_VERSION_V1 = 1` explícito.
+   - Schema Zod estrito (`.strict()`) contemplando Persona, Idioma/Locale (`pt-BR`, `en-US`, `es-ES`), Regras determinísticas e conversacionais, Playbook e Exemplos de conversação.
+   - Rejeição estrita de campos desconhecidos e capacidades diferidas (tools, knowledge IDs, voiceProfileKey, pitch, etc.).
+   - Tipos TypeScript inferidos via `z.infer` sem duplicação manual.
+4. `agent-contracts.ts`: DTOs e validações Zod para operações (`createAgent`, `createDraft`, `updateDraft`, `publishDraft`, `discardDraft`, `archiveAgent`, `reactivateAgent`) com validação determinística de `slug`.
+5. `agent-commercial-policy.ts`: separação explícita de interfaces/ports para verificação comercial (`CommercialPublicationPolicy`) e resolução de cotas (`EntitlementResolver`), desacoplando a camada de domínio das regras comerciais pendentes.
+6. `agent-configuration-v1.test.ts`: 8 testes unitários cobrindo aceitação de snapshot válido, rejeição de chaves desconhecidas em múltiplos níveis, validação de tone/locale, obrigatoriedade de campos e rejeição de tools/knowledge. (10 testes no pacote, todos verdes).
+
+---
+
+### 4. Schemas Drizzle e Migration Incremental (`packages/database`)
+1. **Modelagem Relacional (`packages/database/src/schema/agents.ts`)**:
+   - `agent_status` enum PostgreSQL (`ACTIVE`, `ARCHIVED`).
+   - `agent_version_status` enum PostgreSQL (`DRAFT`, `PUBLISHED`, `ARCHIVED`).
+   - Tabela `agents`: `id` (UUID PK), `organization_id` (UUID FK `organizations.id` `ON DELETE RESTRICT`), `name`, `slug`, `status` (`ACTIVE` default), timestamps.
+     - `UNIQUE(organization_id, slug)` (unicidade por tenant).
+     - `UNIQUE(id, organization_id)` (chave composta para suportar integridade referencial da FK composta).
+     - `INDEX(organization_id, status)`.
+   - Tabela `agent_versions`: `id` (UUID PK), `agent_id` (UUID), `organization_id` (UUID), `version_number` (int NOT NULL), `status` (`DRAFT` default), `configuration_schema_version` (int NOT NULL sem default), `configuration` (JSONB NOT NULL), `changelog`, `created_by` (FK `user.id` `ON DELETE RESTRICT`), `published_at`, `published_by` (FK `user.id` `ON DELETE RESTRICT`), timestamps.
+     - Composite Foreign Key: `(agent_id, organization_id) REFERENCES agents(id, organization_id) ON DELETE RESTRICT`.
+     - `UNIQUE(agent_id, version_number)`.
+     - Partial Unique Index: `(agent_id) WHERE status = 'DRAFT'` (Single Active Draft).
+     - Partial Unique Index: `(agent_id) WHERE status = 'PUBLISHED'` (Single Published Version / Fonte Única da Verdade).
+     - Check: `version_number > 0`.
+     - Check: `configuration_schema_version > 0`.
+     - Check: `jsonb_typeof(configuration) = 'object'`.
+     - Check: consistência de metadados de publicação:
+       `(status = 'DRAFT' AND published_at IS NULL AND published_by IS NULL) OR (status IN ('PUBLISHED', 'ARCHIVED') AND published_at IS NOT NULL AND published_by IS NOT NULL)`.
+2. **Geração e Inspeção da Migration**:
+   - Comando executado: `pnpm --filter @voice-agent/database db:generate`.
+   - Arquivo gerado: `packages/database/src/migrations/0001_wooden_risque.sql`.
+   - Investigação de diff: detectada tentativa inicial de drop/add em `entitlements_value_integrity_chk` decorrente de quebra de linhas na template string SQL em `commercial.ts` em relação ao snapshot 0000; ajustada formatação em `commercial.ts` e regenerado.
+   - Inspeção linha por linha confirmada:
+     - 2 enums novos (`agent_status`, `agent_version_status`);
+     - 2 tabelas novas (`agents`, `agent_versions`);
+     - Foreign keys e composite FK com `ON DELETE RESTRICT`;
+     - 2 índices parciais únicos;
+     - 4 restrições `CHECK`;
+     - ZERO drops;
+     - ZERO alterações em tabelas de autenticação ou tabelas anteriores.
+3. **Validação de Dois Caminhos de Migração (Local Docker Postgres 16)**:
+   - **Caminho A (Upgrade Incremental)**: banco local existente em `0000` migrado com sucesso via `drizzle-kit migrate`.
+   - **Caminho B (Fresh Database)**: banco temporário isolado `voice_agent_fresh_test` criado e migrado do zero (`0000` + `0001`); ambas as migrations aplicadas com sucesso e banco temporário descartado.
+
+---
+
+### 5. Erros de Domínio (`packages/errors`)
+Criado `packages/errors/src/domain-errors.ts`:
+- `InvalidStateTransitionError` (`409`, `INVALID_STATE_TRANSITION`)
+- `ConflictError` (`409`, `CONFLICT`)
+- `EntitlementExceededError` (`403`, `ENTITLEMENT_EXCEEDED`)
+
+---
+
+### 6. Testes de Integração PostgreSQL Real (15 Invariantes Físicas)
+Executados diretamente contra o contêiner Docker `postgres:16-alpine` em `packages/database`:
+- `agent-schema-constraints.integration.test.ts` (11 testes):
+  1. Slug duplicado na mesma organização rejeitado;
+  2. Mesmo slug em organizações diferentes permitido;
+  3. FK composta impede `agent_version` referenciar Agent da Org A com `organization_id` da Org B;
+  4. `version_number <= 0` rejeitado por CHECK;
+  5. `configuration_schema_version <= 0` rejeitado por CHECK;
+  6. `configuration` não-objeto rejeitado por CHECK `jsonb_typeof`;
+  7. Segundo DRAFT do mesmo Agent rejeitado pelo índice parcial único;
+  8. Segunda versão PUBLISHED do mesmo Agent rejeitada pelo índice parcial único;
+  9. DRAFT com `published_at/by` preenchido rejeitado por CHECK;
+  10. PUBLISHED sem `published_at/by` rejeitado por CHECK;
+  11. ARCHIVED sem metadados históricos de publicação rejeitado por CHECK.
+- `agent-referential-integrity.integration.test.ts` (4 testes):
+  12. Deleção de Organization com Agent bloqueada por `ON DELETE RESTRICT`;
+  13. Deleção de Agent com versions bloqueada por `ON DELETE RESTRICT`;
+  14. Deleção de User referenciado por `created_by` bloqueada por `ON DELETE RESTRICT`;
+  15. Predicado de tenant impede vazamento de Agents entre organizações.
+- **Resultado dos 15 testes de invariantes**: 15 passed, 0 failed.
+
+---
+
+### 7. Auditoria de Precedência de Entitlements e Regularidade Comercial (Seções 20, 21 e 47)
+Em estrita conformidade com as seções 20 e 21 do PROMPT-005B, foi realizada a auditoria prévia nas entidades `plans`, `entitlements`, `subscriptions`, `commercial_grants`, `CommercialRepository` e nos documentos `ADR-008`, `ADR-009`, `PLATFORM_CONTROL_PLANE.md` e `DECISIONS_LOG.md`:
+
+1. **Ausência de Resolver Existente**:
+   - `CommercialRepository` possui apenas operações pontuais de inserção e busca por ID/status (`findActiveSubscription`, `listCommercialGrants`, `listEntitlementsByPlan`).
+   - Não existe no monorepo nenhum serviço ou query que resolva de forma combinada o entitlement efetivo de uma organização a partir do banco de dados.
+   - Em `tenant-isolation.test.ts`, existe apenas uma função auxiliar unitária isolada `evaluateEntitlement({ grantedOverride, numericLimit, booleanValue })` para teste de lógica pura de override sobre valor numérico.
+
+2. **Ambiguidade Canônica de Precedência (Seção 20)**:
+   - A tabela `commercial_grants` possui dois modos de concessão (`commercial_grants_effect_chk`): concessão de um plano completo (`plan_id`) OU concessão de override pontual (`feature_key` + `override_value`).
+   - Não está definido canonicamente em nenhum documento aceito:
+     a) Qual a precedência se uma organização possuir uma assinatura ativa para o Plano A (ex: `agents.max = 2`) e simultaneamente uma `commercial_grant` ativa apontando para o Plano B (ex: `agents.max = 5`);
+     b) Se múltiplos `commercial_grants` ativos com períodos sobrepostos competem pelo maior valor (*max wins*), pela concessão mais recente (*latest wins*), ou se concessão manual sempre sobrepõe assinatura (*grant always wins*);
+     c) Como os status de `subscription_status` (`TRIALING`, `ACTIVE`, `PAST_DUE`, `SUSPENDED`, `CANCELED`, `EXPIRED`) e modos de faturamento (`SELF_SERVICE`, `MANUAL`, `COMPLIMENTARY`) impactam a concessão de entitlements (ex: assinatura `TRIALING` concede `agents.max`? `PAST_DUE` congela a criação de novos agentes ou permite até o limite?).
+
+3. **Ambiguidade Canônica de Elegibilidade para Publicação (Seção 21)**:
+   - O ADR-009 exige verificar regularidade comercial antes de promover uma versão a `PUBLISHED`.
+   - Não está definido canonicamente quais status habilitam a publicação: se apenas `ACTIVE`, ou se `TRIALING`, `COMPLIMENTARY` e contas com `CommercialGrant` ativo também autorizam a publicação de novas versões.
+   - Conforme instrução da Seção 21, a publicação foi separada em uma porta explícita (`CommercialPublicationPolicy`), evitando hardcoding arbitrário de `status === 'ACTIVE'`.
+
+4. **Acionamento da Condição de Parada (Stop Condition — Seções 20, 21 e 47)**:
+   - A Seção 20 instrui expressamente:
+     > *"Se a precedência NÃO estiver definida: PARAR. Reportar: 'agents.max cannot be implemented safely because commercial entitlement precedence is not canonically defined' e mostrar exatamente a ambiguidade. NÃO inventar 'grant always wins', 'max wins' etc."*
+   - A Seção 21 instrui expressamente:
+     > *"separar a publicação em uma policy/port explícita e PARAR antes de assumir semântica comercial."*
+   - A Seção 47 define como Stop Condition mandatória:
+     > *"PARAR e pedir humano somente se: ... entitlement precedence não estiver canonicamente definida; commercial publish eligibility não estiver canonicamente definida;"*
+
+Portanto, o trabalho neste slice foi pausado exatamente nesta fronteira conceitual para alinhamento com o operador humano antes da implementação dos métodos de repository que dependem dessas regras de negócio.
+
+---
+
+### 8. Métricas de Qualidade e Conformidade
+- **Testes Automatizados**:
+  - Testes totais da suíte: 57 passed, 11 skipped (testes cloud do Neon Staging, isolados intencionalmente).
+  - Test Files: 12 passed, 3 skipped.
+  - Zero testes chamando APIs pagas ou provedores externos.
+- **Checagens Estáticas**:
+  - `pnpm format:check`: 100% compliant.
+  - `pnpm lint`: 0 erros, 0 avisos.
+  - `pnpm typecheck`: 12 packages compilando com zero erros.
+  - `pnpm check:architecture`: todas as barreiras arquiteturais respeitadas.
+  - `pnpm check:file-size`: 90 arquivos verificados; todos os arquivos de lógica <= 175 linhas (teto máximo 180 linhas respeitado sem adições à allowlist).
+- **Isolamento de Staging**:
+  - Neon Staging: **100% INTOCADO**.
+  - `.env.staging`: NÃO carregado.
+  - Testes de staging: NÃO executados.
+- **Slices Seguintes**:
+  - Slice 005C: **NÃO INICIADO**.
+  - Slice 005D: **NÃO INICIADO**.
+
+
