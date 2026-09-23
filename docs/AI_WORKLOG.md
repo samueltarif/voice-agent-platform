@@ -2571,4 +2571,64 @@ Substituição de `CASCADE` e `SET NULL` indiscriminados por `ON DELETE RESTRICT
 - [apps/web/next.config.mjs](file:///d:/voice-agent-platform/apps/web/next.config.mjs) (Configuração documentada de `extensionAlias` para TypeScript NodeNext)
 - [AGENTS.md](file:///d:/voice-agent-platform/AGENTS.md) (Guardrails reforçados de segurança e isolamento de logs)
 
+---
+
+## PROMPT-004B1-CLOSE — Traceability and Roadmap Alignment
+
+- **Data/Hora**: 2026-09-23T08:45:00-03:00
+- **Branch**: `feature/persistence-auth-foundation`
+- **Commit Base Observado (REVIEW-FIX)**: `2e1364a fix: harden persistence integrity and auth reproducibility`
+- **Push Remoto do REVIEW-FIX**: Concluído para `origin/feature/persistence-auth-foundation`
+- **Pull Request**: PR #5 (`feature/persistence-auth-foundation` -> `main`)
+- **Working Tree**: Clean antes do alinhamento documental
+
+### 1. Correção do Sequenciamento: Fase 4B2 vs Fase 5
+
+- **Inconsistência Identificada**: Menções anteriores na documentação recente referiam-se à próxima etapa como *"Fase 4B2 — Agent Studio / Agent Domain Persistence"*.
+- **Alinhamento com o Roadmap (`ROADMAP.md`)**:
+  - **Fase 4**: Persistência, autenticação e multi-tenancy.
+  - **PROMPT-004B2 (Próxima Etapa da Fase 4)**: *Neon Staging Provisioning & Persistence Validation*.
+    - Escopo futuro exclusivo: provisionar primeiro managed PostgreSQL no Neon (staging); validar compatibilidade de versão estável do PostgreSQL; configurar connection string e secrets de staging de forma segura; aplicar migrations versionadas; validar Better Auth em nuvem; validar Repositories e isolamento de tenants; validar connection pooling e TLS em staging.
+    - **Sem Agent Studio**.
+  - **Fase 5 (Etapa Futura)**: *Domínios base + Agent Studio*.
+    - A modelagem, persistência, interface visual, playbooks e ferramentas do **Agent Studio** pertencem formal e exclusivamente à **FASE 5**, conforme estabelecido no roadmap arquitetural.
+- **Status das Próximas Etapas**:
+  - `PROMPT-004B2 NÃO INICIADO.`
+  - `FASE 5 NÃO INICIADA.`
+
+### 2. Evidência de Validação Pré-Merge Reobservada
+
+- **Prettier**: 100% dos arquivos formatados em conformidade.
+- **ESLint**: 0 violações de lint.
+- **TypeScript**: 12/12 pacotes verificados com sucesso (`tsc --noEmit`).
+- **Vitest**: **9 arquivos de teste, 34 testes passando** (duração 29.66s):
+  - 11 testes de integração revalidados e passando:
+    - 9 testes em `packages/database/src/postgres-integration.test.ts` (PostgreSQL local Docker: enums, `organizationId` isolation, partial unique index, check constraints, `ON DELETE RESTRICT`).
+    - 2 testes em `apps/web/src/lib/auth/auth.test.ts` (Better Auth local integration: configuração, persistência de credenciais, login email/senha).
+- **Turborepo Build**: 12/12 pacotes construídos com sucesso (incluindo Next.js App Router).
+- **AST Architecture Check**: 100% de conformidade arquitetural respeitada.
+- **File-Size Check**: 82 arquivos de lógica de produção auditados, todos em conformidade (3 avisos de arquivos entre 150 e 177 linhas, abaixo do limite estrito de 180 linhas).
+
+### 3. Matriz de Precisão de Status da Fase 4B1
+
+| Componente / Recurso | Status de Implementação | Tipo de Imposição | Cobertura de Testes |
+| :--- | :--- | :--- | :--- |
+| **Identidade & Sessões (Better Auth)** | IMPLEMENTED | APP-ENFORCED + DB-MAPPED | AUTH-INTEGRATION-TESTED (2/2 tests) |
+| **Reproduzibilidade Better Auth CLI** | IMPLEMENTED (`auth@1.7.5`) | TOOLING-PINNED | LOCAL-TESTED |
+| **Multi-Tenancy por `organizationId`** | IMPLEMENTED | DATABASE-ENFORCED + APP-ENFORCED | POSTGRES-INTEGRATION-TESTED (9/9 tests) |
+| **Papéis de Tenant (`tenant_role`)** | IMPLEMENTED | DATABASE-ENFORCED (`pgEnum`) | POSTGRES-INTEGRATION-TESTED |
+| **Status de Membro (`membership_status`)** | IMPLEMENTED (Fail-Closed) | DATABASE-ENFORCED (`pgEnum`, NO DEFAULT) | POSTGRES-INTEGRATION-TESTED |
+| **Platform Admin Active Único** | IMPLEMENTED | DATABASE-ENFORCED (Unique Partial Index) | POSTGRES-INTEGRATION-TESTED |
+| **Integridade de Entitlements** | IMPLEMENTED | DATABASE-ENFORCED (Check Constraint) | POSTGRES-INTEGRATION-TESTED |
+| **Integridade de Commercial Grants** | IMPLEMENTED | DATABASE-ENFORCED (Check Constraint) | POSTGRES-INTEGRATION-TESTED |
+| **Integridade de Subscriptions/Planos** | IMPLEMENTED | DATABASE-ENFORCED (Check Constraint) | POSTGRES-INTEGRATION-TESTED |
+| **Proteção contra Deleção Acidental** | IMPLEMENTED | DATABASE-ENFORCED (`ON DELETE RESTRICT`) | POSTGRES-INTEGRATION-TESTED |
+| **Paridade Cloud Neon** | NOT VERIFIED | PENDING PROVISIONING | NO NEON PROJECT EXISTS (Neon não provisionado) |
+| **Internal Service Auth** | PENDING | PENDING | NOT VERIFIED |
+| **Ephemeral / Queue** | PENDING | PENDING | NOT VERIFIED |
+| **Usage Persistence** | DEFERRED | PENDING DOMAIN PHASE | NOT VERIFIED |
+| **PROMPT-004B2 (Neon Staging)** | NOT STARTED | PENDING PR #5 MERGE | NOT VERIFIED |
+| **Fase 5 (Agent Studio)** | NOT STARTED | RESERVED TO PHASE 5 | NOT VERIFIED |
+
+
 

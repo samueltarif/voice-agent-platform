@@ -103,7 +103,7 @@ A documentação está estruturada para fornecer contexto imediato e sem ambigui
 ---
 
 ## ⚡ Próximos Passos
-1. Conclusão da revisão técnica externa e aprovação do Pull Request #5 (`feature/persistence-auth-foundation`).
-2. PROMPT-004B1 implementado e endurecido em segurança, integridade e reprodutibilidade (não mergeado; auto-merge desabilitado).
-3. A próxima etapa (Fase 4B2 — Agent Studio / Agent Domain Persistence) será iniciada exclusivamente após a conclusão da revisão e merge formal do PR #5 pelo operador humano.
+1. **Fase 4B1 Concluída e Integrada**: Persistência local, Better Auth, multi-tenancy e integridade relacional validados localmente (PR #5).
+2. **PROMPT-004B2 (Próxima Etapa)**: *Neon Staging Provisioning & Persistence Validation* — provisionar o primeiro managed PostgreSQL no Neon (staging), validar PostgreSQL major, configurar secrets com segurança, executar migrations versionadas, validar Better Auth, repositories e pooling/TLS em nuvem (sem Agent Studio).
+3. **Fase 5 (Etapa Futura)**: *Domínios base + Agent Studio* — configuração visual de agentes, playbooks, ferramentas e persistência de agentes reservadas exclusivamente para a Fase 5 conforme o roadmap.
 
