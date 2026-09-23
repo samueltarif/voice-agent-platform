@@ -1,11 +1,11 @@
 import { eq } from 'drizzle-orm';
 import type { DatabaseInstance } from '../client/connection.js';
-import { organizations } from '../schema/organizations.js';
+import { organizations, type OrganizationStatus } from '../schema/organizations.js';
 
 export interface CreateOrganizationInput {
   slug: string;
   name: string;
-  status?: string | undefined;
+  status?: OrganizationStatus | undefined;
 }
 
 export interface FindOrganizationByIdInput {
@@ -18,7 +18,7 @@ export interface FindOrganizationBySlugInput {
 
 export interface UpdateOrganizationStatusInput {
   id: string;
-  status: string;
+  status: OrganizationStatus;
 }
 
 export class OrganizationRepository {

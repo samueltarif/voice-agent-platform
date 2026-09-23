@@ -1,6 +1,22 @@
 import { relations } from 'drizzle-orm';
-import { pgTable, uuid, text, timestamp, uniqueIndex, index } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, uniqueIndex, index, pgEnum } from 'drizzle-orm/pg-core';
 import { user } from './auth.js';
+
+export const organizationStatusEnum = pgEnum('organization_status', [
+  'ACTIVE',
+  'SUSPENDED',
+  'ARCHIVED',
+]);
+
+export const tenantRoleEnum = pgEnum('tenant_role', [
+  'OWNER',
+  'ADMIN',
+  'MANAGER',
+  'OPERATOR',
+  'VIEWER',
+]);
+
+export const membershipStatusEnum = pgEnum('membership_status', ['INVITED', 'ACTIVE', 'SUSPENDED']);
 
 export const organizations = pgTable(
   'organizations',
@@ -8,7 +24,7 @@ export const organizations = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     slug: text('slug').notNull(),
     name: text('name').notNull(),
-    status: text('status').notNull().default('ACTIVE'),
+    status: organizationStatusEnum('status').notNull().default('ACTIVE'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true })
       .defaultNow()
@@ -27,12 +43,12 @@ export const organizationMemberships = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     organizationId: uuid('organization_id')
       .notNull()
-      .references(() => organizations.id, { onDelete: 'cascade' }),
+      .references(() => organizations.id, { onDelete: 'restrict' }),
     userId: text('user_id')
       .notNull()
-      .references(() => user.id, { onDelete: 'cascade' }),
-    role: text('role').notNull(),
-    status: text('status').notNull().default('ACTIVE'),
+      .references(() => user.id, { onDelete: 'restrict' }),
+    role: tenantRoleEnum('role').notNull(),
+    status: membershipStatusEnum('status').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true })
       .defaultNow()
@@ -60,3 +76,7 @@ export const organizationMembershipsRelations = relations(organizationMembership
     references: [user.id],
   }),
 }));
+
+export type OrganizationStatus = (typeof organizationStatusEnum.enumValues)[number];
+export type TenantRole = (typeof tenantRoleEnum.enumValues)[number];
+export type MembershipStatus = (typeof membershipStatusEnum.enumValues)[number];

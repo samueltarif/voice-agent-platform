@@ -8,7 +8,7 @@ describe('Better Auth Server Flow (Integration)', () => {
     expect('plugins' in auth.options).toBe(false);
   });
 
-  it('registers new user and creates session via auth api', async () => {
+  it('registers new user, verifies credential persistence, and authenticates via signInEmail', async () => {
     const testSuffix = Math.random().toString(36).substring(2, 8);
     const email = `testuser_${testSuffix}@example.com`;
     const password = 'Password123!Secure';
@@ -27,5 +27,19 @@ describe('Better Auth Server Flow (Integration)', () => {
     expect(signUpResponse.user.email).toBe(email);
     expect(signUpResponse.user.name).toBe(name);
     expect(signUpResponse.token).toBeDefined();
+
+    // Verify authentication and session issuance against persisted credentials in PostgreSQL
+    const signInResponse = await auth.api.signInEmail({
+      body: {
+        email,
+        password,
+      },
+    });
+
+    expect(signInResponse).toBeDefined();
+    expect(signInResponse.user).toBeDefined();
+    expect(signInResponse.user.id).toBe(signUpResponse.user.id);
+    expect(signInResponse.user.email).toBe(email);
+    expect(signInResponse.token).toBeDefined();
   });
 });

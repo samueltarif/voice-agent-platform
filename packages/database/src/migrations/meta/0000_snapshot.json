@@ -1,5 +1,5 @@
 {
-  "id": "8af96a5d-f722-45c5-a0e1-1d0097ee70b0",
+  "id": "5bfd6902-692d-46f5-af87-a83db7db5ce9",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -52,13 +52,13 @@
         },
         "access_token_expires_at": {
           "name": "access_token_expires_at",
-          "type": "timestamp with time zone",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": false
         },
         "refresh_token_expires_at": {
           "name": "refresh_token_expires_at",
-          "type": "timestamp with time zone",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": false
         },
@@ -76,17 +76,16 @@
         },
         "created_at": {
           "name": "created_at",
-          "type": "timestamp with time zone",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "timestamp with time zone",
+          "type": "timestamp",
           "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
+          "notNull": true
         }
       },
       "indexes": {
@@ -135,7 +134,7 @@
         },
         "expires_at": {
           "name": "expires_at",
-          "type": "timestamp with time zone",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true
         },
@@ -147,17 +146,16 @@
         },
         "created_at": {
           "name": "created_at",
-          "type": "timestamp with time zone",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "timestamp with time zone",
+          "type": "timestamp",
           "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
+          "notNull": true
         },
         "ip_address": {
           "name": "ip_address",
@@ -255,14 +253,14 @@
         },
         "created_at": {
           "name": "created_at",
-          "type": "timestamp with time zone",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "timestamp with time zone",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
@@ -306,23 +304,22 @@
         },
         "expires_at": {
           "name": "expires_at",
-          "type": "timestamp with time zone",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true
         },
         "created_at": {
           "name": "created_at",
-          "type": "timestamp with time zone",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "timestamp with time zone",
+          "type": "timestamp",
           "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
+          "notNull": true
         }
       },
       "indexes": {
@@ -374,16 +371,17 @@
         },
         "role": {
           "name": "role",
-          "type": "text",
+          "type": "tenant_role",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
         },
         "status": {
           "name": "status",
-          "type": "text",
+          "type": "membership_status",
+          "typeSchema": "public",
           "primaryKey": false,
-          "notNull": true,
-          "default": "'ACTIVE'"
+          "notNull": true
         },
         "created_at": {
           "name": "created_at",
@@ -460,7 +458,7 @@
           "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
           "columnsTo": ["id"],
-          "onDelete": "cascade",
+          "onDelete": "restrict",
           "onUpdate": "no action"
         },
         "organization_memberships_user_id_user_id_fk": {
@@ -469,7 +467,7 @@
           "tableTo": "user",
           "columnsFrom": ["user_id"],
           "columnsTo": ["id"],
-          "onDelete": "cascade",
+          "onDelete": "restrict",
           "onUpdate": "no action"
         }
       },
@@ -504,7 +502,8 @@
         },
         "status": {
           "name": "status",
-          "type": "text",
+          "type": "organization_status",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
           "default": "'ACTIVE'"
@@ -582,7 +581,8 @@
         },
         "status": {
           "name": "status",
-          "type": "text",
+          "type": "platform_admin_status",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
           "default": "'ACTIVE'"
@@ -628,6 +628,22 @@
         }
       },
       "indexes": {
+        "platform_admin_user_active_uidx": {
+          "name": "platform_admin_user_active_uidx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"platform_admin_authorizations\".\"status\" = 'ACTIVE'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "platform_admin_user_status_idx": {
           "name": "platform_admin_user_status_idx",
           "columns": [
@@ -672,7 +688,7 @@
           "tableTo": "user",
           "columnsFrom": ["user_id"],
           "columnsTo": ["id"],
-          "onDelete": "cascade",
+          "onDelete": "restrict",
           "onUpdate": "no action"
         }
       },
@@ -787,7 +803,7 @@
           "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
           "columnsTo": ["id"],
-          "onDelete": "cascade",
+          "onDelete": "restrict",
           "onUpdate": "no action"
         },
         "commercial_grants_plan_id_plans_id_fk": {
@@ -796,14 +812,23 @@
           "tableTo": "plans",
           "columnsFrom": ["plan_id"],
           "columnsTo": ["id"],
-          "onDelete": "set null",
+          "onDelete": "restrict",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "commercial_grants_effect_chk": {
+          "name": "commercial_grants_effect_chk",
+          "value": "(\"commercial_grants\".\"plan_id\" IS NOT NULL) OR (\"commercial_grants\".\"feature_key\" IS NOT NULL AND \"commercial_grants\".\"override_value\" IS NOT NULL)"
+        },
+        "commercial_grants_period_chk": {
+          "name": "commercial_grants_period_chk",
+          "value": "\"commercial_grants\".\"ends_at\" IS NULL OR \"commercial_grants\".\"ends_at\" > \"commercial_grants\".\"starts_at\""
+        }
+      },
       "isRLSEnabled": false
     },
     "public.entitlements": {
@@ -831,7 +856,8 @@
         },
         "value_type": {
           "name": "value_type",
-          "type": "text",
+          "type": "entitlement_value_type",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
         },
@@ -913,14 +939,19 @@
           "tableTo": "plans",
           "columnsFrom": ["plan_id"],
           "columnsTo": ["id"],
-          "onDelete": "cascade",
+          "onDelete": "restrict",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "entitlements_value_integrity_chk": {
+          "name": "entitlements_value_integrity_chk",
+          "value": "(\n        (\"entitlements\".\"value_type\" = 'BOOLEAN' AND \"entitlements\".\"boolean_value\" IS NOT NULL AND \"entitlements\".\"numeric_limit\" IS NULL AND \"entitlements\".\"string_value\" IS NULL) OR\n        (\"entitlements\".\"value_type\" = 'NUMERIC' AND \"entitlements\".\"numeric_limit\" IS NOT NULL AND \"entitlements\".\"numeric_limit\" >= 0 AND \"entitlements\".\"boolean_value\" IS NULL AND \"entitlements\".\"string_value\" IS NULL) OR\n        (\"entitlements\".\"value_type\" = 'STRING' AND \"entitlements\".\"string_value\" IS NOT NULL AND \"entitlements\".\"boolean_value\" IS NULL AND \"entitlements\".\"numeric_limit\" IS NULL)\n      )"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.plans": {
@@ -954,7 +985,8 @@
         },
         "billing_mode": {
           "name": "billing_mode",
-          "type": "text",
+          "type": "billing_mode",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
         },
@@ -974,7 +1006,8 @@
         },
         "status": {
           "name": "status",
-          "type": "text",
+          "type": "plan_status",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
           "default": "'ACTIVE'"
@@ -1030,7 +1063,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "plans_price_cents_chk": {
+          "name": "plans_price_cents_chk",
+          "value": "\"plans\".\"price_cents\" >= 0"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.subscriptions": {
@@ -1058,13 +1096,15 @@
         },
         "status": {
           "name": "status",
-          "type": "text",
+          "type": "subscription_status",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
         },
         "billing_mode": {
           "name": "billing_mode",
-          "type": "text",
+          "type": "billing_mode",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
         },
@@ -1153,7 +1193,7 @@
           "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
           "columnsTo": ["id"],
-          "onDelete": "cascade",
+          "onDelete": "restrict",
           "onUpdate": "no action"
         },
         "subscriptions_plan_id_plans_id_fk": {
@@ -1169,7 +1209,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "subscriptions_period_chk": {
+          "name": "subscriptions_period_chk",
+          "value": "\"subscriptions\".\"current_period_end\" > \"subscriptions\".\"current_period_start\""
+        }
+      },
       "isRLSEnabled": false
     },
     "public.audit_logs": {
@@ -1300,7 +1345,7 @@
           "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
           "columnsTo": ["id"],
-          "onDelete": "set null",
+          "onDelete": "restrict",
           "onUpdate": "no action"
         }
       },
@@ -1311,7 +1356,48 @@
       "isRLSEnabled": false
     }
   },
-  "enums": {},
+  "enums": {
+    "public.membership_status": {
+      "name": "membership_status",
+      "schema": "public",
+      "values": ["INVITED", "ACTIVE", "SUSPENDED"]
+    },
+    "public.organization_status": {
+      "name": "organization_status",
+      "schema": "public",
+      "values": ["ACTIVE", "SUSPENDED", "ARCHIVED"]
+    },
+    "public.tenant_role": {
+      "name": "tenant_role",
+      "schema": "public",
+      "values": ["OWNER", "ADMIN", "MANAGER", "OPERATOR", "VIEWER"]
+    },
+    "public.platform_admin_status": {
+      "name": "platform_admin_status",
+      "schema": "public",
+      "values": ["ACTIVE", "REVOKED"]
+    },
+    "public.billing_mode": {
+      "name": "billing_mode",
+      "schema": "public",
+      "values": ["SELF_SERVICE", "MANUAL", "COMPLIMENTARY"]
+    },
+    "public.entitlement_value_type": {
+      "name": "entitlement_value_type",
+      "schema": "public",
+      "values": ["BOOLEAN", "NUMERIC", "STRING"]
+    },
+    "public.plan_status": {
+      "name": "plan_status",
+      "schema": "public",
+      "values": ["ACTIVE", "ARCHIVED"]
+    },
+    "public.subscription_status": {
+      "name": "subscription_status",
+      "schema": "public",
+      "values": ["TRIALING", "ACTIVE", "PAST_DUE", "SUSPENDED", "CANCELED", "EXPIRED"]
+    }
+  },
   "schemas": {},
   "sequences": {},
   "roles": {},

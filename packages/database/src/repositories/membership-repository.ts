@@ -1,12 +1,16 @@
 import { and, eq } from 'drizzle-orm';
 import type { DatabaseInstance } from '../client/connection.js';
-import { organizationMemberships } from '../schema/organizations.js';
+import {
+  organizationMemberships,
+  type TenantRole,
+  type MembershipStatus,
+} from '../schema/organizations.js';
 
 export interface CreateMembershipInput {
   organizationId: string;
   userId: string;
-  role: string;
-  status?: string | undefined;
+  role: TenantRole;
+  status: MembershipStatus;
 }
 
 export interface FindMembershipInput {
@@ -26,13 +30,13 @@ export interface ListMembershipsInput {
 export interface UpdateMembershipRoleInput {
   organizationId: string;
   userId: string;
-  role: string;
+  role: TenantRole;
 }
 
 export interface UpdateMembershipStatusInput {
   organizationId: string;
   userId: string;
-  status: string;
+  status: MembershipStatus;
 }
 
 export class MembershipRepository {
@@ -45,7 +49,7 @@ export class MembershipRepository {
         organizationId: input.organizationId,
         userId: input.userId,
         role: input.role,
-        status: input.status ?? 'ACTIVE',
+        status: input.status,
       })
       .returning();
 

@@ -1,6 +1,8 @@
-import { relations } from 'drizzle-orm';
-import { pgTable, uuid, text, timestamp, index } from 'drizzle-orm/pg-core';
+import { relations, sql } from 'drizzle-orm';
+import { pgTable, uuid, text, timestamp, index, uniqueIndex, pgEnum } from 'drizzle-orm/pg-core';
 import { user } from './auth.js';
+
+export const platformAdminStatusEnum = pgEnum('platform_admin_status', ['ACTIVE', 'REVOKED']);
 
 export const platformAdminAuthorizations = pgTable(
   'platform_admin_authorizations',
@@ -8,8 +10,8 @@ export const platformAdminAuthorizations = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     userId: text('user_id')
       .notNull()
-      .references(() => user.id, { onDelete: 'cascade' }),
-    status: text('status').notNull().default('ACTIVE'),
+      .references(() => user.id, { onDelete: 'restrict' }),
+    status: platformAdminStatusEnum('status').notNull().default('ACTIVE'),
     grantedAt: timestamp('granted_at', { withTimezone: true }).defaultNow().notNull(),
     grantedBy: text('granted_by').notNull(),
     revokedAt: timestamp('revoked_at', { withTimezone: true }),
@@ -21,6 +23,9 @@ export const platformAdminAuthorizations = pgTable(
       .notNull(),
   },
   (table) => [
+    uniqueIndex('platform_admin_user_active_uidx')
+      .on(table.userId)
+      .where(sql`${table.status} = 'ACTIVE'`),
     index('platform_admin_user_status_idx').on(table.userId, table.status),
     index('platform_admin_status_idx').on(table.status),
   ],
@@ -35,3 +40,5 @@ export const platformAdminAuthorizationsRelations = relations(
     }),
   }),
 );
+
+export type PlatformAdminStatus = (typeof platformAdminStatusEnum.enumValues)[number];

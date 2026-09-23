@@ -1,21 +1,30 @@
 import { and, eq } from 'drizzle-orm';
 import type { DatabaseInstance } from '../client/connection.js';
-import { plans, entitlements, subscriptions, commercialGrants } from '../schema/commercial.js';
+import {
+  plans,
+  entitlements,
+  subscriptions,
+  commercialGrants,
+  type BillingMode,
+  type PlanStatus,
+  type EntitlementValueType,
+  type SubscriptionStatus,
+} from '../schema/commercial.js';
 
 export interface CreatePlanInput {
   code: string;
   name: string;
   description?: string | undefined;
-  billingMode: string;
+  billingMode: BillingMode;
   priceCents?: number | undefined;
   currency?: string | undefined;
-  status?: string | undefined;
+  status?: PlanStatus | undefined;
 }
 
 export interface CreateEntitlementInput {
   planId: string;
   featureKey: string;
-  valueType: string;
+  valueType: EntitlementValueType;
   booleanValue?: boolean | undefined;
   numericLimit?: number | undefined;
   stringValue?: string | undefined;
@@ -24,8 +33,8 @@ export interface CreateEntitlementInput {
 export interface CreateSubscriptionInput {
   organizationId: string;
   planId: string;
-  status: string;
-  billingMode: string;
+  status: SubscriptionStatus;
+  billingMode: BillingMode;
   currentPeriodStart: Date;
   currentPeriodEnd: Date;
 }

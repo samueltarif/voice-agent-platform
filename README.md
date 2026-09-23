@@ -98,10 +98,12 @@ A documentação está estruturada para fornecer contexto imediato e sem ambigui
 - [ADR-005: Fronteiras Orientadas a Eventos Internos Versionáveis](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-005-event-driven-boundaries.md)
 - [ADR-006: Abordagem de Interface Mobile-First Unificada](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-006-mobile-first.md)
 - [ADR-007: Stack Frontend Oficial (Next.js 15, React 19, Tailwind v4 e Radix UI)](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-007-frontend-stack.md)
+- [ADR-008: Fundação de Persistência, Autenticação e Multi-Tenancy](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-008-persistence-auth-multitenancy.md)
 
 ---
 
 ## ⚡ Próximos Passos
-Conclusão da revisão técnica e merge da branch `feature/design-system-shell` (Pull Request #3).
-Após autorização humana, avanço para a **FASE 4 — Persistência, Autenticação e Multi-Tenancy** conforme planejado em `docs/ROADMAP.md` (decisão do banco de dados relacional e ORM, modelagem multi-tenant com `organizationId` mandatória, autenticação segregada e Subfase 4.1 para o modelo comercial e governança da plataforma).
+1. Conclusão da revisão técnica externa e aprovação do Pull Request #5 (`feature/persistence-auth-foundation`).
+2. PROMPT-004B1 implementado e endurecido em segurança, integridade e reprodutibilidade (não mergeado; auto-merge desabilitado).
+3. A próxima etapa (Fase 4B2 — Agent Studio / Agent Domain Persistence) será iniciada exclusivamente após a conclusão da revisão e merge formal do PR #5 pelo operador humano.
 
