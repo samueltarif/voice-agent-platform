@@ -1,2 +1,12 @@
-// Architectural placeholder for database package (no ORM, no connection, no schema in Phase 0)
-export const DATABASE_PACKAGE = '@voice-agent/database' as const;
+export * from './client/connection.js';
+export * from './client/migrate.js';
+export * from './schema/auth.js';
+export * from './schema/organizations.js';
+export * from './schema/platform-admin.js';
+export * from './schema/commercial.js';
+export * from './schema/audit.js';
+export * from './repositories/organization-repository.js';
+export * from './repositories/membership-repository.js';
+export * from './repositories/platform-admin-repository.js';
+export * from './repositories/commercial-repository.js';
+export * from './repositories/audit-repository.js';

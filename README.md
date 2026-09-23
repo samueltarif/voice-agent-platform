@@ -6,9 +6,9 @@ Bem-vindo ao repositório central da plataforma SaaS B2B de agentes de voz com i
 
 ## 📌 Status Atual do Repositório
 
-> **Aviso de Fase Atual**: O projeto concluiu a **Fase 3 (PROMPT-003): Design System e Application Shell Mobile-First**.
-> A primeira implementação real de frontend está operacional em `apps/web` (Next.js 15 App Router, React 19, Tailwind CSS v4) e `packages/ui` (Design System compartilhado com tokens semânticos via CSS variables como SSOT, tema Light corporativo por padrão, Dark mode secundário, densidade dinâmica e Command Palette acessível via `Ctrl+K`).
-> Todo o shell responsivo foi validado em 7 viewports (`320px` a `1920px`) com dados mockados tipados determinísticos (valores monetários estritamente em integer cents), sem introdução de backend real, ORM, Supabase ou telefonia real nesta fase.
+> **Aviso de Fase Atual**: O projeto implementou a **Fase 4B1 (PROMPT-004B1): Fundação Local de Persistência, Identidade e Multi-Tenancy**.
+> A camada de persistência real está estabelecida em `packages/database` (PostgreSQL 16 via Docker Compose `postgres:16-alpine`, Drizzle ORM, Drizzle Kit, node-postgres `pg`), cobrindo schemas de identidade (Better Auth), domínio multi-tenant (`organizations`, `organization_memberships`), plano de controle (`platform_admin_authorizations`), modelo comercial (`plans`, `entitlements`, `subscriptions`, `commercial_grants`) e auditoria (`audit_logs`).
+> `apps/web` integra Better Auth exclusivamente para Identity + Session (plugin `organization` desabilitado, domínio como fonte da verdade). Testes de integração cobrem isolamento multi-tenant real e execução do Better Auth contra PostgreSQL local.
 
 ---
 
@@ -17,10 +17,21 @@ Bem-vindo ao repositório central da plataforma SaaS B2B de agentes de voz com i
 ### Pré-requisitos
 - **Node.js**: `v24.20.0` (ou compatível conforme `.node-version` e `package.json engines: >=22.12.0`)
 - **pnpm**: `v12.5.1` (conforme `packageManager`)
+- **Docker & Docker Compose**: para execução do banco de dados relacional local (PostgreSQL 16)
 
-### Instalação
+### Configuração de Ambiente e Banco Local
 ```bash
+# 1. Copiar variáveis de ambiente (placeholders seguros para dev local)
+cp .env.example .env
+
+# 2. Instalar dependências
 pnpm install
+
+# 3. Subir o banco PostgreSQL 16 Alpine local
+docker compose up -d
+
+# 4. Aplicar as migrações versionadas
+pnpm --filter @voice-agent/database db:migrate
 ```
 
 ### Scripts de Qualidade (Centralizados)
@@ -87,10 +98,12 @@ A documentação está estruturada para fornecer contexto imediato e sem ambigui
 - [ADR-005: Fronteiras Orientadas a Eventos Internos Versionáveis](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-005-event-driven-boundaries.md)
 - [ADR-006: Abordagem de Interface Mobile-First Unificada](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-006-mobile-first.md)
 - [ADR-007: Stack Frontend Oficial (Next.js 15, React 19, Tailwind v4 e Radix UI)](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-007-frontend-stack.md)
+- [ADR-008: Fundação de Persistência, Autenticação e Multi-Tenancy](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-008-persistence-auth-multitenancy.md)
 
 ---
 
 ## ⚡ Próximos Passos
-Conclusão da revisão técnica e merge da branch `feature/design-system-shell` (Pull Request #3).
-Após autorização humana, avanço para a **FASE 4 — Persistência, Autenticação e Multi-Tenancy** conforme planejado em `docs/ROADMAP.md` (decisão do banco de dados relacional e ORM, modelagem multi-tenant com `organizationId` mandatória, autenticação segregada e Subfase 4.1 para o modelo comercial e governança da plataforma).
+1. **Fase 4B1 Concluída e Integrada**: Persistência local, Better Auth, multi-tenancy e integridade relacional validados localmente (PR #5).
+2. **PROMPT-004B2 (Próxima Etapa)**: *Neon Staging Provisioning & Persistence Validation* — provisionar o primeiro managed PostgreSQL no Neon (staging), validar PostgreSQL major, configurar secrets com segurança, executar migrations versionadas, validar Better Auth, repositories e pooling/TLS em nuvem (sem Agent Studio).
+3. **Fase 5 (Etapa Futura)**: *Domínios base + Agent Studio* — configuração visual de agentes, playbooks, ferramentas e persistência de agentes reservadas exclusivamente para a Fase 5 conforme o roadmap.
 

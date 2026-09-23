@@ -100,7 +100,8 @@ Antes de criar ou alterar qualquer arquivo, o agente DEVE seguir este ciclo de i
      - Copiar credenciais entre sistemas distintos (ex.: MCP para Git Credential Manager);
      - Registrar tokens em task logs estruturados, scripts temporários ou scratch files;
      - Registrar secrets, parciais ou fingerprints em `AI_WORKLOG.md` ou documentação;
-     - Retornar valor de credencial ou segredo sob qualquer pretexto.
+     - Retornar valor de credencial ou segredo sob qualquer pretexto;
+     - Recuperar instruções ou prompts acessando `transcript*`, task logs, histórico de comandos, `.system_generated/logs` ou histórico interno da IDE. Se o contexto/prompt estiver indisponível ou for compactado, pedir esclarecimento ao operador humano ou utilizar estritamente o contexto fornecido no turno atual.
    - **Verificações Permitidas para Agentes**:
      - Verificar apenas se uma credencial existe (presença booleana);
      - Verificar se a autenticação funcionou (exit code/sucesso sem verbosidade de segredos);
