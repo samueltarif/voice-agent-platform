@@ -8,7 +8,8 @@ Este documento estabelece as normas mandatórias de proteção de dados, gestão
 
 1. **Zero Credenciais no Repositório**:
    - É estritamente proibido realizar commit de chaves de API, tokens JWT, senhas de banco, certificados ou arquivos `.env` contendo dados reais.
-   - Apenas o arquivo `.env.example` com chaves sem valores sensíveis e descrições explicativas deve ser versionado.
+   - Somente templates sanitizados de ambiente com sufixo `*.example` e sem valores sensíveis podem ser versionados (ex.: `.env.example`, `.env.staging.example`, `.env.production.example` quando necessários e vazios/sanitizados).
+   - Arquivos reais de ambiente (`.env`, `.env.local`, `.env.staging`, `.env.production`) ou qualquer arquivo contendo segredos reais são terminantemente proibidos de versionamento e devem permanecer cobertos por `.gitignore`.
 2. **Proteção de Logs (Sanitização Automática)**:
    - Nenhum segredo ou informação de autenticação (ex.: `Bearer token`, `apiKey`, `client_secret`, senhas, dados de cartão) pode ser gravado em logs.
    - O pacote `packages/logger` deve implementar mascaramento (*redaction*) automático em tempo de serialização para campos sensíveis conhecidos.

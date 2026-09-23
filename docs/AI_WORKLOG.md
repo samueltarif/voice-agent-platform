@@ -2812,6 +2812,128 @@ Execução offline/local independente de rede ou provedores externos:
 - **Status de Produção**: **NOT PROVISIONED**.
 - **Fase 5 (Agent Studio & Domínios)**: **NÃO iniciada** (reservada para o próximo ciclo de desenvolvimento).
 
+---
+
+## 23/09/2026 — PROMPT-005A — Agent Studio, API Boundary & Internal Auth Decision Gate
+
+### 1. Contexto e Objetivo da Tarefa
+
+Abertura formal da **Fase 5 (Domínios Base + Agent Studio)** exclusivamente como um **Decision Gate Arquitetural**.
+Nenhum código de aplicação, schema de banco, migration ou endpoint foi implementado nesta etapa. O objetivo foi desenhar a arquitetura canônica do Agent Studio, modelar o versionamento e ciclo de vida de agentes, definir o particionamento do primeiro slice implementável, resolver a fronteira de confiança e autenticação entre `apps/web` e `apps/api`, comparar frameworks HTTP para a API e estruturar as propostas técnicas para aprovação humana.
+
+### 2. Rastreabilidade Git Inicial e Housekeeping de Segurança
+
+- **Branch Criada**: `docs/phase5-agent-studio-gate` a partir de `main` sincronizada (`012d0d5`).
+- **Working Tree Inicial**: Limpo (`clean`).
+- **Housekeeping de Governança em `docs/SECURITY.md`**:
+  - Corrigida a redação que limitava o versionamento estritamente ao `.env.example`.
+  - Nova redação alinhada com as Fases 4B1/4B2: permite templates de ambiente sanitizados e sem segredos com sufixo `*.example` (como `.env.example`, `.env.staging.example`, `.env.production.example`), mantendo estritamente proibidos de versionamento arquivos de ambiente reais (`.env`, `.env.staging`, `.env.production`) ou quaisquer arquivos contendo credenciais reais.
+
+### 3. Leitura e Auditoria de Código Executada
+
+- **Documentos de Governança e Arquitetura Lidos**:
+  `AGENTS.md`, `PROJECT_CONSTITUTION.md`, `ARCHITECTURE.md`, `FOUNDATION_MASTER.md`, `PROJECT_MAP.md`, `README.md`, `docs/ROADMAP.md`, `docs/AGENT_STUDIO.md`, `docs/DATABASE.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/TESTING_STRATEGY.md`, `docs/EVENTS.md`, `docs/INTEGRATIONS.md`, `docs/DECISIONS_LOG.md`, `docs/PLATFORM_CONTROL_PLANE.md`, `ADR-002`, `ADR-003`, `ADR-004`, `ADR-005`, `ADR-008`.
+- **Código Auditado**:
+  - `apps/web`: Next.js 15 App Router, rotas Better Auth em `/api/auth/[...all]`, UI components, Tailwind CSS v4 tokens.
+  - `apps/api`: Pacote modular com `createApiContext()`, `@voice-agent/contracts`, `@voice-agent/errors` e `@voice-agent/logger`; zero frameworks HTTP ou rotas instaladas.
+  - `packages/contracts`: Definições de `TenantScoped`, `DomainEvent` e interfaces de portas (`TelephonyPort`, `RealtimeAIPort`, `StoragePort`).
+  - `packages/database`: 12 tabelas relacionais em Drizzle ORM, 8 enums PostgreSQL e repositories tipados.
+  - `packages/errors`: `AppError`, `NotFoundError`, `UnauthorizedError`.
+  - `packages/logger`: Logger estruturado com níveis e redaction.
+- **Auditoria de Dependências de Validação**: Confirmado que nenhuma biblioteca de validação (`zod`, `valibot`, `typebox`) está atualmente instalada no monorepo.
+
+### 4. Pesquisa de Fatos Externos via Context7
+
+1. **Fastify (`/fastify/fastify`)**:
+   - Fastify v5 removeu a opção legada `jsonShortHand`, exigindo JSON schema explícito para querystrings, params, body e responses.
+   - Suporte oficial via type providers: `@fastify/type-provider-typebox`, `@fastify/type-provider-json-schema-to-ts` e `@fastify/type-provider-zod`.
+   - Geração de documentação OpenAPI via `@fastify/swagger` e `@fastify/swagger-ui`.
+2. **Hono (`/websites/hono_dev`)**:
+   - Construído sobre Web Standards nativos (`Request`, `Response`, `fetch`), com suporte total a Node 22/24 via `@hono/node-server`.
+   - Pacote oficial `@hono/zod-openapi`: unifica validação com Zod, rotas tipadas com `createRoute` e documentação automática OpenAPI 3.0/3.1 em `/doc` com Swagger UI integrado.
+   - Excelente testabilidade com `app.request()` sem abrir portas TCP locais.
+3. **Better Auth (`/better-auth/better-auth`)**:
+   - No servidor, `auth.api.getSession({ headers })` valida sessões diretamente a partir dos headers de requisição (cookies ou bearer tokens via plugin `bearer`).
+   - Em Next.js 15, `auth.api.getSession` opera em Node.js runtime consumindo `headers()` assíncronos.
+
+### 5. Desenho Arquitetural do Agent Studio (Documentado em `docs/research/PHASE_5_AGENT_STUDIO_GATE.md`)
+
+- **Agente com Identidade Estável (`Agent`) vs. Configuração Versionada (`AgentVersion`)**:
+  - `Agent` contém apenas metadados estáveis (`id`, `organization_id`, `name`, `slug`, `status`, `current_published_version_id`, timestamps).
+  - Toda a inteligência e parâmetros operacionais residem em `AgentVersion` (`version_number`, `status`, `configuration`).
+- **Modelo de Versionamento Monotônico**:
+  - `version_number` sequencial (1, 2, 3...) único por agente (`UNIQUE(agent_id, version_number)`), gerado deterministicamente sob lock pessimista no banco.
+  - Regra de **Single Active Draft** por agente (índice parcial único `status = 'DRAFT'`), prevenindo divergências operacionais e simplificando a interface.
+- **Ciclo de Vida da Versão (`DRAFT → PUBLISHED → ARCHIVED`)**:
+  - Avaliação crítica de `TEST`: recomendou-se tratar `TEST` como atividade/execução pontual (`test runs` / `validation results`) em vez de um status persistido da versão, evitando versões zumbis "presas em teste".
+  - **Imutabilidade Estrita**: Uma vez atingido o status `PUBLISHED`, a versão é 100% imutável. Qualquer edição exige criação de um novo `DRAFT`.
+- **Transação Atômica de Publicação**:
+  - Lock pessimista na linha do agente (`FOR UPDATE`);
+  - Validação de integridade semântica da configuração;
+  - Validação de entitlements do tenant (`agents.max`);
+  - Arquivamento da versão publicada anterior (`PUBLISHED → ARCHIVED`);
+  - Promoção do draft para `PUBLISHED`;
+  - Atualização do ponteiro `currentPublishedVersionId` no agente e registro em `audit_logs`.
+- **Opções de Persistência**:
+  - Comparadas as Opções A (Tabelas normalizadas), B (JSONB puro) e C (Híbrido relacional + JSONB tipado).
+  - Recomendada a **Opção C**: metadados relacionais indexáveis para integridade e multi-tenancy + snapshot JSONB tipado e validado por schema para a configuração, permitindo clonagem O(1) de drafts e leitura atômica sem múltiplos `JOIN`s no runtime.
+- **Classificação das Dimensões de Configuração**:
+  - Persona, Voz (provider-neutral), Regras e Playbook: *Versioned Persisted Config*.
+  - Catálogo de Produtos e Conhecimento: *Reference to Domain/Versioned Resource* (sem RAG ou embeddings na Fase 5).
+  - Permissões de Ferramentas: *Versioned Allowlist* (sem execução real).
+  - RuntimeContext: *Runtime-only Context*.
+- **Fronteira de Confiança API & Internal Service Auth**:
+  - Threat model formalizado: o navegador não é confiável e headers de contexto (`X-User-Id`, `X-Organization-Id`) desprotegidos são proibidos.
+  - Comparadas as opções de auth interna: recomendada a **Opção 1 — Short-Lived Signed Service Assertion (JWT/HMAC)** emitida pelo BFF com TTL de 30-60s e validada no middleware da API.
+- **Framework HTTP de `apps/api`**:
+  - Recomendado **Hono (com `@hono/node-server` e `@hono/zod-openapi`)** pela simplicidade, código idiomático para IA, alinhamento com Web Standards e suporte oficial a OpenAPI sem boilerplate.
+  - Alternativa técnica documentada: Fastify v5 com TypeBox/Zod.
+- **Particionamento do Primeiro Slice da Fase 5**:
+  - `005B`: Domain Core & Database Persistence (schemas `agents` e `agent_versions`, migration incremental, repositories e transação de publicação);
+  - `005C`: API Framework, Internal Service Auth & /v1 Endpoints;
+  - `005D`: Frontend Agent Studio UI.
+
+### 6. Matriz de Propostas e Status de Decisões
+
+| ID da Proposta | Descrição | Status |
+| :--- | :--- | :--- |
+| **PROPOSAL-005A-1** | Modelo de Agente com Identidade Estável (`Agent`) + Versões Imutáveis (`AgentVersion`) | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROPOSAL-005A-2** | Persistência Híbrida: Metadados Relacionais + Snapshot JSONB Tipado | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROPOSAL-005A-3** | Single Active Draft por Agente com Ciclo `DRAFT → PUBLISHED → ARCHIVED` (`TEST` como atividade) | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROPOSAL-005A-4** | Transação Atômica de Publicação com Lock Pessimista e Validação de Entitlements | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROPOSAL-005A-5** | Internal Service Auth via Short-Lived Signed Service Assertion (JWT/HMAC) entre Web e API | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROPOSAL-005A-6** | Framework HTTP de `apps/api`: Hono com `@hono/node-server` e `@hono/zod-openapi` | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROPOSAL-005A-7** | Fatiamento da Fase 5 em 005B (Persistência), 005C (API/Auth) e 005D (Frontend) | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **RAG / Vector Database** | Ingestão vetorial e busca semântica para Base de Conhecimento | **DEFERRED (Fase 7)** |
+| **Provider de Síntese de Voz** | Escolha de fornecedor de áudio concreto | **PENDING (Fase 6)** |
+| **LLM Evals com Juiz** | Framework automatizado de avaliação com modelos pagos | **PENDING (Fase 9)** |
+| **Topologia de Produção** | Recursos e dimensionamento de infraestrutura de banco de produção | **NOT PROVISIONED (Pending Design)** |
+| **Fila / Cache Efêmero** | Redis / BullMQ | **PENDING** |
+| **Usage Persistence** | Persistência de métricas de uso | **DEFERRED** |
+
+### 7. Validação da Suíte Local de Qualidade (`pnpm check`)
+
+Executada verificação estrita de qualidade em todo o repositório:
+- **Prettier**: 100% formatado (`All matched files use Prettier code style!`).
+- **ESLint**: 0 erros, 0 avisos.
+- **Turborepo Typecheck**: 12/12 pacotes aprovados com sucesso (`FULL TURBO`).
+- **Vitest (Contagem Exata)**:
+  - **Test Files**: **9 passed | 3 skipped (12 total)**
+  - **Tests**: **34 passed | 11 skipped (45 total)**
+  - *Skipped files*: `staging-connection.test.ts` (4 skipped), `staging-domain-integrity.test.ts` (5 skipped), `auth.staging.test.ts` (2 skipped) — ativados exclusivamente via `APP_ENV=staging` e `STAGING_SMOKE_TESTS=true`.
+- **Turborepo Build**: 12/12 pacotes construídos com sucesso (build de produção do Next.js 15.5.25 limpo).
+- **AST Architecture Check**: 100% em conformidade com as regras arquiteturais.
+- **File Size Check**: 82 arquivos de lógica de produção em conformidade com o limite de 180 linhas (3 avisos de arquivos recomendados entre 80-150 linhas mantidos: `live-call-card.tsx` com 154, `mobile-menu-drawer.tsx` com 157, `commercial.ts` com 177).
+
+### 8. Rastreabilidade Git e Próximos Passos
+
+- **Arquivos Alterados/Criados**:
+  - `docs/SECURITY.md`: Atualizada a política de templates sanitizados `*.example`.
+  - `docs/research/PHASE_5_AGENT_STUDIO_GATE.md`: Documento exaustivo de pesquisa e decisão arquitetural da Fase 5.
+  - `docs/AI_WORKLOG.md`: Registro append-only desta crônica.
+- **Pull Request**: Submetido para revisão humana e aprovação do operador antes de qualquer implementação.
+
+
 
 
 
