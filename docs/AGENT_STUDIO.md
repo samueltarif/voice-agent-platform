@@ -1,6 +1,6 @@
 # Agent Studio — Conceito, Componentes e Versionamento (AGENT_STUDIO.md)
 
-> **Status**: Arquitetura Aceita (DEC-028 / ADR-009) — NOT YET IMPLEMENTED
+> **Status**: Slice 005B Implementado e Validado em Staging (DEC-028 / DEC-030 / ADR-009 / ADR-011) — Slices 005C e 005D Pendentes
 > **Fase de Planejamento**: FASE 5 (Domínios Base & Agent Studio)
 > **Data de Criação**: 21 de Setembro de 2026
 > **Data de Aceitação Arquitetural**: 23 de Setembro de 2026 (Aprovação Humana Formal)
@@ -304,6 +304,7 @@ A implementação ocorrerá nas fases de Motor de Voz (FASE 6) e Telefonia Real 
 | Tópico | Status | Referência |
 |:---|:---|:---|
 | **Agregados, Versionamento e Ciclo de Vida** | **Decided / Accepted** | DEC-028 / ADR-009 (Aprovação Humana em 2026-09-23) |
+| **Persistência Relacional e Domínio Base (005B)** | **STAGING MIGRATED / STAGING INTEGRATION TESTED** | DEC-028 / ADR-009 / DEC-030 / ADR-011 (PR #8 Merged) |
 | **Formato de Persistência (Metadados + JSONB)** | **Decided / Accepted** | DEC-028 / ADR-009 (Opção C: Relacional + JSONB) |
 | **Biblioteca de Validação de Schema (Zod)** | **Decided / Accepted** | DEC-028 / ADR-009 (`packages/contracts`, instalação no Slice 005B) |
 | **Interface do Agent Studio (Web UI)** | **Planejada para Slice 005D** | FASE 5 (Fatiamento aprovado) |
