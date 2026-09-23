@@ -3041,9 +3041,105 @@ Esta etapa foi executada mantendo a regra de **zero implementação** (nenhuma d
 - **Pull Request**: [#7](https://github.com/samueltarif/voice-agent-platform/pull/7) atualizado e pronto para análise humana. **NÃO MERGEADO**.
 - **Slice 005B**: **NÃO INICIADO**. Nenhuma dependência instalada, nenhum schema alterado, nenhum banco modificado.
 
+---
 
+## 23/09/2026 — PROMPT-005A-FINAL-CHECK — Lifecycle, Quota & Snapshot-v1 Closure
 
+### 1. Contexto e Motivação
 
+Fechamento das últimas invariantes conceituais e restrições de consistência requeridas pelo Slice 005B (`Domain Core & Database Persistence`) antes da submissão para aprovação humana e merge do PR #7.
+Esta etapa operou em conformidade com a política de governança documental: nenhuma dependência adicionada, nenhum schema alterado, nenhuma migration gerada, nenhum endpoint codificado e nenhuma alteração em Neon Staging ou Produção.
 
+### 2. Invariantes Fechadas em `docs/research/PHASE_5_AGENT_STUDIO_GATE.md`
 
+1. **Internal Service Auth — Modelo Assimétrico Unificado em Todos os Ambientes**:
+   - Removida qualquer proposta de fallback simétrico (HMAC) em ambiente de desenvolvimento.
+   - Ambientes `dev`, `staging` e `production` utilizam o **MESMO modelo criptográfico de confiança**: *Short-Lived Asymmetric Signed Service Assertion*.
+   - Apenas o material criptográfico (chaves) e parâmetros de configuração variam por ambiente, eliminando discrepâncias de segurança no desenvolvimento e integração.
+   - `apps/web` detém exclusivamente a chave privada de assinatura; `apps/api` detém estritamente a chave pública de verificação (nenhuma chave privada no Git).
+   - O algoritmo concreto (`Ed25519`, `ES256`), biblioteca JWT e formato de serialização de chaves permanecem **`TO BE VERIFIED AND SELECTED IN 005C`** via documentação atual e bibliotecas mantidas, sem criptografia proprietária.
+2. **Separação de Máquinas de Estado: `Agent.status` vs. `AgentVersion.status`**:
+   - `Agent.status`: `ACTIVE`, `ARCHIVED`.
+   - `AgentVersion.status`: `DRAFT`, `PUBLISHED`, `ARCHIVED`.
+   - **Arquivamento de Agente**: `Agent.status -> ARCHIVED`. A versão `PUBLISHED` ativa existente **não é alterada** (preserva o último estado histórico operacional). Agentes arquivados não podem iniciar chamadas em tempo real, não contam para a cota `agents.max` e rejeitam mutações/publicações fechando com erro de domínio.
+   - **Reativação de Agente**: `Agent.status -> ACTIVE`. Valida a cota `agents.max` em transação. A versão `PUBLISHED` existente (se houver) é mantida. Nenhuma versão nova é criada ou publicada implicitamente na reativação.
+3. **Política de Descarte de Rascunhos (Draft Discard)**:
+   - Em conformidade com o princípio de *Single Active Draft*, um `AgentVersion` com status `DRAFT` pode sofrer hard delete físico (`DELETE FROM agent_versions`) **somente quando**:
+     - Possui status `DRAFT`;
+     - Nunca foi promovido a `PUBLISHED` (`published_at IS NULL`);
+     - Não possui referências históricas externas;
+     - `organizationId` foi validado sob o tenant;
+     - Operação autorizada pelo papel do ator e registrada em `audit_logs`.
+   - Versões com status `PUBLISHED` e `ARCHIVED` têm hard delete expressamente proibido.
+   - O status `ARCHIVED` **não é reutilizado** para drafts abandonados.
+4. **Numeração de Versão Monotônica e Não-Contígua**:
+   - Como consequência direta do descarte de drafts, `versionNumber` é estritamente **monotônico crescente, mas não necessariamente contíguo** (ex.: sequência 1, 2, 4 caso o draft 3 tenha sido descartado antes da publicação).
+5. **Versionamento Explícito de Schema (`configuration_schema_version`)**:
+   - Definido DDL: `configuration_schema_version integer NOT NULL CHECK (configuration_schema_version > 0)`.
+   - **Sem `DEFAULT` implícito**: callers de domínio que criam ou clonam drafts devem especificar a versão do schema explicitamente (valor inicial `1`), prevenindo que alterações futuras rotulem configurações novas silenciosamente como schema antigo.
+6. **Snapshot v1 Realista e Eliminação de Fake References**:
+   - O snapshot inicial v1 restringe-se a propriedades com semântica genuína: Persona (`role`, `companyName`, `objective`, `tone`, `greetingPhrase`, `closingPhrase`, `fallbackPhrase`), Idioma neutro (`languageCode: 'pt-BR' | 'en-US' | 'es-ES'`) e Regras (`conversational`, `deterministic`).
+   - Propriedades avançadas de voz (`pitch`, `stability`, `voiceProfileKey` arbitrário) são **`DEFERRED (FASE 6)`**.
+   - Ferramentas (`toolKeys` livres) e Base de Conhecimento (IDs de documentos inexistentes) são **`DEFERRED (FASE 7)`**.
+7. **Concorrência Transacional e Serialização de `agents.max`**:
+   - A invariante de cota (`agents.max` = contagem de agregados `Agent` com status `ACTIVE`) deve ser executada atomicamente no PostgreSQL no Slice 005B.
+   - Proibida validação não serializada (`SELECT count` seguido de `INSERT`).
+   - Inclusão de lock pessimista na linha do tenant: `SELECT id FROM organizations WHERE id = :orgId FOR UPDATE;` garantindo que duas requisições simultâneas não excedam a cota, sem necessidade de Redis ou lock distribuído.
+8. **Transação Atômica de Publicação**:
+   - Processo unificado em 7 passos sob a mesma transação: Lock pessimista no Agente (`FOR UPDATE`), verificação do draft elegível, validação de schema do snapshot, checagem comercial, arquivamento da versão publicada anterior, promoção do draft para `PUBLISHED` e registro em `audit_logs`.
+   - Falha em qualquer etapa dispara rollback total automático.
+9. **Invariantes e Consistência de Metadados de Publicação**:
+   - Como drafts descartados sofrem hard delete, `ARCHIVED` representa apenas versões historicamente publicadas.
+   - Regra relacional imposta via constraint `CHECK`:
+     - `status = 'DRAFT'`: `published_at IS NULL AND published_by IS NULL`;
+     - `status IN ('PUBLISHED', 'ARCHIVED')`: `published_at IS NOT NULL AND published_by IS NOT NULL`.
+10. **Fronteira Arquitetural de `packages/contracts`**:
+    - Pode depender de `zod` como biblioteca neutra de validação de schemas.
+    - É terminantemente proibido depender de Hono, Drizzle, Better Auth ou SDKs de terceiros.
+    - `@hono/zod-openapi` será restrito a `apps/api` no Slice 005C.
 
+### 3. Tabela Consolidada de Decisões Propostas (Proposed Decisions)
+
+| ID da Proposta | Dimensão Arquitetural | Proposta Técnica | Status |
+| :--- | :--- | :--- | :--- |
+| **PROP-005A-01** | **Agente Aggregate** | Identidade estável `Agent` desacoplada da configuração em `AgentVersion`. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-02** | **Fonte da Versão Publicada** | **Opção A**: Status `PUBLISHED` em `AgentVersion` com índice parcial único. Tabela `Agent` sem ponteiro redundante. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-03** | **Single Active Draft** | No máximo um draft por agente garantido por índice parcial único no banco. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-04** | **Supercessão de Ciclo de Vida**| Ciclo canônico `DRAFT → PUBLISHED → ARCHIVED` (`TEST` como atividade pontual). | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-05** | **Descarte de Rascunhos** | Hard delete permitido exclusivamente para `DRAFT`s nunca publicados (gerando `versionNumber`s monotônicos não-contíguos). | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-06** | **Arquivo / Reativação de Agente**| `Agent.status` e `AgentVersion.status` são desacoplados. Arquivamento não altera versão publicada. Reativação valida `agents.max`. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-07** | **Invariantes de Metadata** | Constraint CHECK impondo que `DRAFT` possui `published_* IS NULL` e `PUBLISHED`/`ARCHIVED` possuem `published_* IS NOT NULL`. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-08** | **Schema Versioning Explícito** | Coluna `configuration_schema_version integer NOT NULL CHECK (> 0)` sem default implícito. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-09** | **Snapshot v1 Realista** | Somente campos semânticos reais (Persona, Idioma, Regras). Tools, Voice avançado e Knowledge deferidos. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-10** | **Persistência Híbrida** | **Opção C**: Metadados relacionais indexáveis + snapshot JSONB tipado e validado. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-11** | **Validation Library** | Adoção de `zod` em `packages/contracts` como validador neutro compartilhado para 005B e 005C. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-12** | **Concorrência de `agents.max`**| Validação de cota e inserção/reativação serializadas por lock de linha na Organization (`FOR UPDATE`). | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-13** | **Proteção Confidencial RBAC** | Separação entre `agent.read` (metadados) e `agent.config.read` (prompt/regras restrito a MANAGER+). | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-14** | **Internal Service Auth** | Asserção assimétrica unificada em dev/staging/production (Web assina com chave privada, API verifica com pública). | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-15** | **Framework HTTP de API** | Hono com `@hono/node-server` e `@hono/zod-openapi` para Node 22/24. | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+| **PROP-005A-16** | **Fatiamento em Slices** | Execução sequencial em 005B (Persistência), 005C (API/Auth) e 005D (Frontend UI). | **PROPOSED / HUMAN APPROVAL REQUIRED** |
+
+### 4. Validação da Suíte Local de Qualidade (`pnpm check`)
+
+Executada auditoria completa da suíte de qualidade com todos os checks aprovados (exit code 0):
+- **Prettier**: 100% dos arquivos formatados (`All matched files use Prettier code style!`).
+- **ESLint**: 0 erros, 0 avisos.
+- **Turborepo Typecheck**: 12/12 pacotes aprovados com sucesso (`FULL TURBO`).
+- **Vitest (Contagem Autoritativa Real)**:
+  - **Passed Test Files**: **9 passed**
+  - **Skipped Test Files**: **3 skipped** (`staging-connection.test.ts`, `staging-domain-integrity.test.ts`, `auth.staging.test.ts`)
+  - **Total Test Files**: **12 files**
+  - **Passed Tests**: **34 passed**
+  - **Skipped Tests**: **11 skipped**
+  - **Total Tests**: **45 tests**
+- **Turborepo Build**: 12/12 pacotes construídos com sucesso (build otimizado de produção do Next.js 15.5.25 limpo).
+- **AST Architecture Check**: 100% das fronteiras arquiteturais respeitadas (`scripts/check-architecture.mjs`).
+- **File Size Check**: 82 arquivos de lógica de produção em conformidade com o teto de 180 linhas (3 avisos de arquivos recomendados mantidos: `live-call-card.tsx` com 154, `mobile-menu-drawer.tsx` com 157, `commercial.ts` com 177).
+
+### 5. Estado Git e Finalização
+
+- **Branch**: `docs/phase5-agent-studio-gate` mantida.
+- **Commit**: `docs: close phase 5 agent lifecycle and quota invariants`
+- **Push**: `origin/docs/phase5-agent-studio-gate`
+- **PR #7**: Continua **aberto** para revisão humana antes do merge ([PR #7](https://github.com/samueltarif/voice-agent-platform/pull/7)). **NÃO MERGEAR**.
+- **Slice 005B**: **NÃO INICIADO**. Nenhuma dependência instalada, nenhum schema alterado, nenhum banco modificado.
