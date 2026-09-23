@@ -2,7 +2,7 @@
 
 Este documento estabelece as regras estritas de modelagem, migração, acesso e governança de dados relacionais para o monorepo.
 
-> **Revisado em**: 22 de Setembro de 2026 (PROMPT-004B1 — DEC-026 / DEC-027)
+> **Revisado em**: 23 de Setembro de 2026 (PROMPT-004B2 — DEC-026 / DEC-027 / ADR-008)
 
 ---
 

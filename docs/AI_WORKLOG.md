@@ -2760,6 +2760,59 @@ Esta validação comprova que a fundação de persistência e autenticação (Fa
 | **Usage Persistence** | DEFERRED | PENDING DOMAIN PHASE | NOT VERIFIED |
 | **Fase 5 (Agent Studio)** | NOT STARTED | RESERVED TO PHASE 5 | NOT VERIFIED |
 
+---
+
+## 23/09/2026 — PROMPT-004B2-CLOSE — Precision Review and Merge Readiness
+
+### 1. Objetivo e Contexto
+
+Fechamento documental e alinhamento de precisão da Fase 4B2 (*Neon Staging Provisioning & Persistence Validation*), saneando ambiguidades conceituais em `docs/DEPLOYMENT.md`, alinhando a data de revisão em `docs/DATABASE.md`, retificando alegações absolutas de compatibilidade e registrando a contagem exata e descompactada dos testes antes do merge do PR #6.
+
+### 2. Retificações de Precisão Documental
+
+1. **Seleção de Provedor vs. Recursos de Produção (`docs/DEPLOYMENT.md`)**:
+   - Esclarecido que a seleção do motor de banco gerenciado está formalmente decidida: **Neon Serverless Postgres principal** (com Supabase Postgres como alternativa formal, conforme DEC-026 / ADR-008).
+   - O recurso de banco para o ambiente de produção permanece estritamente **NOT PROVISIONED** (nenhum banco, projeto ou branch de produção foi criado ou configurado).
+   - Topologia de produção, dimensionamento de capacidade, alta disponibilidade (HA), failover e procedimentos de backup permanecem **PENDING PRODUCTION DESIGN / NOT YET VALIDATED**. A validação em staging não equivale a uma homologação de produção.
+2. **Atualização do Cabeçalho de Governança (`docs/DATABASE.md`)**:
+   - Cabeçalho atualizado para refletir a revisão da Fase 4B2 em 23 de Setembro de 2026 (`PROMPT-004B2 — DEC-026 / DEC-027 / ADR-008`), incorporando as definições do modelo de conexão (runtime pooled vs migrations diretas fail-closed).
+3. **Retificação do Escopo de Paridade em Nuvem (Anti-Claim Absoluto "100%")**:
+   - Em conformidade com os princípios de auditabilidade e rigor técnico, retifica-se a declaração da seção 7 da entrada anterior:
+     - *Formulaçáo retificada*: **CLOUD PARITY VALIDATED FOR THE IMPLEMENTED PERSISTENCE/AUTH FOUNDATION WITHIN THE TESTED SCOPE** (Paridade em nuvem validada exclusivamente para a fundação de persistência e autenticação implementada, dentro do escopo testado).
+   - Reafirmação expressa das limitações da validação de staging, mantendo explicitamente pendentes para fases futuras:
+     - Caminhos de rede de produção e edge runtimes (ex.: Vercel Edge Runtime / Cloudflare Workers);
+     - Comportamento de concorrência massiva de chamadas telefônicas em tempo real;
+     - Procedimentos de Point-in-Time Recovery (PITR) e disaster recovery em produção;
+     - Resolução de cold start sob escala zero em tráfego de produção em tempo real;
+     - Modelagem e persistência de domínios da Fase 5 (Agent Studio, Agents, Calls, Campaigns, etc.).
+
+### 3. Auditoria e Contagem Exata da Suíte Local (`pnpm check`)
+
+Execução offline/local independente de rede ou provedores externos:
+- **Prettier**: 100% formatado (`All matched files use Prettier code style!`).
+- **ESLint**: 0 erros, 0 avisos.
+- **Turborepo Typecheck**: 12/12 pacotes aprovados com sucesso (`FULL TURBO`).
+- **Vitest — Contagem Exata**:
+  - **Arquivos de Teste**: **9 passed | 3 skipped (12 total)**
+  - **Testes Individuais**: **34 passed | 11 skipped (45 total)**
+  - *Detalhamento dos 3 arquivos e 11 testes skipped* (testes de fumaça cloud ativados estritamente sob demanda via `APP_ENV=staging` e `STAGING_SMOKE_TESTS=true`):
+    - `packages/database/src/staging-connection.test.ts`: 4 testes skipped.
+    - `packages/database/src/staging-domain-integrity.test.ts`: 5 testes skipped.
+    - `apps/web/src/lib/auth/auth.staging.test.ts`: 2 testes skipped.
+- **Turborepo Build**: 12/12 pacotes construídos com sucesso (build de produção do Next.js 15.5.25 compilado com sucesso).
+- **AST Architecture Check**: 100% de conformidade com fronteiras arquiteturais.
+- **File Size Check**: 82 arquivos de lógica de produção em conformidade com o limite de 180 linhas (3 avisos de arquivos recomendados entre 80-150 linhas: `live-call-card.tsx` com 154 linhas, `mobile-menu-drawer.tsx` com 157 linhas e `commercial.ts` com 177 linhas).
+
+### 4. Rastreabilidade Git e Prontidão para Merge
+
+- **Branch**: `feature/neon-staging-validation`
+- **Commit Anterior de Implementação**: `1daf2c2` (`chore: validate persistence foundation on neon staging`)
+- **Pull Request Aberto**: [#6 — chore: validate persistence foundation on neon staging](https://github.com/samueltarif/voice-agent-platform/pull/6)
+- **Status do Neon Staging**: Provisionado e funcional na região `aws-sa-east-1` (São Paulo), branch `staging`.
+- **Status de Produção**: **NOT PROVISIONED**.
+- **Fase 5 (Agent Studio & Domínios)**: **NÃO iniciada** (reservada para o próximo ciclo de desenvolvimento).
+
+
 
 
 

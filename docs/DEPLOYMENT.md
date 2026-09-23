@@ -9,6 +9,10 @@ Este documento define a separação dos ambientes de desenvolvimento, homologaç
 - **Provedor de Cloud / Hospedagem**: **Status: Pending Decision** (Candidatos: AWS, Google Cloud, Fly.io, Cloudflare).
 - **Orquestrador de Contêineres / Runtime**: **Status: Pending Decision** (Candidatos: Docker / ECS / Kubernetes).
 - **Pipeline de CI/CD**: **Status: Pending Decision** (Candidatos: GitHub Actions, GitLab CI).
+- **Banco de Dados Relacional**:
+  - **Seleção de Provedor**: **DECIDED — Neon Serverless Postgres principal** (Alternativa: Supabase Postgres) conforme DEC-026 / ADR-008.
+  - **Ambiente de Homologação (`staging`)**: Neon Managed PostgreSQL 16 (`aws-sa-east-1` / São Paulo) — **PROVISIONED & VALIDATED**.
+  - **Ambiente de Produção (`production`)**: **NOT PROVISIONED** (Recurso de banco não provisionado; topologia de produção, capacidade, alta disponibilidade, failover e procedimentos de backup pendentes de desenho de produção).
 
 Nenhuma configuração proprietária de cloud deve ser fixada antes da decisão técnica formal.
 
@@ -22,7 +26,7 @@ O sistema adota três ambientes estritamente segregados, com bancos de dados, cr
 | :--- | :--- | :--- | :--- | :--- |
 | **Desenvolvimento (`dev`)** | Desenvolvimento local de engenheiros e agentes de IA. | Fakes e emuladores locais (sem custo). | Leitura e escrita em código local. Sem acesso a secrets reais. | Docker Compose `postgres:16-alpine` local. |
 | **Homologação (`staging`)** | Validação integrada de deploys, testes E2E e testes de carga. | Contas de sandbox de telefonia/IA com limites financeiros rígidos. | Execução de testes automatizados via pipeline de CI. | Neon Managed PostgreSQL 16 (`aws-sa-east-1` / São Paulo). |
-| **Produção (`production`)** | Operação real com tráfego telefônico de clientes corporativos. | Provedores oficiais de produção com SLA e alta disponibilidade. | **Acesso direto bloqueado.** Nenhuma ação autônoma destrutiva. | **Não provisionado** (Pending Decision). |
+| **Produção (`production`)** | Operação real com tráfego telefônico de clientes corporativos. | Provedores oficiais de produção com SLA e alta disponibilidade. | **Acesso direto bloqueado.** Nenhuma ação autônoma destrutiva. | **Provedor Decidido: Neon principal** (ADR-008 / DEC-026).<br>**Recurso de Banco:** Não provisionado (`NOT PROVISIONED`).<br>**Topologia / Capacidade / HA / Backup:** Não validados (`PENDING PRODUCTION DESIGN`). |
 
 
 ---
