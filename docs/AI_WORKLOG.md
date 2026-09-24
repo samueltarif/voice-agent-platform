@@ -4270,3 +4270,37 @@ Executada a verificação local padrão sem as variáveis de ambiente staging:
   - Ambiente de Produção: 100% INTOCADO / NÃO PROVISIONADO.
   - Twilio / Voice Engine / Fase 6: 100% INTOCADO (pesquisa apenas).
 - **Status de Implementação**: **NOT STARTED** (planejamento formal concluído em `docs/plans/PHASE5_005D_AGENT_STUDIO_UI_PLAN.md`).
+
+---
+
+## 24/09/2026 — PROMPT-005D-A-FIX — Precision & Tenant Bootstrap Review
+
+- **Branch**: `docs/phase5-agent-studio-ui-gate`
+- **Base SHA**: `cd73f9e2c0d0e9fe3dd604c18966d6f57f15053f`
+- **Aprovações Humanas Registradas**:
+  - Padrão canônico de rotas tenant aprovado: `/orgs/[orgSlug]/agents` (e filhas `/new`, `/[agentId]`, `/[agentId]/edit`).
+  - UX de rascunhos: Salvamento explícito via botão `"Salvar rascunho"`. Auto-save e debounce descartados no 005D-B inicial.
+  - Navegação do Shell: Item `"Agente IA"` da barra lateral ativado apontando para `/orgs/{orgSlug}/agents`.
+- **Auditoria de Bootstrap de Organização e Gap Identificado**:
+  - `ACTIVE ORGANIZATION BOOTSTRAP GAP = CONFIRMED`.
+  - Constatado que a sessão do Better Auth possui apenas `userId` e não contém `organizationId`.
+  - A asserção atual do Slice 005C (`serviceAssertionClaimsSchema`) exige rigorosamente `orgId: z.string().uuid()`.
+  - O `apps/web` está arquiteturalmente proibido de consultar repositórios de domínio diretamente.
+  - As 11 rotas atuais do Agent Studio pressupõem um tenant já resolvido e não oferecem funcionalidade de descoberta ou listagem de organizações de um usuário.
+- **Necessidade de Extensão Arquitetural**:
+  - `ARCHITECTURAL EXTENSION REQUIRED — HUMAN APPROVAL REQUIRED`.
+  - Proposta no plano a criação do slice preparatório **`005D-B0 — Tenant Context Bootstrap`**, introduzindo perfil de asserção assimétrica Ed25519 user-scoped (`scope: 'user:bootstrap'`, sem `orgId`) restrito aos endpoints `/v1/me/organizations` e `/v1/organizations/by-slug/{slug}` no `apps/api`.
+- **Correção Factual de Nomes de Migrações**:
+  - Nomes reais auditados no diretório `packages/database/src/migrations/`: `0000_dizzy_runaways.sql` e `0001_numerous_eddie_brock.sql`.
+- **Correção Factual de Versões de Frontend**:
+  - Versões exatas auditadas no `pnpm-lock.yaml`: Next.js `15.5.25`, React `19.3.0`, React DOM `19.3.0`, Better Auth `1.7.5`, jose `6.2.12`, lucide-react `0.475.0`.
+- **Precisão Documental de CSRF**:
+  - Substituída redação imprecisa por descrição factual: Server Actions utilizam verificação nativa de correspondência entre headers `Host` e `Origin` para proteção contra CSRF em requisições POST (`VERIFIED BY DOCS` no Next.js 15.5.25).
+- **Integridade do Sistema**:
+  - Arquivos alterados nesta tarefa: `docs/plans/PHASE5_005D_AGENT_STUDIO_UI_PLAN.md` e `docs/AI_WORKLOG.md`.
+  - Schema de banco de dados (`packages/database/src/schema`): ZERO alteração.
+  - Migrações (`packages/database/src/migrations`): ZERO alteração.
+  - Banco Neon: NÃO acessado nesta tarefa.
+  - Ambiente de Produção: 100% INTOCADO / NÃO PROVISIONADO.
+  - Twilio / Voice Engine / Fase 6: 100% INTOCADO (pesquisa apenas).
+- **Status de Implementação**: **NOT STARTED** (apenas o plano em PR #12 foi corrigido).

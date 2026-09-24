@@ -13,7 +13,10 @@
 
 ### 1.1. Status Formal dos Slices Anteriores
 - **Slice 005B (`packages/database` e `packages/contracts`)**:
-  - **MERGED / NEON STAGING VALIDATED** (Migrations `0000_ambitious_groot.sql` e `0001_productive_tusk.sql`).
+  - **MERGED / NEON STAGING VALIDATED**.
+  - Migrações canônicas reais em disco (`packages/database/src/migrations/`):
+    - `0000_dizzy_runaways.sql` (Foundation: auth, organizations, memberships, commercial, audit)
+    - `0001_numerous_eddie_brock.sql` (Agent Domain: agents, agent_versions, lifecycle, constraints)
   - Domínios de `Agent` e `AgentVersion`, invariantes de integridade referencial, constraints compostas e parciais no PostgreSQL, resolução de cotas comerciais (`CommercialEntitlementResolver`), política de publicação com arquivamento atômico (`DefaultCommercialPublicationPolicy`) e concorrência validadas com zero resíduos em Neon staging.
 - **Slice 005C (`apps/api` e Internal Service Auth)**:
   - **MERGED / LOCAL + NEON STAGING INTEGRATION VALIDATED**.
@@ -28,9 +31,28 @@
 
 ---
 
-## 2. Contratos Canônicos das 11 Rotas do Agent Studio (`apps/api`)
+## 2. Decisões Humanas Aprovadas para o Slice 005D
 
-Todas as rotas exigem o header `Authorization: Bearer <assertion>` assinado assimetricamente via Ed25519 com `iss: voice-agent:web`, `aud: voice-agent:api`, e `x-request-id` para correlação.
+Conforme deliberação formal do operador humano:
+
+1. **Contexto de Organização por Rota Canônica**:
+   - Padrão oficial obrigatório: `/orgs/[orgSlug]/agents`.
+   - Sub-rotas:
+     - `/orgs/[orgSlug]/agents/new`
+     - `/orgs/[orgSlug]/agents/[agentId]`
+     - `/orgs/[orgSlug]/agents/[agentId]/edit`
+   - *Motivo*: Evita colisão com rotas top-level existentes (`/dashboard`, `/calls`, `/platform`), provê deep-linking e bookmarks determinísticos e suporta navegação multi-abas sem contaminação de contexto. O `orgSlug` na URL atua estritamente como **CONTEXTO DE INTENÇÃO**, nunca como prova de autorização.
+2. **UX de Salvamento de Rascunho (Draft Save UX)**:
+   - **Salvamento Explícito**: Ação acionada pelo usuário via botão canônico `"Salvar rascunho"`.
+   - Auto-save ou debounce permanecem **descartados** no 005D-B inicial para assegurar previsibilidade e simplificar a máquina de estados.
+3. **Navegação no Application Shell**:
+   - O item `"Agente IA"` da navegação lateral (`DesktopSidebar`) e móvel será ativado, com `href` apontando para `/orgs/{orgSlug}/agents` derivado da organização ativa no contexto. Zero ações mortas na interface.
+
+---
+
+## 3. Contratos Canônicos das 11 Rotas do Agent Studio (`apps/api`)
+
+Todas as 11 rotas de agente exigem o header `Authorization: Bearer <assertion>` assinado assimetricamente via Ed25519 com `iss: voice-agent:web`, `aud: voice-agent:api`, e `x-request-id` para correlação.
 
 | # | Método | Caminho Canônico | Request Schema | Response Schema | Permissão Requerida | Serviço de Domínio Executado |
 |---|--------|------------------|----------------|-----------------|---------------------|------------------------------|
@@ -51,7 +73,7 @@ Todas as rotas exigem o header `Authorization: Bearer <assertion>` assinado assi
 
 ---
 
-## 3. Matriz RBAC e Regras Estritas de Confidencialidade
+## 4. Matriz RBAC e Regras Estritas de Confidencialidade
 
 Conforme `apps/api/src/auth/agent-permissions.ts`, a plataforma possui 5 papéis de tenant (`TenantRole`):
 
@@ -66,189 +88,168 @@ Conforme `apps/api/src/auth/agent-permissions.ts`, a plataforma possui 5 papéis
 *\*Nota: O endpoint de Agent Test Run ainda não foi construído no backend (`apps/api`). Logo, nenhum botão funcional de teste deve ser implementado no frontend na Fase 5.*
 
 ### Regras de Confidencialidade na UI:
-1. **Confidencialidade de Configuração**: Para os papéis `VIEWER` e `OPERATOR`, os campos `configuration`, `persona`, `rules`, `playbook` e `examples` são omitidos na API e devem ser estritamente bloqueados na UI.
+1. **Confidencialidade de Configuração**: Para os papéis `VIEWER` e `OPERATOR`, os campos `configuration`, `persona`, `rules`, `playbook`, `examples`, `changelog` e `nextVersionNumber` são omitidos na API e devem ser estritamente bloqueados na UI.
 2. **Defesa em Profundidade no BFF**: O BFF não deve invocar a rota `GET /v1/agents/:agentId/versions/:versionId/configuration` se o usuário logado possuir papel `VIEWER` ou `OPERATOR`.
 3. **Não-Vazamento Visual**: O frontend deve ocultar completamente seções de edição e CTAs de criação/publicação para papéis sem privilégio, evitando renderizar ações inviáveis ou expor dados restritos.
 
 ---
 
-## 4. Auditoria do Frontend Existente (`apps/web` e `@voice-agent/ui`)
+## 5. Auditoria do Frontend Existente (`apps/web` e `@voice-agent/ui`)
 
-### 4.1. Estrutura de Rotas e Componentes Atual
-- **Next.js 15.2.0 (App Router)**:
+### 5.1. Versões Reais em Execução (Auditadas no `pnpm-lock.yaml`)
+- **Next.js**: `15.5.25` (declarado no `package.json` como `^15.2.0`)
+- **React**: `19.3.0` (declarado no `package.json` como `^19.0.0`)
+- **React DOM**: `19.3.0`
+- **Better Auth**: `1.7.5`
+- **jose**: `6.2.12`
+- **lucide-react**: `0.475.0`
+- **Tailwind CSS**: `4.0.0`
+
+### 5.2. Estrutura de Rotas e Componentes Atual
+- **Next.js App Router**:
   - `src/app/layout.tsx`: Root Layout com providers (`UiPreferencesProvider`).
   - `src/app/page.tsx`: Redirecionamento inicial para `/dashboard`.
-  - `src/app/dashboard/page.tsx`: Dashboard mockada com cartões e métricas.
+  - `src/app/dashboard/page.tsx`: Dashboard com cartões e métricas baseados em mocks.
   - `src/app/calls/page.tsx`: Lista de chamadas com visualização detalhada.
-  - `src/app/platform/page.tsx`: Gestão de plataforma (visão master/admin).
-  - `src/app/api/auth/[...all]/route.ts`: Handler do Better Auth (`toNextJsHandler(auth)`).
+  - `src/app/platform/page.tsx`: Gestão de plataforma (visão admin).
+  - `src/app/api/auth/[...all]/route.ts`: Handler HTTP do Better Auth (`toNextJsHandler(auth)`).
 - **Application Shell (`src/shell/`)**:
-  - `TenantShell`: Container principal com `DesktopSidebar`, `AppTopbar`, `MobileBottomNav`, `MobileMenuDrawer` e `CommandPaletteDialog`.
-  - `DesktopSidebar`: Barra lateral recolhível. Atualmente, o item "Agente IA" está presente apontando para `#` com `badge: 'Em breve', disabled: true`.
+  - `TenantShell`: Container com `DesktopSidebar`, `AppTopbar`, `MobileBottomNav`, `MobileMenuDrawer` e `CommandPaletteDialog`.
+  - `DesktopSidebar`: Barra lateral recolhível. Atualmente, o item "Agente IA" aponta para `#` com `badge: 'Em breve', disabled: true`.
   - `AppTopbar`: Cabeçalho fixo com busca rápida (Ctrl+K), seletor de densidade (compacto/padrão/espaçoso), alternador de tema claro/escuro e avatar estático (`OP`).
 - **Design System (`packages/ui`)**:
   - Primitivas disponíveis: `Button`, `Input`, `Card`, `Badge`, `Avatar`, `Table`, `Dialog`, `Sheet`, `DropdownMenu`, `Tooltip`, `Separator`, `Skeleton`, `Command`, `Progress`.
-  - Compatibilidade comprovada com Tailwind CSS v4, dark mode nativo via classes de design tokens HSL e suporte mobile-first.
 
 ---
 
-## 5. Fluxo de Autenticação: Browser -> BFF -> API -> Neon
+## 6. Auditoria de Bootstrap de Organização: Identificação do Gap Arquitetural
 
-```
-┌─────────────────┐       (1) HTTPS Cookie       ┌───────────────────────────────┐
-│ Browser (Client)├─────────────────────────────>│ apps/web (BFF / Server)       │
-│                 │  better-auth.session_token   │                               │
-│                 │                              │ 1. auth.api.getSession()      │
-│                 │                              │ 2. Resolve userId             │
-│                 │                              │ 3. Resolve active Org Context │
-│                 │                              │ 4. InternalServiceSigner      │
-└─────────────────┘                              │    (Ed25519 Private Key)      │
-                                                 └──────────────┬────────────────┘
-                                                                │ (2) Asymmetric Assertion
-                                                                │     Authorization: Bearer <JWT>
-                                                                │     x-request-id: <uuid>
-                                                                v
-                                                 ┌───────────────────────────────┐
-                                                 │ apps/api (Gateway & Domain)   │
-                                                 │                               │
-                                                 │ 1. ServiceAssertionVerifier   │
-                                                 │ 2. authorizeTenant()          │
-                                                 │ 3. RBAC & Quota Enforcement   │
-                                                 └──────────────┬────────────────┘
-                                                                │ (3) SQL Queries
-                                                                v
-                                                 ┌───────────────────────────────┐
-                                                 │ PostgreSQL (Neon Staging/Prod)│
-                                                 │                               │
-                                                 │ organizations, memberships,   │
-                                                 │ agents, agent_versions        │
-                                                 └───────────────────────────────┘
-```
+### 6.1. Respostas Factuais às Perguntas de Bootstrap
+1. **Como um usuário recém-logado descobre as organizações das quais possui membership ativa?**
+   *Hoje*: Não descobre. Não há nenhum endpoint na API ou no BFF que liste as organizações vinculadas ao `userId`.
+2. **Como o shell obtém dados para o organization switcher?**
+   *Hoje*: O shell exibe apenas o texto estático `"Workspace Demo"` sem dados dinâmicos.
+3. **Como `orgSlug` é convertido para `organizationId` sem `apps/web` acessar diretamente a persistência de domínio?**
+   *Hoje*: Não existe rota de resolução. E `apps/web` está estritamente proibido de consultar repositórios de banco de dados diretamente por DEC-029 / ADR-010.
+4. **Como isso funciona antes de existir um `orgId` com o qual assinar a assertion tenant-scoped atual?**
+   *Hoje*: **Não funciona**. O contrato `serviceAssertionClaimsSchema` exige rigorosamente `orgId: z.string().uuid()`. Logo, o `InternalServiceSigner` recusa assinar asserções sem `organizationId`, tornando impossível chamar qualquer rota sob `/v1/*`.
+5. **Existe hoje endpoint ou control-plane capability que resolva isso?**
+   *Hoje*: **NÃO EXISTE**. O Slice 005C implementou exclusivamente as rotas de agente, que assumem um tenant já pré-resolvido.
 
-### 5.1. Perguntas Arquiteturais Obrigatórias (Seção 5 da Demanda)
-- **A. Como `apps/web` recupera a sessão no servidor?**  
-  Via `auth.api.getSession({ headers: await headers() })` (onde `headers` provém de `next/headers`). Retorna o objeto `{ session, user }` ou `null`.
-- **B. Qual é a fonte factual de `userId`?**  
-  A propriedade `session.user.id` retornada pelo Better Auth após validação criptográfica do cookie contra a tabela `session`.
-- **C. A sessão/browser contém `organizationId`?**  
-  **NÃO**. A instância atual do Better Auth está configurada sem plugins de organização. Os dados de sessão compreendem exclusivamente usuário, conta e token de sessão.
-- **D. Como o usuário escolhe a organização ativa?**  
-  O usuário deve selecionar sua organização ativa a partir da lista de organizações em que possui membership ativa (`organization_memberships`).
-- **E. Onde o `organizationId` ativo deve viver?**  
-  No contexto da requisição web (ver alternativas arquiteturais na Seção 6).
-- **F. Como impedir que o `organizationId` enviado pelo browser seja tratado como autorização?**  
-  O `organizationId` enviado pelo browser é **ESTRITAMENTE CONTEXTO DE INTENÇÃO**, nunca prova de acesso. O `apps/web/BFF` assina a asserção contendo `sub: userId` e `orgId: selectedOrgId`. O `apps/api` revalida compulsoriamente no banco de dados se o `userId` de fato possui membership ativa nessa organização e se sua role confere as permissões necessárias para o endpoint solicitado.
+### 6.2. Diagnóstico Formal
+> **ACTIVE ORGANIZATION BOOTSTRAP GAP = CONFIRMED**
+
+Para viabilizar a navegação em `/orgs/[orgSlug]/agents` sem violar o isolamento do banco e sem quebrar os contratos criptográficos existentes, é indispensável definir um slice preparatório de bootstrap: **`005D-B0 — Tenant Context Bootstrap`**.
 
 ---
 
-## 6. Proposta de Contexto de Organização Ativa (Seção 6 da Demanda)
+## 7. Proposta de Arquitetura para o Slice 005D-B0 (Tenant Context Bootstrap)
 
-Como o repositório atual **não possui** implementação prévia de switcher de organização ou persistência de tenant ativo, propõem-se no máximo duas alternativas arquiteturais para aprovação humana:
+> [!CAUTION]
+> **ARCHITECTURAL EXTENSION REQUIRED — HUMAN APPROVAL REQUIRED**
+> A especificação DEC-031 / ADR-012 fixou o formato de asserção interna tenant-scoped (`sub`, `orgId`, `iss`, `aud`, `iat`, `exp`, `jti`). Para permitir que o BFF consulte organizações antes de conhecer um `orgId`, é necessária uma extensão controlada de autenticação.
 
-### Alternativa 1 (Recomendada): Contexto por Rota (`/orgs/[orgSlug]/agents`)
-- **Conceito**: A organização ativa é parte explícita da URL. As rotas do Agent Studio ficam sob `/[orgSlug]/agents`.
-- **UX**: URLs compartilháveis e favoráveis (bookmarks); permite ao usuário abrir múltiplas organizações em abas distintas sem conflito de sessão; histórico de navegação limpo.
-- **Segurança**: Isolamento explícito; o slug na URL define o tenant alvo; se o usuário alterar manualmente o slug para uma organização à qual não pertence, a API responde imediatamente com HTTP 403 `FORBIDDEN` ou 404 `NOT_FOUND`.
-- **Persistência**: Natural e determinística via URL. O último slug acessado pode ser salvo em cookie leve (`v_last_org_slug`) apenas para redirecionamento do `/` inicial.
-- **SSR**: Nativo e ótimo no Next.js App Router. O Server Component recebe `params.orgSlug` diretamente, sem cascata de requisições.
-- **Tamper Resistance**: Totalmente garantida pelo `apps/api` (não confia no cliente).
-- **Impacto no BFF**: O BFF resolve o `slug -> orgId` e injeta `organizationId` no `InternalApiClient`.
-- **Impacto no API**: Zero impacto nos contratos existentes (a asserção continua trafegando `orgId` como UUID).
-- **Complexidade**: Baixa a Moderada (estrutura de pastas `app/[orgSlug]/agents`).
+### Alternativa A (Recomendada): Perfil de Asserção User-Scoped para Bootstrap (`UserBootstrapAssertion`)
+- **Conceito**: O mesmo `InternalServiceSigner` assina um token assimétrico Ed25519 exclusivo para descoberta de tenant:
+  - Header: `{ alg: 'EdDSA', typ: 'JWT', kid: '<staging-or-prod-kid>' }`
+  - Payload: `{ sub: userId, scope: 'user:bootstrap', iss: 'voice-agent:web', aud: 'voice-agent:api', iat, exp, jti }`
+  - Note: Sem `orgId` e sem papéis/roles.
+- **Novos Endpoints Mínimos no `apps/api`**:
+  - `GET /v1/me/organizations`: Retorna a lista de organizações em que o `sub` (userId) possui membership ativa (`[{ id, name, slug, role, status }]`).
+  - `GET /v1/organizations/by-slug/{slug}`: Valida se o `sub` pertence à organização indicada pelo `slug` e retorna o respectivo `organizationId` (UUID) e metadados básicos.
+- **Segurança**:
+  - As 11 rotas `/v1/agents/*` continuam rejeitando terminantemente tokens sem `orgId`. Apenas os novos endpoints sob `/v1/me/*` ou `/v1/organizations/by-slug/*` aceitam o escopo de bootstrap.
+  - Zero exposição de chaves privadas ou tokens no navegador.
+- **Vantagens**: Preserva o canal criptográfico assimétrico unificado Ed25519 sem criar métodos paralelos de autenticação.
 
-### Alternativa 2: Contexto por Cookie de Tenant (`v_active_org`)
-- **Conceito**: URLs genéricas (`/agents`). A organização ativa é armazenada em um cookie `v_active_org=<organizationId>`.
-- **UX**: URLs mais curtas. Switcher altera o cookie e dispara `router.refresh()`. Contudo, abas simultâneas competem pelo mesmo cookie, podendo causar confusão de contexto se o usuário alternar organização em uma aba.
-- **Segurança**: Cookie `SameSite=Lax`, `HttpOnly`. Tamper resistance garantida pelo `apps/api`.
-- **Persistência**: Baseada no cookie do navegador.
-- **SSR**: Lida via `cookies()` em Server Components.
-- **Tamper Resistance**: Garantida pelo backend.
-- **Impacto no BFF**: O BFF lê o cookie na requisição e passa para o `InternalApiClient`.
-- **Impacto no API**: Zero impacto.
-- **Complexidade**: Baixa.
+### Alternativa B: Resolução de Tenant via BFF Server-to-Server com Credencial de Plataforma
+- **Conceito**: Um endpoint `/v1/internal/tenant-lookup` autenticado via chave de serviço compartilhada ou mTLS que aceita `(userId, slug)` e retorna o `organizationId`.
+- **Desvantagem**: Introduz uma segunda modalidade de autenticação interna concorrente ao ADR-012.
 
-> **Decisão Recomendada para Aprovação**: **Alternativa 1 (Contexto por Rota)** pela robustez multi-abas e alinhamento com padrões modernos de plataformas B2B SaaS.
+> **Recomendação Submetida a Aprovação**: **Alternativa A**, formalizada como extensão controlada de ADR no Slice 005D-B0.
 
 ---
 
-## 7. Estratégia CSRF: Browser -> BFF (Seção 7 da Demanda)
+## 8. Estratégia CSRF: Browser -> BFF
 
-### 7.1. Diagnóstico do Next.js 15 e Better Auth
-- O Better Auth protege automaticamente seus próprios endpoints `/api/auth/*` contra CSRF.
-- Rotas personalizadas do BFF (`/api/bff/*`) no Next.js App Router **não** possuem proteção automática contra CSRF baseada em token gerada pelo Next.js para métodos `POST`, `PATCH` e `DELETE`.
-- Server Actions do Next.js possuem proteção nativa contra CSRF baseada em verificação de `Host` e `Origin`.
-
-### 7.2. Proposta Concreta de Proteção CSRF (Zero Novas Dependências)
-1. **Validação Estrita de `Origin` e `Host`**:
-   - Todo handler de mutação no BFF (`POST`, `PATCH`, `DELETE`) valida que o header `Origin` ou `Referer` corresponde estritamente ao header `Host` da aplicação (`NEXT_PUBLIC_APP_URL` ou hostname local).
-   - Requisições cross-origin não autorizadas são rejeitadas com HTTP 403 `CSRF_VALIDATION_FAILED`.
-2. **Cookies de Sessão com `SameSite=Lax`**:
-   - O cookie do Better Auth é configurado como `SameSite: 'lax'` e `HttpOnly`, impedindo o envio inadvertido de credenciais em requisições de sites externos.
-3. **Uso de Server Actions para Formulários de Edição**:
-   - Para submissões de rascunho e formulários de configuração, utilizar Server Actions do Next.js, aproveitando a verificação criptográfica interna do framework.
+- **Next.js 15 Server Actions**:
+  Server Actions contam com mecanismo próprio de validação de `Host` e `Origin` em requisições POST para mitigação nativa de CSRF (**VERIFIED BY DOCS** no Next.js 15.5.25).
+- **Route Handlers Personalizados (`/api/bff/*`)**:
+  Para Route Handlers HTTP normais, a validação de CSRF deve ser implementada no próprio handler do BFF, comparando o header `Origin` ou `Referer` com o `Host` esperado da aplicação (`NEXT_PUBLIC_APP_URL` ou hostname local).
+- **Cookies de Sessão**:
+  O cookie de sessão do Better Auth permanece configurado como `SameSite: 'lax'` e `HttpOnly`.
+- **Dependências**: Zero novas dependências de CSRF.
 
 ---
 
-## 8. Arquitetura da Camada BFF e Integração com `InternalApiClient`
+## 9. Arquitetura da Camada BFF e Integração com `InternalApiClient`
 
-O browser **NUNCA** acessa `apps/api` diretamente. O `apps/web` atua como BFF:
+O navegador **NUNCA** acessa `apps/api` diretamente. O `apps/web` atua como BFF:
 
 1. **Serviço Singleton**: `InternalApiClient` configurado no servidor com a chave privada Ed25519 de runtime (`INTERNAL_SERVICE_PRIVATE_JWK`).
 2. **Handlers Especializados do BFF** (ex.: `src/lib/api/agent-bff-service.ts`):
    - Recupera a sessão Better Auth do usuário logado via `headers()`.
    - Extrai `userId = session.user.id`.
-   - Obtém o `organizationId` ativo.
-   - Invoca `internalApiClient.request()` repassando a asserção gerada em memória pelo `InternalServiceSigner`.
+   - Obtém o `organizationId` ativo validado pelo bootstrap de rota.
+   - Invoca `internalApiClient.request()` repassando a asserção tenant-scoped gerada em memória pelo `InternalServiceSigner`.
    - Propaga o `requestId` para rastreabilidade de logs.
    - Trata e normaliza erros da API (400, 401, 403, 404, 409, 500) em respostas canônicas para a UI.
 
 ---
 
-## 9. Mapa de Telas e Fluxos de Usuário do Agent Studio (005D)
+## 10. Mapa Canônico de Páginas e Rotas da UI (005D)
 
-### 9.1. Mapa de Páginas
-1. **`/agents` — Lista de Agentes (Catálogo)**:
+Todas as rotas de agente seguem o padrão `/orgs/[orgSlug]/agents`:
+
+```
+/orgs/[orgSlug]/agents
+  ├── /new                          (Criação de Agente)
+  └── /[agentId]                    (Detalhes, Histórico e Lifecycle)
+        └── /edit                   (Editor de Configuração Snapshot V1)
+```
+
+1. **`/orgs/[orgSlug]/agents` — Catálogo de Agentes**:
    - Tabela responsiva / grid de cartões de agentes.
    - Badges de status do ciclo de vida: `ACTIVE` (verde) e `ARCHIVED` (cinza).
    - Badge da versão publicada atual (ex: `v2` ou `Sem versão publicada`).
    - Indicador de rascunho em aberto (ex: `Rascunho v3 pendente`).
    - Botão primário "Criar Agente" (visível e habilitado apenas para `OWNER` e `ADMIN`).
    - Estado vazio quando não houver agentes cadastrados.
-2. **`/agents/new` — Criação de Agente**:
+2. **`/orgs/[orgSlug]/agents/new` — Criação de Agente**:
    - Formulário com campos `name` e `slug` (gerado automaticamente a partir do nome, com opção de edição).
    - Validação inline conforme `createAgentHttpBodySchema`.
-   - Tratamento de erro de cota comercial excedida (`ENTITLEMENT_EXCEEDED` / `agents.max`), exibindo mensagem clara instruindo contato com o administrador da organização ou upgrade de plano.
-3. **`/agents/[agentId]` — Detalhes do Agente**:
+   - Tratamento de erro de cota comercial excedida (`ENTITLEMENT_EXCEEDED` / `agents.max`), exibindo mensagem clara instruindo upgrade ou liberação de agentes inativos.
+3. **`/orgs/[orgSlug]/agents/[agentId]` — Detalhes do Agente**:
    - Cabeçalho com nome, slug, status (`ACTIVE`/`ARCHIVED`), data de criação e versão publicada ativa.
    - Card de Rascunho Ativo: Se existir rascunho, exibe opções para "Continuar Editando", "Publicar" ou "Descartar". Se não houver, exibe botão "Criar Novo Rascunho" (para `OWNER`, `ADMIN`, `MANAGER`).
    - Histórico de Versões: Lista cronológica de versões (`versionNumber`, `status: DRAFT / PUBLISHED / ARCHIVED`, `publishedAt`, `changelog`).
    - Ações de Ciclo de Vida: Botão "Arquivar Agente" / "Reativar Agente" (restrito a `OWNER` e `ADMIN`).
-4. **`/agents/[agentId]/edit` — Editor de Configuração (Snapshot V1)**:
+4. **`/orgs/[orgSlug]/agents/[agentId]/edit` — Editor de Configuração (Snapshot V1)**:
    - Formulário estruturado com base exclusivamente no schema `AgentConfigurationSnapshotV1`:
      - **Persona**: Nome/papel do atendente, empresa, objetivo, tom (`FORMAL`, `CASUAL`, `EMPATHETIC`), frases de saudação, encerramento e fallback.
      - **Voz**: Idioma fixo (`pt-BR`).
      - **Regras**: Regras conversacionais e regras determinísticas (desconto máximo, horários de operação).
      - **Playbook**: Estágios de atendimento (acolhimento, triagem, resolução) com metas claras.
      - **Exemplos**: Pares de input do cliente e resposta ideal do agente.
-   - Ações de Rascunho: "Salvar Alterações" (PATCH no rascunho) e "Publicar Versão" (dispara modal de confirmação).
+   - Ações de Rascunho: Botão explícito `"Salvar rascunho"` (PATCH no rascunho) e botão `"Publicar versão"` (dispara modal de confirmação).
 
 ---
 
-## 10. UX de Rascunhos, Publicação, Arquivamento e Reativação
+## 11. UX de Rascunhos, Publicação, Arquivamento e Reativação
 
-### 10.1. Ciclo de Vida de Rascunho (Draft UX)
+### 11.1. Ciclo de Vida de Rascunho (Draft UX)
 - **Invariante**: Existe no máximo 1 rascunho (`DRAFT`) por agente a qualquer momento.
 - Se o usuário tentar criar um segundo rascunho enquanto já houver um aberto, a UI intercepta o erro HTTP 409 `DRAFT_ALREADY_EXISTS` do backend e direciona o usuário para o rascunho existente.
-- A exclusão de um rascunho ("Descartar Rascunho") exige diálogo modal de confirmação e invoca `DELETE /v1/agents/:agentId/drafts/:versionId`.
+- A exclusão de um rascunho ("Descartar rascunho") exige diálogo modal de confirmação e invoca `DELETE /v1/agents/:agentId/drafts/:versionId`.
 
-### 10.2. Publicação com Confirmação Visual (Publish UX)
-- A publicação é uma ação destrutiva/substitutiva no ciclo de vida:
+### 11.2. Publicação com Confirmação Visual (Publish UX)
+- A publicação é uma ação atômica e substitutiva no ciclo de vida:
   - O modal de publicação deve informar expressamente:
     *"Ao publicar esta versão, a versão atualmente em produção será arquivada e o novo rascunho entrará em vigor imediatamente para novas chamadas."*
   - Exibe sumário do `changelog`.
   - Ao confirmar, invoca `POST /v1/agents/:agentId/drafts/:versionId/publish`.
 
-### 10.3. Arquivamento e Reativação (Archive & Reactivate UX)
+### 11.3. Arquivamento e Reativação (Archive & Reactivate UX)
 - **Arquivamento**:
   - Modal de confirmação: *"Agentes arquivados não podem receber novas chamadas telefônicas ou ter novas versões publicadas."*
   - Invoca `POST /v1/agents/:agentId/archive`.
@@ -258,11 +259,11 @@ O browser **NUNCA** acessa `apps/api` diretamente. O `apps/web` atua como BFF:
 
 ---
 
-## 11. Estratégia de Responsividade e Tokens de Design
+## 12. Estratégia de Responsividade e Tokens de Design
 
 - **Grid e Breakpoints Suportados**:
   - `320px` a `430px` (Smartphones compactos e padrão): Coluna única, formulários com campos empilhados, navegação inferior fixa (`MobileBottomNav`).
-  - `768px` (Tablets / Telas intermediárias): Layout flexível de 2 colunas para cards de métricas e histórico.
+  - `768px` (Tablets): Layout flexível de 2 colunas para cards de métricas e histórico.
   - `1024px`, `1440px`, `1920px` (Desktop): Sidebar lateral fixa (`DesktopSidebar`), tabelas expandidas, visualização lado a lado de rascunho e histórico.
 - **Design Tokens**:
   - Uso estrito das variáveis CSS já configuradas em `apps/web/src/app/globals.css` (`--background`, `--foreground`, `--card`, `--primary`, `--border`, `--muted`).
@@ -270,7 +271,7 @@ O browser **NUNCA** acessa `apps/api` diretamente. O `apps/web` atua como BFF:
 
 ---
 
-## 12. Tratamento de Estados: Carregamento, Erros e Estados Vazios
+## 13. Tratamento de Estados: Carregamento, Erros e Estados Vazios
 
 A interface do Agent Studio cobrirá integralmente a seguinte matriz de estados:
 
@@ -286,7 +287,7 @@ A interface do Agent Studio cobrirá integralmente a seguinte matriz de estados:
 
 ---
 
-## 13. Estratégia de Testes para o Slice 005D-B
+## 14. Estratégia de Testes para o Slice 005D-B
 
 1. **Testes Unitários (`apps/web`)**:
    - `agent-permissions.test.ts`: Derivação de ações e visibilidade na UI por papel (`OWNER`, `ADMIN`, `MANAGER`, `OPERATOR`, `VIEWER`).
@@ -300,11 +301,11 @@ A interface do Agent Studio cobrirá integralmente a seguinte matriz de estados:
 
 ---
 
-## 14. Auditoria de Dependências: Zero Novas Dependências
+## 15. Auditoria de Dependências: Zero Novas Dependências
 
 As dependências já instaladas em `apps/web` e no monorepo são 100% suficientes para a conclusão do Slice 005D:
-- `next` (v15.2.0)
-- `react` e `react-dom` (v19.0.0)
+- `next` (v15.5.25)
+- `react` e `react-dom` (v19.3.0)
 - `better-auth` (v1.7.5)
 - `jose` (v6.2.12)
 - `lucide-react` (v0.475.0)
@@ -316,7 +317,7 @@ As dependências já instaladas em `apps/web` e no monorepo são 100% suficiente
 
 ---
 
-## 15. Itens Expressamente Diferidos (Fora do Escopo 005D)
+## 16. Itens Expressamente Diferidos (Fora do Escopo 005D)
 
 Para manter o foco estrito na entrega da UI do Agent Studio:
 1. **Twilio e Telefonia**: Nenhuma integração com Twilio Voice, WebRTC de telefonia ou Media Streams (pertence à Fase 6).
@@ -326,20 +327,27 @@ Para manter o foco estrito na entrega da UI do Agent Studio:
 
 ---
 
-## 16. Perguntas Abertas para Alinhamento com o Operador Humano
-
-Antes de iniciar a codificação do Slice 005D-B, submetem-se para aprovação humana as seguintes decisões arquiteturais:
-1. **Abordagem de Resolução de Organização Ativa**: Confirma-se a adoção da **Alternativa 1 (Contexto por Rota `/[orgSlug]/agents`)** ou prefere-se a Alternativa 2 (Cookie de Sessão `v_active_org`)?
-2. **Formulário de Configuração do Agente**: Deseja-se salvar alterações de rascunho de forma atômica via botão explícito ("Salvar Rascunho") ou auto-save por campo com debounce? (Recomendação: Salvamento explícito no 005D-B para maior previsibilidade e simplicidade).
-3. **Navegação do Shell**: O item "Agente IA" da barra lateral deve ser ativado apontando diretamente para o catálogo de agentes da organização ativa? (Recomendação: Sim, ativando o link existente na sidebar).
-
----
-
 ## 17. Slices Propostos para Implementação em 005D-B
 
-A implementação do 005D-B será dividida em entregas incrementais e testáveis:
-- **Slice 005D-B1**: Contexto de Organização Ativa, Switcher no Shell e Ativação do link na Sidebar.
-- **Slice 005D-B2**: Catálogo de Agentes (`/agents`) e Criação com Validação de Cota (`/agents/new`).
-- **Slice 005D-B3**: Visualização de Detalhes (`/agents/[agentId]`), Histórico de Versões e Ações de Ciclo de Vida (Archive / Reactivate).
-- **Slice 005D-B4**: Editor de Configuração V1 (`/agents/[agentId]/edit`), Gestão de Draft e Modal de Publicação com Confirmação Visual.
-- **Slice 005D-B5**: Suíte de Testes Automatizados da UI e Auditoria Final de Conformidade.
+Com a identificação do gap de bootstrap, a implementação do 005D-B passa a ser estruturada em 6 etapas incrementais e testáveis:
+
+- **Slice 005D-B0 — Tenant Context Bootstrap**:
+  - Extensão arquitetural de asserção assimétrica user-scoped (`scope: 'user:bootstrap'`).
+  - Endpoints no `apps/api`: `GET /v1/me/organizations` e `GET /v1/organizations/by-slug/{slug}`.
+  - Testes de integração do fluxo de bootstrap e resolução segura de slug sem acesso direto do BFF ao banco.
+- **Slice 005D-B1 — Active Organization Context & Shell Switcher**:
+  - Contexto de organização ativa baseado em rota `/orgs/[orgSlug]/*`.
+  - Componente de Switcher de organização no `AppTopbar`.
+  - Ativação do item "Agente IA" na barra lateral apontando para `/orgs/{orgSlug}/agents`.
+- **Slice 005D-B2 — Catálogo de Agentes e Criação com Quota**:
+  - Página `/orgs/[orgSlug]/agents` (lista, badges de status, empty state).
+  - Página `/orgs/[orgSlug]/agents/new` (criação e tratamento de cota `agents.max`).
+- **Slice 005D-B3 — Detalhes do Agente, Histórico e Lifecycle**:
+  - Página `/orgs/[orgSlug]/agents/[agentId]` (metadados, card de rascunho, lista de versões).
+  - Diálogos de confirmação de Arquivamento e Reativação com revalidação de cota.
+- **Slice 005D-B4 — Editor de Configuração Snapshot V1 e Publicação**:
+  - Página `/orgs/[orgSlug]/agents/[agentId]/edit` (Persona, Voz pt-BR, Regras, Playbook, Exemplos).
+  - Salvamento explícito com botão "Salvar rascunho".
+  - Diálogo modal de publicação com aviso explícito de arquivamento da versão anterior.
+- **Slice 005D-B5 — Suíte de Testes Automatizados e Auditoria Final**:
+  - Testes unitários e de integração cobrindo papéis RBAC, confidencialidade, CSRF e responsividade.
