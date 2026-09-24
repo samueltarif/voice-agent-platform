@@ -4077,4 +4077,96 @@ Executada a verificação local padrão sem as variáveis de ambiente staging:
 - **Produção**: 100% intocada.
 - **Slice 005D**: Não iniciado.
 
+---
 
+## [PROMPT-005C-STAGING-VALIDATION] — Internal Service Auth Against Neon
+
+- **Data/Hora**: 2026-09-24 (UTC)
+- **Branch**: `chore/agent-api-staging-validation`
+- **Base Commit**: `f6ca5df7301d53c1b97eff49304857895c6f78df`
+- **Ambiente Validado**: Neon Managed PostgreSQL 16 (`staging` - `aws-sa-east-1` / São Paulo) via TLS estrito com CA validada.
+- **Processo API**: Execução local em porta TCP efêmera conectado remotamente ao Neon staging; **NÃO DEPLOYADO** na nuvem.
+
+### 1. Auditoria e Validação Criptográfica de Chaves (Sem Divulgação)
+- **Presença em `.env.staging`**:
+  - `INTERNAL_SERVICE_PRIVATE_JWK`: Presente.
+  - `INTERNAL_SERVICE_PUBLIC_JWKS`: Presente.
+- **Parâmetros Inspecionados em Memória**:
+  - Chave Privada: `kty=OKP`, `crv=Ed25519`, `alg=EdDSA`, `kid` presente, `d` presente.
+  - Chave Pública: `keys >= 1`, `kty=OKP`, `crv=Ed25519`, `alg=EdDSA`, `kid` correspondente, `d` rigorosamente AUSENTE.
+  - Correspondência Matemática: Verificação da coordenada pública `x` derivada confirmou paridade matemática estrita (`mathMatch: true`).
+  - Zero segredos ou coordenadas exportados em logs ou terminal.
+
+### 2. Separação Estrita de Processos (Allowlist de Ambiente)
+- **Construção Segura do Environment da API**:
+  - O harness de teste construiu explicitamente uma allowlist de variáveis para o processo filho `apps/api`:
+    `{ APP_ENV: 'staging', STAGING_SMOKE_TESTS: 'true', DATABASE_URL: <pooled>, INTERNAL_SERVICE_PUBLIC_JWKS: <public only>, PORT: <ephemeral> }`.
+  - Comprovado por construção que `INTERNAL_SERVICE_PRIVATE_JWK` é `undefined` no ambiente do processo filho (`apps/api`).
+  - O servidor compilado `apps/api/dist/apps/api/src/server.js` executou estritamente sem acesso à chave privada de assinatura.
+
+### 3. Neon Staging Preflight & Integridade Física
+- **Contexto**: `APP_ENV=staging`, `STAGING_SMOKE_TESTS=true`.
+- **Engine**: PostgreSQL 16 gerenciado (`PostgreSQL 16.x on x86_64-pc-linux-gnu`).
+- **Journal de Migrações (`drizzle.__drizzle_migrations`)**: Exatamente 2 migrações aplicadas (`0000` foundation e `0001` agent domain). Zero migrações pendentes ou inesperadas.
+- **Tabelas do Domínio Verificadas**: `organizations`, `organization_memberships`, `agents`, `agent_versions`, `plans`, `entitlements`, `subscriptions`, `commercial_grants`, `audit_logs`, `user`.
+- **Zero DDL**: Nenhuma migração executada (`db:migrate:staging` intocado).
+- **Conexão**: Pool gerenciado via `DATABASE_URL` com TLS e CA validada (`rejectUnauthorized: true`). `MIGRATION_DATABASE_URL` não utilizada.
+
+### 4. Bateria de Testes em Staging via TCP Real (`apps/web/src/lib/api/agent-api.staging.test.ts`)
+- **TEST A & B (Real TCP Auth Success & Env Isolation)**: Asserção válida gerada pelo `internalServiceSigner` real enviada via TCP HTTP `GET /v1/agents` com `Authorization: Bearer`. Retornou HTTP 200 com array de metadados e `x-request-id` verificado. Comprovada ausência de chave privada no processo filho da API.
+- **TEST C (Invalid Signature)**: Asserção assinada com chave Ed25519 efêmera não confiável rejeitada com HTTP 401 `AUTHENTICATION_ERROR` e envelope canônico.
+- **TEST D (Membership Enforcement)**: Usuário com token assinado válido porém sem registro de membership na organização rejeitado com HTTP 403 `FORBIDDEN`. Após criação de membership ativa no banco, nova requisição autorizada com HTTP 200.
+- **TEST E (Membership Revocation)**: Requisição inicial autorizada (200). Status de membership suspenso diretamente no Neon (`SUSPENDED`). Imediata reutilização da mesma asserção (dentro dos 30s de TTL) rejeitada com HTTP 403 `FORBIDDEN`, comprovando que a autorização é avaliada dinamicamente no banco e não no token.
+- **TEST F (Role Revalidation)**: Membro com papel inicial `ADMIN` executa mutação. Papel rebaixado no Neon para `VIEWER`. Reutilização imediata da mesma asserção resulta em HTTP 403 para mutação e HTTP 200 para leitura de metadados, comprovando que permissões e roles vêm do banco e não do token.
+- **TEST G (Signed Org Attack)**: Asserção forjada para organização alheia à qual o usuário não pertence rejeitada com HTTP 403 `FORBIDDEN`.
+- **TEST H (Resource Tenant Privacy)**: Tentativa de leitura ou mutação de agente pertencente a outro tenant retorna estritamente HTTP 404 `NOT_FOUND` sem vazar a existência do recurso.
+- **TEST I (Confidentiality for VIEWER)**: Papel `VIEWER` lê metadados com sucesso (HTTP 200), com ausência recursiva comprovada de `configuration`, `persona` e `rules`. Acesso ao endpoint de configuração de versão rejeitado com HTTP 403 `FORBIDDEN`.
+- **TEST J (Manager RBAC)**: Papel `MANAGER` lê metadados (200), lê configuração (200), cria draft (201), atualiza draft (200), mas tem publicação rejeitada com HTTP 403 `FORBIDDEN`.
+- **TEST K & L (Admin Lifecycle & Commercial Quota)**: `ADMIN` cria primeiro agente com sucesso (HTTP 201). Tentativa de criar segundo agente sob concessão comercial `agents.max=1` falha com HTTP 403 `ENTITLEMENT_EXCEEDED` emitido diretamente pelo `CommercialEntitlementResolver`.
+- **TEST K & N (Draft & Publish Policy)**: Criação de draft v1 (201), patch de draft (200) e publicação (200). Publicação de draft v2 faz a versão v1 transicionar atomicamente para `ARCHIVED` e exatamente uma versão permanecer `PUBLISHED`.
+- **TEST M (Archive & Reactivate)**: Agente arquivado com sucesso (HTTP 200 status `ARCHIVED`). Reativação bem-sucedida (HTTP 200 status `ACTIVE`) revalidando cota.
+- **TEST O (OpenAPI & Health over TCP)**: `GET /healthz` retorna HTTP 200 `{"status":"ok"}`. `GET /openapi.json` retorna especificação OpenAPI 3.1.0 contendo security scheme `internalServiceAssertion` e sem vazamento de chaves privadas ou credenciais.
+
+### 5. Higienização e Descarte de Fixtures (Zero Leftovers)
+- Todas as fixtures foram criadas com identificadores sintéticos correlacionados a um `runId` criptograficamente aleatório.
+- `afterAll` executou descarte em cascata respeitando integridade referencial: `audit_logs` -> `agent_versions` -> `agents` -> `commercial_grants` -> `organization_memberships` -> `organizations` -> `user`.
+- Consulta de verificação pós-teste confirmou zero registros remanescentes no Neon staging (`count = 0`).
+
+### 6. Resultados Oficiais da Suíte Staging (`pnpm test:staging`)
+- **Total de Arquivos de Teste**: 5 test files aprovados (0 falhas).
+- **Total de Testes Executados**: **31 testes aprovados** (0 falhas).
+  - `packages/database/src/staging-connection.test.ts`: 4 testes aprovados.
+  - `packages/database/src/staging-domain-integrity.test.ts`: 5 testes aprovados.
+  - `packages/database/src/agent-domain.staging.test.ts`: 7 testes aprovados.
+  - `apps/web/src/lib/auth/auth.staging.test.ts`: 2 testes aprovados.
+  - `apps/web/src/lib/api/agent-api.staging.test.ts`: 13 testes aprovados.
+
+### 7. Suíte Local Padrão Pós-Staging (`pnpm check`)
+- Processos de staging finalizados e variáveis de staging desacopladas da execução padrão.
+- **Format**: `prettier --check .` 100% aprovado.
+- **Lint**: `eslint .` 100% aprovado (0 erros, 0 avisos).
+- **Typecheck**: `turbo typecheck` 100% aprovado (12 pacotes em conformidade estrita).
+- **Testes**: `vitest run` — **23 passed, 5 skipped (139 passed, 31 skipped opt-in de staging, 0 failed)**.
+- **Build**: `turbo build` 100% aprovado (12 pacotes compilados).
+- **Arquitetura**: `node scripts/check-architecture.mjs` — SUCESSO via AST.
+- **Tamanho de Arquivo**: `node scripts/check-file-size.mjs` — SUCESSO (120 arquivos de lógica de produção verificados, 0 violações, 6 avisos legítimos).
+
+### 8. Auditoria de Vazamento de Segredos e Isolamento
+- `git diff` auditado: Nenhuma chave privada, JWKS real, URL do Neon, `BETTER_AUTH_SECRET` ou token incluído nas modificações.
+- `.env.staging`: Permanece estritamente coberto pelo `.gitignore`.
+- **Produção**: 100% INTOCADA / NÃO PROVISIONADA.
+- **Deploy de API**: NÃO DEPLOYADO (execução estritamente local conectada ao staging).
+- **Browser E2E**: NÃO REIVINDICADO (validação estrita da fronteira criptográfica BFF Signer -> Internal Assertion -> API -> DB).
+- **Slice 005D**: NÃO INICIADO.
+
+---
+
+## 24/09/2026 — PROMPT-005C-STAGING-CLOSE — Documentation Precision Note
+
+### 1. Auditoria e Precisão da Rota Canônica de Configuração
+- **Contexto**: Auditoria de precisão documental referente ao endpoint de leitura de configuração de agente validado durante os testes do Slice 005C.
+- **Rota Canônica Factual**: A rota canônica implementada na API (`apps/api/src/routes/agent-version-read-routes.ts`) e exercitada na suíte de testes (`apps/web/src/lib/api/agent-api.staging.test.ts`) é estritamente:
+  `GET /v1/agents/:agentId/versions/:versionId/configuration`
+  (e **não** a representação resumida informal `GET /v1/agents/:agentId/configuration`).
+- **Consistência de Contrato**: O teste de confidencialidade (TEST I) e o teste de RBAC para Manager (TEST J) foram executados e validados contra a rota canônica completa de versão.
+- **Preservação de Evidências**: Nenhuma linha ou evidência da entrada histórica anterior foi alterada ou reescrita (append-only preservado). Nenhuma alteração em código de produção ou de teste foi requerida por esta nota de precisão.

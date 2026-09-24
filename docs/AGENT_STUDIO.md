@@ -1,6 +1,6 @@
 # Agent Studio — Conceito, Componentes e Versionamento (AGENT_STUDIO.md)
 
-> **Status**: Slices 005B e 005C Implementados (005B Staging Validated; 005C Local/Integration Validated) — Slice 005D Pendente
+> **Status**: Slices 005B e 005C Implementados e Validados em Neon Staging (005B Staging Validated; 005C Staging Validated) — Slice 005D Pendente (NOT STARTED)
 > **Fase de Planejamento**: FASE 5 (Domínios Base & Agent Studio)
 > **Data de Criação**: 21 de Setembro de 2026
 > **Data de Aceitação Arquitetural**: 23 de Setembro de 2026 (Aprovação Humana Formal)
@@ -8,7 +8,7 @@
 Este documento formaliza o conceito de **Agent Studio** como subsistema central da plataforma, definindo os agregados de domínio (`Agent` e `AgentVersion`), o ciclo de vida formal, as regras de publicação e integridade, e o escopo de evolução por fases.
 
 > [!IMPORTANT]
-> **ARCHITECTURE ACCEPTED vs IMPLEMENTED**: A arquitetura de domínio, versionamento, persistência e invariantes de integridade do Agent Studio foram formalmente aceitas via **DEC-028** e **ADR-009** (Aprovação Humana em 2026-09-23). A implementação técnica ocorre de forma particionada: Slice 005B (`packages/database` e `packages/contracts`: IMPLEMENTED / STAGING VALIDATED), Slice 005C (`apps/api` e internal service auth: IMPLEMENTED LOCAL / INTEGRATION TESTED) e Slice 005D (`apps/web` UI: NOT STARTED). Nenhuma implementação prévia deve ser presumida antes da conclusão dos respectivos slices.
+> **ARCHITECTURE ACCEPTED vs IMPLEMENTED**: A arquitetura de domínio, versionamento, persistência e invariantes de integridade do Agent Studio foram formalmente aceitas via **DEC-028** e **ADR-009** (Aprovação Humana em 2026-09-23). A implementação técnica ocorre de forma particionada: Slice 005B (`packages/database` e `packages/contracts`: IMPLEMENTED / STAGING VALIDATED), Slice 005C (`apps/api` e internal service auth: **IMPLEMENTED / LOCAL + NEON STAGING INTEGRATION VALIDATED**; **Internal Service Auth**: STAGING CRYPTOGRAPHIC BOUNDARY VALIDATED; **Neon**: DATA/AUTHZ INTEGRATION VALIDATED; **API Deployment**: NOT DEPLOYED; **Production**: NOT PROVISIONED / UNTOUCHED; **Browser E2E**: NOT CLAIMED) e Slice 005D (`apps/web` UI: NOT STARTED). Nenhuma implementação prévia deve ser presumida antes da conclusão dos respectivos slices.
 
 ---
 
