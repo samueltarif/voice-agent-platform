@@ -4230,3 +4230,43 @@ Executada a verificação local padrão sem as variáveis de ambiente staging:
 - **Ambiente de Produção**: 100% INTOCADO / NÃO PROVISIONADO.
 - **Slice 005D (Web UI)**: NÃO INICIADO.
 - **Twilio / Voice / Fase 6**: PESQUISA APENAS / NENHUMA IMPLEMENTAÇÃO NESTA TAREFA.
+
+---
+
+## 24/09/2026 — PROMPT-005D-A — Agent Studio Web Integration Gate
+
+- **Branch**: `docs/phase5-agent-studio-ui-gate`
+- **Base SHA**: `cd73f9e2c0d0e9fe3dd604c18966d6f57f15053f`
+- **Nota de Desvio de Governança**:
+  - Após o merge do PR #11, foi executado um commit documental direto na branch `main` (`cd73f9e2c0d0e9fe3dd604c18966d6f57f15053f`) para registro canônico no AI_WORKLOG.
+  - Nenhuma alteração funcional ou de código de produção foi introduzida nesse commit.
+  - O histórico git não foi reescrito.
+  - A proteção da branch `main` foi subsequentemente configurada e confirmada via API do GitHub (`main.protected = true`).
+  - Todas as futuras alterações permanecem estritamente no fluxo de branch e Pull Request com revisão.
+- **Auditoria de Autenticação e Sessão (Better Auth)**:
+  - Recuperação de sessão no servidor via `auth.api.getSession({ headers: await headers() })`.
+  - Fonte factual de `userId`: `session.user.id`.
+  - Sessão do Better Auth **não** contém `organizationId` (Better Auth opera estritamente com tabelas de auth básicas sem plugins de organização).
+  - O `organizationId` informado pelo browser atua exclusivamente como contexto de intenção e é revalidado dinamicamente no banco a cada chamada no `apps/api`.
+- **Auditoria de Contexto de Organização Ativa**:
+  - Constatada a ausência de implementação prévia de tenant switcher, cookie de organização ou rota de tenant no `apps/web`.
+  - Propostas 2 alternativas arquiteturais: Alternativa 1 (Contexto por Rota `/[orgSlug]/agents`, recomendada) e Alternativa 2 (Cookie de Tenant `v_active_org`). Nenhuma implementação iniciada antes de aprovação humana formal.
+- **Auditoria de Proteção CSRF**:
+  - Mutações no BFF (`POST`, `PATCH`, `DELETE`) protegidas via validação de correspondência de `Host` e `Origin`/`Referer`, aliadas a cookies de sessão `SameSite=Lax` e uso preferencial de Server Actions em formulários. Zero dependências adicionais necessárias.
+- **Auditoria da Camada BFF e Cliente Interno**:
+  - `InternalApiClient` e `InternalServiceSigner` server-only auditados. A chave privada Ed25519 permanece estritamente no servidor web. A asserção JWT interna nunca é exposta ao cliente.
+- **Escopo Funcional e Telas da UI (005D)**:
+  - Planejadas 4 interfaces principais: `/agents` (catálogo e badges de status/publicação), `/agents/new` (criação e validação de cota `agents.max`), `/agents/[agentId]` (detalhes, histórico e ações de ciclo de vida) e `/agents/[agentId]/edit` (editor estruturado do Snapshot V1).
+  - Respeitada a invariante de exatamente 1 rascunho por agente e 1 versão publicada.
+  - Publicação com diálogo modal explicativo de arquivamento da versão anterior.
+- **Auditoria RBAC e Confidencialidade**:
+  - Matriz canônica de 5 papéis respeitada. Papéis `VIEWER` e `OPERATOR` têm campos de configuração omitidos na API e bloqueados na UI. Rota canônica `GET /v1/agents/:agentId/versions/:versionId/configuration` nunca é chamada para papéis sem privilégio `agent.config.read`.
+  - Botão de teste de agente omitido na Fase 5 por ausência de endpoint backend.
+- **Auditoria de Dependências**: ZERO novas dependências requeridas.
+- **Integridade do Sistema**:
+  - Schema de banco de dados (`packages/database/src/schema`): ZERO alteração.
+  - Migrações (`packages/database/src/migrations`): ZERO alteração.
+  - Banco Neon: NÃO acessado nesta tarefa.
+  - Ambiente de Produção: 100% INTOCADO / NÃO PROVISIONADO.
+  - Twilio / Voice Engine / Fase 6: 100% INTOCADO (pesquisa apenas).
+- **Status de Implementação**: **NOT STARTED** (planejamento formal concluído em `docs/plans/PHASE5_005D_AGENT_STUDIO_UI_PLAN.md`).
