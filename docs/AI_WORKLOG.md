@@ -4230,3 +4230,115 @@ Executada a verificação local padrão sem as variáveis de ambiente staging:
 - **Ambiente de Produção**: 100% INTOCADO / NÃO PROVISIONADO.
 - **Slice 005D (Web UI)**: NÃO INICIADO.
 - **Twilio / Voice / Fase 6**: PESQUISA APENAS / NENHUMA IMPLEMENTAÇÃO NESTA TAREFA.
+
+---
+
+## 24/09/2026 — PROMPT-005D-A — Agent Studio Web Integration Gate
+
+- **Branch**: `docs/phase5-agent-studio-ui-gate`
+- **Base SHA**: `cd73f9e2c0d0e9fe3dd604c18966d6f57f15053f`
+- **Nota de Desvio de Governança**:
+  - Após o merge do PR #11, foi executado um commit documental direto na branch `main` (`cd73f9e2c0d0e9fe3dd604c18966d6f57f15053f`) para registro canônico no AI_WORKLOG.
+  - Nenhuma alteração funcional ou de código de produção foi introduzida nesse commit.
+  - O histórico git não foi reescrito.
+  - A proteção da branch `main` foi subsequentemente configurada e confirmada via API do GitHub (`main.protected = true`).
+  - Todas as futuras alterações permanecem estritamente no fluxo de branch e Pull Request com revisão.
+- **Auditoria de Autenticação e Sessão (Better Auth)**:
+  - Recuperação de sessão no servidor via `auth.api.getSession({ headers: await headers() })`.
+  - Fonte factual de `userId`: `session.user.id`.
+  - Sessão do Better Auth **não** contém `organizationId` (Better Auth opera estritamente com tabelas de auth básicas sem plugins de organização).
+  - O `organizationId` informado pelo browser atua exclusivamente como contexto de intenção e é revalidado dinamicamente no banco a cada chamada no `apps/api`.
+- **Auditoria de Contexto de Organização Ativa**:
+  - Constatada a ausência de implementação prévia de tenant switcher, cookie de organização ou rota de tenant no `apps/web`.
+  - Propostas 2 alternativas arquiteturais: Alternativa 1 (Contexto por Rota `/[orgSlug]/agents`, recomendada) e Alternativa 2 (Cookie de Tenant `v_active_org`). Nenhuma implementação iniciada antes de aprovação humana formal.
+- **Auditoria de Proteção CSRF**:
+  - Mutações no BFF (`POST`, `PATCH`, `DELETE`) protegidas via validação de correspondência de `Host` e `Origin`/`Referer`, aliadas a cookies de sessão `SameSite=Lax` e uso preferencial de Server Actions em formulários. Zero dependências adicionais necessárias.
+- **Auditoria da Camada BFF e Cliente Interno**:
+  - `InternalApiClient` e `InternalServiceSigner` server-only auditados. A chave privada Ed25519 permanece estritamente no servidor web. A asserção JWT interna nunca é exposta ao cliente.
+- **Escopo Funcional e Telas da UI (005D)**:
+  - Planejadas 4 interfaces principais: `/agents` (catálogo e badges de status/publicação), `/agents/new` (criação e validação de cota `agents.max`), `/agents/[agentId]` (detalhes, histórico e ações de ciclo de vida) e `/agents/[agentId]/edit` (editor estruturado do Snapshot V1).
+  - Respeitada a invariante de exatamente 1 rascunho por agente e 1 versão publicada.
+  - Publicação com diálogo modal explicativo de arquivamento da versão anterior.
+- **Auditoria RBAC e Confidencialidade**:
+  - Matriz canônica de 5 papéis respeitada. Papéis `VIEWER` e `OPERATOR` têm campos de configuração omitidos na API e bloqueados na UI. Rota canônica `GET /v1/agents/:agentId/versions/:versionId/configuration` nunca é chamada para papéis sem privilégio `agent.config.read`.
+  - Botão de teste de agente omitido na Fase 5 por ausência de endpoint backend.
+- **Auditoria de Dependências**: ZERO novas dependências requeridas.
+- **Integridade do Sistema**:
+  - Schema de banco de dados (`packages/database/src/schema`): ZERO alteração.
+  - Migrações (`packages/database/src/migrations`): ZERO alteração.
+  - Banco Neon: NÃO acessado nesta tarefa.
+  - Ambiente de Produção: 100% INTOCADO / NÃO PROVISIONADO.
+  - Twilio / Voice Engine / Fase 6: 100% INTOCADO (pesquisa apenas).
+- **Status de Implementação**: **NOT STARTED** (planejamento formal concluído em `docs/plans/PHASE5_005D_AGENT_STUDIO_UI_PLAN.md`).
+
+---
+
+## 24/09/2026 — PROMPT-005D-A-FIX — Precision & Tenant Bootstrap Review
+
+- **Branch**: `docs/phase5-agent-studio-ui-gate`
+- **Base SHA**: `cd73f9e2c0d0e9fe3dd604c18966d6f57f15053f`
+- **Aprovações Humanas Registradas**:
+  - Padrão canônico de rotas tenant aprovado: `/orgs/[orgSlug]/agents` (e filhas `/new`, `/[agentId]`, `/[agentId]/edit`).
+  - UX de rascunhos: Salvamento explícito via botão `"Salvar rascunho"`. Auto-save e debounce descartados no 005D-B inicial.
+  - Navegação do Shell: Item `"Agente IA"` da barra lateral ativado apontando para `/orgs/{orgSlug}/agents`.
+- **Auditoria de Bootstrap de Organização e Gap Identificado**:
+  - `ACTIVE ORGANIZATION BOOTSTRAP GAP = CONFIRMED`.
+  - Constatado que a sessão do Better Auth possui apenas `userId` e não contém `organizationId`.
+  - A asserção atual do Slice 005C (`serviceAssertionClaimsSchema`) exige rigorosamente `orgId: z.string().uuid()`.
+  - O `apps/web` está arquiteturalmente proibido de consultar repositórios de domínio diretamente.
+  - As 11 rotas atuais do Agent Studio pressupõem um tenant já resolvido e não oferecem funcionalidade de descoberta ou listagem de organizações de um usuário.
+- **Necessidade de Extensão Arquitetural**:
+  - `ARCHITECTURAL EXTENSION REQUIRED — HUMAN APPROVAL REQUIRED`.
+  - Proposta no plano a criação do slice preparatório **`005D-B0 — Tenant Context Bootstrap`**, introduzindo perfil de asserção assimétrica Ed25519 user-scoped (`scope: 'user:bootstrap'`, sem `orgId`) restrito aos endpoints `/v1/me/organizations` e `/v1/organizations/by-slug/{slug}` no `apps/api`.
+- **Correção Factual de Nomes de Migrações**:
+  - Nomes reais auditados no diretório `packages/database/src/migrations/`: `0000_dizzy_runaways.sql` e `0001_numerous_eddie_brock.sql`.
+- **Correção Factual de Versões de Frontend**:
+  - Versões exatas auditadas no `pnpm-lock.yaml`: Next.js `15.5.25`, React `19.3.0`, React DOM `19.3.0`, Better Auth `1.7.5`, jose `6.2.12`, lucide-react `0.475.0`.
+- **Precisão Documental de CSRF**:
+  - Substituída redação imprecisa por descrição factual: Server Actions utilizam verificação nativa de correspondência entre headers `Host` e `Origin` para proteção contra CSRF em requisições POST (`VERIFIED BY DOCS` no Next.js 15.5.25).
+- **Integridade do Sistema**:
+  - Arquivos alterados nesta tarefa: `docs/plans/PHASE5_005D_AGENT_STUDIO_UI_PLAN.md` e `docs/AI_WORKLOG.md`.
+  - Schema de banco de dados (`packages/database/src/schema`): ZERO alteração.
+  - Migrações (`packages/database/src/migrations`): ZERO alteração.
+  - Banco Neon: NÃO acessado nesta tarefa.
+  - Ambiente de Produção: 100% INTOCADO / NÃO PROVISIONADO.
+  - Twilio / Voice Engine / Fase 6: 100% INTOCADO (pesquisa apenas).
+- **Status de Implementação**: **NOT STARTED** (apenas o plano em PR #12 foi corrigido).
+
+---
+
+## 24/09/2026 — PROMPT-005D-A-APPROVAL — Tenant Bootstrap Architecture Accepted
+
+- **Branch**: `docs/phase5-agent-studio-ui-gate`
+- **Base SHA**: `cd73f9e2c0d0e9fe3dd604c18966d6f57f15053f`
+- **Aprovação Humana Formal**:
+  - Aprovada formalmente a arquitetura para o **Slice 005D-B0 — Tenant Context Bootstrap**, estabelecendo o perfil criptográfico segregado `UserBootstrapAssertion` para descoberta e resolução dinâmica de organizações.
+- **Perfil Criptográfico Escolhido**:
+  - Perfil separado `UserBootstrapAssertion`: header `alg: 'EdDSA'`, `kid`, `typ: 'JWT'`; claims obrigatórias `sub: userId`, `scope: 'user:bootstrap'`, `iss: 'voice-agent:web'`, `aud: 'voice-agent:api:bootstrap'`, `iat`, `exp` (TTL nominal <= 30s), `jti`.
+  - Claims proibidas categoricamente: `orgId`, `role`, `roles`, `permissions`, `entitlements`, `plan`, `membership`, dados de perfil.
+  - Rejeição absoluta de tornar `orgId` opcional no contrato tenant-scoped existente (DEC-031 / ADR-012) ou de criar union permissiva de schemas.
+- **Isolamento de Audiência e Verificadores**:
+  - Audiência tenant-scoped: `voice-agent:api`. Verifier: `ServiceAssertionVerifier` (exclusivo para `/v1/agents/*`).
+  - Audiência bootstrap user-scoped: `voice-agent:api:bootstrap`. Verifier: `BootstrapAssertionVerifier` (exclusivo para `/v1/me/*`).
+  - Segregação de signers no BFF: `InternalServiceSigner` para asserções de tenant e `InternalBootstrapSigner` para asserções de bootstrap.
+- **Caminhos de Endpoints Aprovados**:
+  - `GET /v1/me/organizations`: retorna lista de organizações em que o usuário (`sub`) possui membership ativa e a organização está ativa. DTO mínimo: `[{ id, slug, name, role }]`. `role` derivado do banco na requisição, nunca do token.
+  - `GET /v1/me/organizations/{orgSlug}`: resolve organização e valida membership ativa. Retorna `{ id, slug, name, role }`. Retorna HTTP 404 para organizações não acessíveis ao usuário para mitigar enumeração de tenants.
+- **Preservação da Autenticação de Tenant Existente**:
+  - As 11 rotas `/v1/agents/*` e seus contratos permanecem 100% inalterados e protegidos por `ServiceAssertionVerifier` com `orgId` obrigatório.
+- **Decisões e ADRs Registrados**:
+  - **DEC-032**: Asserção de Serviço User-Scoped para Bootstrap e Descoberta de Tenant (`UserBootstrapAssertion`).
+  - **ADR-013**: User-Scoped Tenant Bootstrap Authentication for Dynamic Organization Discovery (`docs/architecture/decisions/ADR-013-user-scoped-tenant-bootstrap-auth.md`).
+- **Requisitos de Teste Formalizados**:
+  - 18 casos de teste de segurança automatizados documentados e mandatórios para o Slice 005D-B0.
+- **Integridade do Sistema**:
+  - Código de runtime: ZERO linhas alteradas (tarefa puramente documental e de decisão arquitetural).
+  - Schema de banco de dados (`packages/database/src/schema`): ZERO alteração.
+  - Migrações (`packages/database/src/migrations`): ZERO alteração.
+  - Banco Neon: NÃO acessado nesta tarefa.
+  - Ambiente de Produção: 100% INTOCADO / NÃO PROVISIONADO.
+  - Twilio / Voice Engine / Fase 6: 100% INTOCADO (pesquisa apenas).
+- **Status de Implementação**:
+  - Slice 005D-A: **APPROVED / READY TO MERGE**.
+  - Slice 005D-B0: **ARCHITECTURE ACCEPTED / READY TO IMPLEMENT / NOT STARTED**.
+  - Slice 005D-B1+: **BLOCKED ON 005D-B0**.
