@@ -143,30 +143,77 @@ Para viabilizar a navegação em `/orgs/[orgSlug]/agents` sem violar o isolament
 
 ---
 
-## 7. Proposta de Arquitetura para o Slice 005D-B0 (Tenant Context Bootstrap)
+## 7. Arquitetura Aprovada para o Slice 005D-B0 (Tenant Context Bootstrap — DEC-032 / ADR-013)
 
-> [!CAUTION]
-> **ARCHITECTURAL EXTENSION REQUIRED — HUMAN APPROVAL REQUIRED**
-> A especificação DEC-031 / ADR-012 fixou o formato de asserção interna tenant-scoped (`sub`, `orgId`, `iss`, `aud`, `iat`, `exp`, `jti`). Para permitir que o BFF consulte organizações antes de conhecer um `orgId`, é necessária uma extensão controlada de autenticação.
+> [!NOTE]
+> **STATUS: ACCEPTED (DEC-032 / ADR-013)**
+> Aprovada formalmente pelo operador humano a extensão controlada de autenticação interna via perfil segregado `UserBootstrapAssertion`. O contrato tenant-scoped existente (DEC-031 / ADR-012) permanece 100% inalterado, com `orgId` obrigatório em todas as 11 rotas `/v1/agents/*`.
 
-### Alternativa A (Recomendada): Perfil de Asserção User-Scoped para Bootstrap (`UserBootstrapAssertion`)
-- **Conceito**: O mesmo `InternalServiceSigner` assina um token assimétrico Ed25519 exclusivo para descoberta de tenant:
-  - Header: `{ alg: 'EdDSA', typ: 'JWT', kid: '<staging-or-prod-kid>' }`
-  - Payload: `{ sub: userId, scope: 'user:bootstrap', iss: 'voice-agent:web', aud: 'voice-agent:api', iat, exp, jti }`
-  - Note: Sem `orgId` e sem papéis/roles.
-- **Novos Endpoints Mínimos no `apps/api`**:
-  - `GET /v1/me/organizations`: Retorna a lista de organizações em que o `sub` (userId) possui membership ativa (`[{ id, name, slug, role, status }]`).
-  - `GET /v1/organizations/by-slug/{slug}`: Valida se o `sub` pertence à organização indicada pelo `slug` e retorna o respectivo `organizationId` (UUID) e metadados básicos.
-- **Segurança**:
-  - As 11 rotas `/v1/agents/*` continuam rejeitando terminantemente tokens sem `orgId`. Apenas os novos endpoints sob `/v1/me/*` ou `/v1/organizations/by-slug/*` aceitam o escopo de bootstrap.
-  - Zero exposição de chaves privadas ou tokens no navegador.
-- **Vantagens**: Preserva o canal criptográfico assimétrico unificado Ed25519 sem criar métodos paralelos de autenticação.
+### 7.1. Perfil Criptográfico Aprovado: `UserBootstrapAssertion`
+- **Algoritmo e Assinatura**: Ed25519 (`EdDSA`), formato JWK privado no BFF e JWKS público na API, biblioteca `jose` v6 (reutiliza o par de chaves do ambiente).
+- **Protected Header**:
+  - `alg: 'EdDSA'`
+  - `kid`: Key ID da chave ativa
+  - `typ: 'JWT'`
+- **Claims Canônicas Obrigatórias**:
+  - `sub`: Identificador do usuário no Better Auth (`session.user.id`, `text`)
+  - `scope: 'user:bootstrap'` (obrigatório e estrito)
+  - `iss: 'voice-agent:web'`
+  - `aud: 'voice-agent:api:bootstrap'` (audiência segregada da API)
+  - `iat`: Timestamp UNIX em segundos
+  - `exp`: Timestamp UNIX em segundos (`iat + 30s`)
+  - `jti`: UUID v4 único
+- **Claims Proibidas (Fail-Closed)**:
+  - `orgId`, `role`, `roles`, `permissions`, `entitlements`, `plan`, `membership`, dados de perfil.
+- **Invariante de Isolamento**:
+  - `orgId` não se torna opcional no contrato tenant-scoped existente.
+  - Não há union permissiva entre perfis de token.
 
-### Alternativa B: Resolução de Tenant via BFF Server-to-Server com Credencial de Plataforma
-- **Conceito**: Um endpoint `/v1/internal/tenant-lookup` autenticado via chave de serviço compartilhada ou mTLS que aceita `(userId, slug)` e retorna o `organizationId`.
-- **Desvantagem**: Introduz uma segunda modalidade de autenticação interna concorrente ao ADR-012.
+### 7.2. Segregação de Componentes e Verificadores
+- **No `apps/web`**:
+  - `InternalServiceSigner`: exclusivo para `signTenantAssertion(userId, orgId)`
+  - `InternalBootstrapSigner`: exclusivo para `signBootstrapAssertion(userId)`
+- **No `apps/api`**:
+  - `ServiceAssertionVerifier`: middleware exclusivo das rotas de tenant (`/v1/agents/*`), exigindo `aud: 'voice-agent:api'` e `orgId`.
+  - `BootstrapAssertionVerifier`: middleware exclusivo das rotas de usuário (`/v1/me/*`), exigindo `aud: 'voice-agent:api:bootstrap'` e `scope: 'user:bootstrap'`, e rejeitando tokens com `orgId`.
 
-> **Recomendação Submetida a Aprovação**: **Alternativa A**, formalizada como extensão controlada de ADR no Slice 005D-B0.
+### 7.3. Endpoints Canônicos Sob `/v1/me/*`
+1. `GET /v1/me/organizations`
+   - Retorna as organizações onde `membership.userId == assertion.sub`, `membership.status == ACTIVE` e `organization.status == ACTIVE`.
+   - DTO mínimo: `[{ id: uuid, slug: string, name: string, role: string }]`.
+   - `role` vem do banco no momento da request, nunca do JWT.
+2. `GET /v1/me/organizations/{orgSlug}`
+   - Valida existência de organização `ACTIVE` com o respectivo `slug` e membership `ACTIVE` de `assertion.sub`.
+   - DTO mínimo: `{ id: uuid, slug: string, name: string, role: string }`.
+   - Para slug inexistente ou inacessível ao usuário: retorna HTTP 404 (mitiga enumeração de tenants). O slug nunca é autorização.
+
+### 7.4. Fluxos Operacionais Aprovados
+- **Deep Link (`/orgs/[orgSlug]/agents`)**:
+  `Browser` -> `Better Auth session` -> `apps/web` extrai `userId` -> `InternalBootstrapSigner` assina `UserBootstrapAssertion` -> `GET /v1/me/organizations/{orgSlug}` -> `apps/api` revalida membership -> retorna `organizationId` -> `apps/web` gera `TenantServiceAssertion` -> chamadas normais `/v1/agents/*`.
+- **Switcher de Organizações no Shell**:
+  `Browser` -> `Better Auth session` -> `apps/web` BFF -> `UserBootstrapAssertion` -> `GET /v1/me/organizations` -> lista de tenants permitidos -> renderiza dropdown no shell -> navegação determinística para `/orgs/{selectedOrgSlug}/agents`.
+- **Invariante**: Nem a Bootstrap Assertion nem a Tenant Service Assertion chegam ao navegador.
+
+### 7.5. Requisitos Obrigatórios de Testes para o Slice 005D-B0
+A futura implementação do 005D-B0 só será aceita com a comprovação dos seguintes 18 testes automatizados:
+1. Bootstrap token válido -> `GET /v1/me/organizations` = 200;
+2. Bootstrap token válido -> `GET /v1/me/organizations/{slug}` acessível = 200;
+3. Bootstrap token em `/v1/agents` = 401;
+4. Tenant token em `/v1/me/*` = 401;
+5. Bootstrap token contendo claim `orgId` = rejeitado;
+6. Bootstrap token contendo `role` ou `permissions` = rejeitado;
+7. Scope incorreto ou ausente = 401;
+8. Audience diferente de `'voice-agent:api:bootstrap'` = 401;
+9. Assinatura Ed25519 inválida = 401;
+10. `kid` desconhecido = 401;
+11. Token expirado = 401;
+12. Duração `exp - iat > 30s` = 401;
+13. Membership inativa/suspensa não retornada / acesso negado (404);
+14. Organização suspensa/arquivada não retornada / acesso negado (404);
+15. Usuário A não resolve slug de Organização B (404);
+16. Papel (`role`) alterado no banco reflete imediatamente sem nova sessão do browser;
+17. Nenhum segredo ou token exposto em response ou logs;
+18. Testes existentes de asserção tenant-scoped continuam 100% verdes.
 
 ---
 
@@ -327,27 +374,27 @@ Para manter o foco estrito na entrega da UI do Agent Studio:
 
 ---
 
-## 17. Slices Propostos para Implementação em 005D-B
+## 17. Slices de Implementação do Slice 005D (Agent Studio Web)
 
-Com a identificação do gap de bootstrap, a implementação do 005D-B passa a ser estruturada em 6 etapas incrementais e testáveis:
+Com a arquitetura formalizada (DEC-032 / ADR-013), a implementação do Slice 005D é estruturada em 6 entregas incrementais e testáveis:
 
-- **Slice 005D-B0 — Tenant Context Bootstrap**:
-  - Extensão arquitetural de asserção assimétrica user-scoped (`scope: 'user:bootstrap'`).
-  - Endpoints no `apps/api`: `GET /v1/me/organizations` e `GET /v1/organizations/by-slug/{slug}`.
-  - Testes de integração do fluxo de bootstrap e resolução segura de slug sem acesso direto do BFF ao banco.
-- **Slice 005D-B1 — Active Organization Context & Shell Switcher**:
+- **Slice 005D-B0 — Tenant Context Bootstrap (READY TO IMPLEMENT / NOT STARTED)**:
+  - Implementação do perfil `UserBootstrapAssertion` (`scope: 'user:bootstrap'`, `aud: 'voice-agent:api:bootstrap'`) e separação de componentes `InternalBootstrapSigner` e `BootstrapAssertionVerifier`.
+  - Endpoints no `apps/api`: `GET /v1/me/organizations` e `GET /v1/me/organizations/{orgSlug}`.
+  - Suíte dos 18 testes de segurança de bootstrap.
+- **Slice 005D-B1 — Active Organization Context & Shell Switcher (BLOCKED ON 005D-B0)**:
   - Contexto de organização ativa baseado em rota `/orgs/[orgSlug]/*`.
   - Componente de Switcher de organização no `AppTopbar`.
   - Ativação do item "Agente IA" na barra lateral apontando para `/orgs/{orgSlug}/agents`.
-- **Slice 005D-B2 — Catálogo de Agentes e Criação com Quota**:
+- **Slice 005D-B2 — Catálogo de Agentes e Criação com Quota (BLOCKED ON 005D-B0)**:
   - Página `/orgs/[orgSlug]/agents` (lista, badges de status, empty state).
   - Página `/orgs/[orgSlug]/agents/new` (criação e tratamento de cota `agents.max`).
-- **Slice 005D-B3 — Detalhes do Agente, Histórico e Lifecycle**:
+- **Slice 005D-B3 — Detalhes do Agente, Histórico e Lifecycle (BLOCKED ON 005D-B0)**:
   - Página `/orgs/[orgSlug]/agents/[agentId]` (metadados, card de rascunho, lista de versões).
   - Diálogos de confirmação de Arquivamento e Reativação com revalidação de cota.
-- **Slice 005D-B4 — Editor de Configuração Snapshot V1 e Publicação**:
+- **Slice 005D-B4 — Editor de Configuração Snapshot V1 e Publicação (BLOCKED ON 005D-B0)**:
   - Página `/orgs/[orgSlug]/agents/[agentId]/edit` (Persona, Voz pt-BR, Regras, Playbook, Exemplos).
   - Salvamento explícito com botão "Salvar rascunho".
   - Diálogo modal de publicação com aviso explícito de arquivamento da versão anterior.
-- **Slice 005D-B5 — Suíte de Testes Automatizados e Auditoria Final**:
+- **Slice 005D-B5 — Suíte de Testes Automatizados e Auditoria Final (BLOCKED ON 005D-B0)**:
   - Testes unitários e de integração cobrindo papéis RBAC, confidencialidade, CSRF e responsividade.

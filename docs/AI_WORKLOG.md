@@ -4304,3 +4304,41 @@ Executada a verificação local padrão sem as variáveis de ambiente staging:
   - Ambiente de Produção: 100% INTOCADO / NÃO PROVISIONADO.
   - Twilio / Voice Engine / Fase 6: 100% INTOCADO (pesquisa apenas).
 - **Status de Implementação**: **NOT STARTED** (apenas o plano em PR #12 foi corrigido).
+
+---
+
+## 24/09/2026 — PROMPT-005D-A-APPROVAL — Tenant Bootstrap Architecture Accepted
+
+- **Branch**: `docs/phase5-agent-studio-ui-gate`
+- **Base SHA**: `cd73f9e2c0d0e9fe3dd604c18966d6f57f15053f`
+- **Aprovação Humana Formal**:
+  - Aprovada formalmente a arquitetura para o **Slice 005D-B0 — Tenant Context Bootstrap**, estabelecendo o perfil criptográfico segregado `UserBootstrapAssertion` para descoberta e resolução dinâmica de organizações.
+- **Perfil Criptográfico Escolhido**:
+  - Perfil separado `UserBootstrapAssertion`: header `alg: 'EdDSA'`, `kid`, `typ: 'JWT'`; claims obrigatórias `sub: userId`, `scope: 'user:bootstrap'`, `iss: 'voice-agent:web'`, `aud: 'voice-agent:api:bootstrap'`, `iat`, `exp` (TTL nominal <= 30s), `jti`.
+  - Claims proibidas categoricamente: `orgId`, `role`, `roles`, `permissions`, `entitlements`, `plan`, `membership`, dados de perfil.
+  - Rejeição absoluta de tornar `orgId` opcional no contrato tenant-scoped existente (DEC-031 / ADR-012) ou de criar union permissiva de schemas.
+- **Isolamento de Audiência e Verificadores**:
+  - Audiência tenant-scoped: `voice-agent:api`. Verifier: `ServiceAssertionVerifier` (exclusivo para `/v1/agents/*`).
+  - Audiência bootstrap user-scoped: `voice-agent:api:bootstrap`. Verifier: `BootstrapAssertionVerifier` (exclusivo para `/v1/me/*`).
+  - Segregação de signers no BFF: `InternalServiceSigner` para asserções de tenant e `InternalBootstrapSigner` para asserções de bootstrap.
+- **Caminhos de Endpoints Aprovados**:
+  - `GET /v1/me/organizations`: retorna lista de organizações em que o usuário (`sub`) possui membership ativa e a organização está ativa. DTO mínimo: `[{ id, slug, name, role }]`. `role` derivado do banco na requisição, nunca do token.
+  - `GET /v1/me/organizations/{orgSlug}`: resolve organização e valida membership ativa. Retorna `{ id, slug, name, role }`. Retorna HTTP 404 para organizações não acessíveis ao usuário para mitigar enumeração de tenants.
+- **Preservação da Autenticação de Tenant Existente**:
+  - As 11 rotas `/v1/agents/*` e seus contratos permanecem 100% inalterados e protegidos por `ServiceAssertionVerifier` com `orgId` obrigatório.
+- **Decisões e ADRs Registrados**:
+  - **DEC-032**: Asserção de Serviço User-Scoped para Bootstrap e Descoberta de Tenant (`UserBootstrapAssertion`).
+  - **ADR-013**: User-Scoped Tenant Bootstrap Authentication for Dynamic Organization Discovery (`docs/architecture/decisions/ADR-013-user-scoped-tenant-bootstrap-auth.md`).
+- **Requisitos de Teste Formalizados**:
+  - 18 casos de teste de segurança automatizados documentados e mandatórios para o Slice 005D-B0.
+- **Integridade do Sistema**:
+  - Código de runtime: ZERO linhas alteradas (tarefa puramente documental e de decisão arquitetural).
+  - Schema de banco de dados (`packages/database/src/schema`): ZERO alteração.
+  - Migrações (`packages/database/src/migrations`): ZERO alteração.
+  - Banco Neon: NÃO acessado nesta tarefa.
+  - Ambiente de Produção: 100% INTOCADO / NÃO PROVISIONADO.
+  - Twilio / Voice Engine / Fase 6: 100% INTOCADO (pesquisa apenas).
+- **Status de Implementação**:
+  - Slice 005D-A: **APPROVED / READY TO MERGE**.
+  - Slice 005D-B0: **ARCHITECTURE ACCEPTED / READY TO IMPLEMENT / NOT STARTED**.
+  - Slice 005D-B1+: **BLOCKED ON 005D-B0**.
