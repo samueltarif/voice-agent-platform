@@ -4024,3 +4024,57 @@ Executada a verificação local padrão sem as variáveis de ambiente staging:
 - **Ambiente de Produção**: 100% INTOCADO / NÃO PROVISIONADO.
 - **Próxima Etapa**: Slice 005D (`apps/web` UI do Agent Studio) **NÃO INICIADO**.
 
+---
+
+## [PROMPT-005C-PREMERGE-CLOSE] — Node Runtime Verification + PR #10 Merge
+
+- **Data/Hora**: 2026-09-24 (UTC)
+- **Branch**: `feature/agent-api-internal-auth`
+- **PR**: #10
+- **Base Commit**: `3cdb221`
+- **Feature Head Pre-merge**: `f5460af`
+
+### 1. Auditoria de Runtime e Artefato Compilado
+- **Host Node**: `v24.20.0` (Windows x64).
+- **Node Mínimo Declarado**: `Node >= 22.12.0` (`package.json` engines).
+- **Scripts em `apps/api/package.json`**:
+  - `build`: `tsc`
+  - `start`: `node --import ./register-dist.js dist/apps/api/src/server.js`
+  - `dev`: Inexistente em `apps/api` (não depende de TypeScript execution experimental ou flags como `--experimental-strip-types`). No monorepo, `pnpm dev` orquestra `turbo dev`.
+- **Caminho do Artefato Compilado**: `apps/api/dist/apps/api/src/server.js` (gerado por `tsc` com pacotes internos compilados em `apps/api/dist/packages/`).
+- **Resolução ESM Nativa**: Configurado `register-dist.js` e `dist-resolver.js` via Node.js native `module.register()` (`--import`), redirecionando `@voice-agent/*` para seus respectivos artefatos JavaScript compilados sem dependências externas ou flags experimentais.
+
+### 2. Startup Real e Verificação TCP (Node Atual v24.20.0)
+- **Startup Failure-Closed**:
+  - Executado sem `INTERNAL_SERVICE_PUBLIC_JWKS`.
+  - Resultado: Exit code 1 com log estruturado `Missing INTERNAL_SERVICE_PUBLIC_JWKS environment variable`. Zero vazamento de variáveis de ambiente.
+- **Smoke TCP com Servidor Real (`pnpm --filter @voice-agent/api start`)**:
+  - Par de chaves Ed25519 efêmero gerado estritamente em memória via `node:crypto.subtle`.
+  - PostgreSQL 16 Docker local (`voice-agent-postgres`). Zero chamadas ou segredos para Neon.
+  - `GET /healthz`: HTTP 200, corpo `{ "status": "ok" }`, header `x-request-id` presente (`be2139fa-6ed5-42ab-aa7c-8b192ebe23da`).
+  - `GET /openapi.json`: HTTP 200, especificação OpenAPI 3.1.0 retornada, security scheme `internalServiceAssertion` presente, zero material de chaves privadas ou credenciais expostas.
+  - Encerramento: Servidor finalizado graciosamente; porta TCP 3847 liberada imediatamente sem processos remanescentes.
+
+### 3. Validação de Compatibilidade Node 22.12 (Ambiente Limpo em Container)
+- **Método de Validação**: Imagem oficial `node:22.12` em container Docker isolado (`v22.12.0`).
+- **Isolamento**: Working tree montada como somente-leitura (`:ro`), código copiado para ambiente limpo `/app`, `node_modules` e `dist` limpos do zero.
+- **Instalação**: `pnpm install --frozen-lockfile` (respeitando `pnpm-workspace.yaml`, sem aprovações em massa).
+- **Compilação**: `pnpm --filter @voice-agent/api build` (`tsc`). Artefato `dist/apps/api/src/server.js` gerado e verificado.
+- **Execução Real**: `pnpm --filter @voice-agent/api start` executado com PostgreSQL 16 local na rede Docker interna.
+- **Resultado do Smoke**: `GET /healthz` retornou HTTP 200 `{ "status": "ok" }` com `x-request-id` verificado (`48e4a5d5-c062-4139-9087-91139902c30a`).
+- **Conclusão**: Compatibilidade com Node 22.12.x comprovada empiricamente em runtime real.
+
+### 4. Verificação de Qualidade e Integridade (`pnpm check`)
+- **Format**: `prettier --check .` 100% aprovado.
+- **Lint**: `eslint .` 100% aprovado (0 erros, 0 avisos).
+- **Typecheck**: `turbo typecheck` 100% aprovado (12 pacotes bem-sucedidos).
+- **Testes**: `vitest run` — **23 passed, 4 skipped (139 passed, 18 skipped, 0 failed)**.
+- **Build**: `turbo build` 100% aprovado (12 pacotes compilados).
+- **Arquitetura**: `node scripts/check-architecture.mjs` — SUCESSO via AST.
+- **Tamanho de Arquivos**: `node scripts/check-file-size.mjs` — SUCESSO (120 arquivos de lógica verificados, 0 violações, 6 avisos legítimos).
+- **Diff de Schema e Migrations**: `git diff 3cdb221 -- packages/database/src/schema packages/database/src/migrations` verificado: ZERO alterações.
+- **Neon Staging**: 100% intocado.
+- **Produção**: 100% intocada.
+- **Slice 005D**: Não iniciado.
+
+
