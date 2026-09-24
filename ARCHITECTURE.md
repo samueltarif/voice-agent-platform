@@ -54,7 +54,7 @@ O monorepo divide o ciclo de vida da execução em quatro processos fundamentais
 
 ### 2.2. `apps/api` (Core Business & HTTP Gateway)
 - **Papel**: Ponto central de validação de autenticação interna (Internal Service Auth assimétrica via DEC-029/ADR-010), autorização multi-tenant, gestão de recursos e persistência.
-- **Framework HTTP**: **Hono** para Node.js (Node 22/24) com `@hono/node-server` e `@hono/zod-openapi` selecionado formalmente via DEC-029 / ADR-010 (*NOT YET INSTALLED/IMPLEMENTED* — instalação e endpoints a executar no Slice 005C).
+- **Framework HTTP**: **Hono** para Node.js (Node 22/24) com `@hono/node-server` e `@hono/zod-openapi` selecionado formalmente via DEC-029 / ADR-010 (**IMPLEMENTED LOCAL / TESTED** — rotas, middleware de autenticação interna assimétrica DEC-031/ADR-012, autorização multi-tenant e endpoints /v1 de Agent Studio validados).
 - **Diretriz**: Rotas e controllers enxutos; zero lógica de negócio em controllers. Todas as operações orquestram serviços e publicam eventos de domínio.
 
 ### 2.3. `apps/voice` (Motor de Voz em Tempo Real)

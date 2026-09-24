@@ -5,8 +5,7 @@ import { getServiceAuth } from '../auth/service-auth-middleware.js';
 import { authorizeTenant } from '../auth/tenant-authorization.js';
 import { toAgentVersionMetadataDto } from '../http/response-mappers.js';
 
-export function registerAgentDraftRoutes(app: OpenAPIHono, deps: ApiDependencies): void {
-  // 1. POST /v1/agents/{agentId}/drafts
+function registerCreateDraftRoute(app: OpenAPIHono, deps: ApiDependencies): void {
   app.openapi(
     createRoute({
       method: 'post',
@@ -43,8 +42,9 @@ export function registerAgentDraftRoutes(app: OpenAPIHono, deps: ApiDependencies
       return c.json(toAgentVersionMetadataDto(draft), 201);
     },
   );
+}
 
-  // 2. PATCH /v1/agents/{agentId}/drafts/{versionId}
+function registerPatchDraftRoute(app: OpenAPIHono, deps: ApiDependencies): void {
   app.openapi(
     createRoute({
       method: 'patch',
@@ -84,8 +84,9 @@ export function registerAgentDraftRoutes(app: OpenAPIHono, deps: ApiDependencies
       return c.json(toAgentVersionMetadataDto(updated), 200);
     },
   );
+}
 
-  // 3. DELETE /v1/agents/{agentId}/drafts/{versionId}
+function registerDiscardDraftRoute(app: OpenAPIHono, deps: ApiDependencies): void {
   app.openapi(
     createRoute({
       method: 'delete',
@@ -121,8 +122,9 @@ export function registerAgentDraftRoutes(app: OpenAPIHono, deps: ApiDependencies
       return c.json({ success: result.success }, 200);
     },
   );
+}
 
-  // 4. POST /v1/agents/{agentId}/drafts/{versionId}/publish
+function registerPublishDraftRoute(app: OpenAPIHono, deps: ApiDependencies): void {
   app.openapi(
     createRoute({
       method: 'post',
@@ -158,4 +160,11 @@ export function registerAgentDraftRoutes(app: OpenAPIHono, deps: ApiDependencies
       return c.json(toAgentVersionMetadataDto(published), 200);
     },
   );
+}
+
+export function registerAgentDraftRoutes(app: OpenAPIHono, deps: ApiDependencies): void {
+  registerCreateDraftRoute(app, deps);
+  registerPatchDraftRoute(app, deps);
+  registerDiscardDraftRoute(app, deps);
+  registerPublishDraftRoute(app, deps);
 }

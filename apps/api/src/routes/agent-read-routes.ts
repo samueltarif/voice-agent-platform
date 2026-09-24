@@ -5,7 +5,7 @@ import { getServiceAuth } from '../auth/service-auth-middleware.js';
 import { authorizeTenant } from '../auth/tenant-authorization.js';
 import { toAgentMetadataDto } from '../http/response-mappers.js';
 
-export function registerAgentReadRoutes(app: OpenAPIHono, deps: ApiDependencies): void {
+function registerListAgentsRoute(app: OpenAPIHono, deps: ApiDependencies): void {
   app.openapi(
     createRoute({
       method: 'get',
@@ -41,7 +41,9 @@ export function registerAgentReadRoutes(app: OpenAPIHono, deps: ApiDependencies)
       return c.json(dtos, 200);
     },
   );
+}
 
+function registerGetAgentRoute(app: OpenAPIHono, deps: ApiDependencies): void {
   app.openapi(
     createRoute({
       method: 'get',
@@ -81,4 +83,9 @@ export function registerAgentReadRoutes(app: OpenAPIHono, deps: ApiDependencies)
       return c.json(toAgentMetadataDto(agent, published?.versionNumber ?? null), 200);
     },
   );
+}
+
+export function registerAgentReadRoutes(app: OpenAPIHono, deps: ApiDependencies): void {
+  registerListAgentsRoute(app, deps);
+  registerGetAgentRoute(app, deps);
 }

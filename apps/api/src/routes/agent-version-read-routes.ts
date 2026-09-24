@@ -3,13 +3,9 @@ import { NotFoundError } from '@voice-agent/errors';
 import type { ApiDependencies } from '../composition/agent-dependencies.js';
 import { getServiceAuth } from '../auth/service-auth-middleware.js';
 import { authorizeTenant } from '../auth/tenant-authorization.js';
-import {
-  toAgentVersionMetadataDto,
-  toAgentConfigurationDto,
-} from '../http/response-mappers.js';
+import { toAgentVersionMetadataDto, toAgentConfigurationDto } from '../http/response-mappers.js';
 
-export function registerAgentVersionReadRoutes(app: OpenAPIHono, deps: ApiDependencies): void {
-  // 1. GET /v1/agents/{agentId}/versions (Metadata only, no changelog/config)
+function registerListVersionsRoute(app: OpenAPIHono, deps: ApiDependencies): void {
   app.openapi(
     createRoute({
       method: 'get',
@@ -43,8 +39,9 @@ export function registerAgentVersionReadRoutes(app: OpenAPIHono, deps: ApiDepend
       return c.json(versions.map(toAgentVersionMetadataDto), 200);
     },
   );
+}
 
-  // 2. GET /v1/agents/{agentId}/versions/{versionId}/configuration (Protected by agent.config.read)
+function registerGetVersionConfigurationRoute(app: OpenAPIHono, deps: ApiDependencies): void {
   app.openapi(
     createRoute({
       method: 'get',
@@ -82,4 +79,9 @@ export function registerAgentVersionReadRoutes(app: OpenAPIHono, deps: ApiDepend
       return c.json(toAgentConfigurationDto(version), 200);
     },
   );
+}
+
+export function registerAgentVersionReadRoutes(app: OpenAPIHono, deps: ApiDependencies): void {
+  registerListVersionsRoute(app, deps);
+  registerGetVersionConfigurationRoute(app, deps);
 }

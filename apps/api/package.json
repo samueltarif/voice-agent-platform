@@ -19,6 +19,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "start": "node dist/apps/api/src/server.js",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   }

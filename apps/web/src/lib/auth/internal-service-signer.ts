@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto';
-import { importJWK, SignJWT, type JWK, type KeyLike } from 'jose';
+import { importJWK, SignJWT, type JWK } from 'jose';
 import type { ServiceAssertionClaims } from '@voice-agent/contracts';
+
+type ImportedKey = Awaited<ReturnType<typeof importJWK>>;
 
 export interface CreateAssertionInput {
   userId: string;
@@ -17,9 +19,9 @@ export const DEFAULT_SERVICE_ISSUER = 'voice-agent:web' as const;
 export const DEFAULT_SERVICE_AUDIENCE = 'voice-agent:api' as const;
 
 export class InternalServiceSigner {
-  private keyCache = new Map<string, KeyLike | Uint8Array>();
+  private keyCache = new Map<string, ImportedKey>();
 
-  private async getPrivateKey(jwk: JWK): Promise<KeyLike | Uint8Array> {
+  private async getPrivateKey(jwk: JWK): Promise<ImportedKey> {
     const keyId = jwk.kid ?? 'default';
     const cached = this.keyCache.get(keyId);
     if (cached) {

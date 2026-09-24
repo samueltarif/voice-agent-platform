@@ -1,6 +1,6 @@
 # Agent Studio — Conceito, Componentes e Versionamento (AGENT_STUDIO.md)
 
-> **Status**: Slice 005B Implementado e Validado em Staging (DEC-028 / DEC-030 / ADR-009 / ADR-011) — Slices 005C e 005D Pendentes
+> **Status**: Slices 005B e 005C Implementados (005B Staging Validated; 005C Local/Integration Validated) — Slice 005D Pendente
 > **Fase de Planejamento**: FASE 5 (Domínios Base & Agent Studio)
 > **Data de Criação**: 21 de Setembro de 2026
 > **Data de Aceitação Arquitetural**: 23 de Setembro de 2026 (Aprovação Humana Formal)
@@ -8,7 +8,7 @@
 Este documento formaliza o conceito de **Agent Studio** como subsistema central da plataforma, definindo os agregados de domínio (`Agent` e `AgentVersion`), o ciclo de vida formal, as regras de publicação e integridade, e o escopo de evolução por fases.
 
 > [!IMPORTANT]
-> **ARCHITECTURE ACCEPTED vs IMPLEMENTED**: A arquitetura de domínio, versionamento, persistência e invariantes de integridade do Agent Studio foram formalmente aceitas via **DEC-028** e **ADR-009** (Aprovação Humana em 2026-09-23). A implementação técnica ocorrerá de forma particionada a partir do Slice 005B (`packages/database` e `packages/contracts`), 005C (`apps/api`) e 005D (`apps/web`). Nenhuma implementação prévia deve ser presumida antes da conclusão dos respectivos slices.
+> **ARCHITECTURE ACCEPTED vs IMPLEMENTED**: A arquitetura de domínio, versionamento, persistência e invariantes de integridade do Agent Studio foram formalmente aceitas via **DEC-028** e **ADR-009** (Aprovação Humana em 2026-09-23). A implementação técnica ocorre de forma particionada: Slice 005B (`packages/database` e `packages/contracts`: IMPLEMENTED / STAGING VALIDATED), Slice 005C (`apps/api` e internal service auth: IMPLEMENTED LOCAL / INTEGRATION TESTED) e Slice 005D (`apps/web` UI: NOT STARTED). Nenhuma implementação prévia deve ser presumida antes da conclusão dos respectivos slices.
 
 ---
 
@@ -307,7 +307,8 @@ A implementação ocorrerá nas fases de Motor de Voz (FASE 6) e Telefonia Real 
 | **Persistência Relacional e Domínio Base (005B)** | **STAGING MIGRATED / STAGING INTEGRATION TESTED** | DEC-028 / ADR-009 / DEC-030 / ADR-011 (PR #8 Merged) |
 | **Formato de Persistência (Metadados + JSONB)** | **Decided / Accepted** | DEC-028 / ADR-009 (Opção C: Relacional + JSONB) |
 | **Biblioteca de Validação de Schema (Zod)** | **Decided / Accepted** | DEC-028 / ADR-009 (`packages/contracts`, instalação no Slice 005B) |
-| **Interface do Agent Studio (Web UI)** | **Planejada para Slice 005D** | FASE 5 (Fatiamento aprovado) |
+| **APIs HTTP, OpenAPI 3.1.0 e Internal Service Auth (005C)** | **IMPLEMENTED LOCAL / INTEGRATION TESTED** | DEC-029 / ADR-010 / DEC-031 / ADR-012 |
+| **Interface do Agent Studio (Web UI) (005D)** | **NOT STARTED** | FASE 5 (Slice 005D) |
 | **Provider de síntese de voz (VoiceConfig)** | **Deferred Fase 6** | Motor de Voz (FASE 6) |
 | **Execução Real de Tools** | **Deferred Fase 7** | Agente IA e Tools (FASE 7) |
 | **Estratégia de RAG para Knowledge Base** | **Deferred Fase 7** | Agente IA e Tools (FASE 7) |

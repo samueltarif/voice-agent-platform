@@ -21,9 +21,7 @@ export function toAgentMetadataDto(
   };
 }
 
-export function toAgentVersionMetadataDto(
-  version: AgentVersion,
-): AgentVersionMetadataResponse {
+export function toAgentVersionMetadataDto(version: AgentVersion): AgentVersionMetadataResponse {
   return {
     id: version.id,
     versionNumber: version.versionNumber,
@@ -36,9 +34,7 @@ export function toAgentVersionMetadataDto(
   };
 }
 
-export function toAgentConfigurationDto(
-  version: AgentVersion,
-): AgentVersionConfigurationResponse {
+export function toAgentConfigurationDto(version: AgentVersion): AgentVersionConfigurationResponse {
   return {
     agentId: version.agentId,
     versionId: version.id,

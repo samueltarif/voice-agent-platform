@@ -3911,3 +3911,116 @@ Executada a verificação local padrão sem as variáveis de ambiente staging:
 - **Slices 005C e 005D**: NÃO INICIADOS.
 - **Pull Request #9**: Reauditado, limpo, mergeable, pronto para merge.
 
+---
+
+## 24/09/2026 — PROMPT-005C — Agent APIs & Asymmetric Internal Service Auth
+
+### 1. Contexto de Interrupção, Recovery e Checkpoint de Preservação
+- **Interrupção**: A execução inicial do PROMPT-005C foi interrompida de forma abrupta por desligamento não programado da máquina operacional.
+- **Regra de Recovery Estrita**: Nenhum histórico de conversação interna (`.system_generated/logs/transcript*.jsonl`), log de tarefas passadas, command history ou terminal history foi acessado ou inspecionado. A reconstrução de estado foi efetuada exclusivamente a partir da árvore de trabalho do Git, histórico canônico de commits e contratos em disco.
+- **Auditoria de Estado**:
+  - Branch ativa: `feature/agent-api-internal-auth` derivada do base `3cdb221` (merge do Slice 005B / PR #9).
+  - Código de produção de `apps/api` e `apps/web` signer recuperado em estado dirty no working tree.
+  - Zero alterações em migrations ou schemas de banco de dados (`packages/database/src/schema` e `migrations` idênticos ao base `3cdb221`).
+  - Nenhum secret, chave privada real ou token exposto em arquivos versionáveis.
+- **Checkpoint WIP de Preservação**:
+  - Realizado commit e push do checkpoint inicial antes de qualquer continuidade de desenvolvimento para proteção contra nova perda de máquina: commit `03781b2` (`wip: checkpoint interrupted agent api implementation`) enviado para `origin/feature/agent-api-internal-auth`.
+
+---
+
+### 2. Dependências, Versões e Compatibilidade
+- **Hono Core**: `hono@^4.13.8` (instalado `4.13.8`).
+- **Node Server Adapter**: `@hono/node-server@^2.1.1` (instalado `2.1.1`).
+- **OpenAPI Integration**: `@hono/zod-openapi@^0.19.10` (instalado `0.19.10`).
+- **Criptografia JWT / JWKS**: `jose@^6.2.12` (instalado `6.2.12`).
+- **Schema Validation**: `zod@^3.25.76` (instalado `3.25.76`).
+- **Compatibilidade Zod 4**: Pinned estritamente na linha 3.x; nenhuma dependência migrou para Zod 4.
+- **Auditoria de Instalação**: `pnpm install --frozen-lockfile` validado com zero novos scripts de lifecycle não autorizados (nenhum `pnpm approve-builds --all` executado).
+- **Runtime Build & Start**:
+  - `apps/api/tsconfig.json` compila TypeScript via Turborepo para `apps/api/dist/apps/api/src/server.js`.
+  - Script `"start": "node dist/apps/api/src/server.js"` validado e configurado para apontar para o artefato real emitido.
+
+---
+
+### 3. Decisões Canônicas Confirmadas (DEC-031 e ADR-012)
+- **Perfil Criptográfico (Ed25519 / EdDSA + jose v6)**:
+  - Formato de chaves: JWK privada em `apps/web` (BFF) e JWKS pública em `apps/api`.
+  - Invariante de Segurança: O verifier rejeita fail-closed qualquer JWKS que contenha material privado (`'d' in key`).
+  - Header protegido obrigatório: `alg: 'EdDSA'`, `typ: 'JWT'`, `kid` conhecido.
+  - TTL nominal estrito: 30 segundos (`exp - iat <= 30`).
+  - Clock tolerance de 5 segundos estritamente para skew de relógio, sem ampliar o TTL nominal permitido.
+  - Claims canônicos: `sub` (userId), `orgId` (organizationId), `iss` (`voice-agent:web`), `aud` (`voice-agent:api`), `iat`, `exp`, `jti`.
+  - Proibição de Transporte de Autorizações: Tokens não transportam `role`, `permissions`, `entitlements` ou `membership status`.
+
+---
+
+### 4. Implementação de Serviços e Rotas (`apps/api`)
+- **Autenticação e Autorização**:
+  - `ServiceAssertionVerifier`: Validação assimétrica completa, pinning de algoritmo EdDSA, checagem de kid, typ, timestamps e schema Zod.
+  - `serviceAuthMiddleware`: Extrai Bearer token, valida asserção via verifier e injeta claims no contexto tipado da requisição.
+  - `authorizeTenant`: Revalidação dinâmica no PostgreSQL do status da organização (`ACTIVE`), membership do usuário (`ACTIVE`) e permissão RBAC baseada na role recuperada em tempo real do banco de dados.
+- **Endpoints Expostos (OpenAPI 3.1.0)**:
+  - Públicos:
+    - `GET /healthz`: Healthcheck sem autenticação.
+    - `GET /openapi.json`: Especificação completa OpenAPI 3.1.0 documentando o security scheme `internalServiceAssertion`.
+  - Protegidos:
+    - `GET /v1/agents`: Listagem de metadados de agentes da organização (`agent.read`).
+    - `POST /v1/agents`: Criação de agente com checagem de cota transacional pessimista `agents.max` (`agent.create`).
+    - `GET /v1/agents/:agentId`: Metadados do agente (`agent.read`).
+    - `POST /v1/agents/:agentId/archive`: Arquivamento de agente liberando cota ativa (`agent.archive`).
+    - `POST /v1/agents/:agentId/reactivate`: Reativação de agente consumindo cota (`agent.archive`).
+    - `GET /v1/agents/:agentId/versions`: Listagem de metadados das versões do agente (`agent.read`).
+    - `GET /v1/agents/:agentId/versions/:versionId/configuration`: Snapshot completo de configuração do agente, protegido por privilégio superior (`agent.config.read`).
+    - `POST /v1/agents/:agentId/drafts`: Criação de novo rascunho de versão (`agent.edit`).
+    - `PATCH /v1/agents/:agentId/drafts/:versionId`: Atualização de configuração do rascunho (`agent.edit`).
+    - `DELETE /v1/agents/:agentId/drafts/:versionId`: Descarte físico de rascunho nunca publicado (`agent.edit`).
+    - `POST /v1/agents/:agentId/drafts/:versionId/publish`: Publicação determinística de versão (`agent.publish`).
+- **Contratos de Erro e Request Tracking**:
+  - Envelope padronizado: `{ error: { code, message, requestId } }`.
+  - Validação de entrada Zod com `.strict()`: Retorna 400 `VALIDATION_ERROR` ao receber campos adicionais ou tentativas de injeção (`organizationId`, `createdBy`, `role`).
+  - Request ID: `x-request-id` preservado quando válido (UUID ou string alfanumérica <= 64 caracteres); UUID v4 gerado quando ausente ou inválido. Retornado no header e no corpo de erro.
+
+---
+
+### 5. Cobertura de Testes e Validação Local
+- **Testes Criptográficos do Verifier** (`apps/api/src/auth/service-assertion-verifier.test.ts`):
+  - 23 testes aprovados cobrindo: assinatura válida, adulteração de payload/assinatura, chave pública errada, algoritmo incorreto, ausência de alg/kid/typ, kid desconhecido, issuer/audience inválidos, expiração, iat futuro fora de tolerância, exp <= iat, exp - iat > 30s, ausência/invalidez de sub e orgId, ausência de jti, token malformado e rejeição de JWKS contendo chave privada.
+- **Testes do Signer Web** (`apps/web/src/lib/auth/internal-service-signer.test.ts`):
+  - 2 testes aprovados validando assinatura Ed25519, claims canônicos, cabeçalhos protegidos e exp - iat = 30s.
+- **Testes RBAC e Matriz de Permissões** (`apps/api/src/auth/agent-permissions.test.ts`):
+  - 2 testes com 35 asserções cobrindo toda a matriz 5 roles x 7 permissões.
+- **Testes HTTP via `app.request()`**:
+  - `health-and-docs.http.test.ts`: 2 testes aprovados (healthz 200, openapi.json 200, spec confidencial sem secrets).
+  - `agent-api-auth.http.test.ts`: 8 testes aprovados (401 sem auth/token inválido, 403 sem membership/inativa/org inativa, request-id tracking e envelope 400).
+  - `agent-api-rbac.http.test.ts`: 4 testes aprovados (VIEWER/OPERATOR sem config, MANAGER com config sem publish, ADMIN/OWNER liberados, regressão recursiva de confidencialidade garantindo ausência de prompt/regras/changelog em metadados).
+- **Testes de Integração com PostgreSQL 16 Docker Local**:
+  - `agent-api-lifecycle.integration.test.ts`: 1 teste aprovado cobrindo ciclo ponta a ponta com Postgres real (criação de agente, barreira de cota `agents.max=1` com 403, criação de draft, patch de draft, publicação, listagem de metadados, endpoint de configuração, arquivamento e reativação).
+  - `agent-api-security.integration.test.ts`: 4 testes aprovados:
+    1. Revalidação dinâmica de domínio contra o banco (rebaixamento ADMIN -> VIEWER com mesmo token resulta em 403 na tentativa de publicação).
+    2. Revogação de membership (suspensão no banco com mesmo token resulta em 403 `FORBIDDEN`).
+    3. Signed org context attack (assinatura válida afirmando tenant alheio rejeitada com 403 antes de tocar nos recursos de agente).
+    4. Isolamento cross-tenant e confidencialidade (usuário de tenant A buscando agente de tenant B recebe 404 `NOT_FOUND` sem vazamento de existência; conflito 409 em slug duplicado; proteção contra vazamento de SQL, nomes de constraint ou stacks).
+- **Contagem Consolidada da Suíte**:
+  - `pnpm test`: **23 test files passed, 4 skipped (139 passed, 18 skipped, 0 failed)**.
+  - Testes em `apps/api`: 7 arquivos, 44 testes aprovados.
+  - Testes em `apps/web`: 4 arquivos, 14 testes aprovados (2 skipped opt-in de staging).
+  - Testes em `packages/database`: 6 arquivos, 60 testes aprovados (16 skipped opt-in de staging).
+  - Demais pacotes: 6 arquivos, 21 testes aprovados.
+- **Verificação Completa de Qualidade (`pnpm check`)**:
+  - `pnpm format:check`: SUCESSO (todos os arquivos utilizam estilo Prettier).
+  - `pnpm lint`: SUCESSO (0 erros, 0 avisos).
+  - `pnpm typecheck`: SUCESSO (12 packages em conformidade com TypeScript strict).
+  - `pnpm test`: SUCESSO (139 testes aprovados).
+  - `pnpm build`: SUCESSO (12 packages compilados, Next.js build otimizado).
+  - `pnpm check:architecture`: SUCESSO (fronteiras de pacotes e banimento de arquivos genéricos respeitados).
+  - `pnpm check:file-size`: SUCESSO (todos os 120 arquivos de lógica de produção <= 180 linhas; zero adições à allowlist).
+
+---
+
+### 6. Garantia de Zero Mudança Estrutural e Isolamento
+- **Diff de Schema e Migrations**:
+  - `git diff 3cdb221 -- packages/database/src/schema packages/database/src/migrations` verificado: **ZERO ALTERAÇÕES**.
+- **Ambiente Neon Staging**: 100% INTOCADO / NÃO ACESSADO (todos os testes de integração executados contra o contêiner PostgreSQL 16 Docker local).
+- **Ambiente de Produção**: 100% INTOCADO / NÃO PROVISIONADO.
+- **Próxima Etapa**: Slice 005D (`apps/web` UI do Agent Studio) **NÃO INICIADO**.
+

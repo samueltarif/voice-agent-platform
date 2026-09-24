@@ -1,7 +1,11 @@
 import type { Logger, LogContext } from '@voice-agent/logger';
 
 export function createApiLogger(component = 'api'): Logger {
-  const log = (level: 'info' | 'warn' | 'error' | 'debug', message: string, context?: LogContext) => {
+  const log = (
+    level: 'info' | 'warn' | 'error' | 'debug',
+    message: string,
+    context?: LogContext,
+  ) => {
     const entry = {
       timestamp: new Date().toISOString(),
       level,

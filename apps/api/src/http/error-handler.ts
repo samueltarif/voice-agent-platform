@@ -61,12 +61,7 @@ export function createApiErrorHandler(logger: Logger) {
 
     if (err instanceof AppError) {
       const status = (err.statusCode >= 400 && err.statusCode <= 599 ? err.statusCode : 500) as
-        | 400
-        | 401
-        | 403
-        | 404
-        | 409
-        | 500;
+        400 | 401 | 403 | 404 | 409 | 500;
       return c.json(
         {
           error: {

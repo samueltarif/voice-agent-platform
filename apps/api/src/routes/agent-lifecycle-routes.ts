@@ -5,7 +5,7 @@ import { getServiceAuth } from '../auth/service-auth-middleware.js';
 import { authorizeTenant } from '../auth/tenant-authorization.js';
 import { toAgentMetadataDto } from '../http/response-mappers.js';
 
-export function registerAgentLifecycleRoutes(app: OpenAPIHono, deps: ApiDependencies): void {
+function registerCreateAgentRoute(app: OpenAPIHono, deps: ApiDependencies): void {
   app.openapi(
     createRoute({
       method: 'post',
@@ -44,7 +44,9 @@ export function registerAgentLifecycleRoutes(app: OpenAPIHono, deps: ApiDependen
       return c.json(toAgentMetadataDto(created, null), 201);
     },
   );
+}
 
+function registerArchiveAgentRoute(app: OpenAPIHono, deps: ApiDependencies): void {
   app.openapi(
     createRoute({
       method: 'post',
@@ -76,7 +78,9 @@ export function registerAgentLifecycleRoutes(app: OpenAPIHono, deps: ApiDependen
       return c.json(toAgentMetadataDto(archived, null), 200);
     },
   );
+}
 
+function registerReactivateAgentRoute(app: OpenAPIHono, deps: ApiDependencies): void {
   app.openapi(
     createRoute({
       method: 'post',
@@ -108,4 +112,10 @@ export function registerAgentLifecycleRoutes(app: OpenAPIHono, deps: ApiDependen
       return c.json(toAgentMetadataDto(reactivated, null), 200);
     },
   );
+}
+
+export function registerAgentLifecycleRoutes(app: OpenAPIHono, deps: ApiDependencies): void {
+  registerCreateAgentRoute(app, deps);
+  registerArchiveAgentRoute(app, deps);
+  registerReactivateAgentRoute(app, deps);
 }
