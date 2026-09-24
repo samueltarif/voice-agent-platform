@@ -4170,3 +4170,63 @@ Executada a verificação local padrão sem as variáveis de ambiente staging:
   (e **não** a representação resumida informal `GET /v1/agents/:agentId/configuration`).
 - **Consistência de Contrato**: O teste de confidencialidade (TEST I) e o teste de RBAC para Manager (TEST J) foram executados e validados contra a rota canônica completa de versão.
 - **Preservação de Evidências**: Nenhuma linha ou evidência da entrada histórica anterior foi alterada ou reescrita (append-only preservado). Nenhuma alteração em código de produção ou de teste foi requerida por esta nota de precisão.
+
+---
+
+## 24/09/2026 — PROMPT-005C-STAGING-CLOSE — Review and Merge
+
+- **Branch de Trabalho**: `chore/agent-api-staging-validation`
+- **Commit da Validação Staging**: `eddf17450c5417a12a5ac4d4451d296128bb518a` (`test: validate agent api auth against neon staging`)
+- **Commit Documental de Precisão**: `2e8a0ca384f0bcf0ecf115f48a0847e0a145c28a` (`docs: clarify staging configuration route evidence`)
+- **Pull Request**: #11 (`https://github.com/samueltarif/voice-agent-platform/pull/11`)
+- **Status do PR**: MERGED via GitHub MCP (`merge` method)
+- **Merge Commit SHA**: `db132f080548fb2b78604bdac62e380d8c978c6d`
+- **Main Local / Origin SHA**: `db132f080548fb2b78604bdac62e380d8c978c6d` (100% sincronizado)
+
+### 1. Auditoria e Verificações Pré-Merge
+- **Premerge `pnpm check`**:
+  - `prettier --check .`: 100% aprovado.
+  - `eslint .`: 100% aprovado (0 erros, 0 avisos).
+  - `turbo typecheck`: 12 pacotes aprovados.
+  - `vitest run`: **23 test files passed | 5 skipped (28)**, **139 passed | 31 skipped (170)**, 0 falhas. Testes de staging opt-in devidamente marcados como SKIPPED na ausência de credenciais de staging.
+  - `turbo build`: 12 pacotes compilados com sucesso (Next.js build de produção em `@voice-agent/web` concluído).
+  - `node scripts/check-architecture.mjs`: SUCESSO via AST.
+  - `node scripts/check-file-size.mjs`: SUCESSO (120 arquivos de lógica de produção <= 180 linhas, 6 avisos legítimos).
+- **Auditoria de Rotas**: Confirmada a rota canônica factual `GET /v1/agents/:agentId/versions/:versionId/configuration` para o snapshot de configuração do agente (protegida por privilégio `agent.config.read`).
+- **Auditoria de Segredos (`git diff`)**: 100% limpa. Nenhuma chave privada, JWKS público real, `DATABASE_URL`, `MIGRATION_DATABASE_URL`, `BETTER_AUTH_SECRET`, Bearer token ou conteúdo sensível incluído no repositório.
+- **Auditoria de Banco**:
+  - Schema de banco de dados (`packages/database/src/schema`): ZERO alteração.
+  - Migrações (`packages/database/src/migrations`): ZERO alteração (journal canônico permanece estritamente em `0000` foundation e `0001` agent domain).
+
+### 2. Execução do Merge e Limpeza Local
+- **Merge no GitHub**: Pull Request #11 mesclado para a branch `main` via `merge_pull_request` no GitHub MCP.
+- **Sincronização Local**: `git checkout main && git pull --ff-only origin main` executado com avanço direto (*fast-forward*).
+- **Limpeza de Branch Local**: Branch `chore/agent-api-staging-validation` removida localmente com `git branch -d` (SHA `2e8a0ca`).
+
+### 3. Verificação Pós-Merge na Main (`pnpm check`)
+- Executado em ambiente isolado sem carregamento de `.env.staging`:
+  - `pnpm install --frozen-lockfile`: Lockfile íntegro.
+  - `pnpm check`:
+    - Prettier: OK.
+    - ESLint: OK.
+    - Typecheck: 12 pacotes OK.
+    - Vitest: **23 test files passed | 5 skipped (28)**, **139 passed | 31 skipped de staging (170)**, 0 falhas.
+    - Turbo build: 12 pacotes OK.
+    - Architecture AST: SUCESSO.
+    - File size check: SUCESSO (120 arquivos, 6 avisos).
+
+### 4. Status de Proteção da Branch Main
+- Consulta via API do GitHub: `GET /repos/samueltarif/voice-agent-platform/branches/main` retornou `protected: false`.
+- **Status Formal**: PENDÊNCIA HUMANA — MAIN AINDA NÃO PROTEGIDA.
+- Nenhuma alteração administrativa foi executada automaticamente.
+
+### 5. Estado Factual dos Componentes e Isolamento
+- **Slice 005B**: MERGED / NEON STAGING VALIDATED.
+- **Slice 005C**: MERGED / LOCAL + NEON STAGING INTEGRATION VALIDATED.
+- **Internal Service Auth**: IMPLEMENTED / CRYPTOGRAPHICALLY TESTED / STAGING VALIDATED.
+- **API Runtime**: IMPLEMENTED / NOT DEPLOYED (execução estritamente local conectada ao staging).
+- **Browser Auth E2E**: NOT YET VALIDATED END-TO-END (não reivindicado; autenticação Better Auth de ponta a ponta via navegador aguarda implementação da interface).
+- **Ambiente Neon**: NÃO foi reacesado nesta etapa de fechamento.
+- **Ambiente de Produção**: 100% INTOCADO / NÃO PROVISIONADO.
+- **Slice 005D (Web UI)**: NÃO INICIADO.
+- **Twilio / Voice / Fase 6**: PESQUISA APENAS / NENHUMA IMPLEMENTAÇÃO NESTA TAREFA.
