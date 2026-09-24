@@ -11,7 +11,7 @@ Este documento define a separação dos ambientes de desenvolvimento, homologaç
 - **Pipeline de CI/CD**: **Status: Pending Decision** (Candidatos: GitHub Actions, GitLab CI).
 - **Banco de Dados Relacional**:
   - **Seleção de Provedor**: **DECIDED — Neon Serverless Postgres principal** (Alternativa: Supabase Postgres) conforme DEC-026 / ADR-008.
-  - **Ambiente de Homologação (`staging`)**: Neon Managed PostgreSQL 16 (`aws-sa-east-1` / São Paulo) — **PROVISIONED & VALIDATED** (Foundation 0000 e Agent Domain 0001 aplicadas e validadas via testes de integração).
+  - **Ambiente de Homologação (`staging`)**: Neon Managed PostgreSQL 16 (`aws-sa-east-1` / São Paulo) — **PROVISIONED & VALIDATED** (Foundation 0000 e Agent Domain 0001 aplicadas e validadas via testes de integração; **005C: IMPLEMENTED / LOCAL + NEON STAGING INTEGRATION VALIDATED** — Internal Service Auth: STAGING CRYPTOGRAPHIC BOUNDARY VALIDATED; Neon: DATA/AUTHZ INTEGRATION VALIDATED; API Deployment: NOT DEPLOYED; Production: NOT PROVISIONED / UNTOUCHED; Browser E2E: NOT CLAIMED; 005D: NOT STARTED).
   - **Ambiente de Produção (`production`)**: **NOT PROVISIONED** (Recurso de banco não provisionado; topologia de produção, capacidade, alta disponibilidade, failover e procedimentos de backup pendentes de desenho de produção).
 
 Nenhuma configuração proprietária de cloud deve ser fixada antes da decisão técnica formal.
