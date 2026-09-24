@@ -4158,3 +4158,15 @@ Executada a verificação local padrão sem as variáveis de ambiente staging:
 - **Deploy de API**: NÃO DEPLOYADO (execução estritamente local conectada ao staging).
 - **Browser E2E**: NÃO REIVINDICADO (validação estrita da fronteira criptográfica BFF Signer -> Internal Assertion -> API -> DB).
 - **Slice 005D**: NÃO INICIADO.
+
+---
+
+## 24/09/2026 — PROMPT-005C-STAGING-CLOSE — Documentation Precision Note
+
+### 1. Auditoria e Precisão da Rota Canônica de Configuração
+- **Contexto**: Auditoria de precisão documental referente ao endpoint de leitura de configuração de agente validado durante os testes do Slice 005C.
+- **Rota Canônica Factual**: A rota canônica implementada na API (`apps/api/src/routes/agent-version-read-routes.ts`) e exercitada na suíte de testes (`apps/web/src/lib/api/agent-api.staging.test.ts`) é estritamente:
+  `GET /v1/agents/:agentId/versions/:versionId/configuration`
+  (e **não** a representação resumida informal `GET /v1/agents/:agentId/configuration`).
+- **Consistência de Contrato**: O teste de confidencialidade (TEST I) e o teste de RBAC para Manager (TEST J) foram executados e validados contra a rota canônica completa de versão.
+- **Preservação de Evidências**: Nenhuma linha ou evidência da entrada histórica anterior foi alterada ou reescrita (append-only preservado). Nenhuma alteração em código de produção ou de teste foi requerida por esta nota de precisão.
