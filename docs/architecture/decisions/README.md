@@ -30,4 +30,5 @@ Cada registro segue rigorosamente a seguinte anatomia:
 | [ADR-009](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-009-agent-studio-aggregate-versioning-persistence.md) | Agent Studio Aggregate, Versioning and Persistence | 2026-09-23 | Accepted |
 | [ADR-010](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-010-api-boundary-asymmetric-internal-service-auth.md) | API Boundary and Asymmetric Internal Service Authentication | 2026-09-23 | Accepted |
 | [ADR-011](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-011-commercial-entitlement-resolution-access-eligibility.md) | Commercial Entitlement Resolution and Access Eligibility | 2026-09-23 | Accepted |
+| [ADR-012](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-012-concrete-internal-service-assertion-cryptographic-profile.md) | Perfil Criptográfico Concreto da Asserção Interna de Serviço | 2026-09-23 | Accepted |
 

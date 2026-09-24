@@ -14,9 +14,9 @@ export interface CreateDraftInput {
   organizationId: string;
   agentId: string;
   configuration: AgentConfigurationSnapshotV1 | unknown;
-  changelog?: string;
+  changelog?: string | undefined;
   createdBy: string;
-  at?: Date;
+  at?: Date | undefined;
 }
 
 export interface UpdateDraftConfigurationInput {
@@ -24,8 +24,8 @@ export interface UpdateDraftConfigurationInput {
   agentId: string;
   versionId: string;
   configuration: AgentConfigurationSnapshotV1 | unknown;
-  changelog?: string;
-  at?: Date;
+  changelog?: string | undefined;
+  at?: Date | undefined;
 }
 
 export class AgentDraftService {

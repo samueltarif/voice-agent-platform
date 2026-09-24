@@ -12,7 +12,7 @@ voice-agent-platform/
 │   │   ├── src/lib/auth/     # Configuração Better Auth (Identity + Session) e client React de autenticação.
 │   │   ├── src/mocks/        # Mocks determinísticos tipados com valores monetários estritamente em integer cents.
 │   │   └── src/preferences/  # Módulo puro ui-preferences-storage e context de persistência de tema/densidade sem hydration mismatch.
-│   ├── api/              # API HTTP e Gateway para regras de negócio, persistência multi-tenant, webhooks e orquestração (Framework Hono selecionado via DEC-029/ADR-010; NOT YET INSTALLED/IMPLEMENTED).
+│   ├── api/              # API HTTP e Gateway para regras de negócio, persistência multi-tenant, webhooks e orquestração (Framework Hono via DEC-029/ADR-010; IMPLEMENTED LOCAL / TESTED no Slice 005C com OpenAPI 3.1.0 e Internal Service Auth assimétrica DEC-031/ADR-012).
 │   ├── voice/            # Motor de baixa latência em tempo real para streaming de áudio, transcrição, diálogo e síntese de voz.
 │   └── worker/           # Processamento em background para tarefas assíncronas, transcrições em lote, analytics e campanhas.
 │
@@ -67,7 +67,7 @@ voice-agent-platform/
 ## Responsabilidades Resumidas
 
 - **`apps/web`**: Dashboard administrativo e operacional responsivo para clientes B2B interagirem com o ecossistema.
-- **`apps/api`**: Ponto de entrada HTTP seguro para regras de negócio e persistência (Hono selecionado via DEC-029/ADR-010; NOT YET INSTALLED/IMPLEMENTED).
+- **`apps/api`**: Ponto de entrada HTTP seguro para regras de negócio e persistência (Hono implementado e testado localmente no Slice 005C via DEC-029/ADR-010 e DEC-031/ADR-012).
 - **`apps/voice`**: Orquestrador bidirecional de streaming de voz projetado para mínima latência e interrupção humana natural.
 - **`apps/worker`**: Consumidor de filas para processamento pesado assíncrono e tarefas em lote desacopladas do fluxo síncrono.
 - **`packages/ui`**: Sistema de design reutilizável e agnóstico de tela com foco mobile-first.

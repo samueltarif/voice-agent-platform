@@ -30,7 +30,8 @@ Este documento estabelece as normas mandatórias de proteção de dados, gestão
    - **Modelo de Confiança Unificado**: Dev, Staging e Produção adotam exatamente o mesmo modelo criptográfico assimétrico, segregando apenas as chaves por ambiente.
    - **Defesa em Profundidade**: A verificação da assinatura na API não anula a autorização de domínio; `apps/api` revalida membership (`OrganizationMembership`), status do membro, RBAC (`agent.read`, `agent.config.read`) e quotas (`agents.max`).
    - **Janela de Replay**: A expiração curta da asserção delimita a janela de reutilização; prevenção stateful de reutilização *one-time* não está implementada nesta fase (`PENDING EPHEMERAL INFRASTRUCTURE`).
-   - **Zero Segredos no Código**: Chaves privadas são injetadas estritamente via variáveis de ambiente/secret manager em runtime. Algoritmo concreto e biblioteca serão definidos no Slice 005C.
+   - **Perfil Criptográfico Concreto (DEC-031 / ADR-012)**: Implementado e testado no Slice 005C com assinatura Ed25519 (`EdDSA`), formato JWK privado em `apps/web`, JWKS público em `apps/api`, biblioteca `jose` v6, TTL nominal de 30 segundos (`exp - iat <= 30`), clock tolerance de 5 segundos, header obrigatório (`alg: EdDSA`, `typ: JWT`, `kid`), e claims canônicas (`sub`, `orgId`, `iss`, `aud`, `iat`, `exp`, `jti`). Zero segredos no repositório; chaves são injetadas exclusivamente via variáveis de ambiente em runtime.
+   - **Status da Autenticação Interna de Serviços**: **IMPLEMENTED LOCAL / CRYPTOGRAPHICALLY TESTED** (23 testes criptográficos + 12 testes de integração/HTTP). Validação em Neon Staging: *NOT VALIDATED* (reservada para smoke opt-in).
 
 
 ---

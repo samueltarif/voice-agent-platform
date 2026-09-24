@@ -32,4 +32,19 @@ export class AgentVersionRepository {
       )
       .orderBy(desc(agentVersions.versionNumber));
   }
+
+  async getVersionById(input: { organizationId: string; agentId: string; versionId: string }) {
+    const [version] = await this.db
+      .select()
+      .from(agentVersions)
+      .where(
+        and(
+          eq(agentVersions.id, input.versionId),
+          eq(agentVersions.organizationId, input.organizationId),
+          eq(agentVersions.agentId, input.agentId),
+        ),
+      )
+      .limit(1);
+    return version ?? null;
+  }
 }
