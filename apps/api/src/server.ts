@@ -12,8 +12,10 @@ import {
   DefaultCommercialPublicationPolicy,
   MembershipRepository,
   OrganizationRepository,
+  UserOrganizationContextRepository,
 } from '@voice-agent/database';
 import { ServiceAssertionVerifier } from './auth/service-assertion-verifier.js';
+import { BootstrapAssertionVerifier } from './auth/bootstrap-assertion-verifier.js';
 import { createApiLogger } from './logging/api-logger.js';
 import { createApp } from './app.js';
 
@@ -48,12 +50,15 @@ const discardService = new AgentDraftDiscardService(db);
 const publicationService = new AgentPublicationService(db, publicationPolicy);
 const membershipRepo = new MembershipRepository(db);
 const organizationRepo = new OrganizationRepository(db);
+const userOrgContextRepo = new UserOrganizationContextRepository(db);
 
 const verifier = new ServiceAssertionVerifier({ publicJwks });
+const bootstrapVerifier = new BootstrapAssertionVerifier({ publicJwks });
 
 const app = createApp({
   logger,
   verifier,
+  bootstrapVerifier,
   agentRepo,
   versionRepo,
   lifecycleService,
@@ -62,6 +67,7 @@ const app = createApp({
   publicationService,
   membershipRepo,
   organizationRepo,
+  userOrgContextRepo,
 });
 
 const server = serve({ fetch: app.fetch, port }, (info) => {

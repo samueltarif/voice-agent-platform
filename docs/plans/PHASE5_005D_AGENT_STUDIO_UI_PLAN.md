@@ -378,10 +378,10 @@ Para manter o foco estrito na entrega da UI do Agent Studio:
 
 Com a arquitetura formalizada (DEC-032 / ADR-013), a implementação do Slice 005D é estruturada em 6 entregas incrementais e testáveis:
 
-- **Slice 005D-B0 — Tenant Context Bootstrap (READY TO IMPLEMENT / NOT STARTED)**:
+- **Slice 005D-B0 — Tenant Context Bootstrap (LOCAL IMPLEMENTATION / LOCAL INTEGRATION VALIDATED)**:
   - Implementação do perfil `UserBootstrapAssertion` (`scope: 'user:bootstrap'`, `aud: 'voice-agent:api:bootstrap'`) e separação de componentes `InternalBootstrapSigner` e `BootstrapAssertionVerifier`.
   - Endpoints no `apps/api`: `GET /v1/me/organizations` e `GET /v1/me/organizations/{orgSlug}`.
-  - Suíte dos 18 testes de segurança de bootstrap.
+  - Suíte dos testes criptográficos, de isolamento cross-profile e integração local PostgreSQL.
 - **Slice 005D-B1 — Active Organization Context & Shell Switcher (BLOCKED ON 005D-B0)**:
   - Contexto de organização ativa baseado em rota `/orgs/[orgSlug]/*`.
   - Componente de Switcher de organização no `AppTopbar`.
