@@ -4640,3 +4640,80 @@ Esse acesso contrariou a política de segurança e governança de agentes (defin
 - **Slice 005D-B1 (Active Organization Context & Shell Switcher)**: **NOT STARTED**.
 - **Ambiente de Produção**: 100% INTOCADO / NÃO PROVISIONADO.
 - **Twilio / Telefonia / Fase 6**: NÃO IMPLEMENTADO / INTOCADO.
+
+---
+
+## 25/09/2026 — PROMPT-005D-B0-STAGING-CLOSE — PR #15 Audit, Merge & Main Synchronization
+
+- **Pull Request**: #15 (`https://github.com/samueltarif/voice-agent-platform/pull/15`)
+- **Branch de Staging**: `chore/tenant-bootstrap-staging-validation`
+- **Commit de Staging**: `482ec0e5c9b6ae6920ba051e7ee4b706c953574d`
+- **Status do PR**: MERGED via GitHub MCP (`merge_method: "merge"`)
+- **Merge Commit SHA Real**: `3a0e78e452396c50b4276270519fe9884c75c088`
+- **SHA da Branch `main` Local**: `3a0e78e452396c50b4276270519fe9884c75c088`
+- **SHA da Branch `origin/main`**: `3a0e78e452396c50b4276270519fe9884c75c088` (100% sincronizado)
+- **Branch Local `chore/tenant-bootstrap-staging-validation`**: Removida via `git branch -d` (was `482ec0e`).
+- **Status de Proteção da `main`**: Confirmado `protected: true` via API do GitHub.
+
+### 1. Auditoria do PR #15 e da Suíte de Testes
+- **Arquivos Auditados no PR (5 arquivos)**:
+  - `apps/web/src/lib/api/bootstrap-api.staging.test.ts`
+  - `package.json`
+  - `docs/SECURITY.md`
+  - `docs/DEPLOYMENT.md`
+  - `docs/AI_WORKLOG.md`
+- **Harness Final Autônomo e Self-Cleaning**: YES. O harness de teste em `bootstrap-api.staging.test.ts` implementa teardown completo e independente em `afterAll`, sem depender de scripts temporários externos ou intervenção manual humana.
+- **Scripts de Cleanup Temporários Versionados**: NO. Confirmado via `git ls-files` e `git status --short` que `clean-temp.mjs` e `verify-zero-leftovers.mjs` foram removidos e nunca foram rastreados/versionados.
+- **Separação de Processos (Process Isolation)**:
+  - Processo de teste BFF detém `INTERNAL_SERVICE_PRIVATE_JWK`.
+  - API child process é executado via `spawn` de `dist/apps/api/src/server.js` em porta TCP efêmera com allowlist estrita de variáveis de ambiente.
+  - Ausência de chave privada na API confirmada programaticamente (`childEnv.INTERNAL_SERVICE_PRIVATE_JWK === undefined`).
+- **Fronteira Criptográfica Ed25519**:
+  - Asserção Ed25519 (`EdDSA`), typ `JWT`, kid conhecido, sub, scope `user:bootstrap`, iss `voice-agent:web`, aud `voice-agent:api:bootstrap`, exp - iat <= 30s.
+  - JWKS público não contém material privado `d`.
+  - Rejeição fail-closed para assinatura adulterada (401), claim proibida `orgId` (401) e kid desconhecido (401).
+- **Fronteira de Dados e Autorização (Data / Authz Boundary)**:
+  - Revalidação dinâmica de roles diretamente do banco a cada requisição (`ADMIN` -> `VIEWER`), comprovando que o papel não deriva do token.
+  - Revogação imediata de membership (`ACTIVE` -> `SUSPENDED`) dentro da validade da asserção reflete imediatamente em 404/exclusão.
+  - Proteção anti-enumeração confirmada (404 em organização existente sem membership idêntico a 404 de slug fictício).
+- **Isolamento de Audience**:
+  - Bootstrap token aceito em `/v1/me/*` e rejeitado em `/v1/agents/*` (401).
+  - Tenant token aceito em `/v1/agents/*` e rejeitado em `/v1/me/*` (401).
+- **OpenAPI e TCP Real**:
+  - Endpoints `/healthz` (200), `/openapi.json` (200), `/v1/me/organizations` (200) e `/v1/me/organizations/{orgSlug}` (200) validados sobre TCP real contra o Neon Staging.
+- **Integridade de Banco**:
+  - Banco Neon Staging: PostgreSQL 16 confirmado.
+  - Journal de migrações: `0000_dizzy_runaways` e `0001_numerous_eddie_brock` (zero migrações adicionais).
+  - Alterações de schema (`packages/database/src/schema`): ZERO.
+  - Alterações de migração (`packages/database/src/migrations`): ZERO.
+  - Alterações de dependências (`package.json`, `pnpm-lock.yaml`): ZERO novas dependências.
+
+### 2. Resultados das Suítes de Testes Finais
+- **`pnpm test:staging` (Revalidação Final Pré-Merge)**:
+  - `test:staging:db`: 3 arquivos, 16 testes aprovados.
+  - `test:staging:web`: 1 arquivo, 2 testes aprovados.
+  - `test:staging:api`: 1 arquivo, 13 testes aprovados.
+  - `test:staging:bootstrap`: 1 arquivo, 14 testes aprovados.
+  - **Total**: **6 arquivos de teste aprovados (6)**, **45 testes aprovados (45)**, 0 falhas.
+- **Verificação Independente de Zero Leftovers**:
+  - `leftover organizations: 0`
+  - `leftover memberships: 0`
+  - `leftover users: 0`
+- **`pnpm check` Pré-Merge (Sem Staging Env)**:
+  - **29 arquivos de teste aprovados | 6 arquivos ignorados (35 total)**, **183 testes aprovados | 45 testes ignorados (228 total)**.
+- **`pnpm check` Pós-Merge na `main` Sincronizada**:
+  - **29 arquivos de teste aprovados | 6 arquivos ignorados (35 total)**, **183 testes aprovados | 45 testes ignorados (228 total)**.
+  - Turbo build (12 pacotes), AST architecture check, file-size check (127 arquivos): 100% aprovados (exit code 0).
+
+### 3. Estado Final dos Ambientes e Slices
+- **Slice 005C**: MERGED / LOCAL + NEON STAGING VALIDATED.
+- **Slice 005D-A**: MERGED / ARCHITECTURE ACCEPTED.
+- **Slice 005D-B0**: **MERGED / LOCAL IMPLEMENTATION + LOCAL INTEGRATION + NEON STAGING VALIDATED**.
+- **Tenant Bootstrap Auth**: **STAGING CRYPTOGRAPHIC + DATA/AUTHZ BOUNDARY VALIDATED**.
+- **Pull Request #15**: **MERGED** (`3a0e78e452396c50b4276270519fe9884c75c088`).
+- **Main Branch**: **PROTECTED / CLEAN / SYNCED WITH origin/main**.
+- **API Runtime**: NOT DEPLOYED (execução local sobre processo compilado conectada ao Neon Staging).
+- **Browser Auth E2E**: NOT VALIDATED (sessão Better Auth de ponta a ponta no browser permanece escopo futuro).
+- **Slice 005D-B1 (Active Organization Context & Shell Switcher)**: **NOT STARTED**.
+- **Ambiente de Produção**: 100% INTOCADO / NÃO PROVISIONADO.
+- **Twilio / Telefonia / Fase 6**: NÃO IMPLEMENTADO / INTOCADO.
