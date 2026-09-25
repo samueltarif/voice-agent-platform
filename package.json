@@ -24,7 +24,8 @@
     "test:staging:db": "node --env-file=.env.staging ./node_modules/vitest/vitest.mjs run packages/database/src/staging-connection.test.ts packages/database/src/staging-domain-integrity.test.ts packages/database/src/agent-domain.staging.test.ts",
     "test:staging:web": "node --env-file=.env.staging ./node_modules/vitest/vitest.mjs run apps/web/src/lib/auth/auth.staging.test.ts",
     "test:staging:api": "node --env-file=.env.staging ./node_modules/vitest/vitest.mjs run apps/web/src/lib/api/agent-api.staging.test.ts",
-    "test:staging": "pnpm test:staging:db && pnpm test:staging:web && pnpm test:staging:api"
+    "test:staging:bootstrap": "node --env-file=.env.staging ./node_modules/vitest/vitest.mjs run apps/web/src/lib/api/bootstrap-api.staging.test.ts",
+    "test:staging": "pnpm test:staging:db && pnpm test:staging:web && pnpm test:staging:api && pnpm test:staging:bootstrap"
   },
   "devDependencies": {
     "@eslint/js": "^9.20.0",

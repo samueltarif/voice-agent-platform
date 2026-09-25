@@ -4559,3 +4559,84 @@ Esse acesso contrariou a política de segurança e governança de agentes (defin
 - **Twilio / Telefonia / Fase 6**: NÃO IMPLEMENTADO / INTOCADO.
 - **Slice 005D-B0 Staging Validation (B0-STAGING)**: NÃO INICIADO.
 - **Slice 005D-B1 (Active Org Context & Shell Switcher)**: NÃO INICIADO.
+
+---
+
+## 25/09/2026 — PROMPT-005D-B0-STAGING — Tenant Bootstrap Auth Neon Staging Validation
+
+- **Branch de Trabalho**: `chore/tenant-bootstrap-staging-validation`
+- **Base `main` SHA**: `e43d47fad3e4e110f29dad3e61ffebe99db62de6`
+- **Ambiente de Banco de Dados**: Neon Managed PostgreSQL 16 (`aws-sa-east-1` / São Paulo)
+- **Status do Slice 005D-B0**: **STAGING CRYPTOGRAPHIC + DATA/AUTHZ BOUNDARY VALIDATED**
+
+### 1. Preflight e Gate de Ambiente de Staging
+- **Variáveis de Ambiente (.env.staging)**:
+  - `APP_ENV=staging`: YES
+  - `STAGING_SMOKE_TESTS=true`: YES
+  - `DATABASE_URL` presente: YES
+  - `MIGRATION_DATABASE_URL` presente: YES
+  - `INTERNAL_SERVICE_PRIVATE_JWK` presente: YES
+  - `INTERNAL_SERVICE_PUBLIC_JWKS` presente: YES
+- **Auditoria Criptográfica de Chaves Ed25519**:
+  - Chave privada Ed25519 (`EdDSA`) com `kid`: YES
+  - JWKS público Ed25519 (`EdDSA`) com `kid` correspondente: YES
+  - Correspondência matemática de assinatura/verificação do par: YES
+  - Material privado `d` no JWKS público: NO (totalmente ausente)
+- **Host Guard & Versão do Banco**:
+  - Host verificado em `neon.tech`: YES
+  - Versão do PostgreSQL: PostgreSQL 16 confirmado
+  - Journal de Migrações: `0000_dizzy_runaways` e `0001_numerous_eddie_brock` confirmados; zero migrações adicionais
+  - Schema de banco (`packages/database/src/schema`): ZERO alterações
+  - Migrações (`packages/database/src/migrations`): ZERO alterações
+
+### 2. Separação Estrita de Processos (Process Separation)
+- Processo de teste / BFF Signer (`apps/web`): detém `INTERNAL_SERVICE_PRIVATE_JWK`.
+- Processo filho da API (`apps/api`): executado via `spawn` de artefato compilado (`dist/apps/api/src/server.js`) sobre TCP real em porta efêmera.
+- **Allowlist estrita de ambiente**: `childEnv.INTERNAL_SERVICE_PRIVATE_JWK === undefined` (verificado programaticamente). A API recebe apenas `DATABASE_URL`, `INTERNAL_SERVICE_PUBLIC_JWKS`, `APP_ENV`, `PORT` e variáveis de sistema operacionais públicas.
+
+### 3. Testes de Staging Implementados (`apps/web/src/lib/api/bootstrap-api.staging.test.ts`)
+- **OpenAPI 3.1.0 e Healthcheck**: `/healthz` retorna 200; `/openapi.json` retorna especificação 3.1.0 contendo esquema `bootstrapAssertion` e rotas `/v1/me/organizations` e `/v1/me/organizations/{orgSlug}`.
+- **TEST A (Authenticated Bootstrap List)**: Asserção Ed25519 real emitida pelo BFF para Usuário A; `GET /v1/me/organizations` retorna 200, header `x-request-id` presente e Org A ativa com role `ADMIN`.
+- **TEST B (Multiple Organizations & Strict DTO)**: Usuário A com múltiplas memberships ativas (Org A `ADMIN`, Org B `OPERATOR`); retorno com DTO estrito (`id`, `name`, `role`, `slug`) sem campos comerciais ou de permissão vazados.
+- **TEST C (No Memberships)**: Usuário C sem nenhuma membership ativa recebe 200 `[]`.
+- **TEST D (Inactive Membership Exclusion)**: Membership `SUSPENDED` na Org C é excluída da listagem e retorna 404 no endpoint de slug.
+- **TEST E (Inactive Organization Exclusion)**: Organização `SUSPENDED` (Org D) é excluída da listagem e retorna 404 no endpoint de slug.
+- **TEST F (Anti-Enumeration)**: Acesso a slug de organização existente em que o usuário não é membro (Org E) retorna 404 idêntico a slug fictício inexistente (`NOT_FOUND`), mitigando enumeração de tenants.
+- **TEST G (Role Revalidated Dynamically from DB)**: Reutilizando a mesma asserção bootstrap válida, a alteração de papel no banco (`ADMIN` -> `VIEWER`) é refletida imediatamente no endpoint. Prova de que a role não é inferida do token.
+- **TEST H (Membership Revocation with Still-Valid Assertion)**: Revogação da membership no banco (`ACTIVE` -> `SUSPENDED`) dentro da janela de validade da asserção remove imediatamente o acesso (excluído de `/v1/me/organizations` e 404 em slug).
+- **TEST I (Audience Isolation over Real TCP)**:
+  - Bootstrap token (`aud: voice-agent:api:bootstrap`) é aceito em `/v1/me/*` (200) e rejeitado em `/v1/agents/*` (401).
+  - Tenant token (`aud: voice-agent:api`) é aceito em `/v1/agents/*` (200) e rejeitado em `/v1/me/*` (401).
+- **TEST J (Tampered Bootstrap Token)**: Assinatura adulterada é rejeitada com 401.
+- **TEST K (Prohibited Claims)**: Asserção válida criptograficamente contendo claim proibida `orgId` é rejeitada *fail-closed* com 401.
+- **TEST L (Public JWKS Boundary)**: Comprovado que a API opera e valida requisições contendo apenas o JWKS público sem posse de chave privada.
+- **TEST M (Unknown Kid)**: Token assinado com chave Ed25519 válida porém `kid` desconhecido é rejeitado com 401.
+
+### 4. Execução das Suítes de Testes
+- **`pnpm test:staging` (Suíte Neon Staging Completa)**:
+  - `test:staging:db`: 3 arquivos, 16 testes aprovados.
+  - `test:staging:web`: 1 arquivo, 2 testes aprovados.
+  - `test:staging:api`: 1 arquivo, 13 testes aprovados.
+  - `test:staging:bootstrap`: 1 arquivo, 14 testes aprovados.
+  - **Total Staging**: **6 arquivos de teste aprovados (6)**, **45 testes aprovados (45)**, 0 falhas.
+- **Verificação Independente de Zero Leftovers**:
+  - Consulta direta a Neon staging por slugs/IDs iniciados em `smoke-boot-%` e `smoke-org-%`:
+    - `leftover organizations: 0`
+    - `leftover memberships: 0`
+    - `leftover users: 0`
+  - Teardown *fail-visible* em `afterAll` validado com sucesso.
+- **`pnpm check` (Suíte Local / Não-Staging)**:
+  - Prettier, ESLint, TypeScript AST Architecture Check, Turbo Typecheck, Turbo Build, File Size Check: 100% aprovados.
+  - Vitest: **29 arquivos de teste aprovados | 6 arquivos ignorados (35 total)**, **183 testes aprovados | 45 testes ignorados (228 total)**.
+  - Todos os 6 arquivos de staging foram devidamente ignorados (SKIPPED) na ausência de `.env.staging`, comprovando independência total do CI/ambiente local em relação ao Neon.
+
+### 5. Estado Atual dos Ambientes e Slices
+- **Slice 005C**: MERGED / LOCAL + NEON STAGING VALIDATED.
+- **Slice 005D-A**: MERGED / ARCHITECTURE ACCEPTED.
+- **Slice 005D-B0**: **MERGED / LOCAL IMPLEMENTATION + LOCAL INTEGRATION + NEON STAGING VALIDATED**.
+- **Tenant Bootstrap Auth**: **STAGING CRYPTOGRAPHIC + DATA/AUTHZ BOUNDARY VALIDATED**.
+- **API Runtime**: NOT DEPLOYED (execução local sobre processo compilado conectada ao Neon Staging).
+- **Browser Auth E2E**: NOT VALIDATED (sessão Better Auth de ponta a ponta no browser permanece escopo futuro).
+- **Slice 005D-B1 (Active Organization Context & Shell Switcher)**: **NOT STARTED**.
+- **Ambiente de Produção**: 100% INTOCADO / NÃO PROVISIONADO.
+- **Twilio / Telefonia / Fase 6**: NÃO IMPLEMENTADO / INTOCADO.
