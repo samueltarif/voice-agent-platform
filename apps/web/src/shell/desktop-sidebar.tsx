@@ -110,8 +110,13 @@ export function DesktopSidebar({ currentOrg }: DesktopSidebarProps = {}) {
   const pathname = usePathname();
   const { sidebarCollapsed, toggleSidebar } = useUiPreferences();
 
-  const navItems: readonly SidebarNavItem[] = React.useMemo(
-    () => [
+  const navItems: readonly SidebarNavItem[] = React.useMemo(() => {
+    const agentsHref = currentOrg?.slug ? `/orgs/${currentOrg.slug}/agents` : '#';
+    const isAgentsActive = currentOrg?.slug
+      ? pathname.startsWith(`/orgs/${currentOrg.slug}/agents`)
+      : false;
+
+    return [
       {
         title: 'Dashboard',
         href: '/dashboard',
@@ -121,11 +126,17 @@ export function DesktopSidebar({ currentOrg }: DesktopSidebarProps = {}) {
       { title: 'Chamadas', href: '/calls', icon: Headphones, active: pathname === '/calls' },
       { title: 'Campanhas', href: '#', icon: Activity, badge: 'Preview', disabled: true },
       { title: 'Leads', href: '#', icon: Users, badge: 'Em breve', disabled: true },
-      { title: 'Agente IA', href: '#', icon: Bot, badge: 'Em breve', disabled: true },
+      {
+        title: 'Agente IA',
+        href: agentsHref,
+        icon: Bot,
+        active: isAgentsActive,
+        disabled: !currentOrg?.slug,
+        ...(currentOrg?.slug ? {} : { badge: 'Em breve' }),
+      },
       { title: 'Configurações', href: '#', icon: Settings, badge: 'Em breve', disabled: true },
-    ],
-    [pathname],
-  );
+    ];
+  }, [pathname, currentOrg?.slug]);
 
   return (
     <aside
