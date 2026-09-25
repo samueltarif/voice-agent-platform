@@ -10,6 +10,7 @@ import { LiveCallsPanel } from '../../features/dashboard/live-calls-panel';
 import { CampaignStatusCard } from '../../features/dashboard/campaign-status-card';
 import { HumanHandoffQueueCard } from '../../features/dashboard/human-handoff-queue-card';
 import { RecentCallsView } from '../../features/dashboard/recent-calls-view';
+import { OrganizationAgentsCard } from '../../features/dashboard/organization-agents-card';
 
 export default function DashboardPage() {
   const data = MOCK_DASHBOARD_DATA;
@@ -42,6 +43,9 @@ export default function DashboardPage() {
 
         {/* 4 KPI Metric Cards */}
         <KpiMetricCards kpis={data.kpis} />
+
+        {/* Tenant Organization Agents */}
+        <OrganizationAgentsCard />
 
         {/* Live Operations Row: 2 balanced columns on desktop, stacked on mobile */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 items-start">
