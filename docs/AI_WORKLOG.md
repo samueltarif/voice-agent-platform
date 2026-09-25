@@ -4717,3 +4717,88 @@ Esse acesso contrariou a política de segurança e governança de agentes (defin
 - **Slice 005D-B1 (Active Organization Context & Shell Switcher)**: **NOT STARTED**.
 - **Ambiente de Produção**: 100% INTOCADO / NÃO PROVISIONADO.
 - **Twilio / Telefonia / Fase 6**: NÃO IMPLEMENTADO / INTOCADO.
+
+---
+
+## 2026-09-25 — PROMPT-005D-B1 — Active Organization Context + Secure Shell Switcher
+
+### 1. Metadados do Registro
+- **Data/Hora**: 2026-09-25T09:55:00-03:00.
+- **Base Main SHA**: `1e8aa8478da5f6e19cca18efa5fb8523b6d12d82` (`origin/main`).
+- **Branch de Trabalho**: `feature/active-organization-context`.
+- **Status da Branch**: Implementada, verificada localmente e pronta para abertura de Pull Request.
+- **Pull Request**: A ser aberto (Target: `main`, Head: `feature/active-organization-context`, Status: OPEN / NOT MERGED).
+
+### 2. Arquitetura e Mecanismo de Active Organization
+- **Princípio Arquitetural (ADR-012, ADR-013, DEC-029, DEC-031, DEC-032)**:
+  - A organização ativa é estritamente um **contexto navegacional / UI hint**; **NÃO É AUTORIZAÇÃO**.
+  - O browser nunca é fonte da verdade para `organizationId`, `tenant role`, `membership`, `status`, `permissions` ou `entitlements`.
+  - Zero internal JWTs, private keys ou tokens de serviço expostos ao browser.
+- **Mecanismo de Preferência Adotado**:
+  - Cookie HttpOnly `active_organization_slug`.
+  - Configuração: `httpOnly: true`, `sameSite: 'lax'`, `path: '/'`, `secure: process.env.NODE_ENV === 'production'`, host-only (sem Domain amplo).
+  - Conteúdo restrito ao `orgSlug` navegacional validado. Nunca armazena IDs internos, roles ou tokens.
+- **Fluxo de Resolução do Contexto Ativo (`ActiveOrganizationContextResolver`)**:
+  1. Extrai a sessão Better Auth do usuário no servidor (`auth.api.getSession`).
+  2. Rejeita sem sessão (401).
+  3. Gera User Bootstrap Assertion assinada com Ed25519 (`InternalBootstrapSigner`).
+  4. Consulta organizações ativas do usuário via `BootstrapApiClient` (`GET /v1/me/organizations`).
+  5. Se o usuário não possui organizações ativas: retorna estado limpo `organizations: []`, `activeOrganization: null`.
+  6. Se possui exatamente uma organização ativa: seleciona-a deterministicamente.
+  7. Se possui múltiplas organizações: valida a preferência de cookie contra a lista ativa retornada pela API.
+  8. Se a preferência for inválida, stale ou pertencer a organização revogada: faz fallback determinístico para a primeira organização ativa disponível.
+  9. Retorna `ActiveOrganizationContext` composto exclusivamente de dados autoritativos do backend (`organizationId`, `slug`, `name`, `role`).
+- **Integração com Tenant Signer (`InternalServiceSigner`) e Tenant Client (`TenantApiClient`)**:
+  - `TenantApiClient` opera server-side recebendo o `organizationId` validado.
+  - Gera assertion de serviço tenant (`InternalServiceSigner`) contendo `orgId` e `userId`.
+  - Executa chamadas contra rotas protegidas por tenant (como `/v1/agents/*`) sem expor tokens ao browser.
+- **Operação de Troca (`POST /api/organization/switch`)**:
+  - Validação estrita de same-origin (`origin` / `host`).
+  - Validação de entrada via regex canônica de slug (`^[a-z0-9]+(?:-[a-z0-9]+)*$`).
+  - Revalidação server-side via `BootstrapApiClient.getOrganizationBySlug(slug)`.
+  - Se autorizada: atualiza o cookie HttpOnly e retorna `{ success: true, activeOrganization }`.
+  - Se não autorizada: rejeita com 403 Forbidden e erro sanitizado.
+- **Application Shell & Switcher UI**:
+  - Componente acessível `OrganizationSwitcher` integrado à `DesktopSidebar` e `AppTopbar`.
+  - Suporta navegação por teclado (Enter, Space, Escape, setas), foco visível e touch targets de no mínimo 44px para mobile.
+  - Badges dedicados para estados single-org e no-org, sem layout shift.
+  - Exibe apenas o nome da organização e role de exibição; sem expor UUIDs ou dados técnicos sensíveis.
+
+### 3. Evidências de Testes e Proteção Multi-Tenant
+- **Testes Unitários & HTTP (`pnpm test`)**:
+  - `active-organization-cookie.test.ts`: 7 testes unitários (validação de flags, segurança, parsing).
+  - `active-organization-context-resolver.test.ts`: 8 testes unitários (missing session, empty orgs, single org, multi org, cookie válido, stale cookie fallback, membership revogada, rejeição de manipulação client-side).
+  - `switch-organization-service.test.ts`: 4 testes unitários (sucesso, slug inválido, org inacessível 403/404, erro sanitizado).
+  - `tenant-api-client.test.ts`: 4 testes unitários (validação de tenant assertion, headers, timeout, propagação de requestId).
+  - `route.test.ts` (`/api/organization/switch`): 5 testes de rota HTTP (same-origin enforcement, slug schema validation, sessão Better Auth, troca autorizada e rejeição com 403).
+  - `organization-switcher.test.tsx`: 3 testes de renderização e acessibilidade.
+- **Testes de Integração com PostgreSQL Local (`local-postgres-tenant-context.integration.test.ts`)**:
+  - 5 testes de integração com banco de dados real local:
+    - User A acessa Org A com membership ativa;
+    - User A acessa Org B com membership ativa;
+    - User A é rejeitado ao tentar resolver Org C (sem membership);
+    - Revogação de membership remove acesso imediatamente no próximo ciclo de resolução;
+    - Atualização de role no banco é refletida dinamicamente no contexto do tenant.
+    - Cleanup fail-visible garantindo zero resíduos no banco.
+- **Verificação Geral do Repositório (`pnpm check`)**:
+  - `prettier --check`: 100% formatado (0 erros).
+  - `eslint .`: 100% aprovado (0 erros, 0 avisos).
+  - `typecheck` (turbo): 12 pacotes em conformidade (0 erros de tipagem com `exactOptionalPropertyTypes`).
+  - `vitest run`: **36 arquivos de teste aprovados | 6 arquivos ignorados (42 total)**, **219 testes aprovados | 45 testes ignorados (264 total)**.
+  - `turbo build`: 12 pacotes compilados com sucesso; Next.js production build concluído com rotas dinâmicas compiladas.
+  - `check:architecture`: 0 violações de fronteira ou diretiva.
+  - `check:file-size`: 139 arquivos de lógica verificados, todos estritamente abaixo do limite de 180 linhas (0 erros).
+
+### 4. Auditoria de Segurança e Conformidade
+- **Zero Schema Change**: `git diff origin/main...HEAD -- packages/database/src/schema` retornou vazio (zero alterações).
+- **Zero Migrations**: `git diff origin/main...HEAD -- packages/database/src/migrations` retornou vazio (zero novas migrações).
+- **Zero Novas Dependências**: nenhuma alteração em `package.json` ou `pnpm-workspace.yaml`.
+- **Acesso a Segredos**: Nenhuma chave privada, token Bearer, credencial ou URL sensível introduzida em código, logs ou fixtures.
+- **Neon Staging**: NÃO ACESSADO (testes executados estritamente com mocks determinísticos e PostgreSQL local).
+- **Produção**: 100% INTOCADA.
+- **Twilio**: 100% INTOCADO.
+- **Browser Auth E2E**: **PARTIAL / NOT VALIDATED** (fluxos de resolução server-side, Route Handlers, cookies e integração com PostgreSQL local validados de forma automatizada; teste de navegador completo ponta a ponta com Better Auth real no client depende de harness E2E integrado em slice futuro).
+
+### 5. Próximo Passo
+- Abrir Pull Request `feat: implement active organization context and switcher` contra `main` e aguardar revisão humana (sem auto-merge).
+

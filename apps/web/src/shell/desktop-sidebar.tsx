@@ -24,13 +24,16 @@ import {
 } from '@voice-agent/ui';
 import { useUiPreferences } from '../preferences/ui-preferences-context';
 import { SidebarLinkItem, type SidebarNavItem } from './sidebar-link-item';
+import type { OrganizationSummary } from './organization-switcher';
 
 function SidebarBrandHeader({
   collapsed,
   onToggle,
+  currentOrg,
 }: {
   readonly collapsed: boolean;
   readonly onToggle: () => void;
+  readonly currentOrg?: OrganizationSummary | null | undefined;
 }) {
   return (
     <div className="flex h-16 items-center justify-between px-4 border-b border-border">
@@ -41,10 +44,10 @@ function SidebarBrandHeader({
           </div>
           <div className="flex flex-col min-w-0">
             <span className="text-sm font-semibold text-foreground truncate">
-              Voice Agent Platform
+              {currentOrg?.name ?? 'Voice Agent'}
             </span>
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
-              Multi-Tenant
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider truncate">
+              {currentOrg?.slug ?? 'Multi-Tenant'}
             </span>
           </div>
         </div>
@@ -99,7 +102,11 @@ function SidebarFooterStatus({ collapsed }: { readonly collapsed: boolean }) {
   );
 }
 
-export function DesktopSidebar() {
+export interface DesktopSidebarProps {
+  readonly currentOrg?: OrganizationSummary | null | undefined;
+}
+
+export function DesktopSidebar({ currentOrg }: DesktopSidebarProps = {}) {
   const pathname = usePathname();
   const { sidebarCollapsed, toggleSidebar } = useUiPreferences();
 
@@ -127,7 +134,11 @@ export function DesktopSidebar() {
         sidebarCollapsed ? 'w-16' : 'w-64',
       )}
     >
-      <SidebarBrandHeader collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
+      <SidebarBrandHeader
+        collapsed={sidebarCollapsed}
+        onToggle={toggleSidebar}
+        currentOrg={currentOrg}
+      />
       <TooltipProvider delayDuration={150}>
         <nav className="flex-1 space-y-1 p-2 overflow-y-auto">
           {navItems.map((item) => (

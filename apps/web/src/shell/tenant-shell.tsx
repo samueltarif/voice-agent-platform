@@ -8,12 +8,23 @@ import { MobileMenuDrawer } from './mobile-menu-drawer';
 import { CommandPaletteDialog } from '../features/command-palette/command-palette-dialog';
 import { useCommandPaletteHotkey } from '../features/command-palette/use-command-palette-hotkey';
 
+import type { OrganizationSummary } from './organization-switcher';
+
 interface TenantShellProps {
   readonly title: string;
   readonly children: React.ReactNode;
+  readonly currentOrg?: OrganizationSummary | null | undefined;
+  readonly organizations?: readonly OrganizationSummary[] | undefined;
+  readonly onSwitchOrg?: ((slug: string) => Promise<void>) | undefined;
 }
 
-export function TenantShell({ title, children }: TenantShellProps) {
+export function TenantShell({
+  title,
+  children,
+  currentOrg,
+  organizations,
+  onSwitchOrg,
+}: TenantShellProps) {
   const [mobileDrawerOpen, setMobileDrawerOpen] = React.useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = React.useState(false);
 
@@ -26,11 +37,17 @@ export function TenantShell({ title, children }: TenantShellProps) {
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
       {/* Persistent / Collapsible Desktop Sidebar */}
-      <DesktopSidebar />
+      <DesktopSidebar currentOrg={currentOrg} />
 
       {/* Main Content Area */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        <AppTopbar title={title} onOpenCommandPalette={openCommandPalette} />
+        <AppTopbar
+          title={title}
+          onOpenCommandPalette={openCommandPalette}
+          currentOrg={currentOrg}
+          organizations={organizations}
+          onSwitchOrg={onSwitchOrg}
+        />
 
         <main className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 md:px-8 pb-20 md:pb-8">
           <div className="mx-auto w-full max-w-7xl">{children}</div>

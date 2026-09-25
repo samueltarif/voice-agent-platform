@@ -14,10 +14,14 @@ import {
   DropdownMenuTrigger,
 } from '@voice-agent/ui';
 import { useUiPreferences } from '../preferences/ui-preferences-context';
+import { OrganizationSwitcher, type OrganizationSummary } from './organization-switcher';
 
 interface AppTopbarProps {
   readonly title: string;
   readonly onOpenCommandPalette: () => void;
+  readonly currentOrg?: OrganizationSummary | null | undefined;
+  readonly organizations?: readonly OrganizationSummary[] | undefined;
+  readonly onSwitchOrg?: ((slug: string) => Promise<void>) | undefined;
 }
 
 function TopbarCommandButton({ onOpen }: { readonly onOpen: () => void }) {
@@ -80,7 +84,13 @@ function TopbarDensityMenu() {
   );
 }
 
-export function AppTopbar({ title, onOpenCommandPalette }: AppTopbarProps) {
+export function AppTopbar({
+  title,
+  onOpenCommandPalette,
+  currentOrg,
+  organizations,
+  onSwitchOrg,
+}: AppTopbarProps) {
   const { theme, setTheme } = useUiPreferences();
 
   const toggleTheme = () => {
@@ -88,9 +98,16 @@ export function AppTopbar({ title, onOpenCommandPalette }: AppTopbarProps) {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-border bg-card/80 backdrop-blur-md px-4 sm:px-6 select-none">
+    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-border bg-card/80 backdrop-blur-md px-4 sm:px-6 select-none gap-2">
       <div className="flex items-center gap-3 min-w-0">
         <h1 className="text-base sm:text-lg font-semibold text-foreground truncate">{title}</h1>
+        {currentOrg !== undefined && (
+          <OrganizationSwitcher
+            currentOrg={currentOrg}
+            organizations={organizations}
+            onSwitch={onSwitchOrg}
+          />
+        )}
       </div>
 
       <div className="flex items-center gap-2">
