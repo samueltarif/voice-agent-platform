@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { generateKeyPair, exportJWK, SignJWT, type JWK } from 'jose';
 import { createApp } from '../app.js';
 import { ServiceAssertionVerifier } from '../auth/service-assertion-verifier.js';
+import { BootstrapAssertionVerifier } from '../auth/bootstrap-assertion-verifier.js';
 import { createNullLogger } from '@voice-agent/logger';
 import type { ApiDependencies } from '../composition/agent-dependencies.js';
 import type {
@@ -82,6 +83,7 @@ describe('HTTP /v1 RBAC Matrix & Confidentiality Regression Tests', () => {
     const dummyDeps = {
       logger: createNullLogger(),
       verifier,
+      bootstrapVerifier: new BootstrapAssertionVerifier({ publicJwks: { keys: [publicJwk] } }),
       agentRepo: {
         listAgentsByOrganization: async () => [mockAgent],
         getAgentById: async () => mockAgent,
@@ -105,6 +107,7 @@ describe('HTTP /v1 RBAC Matrix & Confidentiality Regression Tests', () => {
       } as unknown as ApiDependencies['publicationService'],
       membershipRepo: mockMembershipRepo,
       organizationRepo: mockOrgRepo,
+      userOrgContextRepo: {} as ApiDependencies['userOrgContextRepo'],
     };
 
     app = createApp(dummyDeps);

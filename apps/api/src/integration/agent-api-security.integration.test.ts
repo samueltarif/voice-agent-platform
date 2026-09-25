@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { generateKeyPair, exportJWK, SignJWT, type JWK } from 'jose';
 import { createApp } from '../app.js';
 import { ServiceAssertionVerifier } from '../auth/service-assertion-verifier.js';
+import { BootstrapAssertionVerifier } from '../auth/bootstrap-assertion-verifier.js';
 import { createNullLogger } from '@voice-agent/logger';
 import type {
   AgentMetadataResponse,
@@ -20,6 +21,7 @@ import {
   AgentPublicationService,
   MembershipRepository,
   OrganizationRepository,
+  UserOrganizationContextRepository,
   user,
   organizations,
   organizationMemberships,
@@ -44,6 +46,7 @@ describe('Agent Studio API Security & Tenant Isolation (PostgreSQL Integration)'
   const publicationService = new AgentPublicationService(db, publicationPolicy);
   const membershipRepo = new MembershipRepository(db);
   const organizationRepo = new OrganizationRepository(db);
+  const userOrgContextRepo = new UserOrganizationContextRepository(db);
 
   let app: ReturnType<typeof createApp>;
   let privateJwk: JWK;
@@ -63,10 +66,12 @@ describe('Agent Studio API Security & Tenant Isolation (PostgreSQL Integration)'
     publicJwk.kid = kid;
 
     const verifier = new ServiceAssertionVerifier({ publicJwks: { keys: [publicJwk] } });
+    const bootstrapVerifier = new BootstrapAssertionVerifier({ publicJwks: { keys: [publicJwk] } });
 
     app = createApp({
       logger: createNullLogger(),
       verifier,
+      bootstrapVerifier,
       agentRepo,
       versionRepo,
       lifecycleService,
@@ -75,6 +80,7 @@ describe('Agent Studio API Security & Tenant Isolation (PostgreSQL Integration)'
       publicationService,
       membershipRepo,
       organizationRepo,
+      userOrgContextRepo,
     });
 
     await db.insert(user).values([

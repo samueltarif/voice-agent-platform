@@ -4342,3 +4342,88 @@ Executada a verificação local padrão sem as variáveis de ambiente staging:
   - Slice 005D-A: **APPROVED / READY TO MERGE**.
   - Slice 005D-B0: **ARCHITECTURE ACCEPTED / READY TO IMPLEMENT / NOT STARTED**.
   - Slice 005D-B1+: **BLOCKED ON 005D-B0**.
+
+---
+
+## 24/09/2026 — PROMPT-005D-B0 — Tenant Context Bootstrap Implementation
+
+- **Base SHA**: `db167e92ce9bec10f319f7fdda1189fe68ce3bbf`
+- **Branch**: `feature/tenant-context-bootstrap`
+- **Objetivo**: Implementar o Slice 005D-B0 — Tenant Context Bootstrap aprovado formalmente em DEC-032 e ADR-013, provendo descoberta segura e dinâmica de organizações antes de existir `organizationId` conhecido pelo BFF.
+- **Arquivos Criados/Alterados**:
+  - Criados:
+    - `packages/contracts/src/bootstrap.ts` (contratos `UserBootstrapAssertion`, claims schema estrito, `OrganizationContextResponse` DTO e schema)
+    - `packages/contracts/src/bootstrap.test.ts` (testes de schema de claims e DTO)
+    - `packages/database/src/repositories/user-organization-context-repository.ts` (repositório dedicado `UserOrganizationContextRepository` para queries de bootstrap sem alteração de schema)
+    - `apps/api/src/auth/bootstrap-assertion-verifier.ts` (verificador criptográfico `BootstrapAssertionVerifier` dedicado para audiência `voice-agent:api:bootstrap`)
+    - `apps/api/src/auth/bootstrap-auth-middleware.ts` (middleware de autenticação Hono para rotas `/v1/me/*`)
+    - `apps/api/src/auth/bootstrap-assertion-verifier.test.ts` (17 testes cobrindo todas as variantes criptográficas e invariantes de segurança do ADR-013)
+    - `apps/api/src/routes/me-organization-routes.ts` (rotas Hono/OpenAPI `GET /v1/me/organizations` e `GET /v1/me/organizations/{orgSlug}`)
+    - `apps/api/src/http/me-organizations.http.test.ts` (9 testes HTTP de contrato, DTO canônico e isolamento cross-profile)
+    - `apps/api/src/integration/me-organization.integration.test.ts` (8 testes de integração com PostgreSQL real Docker: listagem filtrada, resolução por slug, 404 anti-enumeração, alteração de papel em tempo real)
+    - `apps/web/src/lib/auth/internal-bootstrap-signer.ts` (componente server-only `InternalBootstrapSigner` com `signBootstrapAssertion(userId)`)
+    - `apps/web/src/lib/auth/internal-bootstrap-signer.test.ts` (testes unitários do signer de bootstrap)
+    - `apps/web/src/lib/api/bootstrap-api-client.ts` (cliente server-only `BootstrapApiClient` com `listOrganizationsForUser` e `getOrganizationBySlug`)
+    - `apps/web/src/lib/api/bootstrap-api-client.test.ts` (testes unitários do cliente de bootstrap)
+  - Alterados:
+    - `packages/contracts/src/index.ts` (re-export dos contratos de bootstrap)
+    - `packages/database/src/repositories/index.ts` (re-export do repositório)
+    - `apps/api/src/app.ts` (isolamento de rotas: `/v1/agents` e `/v1/agents/*` via `serviceAuthMiddleware`; `/v1/me/*` via `bootstrapAuthMiddleware`; registro de `bootstrapAssertion` no OpenAPI 3.1.0)
+    - `apps/api/src/composition/agent-dependencies.ts` (adição de `bootstrapVerifier` e `userOrgContextRepo`)
+    - `apps/api/src/server.ts` (instanciação em runtime de `BootstrapAssertionVerifier` e `UserOrganizationContextRepository`)
+    - `apps/api/src/http/health-and-docs.http.test.ts` (verificação de OpenAPI com schema `bootstrapAssertion` e novas rotas)
+    - `apps/api/src/http/agent-api-auth.http.test.ts` (inclusão de dependências nos testes)
+    - `apps/api/src/http/agent-api-rbac.http.test.ts` (inclusão de dependências nos testes)
+    - `apps/api/src/integration/agent-api-lifecycle.integration.test.ts` (inclusão de dependências nos testes)
+    - `apps/api/src/integration/agent-api-security.integration.test.ts` (inclusão de dependências nos testes)
+    - `ARCHITECTURE.md` (atualização factual de status)
+    - `docs/SECURITY.md` (atualização factual de status)
+    - `docs/plans/PHASE5_005D_AGENT_STUDIO_UI_PLAN.md` (atualização factual de status)
+    - `docs/AI_WORKLOG.md` (append-only)
+- **Comandos Exatos Executados**:
+  - `pnpm vitest run apps/web/src/lib/auth/internal-bootstrap-signer.test.ts apps/web/src/lib/api/bootstrap-api-client.test.ts`
+  - `pnpm vitest run apps/api/src/auth/bootstrap-assertion-verifier.test.ts`
+  - `pnpm vitest run apps/api/src/http/me-organizations.http.test.ts`
+  - `pnpm vitest run apps/api/src/integration/me-organization.integration.test.ts`
+  - `pnpm vitest run apps/api/src/integration/agent-api-lifecycle.integration.test.ts apps/api/src/integration/agent-api-security.integration.test.ts`
+  - `pnpm vitest run apps/api/src/http/health-and-docs.http.test.ts`
+  - `pnpm test` (executado via vitest: 29 arquivos de teste aprovados, 183 testes aprovados, 5 arquivos / 31 testes de staging ignorados)
+  - `pnpm format:check` / `pnpm format`
+  - `pnpm lint`
+  - `pnpm typecheck` (12 pacotes aprovados com sucesso)
+  - `pnpm build` (turbo build aprovado com 12 pacotes compilados)
+  - `pnpm check:architecture` (SUCESSO: todas as fronteiras respeitadas)
+  - `pnpm check:file-size` (SUCESSO: todos os arquivos <= 180 linhas, alvos 80-150 respeitados)
+  - `pnpm check` (passou integralmente com código 0)
+- **Implementação do Perfil Criptográfico**:
+  - Perfil estrito `UserBootstrapAssertion`: `sub`, `scope: 'user:bootstrap'`, `iss: 'voice-agent:web'`, `aud: 'voice-agent:api:bootstrap'`, `iat`, `exp` (TTL nominal 30s), `jti`.
+  - Rejeição fail-closed de qualquer claim proibida (`orgId`, `role`, `roles`, `permissions`, `entitlements`, `plan`, `membership`, perfil).
+  - Assinatura Ed25519 (`EdDSA`), header `alg: 'EdDSA'`, `kid`, `typ: 'JWT'`.
+  - `BootstrapAssertionVerifier` valida JWKS público apenas (rejeita material privado `d`), aud estrita `voice-agent:api:bootstrap`, scope estrito `user:bootstrap`, TTL nominal <= 30s e tolerância de clock de 5s.
+- **Endpoints Implementados**:
+  - `GET /v1/me/organizations`: autenticado via `BootstrapAssertionVerifier`, retorna lista de organizações `ACTIVE` onde o usuário possui membership `ACTIVE`, ordenadas deterministicamente (`name ASC, id ASC`). Retorna 200 `[]` se nenhuma existir. DTO estrito: `[{ id, slug, name, role }]`.
+  - `GET /v1/me/organizations/{orgSlug}`: autenticado via `BootstrapAssertionVerifier`, resolve metadados e valida membership ativa. Retorna 200 `{ id, slug, name, role }`. Retorna 404 canônico para slug inexistente, organização inativa, usuário sem membership ou membership inativa (mitigação contra enumeração de tenants).
+- **Comportamento do Repositório**:
+  - `UserOrganizationContextRepository` executa queries tipadas sobre tabelas existentes `organizations` e `organization_memberships`. Zero SQL direto nos controllers. O papel (`role`) é derivado dinamicamente do banco a cada requisição, nunca do token.
+- **Status do OpenAPI**:
+  - Documentação OpenAPI 3.1.0 atualizada em `/openapi.json` com o security scheme `bootstrapAssertion` e ambos os endpoints `/v1/me/organizations` e `/v1/me/organizations/{orgSlug}`, com DTOs e códigos de erro 401 e 404. Zero vazamento de segredos ou tokens de exemplo.
+- **Isolamento de Perfis**:
+  - Tokens bootstrap são aceitos exclusivamente em `/v1/me/*` e rejeitados em todas as rotas `/v1/agents/*` com HTTP 401.
+  - Tokens tenant-scoped são aceitos em `/v1/agents/*` e rejeitados em `/v1/me/*` com HTTP 401.
+  - Fail closed sem fallback entre audiences.
+- **Integração com Banco Local**:
+  - Executada contra container PostgreSQL Docker `voice-agent-postgres` rodando em `localhost:5432`.
+  - Todos os 8 testes de integração de persistência e autorização passaram com 100% de sucesso.
+- **Preservação de Integridade e Regras**:
+  - Schema de banco de dados (`packages/database/src/schema`): ZERO alteração.
+  - Migrações (`packages/database/src/migrations`): ZERO alteração.
+  - Dependências (`pnpm-lock.yaml`, `package.json`): ZERO dependências adicionadas.
+  - Banco Neon Staging: NÃO acessado nesta tarefa.
+  - Ambiente de Produção: 100% INTOCADO / NÃO PROVISIONADO.
+  - Modificações Visuais: NENHUMA (zero alterações em sidebar, topbar, layouts ou páginas).
+  - Autenticação E2E no Navegador: AINDA NÃO VALIDADA.
+  - Twilio / Telefonia / Fase 6: 100% INTOCADO.
+  - Regressões em 005C: ZERO regressões (todas as 11 rotas de agente continuam funcionando e validadas).
+- **Status da Entrega**:
+  - Slice 005D-B0: **LOCAL IMPLEMENTATION / LOCAL INTEGRATION VALIDATED**.
+  - PR aberto para revisão: NÃO auto-merge.

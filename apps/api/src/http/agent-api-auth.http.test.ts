@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { generateKeyPair, exportJWK, SignJWT, type JWK } from 'jose';
 import { createApp } from '../app.js';
 import { ServiceAssertionVerifier } from '../auth/service-assertion-verifier.js';
+import { BootstrapAssertionVerifier } from '../auth/bootstrap-assertion-verifier.js';
 import { createNullLogger } from '@voice-agent/logger';
 import type { ApiDependencies } from '../composition/agent-dependencies.js';
 import type { OrganizationRepository, MembershipRepository } from '@voice-agent/database';
@@ -54,6 +55,7 @@ describe('HTTP /v1 Auth, Request-ID & Validation Contracts', () => {
     const dummyDeps = {
       logger: createNullLogger(),
       verifier,
+      bootstrapVerifier: new BootstrapAssertionVerifier({ publicJwks: { keys: [publicJwk] } }),
       agentRepo: {
         listAgentsByOrganization: async () => [],
       } as unknown as ApiDependencies['agentRepo'],
@@ -75,6 +77,7 @@ describe('HTTP /v1 Auth, Request-ID & Validation Contracts', () => {
       publicationService: {} as ApiDependencies['publicationService'],
       membershipRepo: mockMembershipRepo,
       organizationRepo: mockOrgRepo,
+      userOrgContextRepo: {} as ApiDependencies['userOrgContextRepo'],
     };
 
     app = createApp(dummyDeps);

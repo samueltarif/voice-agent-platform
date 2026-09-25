@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { generateKeyPair, exportJWK } from 'jose';
 import { createApp } from '../app.js';
 import { ServiceAssertionVerifier } from '../auth/service-assertion-verifier.js';
+import { BootstrapAssertionVerifier } from '../auth/bootstrap-assertion-verifier.js';
 import { createNullLogger } from '@voice-agent/logger';
 import type { ApiDependencies } from '../composition/agent-dependencies.js';
 
@@ -13,10 +14,12 @@ describe('HTTP /healthz and /openapi.json Endpoints', () => {
     const publicJwk = await exportJWK(keyPair.publicKey);
     publicJwk.kid = 'kid-mock-1';
     const verifier = new ServiceAssertionVerifier({ publicJwks: { keys: [publicJwk] } });
+    const bootstrapVerifier = new BootstrapAssertionVerifier({ publicJwks: { keys: [publicJwk] } });
 
     const dummyDeps = {
       logger: createNullLogger(),
       verifier,
+      bootstrapVerifier,
       agentRepo: {} as ApiDependencies['agentRepo'],
       versionRepo: {} as ApiDependencies['versionRepo'],
       lifecycleService: {} as ApiDependencies['lifecycleService'],
@@ -25,6 +28,7 @@ describe('HTTP /healthz and /openapi.json Endpoints', () => {
       publicationService: {} as ApiDependencies['publicationService'],
       membershipRepo: {} as ApiDependencies['membershipRepo'],
       organizationRepo: {} as ApiDependencies['organizationRepo'],
+      userOrgContextRepo: {} as ApiDependencies['userOrgContextRepo'],
     };
 
     app = createApp(dummyDeps);
@@ -61,8 +65,14 @@ describe('HTTP /healthz and /openapi.json Endpoints', () => {
       bearerFormat: 'JWT',
       description: 'Internal Asymmetric Service Assertion (EdDSA / Ed25519)',
     });
+    expect(securitySchemes?.bootstrapAssertion).toEqual({
+      type: 'http',
+      scheme: 'bearer',
+      bearerFormat: 'JWT',
+      description: 'Bootstrap Asymmetric Service Assertion (EdDSA / Ed25519 user-scoped)',
+    });
 
-    // Check all 11 /v1 endpoints exist in paths
+    // Check all endpoints exist in paths
     const paths = spec.paths;
     expect(paths['/healthz']).toBeDefined();
     expect(paths['/v1/agents']).toBeDefined();
@@ -74,6 +84,8 @@ describe('HTTP /healthz and /openapi.json Endpoints', () => {
     expect(paths['/v1/agents/{agentId}/drafts']).toBeDefined();
     expect(paths['/v1/agents/{agentId}/drafts/{versionId}']).toBeDefined();
     expect(paths['/v1/agents/{agentId}/drafts/{versionId}/publish']).toBeDefined();
+    expect(paths['/v1/me/organizations']).toBeDefined();
+    expect(paths['/v1/me/organizations/{orgSlug}']).toBeDefined();
 
     // Verify zero secrets or private keys in the spec
     const specString = JSON.stringify(spec);
