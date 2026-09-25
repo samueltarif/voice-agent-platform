@@ -19,7 +19,7 @@ async function waitForHttp(url, timeoutMs = 20000) {
   while (Date.now() - startTime < timeoutMs) {
     try {
       const res = await fetch(url);
-      if (res.status < 500) {
+      if (res.status === 200) {
         return res;
       }
     } catch {

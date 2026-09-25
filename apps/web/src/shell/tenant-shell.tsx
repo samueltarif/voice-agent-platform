@@ -91,7 +91,11 @@ export function TenantShell({
       <MobileBottomNav onOpenMore={() => setMobileDrawerOpen(true)} />
 
       {/* Mobile Menu Drawer (Sheet) */}
-      <MobileMenuDrawer open={mobileDrawerOpen} onOpenChange={setMobileDrawerOpen} />
+      <MobileMenuDrawer
+        open={mobileDrawerOpen}
+        onOpenChange={setMobileDrawerOpen}
+        currentOrg={currentOrg}
+      />
 
       {/* Global Command Palette */}
       <CommandPaletteDialog open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} />

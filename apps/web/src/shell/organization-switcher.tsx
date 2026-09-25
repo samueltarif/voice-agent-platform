@@ -65,6 +65,19 @@ function OrgDropdownTrigger({
   );
 }
 
+function navigateAfterSwitch(currentSlug?: string, targetSlug?: string): void {
+  const currentPath = window.location.pathname;
+  if (currentSlug && currentPath.startsWith(`/orgs/${currentSlug}/`)) {
+    window.location.href = currentPath.replace(`/orgs/${currentSlug}/`, `/orgs/${targetSlug}/`);
+    return;
+  }
+  if (currentSlug && currentPath === `/orgs/${currentSlug}`) {
+    window.location.href = `/orgs/${targetSlug}`;
+    return;
+  }
+  window.location.reload();
+}
+
 export function OrganizationSwitcher({
   currentOrg,
   organizations = [],
@@ -83,13 +96,15 @@ export function OrganizationSwitcher({
         try {
           if (onSwitch) {
             await onSwitch(slug);
-          } else {
-            const res = await fetch('/api/organization/switch', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ slug }),
-            });
-            if (res.ok) window.location.reload();
+            return;
+          }
+          const res = await fetch('/api/organization/switch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ slug }),
+          });
+          if (res.ok) {
+            navigateAfterSwitch(currentOrg?.slug, slug);
           }
         } finally {
           setSwitchingSlug(null);

@@ -14,13 +14,21 @@ import {
   SheetTitle,
 } from '@voice-agent/ui';
 import { useUiPreferences } from '../preferences/ui-preferences-context';
+import type { OrganizationSummary } from './organization-switcher';
 
 interface MobileMenuDrawerProps {
   readonly open: boolean;
   readonly onOpenChange: (open: boolean) => void;
+  readonly currentOrg?: OrganizationSummary | null | undefined;
 }
 
-function MobileMenuModules() {
+function MobileMenuModules({
+  currentOrg,
+  onOpenChange,
+}: {
+  readonly currentOrg?: OrganizationSummary | null | undefined;
+  readonly onOpenChange: (open: boolean) => void;
+}) {
   return (
     <div className="space-y-1">
       <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-2">
@@ -42,14 +50,26 @@ function MobileMenuModules() {
           Em breve
         </Badge>
       </div>
-      <div className="flex items-center justify-between p-2 rounded-md hover:bg-accent text-sm text-muted-foreground">
-        <span className="flex items-center gap-2">
-          <Bot className="h-4 w-4" /> Agente IA
-        </span>
-        <Badge variant="outline" className="text-[10px]">
-          Em breve
-        </Badge>
-      </div>
+      {currentOrg?.slug ? (
+        <Link
+          href={`/orgs/${currentOrg.slug}/agents`}
+          onClick={() => onOpenChange(false)}
+          className="flex items-center justify-between p-2 rounded-md hover:bg-accent text-sm text-foreground"
+        >
+          <span className="flex items-center gap-2">
+            <Bot className="h-4 w-4 text-primary" /> Agente IA
+          </span>
+        </Link>
+      ) : (
+        <div className="flex items-center justify-between p-2 rounded-md hover:bg-accent text-sm text-muted-foreground">
+          <span className="flex items-center gap-2">
+            <Bot className="h-4 w-4" /> Agente IA
+          </span>
+          <Badge variant="outline" className="text-[10px]">
+            Em breve
+          </Badge>
+        </div>
+      )}
       <div className="flex items-center justify-between p-2 rounded-md hover:bg-accent text-sm text-muted-foreground">
         <span className="flex items-center gap-2">
           <Settings className="h-4 w-4" /> Configurações
@@ -103,7 +123,7 @@ function MobileMenuPreferences() {
   );
 }
 
-export function MobileMenuDrawer({ open, onOpenChange }: MobileMenuDrawerProps) {
+export function MobileMenuDrawer({ open, onOpenChange, currentOrg }: MobileMenuDrawerProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-[85vw] max-w-sm flex flex-col p-6 overflow-y-auto">
@@ -120,7 +140,7 @@ export function MobileMenuDrawer({ open, onOpenChange }: MobileMenuDrawerProps) 
         </SheetHeader>
 
         <div className="flex-1 py-4 space-y-4">
-          <MobileMenuModules />
+          <MobileMenuModules currentOrg={currentOrg} onOpenChange={onOpenChange} />
           <Separator />
           <div className="space-y-1">
             <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-2">
