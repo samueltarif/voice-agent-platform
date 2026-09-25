@@ -4871,5 +4871,89 @@ Esse acesso contrariou a política de segurança e governança de agentes (defin
 - Todos os 24 gates de qualidade e segurança auditados permaneceram 100% verdes.
 - Merge do Pull Request #17 está formalmente autorizado.
 
+---
 
+## 2026-09-25 — Slice 005D-B2: Real Browser Session E2E + Tenant Switching Validation & Dual-Boot Harness Hardening
 
+### 1. Dual-Server Boot Harness Bugfix & Hardening (`scripts/test-server-boots.mjs`)
+- **Causa Raiz do Hang Anterior**: No ambiente Windows, a execução de `spawn(..., { shell: true })` cria um processo intermediário `cmd.exe /d /s /c ...`. Quando o Node.js invoca `.kill()`, o sinal atinge apenas a casca do `cmd.exe`, deixando órfãos os processos netos em execução (`next-server`, `node apps/api/dist/...`). Esses processos permaneciam ativos e retendo as portas TCP 3000 e 3001, causando hangs e timeouts em execuções subsequentes.
+- **Eliminação de Shell Intermediário**: Remoção do parâmetro `shell: true`. A invocação agora é direta via binário do Node (`node ./node_modules/next/dist/bin/next start -p 3000` e `node --import ./register-dist.js dist/apps/api/src/server.js`) com `{ shell: false }`.
+- **Teardown de Process Tree Determinístico**: Implementada a função `killProcessTree`, utilizando `taskkill /pid <PID> /T /F` no Windows como fallback estrito de teardown de harness local, garantindo terminação de toda a árvore de processos descendentes.
+- **Readiness Polling & Watchdog**: Adicionado polling determinístico via HTTP (`waitForHttp`) com timeouts explícitos (15s para `apps/api` `/healthz` e 20s para `apps/web` `/dashboard`), além de watchdog global com encerramento de processos em bloco `finally`.
+- **Auditoria de `process.exit`**: Confirmado que o script encerra **naturalmente** sem necessidade de `process.exit()`, utilizando unicamente `process.exitCode = success ? 0 : 1`. O event loop do Node.js descarrega todos os handles e finaliza de forma limpa.
+- **Tempo Observado & Limpeza**: Tempo de boot e verificação de readiness completado em **8.2s** (down de hangs de minutos). Verificação via `Get-NetTCPConnection` confirmou **portas 3000 e 3001 100% livres** imediatamente após o teardown.
+
+### 2. Validação Real Browser E2E (Playwright MCP + Local PostgreSQL)
+Validação de ponta a ponta em navegador real (Chromium via Playwright MCP) conectando a cadeia de segurança completa:
+`Browser Real` -> `Better Auth Session Real` -> `Next.js apps/web BFF` -> `UserBootstrapAssertion server-only` -> `apps/api (/v1/me/*)` -> `Active Organization Context` -> `InternalServiceAssertion server-only` -> `Tenant API (/v1/agents/*)` -> `PostgreSQL Local Real`.
+
+- **Test 1 — Requisição Não Autenticada**:
+  - Acesso a `http://localhost:3000/dashboard` sem sessão.
+  - Endpoint `/api/agents` retornou HTTP 401 Unauthorized (`"Usuário não autenticado."`).
+- **Test 2 — Estabelecimento de Sessão Real Better Auth**:
+  - Cadastro de usuário real de teste (`e2e_user_801w9e@example.com`) e autenticação via endpoint oficial `POST /api/auth/sign-in/email` com cabeçalho `Origin: http://localhost:3000` (proteção CSRF).
+  - Sessão Better Auth aceita com sucesso (HTTP 200) e cookie de sessão HttpOnly registrado no browser.
+- **Test 3 — Resolução e Listagem de Organizações**:
+  - Chamada a `GET /api/organization/active` retornou `status: 'RESOLVED'`.
+  - Organizações autorizadas presentes: Org A (`Alpha Corp 801w9e`) e Org B (`Beta Logistics 801w9e`).
+  - Organização C (`Charlie Stealth 801w9e`, sem membership do usuário) **estritamente ausente**.
+- **Test 4 — Seleção de Org A & Acesso aos Dados do Tenant**:
+  - Contexto ativo inicial resolvido para Org A.
+  - Endpoint `/api/agents` retornou HTTP 200 com agente `Agent Alpha`.
+  - Agentes de outras organizações (`Agent Beta`, `Agent Charlie`) completamente inacessíveis (isolamento cross-tenant garantido).
+- **Test 5 — Troca de Organização para Org B**:
+  - Disparado `POST /api/organization/switch` com `{ slug: 'org-b-801w9e' }`.
+  - Sucesso HTTP 200; cookie `active_organization_slug` atualizado pelo servidor.
+  - Próxima chamada a `/api/agents` retornou HTTP 200 com agente `Agent Beta`; `Agent Alpha` ausente.
+- **Test 6 — Recarregamento & Persistência de Preferência**:
+  - Navegação/reload em `/dashboard`.
+  - Contexto ativo persistido como `org-b-801w9e`; dados carregados dinamicamente para Org B (`Agent Beta`).
+- **Test 7 — Tentativa de Troca Não Autorizada & Adulteração de Cookie**:
+  - Chamada de troca para Org C (`POST /api/organization/switch` com `{ slug: 'org-c-801w9e' }`) retornou HTTP 404 (`"Organização não encontrada ou acesso não autorizado."`).
+  - Adulteração manual do cookie `active_organization_slug` para Org C no cliente resultou em rejeição server-side (`stalePreferenceDetected: true`), reescrita automática do cookie para organização autorizada no banco e **nenhum acesso a Org C ou Agent Charlie**.
+- **Test 8 — Adulteração de Payload (Anti-Tampering)**:
+  - Envio de payload manipulado com campos forjados (`organizationId: <Org C ID>`, `role: 'OWNER'`).
+  - Servidor ignorou os campos adicionais do body e derivou estritamente o `organizationId` e a role (`ADMIN`) a partir do banco de dados no backend.
+- **Test 9 — Isolamento de Contexto Ativo no Servidor**:
+  - O browser nunca dita IDs internos nem roles; todo o contexto é resolvido e assinado no BFF server-side.
+- **Test 10 — Revogação de Membership no PostgreSQL Local com Browser Conectado**:
+  - Membership em Org A alterada para `status = 'SUSPENDED'` diretamente no PostgreSQL local.
+  - Na requisição imediatamente subsequente do browser autenticado, Org A desapareceu das organizações disponíveis e o contexto fez fallback automático para Org B.
+- **Test 11 — Revalidação Dinâmica de Role no PostgreSQL Local**:
+  - Role do usuário em Org B atualizada de `VIEWER` para `ADMIN` diretamente no banco.
+  - Requisição imediatamente subsequente refletiu `role: 'ADMIN'` tanto no contexto ativo quanto na listagem.
+- **Test 12 — Inativação de Organização no PostgreSQL Local**:
+  - Org B alterada para `status = 'SUSPENDED'` no PostgreSQL local (deixando o usuário com zero organizações ativas).
+  - Requisição imediatamente subsequente resultou em `status: 'NO_ORGANIZATIONS'`, limpeza do cookie de contexto e `/api/agents` retornou HTTP 403 Forbidden.
+- **Test 13 — Auditoria de Armazenamento do Navegador (Zero Internal JWTs)**:
+  - Inspeção de `localStorage`: apenas chaves de preferência de UI (`voice-agent:ui:v1`).
+  - Inspeção de `sessionStorage`: vazio.
+  - Inspeção de `document.cookie`: vazio (todos os cookies de segurança e sessão são estritamente `HttpOnly`).
+  - Inspeção de propriedades de `window` e DOM: **zero JWTs internos, zero asserções Ed25519 e zero segredos expostos**.
+- **Test 14 — Fronteira de Rede & Isolamento de Porta (Zero Service JWTs no Browser)**:
+  - 100% das chamadas disparadas pelo navegador foram para `http://localhost:3000/api/...` (apps/web BFF).
+  - **Zero requisições diretas do navegador para `http://localhost:3001` (apps/api)**.
+  - O browser nunca carrega nem envia service JWTs; a comunicação com o core de backend ocorre exclusivamente server-to-server com asserções assinadas Ed25519.
+- **Test 15 — Responsividade e Viewports Reais**:
+  - Viewports testados: **375x812 (mobile)**, **768x1024 (tablet)** e **1440x900 (desktop)**.
+  - Organization switcher visível e funcional em todos os viewports; `hasHorizontalScroll: false` (zero estouro horizontal em todas as resoluções).
+- **Test 16 — Acessibilidade do Switcher (Keyboard Smoke)**:
+  - Foco via teclado, abertura do menu com `Enter` e `Space` (`aria-expanded="true"`).
+  - Navegação entre itens via `ArrowDown` e `ArrowUp` com padrão roving `tabindex` (0 no item focado, -1 nos demais).
+  - Fechamento com `Escape` (`aria-expanded="false"`) com retorno garantido de foco para o botão de acionamento.
+- **Test 17 — Teardown Fail-Visible no PostgreSQL Local**:
+  - Exclusão ordenada de fixtures de teste por chave de execução (`runId`): agentes, memberships, organizações, sessões, contas e usuários.
+  - Validação fail-visible: asserção de **zero leftovers** em todas as 5 tabelas (`agents: 0`, `memberships: 0`, `orgs: 0`, `sessions: 0`, `users: 0`).
+
+### 3. Governança e Status da Workspace (`pnpm check`)
+- **Prettier**: 100% formatado (`All matched files use Prettier code style!`).
+- **ESLint**: 100% aprovado (0 erros, 0 avisos).
+- **Turbo Typecheck**: 12 pacotes aprovados (0 erros).
+- **Vitest**: **37 arquivos aprovados | 6 de staging ignorados (43 total)**, **226 testes aprovados | 45 testes ignorados (271 total)**.
+- **Turbo Build**: 12 pacotes compilados com sucesso (`apps/web` Next.js 11/11 rotas estáticas e dinâmicas geradas perfeitamente).
+- **Architecture Check**: 0 violações (AST rules respeitadas).
+- **File Size Check**: 141 arquivos de lógica verificados, todos dentro do limite de 180 linhas (0 erros).
+- **Browser Session E2E**: **VALIDATED** (Browser real + Better Auth real + apps/web real + apps/api real + PostgreSQL local real).
+- **Alterações de Schema / Migrações**: **ZERO** (schema e migrations 100% inalterados).
+- **Dependências Externas**: **ZERO** (nenhum pacote adicionado, `@playwright/test` não instalado).
+- **Staging / Produção / Twilio**: **100% INTOCADOS**.
