@@ -4802,4 +4802,74 @@ Esse acesso contrariou a política de segurança e governança de agentes (defin
 ### 5. Próximo Passo
 - Aguardar revisão humana do Pull Request **PR #17** contra a branch `main` (sem auto-merge).
 
+---
+
+## 2026-09-25 — PROMPT-005D-B1-CLOSE — PR #17 Security Audit and Merge Authorization
+
+### 1. Metadados do Registro
+- **Data/Hora**: 2026-09-25T10:10:00-03:00.
+- **Pull Request**: **PR #17** (`https://github.com/samueltarif/voice-agent-platform/pull/17`).
+- **Base Branch**: `main` (`1e8aa8478da5f6e19cca18efa5fb8523b6d12d82`).
+- **Head Branch**: `feature/active-organization-context`.
+- **HEAD Auditado**: `6fae3392986319abb3f47fa8f18a8ab1eec535b0`.
+- **Arquivos Alterados no PR**: 23 arquivos (+1845 / -10).
+- **PR #17 merge status at time of this worklog commit**: **OPEN / MERGE AUTHORIZED**.
+
+### 2. Auditoria dos Gates de Segurança e Limites Arquiteturais
+- **CSRF / Same-Origin Gate**:
+  - Rota `POST /api/organization/switch` protegida via validação estrita de `origin`, `host` e `x-forwarded-host`, complementada por `sec-fetch-site`.
+  - Cobertura explícita de 8 testes unitários em `route.test.ts` validando:
+    - Same-origin válido;
+    - Cross-origin rejeitado com 403;
+    - Origin ausente com `sec-fetch-site: cross-site` rejeitado com 403;
+    - URL de origin malformada rejeitada com 403;
+    - Requisição com proxy reverso (`x-forwarded-host`) aceita com 200;
+    - Sessão não autenticada rejeitada com 401;
+    - JSON inválido rejeitado com 400;
+    - Tentativa de acesso a organização inacessível rejeitada com 404/403.
+- **Cookie de Preferência (`active_organization_slug`)**:
+  - Propriedades: `HttpOnly=true`, `SameSite=lax`, `Path=/`, `secure` em produção, host-only.
+  - Conteúdo restrito estritamente a `orgSlug` navegacional. Nunca contém `organizationId`, roles, tokens ou entitlements.
+  - Cookie adulterado não concede autoridade: qualquer slug inválido ou não autorizado sofre fallback seguro ou rejeição imediata.
+- **Fronteira de Sessão Better Auth**:
+  - `auth.api.getSession(headers)` executa exclusivamente no servidor. Nenhuma credencial de sessão ou chave privada é exposta ao client.
+- **Fronteira da Bootstrap Assertion**:
+  - Reutilização estrita de `InternalBootstrapSigner` e `BootstrapApiClient`.
+  - Ed25519 User Bootstrap Assertion emitida apenas server-side sem carregar escopo de tenant.
+- **Fronteira da Tenant Assertion**:
+  - `TenantApiClient` opera no servidor e gera assertion com `InternalServiceSigner` usando o `organizationId` validado no backend.
+  - Zero internal JWTs chegam ao browser (nem via HTML, props, headers ou cookies).
+- **Testes Multi-Tenant & Anti-Tampering**:
+  - Usuário A acessa organizações próprias permitidas.
+  - Usuário A não consegue selecionar organização de Usuário B sem membership.
+  - Revogação de membership ou inativação de organização invalida imediatamente o contexto no próximo ciclo de resolução.
+  - Atualização de role reflete dinamicamente a autoridade do banco.
+- **Integração com PostgreSQL Local (`local-postgres-tenant-context.integration.test.ts`)**:
+  - 5 cenários com banco de dados real executados com sucesso e cleanup fail-visible confirmado.
+- **Contagens da Suíte de Testes (`pnpm check`)**:
+  - Prettier: 100% formatado (0 erros).
+  - ESLint: 100% aprovado (0 erros, 0 avisos).
+  - Turbo Typecheck: 12 pacotes aprovados (0 erros, `exactOptionalPropertyTypes`).
+  - Vitest: **36 arquivos aprovados | 6 de staging ignorados (42 total)**, **222 testes aprovados | 45 testes ignorados (267 total)**.
+  - Turbo Build: 12 pacotes compilados com sucesso.
+  - Architecture AST Check: 0 violações.
+  - File Size Check: 139 arquivos de lógica verificados, todos dentro do limite de 180 linhas (0 erros).
+- **Status de Validação de Navegador e E2E**:
+  - Component/render/accessibility validation: **PASSED** (Radix UI, keyboard navigation, touch targets >= 44px, acessibilidade).
+  - Browser E2E visual validation: **NOT VALIDATED**.
+  - Browser Auth E2E: **PARTIAL / NOT VALIDATED** (harness de sessão em navegador real com múltiplos serviços simultâneos permanece para momento oportuno).
+- **Governança de Dados e Infraestrutura**:
+  - Schema Changes: **ZERO** (`packages/database/src/schema` inalterado).
+  - Migrations: **ZERO** (`packages/database/src/migrations` inalterado).
+  - Dependencies: **ZERO** (`package.json`, `pnpm-workspace.yaml`, `pnpm-lock.yaml` inalterados).
+  - Secrets Audit: **CLEAN** (zero secrets em diff, tracked files ou fixtures).
+  - Neon Staging: **NÃO ACESSADO**.
+  - Produção: **100% INTOCADA**.
+  - Twilio / Fase 6: **100% INTOCADO**.
+
+### 3. Decisão de Merge
+- Todos os 24 gates de qualidade e segurança auditados permaneceram 100% verdes.
+- Merge do Pull Request #17 está formalmente autorizado.
+
+
 

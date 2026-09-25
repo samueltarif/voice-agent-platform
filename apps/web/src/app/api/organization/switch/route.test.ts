@@ -65,6 +65,63 @@ describe('POST /api/organization/switch', () => {
     expect(data.error).toContain('Origem da requisição não autorizada');
   });
 
+  it('rejects cross-site requests when origin header is missing but sec-fetch-site is cross-site', async () => {
+    const req = new NextRequest('http://localhost:3000/api/organization/switch', {
+      method: 'POST',
+      headers: {
+        host: 'localhost:3000',
+        'sec-fetch-site': 'cross-site',
+      },
+      body: JSON.stringify({ slug: 'acme-corp' }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(403);
+    const data = await res.json();
+    expect(data.success).toBe(false);
+    expect(data.error).toContain('Origem da requisição não autorizada');
+  });
+
+  it('rejects request when origin has malformed URL format', async () => {
+    const req = new NextRequest('http://localhost:3000/api/organization/switch', {
+      method: 'POST',
+      headers: {
+        host: 'localhost:3000',
+        origin: 'not-a-valid-url',
+      },
+      body: JSON.stringify({ slug: 'acme-corp' }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(403);
+    const data = await res.json();
+    expect(data.success).toBe(false);
+    expect(data.error).toContain('Origem da requisição não autorizada');
+  });
+
+  it('accepts same-origin requests matching x-forwarded-host behind proxy', async () => {
+    vi.mocked(auth.api.getSession).mockResolvedValueOnce(mockSession);
+    vi.mocked(switchOrganizationService.switchOrganization).mockResolvedValueOnce({
+      success: true,
+      organization: { slug: 'acme-corp', name: 'Acme Corporation' },
+    });
+
+    const req = new NextRequest('http://internal-cluster:3000/api/organization/switch', {
+      method: 'POST',
+      headers: {
+        host: 'internal-cluster:3000',
+        'x-forwarded-host': 'app.example.com',
+        origin: 'https://app.example.com',
+      },
+      body: JSON.stringify({ slug: 'acme-corp' }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.success).toBe(true);
+  });
+
   it('rejects unauthenticated requests with 401', async () => {
     vi.mocked(auth.api.getSession).mockResolvedValueOnce(null);
 
