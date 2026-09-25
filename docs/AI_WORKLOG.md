@@ -4725,9 +4725,9 @@ Esse acesso contrariou a política de segurança e governança de agentes (defin
 ### 1. Metadados do Registro
 - **Data/Hora**: 2026-09-25T09:55:00-03:00.
 - **Base Main SHA**: `1e8aa8478da5f6e19cca18efa5fb8523b6d12d82` (`origin/main`).
-- **Branch de Trabalho**: `feature/active-organization-context`.
-- **Status da Branch**: Implementada, verificada localmente e pronta para abertura de Pull Request.
-- **Pull Request**: A ser aberto (Target: `main`, Head: `feature/active-organization-context`, Status: OPEN / NOT MERGED).
+- **Commit de Implementação**: `def21374b3b3e4abad3bc25c31524106d87f75f5`.
+- **Status da Branch**: Implementada, verificada localmente e enviada para o repositório remoto.
+- **Pull Request**: **PR #17** (`https://github.com/samueltarif/voice-agent-platform/pull/17`, Target: `main`, Head: `feature/active-organization-context`, Status: **OPEN / NOT MERGED**).
 
 ### 2. Arquitetura e Mecanismo de Active Organization
 - **Princípio Arquitetural (ADR-012, ADR-013, DEC-029, DEC-031, DEC-032)**:
@@ -4800,5 +4800,6 @@ Esse acesso contrariou a política de segurança e governança de agentes (defin
 - **Browser Auth E2E**: **PARTIAL / NOT VALIDATED** (fluxos de resolução server-side, Route Handlers, cookies e integração com PostgreSQL local validados de forma automatizada; teste de navegador completo ponta a ponta com Better Auth real no client depende de harness E2E integrado em slice futuro).
 
 ### 5. Próximo Passo
-- Abrir Pull Request `feat: implement active organization context and switcher` contra `main` e aguardar revisão humana (sem auto-merge).
+- Aguardar revisão humana do Pull Request **PR #17** contra a branch `main` (sem auto-merge).
+
 
