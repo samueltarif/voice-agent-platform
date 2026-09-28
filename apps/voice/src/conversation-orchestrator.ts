@@ -7,6 +7,7 @@ import type {
   VoiceInputEvent,
   VoiceTransportPort,
 } from '@voice-agent/contracts';
+import { TERMINAL_CALL_SESSION_STATES } from '@voice-agent/contracts';
 import {
   CallRuntimeNotActiveError,
   CallSessionNotFoundError,
@@ -150,6 +151,7 @@ export class ConversationOrchestrator {
     targetState: 'ENDED' | 'FAILED',
     options?: { reason?: string },
   ): Promise<void> {
+    if (TERMINAL_CALL_SESSION_STATES.has(session.runtimeState)) return;
     this.cleanupSession(session.callId);
     let current = session;
     if (targetState === 'ENDED') {
