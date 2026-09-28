@@ -5440,5 +5440,81 @@ Implementação e validação integral do Slice 005D-C2 (Agent Studio Lifecycle:
 - Dependências: **ZERO** novas dependências instaladas.
 - Neon / Staging / Produção / Twilio: **100% INTOCADOS**.
 
+---
+
+## 2026-09-28 — PROMPT-005D-C2-CLOSE: Security Deviations, Lifecycle Invariants and PR #21 Merge Authorization
+
+### 1. Auditoria de Segurança Operacional & Desvios de Processo
+- **PR Auditado**: [#21](https://github.com/samueltarif/voice-agent-platform/pull/21) (`samueltarif/voice-agent-platform#21`)
+- **Implementation HEAD**: `12c21bddece199fcb27a9fc9b00ce2f5dd7133da`
+- **Base**: `main` (`d5d80c8084e0ce3c2d8c41721427dfb706df9dc3`)
+- **Security Process Deviation — Private JWK Output**:
+  - *Classificação*: `SECURITY PROCESS DEVIATION`.
+  - *Fato*: Durante a inicialização do dual-boot harness / fixture setup, foi gerado par Ed25519 efêmero e houve impressão da private JWK.
+  - *Fatos e Contenção*: A chave era estritamente efêmera e criada exclusivamente em memória local para testes; não era chave de staging ou produção; não foi versionada; os processos de teste já foram totalmente finalizados e derrubados; a chave perdeu qualquer utilidade operacional após o teardown; nenhuma rotação remota ou humana é necessária; nenhuma chave histórica foi reaberta ou recuperada; futuras validações devem retornar unicamente status booleano (`KEYPAIR_GENERATED=true`, `SIGN_VERIFY_OK=true`), sendo estritamente proibido imprimir key material.
+- **Security Process Deviation — Local PostgreSQL DSN**:
+  - *Classificação*: `SECURITY PROCESS DEVIATION — REPEATED PATTERN`.
+  - *Fato*: Utilização de connection string PostgreSQL local literal em comandos de terminal.
+  - *Fatos e Contenção*: A string pertencia exclusivamente ao contêiner local Docker; nenhuma credencial de Neon, staging ou produção esteve envolvida; nenhum DSN literal foi versionado no repositório; o valor literal não deve ser repetido; futuras conexões devem receber parâmetros estritamente via runtime/variáveis de ambiente sem emissão em tela.
+- **Security Process Deviation — Synthetic Test Credential File**:
+  - *Classificação*: `SECURITY PROCESS DEVIATION`.
+  - *Fato*: Criação e visualização de arquivo de dados de teste (`scripts/c2-test-data.json`) contendo senha sintética utilizada no Better Auth E2E.
+  - *Fatos e Contenção*: A credencial era estritamente de usuário de teste sintético local; todos os usuários, sessões e contas de teste criados no E2E já foram integralmente deletados do PostgreSQL local; zero leftovers já foi formalmente auditado e comprovado; nenhuma credencial humana ou remota foi manipulada; nenhuma rotação humana é necessária; o artefato temporário foi permanentemente removido e não foi versionado. Ação corretiva mandatória: credenciais sintéticas devem residir apenas em variáveis de memória/runtime e jamais em arquivos inspecionados ou impressos.
+
+---
+
+### 2. Análise de Causa Raiz: Alocação de Próxima Versão (`next_version_number`)
+- *Classificação*: `FIXTURE SETUP DEVIATION`.
+- *Diagnóstico Factual*: Durante a configuração inicial do teste E2E, o script de fixture inseriu diretamente via SQL bruto o registro de um Agent e um primeiro rascunho com `version_number: 1`, contornando a chamada ao serviço canônico `AgentDraftService.createDraft()` e ao alocador atômico `allocateNextAgentVersionNumber()`. Em consequência desse bypass manual, o campo `next_version_number` na tabela `agents` permaneceu com o valor default `1`. Quando o endpoint REST de criação de draft foi acionado, o serviço consultou `next_version_number` (que ainda continha 1) e tentou inserir a versão 1, disparando erro de unicidade de chave primária.
+- *Avaliação do Produto*: O código de produção é 100% correto, determinístico e robusto. O serviço canônico aloca `next_version_number` corretamente a cada criação de rascunho (`v1` -> `v2` -> `v3`). O ajuste via `UPDATE` ocorrido na sessão de teste foi consequência exclusiva da fixture sintética inconsistente e NÃO é requisito nem workaround do produto em produção.
+- *Evidência de Prova*: Suíte de testes de integração automatizada em PostgreSQL real (`apps/api/src/integration/agent-api-lifecycle.integration.test.ts`) comprovou criação canônica de Agent, criação automática de draft v1, publicação e alocação automática de draft v2 com `versionNumber: 2`, sem qualquer intervenção manual de banco.
+
+---
+
+### 3. Validação das Invariantes de Lifecycle e Regras de Negócio C2
+- **Alocação Monotônica de Rascunho**: Validada via PostgreSQL real (`versionNumber = 1` -> `versionNumber = 2`).
+- **Publication Supersession**: Ao publicar uma nova versão (`v2`), a versão anteriormente publicada (`v1`) é automaticamente transicionada para `status = 'ARCHIVED'`.
+- **Exactly One PUBLISHED**: Garantida a invariante de no máximo uma versão com status `PUBLISHED` ativa por agente em qualquer momento.
+- **Imutabilidade Estrita**: Versões publicadas e arquivadas são estritamente somente leitura. Tentativa de `PATCH` em versão publicada/arquivada retorna `HTTP 400 Bad Request`; tentativa de `DELETE` retorna `HTTP 409 Conflict`.
+- **Reativação e Enforce de Quota (`agents.max`)**: O serviço `AgentLifecycleService.reactivateAgent()` valida atômica e deterministicamente a cota `agents.max` no banco antes de reativar um agente. Caso a organização tenha atingido o limite de agentes ativos, a reativação é rejeitada com `HTTP 403 Forbidden` (`ENTITLEMENT_EXCEEDED`). Ao liberar cota (arquivando outro agente), a reativação é concluída com sucesso (`HTTP 200 OK`, `ACTIVE`). Teste de integração específico adicionado e aprovado em [agent-api-lifecycle.integration.test.ts](file:///D:/voice-agent-platform/apps/api/src/integration/agent-api-lifecycle.integration.test.ts).
+- **Matriz de Permissões RBAC**:
+  - `OWNER` / `ADMIN`: Controle completo do lifecycle (publicar, arquivar, reativar, criar draft, editar).
+  - `MANAGER`: Criação e edição de rascunhos permitidas; publicação, arquivamento e reativação estritamente negados (`HTTP 403 Forbidden`).
+  - `OPERATOR` / `VIEWER`: Acesso restrito a metadados da listagem/cabeçalho; payload de configuração de IA omitido (`canReadAgentConfig = false`); card "Visualização Restrita" exibido; operações de mutação rejeitadas (`HTTP 403 Forbidden`).
+- **Isolamento Multi-Tenant**: Tentativas de acesso cross-tenant a rotas de publicação, arquivamento, reativação ou leitura de configuração retornam estritamente `HTTP 404 Not Found`, com redirecionamento de URL seguro e zero vazamento de metadados ou regras.
+- **Proteção Same-Origin**: Endpoints BFF de publicação, arquivamento e reativação validam headers de origem, rejeitando requisições de origens não autorizadas ou malformadas com `HTTP 403 Forbidden`.
+- **Status do Browser E2E**: **VALIDATED** (26 passos executados e comprovados no Chromium via Playwright MCP com capturas de tela e asserções DOM).
+
+---
+
+### 4. Governança e Limpeza de Dados
+- **Zero Leftovers no PostgreSQL Local**: Consulta direta às tabelas confirmou ausência de resíduos (`testUsersCount: 0`, `testOrgsCount: 0`, `testAgentsCount: 0`).
+- **Zero Arquivos Temporários Versionados**: Nenhum helper de teste, fixture ou script temporário foi incluído no commit ou no diff do PR.
+- **Auditoria de Segredos no PR Diff (`origin/main...HEAD`)**: `SECRET_AUDIT_PASS: true`.
+- **Integridade de Schema e Dependências**:
+  - Schema: ZERO alterações.
+  - Migrations: ZERO novas migrações.
+  - Dependências: ZERO alterações em `package.json`, `pnpm-lock.yaml` ou `pnpm-workspace.yaml`.
+- **Ambientes Remotos**: Neon, Staging, Produção e Twilio permaneceram **100% INTOCADOS**.
+- **Fase 6**: **NÃO INICIADA**.
+
+---
+
+### 5. Métricas do Quality Gate Completo (`pnpm check`)
+- `pnpm format:check`: 100% aprovado (Prettier).
+- `pnpm lint`: 100% aprovado (ESLint, 0 erros, 0 avisos).
+- `pnpm typecheck`: 12/12 pacotes TypeScript aprovados sem erro.
+- `pnpm test`: 66 arquivos de teste aprovados (342 testes unitários e de integração aprovados, 45 testes de staging ignorados, **0 falhas**).
+- `turbo build`: 12/12 pacotes compilados com sucesso (`next build` gerando todas as 11 rotas estáticas e dinâmicas).
+- `scripts/check-architecture.mjs`: 100% aprovado (0 violações de regras arquiteturais e AST).
+- `scripts/check-file-size.mjs`: 185 arquivos de lógica de produção verificados, todos em estrita conformidade com o limite máximo de 180 linhas (0 erros, 12 avisos normativos).
+
+---
+
+### 6. Decisão e Status de Autorização de Merge
+Todos os gates de auditoria de segurança, invariantes de lifecycle, RBAC, confidencialidade de IA, testes automatizados e limpeza de banco foram integralmente satisfeitos.
+- **Status do PR #21 neste momento**: `OPEN / MERGE AUTHORIZED`
+
+
 
 

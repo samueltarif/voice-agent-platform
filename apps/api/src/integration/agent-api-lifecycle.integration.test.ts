@@ -277,6 +277,62 @@ describe('Agent Studio API Lifecycle & Quota (PostgreSQL Integration)', () => {
     expect(reactivated.status).toBe('ACTIVE');
   });
 
+  it('validates reactivateAgent enforces agents.max quota: rejected when limit reached, succeeds when quota available', async () => {
+    // 1. Org with agents.max = 1
+    const org = await createOrgWithQuota(1, 'ADMIN');
+    const token = await getAssertion(org.id);
+
+    // 2. Create Agent A (ACTIVE)
+    const createA = await app.request('/v1/agents', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Agent Quota A', slug: 'agent-quota-a' }),
+    });
+    expect(createA.status).toBe(201);
+    const agentA = (await createA.json()) as AgentMetadataResponse;
+
+    // 3. Archive Agent A (ACTIVE -> ARCHIVED, active count becomes 0)
+    const archiveA = await app.request(`/v1/agents/${agentA.id}/archive`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(archiveA.status).toBe(200);
+
+    // 4. Create Agent B (ACTIVE, active count becomes 1, limit reached)
+    const createB = await app.request('/v1/agents', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Agent Quota B', slug: 'agent-quota-b' }),
+    });
+    expect(createB.status).toBe(201);
+    const agentB = (await createB.json()) as AgentMetadataResponse;
+
+    // 5. Reactivate Agent A must be rejected (403 ENTITLEMENT_EXCEEDED) because active count is 1
+    const reactivateRejected = await app.request(`/v1/agents/${agentA.id}/reactivate`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(reactivateRejected.status).toBe(403);
+    const err = (await reactivateRejected.json()) as ApiErrorResponse;
+    expect(err.error.code).toBe('ENTITLEMENT_EXCEEDED');
+
+    // 6. Archive Agent B (active count becomes 0)
+    const archiveB = await app.request(`/v1/agents/${agentB.id}/archive`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(archiveB.status).toBe(200);
+
+    // 7. Reactivate Agent A now succeeds (active count becomes 1)
+    const reactivateAllowed = await app.request(`/v1/agents/${agentA.id}/reactivate`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(reactivateAllowed.status).toBe(200);
+    const reactivatedA = (await reactivateAllowed.json()) as AgentMetadataResponse;
+    expect(reactivatedA.status).toBe('ACTIVE');
+  });
+
   it('Section 40: enforces lifecycle RBAC matrix, published immutability, and cross-tenant isolation', async () => {
     // 1. Setup Org A and Org B
     const orgA = await createOrgWithQuota(5, 'OWNER');
