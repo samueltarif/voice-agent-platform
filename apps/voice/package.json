@@ -7,6 +7,7 @@
   "types": "./src/index.ts",
   "dependencies": {
     "@voice-agent/contracts": "workspace:*",
+    "@voice-agent/errors": "workspace:*",
     "@voice-agent/logger": "workspace:*"
   },
   "scripts": {

@@ -5608,3 +5608,56 @@ Todos os gates de auditoria de segurança, invariantes de lifecycle, RBAC, confi
 - **Dependências**: ZERO alterações.
 - **Provedores Externos**: NÃO acessados (Neon, Staging, Produção, Twilio, OpenAI, Anthropic, Google, AWS 100% intocados).
 - **Desvios de Segurança no Turno**: 0 (ZERO).
+
+---
+
+## 2026-09-28 — PROMPT-006A-RECOVERY: Unexpected Shutdown Recovery + Voice Runtime Foundation
+
+### 1. Diagnóstico Inicial e Recuperação Segura
+- **Branch Encontrada**: `feature/voice-runtime-foundation`.
+- **HEAD Encontrado**: `1a5c8e5de7b8a8f8431b6e9fcb3f8435a34fb4aa`.
+- **Working Tree Inicial**: Dirty (contendo código parcial do Slice 006A implementado no turno anterior antes do shutdown).
+- **PR #22**: MERGED (merge commit `1a5c8e5de7b8a8f8431b6e9fcb3f8435a34fb4aa` presente na `origin/main`).
+- **PR 006A**: NOT FOUND (ainda não submetido no GitHub).
+- **006A Já Havia Iniciado?**: SIM. Contratos em `packages/contracts/src/voice/`, erros em `packages/errors/src/voice-errors.ts` e runtime inicial em `apps/voice/src/`.
+- **Alterações Preservadas**: 100% preservadas, zero descartes (`git reset`, `git checkout -- .`, `git clean` NÃO foram executados).
+- **Isolamento de Storage Interno**: NENHUM arquivo em `.system_generated/`, `.gemini/`, `antigravity-ide/`, `brain/` ou task logs foi lido, parseado ou acessado para recuperação de contexto.
+- **Ponto de Retomada**: Ajuste da sincronização de interrupção em `barge-in-generation.test.ts`, permissão de transição `CREATED -> FAILED` na máquina de estados, reforço do gate de versão de agente (`agentVersionStatus === 'PUBLISHED'`), criação do ADR-014, atualização do threat model em `SECURITY.md` e execução dos quality gates.
+
+### 2. Implementação Concluída — Voice Runtime Foundation (006A)
+- **Contratos Provider-Neutral (`packages/contracts/src/voice`)**:
+  - `CallSession` e máquina de estados (`CREATED`, `CONNECTING`, `ACTIVE`, `ENDING`, `ENDED`, `FAILED`).
+  - Portas tipadas: `ConversationModelPort`, `VoiceTransportPort`, `CallSessionStorePort`.
+  - Eventos de entrada (`VoiceInputEvent`) e comandos de saída (`VoiceOutputCommand`).
+  - Input schema estrito exigindo `agentVersionStatus === 'PUBLISHED'`.
+- **Erros de Domínio Tipados (`packages/errors/src/voice-errors.ts`)**:
+  - `CallSessionNotFoundError`, `CallRuntimeNotActiveError`, `StaleGenerationError`, `ConversationModelError`, `VoiceTransportError`, `InvalidAgentVersionStatusError`.
+- **Runtime Determinístico (`apps/voice/src`)**:
+  - `call-session-state-machine.ts`: transições válidas estritas e proteção contra transições a partir de estados terminais.
+  - `create-call-session.ts`: fábrica com validação de invariante de versão publicada e UUIDs.
+  - `in-memory-call-session-store.ts`: store de referência em memória com isolamento multi-tenant garantido por chave `${organizationId}:${callId}`.
+  - `assistant-stream-coordinator.ts`: streaming assíncrono com checagem em voo de geração ativa e descarte imediato de chunks obsoletos (*stale late chunks*).
+  - `conversation-orchestrator.ts`: orquestrador de eventos, coordenação de `turnId` e `generationId`, cancelamento de barge-in via `interruptSpeech`, transições de ciclo de vida e tratamento tipado de erros.
+  - Test fakes: `FakeConversationModel` e `FakeVoiceTransport` para testes determinísticos sem rede.
+- **Documentação Arquitetural e de Segurança**:
+  - `docs/architecture/decisions/ADR-014-provider-neutral-voice-runtime-foundation.md`: ADR formal aprovado.
+  - `docs/architecture/decisions/README.md`: índice atualizado com ADR-014.
+  - `docs/DECISIONS_LOG.md`: registrado DEC-033.
+  - `docs/SECURITY.md`: Seção 6 adicionada com o Threat Model do Voice Runtime (fronteiras de autoridade, barge-in, isolamento multi-tenant e published-only execution).
+
+### 3. Testes Automatizados e Evidências
+- **Testes do Módulo de Voz (`apps/voice`)**: 4 suítes, 25 testes passando (100% de sucesso):
+  - `call-session-state-machine.test.ts` (9 testes): ciclo de vida, transições válidas/inválidas, estados terminais e validação de `agentVersionStatus` (PUBLISHED obrigatório, DRAFT/ARCHIVED rejeitados).
+  - `tenant-boundary.test.ts` (4 testes): isolamento cross-tenant e suporte a mesmo callId em tenants diferentes sem colisão.
+  - `barge-in-generation.test.ts` (3 testes): geração sequencial, cancelamento de barge-in com descarte de chunks obsoletos e retomada em novo turno com nova geração.
+  - `conversation-orchestrator.test.ts` (9 testes): lifecycle completo, rejeição de speech em estados CREATED, ENDED e FAILED, falha de modelo e falha de transporte.
+- **Suíte Completa do Monorepo**: 70 arquivos de teste passando (367 testes unitários/integração passando, 0 falhas).
+
+### 4. Quality Gate e Governança
+- **Schema & Migrations**: ZERO alterações.
+- **Dependências**: ZERO alterações externas (apenas link de workspace interno `@voice-agent/errors` adicionado em `apps/voice/package.json`).
+- **Provedores Externos**: NÃO acessados (Neon, Staging, Produção, Twilio, OpenAI, Anthropic, Google, AWS 100% intocados).
+- **Desvios de Segurança no Turno**: 0 (ZERO). O encerramento inesperado anterior foi contido sem qualquer desvio ou vazamento de segredos.
+- **Auditoria de Segredos (`SECRET_AUDIT_PASS`)**: Verificada no diff da branch.
+- **Status do PR 006A**: PR formal aberto no GitHub sem auto-merge.
+

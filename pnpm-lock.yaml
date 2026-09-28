@@ -229,6 +229,9 @@ importers:
       '@voice-agent/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@voice-agent/errors':
+        specifier: workspace:*
+        version: link:../../packages/errors
       '@voice-agent/logger':
         specifier: workspace:*
         version: link:../../packages/logger
