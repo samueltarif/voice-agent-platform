@@ -100,3 +100,23 @@ A execução de ferramentas por agentes de voz durante chamadas telefônicas apr
    - Scripts de migração com comandos destrutivos (`DROP`, `TRUNCATE`) devem ser bloqueados em pipelines de CI/CD automatizados sem autorização manual.
 2. **Ambientes Segregados**:
    - Os ambientes de `dev`, `staging` e `production` possuem bancos, redes, chaves e credenciais totalmente isoladas.
+
+---
+
+## 6. Fronteiras de Segurança e Threat Model do Voice Runtime (Phase 6 / 006A)
+
+1. **Autoridade do Runtime vs. Provedores Externos**:
+   - Provedores de telefonia (Twilio) e modelos de IA (LLMs) **NÃO SÃO** a fonte da verdade do domínio.
+   - O runtime determinístico (`CallSession`, `ConversationOrchestrator`) detém autoridade total sobre o ciclo de vida, turnos, interrupções e cancelamentos.
+   - Provedores externos nunca decidem autonomamente tenant, permissões, faturamento ou encerramento de sessão.
+2. **Mitigação de Chunks Atrasados e Concorrência de Fala (Barge-In Threat Boundary)**:
+   - Respostas do assistente são estritamente rastreadas por `generationId` unívoco atrelado ao `turnId`.
+   - Ao detectar interrupção do usuário (`user.interruption`), a geração ativa é invalidada de forma síncrona.
+   - Chunks atrasados originados de chamadas concorrentes da IA são descartados deterministicamente antes de atingirem o transporte de voz, impedindo sobreposição vocal ou desinformação ao interlocutor.
+3. **Isolamento Multi-Tenant em Memória**:
+   - `CallSessionStorePort` impõe validação obrigatória de `organizationId` em todas as operações de busca e persistência (`organizationId:callId`).
+   - Sessões em memória são estritamente particionadas; tentativas de acesso a chamadas de outro tenant retornam `null` e falham com `CallSessionNotFoundError`.
+4. **Invariante de Versão Publicada (Published-Only Execution)**:
+   - A criação de sessões de chamada exige explicitamente `agentVersionStatus === 'PUBLISHED'`.
+   - Rascunhos (`DRAFT`) ou versões arquivadas (`ARCHIVED`) são rejeitados imediatamente com `InvalidAgentVersionStatusError`, eliminando o risco de executar configurações experimentais ou não homologadas em produção.
+
