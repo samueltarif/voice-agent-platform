@@ -5337,4 +5337,108 @@ Pipeline completo `pnpm check` executado integralmente sem erros:
 ### 4. Status de Autorização de Merge
 - **Status do PR #20 no momento deste registro**: `OPEN / MERGE AUTHORIZED`
 
+---
+
+## 2026-09-28 — PROMPT-005D-C2: Agent Studio Publish Flow, Version History, Archive/Reactivate & Lifecycle Governance
+
+### 1. Resumo Executivo e Objetivos
+Implementação e validação integral do Slice 005D-C2 (Agent Studio Lifecycle: Publish Flow + Version History + Archive/Reactivate):
+- Publicação determinística de versão DRAFT existente via modal de confirmação acessível.
+- Histórico real de versões com badges de status tipados (`DRAFT`, `PUBLISHED`, `ARCHIVED`).
+- Visualização de versões publicadas e arquivadas em modo estritamente somente leitura (`read-only`), garantindo imutabilidade de versões publicadas.
+- Criação sequencial e monotônica de novos rascunhos a partir de versão publicada (`v1` -> `v2`).
+- Fluxo completo de arquivamento (`ARCHIVED`) e reativação (`ACTIVE`) com bloqueio de ações quando arquivado.
+- Governança estrita de RBAC conforme especificação canônica:
+  - `OWNER` e `ADMIN`: Controle completo do lifecycle (publicar, arquivar, reativar, criar draft, editar).
+  - `MANAGER`: Criação e edição de rascunhos; bloqueio de publicação, arquivamento e reativação.
+  - `OPERATOR` e `VIEWER`: Acesso apenas a metadados da listagem e do cabeçalho; corpo de configuração oculto com card "Visualização Restrita"; mutações bloqueadas (403 Forbidden).
+- Isolamento multi-tenant garantido contra acesso cross-tenant e adulteração de rotas/slugs (404 Not Found / Agente não encontrado / redirecionamento seguro).
+- Validação dupla: PostgreSQL local real (testes de integração Seção 40) + Sessão E2E no Chromium via Playwright MCP (26 passos).
+
+---
+
+### 2. Arquitetura e Componentes Implementados
+
+#### 2.1 Backend / BFF Routes (`apps/web/src/app/api/agents/`)
+- `POST /api/agents/[agentId]/draft/publish?versionId=...`: Endpoint de publicação com validação same-origin, verificação de sessão Better Auth, guarda `canPublishAgent` e repasse via `TenantApiClient`.
+- `POST /api/agents/[agentId]/archive`: Endpoint de arquivamento com guarda `canArchiveAgent` e validação same-origin.
+- `POST /api/agents/[agentId]/reactivate`: Endpoint de reativação com guarda `canArchiveAgent` e validação same-origin.
+- `GET /api/agents/[agentId]/versions/[versionId]/configuration`: Endpoint com guarda estrita `canReadAgentConfig` (rejeita OPERATOR e VIEWER com HTTP 403 Forbidden antes de consultar o backend).
+
+#### 2.2 Frontend / UI (`apps/web/src/features/agents/`)
+- `agent-permissions.ts`: Funções canônicas de autorização (`canPublishAgent`, `canArchiveAgent`, `canEditAgent`, `canReadAgentConfig`).
+- `agent-header-actions.tsx`: Barra de ações do cabeçalho com botões primários semânticos (alvo de toque >= 44px).
+- `agent-publish-dialog.tsx`: Modal acessível (Radix Dialog) com confirmação explícita de publicação e estado de loading.
+- `agent-archive-dialog.tsx`: Modal acessível com suporte dual a arquivamento e reativação.
+- `agent-read-only-banner.tsx`: Banner contextual para versões publicadas (explicando imutabilidade com botão opcional de criar rascunho) e para agente arquivado.
+- `agent-version-history.tsx`: Lista de histórico de versões com seleção ativa e badges informativos.
+- `agent-version-status-badge.tsx`: Componente de badge para status da versão (`Rascunho`, `Publicado`, `Arquivado`).
+- `agent-workspace-content.tsx`: Alternância modular entre rascunho editável, visualização somente leitura e aviso restrito para funções sem permissão de configuração.
+- `use-agent-lifecycle-actions.ts`: Hook para orquestração de diálogos de publicação, arquivamento e reativação.
+- `use-agent-workspace-state.ts`: Hook para gerenciamento da versão selecionada e cache de configurações.
+
+---
+
+### 3. Validação com Testes de Integração PostgreSQL (Seção 40)
+- Arquivo: `apps/api/src/integration/agent-api-lifecycle.integration.test.ts`
+- Cobertura validada:
+  1. Criação de Draft v1 e edição de Persona/Voice/Rules/Playbook/Examples.
+  2. Publicação autorizada para OWNER e ADMIN com transição para `PUBLISHED`.
+  3. Rejeição de publicação por MANAGER, OPERATOR e VIEWER (HTTP 403 Forbidden).
+  4. Imutabilidade estrita de versão publicada: tentativa de PATCH retorna HTTP 400 Bad Request; tentativa de DELETE retorna HTTP 409 Conflict.
+  5. Criação de próximo rascunho alocando monotonicamente a versão `v2`.
+  6. Arquivamento e reativação autorizados para ADMIN/OWNER e negados para MANAGER (403 Forbidden).
+  7. Tentativa de manipulação cross-tenant rejeitada com HTTP 404 Not Found.
+
+---
+
+### 4. Validação E2E no Navegador Real (Chromium via Playwright MCP)
+26 passos executados e validados com capturas de tela e asserções no DOM:
+1. **Autenticação Real**: Login como Admin da Org Alpha via Better Auth.
+2. **Navegação**: Acesso aos detalhes do Agente A (`Suporte Alpha`).
+3. **Draft v1**: Confirmação da presença do rascunho v1 e botão "Publicar rascunho".
+4. **Modal de Publicação**: Clique em "Publicar rascunho" e abertura do diálogo acessível.
+5. **Confirmação de Publicação**: Execução do fluxo de publicação.
+6. **Imutabilidade e Read-Only**: Versão v1 exibida como "Publicado", banner de somente leitura ativo, inputs bloqueados, botões de salvar/descartar ocultados.
+7. **Persistência**: Reload da página confirmando estado publicado preservado.
+8. **Novo Rascunho**: Clique em "Criar novo rascunho", alocação correta e monotônica de `v2` (DRAFT).
+9. **Edição de Rascunho**: Alteração do cargo para "Assistente de Suporte e Vendas v2" e salvamento.
+10. **Arquivamento**: Abertura do diálogo de arquivamento, confirmação e transição do status do agente para `ARCHIVED`.
+11. **Bloqueio de Ações**: Verificação de que publicação e novas edições ficam bloqueadas enquanto arquivado.
+12. **Reativação**: Abertura do diálogo de reativação, confirmação e retorno do status para `ACTIVE`.
+13. **RBAC - MANAGER**: Atualização de role para `MANAGER`; verificação de que o editor fica habilitado para rascunhos, mas os botões de Publicar e Arquivar NÃO são renderizados.
+14. **RBAC - OPERATOR**: Atualização de role para `OPERATOR`; verificação do banner "Visualização Restrita", inputs de configuração completamente ocultos e ausência de CTAs de lifecycle.
+15. **RBAC - VIEWER**: Atualização de role para `VIEWER`; verificação da mesma restrição que OPERATOR.
+16. **Isolamento Tenant B**: Login com credenciais do Tenant B; tentativa de acesso ao agente do Tenant A resultando em "Agente não encontrado" (404) e redirecionamento de URL seguro.
+17. **Responsividade Multi-Dispositivo**:
+    - Mobile (375x812): `scrollWidth === clientWidth` (0px de overflow horizontal).
+    - Tablet (768x1024): `scrollWidth === clientWidth` (0px de overflow horizontal).
+    - Desktop (1440x900): `scrollWidth === clientWidth` (0px de overflow horizontal).
+18. **Acessibilidade WCAG 2.1**:
+    - 100% dos botões possuem nomes acessíveis (`namelessCount: 0`).
+    - Alvos de toque primários com altura mínima de 44px (`minHeight: 44px`).
+
+---
+
+### 5. Limpeza e Governança de Dados
+- Servidores de teste encerrados e portas 3000 e 3001 liberadas.
+- Script de limpeza executado no PostgreSQL local: conferência com query retornando rigorosamente 0 usuários residuais, 0 organizações residuais e 0 agentes residuais de teste.
+- Scripts auxiliares temporários removidos do diretório `scripts/`.
+- Auditoria de segredos executada sobre o diff com resultado `SECRET_AUDIT_PASS: true`.
+
+---
+
+### 6. Pipeline de Qualidade (`pnpm check`)
+- `pnpm format:check`: 100% aprovado (Prettier).
+- `pnpm lint`: 100% aprovado (ESLint, 0 erros, 0 avisos).
+- `pnpm typecheck`: 12/12 pacotes aprovados (TypeScript sem erros).
+- `pnpm test`: 66 arquivos de teste aprovados (341 testes unitários e de integração aprovados, 45 testes de staging ignorados, 0 falhas).
+- `turbo build`: 12/12 pacotes compilados com sucesso (FULL TURBO).
+- `check-architecture.mjs`: 100% aprovado (regras arquiteturais e AST).
+- `check-file-size.mjs`: 185 arquivos de lógica verificados, todos dentro do limite máximo de 180 linhas (0 erros).
+- Schema & Migrations: **ZERO** alterações de schema e zero novas migrations.
+- Dependências: **ZERO** novas dependências instaladas.
+- Neon / Staging / Produção / Twilio: **100% INTOCADOS**.
+
+
 

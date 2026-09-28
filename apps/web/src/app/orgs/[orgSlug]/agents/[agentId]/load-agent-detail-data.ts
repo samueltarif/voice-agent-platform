@@ -14,18 +14,19 @@ export interface AgentDetailDataResult {
   readonly versions: readonly AgentVersionMetadataResponse[];
   readonly draftVersion: AgentVersionMetadataResponse | null;
   readonly draftConfig: AgentConfigurationSnapshotV1 | null;
+  readonly publishedConfig: AgentConfigurationSnapshotV1 | null;
   readonly isNotFound: boolean;
   readonly errorMessage: string | null;
 }
 
-async function fetchDraftConfig(
+async function fetchVersionConfig(
   tenantClient: TenantApiClient,
   agentId: string,
-  draftVersionId: string,
+  versionId: string,
 ): Promise<AgentConfigurationSnapshotV1 | null> {
   const res = await tenantClient.request<AgentVersionConfigurationResponse>({
     method: 'GET',
-    path: `/v1/agents/${agentId}/versions/${draftVersionId}/configuration`,
+    path: `/v1/agents/${agentId}/versions/${versionId}/configuration`,
   });
   return res.configuration;
 }
@@ -37,6 +38,7 @@ function handleDetailError(err: unknown): AgentDetailDataResult {
     versions: [],
     draftVersion: null,
     draftConfig: null,
+    publishedConfig: null,
     isNotFound: is404,
     errorMessage: is404 ? null : 'Não foi possível carregar os detalhes do agente.',
   };
@@ -63,16 +65,25 @@ export async function loadAgentDetailData(
 
     const draftVersion =
       versions.find((v: AgentVersionMetadataResponse) => v.status === 'DRAFT') ?? null;
-    const shouldFetchConfig = draftVersion !== null && canReadAgentConfig(context.role);
-    const draftConfig = shouldFetchConfig
-      ? await fetchDraftConfig(tenantClient, agentId, draftVersion.id)
-      : null;
+    const publishedVersion =
+      versions.find((v: AgentVersionMetadataResponse) => v.status === 'PUBLISHED') ?? null;
+    const canRead = canReadAgentConfig(context.role);
+
+    let draftConfig: AgentConfigurationSnapshotV1 | null = null;
+    let publishedConfig: AgentConfigurationSnapshotV1 | null = null;
+
+    if (draftVersion && canRead) {
+      draftConfig = await fetchVersionConfig(tenantClient, agentId, draftVersion.id);
+    } else if (publishedVersion && canRead) {
+      publishedConfig = await fetchVersionConfig(tenantClient, agentId, publishedVersion.id);
+    }
 
     return {
       agent,
       versions,
       draftVersion,
       draftConfig,
+      publishedConfig,
       isNotFound: false,
       errorMessage: null,
     };

@@ -56,6 +56,7 @@ describe('Agent Studio API Lifecycle & Quota (PostgreSQL Integration)', () => {
   const userId = `usr_int_life_${testSuffix}`;
 
   const createdOrgIds: string[] = [];
+  const createdUserIds: string[] = [userId];
 
   beforeAll(async () => {
     const keyPair = await generateKeyPair('EdDSA', { crv: 'Ed25519', extractable: true });
@@ -109,7 +110,7 @@ describe('Agent Studio API Lifecycle & Quota (PostgreSQL Integration)', () => {
       );
       await pool.query('DELETE FROM organizations WHERE id = ANY($1::uuid[])', [createdOrgIds]);
     }
-    await pool.query('DELETE FROM "user" WHERE id = $1', [userId]);
+    await pool.query('DELETE FROM "user" WHERE id = ANY($1::text[])', [createdUserIds]);
     await pool.end();
   });
 
@@ -274,5 +275,206 @@ describe('Agent Studio API Lifecycle & Quota (PostgreSQL Integration)', () => {
     expect(reactivateRes.status).toBe(200);
     const reactivated = (await reactivateRes.json()) as AgentMetadataResponse;
     expect(reactivated.status).toBe('ACTIVE');
+  });
+
+  it('Section 40: enforces lifecycle RBAC matrix, published immutability, and cross-tenant isolation', async () => {
+    // 1. Setup Org A and Org B
+    const orgA = await createOrgWithQuota(5, 'OWNER');
+    const orgB = await createOrgWithQuota(5, 'ADMIN');
+
+    // 2. Create users with different roles in Org A
+    const roles = ['ADMIN', 'MANAGER', 'OPERATOR', 'VIEWER'] as const;
+    const roleTokens: Record<string, string> = {};
+    roleTokens['OWNER'] = await getAssertion(orgA.id, userId);
+
+    for (const role of roles) {
+      const roleUserId = `usr_${role.toLowerCase()}_${testSuffix}`;
+      await db.insert(user).values({
+        id: roleUserId,
+        name: `User ${role}`,
+        email: `${role.toLowerCase()}_${testSuffix}@example.com`,
+      });
+      createdUserIds.push(roleUserId);
+      await db.insert(organizationMemberships).values({
+        organizationId: orgA.id,
+        userId: roleUserId,
+        role,
+        status: 'ACTIVE',
+      });
+      roleTokens[role] = await getAssertion(orgA.id, roleUserId);
+    }
+
+    const tokenB = await getAssertion(orgB.id, userId);
+
+    // 3. Create Agent A in Org A
+    const createAgentRes = await app.request('/v1/agents', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${roleTokens['OWNER']}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ name: 'Agent Lifecycle Test', slug: 'agent-lifecycle-test' }),
+    });
+    expect(createAgentRes.status).toBe(201);
+    const agentA = (await createAgentRes.json()) as AgentMetadataResponse;
+
+    // 4. Create Draft v1 in Agent A
+    const draftV1Res = await app.request(`/v1/agents/${agentA.id}/drafts`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${roleTokens['ADMIN']}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        configuration: {
+          persona: {
+            role: 'Support',
+            companyName: 'Acme',
+            objective: 'Help users',
+            tone: 'FORMAL' as const,
+            greetingPhrase: 'Hello',
+            closingPhrase: 'Goodbye',
+            fallbackPhrase: 'Pardon',
+          },
+          voice: { languageCode: 'pt-BR' as const },
+          rules: { conversational: ['Rule 1'], deterministic: {} },
+          playbook: { stages: [] },
+          examples: [],
+        },
+        changelog: 'Draft v1',
+      }),
+    });
+    expect(draftV1Res.status).toBe(201);
+    const draftV1 = (await draftV1Res.json()) as AgentVersionMetadataResponse;
+    expect(draftV1.versionNumber).toBe(1);
+
+    // 5. Publish RBAC: MANAGER, OPERATOR, VIEWER are blocked (403)
+    for (const deniedRole of ['MANAGER', 'OPERATOR', 'VIEWER'] as const) {
+      const pubDenied = await app.request(`/v1/agents/${agentA.id}/drafts/${draftV1.id}/publish`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${roleTokens[deniedRole]}` },
+      });
+      expect(pubDenied.status).toBe(403);
+    }
+
+    // 6. Publish with ADMIN succeeds
+    const pubAdminRes = await app.request(`/v1/agents/${agentA.id}/drafts/${draftV1.id}/publish`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${roleTokens['ADMIN']}` },
+    });
+    expect(pubAdminRes.status).toBe(200);
+    const publishedV1 = (await pubAdminRes.json()) as AgentVersionMetadataResponse;
+    expect(publishedV1.status).toBe('PUBLISHED');
+
+    // 7. Immutability: Mutating a published version is strictly rejected (400 InvalidStateTransitionError)
+    const patchPubRes = await app.request(`/v1/agents/${agentA.id}/drafts/${draftV1.id}`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${roleTokens['ADMIN']}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ configuration: { persona: { role: 'Hacked' } } }),
+    });
+    expect(patchPubRes.status).toBe(400);
+
+    const deletePubRes = await app.request(`/v1/agents/${agentA.id}/drafts/${draftV1.id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${roleTokens['ADMIN']}` },
+    });
+    expect(deletePubRes.status).toBe(409);
+
+    // 8. Next Draft after publication: server automatically allocates versionNumber 2
+    const draftV2Res = await app.request(`/v1/agents/${agentA.id}/drafts`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${roleTokens['MANAGER']}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        configuration: {
+          persona: {
+            role: 'Support v2',
+            companyName: 'Acme',
+            objective: 'Help users better',
+            tone: 'FORMAL' as const,
+            greetingPhrase: 'Hello again',
+            closingPhrase: 'Goodbye',
+            fallbackPhrase: 'Pardon',
+          },
+          voice: { languageCode: 'pt-BR' as const },
+          rules: { conversational: ['Rule 1', 'Rule 2'], deterministic: {} },
+          playbook: { stages: [] },
+          examples: [],
+        },
+        changelog: 'Draft v2',
+      }),
+    });
+    expect(draftV2Res.status).toBe(201);
+    const draftV2 = (await draftV2Res.json()) as AgentVersionMetadataResponse;
+    expect(draftV2.versionNumber).toBe(2);
+
+    // 9. Publish v2 with OWNER succeeds; previous published version is archived
+    const pubOwnerRes = await app.request(`/v1/agents/${agentA.id}/drafts/${draftV2.id}/publish`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${roleTokens['OWNER']}` },
+    });
+    expect(pubOwnerRes.status).toBe(200);
+
+    // Check version list: v2 is PUBLISHED, v1 is ARCHIVED
+    const versionsRes = await app.request(`/v1/agents/${agentA.id}/versions`, {
+      headers: { Authorization: `Bearer ${roleTokens['OWNER']}` },
+    });
+    expect(versionsRes.status).toBe(200);
+    const versions = (await versionsRes.json()) as AgentVersionMetadataResponse[];
+    const v2Meta = versions.find((v) => v.versionNumber === 2);
+    const v1Meta = versions.find((v) => v.versionNumber === 1);
+    expect(v2Meta?.status).toBe('PUBLISHED');
+    expect(v1Meta?.status).toBe('ARCHIVED');
+
+    // 10. Archive RBAC: MANAGER cannot archive (403), OWNER/ADMIN can
+    const archiveManagerRes = await app.request(`/v1/agents/${agentA.id}/archive`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${roleTokens['MANAGER']}` },
+    });
+    expect(archiveManagerRes.status).toBe(403);
+
+    const archiveAdminRes = await app.request(`/v1/agents/${agentA.id}/archive`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${roleTokens['ADMIN']}` },
+    });
+    expect(archiveAdminRes.status).toBe(200);
+    const archivedAgent = (await archiveAdminRes.json()) as AgentMetadataResponse;
+    expect(archivedAgent.status).toBe('ARCHIVED');
+
+    // 11. Reactivate with OWNER succeeds
+    const reactivateOwnerRes = await app.request(`/v1/agents/${agentA.id}/reactivate`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${roleTokens['OWNER']}` },
+    });
+    expect(reactivateOwnerRes.status).toBe(200);
+    const reactivatedAgent = (await reactivateOwnerRes.json()) as AgentMetadataResponse;
+    expect(reactivatedAgent.status).toBe('ACTIVE');
+
+    // 12. Cross-tenant isolation: Org B user cannot publish, archive, or reactivate Agent A
+    const crossPublishRes = await app.request(
+      `/v1/agents/${agentA.id}/drafts/${draftV1.id}/publish`,
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${tokenB}` },
+      },
+    );
+    expect(crossPublishRes.status).toBe(404);
+
+    const crossArchiveRes = await app.request(`/v1/agents/${agentA.id}/archive`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenB}` },
+    });
+    expect(crossArchiveRes.status).toBe(404);
+
+    const crossReactivateRes = await app.request(`/v1/agents/${agentA.id}/reactivate`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenB}` },
+    });
+    expect(crossReactivateRes.status).toBe(404);
   });
 });

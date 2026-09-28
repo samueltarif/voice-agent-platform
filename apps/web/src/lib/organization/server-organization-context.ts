@@ -25,12 +25,16 @@ function syncCookieWithResolution(
   resolution: ActiveOrganizationResolutionResult,
   preferredSlug: string | null,
 ): void {
-  if (resolution.stalePreferenceDetected && resolution.context) {
-    setActiveOrgSlugCookie(cookieStore, resolution.context.slug);
-    return;
-  }
-  if (resolution.status === 'NO_ORGANIZATIONS' && preferredSlug) {
-    clearActiveOrgSlugCookie(cookieStore);
+  try {
+    if (resolution.stalePreferenceDetected && resolution.context) {
+      setActiveOrgSlugCookie(cookieStore, resolution.context.slug);
+      return;
+    }
+    if (resolution.status === 'NO_ORGANIZATIONS' && preferredSlug) {
+      clearActiveOrgSlugCookie(cookieStore);
+    }
+  } catch {
+    // In Next.js Server Components, cookies are read-only and modifying throws.
   }
 }
 

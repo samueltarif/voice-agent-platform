@@ -55,4 +55,37 @@ describe('AgentDetailHeader', () => {
     expect(html).toContain('Não publicado');
     expect(html).not.toContain('Rascunho v');
   });
+
+  it('renders publish and archive buttons when authorized and agent is active', () => {
+    const html = renderToString(
+      React.createElement(AgentDetailHeader, {
+        agent: MOCK_AGENT,
+        currentDraft: MOCK_DRAFT,
+        orgSlug: 'test-org',
+        canPublish: true,
+        canArchive: true,
+        onOpenPublish: () => {},
+        onOpenArchive: () => {},
+      }),
+    );
+
+    expect(html).toContain('Publicar rascunho');
+    expect(html).toContain('Arquivar');
+  });
+
+  it('renders reactivate button when agent is archived and user has canArchive', () => {
+    const html = renderToString(
+      React.createElement(AgentDetailHeader, {
+        agent: { ...MOCK_AGENT, status: 'ARCHIVED' },
+        currentDraft: null,
+        orgSlug: 'test-org',
+        canArchive: true,
+        onOpenReactivate: () => {},
+      }),
+    );
+
+    expect(html).toContain('Reativar agente');
+    expect(html).not.toContain('Publicar rascunho');
+    expect(html).not.toContain('btn-archive-agent');
+  });
 });
