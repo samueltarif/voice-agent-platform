@@ -54,7 +54,13 @@ function AgentListEmptyState({
   );
 }
 
-function AgentMobileCard({ agent }: { readonly agent: AgentMetadataResponse }) {
+function AgentMobileCard({
+  agent,
+  orgSlug,
+}: {
+  readonly agent: AgentMetadataResponse;
+  readonly orgSlug: string;
+}) {
   return (
     <div
       key={agent.id}
@@ -63,7 +69,12 @@ function AgentMobileCard({ agent }: { readonly agent: AgentMetadataResponse }) {
     >
       <div className="flex items-start justify-between gap-2">
         <div className="space-y-0.5 min-w-0">
-          <span className="font-semibold text-sm text-foreground truncate block">{agent.name}</span>
+          <Link
+            href={`/orgs/${orgSlug}/agents/${agent.id}`}
+            className="font-semibold text-sm text-foreground truncate block hover:underline hover:text-primary"
+          >
+            {agent.name}
+          </Link>
           <span className="font-mono text-xs text-muted-foreground truncate block">
             {agent.slug}
           </span>
@@ -112,10 +123,13 @@ export function AgentList({ agents, canCreate, orgSlug }: AgentListProps) {
                 className="border-border/40 hover:bg-muted/40 transition-colors"
               >
                 <TableCell className="font-medium text-sm text-foreground">
-                  <div className="flex items-center gap-2">
+                  <Link
+                    href={`/orgs/${orgSlug}/agents/${agent.id}`}
+                    className="flex items-center gap-2 hover:underline hover:text-primary transition-colors"
+                  >
                     <Bot className="h-4 w-4 text-primary shrink-0" />
                     <span>{agent.name}</span>
-                  </div>
+                  </Link>
                 </TableCell>
                 <TableCell className="font-mono text-xs text-muted-foreground">
                   {agent.slug}
@@ -138,7 +152,7 @@ export function AgentList({ agents, canCreate, orgSlug }: AgentListProps) {
       {/* Mobile Card View (< 768px) */}
       <div className="md:hidden space-y-3">
         {agents.map((agent) => (
-          <AgentMobileCard key={agent.id} agent={agent} />
+          <AgentMobileCard key={agent.id} agent={agent} orgSlug={orgSlug} />
         ))}
       </div>
     </div>
