@@ -70,15 +70,44 @@ describe('loadAgentDetailData', () => {
     expect(result.agent?.name).toBe('Agent 1');
     expect(result.draftVersion?.id).toBe('ver-2');
     expect(result.draftConfig?.persona.role).toBe(DEFAULT_AGENT_CONFIGURATION_V1.persona.role);
+    expect(result.publishedConfig).toBeNull();
   });
 
-  it('does NOT fetch draft configuration when user has VIEWER role', async () => {
+  it('loads published configuration when no draft exists and published version is present', async () => {
     mockRequest.mockImplementation(({ path }: { path: string }) => {
       if (path === '/v1/agents/agent-1') {
         return Promise.resolve({ id: 'agent-1', name: 'Agent 1' });
       }
       if (path === '/v1/agents/agent-1/versions') {
-        return Promise.resolve([{ id: 'ver-2', versionNumber: 2, status: 'DRAFT' }]);
+        return Promise.resolve([{ id: 'ver-1', versionNumber: 1, status: 'PUBLISHED' }]);
+      }
+      if (path === '/v1/agents/agent-1/versions/ver-1/configuration') {
+        return Promise.resolve({
+          versionId: 'ver-1',
+          configuration: DEFAULT_AGENT_CONFIGURATION_V1,
+          schemaVersion: 1,
+        });
+      }
+      return Promise.reject(new Error(`Unexpected path: ${path}`));
+    });
+
+    const result = await loadAgentDetailData(CONTEXT_ADMIN, 'usr-1', 'agent-1');
+
+    expect(result.draftVersion).toBeNull();
+    expect(result.draftConfig).toBeNull();
+    expect(result.publishedConfig?.persona.role).toBe(DEFAULT_AGENT_CONFIGURATION_V1.persona.role);
+  });
+
+  it('does NOT fetch draft or published configuration when user has VIEWER role', async () => {
+    mockRequest.mockImplementation(({ path }: { path: string }) => {
+      if (path === '/v1/agents/agent-1') {
+        return Promise.resolve({ id: 'agent-1', name: 'Agent 1' });
+      }
+      if (path === '/v1/agents/agent-1/versions') {
+        return Promise.resolve([
+          { id: 'ver-1', versionNumber: 1, status: 'PUBLISHED' },
+          { id: 'ver-2', versionNumber: 2, status: 'DRAFT' },
+        ]);
       }
       return Promise.reject(new Error(`Forbidden configuration fetch: ${path}`));
     });
@@ -88,9 +117,7 @@ describe('loadAgentDetailData', () => {
     expect(result.isNotFound).toBe(false);
     expect(result.draftVersion?.id).toBe('ver-2');
     expect(result.draftConfig).toBeNull();
-    expect(mockRequest).not.toHaveBeenCalledWith(
-      expect.objectContaining({ path: '/v1/agents/agent-1/versions/ver-2/configuration' }),
-    );
+    expect(result.publishedConfig).toBeNull();
   });
 
   it('returns isNotFound=true when backend returns 404', async () => {

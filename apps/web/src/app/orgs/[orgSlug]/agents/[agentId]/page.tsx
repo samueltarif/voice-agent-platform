@@ -2,20 +2,15 @@ import * as React from 'react';
 import { redirect } from 'next/navigation';
 import { AlertCircle } from 'lucide-react';
 import { Card, CardContent } from '@voice-agent/ui';
-import type {
-  AgentMetadataResponse,
-  AgentVersionMetadataResponse,
-  AgentConfigurationSnapshotV1,
-} from '@voice-agent/contracts';
 import { getServerOrganizationContext } from '../../../../../lib/organization/server-organization-context.js';
 import { TenantShell } from '../../../../../shell/tenant-shell';
 import {
   canReadAgentConfig,
   canEditAgent,
+  canPublishAgent,
+  canArchiveAgent,
 } from '../../../../../features/agents/agent-permissions.js';
-import { AgentDetailHeader } from '../../../../../features/agents/agent-detail-header';
-import { AgentDraftBanner } from '../../../../../features/agents/agent-draft-banner';
-import { AgentDraftEditor } from '../../../../../features/agents/agent-draft-editor';
+import { AgentDetailWorkspace } from '../../../../../features/agents/agent-detail-workspace.js';
 import { loadAgentDetailData } from './load-agent-detail-data.js';
 
 interface AgentDetailPageProps {
@@ -54,40 +49,6 @@ function AgentDetailStatusNotice({
   return null;
 }
 
-function AgentDetailBody({
-  agent,
-  draftVersion,
-  draftConfig,
-  canReadConfig,
-  canEdit,
-}: {
-  readonly agent: AgentMetadataResponse;
-  readonly draftVersion: AgentVersionMetadataResponse | null;
-  readonly draftConfig: AgentConfigurationSnapshotV1 | null;
-  readonly canReadConfig: boolean;
-  readonly canEdit: boolean;
-}) {
-  if (!canReadConfig || !draftVersion || !draftConfig) {
-    return (
-      <AgentDraftBanner
-        agentId={agent.id}
-        hasDraft={Boolean(draftVersion)}
-        canReadConfig={canReadConfig}
-        canEdit={canEdit}
-      />
-    );
-  }
-
-  return (
-    <AgentDraftEditor
-      agentId={agent.id}
-      versionId={draftVersion.id}
-      initialConfiguration={draftConfig}
-      readOnly={!canEdit}
-    />
-  );
-}
-
 async function resolveVerifiedOrgContext(orgSlug: string, agentId: string) {
   const orgResult = await getServerOrganizationContext();
   if (orgResult.status === 'UNAUTHENTICATED') {
@@ -115,11 +76,11 @@ export default async function AgentDetailPage({ params }: AgentDetailPageProps) 
 
   const canReadConfig = canReadAgentConfig(activeOrg.role);
   const canEdit = canEditAgent(activeOrg.role);
-  const { agent, draftVersion, draftConfig, isNotFound, errorMessage } = await loadAgentDetailData(
-    activeOrg,
-    user.id,
-    agentId,
-  );
+  const canPublish = canPublishAgent(activeOrg.role);
+  const canArchive = canArchiveAgent(activeOrg.role);
+
+  const { agent, versions, draftVersion, draftConfig, publishedConfig, isNotFound, errorMessage } =
+    await loadAgentDetailData(activeOrg, user.id, agentId);
 
   const pageTitle = agent ? `${agent.name} — Detalhes` : 'Agente — Detalhes';
 
@@ -133,16 +94,18 @@ export default async function AgentDetailPage({ params }: AgentDetailPageProps) 
         <AgentDetailStatusNotice isNotFound={isNotFound} errorMessage={errorMessage} />
 
         {agent && (
-          <>
-            <AgentDetailHeader agent={agent} currentDraft={draftVersion} orgSlug={activeOrg.slug} />
-            <AgentDetailBody
-              agent={agent}
-              draftVersion={draftVersion}
-              draftConfig={draftConfig}
-              canReadConfig={canReadConfig}
-              canEdit={canEdit}
-            />
-          </>
+          <AgentDetailWorkspace
+            agent={agent}
+            versions={versions}
+            draftVersion={draftVersion}
+            draftConfig={draftConfig}
+            publishedConfig={publishedConfig}
+            canReadConfig={canReadConfig}
+            canEdit={canEdit}
+            canPublish={canPublish}
+            canArchive={canArchive}
+            orgSlug={activeOrg.slug}
+          />
         )}
       </div>
     </TenantShell>

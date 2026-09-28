@@ -107,6 +107,7 @@ describe('AgentDetailPage - Routing & Access Guards', () => {
       versions: [],
       draftVersion: null,
       draftConfig: null,
+      publishedConfig: null,
       isNotFound: true,
       errorMessage: null,
     });
@@ -144,6 +145,7 @@ describe('AgentDetailPage - Role Access', () => {
       versions: [MOCK_DRAFT_VERSION],
       draftVersion: MOCK_DRAFT_VERSION,
       draftConfig: null,
+      publishedConfig: null,
       isNotFound: false,
       errorMessage: null,
     });
@@ -182,6 +184,7 @@ describe('AgentDetailPage - Draft Lifecycle', () => {
       versions: [],
       draftVersion: null,
       draftConfig: null,
+      publishedConfig: null,
       isNotFound: false,
       errorMessage: null,
     });
@@ -214,6 +217,7 @@ describe('AgentDetailPage - Draft Lifecycle', () => {
       versions: [MOCK_DRAFT_VERSION],
       draftVersion: MOCK_DRAFT_VERSION,
       draftConfig: DEFAULT_AGENT_CONFIGURATION_V1,
+      publishedConfig: null,
       isNotFound: false,
       errorMessage: null,
     });
@@ -228,5 +232,57 @@ describe('AgentDetailPage - Draft Lifecycle', () => {
     expect(html).toContain('Persona e Identidade Vocal');
     expect(html).toContain('Regras de Comportamento');
     expect(html).toContain('Salvar rascunho');
+    expect(html).toContain('Publicar rascunho');
+    expect(html).toContain('Arquivar');
+  });
+});
+
+describe('AgentDetailPage - Published Lifecycle', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('renders published version in read-only mode when no draft exists and published version is present', async () => {
+    const publishedVersion: AgentVersionMetadataResponse = {
+      id: 'ver-pub-1',
+      versionNumber: 1,
+      status: 'PUBLISHED',
+      configurationSchemaVersion: 1,
+      createdAt: '2026-09-01T10:00:00.000Z',
+      updatedAt: '2026-09-01T10:00:00.000Z',
+      publishedAt: '2026-09-01T10:05:00.000Z',
+      publishedBy: 'usr-admin',
+    };
+
+    vi.mocked(getServerOrganizationContext).mockResolvedValueOnce({
+      status: 'RESOLVED',
+      context: {
+        organizationId: 'org-1',
+        slug: 'active-org',
+        name: 'Active Org',
+        role: 'ADMIN',
+      },
+      availableOrganizations: [],
+      user: { id: 'usr-admin', email: 'admin@example.com' },
+    });
+
+    vi.mocked(loadAgentDetailData).mockResolvedValueOnce({
+      agent: { ...MOCK_AGENT, currentPublishedVersionNumber: 1 },
+      versions: [publishedVersion],
+      draftVersion: null,
+      draftConfig: null,
+      publishedConfig: DEFAULT_AGENT_CONFIGURATION_V1,
+      isNotFound: false,
+      errorMessage: null,
+    });
+
+    const element = await AgentDetailPage({
+      params: Promise.resolve({ orgSlug: 'active-org', agentId: 'agent-1' }),
+    });
+    const html = renderToString(element!);
+
+    expect(html).toContain('Versão v1 (Publicada) — Somente Leitura');
+    expect(html).toContain('Persona e Identidade Vocal');
+    expect(html).not.toContain('Salvar rascunho');
   });
 });

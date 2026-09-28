@@ -11,3 +11,11 @@ export function canReadAgentConfig(role?: TenantRole | string | null): boolean {
 export function canEditAgent(role?: TenantRole | string | null): boolean {
   return role === 'OWNER' || role === 'ADMIN' || role === 'MANAGER';
 }
+
+export function canPublishAgent(role?: TenantRole | string | null): boolean {
+  return role === 'OWNER' || role === 'ADMIN';
+}
+
+export function canArchiveAgent(role?: TenantRole | string | null): boolean {
+  return role === 'OWNER' || role === 'ADMIN';
+}

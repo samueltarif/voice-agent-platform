@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { canCreateAgent, canReadAgentConfig, canEditAgent } from './agent-permissions.js';
+import {
+  canCreateAgent,
+  canReadAgentConfig,
+  canEditAgent,
+  canPublishAgent,
+  canArchiveAgent,
+} from './agent-permissions.js';
 
 describe('Agent Permissions RBAC Helpers', () => {
   describe('canCreateAgent', () => {
@@ -45,6 +51,36 @@ describe('Agent Permissions RBAC Helpers', () => {
       expect(canEditAgent('VIEWER')).toBe(false);
       expect(canEditAgent(null)).toBe(false);
       expect(canEditAgent(undefined)).toBe(false);
+    });
+  });
+
+  describe('canPublishAgent', () => {
+    it('allows OWNER and ADMIN to publish agent versions', () => {
+      expect(canPublishAgent('OWNER')).toBe(true);
+      expect(canPublishAgent('ADMIN')).toBe(true);
+    });
+
+    it('denies MANAGER, OPERATOR, VIEWER and unknown roles', () => {
+      expect(canPublishAgent('MANAGER')).toBe(false);
+      expect(canPublishAgent('OPERATOR')).toBe(false);
+      expect(canPublishAgent('VIEWER')).toBe(false);
+      expect(canPublishAgent(null)).toBe(false);
+      expect(canPublishAgent(undefined)).toBe(false);
+    });
+  });
+
+  describe('canArchiveAgent', () => {
+    it('allows OWNER and ADMIN to archive or reactivate agent', () => {
+      expect(canArchiveAgent('OWNER')).toBe(true);
+      expect(canArchiveAgent('ADMIN')).toBe(true);
+    });
+
+    it('denies MANAGER, OPERATOR, VIEWER and unknown roles', () => {
+      expect(canArchiveAgent('MANAGER')).toBe(false);
+      expect(canArchiveAgent('OPERATOR')).toBe(false);
+      expect(canArchiveAgent('VIEWER')).toBe(false);
+      expect(canArchiveAgent(null)).toBe(false);
+      expect(canArchiveAgent(undefined)).toBe(false);
     });
   });
 });
