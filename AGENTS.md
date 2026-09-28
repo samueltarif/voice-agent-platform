@@ -96,13 +96,13 @@ Antes de criar ou alterar qualquer arquivo, o agente DEVE seguir este ciclo de i
 5. **Teardown Fail-Visible e Scoped**: Teardowns de teste devem utilizar identificadores sintéticos únicos (`runId`) e comprovar **zero resíduos** (*zero leftovers*) ao término da execução.
 6. **Autenticação e RBAC em E2E**: Testes nunca devem contornar validações de autenticação, RBAC ou tenant isolation para declarar um fluxo como `VALIDATED`.
 7. **Terminologia Normativa de Evidência**:
-   - `IMPLEMENTED`: Código criado.
-   - `TESTED`: Testes automatizados passando.
-   - `VALIDATED`: Fluxo funcional completo comprovado em ambiente real (PostgreSQL real + Browser real).
-   - `PROVIDER-UNVERIFIED`: Integração desenhada/implementada mas sem teste em provedor real pago.
-   - `BLOCKED`: Bloqueado por dependência técnica ou decisão externa.
-   - `NÃO VERIFICADO`: Nenhuma evidência factual produzida.
-   - *Nota*: Screenshots visuais não equivalem a testes funcionais E2E.
+   - `IMPLEMENTED`: O código ou contrato foi formalmente implementado.
+   - `TESTED`: Testes automatizados relevantes foram executados e passaram localmente.
+   - `VALIDATED`: O fluxo funcional relevante foi comprovado no ambiente apropriado para aquele fluxo, com as dependências reais exigidas pelo claim (ex.: fluxo web autenticado comprovado com browser real e serviços reais).
+   - `PROVIDER-UNVERIFIED`: Integração ou capacidade relacionada a provedor externo ainda não foi comprovada contra o provedor real pago (ex.: telefonia Twilio real).
+   - `BLOCKED`: O gate ou fluxo não pode ser executado por dependência técnica ou decisão externa.
+   - `NÃO VERIFICADO`: Nenhuma evidência factual produzida; é proibido assumir funcionamento sem prova.
+   - *Nota*: Screenshots visuais não equivalem a testes funcionais E2E. State machine determinística pura pode ser `TESTED` sem ser chamada de provider-validated.
 
 ---
 

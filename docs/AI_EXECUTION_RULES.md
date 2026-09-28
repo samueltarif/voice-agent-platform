@@ -147,17 +147,18 @@ Em relatórios, auditorias e no `AI_WORKLOG.md`, os agentes devem empregar estri
 | Estado | Significado Normativo |
 |---|---|
 | `PLANNED` | Requisito formalmente desenhado e catalogado, mas com código ainda não escrito. |
-| `IMPLEMENTED` | O código-fonte, endpoints e componentes foram criados, respeitando contratos e tipagem. |
-| `TESTED` | Testes unitários ou de integração automatizados foram executados e passaram localmente. |
-| `VALIDATED` | O fluxo funcional completo de ponta a ponta foi comprovado em ambiente real (PostgreSQL real + Browser Chromium real). |
-| `PROVIDER-UNVERIFIED` | Integração implementada em adapters/portas, mas ainda não testada contra o provedor externo real pago. |
-| `BLOCKED` | O fluxo não pode avançar devido a dependência técnica, bloqueio de credencial ou decisão humana pendente. |
+| `IMPLEMENTED` | O código-fonte, contratos, endpoints e componentes foram criados, respeitando contratos e tipagem. |
+| `TESTED` | Testes automatizados relevantes (unitários ou de integração) foram executados e passaram localmente. |
+| `VALIDATED` | O fluxo funcional relevante foi comprovado no ambiente apropriado para aquele fluxo, com as dependências reais exigidas pelo claim (ex.: fluxo de navegador autenticado exige browser real e backend real). |
+| `PROVIDER-UNVERIFIED` | Integração ou capacidade relacionada a provedor externo desenhada/implementada, mas ainda não comprovada contra o provedor real pago (ex.: tráfego telefônico Twilio real). |
+| `BLOCKED` | O fluxo ou gate não pode avançar devido a dependência técnica, bloqueio de credencial ou decisão humana pendente. |
 | `NÃO VERIFICADO` | Nenhuma evidência factual foi produzida; é vedado assumir funcionamento sem teste comprovado. |
 
 ### Regras Adicionais de Evidência
 - Captura de tela visual (*screenshot*) **NÃO** equivale a validação funcional completa (E2E).
 - Captura de tela não autenticada **NÃO** valida fluxos autenticados.
 - Indisponibilidade de ferramenta de browser **NÃO** significa falha da aplicação.
+- Componentes puramente determinísticos (como state machines e orchestrator skeletons) podem atingir `IMPLEMENTED` e `TESTED` sem necessidade de browser ou provedores externos, mas **NUNCA** devem ser classificados como `VALIDATED` em nível de provedor sem teste contra provedor real.
 
 ---
 

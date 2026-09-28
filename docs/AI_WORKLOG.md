@@ -5597,3 +5597,14 @@ Todos os gates de auditoria de segurança, invariantes de lifecycle, RBAC, confi
 ### 5. Próximo Passo Planejado
 - Submissão do Pull Request formal de governança para revisão humana.
 - Kickoff da arquitetura e contratos da **Phase 6** (Voice Agent Runtime & Telephony Integration) somente após merge autorizado deste PR.
+
+---
+
+## 2026-09-28 — PROMPT-006A (Parte A): Governance PR #22 Terminology Clarification
+- **PR**: #22 (`chore/agent-operational-hardening`).
+- **Clarificação Terminológica**: Refinada a definição de `VALIDATED` em `AGENTS.md` e `docs/AI_EXECUTION_RULES.md` para evitar a restrição universal a "PostgreSQL real + Browser real", adequando o conceito ao ambiente e dependências reais exigidas pelo claim do fluxo (ex.: runtimes determinísticos vs fluxos web autenticados vs telefonia real).
+- **Código Funcional**: ZERO alterações.
+- **Schema & Migrations**: ZERO alterações.
+- **Dependências**: ZERO alterações.
+- **Provedores Externos**: NÃO acessados (Neon, Staging, Produção, Twilio, OpenAI, Anthropic, Google, AWS 100% intocados).
+- **Desvios de Segurança no Turno**: 0 (ZERO).
