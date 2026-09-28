@@ -5515,6 +5515,96 @@ Implementação e validação integral do Slice 005D-C2 (Agent Studio Lifecycle:
 Todos os gates de auditoria de segurança, invariantes de lifecycle, RBAC, confidencialidade de IA, testes automatizados e limpeza de banco foram integralmente satisfeitos.
 - **Status do PR #21 neste momento**: `OPEN / MERGE AUTHORIZED`
 
+---
 
+## 2026-09-28 — PROMPT-GOVERNANCE-HARDENING-001: Operational Security Rules Hardening Before Phase 6
 
+### 1. Contexto e Motivação do Hardening
+- **Objetivo**: Fortalecer formal e preventivamente as regras operacionais e de segurança dos agentes de IA antes de qualquer início de trabalho na Phase 6 (Voice Agent Runtime), com base em desvios operacionais reais observados durante as fases B0-C2 (emissão de JWK efêmero em log, DSN literal local em terminal, inspeção de fixture sintética com senha, consulta a task logs).
+- **Natureza da Demanda**: Estritamente de governança e documentação. Zero código funcional alterado.
+- **Fronteiras Mandatórias Respeitadas**:
+  - Phase 6: **NÃO INICIADA**.
+  - Código-fonte funcional: **100% INTACTO**.
+  - Schema de banco de dados: **ZERO ALTERAÇÕES**.
+  - Migrations: **ZERO NOVAS MIGRATIONS**.
+  - Dependências (`package.json`, `pnpm-workspace.yaml`, `pnpm-lock.yaml`): **ZERO ALTERAÇÕES**.
+  - Ambientes externos (Neon, Staging, Produção, Twilio, OpenAI, Anthropic, Google, AWS): **100% INTOCADOS / NÃO ACESSADOS**.
+  - Regras do GitHub e proteções de branch: **INTOCADAS**.
 
+---
+
+### 2. Documentação e Arquivos Alterados
+1. **[AGENTS.md](file:///D:/voice-agent-platform/AGENTS.md)** (Atualizado):
+   - Atualizado com linguagem estritamente normativa (`MUST`, `MUST NOT`, `NEVER`, `STOP`).
+   - Mantida estrutura executiva concisa e de rápida consulta.
+   - Referência explícita e vinculante adicionada a [docs/AI_EXECUTION_RULES.md](file:///D:/voice-agent-platform/docs/AI_EXECUTION_RULES.md).
+   - Nenhuma regra anterior foi enfraquecida ou removida; limites de complexidade, multi-tenancy, isolamento de banco, regras de testes, dependências pnpm e DoD foram 100% preservados.
+2. **[docs/AI_EXECUTION_RULES.md](file:///D:/voice-agent-platform/docs/AI_EXECUTION_RULES.md)** (Novo Documento Canônico Criado):
+   - Manual operacional abrangente e detalhado contendo 13 seções, diretrizes normativas e exemplos explícitos de práticas permitidas versus proibidas.
+3. **[docs/AI_WORKLOG.md](file:///D:/voice-agent-platform/docs/AI_WORKLOG.md)** (Append-Only):
+   - Registro desta entrada factual de auditoria.
+
+---
+
+### 3. Categorias de Regras Operacionais Fortalecidas
+1. **Proibição Absoluta de Acesso a Storages Internos da IDE**:
+   - Proibido ler, listar, pesquisar, parsear ou usar como scratch: `.system_generated/`, `.gemini/`, `.agents/`, `antigravity-ide/brain/`, arquivos `task-*.log`, histórico de terminal/IDE e `transcript*.jsonl`.
+   - Se o contexto for perdido ou compactado: perguntar ao operador humano; nunca tentar reconstruir contexto via logs internos.
+2. **Blindagem e Não Exibição de Segredos (Never Print Secrets)**:
+   - Proibição absoluta de exibir, ecoar, logar ou retornar senhas, session tokens, cookies, JWTs, Bearer tokens, API keys, tokens GitHub, chaves privadas (JWK, PEM), Better Auth secrets, connection strings literais/DSNs ou credenciais de provedores.
+   - A regra vale universalmente para produção, staging, dev, localhost e dados sintéticos de E2E. "É apenas local" não é exceção.
+3. **Auditorias Baseadas Exclusivamente em Booleanos (Value-Blind)**:
+   - Toda verificação de segredos e diffs de Git deve retornar exclusivamente status (`SECRET_AUDIT_PASS` / `SECRET_AUDIT_FAIL`, `PRESENT` / `ABSENT`), sem imprimir linhas ou trechos de código coincidentes.
+4. **Proteção de Arquivos de Ambiente (.env) e Processos**:
+   - Proibido executar `cat`/`type`/`Get-Content` em arquivos `.env`, `.env.local`, `.env.staging`, `.env.production`.
+   - Diagnósticos de processos limitados a PID, nome do executável, porta TCP (`Get-NetTCPConnection`), healthchecks e exit code. Proibido consultar `CommandLine`, `argv` completo ou variáveis de ambiente de processos.
+5. **Segurança de Banco de Dados e Sessões Better Auth**:
+   - Proibição de DSNs ou connection strings literais em argumentos de terminal.
+   - Proibição de `SELECT token FROM session` ou extração manual de cookies de autenticação. Sessões E2E devem utilizar endpoints oficiais e contexto real de navegador.
+6. **Criptografia Efêmera em Testes (Ed25519)**:
+   - Pares de chave para validação criptográfica entre serviços devem existir apenas em memória, sem persistência em disco e sem impressão de chaves privadas ou JWTs. Diagnósticos booleanos permitidos: `KEYPAIR_GENERATED=true`, `SIGN_OK=true`, `VERIFY_OK=true`.
+7. **Credenciais Sintéticas e Helpers Temporários**:
+   - Senhas sintéticas restritas a runtime/memória (proibido criar `test-data.json` com senhas).
+   - Helpers temporários de teste confinados a `scripts/tmp-<proposito>.mjs` e obrigatoriamente deletados antes de qualquer commit.
+8. **Integridade de Fixtures e Proibição de Patches Manuais de Dados**:
+   - Fixtures devem respeitar todas as invariantes de domínio (`next_version_number`, unicidade de draft, unicidade de versão publicada, `organizationId`, status ativo, quotas comerciais).
+   - Proibição total de `UPDATE`/`DELETE` manuais para forçar testes a passar. Inconsistências exigem interrupção (`STOP`), classificação na raiz (`PRODUCT BUG` vs `FIXTURE SETUP BUG`) e teste de regressão automatizado.
+9. **Terminologia Normativa de Evidência**:
+   - Estados canônicos definidos: `PLANNED`, `IMPLEMENTED`, `TESTED`, `VALIDATED`, `PROVIDER-UNVERIFIED`, `BLOCKED`, `NÃO VERIFICADO`.
+   - Screenshots visuais não equivalem a testes funcionais E2E.
+10. **Arquitetura de Domínio Desacoplada (Provider-Neutral) e Autoridade de Voz (Phase 6+)**:
+    - O domínio nunca importa SDKs de provedores externos (Twilio, OpenAI, Anthropic, Google, AWS); integração mediada exclusivamente por portas e adapters.
+    - Provedores de voz (Twilio) e LLMs não são a fonte da verdade do domínio: banco de dados é a única fonte durável; CallSession/state machine orquestra runtime; LLM/Twilio nunca decidem tenant, autorização, precificação, faturamento ou publicação de versões.
+    - Hipóteses não testadas em provedores reais permanecem obrigatoriamente como `PROVIDER-UNVERIFIED`.
+11. **Fronteira de Rede e Operações Remotas**:
+    - Ambientes remotos e APIs de provedores só podem ser acessados com autorização formal explícita no prompt. Ausência de autorização: `NO ACCESS`.
+    - Operações remotas destrutivas e alterações no GitHub proibidas sem confirmação humana direta.
+12. **Procedimento para Security Process Deviations**:
+    - Qualquer desvio deve ser imediatamente reportado no `AI_WORKLOG.md` (append-only) com: Fato, Escopo, Risco, Contenção, Ação Corretiva e Necessidade de Rotação.
+13. **Checklist Pré-Execução de Segurança (10 Pontos Mandatórios)**:
+    - Adicionado a `AGENTS.md` e `docs/AI_EXECUTION_RULES.md` para auto-checagem prévia do agente antes de rodar comandos complexos.
+
+---
+
+### 4. Validação de Conformidade e Quality Gate
+- **Prettier Format Check (`pnpm format:check`)**: Aprovado com sucesso (100% dos arquivos em conformidade).
+- **Auditoria Booleana de Segredos (`SECRET_AUDIT_PASS`)**: Validada no diff da branch `origin/main...HEAD`.
+- **Desvios de Processo de Segurança no Turno**: **ZERO**.
+- **Working Tree**: Limpa e sem helpers temporários remanescentes.
+
+---
+
+### 5. Próximo Passo Planejado
+- Submissão do Pull Request formal de governança para revisão humana.
+- Kickoff da arquitetura e contratos da **Phase 6** (Voice Agent Runtime & Telephony Integration) somente após merge autorizado deste PR.
+
+---
+
+## 2026-09-28 — PROMPT-006A (Parte A): Governance PR #22 Terminology Clarification
+- **PR**: #22 (`chore/agent-operational-hardening`).
+- **Clarificação Terminológica**: Refinada a definição de `VALIDATED` em `AGENTS.md` e `docs/AI_EXECUTION_RULES.md` para evitar a restrição universal a "PostgreSQL real + Browser real", adequando o conceito ao ambiente e dependências reais exigidas pelo claim do fluxo (ex.: runtimes determinísticos vs fluxos web autenticados vs telefonia real).
+- **Código Funcional**: ZERO alterações.
+- **Schema & Migrations**: ZERO alterações.
+- **Dependências**: ZERO alterações.
+- **Provedores Externos**: NÃO acessados (Neon, Staging, Produção, Twilio, OpenAI, Anthropic, Google, AWS 100% intocados).
+- **Desvios de Segurança no Turno**: 0 (ZERO).
