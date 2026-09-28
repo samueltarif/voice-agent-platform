@@ -1,6 +1,6 @@
 # ADR-014: Provider-Neutral Voice Runtime Foundation e Modelo Determinístico de Sessão
 
-- **Status**: Accepted
+- **Status**: Proposed
 - **Data**: 2026-09-28
 
 ---
