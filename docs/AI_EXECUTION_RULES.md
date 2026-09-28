@@ -1,0 +1,228 @@
+# Regras Operacionais e de Segurança de Execução para Agentes de IA (docs/AI_EXECUTION_RULES.md)
+
+Este documento complementa o [AGENTS.md](file:///D:/voice-agent-platform/AGENTS.md) detalhando padrões operacionais mandatórios, exemplos explícitos de práticas permitidas e proibidas, invariantes de ciclo de vida e o checklist pré-execução para agentes de IA operando neste repositório.
+
+O cumprimento destas diretrizes é estrito e inegociável.
+
+---
+
+## 1. Proibição Absoluta de Acesso a Storages e Logs Internos da IDE
+
+Agentes de IA são **TERMINANTEMENTE PROIBIDOS** de ler, abrir, pesquisar, listar recursivamente, parsear, escrever ou utilizar como scratch qualquer diretório ou arquivo pertencente ao storage interno da IDE, ferramenta de suporte ou runtime do agente.
+
+### Escopos Abrangidos
+- `.system_generated/` (incluindo subdiretórios de logs, tasks e execuções de steps)
+- `.gemini/` e `.agents/` internos da IDE
+- `antigravity-ide/` e `antigravity-ide/brain/`
+- Arquivos de log de background tasks (`task-*.log`, `task logs`)
+- Histórico interno da IDE, histórico de terminal e histórico de comandos
+- Transcripts internos (`transcript*.jsonl`, histórico de sessões anteriores)
+- Internal agent storage e qualquer scratchpad não versionável fora de `scripts/`
+
+### Inaplicabilidade de Exceções
+Esta proibição aplica-se **SEM EXCEÇÃO**, mesmo quando o objetivo alegado for:
+- "Apenas depurar um erro de compilação ou teste";
+- "Recuperar o prompt ou o contexto anterior que foi compactado";
+- "Identificar o PID ou porta de um servidor que falhou";
+- "Verificar a saída de um script de cleanup";
+- "Criar um helper temporário ou salvar dados de rascunho".
+
+> [!CAUTION]
+> **Se o contexto estiver ausente ou tiver sido compactado**: O agente DEVE solicitar esclarecimento diretamente ao operador humano ou restringir-se estritamente ao contexto fornecido no turno atual. É terminantemente proibido tentar reconstruir prompts acessando logs ou transcripts internos.
+
+---
+
+## 2. Blindagem e Não Exibição de Segredos (Never Print Secrets)
+
+Nenhum valor de credencial ou segredo pode ser impresso, exibido em tela, ecoado no terminal, logado ou retornado em respostas.
+
+### Escopos Abrangidos
+A proibição abrange:
+- Senhas (*passwords*) e hashes;
+- Tokens de sessão (*session tokens*), cookies e cabeçalhos de autenticação;
+- JWTs compactos e tokens de asserção (*Bearer tokens*);
+- Chaves privadas (JWK privado, parâmetros `"d"`, chaves PEM, certificados privados);
+- Chaves de API (*API keys*), tokens de provedores externos e tokens do GitHub;
+- Segredos de autenticação (`BETTER_AUTH_SECRET`, webhook signing secrets, chaves HMAC);
+- Connection strings literais e DSNs (`DATABASE_URL`, `MIGRATION_DATABASE_URL`, `postgresql://...`);
+- Credenciais de provedores externos (Twilio, OpenAI, Stripe, AWS, Neon, etc.).
+
+### Regra do "Apenas Local"
+A regra aplica-se de forma idêntica a ambientes de:
+- Produção
+- Staging
+- Desenvolvimento
+- **Localhost e Docker local**
+- **Credenciais sintéticas e temporárias de E2E**
+
+> [!IMPORTANT]
+> A justificativa *"é apenas uma credencial sintética/local de teste"* **NÃO CONSTITUI EXCEÇÃO**. O agente nunca deve imprimir key material ou senhas em saídas ou logs.
+
+---
+
+## 3. Verificações de Segredos Baseadas Exclusivamente em Booleanos (Value-Blind)
+
+Toda auditoria ou validação de segredos no repositório, em arquivos ou em diffs do Git deve ser **estritamente cega a valores** (*value-blind*).
+
+### Saídas Permitidas vs. Proibidas
+- **Permitidas**: `PRESENT` / `ABSENT`, `PASS` / `FAIL`, `VALID` / `INVALID`, `count`, `exit code`.
+- **Proibidas**: Linha coincidente (*matching line*), substring coincidente, valor parcial, prefixo/sufixo de token, fingerprint derivado de secret real ou conteúdo do arquivo secreto.
+- **Auditoria de Git**: Auditorias de segredos em diffs do Git devem retornar unicamente:
+  - `SECRET_AUDIT_PASS`
+  - `SECRET_AUDIT_FAIL` (em caso de falha, interromper sem imprimir a linha que disparou o erro).
+
+---
+
+## 4. Proteção de Arquivos de Ambiente (.env) e Processos
+
+### 4.1 Arquivos `.env`
+- É proibido executar comandos como `cat .env`, `type .env`, `Get-Content .env` em `.env`, `.env.local`, `.env.staging`, `.env.production` ou equivalentes.
+- Verificações em arquivos de ambiente devem aferir apenas a presença booleana de variáveis de configuração necessárias, sem exibir seus valores.
+
+### 4.2 Inspeção Segura de Processos
+- **Permitido**: Consultar PID, nome do executável (`node.exe`), porta TCP em escuta (`Get-NetTCPConnection`), endpoint de healthcheck (`/healthz`), status de execução (running/stopped) e exit code.
+- **Proibido**: Inspecionar ou exibir linha de comando (`CommandLine`), argumentos completos (`argv`), bloco de variáveis de ambiente (`process.env`) ou consultas WMI como `Win32_Process.CommandLine`.
+
+---
+
+## 5. Diretrizes para Banco de Dados e Sessões
+
+### 5.1 Proibição de DSNs Literais em Linhas de Comando
+- É terminantemente proibido passar connection strings ou DSNs contendo senhas ou tokens como argumentos literais de terminal (inclusive para `localhost:5432`).
+- Scripts e utilitários devem ler a configuração exclusivamente a partir das variáveis de ambiente padronizadas (`DATABASE_URL`, `TEST_DATABASE_URL`), utilizando a infraestrutura tipada de [packages/database](file:///D:/voice-agent-platform/packages/database).
+
+### 5.2 Segurança de Sessões Better Auth
+- **Proibido**: Executar `SELECT token FROM session`, consultar diretamente a coluna `session.token`, copiar cookies de autenticação manualmente entre ferramentas ou usar tokens extraídos do banco em headers HTTP.
+- **Canônico**: Testes de ponta a ponta (E2E) que necessitam de autenticação devem utilizar as rotas oficiais de Better Auth (`/api/auth/sign-in/email`) e/ou o contexto de cookies do navegador real.
+- O banco de dados pode ser consultado para conferir presença e status de usuários ou membros, mas **nunca** para extrair segredos de autenticação.
+
+---
+
+## 6. Governança Criptográfica em Testes (Ed25519 e Chaves Efêmeras)
+
+Ao executar testes de validação criptográfica (ex.: asserções entre serviços `apps/web` e `apps/api`):
+1. **Geração Efêmera em Memória**: Par de chaves Ed25519 gerado em tempo de execução via `generateKeyPair('EdDSA', { crv: 'Ed25519' })`.
+2. **Segregação de Material**: A chave privada deve residir unicamente na memória do processo assinador. O processo verificador recebe estritamente o JWKS público.
+3. **Proibição de Persistência e Exibição**: Nunca salvar chave privada em arquivo de disco; nunca executar `console.log` de JWK privada, chave PEM ou JWT resultante.
+4. **Saídas de Diagnóstico**: Diagnósticos permitidos são estritamente booleanos: `KEYPAIR_GENERATED=true`, `SIGN_OK=true`, `VERIFY_OK=true`.
+
+---
+
+## 7. Credenciais Sintéticas e Isolamento de Helpers
+
+### 7.1 Credenciais Sintéticas
+- Senhas e dados de autenticação para usuários de teste E2E devem existir **exclusivamente em runtime/memória**.
+- É proibido criar arquivos persistidos como `test-data.json`, fixtures JSON ou scratch files contendo campos de senha (`password: "..."`).
+
+### 7.2 Helpers Temporários
+- Caso seja indispensável criar um script auxiliar para execução de teardown ou diagnóstico, este DEVE residir em caminho rastreável do repositório:
+  - Exemplo permitido: `scripts/tmp-<proposito>.mjs`
+  - Proibido: criar scripts em `.system_generated/`, `.gemini/` ou diretórios internos da IDE.
+- **Teardown Obrigatório**: Todo helper temporário deve ser deletado do disco **antes** de qualquer commit. O `git status` antes de commitar deve estar rigorosamente livre de utilitários sintéticos.
+
+---
+
+## 8. Integridade de Fixtures e Proibição de Patches Manuais
+
+### 8.1 Invariantes de Domínio em Fixtures
+- Fixtures de teste não podem criar estados ilegais que o produto real seria incapaz de criar.
+- **Prioridade Canônica**: Criar dados de teste através dos serviços de domínio, repositórios e fábricas canônicas (`AgentLifecycleService`, `AgentDraftService`).
+- **SQL Direto**: Se queries diretas forem inevitáveis em testes de infraestrutura, todas as invariantes e constraints do domínio devem ser estritamente preservadas (ex.: `next_version_number`, unicidade de rascunhos, unicidade de versão publicada, `organizationId`, status ativo/arquivado, quotas comerciais).
+
+### 8.2 Proibição de Modificação Manual para Fazer Cenário Passar
+- É expressamente proibido executar `UPDATE`, `INSERT` ou `DELETE` manuais durante a depuração de um teste apenas para forçar o cenário funcional a passar.
+- Se um teste falhar devido a inconsistência de dados:
+  1. **PARAR** a execução imediatamente.
+  2. Classificar o problema na raiz: `PRODUCT BUG` ou `FIXTURE SETUP BUG`.
+  3. Corrigir a causa raiz no código ou na montagem da fixture.
+  4. Adicionar teste de regressão automatizado que comprove a solução definitiva.
+- **Cleanup Controlado**: Scripts de limpeza e teardown são permitidos desde que sejam escopados por identificador único de execução (`runId`), não contenham segredos e garantam **zero resíduos** no banco.
+
+---
+
+## 9. Terminologia e Estados Normativos de Validação
+
+Em relatórios, auditorias e no `AI_WORKLOG.md`, os agentes devem empregar estritamente a terminologia canônica:
+
+| Estado | Significado Normativo |
+|---|---|
+| `PLANNED` | Requisito formalmente desenhado e catalogado, mas com código ainda não escrito. |
+| `IMPLEMENTED` | O código-fonte, endpoints e componentes foram criados, respeitando contratos e tipagem. |
+| `TESTED` | Testes unitários ou de integração automatizados foram executados e passaram localmente. |
+| `VALIDATED` | O fluxo funcional completo de ponta a ponta foi comprovado em ambiente real (PostgreSQL real + Browser Chromium real). |
+| `PROVIDER-UNVERIFIED` | Integração implementada em adapters/portas, mas ainda não testada contra o provedor externo real pago. |
+| `BLOCKED` | O fluxo não pode avançar devido a dependência técnica, bloqueio de credencial ou decisão humana pendente. |
+| `NÃO VERIFICADO` | Nenhuma evidência factual foi produzida; é vedado assumir funcionamento sem teste comprovado. |
+
+### Regras Adicionais de Evidência
+- Captura de tela visual (*screenshot*) **NÃO** equivale a validação funcional completa (E2E).
+- Captura de tela não autenticada **NÃO** valida fluxos autenticados.
+- Indisponibilidade de ferramenta de browser **NÃO** significa falha da aplicação.
+
+---
+
+## 10. Fronteiras de Domínio e Autoridade de Voz (Preparação para Fase 6)
+
+### 10.1 Desacoplamento Estrito de SDKs Externos (Provider-Neutral)
+- O código de negócio e domínio da aplicação **NUNCA** deve importar SDKs de provedores externos (ex.: `@twilio/...`, `openai`, `@anthropic-ai/...`, `@google/...`, `aws-sdk`).
+- Todo acesso externo deve ser mediado por **Interfaces de Domínio / Portas** (ex.: `TelephonyProvider`, `VoiceTransport`, `SpeechProvider`, `ConversationModel`, `RecordingStoragePort`) e implementado em adapters desacoplados (`packages/integrations` ou adapters isolados).
+
+### 10.2 Autoridade e Papéis no Runtime de Voz
+O provedor de telefonia/áudio **NÃO É** a fonte da verdade do domínio:
+1. **Provedor de Telefonia (Twilio/Carrier)**: Responsável exclusivamente por transporte, sinalização SIP/WebRTC, entrega de mídia e conectores STT/TTS.
+2. **Conversation Orchestrator**: Responsável pela coordenação de turnos, lógica de barge-in, orquestração de ferramentas e protocolo de handoff humano.
+3. **Database (PostgreSQL)**: Única fonte durável da verdade para organizações, agentes, versões, regras, tarifação e auditoria.
+4. **CallSession / State Machine**: Autoridade sobre o estado da chamada em tempo real.
+5. **LLM**: Responsável exclusivamente por raciocínio linguístico, geração de respostas e intenção dentro do contexto seguro fornecido.
+
+> [!CAUTION]
+> **LLMs e Provedores de Telefonia NUNCA decidem autonomamente**: tenant, autorização de acesso, precificação, faturamento, ciclo de vida autoritativo da chamada, autorização de ferramentas ou publicação de versões.
+
+### 10.3 Declaração de Capacidades de Provedores
+Qualquer suposição sobre comportamento de provedores externos ainda não homologada (ex.: Twilio ConversationRelay, Media Streams bidirecionais, latência em operadoras brasileiras, conferência de handoff) deve ser registrada formalmente como `PROVIDER-UNVERIFIED` até que testes reais com tráfego telefônico ocorram na Fase 8.
+
+---
+
+## 11. Limites de Rede e Operações Remotas
+
+1. **Fronteira de Acesso a Ambientes Remotos**:
+   - Neon, Staging, Produção, Twilio, OpenAI, Anthropic, Google, AWS e quaisquer provedores de nuvem só podem ser acessados quando o prompt do operador humano autorizar explicitamente.
+   - Na ausência de autorização formal explícita: **NO ACCESS**.
+2. **Operações Remotas Destrutivas**:
+   - É terminantemente proibido executar sem confirmação humana explícita: exclusão de repositórios, deleção de branches protegidas, force push, drop/truncate de banco remoto, deleção de recursos no provedor, rotação de credenciais de produção ou alteração de regras do GitHub (Rulesets/Branch Protections).
+3. **Segurança de Git**:
+   - Proibido realizar commits diretos na branch `main`, force push em branches remotas ou rebase de commits públicos já auditados.
+   - Todo fluxo funcional transita por feature branch -> PR -> auditoria -> merge autorizado sem auto-merge.
+
+---
+
+## 12. Procedimento Obrigatório para Security Process Deviations
+
+Se qualquer regra de segurança operacional for violada durante a atuação do agente:
+1. **NÃO OMITIR**: É proibido silenciar o incidente ou fingir que o desvio não ocorreu.
+2. **NÃO REESCREVER HISTÓRICO**: As entradas anteriores do `AI_WORKLOG.md` permanecem intocadas (*append-only*).
+3. **NÃO REPRODUZIR OU REEXIBIR O SEGREDO**: Nunca tentar recuperar, pesquisar ou reimprimir a chave ou token exposto.
+4. **REGISTRO MANDATÓRIO NO AI_WORKLOG**: Criar uma nova entrada com a classificação `SECURITY PROCESS DEVIATION` (ou `SECURITY PROCESS DEVIATION — REPEATED PATTERN`), detalhando:
+   - **Fato**: Descrição objetiva da ação ocorrida;
+   - **Escopo**: Se envolveu ambiente local/sintético ou se atingiu credencial remota;
+   - **Risco**: Avaliação do impacto real de segurança;
+   - **Contenção**: Ações imediatas aplicadas (ex.: processos encerrados, dados locais purgados);
+   - **Ação Corretiva**: Procedimento normativo implementado para prevenir reincidência;
+   - **Necessidade de Rotação**: Declaração explícita se rotação humana é ou não requerida (para dados locais/efêmeros já deletados: `Rotação não requerida`).
+
+---
+
+## 13. Checklist Pré-Execução de Segurança (10 Pontos Mandatórios)
+
+Antes de executar qualquer comando de teste complexo, script de automação ou tarefa de banco/rede, o agente deve validar mentalmente os 10 itens:
+
+- [ ] **1. Escopo de Diretório**: Estou operando estritamente dentro do workspace do repositório?
+- [ ] **2. Isolamento de Storage Interno**: Garanti que nenhum arquivo em `.system_generated/`, `.gemini/`, `antigravity-ide/`, `brain/` ou task logs será acessado ou usado como scratch?
+- [ ] **3. Blindagem de Segredos**: O comando ou script evita totalmente imprimir senhas, tokens, cookies, JWTs ou chaves privadas?
+- [ ] **4. Ausência de DSN Literal**: Nenhuma connection string com usuário/senha está presente na linha de comando?
+- [ ] **5. Proteção de Sessão**: Nenhuma query tenta ler `session.token` diretamente do banco de dados?
+- [ ] **6. Diagnóstico de Processo**: Nenhuma inspeção de processos utiliza `CommandLine`, `argv` ou blocos de ambiente?
+- [ ] **7. Integridade de Fixtures**: As fixtures e inserts respeitam todas as invariantes e regras de domínio da aplicação?
+- [ ] **8. Limite de Rede / Provedores**: O acesso a redes externas, Neon, Staging ou APIs de terceiros está formalmente autorizado pelo prompt?
+- [ ] **9. Limpeza Escopada**: A rotina de teardown utiliza identificador único de execução (`runId`) e assegura zero resíduos?
+- [ ] **10. Classificação Factual**: Os resultados serão classificados com base em evidências reais (sem assumir `VALIDATED` sem prova)?
