@@ -7,6 +7,7 @@ import type {
   VoiceInputEvent,
   VoiceTransportPort,
 } from '@voice-agent/contracts';
+import { TERMINAL_CALL_SESSION_STATES } from '@voice-agent/contracts';
 import {
   CallRuntimeNotActiveError,
   CallSessionNotFoundError,
@@ -76,13 +77,18 @@ export class ConversationOrchestrator {
       case 'user.interruption':
         return this.handleUserInterruption(session, event.turnId);
       case 'call.end.requested':
-      case 'transport.disconnected': {
-        const opt = event.reason !== undefined ? { reason: event.reason } : undefined;
-        return this.handleTerminalState(session, 'ENDED', opt);
-      }
+      case 'transport.disconnected':
+        return this.handleDisconnectOrEnd(session, event.reason);
       case 'provider.failure':
         return this.handleTerminalState(session, 'FAILED', { reason: event.error });
     }
+  }
+
+  private async handleDisconnectOrEnd(session: CallSession, reason?: string): Promise<void> {
+    const opt = reason !== undefined ? { reason } : undefined;
+    const isPreActive = session.runtimeState === 'CONNECTING' || session.runtimeState === 'CREATED';
+    const target = isPreActive ? 'FAILED' : 'ENDED';
+    return this.handleTerminalState(session, target, opt);
   }
 
   private async handleTransportConnected(session: CallSession): Promise<void> {
@@ -145,10 +151,11 @@ export class ConversationOrchestrator {
     targetState: 'ENDED' | 'FAILED',
     options?: { reason?: string },
   ): Promise<void> {
+    if (TERMINAL_CALL_SESSION_STATES.has(session.runtimeState)) return;
     this.cleanupSession(session.callId);
     let current = session;
     if (targetState === 'ENDED') {
-      if (current.runtimeState === 'ACTIVE' || current.runtimeState === 'CONNECTING') {
+      if (current.runtimeState === 'ACTIVE') {
         current = transitionCallSession(current, 'ENDING');
       }
       current = transitionCallSession(current, 'ENDED');

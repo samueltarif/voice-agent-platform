@@ -41,3 +41,38 @@ export class InvalidAgentVersionStatusError extends AppError {
     this.name = 'InvalidAgentVersionStatusError';
   }
 }
+
+export class InvalidProviderMessageError extends AppError {
+  constructor(message = 'Invalid or malformed provider message') {
+    super(message, 400, 'INVALID_PROVIDER_MESSAGE');
+    this.name = 'InvalidProviderMessageError';
+  }
+}
+
+export class UnsupportedProviderEventError extends AppError {
+  constructor(message = 'Unsupported provider event type') {
+    super(message, 400, 'UNSUPPORTED_PROVIDER_EVENT');
+    this.name = 'UnsupportedProviderEventError';
+  }
+}
+
+export class ProviderAuthenticationError extends AppError {
+  constructor(message = 'Provider signature or authentication failed') {
+    super(message, 401, 'PROVIDER_AUTHENTICATION_ERROR');
+    this.name = 'ProviderAuthenticationError';
+  }
+}
+
+export class ProviderProtocolViolationError extends AppError {
+  constructor(message = 'Provider protocol violation') {
+    super(message, 400, 'PROVIDER_PROTOCOL_VIOLATION');
+    this.name = 'ProviderProtocolViolationError';
+  }
+}
+
+export class TransportDisconnectedError extends AppError {
+  constructor(message = 'Voice transport connection was closed or disconnected') {
+    super(message, 409, 'TRANSPORT_DISCONNECTED');
+    this.name = 'TransportDisconnectedError';
+  }
+}

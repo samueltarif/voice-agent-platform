@@ -343,6 +343,16 @@ importers:
       '@voice-agent/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@voice-agent/errors':
+        specifier: workspace:*
+        version: link:../errors
+      '@voice-agent/logger':
+        specifier: workspace:*
+        version: link:../logger
+    devDependencies:
+      '@voice-agent/voice':
+        specifier: workspace:*
+        version: link:../../apps/voice
 
   packages/logger: {}
 

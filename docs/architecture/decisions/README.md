@@ -32,6 +32,8 @@ Cada registro segue rigorosamente a seguinte anatomia:
 | [ADR-011](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-011-commercial-entitlement-resolution-access-eligibility.md) | Commercial Entitlement Resolution and Access Eligibility | 2026-09-23 | Accepted |
 | [ADR-012](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-012-concrete-internal-service-assertion-cryptographic-profile.md) | Perfil Criptográfico Concreto da Asserção Interna de Serviço | 2026-09-23 | Accepted |
 | [ADR-013](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-013-user-scoped-tenant-bootstrap-auth.md) | User-Scoped Tenant Bootstrap Authentication for Dynamic Organization Discovery | 2026-09-24 | Accepted |
-| [ADR-014](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-014-provider-neutral-voice-runtime-foundation.md) | Provider-Neutral Voice Runtime Foundation e Modelo Determinístico de Sessão | 2026-09-28 | Proposed |
+| [ADR-014](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-014-provider-neutral-voice-runtime-foundation.md) | Provider-Neutral Voice Runtime Foundation e Modelo Determinístico de Sessão | 2026-09-28 | Accepted |
+| [ADR-015](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-015-twilio-conversation-relay-adapter.md) | Twilio ConversationRelay Adapter Boundary e Protocolo de Transporte | 2026-09-28 | Proposed |
+
 
 

@@ -5768,4 +5768,227 @@ Em conformidade com a regra de auditabilidade append-only (sem reescrita de regi
 - Autorizado o merge formal do PR #23 (`feature/voice-runtime-foundation` -> `main`) via GitHub MCP (`merge`).
 - Próximo Slice (006B — Telephony Adapter & Twilio Media Stream Integration): **NÃO INICIADO**.
 
+---
+
+## 2026-09-28 — PROMPT-006B: Twilio ConversationRelay Adapter Foundation
+
+### 1. Identificação e Rastreabilidade
+- **Base SHA**: `046f00cdaf4f1ab33001c8d6581d1dd78d903dae` (`main`).
+- **Branch de Trabalho**: `feature/twilio-conversation-relay-adapter`.
+- **Natureza da Tarefa**: Implementação do adapter concreto de telefonia Twilio ConversationRelay no pacote de integrações, com boundary WebSocket, validação criptográfica de assinatura de webhook, tradução de eventos/comandos e simulação determinística local.
+- **Documentação Twilio Consultada**: Documentação pública oficial sobre WebSocket do Twilio ConversationRelay (`setup`, `prompt`, `interrupt`, `text`, `end`, `error`), especificação do TwiML `<Connect><ConversationRelay>`, e algoritmo de validação de assinatura `X-Twilio-Signature` (HMAC-SHA1 com ordenação alfabética de parâmetros).
+- **Classificação Factual de Provedor**: `PROVIDER-UNVERIFIED`. Nenhuma chamada de rede externa, console, número de telefone ou credencial real da Twilio foi utilizada.
+
+---
+
+### 2. Localização e Fronteiras Arquiteturais
+- **Localização do Adapter**: Exclusivamente em `packages/integrations/src/twilio/`.
+- **Fronteira Provider-Neutral**:
+  - O core de voz (`apps/voice`) e contratos canônicos (`packages/contracts`) permanecem 100% livres de tipos, referências ou SDKs da Twilio.
+  - Regra automatizada em AST no script `scripts/check-architecture.mjs` bloqueia estritamente qualquer importação de código ou tipos da Twilio em `apps/voice/src/` e `packages/contracts/`.
+  - Zero dependências de SDK proprietário da Twilio adicionadas ao repositório.
+
+---
+
+### 3. Implementação e Componentes (Slice 006B)
+- **Tipos de Protocolo Twilio (`twilio-conversation-relay-types.ts`)**:
+  - Mensagens inbound: `TwilioSetupMessage` (`setup`), `TwilioPromptMessage` (`prompt`), `TwilioInterruptMessage` (`interrupt`), `TwilioErrorMessage` (`error`), `TwilioDisconnectMessage` (`disconnect`), `TwilioUnknownMessage` (`unknown`).
+  - Mensagens outbound: `TwilioTextTokenMessage` (`text`), `TwilioEndSessionMessage` (`end`).
+  - Parser rigoroso com tratamento de mensagens malformadas (`InvalidProviderMessageError`) e eventos desconhecidos.
+- **Tradução Bidirecional**:
+  - Inbound (`twilio-event-translator.ts`):
+    - `setup` -> `TransportConnectedEvent` (`type: 'transport.connected'`)
+    - `prompt` -> `UserSpeechFinalEvent` (`type: 'user.speech.final'`)
+    - `interrupt` -> `UserInterruptionEvent` (`type: 'user.interruption'`)
+    - `disconnect` -> `TransportDisconnectedEvent` (`type: 'transport.disconnected'`)
+    - `error` -> `ProviderFailureEvent` (`type: 'provider.failure'`)
+    - `unknown` -> `null` (ignorado com segurança sem crash)
+  - Outbound (`twilio-command-translator.ts`):
+    - `SpeakCommand` -> `TwilioTextTokenMessage` (`{ type: 'text', token, last }`)
+    - `EndCallCommand` -> `TwilioEndSessionMessage` (`{ type: 'end', handoffData }`)
+    - `InterruptSpeechCommand` -> cancelamento síncrono interno de geração
+- **Validação de Assinatura (`twilio-signature-validator.ts`)**:
+  - Algoritmo canônico `X-Twilio-Signature` implementado com Node.js nativo `createHmac('sha1', authToken)`.
+  - Concatenação de URL com parâmetros ordenados alfabeticamente.
+  - Comparação de tempo constante (`timingSafeEqual`) contra ataques de timing.
+  - Testado com credencial sintética em memória (`SECRET_AUDIT_PASS`).
+- **Adapter de Transporte (`twilio-voice-transport-adapter.ts`)**:
+  - Implementa `VoiceTransportPort` de `@voice-agent/contracts`.
+  - Single logical writer por chamada.
+  - Rastreamento de `activeGenerations` e `cancelledGenerations`: suprime de forma imediata e síncrona chunks atrasados (*stale late chunks*) originados de modelos assíncronos após interrupção.
+- **WebSocket Session Boundary (`twilio-websocket-boundary.ts`)**:
+  - Vínculo autoritativo de sessão server-side (`TwilioSessionBindingContext` contendo `organizationId`, `callId`, `agentSnapshot`).
+  - Proibição de confiança em dados de tenant ou agent version vindos do payload do cliente/provedor.
+  - Parsing seguro de JSON com captura de erro; eventos desconhecidos registrados em log apenas com metadados seguros (sem transcrição, áudio, números ou tokens).
+- **Simulador Local Determinístico (`fake-twilio-conversation-relay-simulator.ts`)**:
+  - Emulador completo de socket Twilio ConversationRelay para testes automatizados locais com zero tráfego de rede externa.
+
+---
+
+### 4. Cobertura de Testes Automatizados
+- **Suíte Twilio (`packages/integrations`)**: 3 arquivos de teste, 22 testes unitários/integração aprovados (100% de sucesso):
+  - `twilio-signature-validator.test.ts` (5 testes): assinatura válida com segredo sintético, ordenação alfabética de parâmetros, assinatura inválida, assinatura ausente/nula, auth token ausente.
+  - `twilio-event-command-translator.test.ts` (10 testes): tradução de todos os eventos inbound, rejeição de payloads malformados com `InvalidProviderMessageError`, ignoramento seguro de eventos desconhecidos, tradução de comandos outbound (`speak`, `end_call`, `interrupt_speech`).
+  - `twilio-websocket-boundary.test.ts` (7 testes):
+    - *Happy Path*: conexão sintética, fala do usuário, streaming de tokens para o simulador Twilio sem vazamento de tipos da Twilio para o domínio.
+    - *Barge-In*: interrupção simulada invalida a geração ativa e suprime síncronamente chunks tardios do modelo.
+    - *Disconnect*: desconexão limpa em `ACTIVE` transita para `ENDED`; desconexão durante `CONNECTING` transita deterministicamente para `FAILED`.
+    - *Malformed Payload*: string corrompida rejeitada com `InvalidProviderMessageError` sem crash do processo.
+    - *Unknown Event*: tipo de evento desconhecido tratado com segurança sem corrupção de estado.
+    - *Tenant Boundary*: chamadas de tenants distintos isoladas sem mutação cruzada.
+- **Suíte Geral do Monorepo**: 73 arquivos de teste aprovados (389 testes aprovados, 45 skipped, 0 falhas).
+
+---
+
+### 5. Quality Gate e Governança
+- **`pnpm format:check`**: 100% em conformidade com Prettier.
+- **`pnpm lint`**: 0 erros, 0 warnings (complexidade ciclomatica <= 8, max-params <= 3, max-lines-per-function <= 50 respeitados).
+- **`pnpm typecheck`**: 100% em conformidade com TypeScript strict e `exactOptionalPropertyTypes: true` em todos os 12 pacotes.
+- **`turbo build`**: 12/12 pacotes compilados com sucesso.
+- **`check-architecture.mjs`**: 100% das fronteiras arquiteturais e diretivas respeitados via AST.
+- **`check-file-size.mjs`**: 205 arquivos de lógica verificados, 0 violações de limite máximo (> 180 linhas).
+- **Auditoria de Segredos (`SECRET_AUDIT_PASS`)**: Verificada no diff contra `origin/main` (inspeção booleana value-blind).
+- **Schema Changed**: NO.
+- **Migrations Changed**: NO.
+- **External Dependencies Added**: NO (zero novos pacotes npm externos adicionados).
+- **Workspace Manifest Changed**: YES (`packages/integrations/package.json` adicionou links internos de workspace `@voice-agent/errors`, `@voice-agent/logger` e `@voice-agent/voice`).
+- **Provedores Externos**:
+  - Twilio API / Account / Console: NOT ACCESSED.
+  - OpenAI / Anthropic / Google APIs: NOT ACCESSED.
+  - Neon / Staging / Production: NOT ACCESSED.
+- **Status da Integração de Telefonia**: `PROVIDER-UNVERIFIED`.
+- **Media Streams**: `DEFERRED` (caminho futuro de áudio raw/observabilidade).
+- **Twilio Conference / Handoff**: `DEFERRED` (caminho futuro de transbordo humano).
+- **Security Process Deviations no Turno**: 0 (ZERO).
+- **Bloqueios**: Nenhum.
+- **Próximo Slice Planejado**: Slice 006C (Twilio Webhook Entrypoint, TwiML Generation & Live Call Lifecycle Gateway).
+
+---
+
+## 2026-09-28 — PROMPT-006B-CLOSE — Protocol Fidelity, Signature Security and Merge Authorization
+
+### 1. Auditoria Integral do Pull Request #24 (Slice 006B)
+- **Pull Request**: [#24](https://github.com/samueltarif/voice-agent-platform/pull/24) (`samueltarif/voice-agent-platform#24`)
+- **Título**: `feat: add Twilio ConversationRelay adapter foundation`
+- **Branch**: `feature/twilio-conversation-relay-adapter`
+- **Implementation Commit**: `a2fb871`
+- **Base Commit**: `046f00cdaf4f1ab33001c8d6581d1dd78d903dae` (`origin/main`)
+- **Objetivo do Turno**: Fechamento formal do Slice 006B com auditoria de fidelidade de protocolo oficial Twilio ConversationRelay, segurança de assinatura, fixtures golden sintéticas, idempotência de ciclo de vida de eventos, e autorização de merge do PR #24.
+
+---
+
+### 2. Auditoria de Fidelidade ao Protocolo Twilio ConversationRelay
+- **Inbound Message Types Documentados e Implementados**:
+  - `setup`:
+    - Campos obrigatórios: `type: 'setup'`, `sessionId`, `callSid`.
+    - Campos opcionais suportados: `parentCallSid`, `from`, `to`, `customParameters`.
+    - Mapeamento de Domínio: traduzido estritamente para `TransportConnectedEvent` (`type: 'transport.connected'`).
+  - `prompt`:
+    - Campos obrigatórios: `type: 'prompt'`, `voicePrompt`.
+    - Campos opcionais suportados: `lang`, `confidence`, `last`.
+    - Mapeamento de Domínio: traduzido estritamente para `UserSpeechFinalEvent` (`type: 'user.speech.final'`).
+  - `interrupt`:
+    - Campos obrigatórios: `type: 'interrupt'`.
+    - Campos opcionais suportados: `utteranceUntilInterrupt`, `durationUntilInterruptMs`.
+    - Mapeamento de Domínio: traduzido estritamente para `UserInterruptionEvent` (`type: 'user.interruption'`).
+  - `error`:
+    - Campos obrigatórios: `type: 'error'`, `description`.
+    - Campos opcionais: `code`.
+    - Mapeamento de Domínio: traduzido estritamente para `ProviderFailureEvent` (`type: 'provider.failure'`).
+  - `disconnect`:
+    - Campos obrigatórios: `type: 'disconnect'`.
+    - Mapeamento de Domínio: traduzido estritamente para `TransportDisconnectedEvent` (`type: 'transport.disconnected'`).
+- **Outbound Message Types Documentados e Implementados**:
+  - `text`:
+    - Formato: `{ type: 'text', token: string, last?: boolean }`.
+    - Mapeamento de Domínio: emitido a partir de `SpeakCommand`.
+  - `end`:
+    - Formato: `{ type: 'end', handoffData?: Record<string, unknown> }`.
+    - Mapeamento de Domínio: emitido a partir de `EndCallCommand`.
+- **Semânticas Específicas e Não Inventadas**:
+  - `interruptSpeech` (provider-neutral) **NÃO** emite mensagem Twilio inexistente pela rede. A especificação oficial da Twilio determina que a detecção de fala/interrupção é gerenciada pelo ConversationRelay no lado da telefonia. No adapter, `interruptSpeech` é tratado como um cancelamento interno e síncrono de geração, bloqueando a emissão de chunks tardios (*stale chunks*) pendentes do modelo assíncrono.
+  - Classificação de fidelidade à telefonia real: `PROVIDER-UNVERIFIED` (regras e shapes comprovados via especificação técnica formal e fixtures sintéticas; sem acesso a conta de produção ou números reais).
+
+---
+
+### 3. Auditoria de Algoritmo de Assinatura (X-Twilio-Signature)
+- **Especificação Técnica**:
+  - Algoritmo canônico oficial: HMAC-SHA1.
+  - Composição do payload: URL completa da requisição acrescida dos parâmetros POST ordenados alfabeticamente pelas chaves (sem delimitadores adicionais).
+  - Tratamento de Handshake WebSocket: conexões WebSocket utilizam HTTP GET com header Upgrade, não possuindo parâmetros de formulário POST; a assinatura incide sobre a URL canônica completa (incluindo eventuais query parameters).
+  - Comparação Segura: implementada com `crypto.timingSafeEqual`, com pré-validação estrita do comprimento dos buffers (`Buffer.byteLength`) para inviabilizar ataques de timing (*timing attacks*).
+- **Testes e Classificação**:
+  - Testes sintéticos com chave sintética em memória e vetor de teste canônico HMAC-SHA1.
+  - Classificação formal: `SYNTHETICALLY TESTED` e `PROVIDER-UNVERIFIED`.
+- **Fronteira de Proxy e URL Pública (Diferida para o Slice 006C)**:
+  - Documentado explicitamente: o entrypoint no Slice 006C deverá determinar a URL canônica pública idêntica à assinada pela Twilio, tratando terminação TLS, proxies reversos e cabeçalhos `X-Forwarded-*` sob política estrita de proxy confiável, sem confiar cegamente em cabeçalhos de entrada.
+
+---
+
+### 4. Hardening de Parser, Ordenação de Eventos e Proteção de Estado
+- **Robustez de Parser WebSocket**:
+  - Rejeição limpa com `InvalidProviderMessageError` para JSON inválido, tipo ausente, valores numéricos em campos textuais obrigatórios ou estruturas aninhadas corrompidas.
+  - Eventos de tipo desconhecido são ignorados com segurança sem interrupção do processo ou poluição do domínio.
+- **Ordenação Estrita de Eventos e Idempotência**:
+  - `prompt` recebido antes de `setup` falha com `CallRuntimeNotActiveError` sem corromper o estado `CREATED` da sessão.
+  - Desconexões duplicadas são tratadas com segurança e idempotência.
+  - Desconexões recebidas após o estado terminal (`FAILED` ou `ENDED`) não alteram o estado da sessão e não disparam transições inválidas.
+
+---
+
+### 5. Barge-In, Supressão de Saída Tardia e Vínculo de Tenant
+- **Barge-In**:
+  - Comprovado em teste de regressão: interrupção do usuário invalida a geração ativa, dispara cancelamento síncrono no adapter e impede qualquer emissão de texto Twilio para chunks residuais de LLMs assíncronos.
+- **Isolamento Multi-Tenant**:
+  - O binding da chamada (`organizationId`, `callId`, `agentSnapshot`) é derivado exclusivamente de contexto server-side autoritativo (`TwilioSessionBindingContext`), jamais extraído de mensagens Twilio não autenticadas. Tentativas de acesso entre organizações distintas resultam em isolamento total.
+
+---
+
+### 6. Auditoria de Logs e PII
+- **Permitido e Verificado**: `callId`, `organizationId`, `turnId`, `generationId`, `eventType`, `errorCode`.
+- **Proibido e Auditado (Ausentes)**: Zero transcrições completas, zero dados de áudio, zero números de telefone, zero assinaturas, zero tokens de autenticação e zero payloads brutos registrados em log.
+
+---
+
+### 7. Classificação de Dependências
+- **Dependências Externas Adicionadas**: **NENHUMA** (zero novos pacotes npm externos adicionados).
+- **SDKs de Fornecedores (Twilio, OpenAI, etc.) no Core**: **NENHUM**.
+- **Alteração no Manifesto de Workspace**: **SIM** (`packages/integrations/package.json` vinculou `@voice-agent/errors`, `@voice-agent/logger` e `@voice-agent/voice`).
+- **Dependências Internas Adicionadas**: `@voice-agent/errors`, `@voice-agent/logger`, `@voice-agent/voice`.
+- **Alteração em `pnpm-lock.yaml`**: **SIM**.
+
+---
+
+### 8. Status do ADR-015
+- **Status Atual no Repositório**: `Proposed` (conforme norma de governança que proíbe declaração de `Accepted` antes do merge).
+- Incorporado à branch `main` como diretriz arquitetural após o merge do PR #24.
+
+---
+
+### 9. Quality Gate Integral (Resultados Factualmente Medidos)
+- **`pnpm install --frozen-lockfile`**: Lockfile íntegro e sincronizado (0 ms resolução adicional).
+- **Prettier Format Check**: 100% aprovado.
+- **ESLint**: 100% aprovado (0 erros, 0 avisos).
+- **Turbo Typecheck**: 12 pacotes em conformidade estrita (0 erros).
+- **Vitest**: **75 arquivos aprovados | 6 de staging ignorados (81 total)**, **399 testes aprovados | 45 testes ignorados (444 total)**.
+- **Turbo Build**: 12/12 pacotes compilados com sucesso (`apps/web` 11/11 rotas estáticas/dinâmicas).
+- **Architecture Check**: 100% aprovado via TypeScript AST (`check-architecture.mjs`).
+- **File Size Check**: 205 arquivos de lógica verificados, todos dentro do limite de 180 linhas (13 avisos normais de alerta, 0 violações).
+- **Auditoria de Segredos**: `SECRET_AUDIT_PASS` (inspeção value-blind do diff contra `origin/main`).
+- **Schema & Migrations**: **ZERO** alterações.
+- **Provedores Externos**:
+  - Twilio API / Account / Console: **NÃO ACESSADO**.
+  - OpenAI / Anthropic / Google: **NÃO ACESSADO**.
+  - Neon / Staging / Production: **NÃO ACESSADO / INTOCADO**.
+  - Status da Integração Twilio: `PROVIDER-UNVERIFIED`.
+- **Security Process Deviations no Turno**: 0 (ZERO).
+- **Slice 006C**: **NÃO INICIADO**.
+
+---
+
+### 10. Autorização de Merge
+Todos os gates de conformidade de protocolo, validação de assinatura, robustez de parser, isolamento de tenant, supressão de stale chunks, auditoria de PII e qualidade de código foram cumpridos com sucesso. O merge do Pull Request #24 está **formalmente autorizado**.
+
+
+
 
