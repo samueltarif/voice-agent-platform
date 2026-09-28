@@ -13,7 +13,12 @@
     }
   },
   "dependencies": {
-    "@voice-agent/contracts": "workspace:*"
+    "@voice-agent/contracts": "workspace:*",
+    "@voice-agent/errors": "workspace:*",
+    "@voice-agent/logger": "workspace:*"
+  },
+  "devDependencies": {
+    "@voice-agent/voice": "workspace:*"
   },
   "scripts": {
     "build": "tsc",

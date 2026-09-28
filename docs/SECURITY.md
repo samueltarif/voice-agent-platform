@@ -120,3 +120,32 @@ A execução de ferramentas por agentes de voz durante chamadas telefônicas apr
    - A criação de sessões de chamada exige explicitamente `agentVersionStatus === 'PUBLISHED'`.
    - Rascunhos (`DRAFT`) ou versões arquivadas (`ARCHIVED`) são rejeitados imediatamente com `InvalidAgentVersionStatusError`, eliminando o risco de executar configurações experimentais ou não homologadas em produção.
 
+---
+
+## 7. Threat Model do Adapter de Telefonia e WebSocket Boundary (Phase 6 / 006B)
+
+1. **Entrada de Provedor Não Confiável (Untrusted WebSocket/Provider Input)**:
+   - Todo payload recebido via WebSocket do provedor é tratado como não confiável.
+   - Mensagens são submetidas a parsing seguro e validação de schema rigorosa antes de qualquer processamento (`InvalidProviderMessageError`).
+   - Mensagens malformadas são rejeitadas com segurança sem causar encerramento anômalo (*crash*) do processo ou exposição de stack traces ao provedor.
+2. **Falsificação de Assinatura (Signature Spoofing)**:
+   - O handshake de conexão deve validar formalmente a assinatura criptográfica `X-Twilio-Signature` calculada via HMAC-SHA1 com o Auth Token do provedor.
+   - A comparação de assinaturas utiliza comparação de tempo constante (`timingSafeEqual`) para mitigar ataques de temporização (*timing attacks*).
+   - Falhas de assinatura rejeitam a requisição com `ProviderAuthenticationError`.
+3. **Vínculo Autoritativo de Tenant e Proteção contra Hijack (Cross-Tenant Binding & Connection Hijack)**:
+   - O contexto de sessão (`organizationId`, `callId`, `agentSnapshot`) é vinculado autoritativamente no lado do servidor no momento do bootstrap da chamada.
+   - Nenhuma mensagem, parâmetro de query ou metadado enviado pelo cliente ou provedor pode alterar o `organizationId` vinculado à conexão.
+   - Conexões com mesmo identificador em tenants distintos operam em namespaces estritamente segregados, impossibilitando mutações cruzadas (*cross-tenant mutations*).
+4. **Proteção contra Replay e Eventos Duplicados (Replay / Duplicate Event Protection)**:
+   - Handlers de desconexão e encerramento operam de forma determinística e idempotente; desconexões duplicadas não quebram o estado da sessão.
+   - A geração em voo é rastreada por `generationId`; eventos duplicados ou defasados são neutralizados pelo orquestrador.
+5. **Prevenção de Vazamento de PII e Transcrição em Logs (PII & Transcript Leakage)**:
+   - Logs estruturados na camada de adapter são limitados a metadados seguros: `callId`, `organizationId`, tipo de evento, `turnId`, `generationId` e códigos de erro seguros.
+   - É expressamente proibido registrar em logs operacionais: transcrições completas da fala, áudio raw, números de telefone, tokens de autenticação ou assinaturas criptográficas.
+6. **Desconexão Inesperada e Resiliência (Unexpected Disconnect)**:
+   - Desconexões súbitas de transporte são traduzidas para `transport.disconnected`.
+   - Se a desconexão ocorrer antes da chamada atingir o estado `ACTIVE` (e.g. em `CONNECTING`), a máquina de estados transita deterministicamente para `FAILED`, prevenindo estados fantasmas em memória.
+7. **Mitigação de Chunks Tardios após Interrupção (Stale Output After Interruption)**:
+   - O adapter de transporte (`TwilioVoiceTransportAdapter`) mantém controle de gerações canceladas e suprime síncronamente qualquer chunk residual gerado por modelos assíncronos após evento de barge-in.
+
+

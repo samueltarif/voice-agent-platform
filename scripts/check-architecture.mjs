@@ -114,17 +114,32 @@ function checkBoundaries(filePath, specifier) {
     }
   }
 
-  // 3. packages/integrations only in composition roots
-  const isIntegrationsImport =
-    target === '@voice-agent/integrations' ||
-    target.startsWith('@voice-agent/integrations/') ||
-    target.startsWith('packages/integrations');
+  // 3. packages/integrations only in composition roots (outside packages/integrations itself)
+  if (!normalizedFile.startsWith('packages/integrations/')) {
+    const isIntegrationsImport =
+      target === '@voice-agent/integrations' ||
+      target.startsWith('@voice-agent/integrations/') ||
+      target.startsWith('packages/integrations');
 
-  if (isIntegrationsImport && !isCompositionRoot(filePath)) {
-    console.error(
-      `[ERROR] Direcao: '@voice-agent/integrations' permitido apenas em composition roots: '${filePath}'.`,
-    );
-    violations++;
+    if (isIntegrationsImport && !isCompositionRoot(filePath)) {
+      console.error(
+        `[ERROR] Direcao: '@voice-agent/integrations' permitido apenas em composition roots: '${filePath}'.`,
+      );
+      violations++;
+    }
+  }
+
+  // 4. Voice core and contracts must never import twilio-specific adapter code
+  if (
+    normalizedFile.startsWith('apps/voice/src/') ||
+    normalizedFile.startsWith('packages/contracts/')
+  ) {
+    if (target.includes('twilio') || specifier.includes('twilio')) {
+      console.error(
+        `[ERROR] Fronteira: 'apps/voice' core e 'packages/contracts' nao podem importar codigo especifico da Twilio: '${specifier}'.`,
+      );
+      violations++;
+    }
   }
 }
 
