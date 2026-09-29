@@ -136,7 +136,10 @@ describe('OpenAiConversationModelAdapter', () => {
 
   it('maps HTTP errors to safe failure event and terminates stream', async () => {
     const fakeFetch = vi.fn().mockResolvedValue(new Response('Unauthorized', { status: 401 }));
-    const adapter = new OpenAiConversationModelAdapter({ fetchFn: fakeFetch });
+    const adapter = new OpenAiConversationModelAdapter({
+      fetchFn: fakeFetch,
+      config: { modelId: 'gpt-4o' },
+    });
 
     const stream = await adapter.streamTurn(mockInput);
     const events: ModelStreamEvent[] = [];
@@ -156,7 +159,10 @@ describe('OpenAiConversationModelAdapter', () => {
     const sse =
       createSseChunk('A') + createSseChunk('B') + createSseChunk('C') + 'data: [DONE]\n\n';
     const fakeFetch = vi.fn().mockResolvedValue(makeSseResponse(sse));
-    const adapter = new OpenAiConversationModelAdapter({ fetchFn: fakeFetch });
+    const adapter = new OpenAiConversationModelAdapter({
+      fetchFn: fakeFetch,
+      config: { modelId: 'gpt-4o' },
+    });
 
     const stream = await adapter.streamTurn(mockInput, { signal: controller.signal });
     const events: ModelStreamEvent[] = [];

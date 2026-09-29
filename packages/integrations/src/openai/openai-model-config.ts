@@ -12,24 +12,32 @@ export interface OpenAiModelConfigInput {
   readonly defaultTemperature?: number | undefined;
 }
 
-export const DEFAULT_OPENAI_MODEL_ID = 'gpt-4o';
 export const DEFAULT_OPENAI_API_BASE_URL = 'https://api.openai.com/v1';
 export const DEFAULT_OPENAI_TEMPERATURE = 0.7;
 
-export function createOpenAiModelConfig(input: OpenAiModelConfigInput = {}): OpenAiModelConfig {
-  const modelId = input.modelId ?? process.env.OPENAI_CONVERSATION_MODEL ?? DEFAULT_OPENAI_MODEL_ID;
-  const apiBaseUrl = (
-    input.apiBaseUrl ??
-    process.env.OPENAI_API_BASE_URL ??
-    DEFAULT_OPENAI_API_BASE_URL
-  ).replace(/\/+$/, '');
+function resolveModelId(inputModelId?: string | undefined): string {
+  const modelId = inputModelId ?? process.env.OPENAI_CONVERSATION_MODEL;
+  if (!modelId || !modelId.trim()) {
+    throw new Error(
+      'Missing OpenAI conversation model configuration: modelId must be explicitly provided in config or via OPENAI_CONVERSATION_MODEL environment variable.',
+    );
+  }
+  return modelId.trim();
+}
 
-  const temperature = input.defaultTemperature ?? DEFAULT_OPENAI_TEMPERATURE;
+function resolveApiBaseUrl(inputUrl?: string | undefined): string {
+  const url = inputUrl ?? process.env.OPENAI_API_BASE_URL ?? DEFAULT_OPENAI_API_BASE_URL;
+  return url.replace(/\/+$/, '');
+}
+
+export function createOpenAiModelConfig(input: OpenAiModelConfigInput = {}): OpenAiModelConfig {
+  const modelId = resolveModelId(input.modelId);
+  const apiBaseUrl = resolveApiBaseUrl(input.apiBaseUrl);
 
   return {
     apiKey: input.apiKey ?? process.env.OPENAI_API_KEY,
     modelId,
     apiBaseUrl,
-    defaultTemperature: temperature,
+    defaultTemperature: input.defaultTemperature ?? DEFAULT_OPENAI_TEMPERATURE,
   };
 }

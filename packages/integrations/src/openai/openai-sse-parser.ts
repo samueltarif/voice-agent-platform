@@ -6,7 +6,8 @@ export type SseLineResult =
   | { readonly kind: 'skip' };
 
 export function parseSseLine(line: string): SseLineResult {
-  const trimmed = line.trim();
+  const normalized = line.endsWith('\r') ? line.slice(0, -1) : line;
+  const trimmed = normalized.trim();
   if (!trimmed || trimmed.startsWith(':') || !trimmed.startsWith('data:')) {
     return { kind: 'skip' };
   }
@@ -39,6 +40,7 @@ async function* readStreamLines(stream: ReadableStream<Uint8Array>): AsyncIterab
       buffer = lines.pop() ?? '';
       for (const line of lines) yield line;
     }
+    buffer += decoder.decode();
     if (buffer.trim()) yield buffer;
   } finally {
     reader.releaseLock();

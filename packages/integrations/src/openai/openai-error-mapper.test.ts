@@ -56,4 +56,28 @@ describe('OpenAI Error Mapper', () => {
     expect(domainErr.message).not.toContain('key');
     expect(domainErr.message).not.toContain('Authorization');
   });
+
+  it('guarantees HTTP non-2xx error handling never includes raw response body contents', () => {
+    // Synthetic raw provider body with secret-like string and caller transcript
+    const syntheticSecret = 'sk-test-secret-sample-string-999';
+    const syntheticTranscript = 'caller said secret sensitive words';
+    const rawBody = JSON.stringify({
+      error: {
+        message: `Invalid auth for ${syntheticSecret} while processing ${syntheticTranscript}`,
+        type: 'invalid_request_error',
+      },
+    });
+
+    // Error mapper takes status code and yields strictly sanitized domain errors
+    const safeError = mapOpenAiHttpStatusToError(401);
+    const domainError = toConversationModelError(safeError);
+
+    // Assert that raw body strings are never leaked
+    expect(safeError.message).not.toContain(syntheticSecret);
+    expect(safeError.message).not.toContain(syntheticTranscript);
+    expect(safeError.message).not.toContain(rawBody);
+    expect(domainError.message).not.toContain(syntheticSecret);
+    expect(domainError.message).not.toContain(syntheticTranscript);
+    expect(domainError.message).not.toContain(rawBody);
+  });
 });

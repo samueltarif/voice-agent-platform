@@ -6894,3 +6894,74 @@ Status: `BENCHMARK HYPOTHESES` — NÃO são product requirements.
   - Schema de banco / Migrations: INALTERADOS.
   - Próximo Slice de Implementação: **NÃO INICIADO**.
 
+---
+
+## PROMPT-006G-CLOSE-R1 — OpenAI Current-Model Truth, Responses-vs-Chat Audit & Adapter Hardening
+
+- **Data**: 2026-09-29
+- **PR**: #30 (`feature/openai-conversation-model-adapter`)
+- **Base SHA**: `29d72d0e35f2eea82a9d656059530ec9f02cd730`
+- **Current HEAD**: `6449d286369ebd8009b1cd81c486d1adae1a2350`
+
+### 1. Auditoria Factual do Catálogo Oficial de Modelos OpenAI (2026-09-29)
+- **Fonte Oficial Consultada**: `https://platform.openai.com/docs/models` e especificação oficial OpenAPI da OpenAI (`https://raw.githubusercontent.com/openai/openai-openapi/master/openapi.yaml`, 112k linhas, atualizada em 2026).
+- **Evidências Fatuais Observadas no Catálogo**:
+  - `CURRENT_FLAGSHIP_MODEL_FAMILY`: Família **GPT-6** (`gpt-6-astra`, `gpt-6-sol`, `gpt-6-luna`), presente formalmente em `ModelIdsShared` e exemplos oficiais.
+  - `CURRENT_MOST_CAPABLE_GENERAL_MODEL`: `gpt-6-astra` (projetado para máxima capacidade, raciocínio complexo e inteligência de fronteira).
+  - `CURRENT_ADVANCED_LOW_LATENCY_TEXT_CANDIDATES`: `gpt-6-luna` (otimizado para custo, escala e alta velocidade), `gpt-6-sol` (equilíbrio entre inteligência e velocidade), além de `gpt-5.4-mini` / `gpt-5-mini`.
+  - `CURRENT_DEPRECATED_OR_LEGACY_FAMILIES`: `gpt-4o` (versão original de 2024, mantida para compatibilidade, não sendo o ápice atual), `o1-preview` e `o1-mini` (descontinuados/sucedidos por `o3` e `o4-mini`).
+- **Autocorreção sobre Premissa Anterior de Modelo**:
+  - `PREVIOUS ASSUMPTION`: 006G assumiu `gpt-4o` como o modelo avançado padrão contemporâneo por inércia documental.
+  - `NEW EVIDENCE`: A documentação oficial de 2026 demonstra a existência da família GPT-6 (`gpt-6-astra`, `gpt-6-sol`, `gpt-6-luna`).
+  - `CORRECTION`: O modelo padrão não é hardcoded nem fixado arbitrariamente em `gpt-4o`. O runtime opera em modo fail-closed exigindo configuração explícita de `modelId`.
+
+### 2. Auditoria Factual: Responses API vs Chat Completions API
+- **Análise Detalhada dos Critérios Normativos da Responses API (`POST /v1/responses`)**:
+  - `CAN_RESPONSES_BE_STATELESS?`: SIM. Suporta `store: false`.
+  - `IS_SERVER_SIDE_STORAGE_REQUIRED?`: NÃO. O armazenamento remoto de 30 dias pode ser desativado com `store: false`.
+  - `CAN_STORE_BE_DISABLED?`: SIM (`store: false`).
+  - `IS_CONVERSATION_ID_REQUIRED?`: NÃO. O parâmetro `conversation_id` é opcional.
+  - `CAN_FULL_CONTEXT_BE_SENT PER REQUEST?`: SIM. O parâmetro `input` aceita lista de `BetaInputItem`.
+  - `IS_PREVIOUS_RESPONSE_ID OPTIONAL?`: SIM.
+  - `DOES RESPONSES SUPPORT STREAMING TEXT?`: SIM, via eventos `BetaResponseStreamEvent`.
+  - `DOES RESPONSES SUPPORT ABORTSIGNAL THROUGH FETCH?`: SIM.
+  - `HOW IS USAGE EXPOSED IN STREAMING?`: No evento `response.completed` com campos `input_tokens` e `output_tokens`.
+- **Conclusão Técnica sobre Superfície de API**:
+  - Remove-se a alegação anterior de que a Responses API viola nosso modelo de autoridade (ela pode operar de forma stateless).
+  - Contudo, na especificação oficial OpenAPI da OpenAI, o endpoint é formalmente rotulado como `beta_createResponse` sob rota `/responses?beta=true` com cabeçalho de ativação beta, contendo mais de 30 tipos de eventos de streaming para ferramentas de código, arquivos, shell e agentes paralelos.
+  - A *Chat Completions API* (`POST /v1/chat/completions`) permanece como a interface estável (não-beta), universalmente suportada para todos os modelos da família GPT-6 e legados (`ModelIdsShared`), com protocolo SSE linear enxuto e mapeamento 1:1 para o `ConversationModelPort` do nosso runtime sem dependências de recursos de agente do servidor.
+
+### 3. Condição de Parada Humana (Human Stop & Trade-Off)
+- **HUMAN STOP ATIVADO**: Conforme determinado nos itens 6 e 31 do prompt, identificou-se um trade-off material entre capacidade geral e latência no caminho de voz:
+  - `MODEL A (MOST_CAPABLE_GENERAL_MODEL)`: `gpt-6-astra` (máxima inteligência geral, mas potencialmente maior latência de raciocínio).
+  - `MODEL B (MOST_SUITABLE_ADVANCED_VOICE_TEXT_MODEL)`: `gpt-6-sol` / `gpt-6-luna` (otimizados para menor latência e alto throughput no caminho de voz) ou `gpt-4o` (candidato legado estável).
+  - **Decisão Humana Requerida**: O operador deve decidir qual o model ID concreto a ser adotado na configuração de produção padrão. O código foi tornado fail-closed (`MISSING_MODEL_CONFIG_BEHAVIOR = FAIL_CLOSED`), não assumindo nenhum default silencioso.
+
+### 4. Calibração de Claims e Governança
+- **Latência**: Removidas alegações numéricas não comprovadas oficialmente (~100+ tps, 500–800ms como SLA rígido). Registrado `LATENCY_REAL = NOT MEASURED`; 500–800ms classificado como objetivo inicial de engenharia.
+- **pt-BR**: Removida a alegação "fluência nativa em pt-BR". Classificado como `PT-BR_SUPPORT = DOCUMENTED` / `PROVIDER CLAIM` / `PT-BR_QUALITY = NOT VERIFIED`.
+- **Supply-Chain**: Ajustada a redação para não declarar erradicação absoluta de risco; registrado que o native fetch evita dependência incremental npm e transfere a responsabilidade de manutenção do SSE para a base interna.
+- **Status do ADR-018 e README**: Alterado para `Proposed` enquanto o PR #30 estiver aberto e não mergeado.
+- **Correção no DECISIONS_LOG**: Corrigido o histórico do Twilio para registrar adapters nos Slices 006A–006C (e 006D como runtime agnóstico de modelo).
+
+### 5. Hardening do Adapter e Testes SSE
+- **Parser SSE**:
+  - Suporte completo a terminações CRLF (`\r\n`) e LF (`\n`).
+  - Flush de bytes pendentes do `TextDecoder` no encerramento da stream.
+  - Tratamento resiliente de JSON malformado e chunks de comentários `: keep-alive`.
+- **Suíte de Testes Adicionada (openai-sse-parser.test.ts e openai-model-config.test.ts)**:
+  - Frame dividido entre múltiplos chunks de rede (split-frame).
+  - Múltiplos frames agrupados em um único chunk de bytes.
+  - Separação de bytes multibyte UTF-8 entre pacotes de rede (caracteres `ç`, `ã`, `é`, `á` divididos no meio do byte payload, comprovando decoding incremental íntegro).
+  - Parada imediata em marcador terminal `[DONE]`.
+  - Processamento de chunk com `usage` sem deltas de texto.
+  - Fail-closed comprovado em `openai-model-config.test.ts` quando `modelId` não é informado.
+  - Sanitização de corpo de erro comprovada em `openai-error-mapper.test.ts` (nenhum dado de corpo de resposta 4xx/5xx vaza em mensagens de erro).
+- **Testes de Integração Totais**: 17 arquivos de teste, 81 testes passando em `packages/integrations` (23 testes dedicados ao módulo OpenAI).
+
+### 6. Homologação e Rede
+- Rede real da OpenAI: **NÃO CHAMADA** (`ZERO EXTERNAL NETWORK CALLS`).
+- Status da integração: `IMPLEMENTED`, `TESTED LOCALLY`, `PROVIDER-UNVERIFIED`.
+- TypeSafe Jev: **NÃO IMPLEMENTADO** (`BENCHMARK_CANDIDATE`).
+- PR #30: **OPEN / NOT MERGED**.
+
