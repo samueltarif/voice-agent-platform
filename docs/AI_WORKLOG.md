@@ -6679,3 +6679,80 @@ Todas as condições de governança, integridade de contratos, proteção multi-
 - **APIs de Provedores Pagas Chamadas**: ZERO.
 - **Segredos Solicitados**: ZERO.
 - **Próximo Slice (006F ou Adapter Implementation)**: **NÃO INICIADO**.
+
+---
+
+## PROMPT-006F-GATE-CLOSE — TypeSafe Jev Official-Docs Fit & Benchmark Plan
+
+- **Data**: 2026-09-29
+- **Branch**: `docs/006f-jev-auxiliary-model-gate`
+- **Objetivo**: Concluir o research gate do TypeSafe AI Jev usando documentação oficial; determinar papel arquitetural correto do Jev e preparar plano de benchmark futuro.
+
+### Documentação Oficial Consultada
+
+| Fonte | URL |
+|:---|:---|
+| Docs index | https://docs.typesafe.ai/llms.txt |
+| Introduction | https://docs.typesafe.ai/introduction.md |
+| System One concept | https://docs.typesafe.ai/concepts/system-one.md |
+| How to build | https://docs.typesafe.ai/concepts/how-to-build-with-system-one.md |
+| API reference | https://docs.typesafe.ai/api.md |
+| Models / pricing | https://docs.typesafe.ai/models.md |
+| Confidence | https://docs.typesafe.ai/confidence.md |
+| JavaScript SDK | https://docs.typesafe.ai/sdk/javascript.md |
+| Python SDK | https://docs.typesafe.ai/sdk/python.md |
+| Legal | https://docs.typesafe.ai/legal.md |
+
+### Resultados de Pesquisa
+
+| Item | Resultado |
+|:---|:---|
+| **API Endpoint** | `POST https://api.typesafe.ai/v1/systemone` — FACT FROM DOCS |
+| **Model Alias** | `jev-latest` → `jev-1.13.0` — FACT FROM DOCS |
+| **Python SDK** | `AVAILABLE` (`typesafe-sdk`, Python >= 3.10) |
+| **Node/TS SDK** | `AVAILABLE` (`@typesafe-ai/sdk`, Node.js >= 20, ESM+CJS+TS) |
+| **Direct HTTP possível** | `INFERENCE` (via `fetch`; não é claim do provider) |
+| **Primitive: Choice** | Seleciona opção de conjunto definido; retorna `choice`, `probabilities`, `confidence` |
+| **Primitive: Score** | Pontua em rubrica ordenada; retorna `score`, `legend`, `probabilities`, `confidence` |
+| **Primitive: Noul** | Probabilidade 0–1 de afirmação ser verdadeira; retorna `noul` (sem `confidence`) |
+| **Noul != boolean** | Noul não deve ser traduzido automaticamente para boolean |
+| **Many questions / one request** | `PROVIDER CLAIM`: questões avaliadas em paralelo; adicionar questões tem pouco impacto |
+| **String generation** | NÃO — Jev não gera texto |
+| **Code controls workflow** | FACT FROM DOCS: princípio arquitetural explícito do TypeSafe |
+| **Model routing documentado** | SIM — `PROVIDER-DOCUMENTED PATTERN` |
+| **Guardrails documentados** | SIM — `PROVIDER-DOCUMENTED USE CASE` (LLM guardrails, jailbreak, prompt injection) |
+| **Context retrieval documentado** | SIM — `PROVIDER-DOCUMENTED USE CASE` (re-ranking, relevance) |
+| **Main-call avoidance possível** | CONDICIONAL: somente se Jev permite completar turno sem LLM |
+| **Main-call avoidance automático** | NÃO — `JEV_CALL != MAIN_CALL_AVOIDED` |
+| **Token reduction possível** | SIM — via relevance selection (métrica separada de call avoidance) |
+| **Confidence calibrado para nosso domínio** | `NOT VERIFIED` — domínio pt-BR de vendas por voz não avaliado |
+| **Schema-safe == semanticamente correto** | NÃO — `STRUCTURAL CONFORMANCE != SEMANTIC CORRECTNESS` |
+| **Critical-path risk** | Serial Jev→LLM: risco de TTFT degradado; latência Brasil `NOT MEASURED` |
+| **Async candidate** | `BENCHMARK_HYPOTHESIS` — Jev async após turno N, sinais para turno N+1 |
+| **Baseline obrigatório primeiro** | SIM — benchmark em 5 etapas documentado |
+| **NEW_PORT_NEEDED_NOW** | NO |
+| **Classificação** | `BENCHMARK_CANDIDATE` |
+| **Primary provider status** | `PENDING HUMAN DECISION` |
+
+### Sinais de Voz Candidatos (Benchmark Hypotheses)
+
+Acknowledgement, repeat request, explicit human request, objection signal, urgency,
+frustration, conversation intent, context relevance, prompt injection/jailbreak.
+
+Status: `BENCHMARK HYPOTHESES` — NÃO são product requirements.
+
+### Métricas Definidas para Benchmark Futuro
+
+`mainModelCallAvoidanceRate`, `mainInputTokenReduction`, `jevLatencyP50`,
+`jevLatencyP95`, `totalResponseTTFT`, `falseBypassRate`, `routingAccuracy`,
+`fallbackRate`, `costReduction`, `baselineCost`, `combinedCost`.
+
+### Integridade Operacional
+
+- **Código de Produção Alterado**: ZERO.
+- **Dependências Instaladas**: ZERO.
+- **APIs de Provedores Pagas Chamadas**: ZERO.
+- **Segredos Solicitados**: ZERO.
+- **Implementação Iniciada**: NÃO INICIADA.
+- **AuxiliaryDecisionPort Criada**: NÃO.
+- **Provider Principal Selecionado**: NÃO — PENDING HUMAN DECISION.
