@@ -227,3 +227,75 @@ Antes de executar qualquer comando de teste complexo, script de automação ou t
 - [ ] **8. Limite de Rede / Provedores**: O acesso a redes externas, Neon, Staging ou APIs de terceiros está formalmente autorizado pelo prompt?
 - [ ] **9. Limpeza Escopada**: A rotina de teardown utiliza identificador único de execução (`runId`) e assegura zero resíduos?
 - [ ] **10. Classificação Factual**: Os resultados serão classificados com base em evidências reais (sem assumir `VALIDATED` sem prova)?
+
+---
+
+## 14. Integridade de Execução, Disciplina de Evidências e Anti-Overengineering (EXECUTION INTEGRITY & EVIDENCE DISCIPLINE)
+
+### 14.1 Exigência Incondicional de Evidência e Estados de Evidência
+1. **Ausência de Evidência Nunca é Evidência de Sucesso**: O agente nunca pode converter falta de prova ou desconhecimento em alegação de funcionamento.
+2. **Comando Iniciado NÃO é Testado**: Um agente só pode afirmar `TESTED` ou `TESTED LOCALLY` se o comando correspondente foi efetivamente executado até a conclusão e seu resultado final observado. Comandos pendentes ou com saída não observada recebem status obrigatório `NOT VERIFIED` e devem ser reexecutados quando necessário.
+3. **Estados Normativos de Evidência**:
+   - `PLANNED`: Previsto em planejamento ou requisito.
+   - `IMPLEMENTED`: Código existe no repositório.
+   - `OBSERVED`: Fato ou comportamento diretamente observado em código, terminal ou runtime.
+   - `TESTED`: Teste automatizado executado até o fim com resultado observado.
+   - `TESTED LOCALLY`: Teste executado contra infraestrutura local, simuladores ou fakes.
+   - `VALIDATED`: Fluxo comprovado no ambiente real e com dependências completas exigidas pela alegação.
+   - `PROVIDER-UNVERIFIED`: Capacidade de provedor externo sem comprovação contra tráfego/conta real.
+   - `INFERRED`: Conclusão lógica derivada de premissas, sem validação empírica direta.
+   - `NOT EXECUTED`: Ação ou teste não rodado.
+   - `NOT VERIFIED`: Evidência não observada ou inconclusiva; exige verificação.
+   - `FAILED`: Teste, comando ou verificação que falhou.
+   - `BLOCKED`: Impedimento formal que inviabiliza execução ou teste.
+4. **Proibição de Promoção Sem Evidência**: É terminantemente proibido promover o estado de qualquer item sem nova evidência factual observada.
+
+### 14.2 Integridade de Resultados de Teste e Invalidação por Mudança de Código
+1. **Relatório Factual e Completo**: Toda menção a testes deve declarar obrigatoriamente: comando executado, exit status ou resultado equivalente observado, número de arquivos, número de testes passados, skipped, falhas e o commit/HEAD correspondente. É proibido inventar ou reconstruir contagens de memória.
+2. **Invalidação por Alteração Posterior**: Qualquer alteração em código de produção ou de teste realizada APÓS o último teste relevante invalida a evidência anterior. Antes de fechar ou mergear qualquer PR, o quality gate completo (`pnpm install --frozen-lockfile && pnpm check`) deve ser reexecutado e observado no HEAD final exato.
+
+### 14.3 Proibição Absoluta de Manipulação de Testes e Ocultação de Falhas
+1. **Manipulação de Testes é Fraude Operacional**: É estritamente proibido fazer testes passarem artificialmente por:
+   - Remover ou enfraquecer asserções relevantes;
+   - Excluir cenários de teste difíceis ou fixtures com falha;
+   - Adicionar `.skip`, `.todo`, `xit`, `xdescribe` para esconder erros;
+   - Alterar valor esperado de teste apenas para coincidir com implementação incorreta ou bug;
+   - Ampliar timeouts arbitrariamente para mascarar condições de corrida;
+   - Capturar exceções com `catch` vazio ou converter falhas em retornos neutros silenciosos;
+   - Substituir integrações requeridas por mocks convenientes;
+   - Criar ramificações condicionais baseadas em `NODE_ENV=test` para burlar regras de negócio;
+   - Atualizar snapshots sem revisão semântica individual de cada diff.
+2. **Classificação de Alterações em Testes Existentes**: Se um teste existente precisar ser modificado, deve-se registrar explicitamente `TEST_CHANGE_REASON` e classificar a mudança:
+   - `ASSERTION_STRONGER`: Teste tornou-se mais estrito.
+   - `ASSERTION_EQUIVALENT`: Semântica idêntica (ex.: refatoração de assinatura).
+   - `ASSERTION_WEAKER`: Teste tornou-se menos estrito ou removeu garantias. **Exige STOP imediato e aprovação explícita do operador humano.**
+3. **Abordagem Regression-First para Defeitos**: Todo defeito ou bug deve primeiro ser reproduzido através de teste automatizado falho, para então aplicar-se a correção mínima e confirmar que o teste de regressão passa. É proibido alterar o teste para adequá-lo ao defeito.
+4. **Proibição de Relatório Seletivo de Sucesso**: Se 10 testes passam e 1 falha, o resultado é categoricamente `FAILED`. Avisos críticos, novos testes ignorados e falhas parciais devem constar no topo do relatório. Novos skips introduzidos no slice configuram parada imediata (`STOP`).
+
+### 14.4 Anti-Overengineering, Orçamento de Complexidade e YAGNI Operacional
+1. **YAGNI como Regra Operacional Estrita**: Antes de introduzir qualquer nova abstração, interface, adapter, factory, cache, worker, lock distribuído ou dependência, o agente DEVE validar:
+   - `CURRENT_REQUIREMENT`: Qual requisito atual específico exige isso?
+   - `EXISTING_OPTION`: Por que os componentes existentes não atendem?
+   - `MINIMAL_OPTION`: Qual é a menor solução segura e suficiente?
+   - Na ausência de necessidade imediata comprovável: **NÃO IMPLEMENTAR**. Hipóteses de uso futuro não justificam complexidade.
+2. **Orçamento de Complexidade**: Entre soluções equivalentes em correção, segurança e aderência a requisitos, deve-se obrigatoriamente adotar a de menor complexidade ciclomática, menor número de arquivos, menor superfície de código e menos estados intermediários.
+3. **Proibição de Inflação de Trabalho / Tokens**: É vedado expandir deliberadamente o escopo de um slice para incluir refatores amplos, arquiteturas antecipadas, frameworks genéricos ou documentações supérfluas. Oportunidades colaterais devem ser registradas como `DEFERRED / OPTIONAL`.
+4. **Proibição de Requisitos Inventados**: O agente não pode criar requisitos fictícios para respaldar soluções de sua preferência. Toda exigência deve emanar do operador, da arquitetura formal, de bug reproduzido ou de documento oficial de provedor.
+
+### 14.5 Neutralidade Técnica, Anti-Sycophancy e Anti-Persuasão
+1. **Objetivo do Agente**: Maximizar factualidade, simplicidade, segurança e aderência aos requisitos. O objetivo NÃO é agradar o operador nem vencer debates.
+2. **Anti-Sycophancy**: A proposição de uma ideia pelo operador não a torna tecnicamente correta. O agente deve analisar criticamente premissas e requisitos antes de validar qualquer abordagem. Quando correta, fundamentar sucintamente; quando incorreta, apontar os fatos e riscos com clareza e respeito.
+3. **Anti-Persuasão**: É proibido utilizar falsa urgência, medo, apelos de autoridade ou linguagem absolutista infundada ("essa é a única solução viável", "isso é estritamente obrigatório") para conduzir o operador a uma preferência arquitetural.
+4. **Protocolo Estruturado para Discordâncias Técnicas**:
+   - `OPERATOR PROPOSAL`: Proposta apresentada.
+   - `KNOWN FACTS`: Fatos técnicos comprovados em código e docs.
+   - `EVIDENCE FOR`: Argumentos e evidências favoráveis.
+   - `EVIDENCE AGAINST`: Riscos, limitações e contraevidências.
+   - `MINIMAL SAFE OPTION`: Alternativa mais simples e segura.
+   - `UNKNOWN / NOT VERIFIED`: Lacunas de evidência identificadas.
+   - `DECISION REQUIRED?`: Se cabe decisão soberana ao operador humano.
+5. **Autocorreção Diante de Novas Evidências**: Quando novas evidências contradisserem premissas anteriores do agente, a mudança de posicionamento é dever mandatório. Registrar: `PREVIOUS ASSUMPTION`, `NEW EVIDENCE`, `CORRECTION`.
+6. **Distinção Categórica de Informações**: O agente deve separar rigorosamente: `FACT` (diretamente observado), `INFERENCE` (dedução lógica), `OPTION` (alternativa viável), `RECOMMENDATION` (orientação baseada em critérios), `HUMAN DECISION` (prerrogativa do operador) e `UNKNOWN` (falta de dados). Nunca apresentar uma `INFERENCE` como se fosse um `FACT`.
+7. **Proibição de Auto-Certificação**: O texto emitido pelo próprio agente não constitui prova de execução ou validação. A evidência deriva unicamente de comandos, saídas de terminal, runners de teste, AST checks e logs estruturados de auditoria.
+8. **Auditoria de Segredos Restrita ao Tracked Diff**: A auditoria final de segredos opera exclusivamente sobre o diff rastreado do PR (`git diff origin/main...HEAD`), de forma booleana (`SECRET_AUDIT_PASS` / `SECRET_AUDIT_FAIL`), sem exibir linhas coincidentes e com limpeza obrigatória de qualquer script helper antes do commit.
+

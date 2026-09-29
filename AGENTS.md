@@ -216,3 +216,28 @@ Uma tarefa só é considerada concluída quando:
    - Se qualquer regra operacional for violada, o agente **NÃO DEVE** ocultar ou silenciar o fato.
    - Registrar imediatamente no `AI_WORKLOG.md` uma nova entrada classificada como `SECURITY PROCESS DEVIATION` (ou `SECURITY PROCESS DEVIATION — REPEATED PATTERN`), reportando: fato objetivo, escopo, risco, contenção aplicada, ação corretiva e necessidade ou não de rotação humana.
 4. **Regra de Bloqueio Humano (Human Blocker)**: Solicitar intervenção humana apenas para ações externas indispensáveis (criação/rotação de credenciais, ações no console de provedores, configurações administrativas do GitHub). **Nunca solicitar ao humano que copie/cole tokens, cookies, chaves privadas ou DSNs literais no terminal.**
+
+---
+
+## 14. Integridade de Execução, Disciplina de Evidências e Anti-Overengineering (EXECUTION INTEGRITY)
+
+1. **Evidência é Obrigatória**: Ausência de evidência nunca é evidência de sucesso. Um comando iniciado não conta como `TESTED`. Sem observação factual do resultado final, o status obrigatório é `NOT VERIFIED`.
+2. **Estados Normativos de Evidência**: `PLANNED`, `IMPLEMENTED`, `OBSERVED`, `TESTED`, `TESTED LOCALLY`, `VALIDATED`, `PROVIDER-UNVERIFIED`, `INFERRED`, `NOT EXECUTED`, `NOT VERIFIED`, `FAILED`, `BLOCKED`. Promoção sem nova evidência observada é estritamente proibida.
+3. **Integridade de Contagens e Resultados**: Registrar factual: comando, exit status, arquivos, testes, skips, falhas e HEAD testado. Nunca inventar ou estimar contagens por memória.
+4. **Código Posterior Invalida Evidência de Teste**: Se o código for alterado após o teste, o teste anterior não é mais evidência do estado final. Antes do merge, o quality gate completo (`pnpm install --frozen-lockfile && pnpm check`) deve ser reexecutado e observado no HEAD final exato.
+5. **Proibição Absoluta de Manipulação de Testes**: Proibido remover/enfraquecer assertions, apagar cenários difíceis, usar `.skip`/`.todo` para ocultar falhas, alterar valores esperados para coincidir com bugs, ampliar timeouts sem justificativa ou mascarar erros com `catch`.
+6. **Classificação de Alterações em Testes**: Mudanças em testes existentes exigem `TEST_CHANGE_REASON` e classificação: `ASSERTION_STRONGER`, `ASSERTION_EQUIVALENT` ou `ASSERTION_WEAKER`. `ASSERTION_WEAKER` exige **STOP** imediato e aprovação do operador humano.
+7. **Abordagem Regression-First**: Todo bug deve ser reproduzido primeiro por teste automatizado falho, corrigido em seguida e comprovado pelo teste passando.
+8. **Proibição de Ocultação de Falhas e Sucesso Seletivo**: Proibido catch silencioso, return null ou array vazio para mascarar erros. Se 10 testes passam e 1 falha, o resultado é categoricamente `FAILED`. Novos skips introduzidos exigem **STOP**.
+9. **YAGNI Operacional e Anti-Overengineering**: Antes de criar qualquer nova abstração, interface, adapter, cache ou worker, responder: `CURRENT_REQUIREMENT`, `EXISTING_OPTION`, `MINIMAL_OPTION`. Sem necessidade atual verificável, é proibido implementar ("pode ser útil no futuro" não é justificativa).
+10. **Orçamento de Complexidade**: Entre soluções equivalentes, adotar sempre a que possui menor complexidade ciclomática, menos estados, menos dependências e menor superfície de código.
+11. **Proibição de Inflação de Trabalho / Tokens**: Não expandir espontaneamente o escopo do slice com refatorações amplas ou documentações supérfluas. Melhorias fora de escopo devem ser anotadas como `DEFERRED / OPTIONAL`.
+12. **Proibição de Requisitos Inventados**: O agente não pode criar requisitos fictícios para justificar soluções próprias.
+13. **Neutralidade Técnica, Anti-Sycophancy e Anti-Persuasão**:
+    - O objetivo é maximizar correção factual, simplicidade e segurança, não agradar o operador nem vencer discussões.
+    - Sugestão do operador não é automaticamente correta; avaliar criticamente antes de anuir.
+    - Proibido usar falsa urgência, medo ou afirmações absolutistas infundadas para persuadir o operador.
+    - Discordâncias seguem disciplina estruturada (proposta, fatos, prós, contras, opção mínima segura, lacunas).
+14. **Autocorreção e Distinção Factual**: Mudar de posição diante de novas evidências é mandatório (`PREVIOUS ASSUMPTION`, `NEW EVIDENCE`, `CORRECTION`). Distinguir categoricamente `FACT`, `INFERENCE`, `OPTION`, `RECOMMENDATION`, `HUMAN DECISION` e `UNKNOWN`.
+15. **Proibição de Auto-Certificação**: Texto emitido pelo próprio agente não é evidência. A evidência provém unicamente de comandos, saídas de terminal, runners de teste e runners AST.
+16. **Auditoria de Segredos no Tracked Diff**: Auditoria final de segredos opera exclusivamente sobre o tracked diff (`git diff origin/main...HEAD`), de forma booleana (`SECRET_AUDIT_PASS` / `SECRET_AUDIT_FAIL`), sem expor linhas coincidentes.
