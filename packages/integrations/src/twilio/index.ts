@@ -5,3 +5,7 @@ export * from './twilio-signature-validator.js';
 export * from './twilio-voice-transport-adapter.js';
 export * from './twilio-websocket-boundary.js';
 export * from './fake-twilio-conversation-relay-simulator.js';
+export * from './twilio-canonical-url-resolver.js';
+export * from './twilio-twiml-generator.js';
+export * from './twilio-websocket-bootstrap-resolver.js';
+export * from './twilio-voice-webhook-handler.js';

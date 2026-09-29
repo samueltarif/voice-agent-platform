@@ -12,6 +12,9 @@
       "default": "./src/index.ts"
     }
   },
+  "dependencies": {
+    "@voice-agent/errors": "workspace:*"
+  },
   "scripts": {
     "build": "tsc",
     "lint": "eslint .",

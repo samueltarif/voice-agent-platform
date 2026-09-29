@@ -22,3 +22,5 @@ export * from './assistant-stream-coordinator.js';
 export * from './conversation-orchestrator.js';
 export * from './fake-voice-transport.js';
 export * from './fake-conversation-model.js';
+export * from './in-memory-call-bootstrap-registry.js';
+export * from './call-lifecycle-gateway.js';

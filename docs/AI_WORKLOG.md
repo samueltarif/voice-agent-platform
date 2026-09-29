@@ -5989,6 +5989,100 @@ Em conformidade com a regra de auditabilidade append-only (sem reescrita de regi
 ### 10. Autorização de Merge
 Todos os gates de conformidade de protocolo, validação de assinatura, robustez de parser, isolamento de tenant, supressão de stale chunks, auditoria de PII e qualidade de código foram cumpridos com sucesso. O merge do Pull Request #24 está **formalmente autorizado**.
 
+---
+
+## 2026-09-29 — PROMPT-006C — Twilio Webhook Entrypoint, TwiML Generation & Live Call Lifecycle Gateway
+
+### 1. Resumo Executivo e Metadados do Slice
+- **Base Main SHA**: `ddb80e39652a8df825aa33ef62cba0e01fb979d6`
+- **Branch**: `feature/twilio-live-call-gateway`
+- **Objetivo do Turno**: Implementação completa do Slice 006C da Fase 6, estabelecendo a fronteira HTTP e o gateway de ciclo de vida de chamadas com:
+  1. Validação prévia de assinatura Twilio (`X-Twilio-Signature`) via HMAC-SHA1 antes de qualquer execução de regras;
+  2. Resolução determinística e imutável de URL canônica pública derivada estritamente de `PUBLIC_VOICE_BASE_URL` server-side, com descarte total de cabeçalhos de proxy forjados (`Host`, `X-Forwarded-*`);
+  3. Registro server-side de bootstrap de chamada (`CallBootstrap`) com identificador UUID opaco de uso estritamente único (*consume-once*);
+  4. Geração segura de TwiML para `<Connect><ConversationRelay url="wss://..."><Parameter name="bootstrapId" value="..." /></ConversationRelay></Connect>`, com sanitização completa contra injeção de XML;
+  5. Resolução atômica de vínculo da conexão WebSocket (`TwilioWebSocketBootstrapResolver`) garantindo que apenas uma conexão consuma o bootstrap;
+  6. Invariante estrita de execução de versão publicada (`agentVersionStatus === 'PUBLISHED'`), rejeitando versões em `DRAFT` ou `ARCHIVED`;
+  7. Segregação rígida entre `callId` interno (UUID) e `CallSid` do provedor (`providerCallId`);
+  8. Validação e testes 100% locais sem acesso a contas, números ou APIs reais da Twilio.
+
+---
+
+### 2. Correção Documental de Estado em `docs/SECURITY.md`
+- **Fato Auditado**: A Seção 1.6 de `docs/SECURITY.md` mantinha estado documental desatualizado indicando `Browser Auth E2E: NOT VALIDATED` e `Slice 005D-B1: NOT STARTED`.
+- **Evidência Factual Versionada**: O Slice 005D-B1 foi formalmente implementado e mergeado na main (PR #18), com `Browser Session E2E: VALIDATED` (17 cenários reais no Chromium via Playwright MCP com PostgreSQL local e Better Auth real). A distinção com `Login UI visual E2E: NOT VALIDATED` permanece íntegra.
+- **Ação Corretiva**: Linha 35 de `docs/SECURITY.md` atualizada factual e diretamente para refletir `Slice 005D-B1: MERGED / IMPLEMENTED`, `Browser Session E2E: VALIDATED` e `Login UI visual E2E: NOT VALIDATED`.
+
+---
+
+### 3. Decisão de Provedor de Telefonia
+- A tabela de decisões técnicas pendentes em `docs/DECISIONS_LOG.md` permanece estritamente como: `Fornecedor Primário de Telefonia: Twilio / Telnyx / Plivo / Zadarma | Status: Pending Decision`.
+- Adicionada a decisão **DEC-035** registrando a implementação do gateway candidato Twilio ConversationRelay sem alterar a decisão humana pendente sobre o fornecedor final. O status real da integração permanece classificado como `PROVIDER-UNVERIFIED`.
+
+---
+
+### 4. Arquitetura e Componentes Implementados (Slice 006C)
+- **Contratos e Portas Compartilhadas (`packages/contracts/src/voice/call-bootstrap-contracts.ts`)**:
+  - `CallBootstrap`: estrutura de dados contendo `bootstrapId` (UUID opaco), `callId` (UUID interno), `organizationId`, `agentId`, `agentVersionId`, `agentSnapshot` (`AgentConfigurationSnapshotV1`), `status` (`PENDING`, `CONSUMED`, `EXPIRED`), timestamps (`createdAt`, `expiresAt`, `consumedAt`), e `providerCallId` opcional.
+  - `CallBootstrapRegistryPort`: porta abstrata definindo operações `register`, `getById` e `consume(bootstrapId, now)`.
+- **Erros Tipados de Domínio e Gateway (`packages/errors/src/voice-errors.ts`)**:
+  - `InvalidCanonicalUrlError` (HTTP 400)
+  - `CallBootstrapNotFoundError` (HTTP 404)
+  - `CallBootstrapExpiredError` (HTTP 410)
+  - `CallBootstrapAlreadyConsumedError` (HTTP 409)
+  - `TwiMLGenerationError` (HTTP 500)
+  - `InvalidProviderBindingError` (HTTP 400)
+- **Configuração e Validação de URL Canônica (`packages/config/src/voice-gateway-config.ts`)**:
+  - `VoiceGatewayConfig`: validação estrita de `publicVoiceBaseUrl` (HTTPS mandatória fora de dev/test, sem credenciais de usuário, sem fragmentos, sem injeção de caracteres de controle).
+  - Normalização de path e derivação de URL de WebSocket: `https:` -> `wss:` (ou `http:` -> `ws:` em dev/test).
+  - TTL de bootstrap configurável (`bootstrapTtlMs`), com `PROPOSED_DEFAULT_BOOTSTRAP_TTL_MS = 60_000` (60 segundos) documentado como padrão operacional proposto.
+- **Registro em Memória e Gateway de Aplicação (`apps/voice/src/`)**:
+  - `InMemoryCallBootstrapRegistry`: armazenamento em memória com consumo atômico de uso único (*consume-once*). Se já consumido, lança `CallBootstrapAlreadyConsumedError`; se expirado, transita para `EXPIRED` e lança `CallBootstrapExpiredError`.
+  - `CallLifecycleGateway`: serviço de aplicação responsável por `prepareCall`, `consumeBootstrapAndInitializeSession` e `getBootstrap`. Rejeita qualquer preparação de chamada para versões que não sejam `PUBLISHED` (`InvalidAgentVersionStatusError`). Segrega o `callId` interno de qualquer identificador de operadora.
+- **Fronteira de Entrada e Gerador TwiML (`packages/integrations/src/twilio/`)**:
+  - `resolveTwilioCanonicalUrl`: reconstrói a URL canônica para validação de assinatura utilizando exclusivamente a base configurada no servidor e parâmetros ordenados lexicograficamente. Headers como `Host`, `X-Forwarded-Host` e `X-Forwarded-Proto` são ignorados por padrão contra ataques de spoofing.
+  - `generateConversationRelayTwiML`: produz TwiML válido e enxuto para `<Response><Connect><ConversationRelay url="wss://..."><Parameter name="bootstrapId" value="..." /></ConversationRelay></Connect></Response>`. Todos os valores interpolados são protegidos contra injeção de XML via `escapeXml`.
+  - `handleTwilioVoiceWebhook`: handler HTTP de entrada que valida obrigatoriamente a assinatura `X-Twilio-Signature` antes de interagir com o bootstrap. Retorna resposta XML (Content-Type `application/xml`) com status 200 ou falha segura (*fail-closed*).
+  - `TwilioWebSocketBootstrapResolver`: extrai o identificador `bootstrapId` (seja de `customParameters.bootstrapId` na mensagem `setup` ou de query params da conexão), valida seu formato UUID, consome atomicamente o bootstrap via gateway e devolve o contexto autoritativo `TwilioSessionBindingContext` para o `TwilioWebSocketBoundary`.
+
+---
+
+### 5. Cobertura de Testes Automatizados e Fluxo E2E Simulado
+- **15 arquivos de teste e 91 testes aprovados nas áreas de Voz e Integrações**:
+  - `voice-gateway-config.test.ts` (10 testes): validação de URLs HTTP/HTTPS, credenciais proibidas, fragmentos, caracteres inválidos, derivação WSS e TTL configurável.
+  - `twilio-canonical-url-resolver.test.ts` (5 testes): resolução com normalização de barras, ordenação de query params e teste mandatório de imunidade contra headers forjados (`Host`, `X-Forwarded-*`).
+  - `twilio-twiml-generator.test.ts` (5 testes): geração de TwiML, suporte a parâmetros, connectActionUrl, rejeição de URLs não-websocket e escape rigoroso de caracteres XML (`&`, `<`, `>`, `"`, `'`).
+  - `call-lifecycle-gateway.test.ts` (6 testes): criação de bootstrap para versões `PUBLISHED`, rejeição de versões `DRAFT` e `ARCHIVED`, segregação `callId` vs `providerCallId`, consumo atômico, rejeição de duplo consumo (*double consume race*), expiração de token e token desconhecido.
+  - `twilio-voice-webhook-handler.test.ts` (5 testes): aceitação de webhook com assinatura válida gerando TwiML, rejeição de assinatura ausente/inválida, imunidade a headers forjados, rejeição de formato inválido de bootstrapId e rejeição de tokens expirados.
+  - `twilio-live-call-gateway.test.ts` (3 testes): resolução de binding via `customParameters`, rejeição de formato inválido e execução do fluxo E2E local simulado completo:
+    - *Authoritative fixture* -> *published AgentVersion snapshot* -> *prepare call* -> *bootstrap created* -> *signed synthetic Twilio webhook* -> *TwiML generated* -> *opaque bootstrap propagated* -> *synthetic ConversationRelay connection* -> *bootstrap consumed* -> *CallSession created* -> *setup* -> *ACTIVE* -> *synthetic user prompt* -> *FakeConversationModel* -> *outbound Twilio text* -> *end/disconnect*.
+- **Total na Workspace**: **81 arquivos aprovados | 6 skipped (87 total)**, **433 testes aprovados | 45 skipped (478 total)**.
+
+---
+
+### 6. Governança e Métricas da Workspace (`pnpm check`)
+- **`pnpm format:check`**: 100% aprovado.
+- **`pnpm lint`**: 0 erros, 0 warnings (complexidade ciclomatica <= 8, nesting <= 3, max-lines-per-function <= 50 respeitados em todos os arquivos).
+- **`pnpm typecheck`**: 12/12 pacotes aprovados em modo strict.
+- **`pnpm test`**: 433 testes aprovados (0 falhas).
+- **`turbo build`**: 12 pacotes compilados com sucesso (`apps/web` 11/11 rotas estáticas e dinâmicas geradas).
+- **`check-architecture.mjs`**: 100% das fronteiras arquiteturais e diretivas respeitadas via AST (zero vazamento de tipos ou SDKs da Twilio no core).
+- **`check-file-size.mjs`**: 213 arquivos de lógica verificados, todos em conformidade com o limite máximo de 180 linhas (13 avisos, 0 violações).
+- **Auditoria de Segredos (`SECRET_AUDIT_PASS`)**: Verificada no diff contra `origin/main` (inspeção booleana value-blind).
+- **Schema & Migrations**: **ZERO** alterações (`packages/database` inalterado).
+- **Dependências Externas**: **ZERO** adições de novos pacotes npm externos.
+- **Workspace Manifest Changed**: **SIM** (`packages/config/package.json` vinculou `@voice-agent/errors`; `packages/integrations/package.json` vinculou `@voice-agent/config`).
+- **`pnpm-lock.yaml` Changed**: **SIM**.
+- **Provedores Externos**:
+  - Twilio API / Account / Console: **NÃO ACESSADO**.
+  - OpenAI / Anthropic / Google: **NÃO ACESSADO**.
+  - Neon / Staging / Production: **NÃO ACESSADO / INTOCADO**.
+  - Status da Integração Twilio: `PROVIDER-UNVERIFIED`.
+- **Security Process Deviations no Turno**: 0 (ZERO).
+- **Bloqueios**: Nenhum.
+- **Próximo Slice**: Slice 006C-CLOSE (Auditoria Final, Protocol Verification e Merge PR #25). Próximo slice funcional: NÃO INICIADO.
+
+
 
 
 
