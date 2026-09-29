@@ -6272,6 +6272,117 @@ Todos os gates de conformidade de protocolo, validação de assinatura, robustez
 - **Security Process Deviations no Turno**: 0 (ZERO).
 - **Próximo Slice**: Slice 006E **NÃO INICIADO**.
 
+---
+
+## 2026-09-29 — PROMPT-GOVERNANCE-INTEGRITY-002 + 006D-CLOSE: Execution Integrity, Anti-Manipulation, Anti-Overengineering & Merge Audit
+
+### 1. Preflight e Prova Factual de Existência do Pull Request
+- **Branch**: `feature/conversation-model-runtime`
+- **Base Branch**: `main` (SHA: `d1d4435404a1935722cae53e7206e2a6d640b261`)
+- **HEAD da Implementação 006D**: `56c2a7d1bd06e93ab1e5f16e4c6c8a621eb49180`
+- **HEAD Final pós-Hardening e Auditoria**: `3e0ef22fba5e80dc684aa5905d4a9611f7c35fa9`
+- **Prova Factual de Existência do PR via GitHub MCP**:
+  - Consulta inicial via `list_pull_requests` confirmou factual ausência prévia (`[]`).
+  - PR criado formalmente via `create_pull_request`: **PR #26**.
+  - Status verificado via `get_pull_request_status`: `state: pending`, `sha: 56c2a7d...`.
+  - URL Canônica: `https://github.com/samueltarif/voice-agent-platform/pull/26`.
+  - Status no Início do Fechamento: `OPEN / NOT MERGED`.
+
+---
+
+### 2. Hardening Permanente de Governança (`docs: harden agent execution integrity rules`)
+- **Arquivos Alterados**:
+  - [`AGENTS.md`](file:///d:/voice-agent-platform/AGENTS.md): Adicionada Seção 14 com o resumo mandatório e inegociável de integridade de execução, disciplina de evidências, anti-manipulação e anti-overengineering.
+  - [`docs/AI_EXECUTION_RULES.md`](file:///d:/voice-agent-platform/docs/AI_EXECUTION_RULES.md): Adicionada Seção 14 detalhando exaustivamente cada diretriz operacional.
+  - [`docs/TESTING_STRATEGY.md`](file:///d:/voice-agent-platform/docs/TESTING_STRATEGY.md): Adicionada Seção 6 com ponteiro canônico para as regras de integridade e auditoria de testes.
+- **Regras Formalizadas e Blindadas**:
+  1. *Exigência Incondicional de Evidência*: Ausência de evidência nunca é evidência de sucesso. Comando apenas iniciado não conta como `TESTED`. Sem output final observado: status obrigatório `NOT VERIFIED`.
+  2. *Estados Normativos de Evidência*: `PLANNED`, `IMPLEMENTED`, `OBSERVED`, `TESTED`, `TESTED LOCALLY`, `VALIDATED`, `PROVIDER-UNVERIFIED`, `INFERRED`, `NOT EXECUTED`, `NOT VERIFIED`, `FAILED`, `BLOCKED`. Proibida autopromoção de estado sem nova evidência factual.
+  3. *Integridade de Resultados de Teste*: Proibido reconstruir contagens por memória ou inventar métricas.
+  4. *Invalidação por Alteração Posterior*: Alterações no código após o teste invalidam a evidência anterior; re-execução obrigatória do gate apropriado antes de fechar/mergear.
+  5. *Proibição Absoluta de Manipulação de Testes*: Proibido enfraquecer asserções, excluir cenários difíceis, usar `.skip`/`.todo` para mascarar falhas, alterar valores esperados para coincidir com bugs, ampliar timeouts sem justificativa ou suprimir erros.
+  6. *Classificação de Alterações em Testes Existentes*: Exigido `TEST_CHANGE_REASON` e classificação (`ASSERTION_STRONGER`, `ASSERTION_EQUIVALENT`, `ASSERTION_WEAKER`). `ASSERTION_WEAKER` exige `STOP` imediato.
+  7. *Abordagem Regression-First para Bugs*: Reproduzir primeiro, corrigir, validar que passa.
+  8. *Proibição de Ocultação de Falhas e Relatório Seletivo*: Proibido catch silencioso ou retorno vazio para mascarar erros. 10 passaram + 1 falhou = `FAILED`. Novos skips exigem `STOP`.
+  9. *Anti-Overengineering & YAGNI Operacional*: Antes de criar nova abstração, interface, adapter ou worker, responder obrigatoriamente: `CURRENT_REQUIREMENT`, `EXISTING_OPTION`, `MINIMAL_OPTION`. Sem necessidade imediata: NÃO IMPLEMENTAR.
+  10. *Orçamento de Complexidade & Anti-Inflação de Trabalho*: Preferir solução com menos componentes e menor superfície operacional. Melhorias colaterais viram `DEFERRED / OPTIONAL`.
+  11. *Proibição de Requisitos Inventados*: Requisitos só emanam do operador, arquitetura formal, bugs ou docs oficiais.
+  12. *Neutralidade Técnica, Anti-Sycophancy e Anti-Persuasão*: Agente não atua para agradar o operador nem para vencer discussões. Sugestão do operador não é automaticamente correta. Proibida urgência artificial ou linguagem absolutista.
+  13. *Protocolo Estruturado para Discordâncias & Autocorreção*: Análise de prós, contras e opções mínimas seguras. Mudar de posição diante de nova evidência é obrigação.
+  14. *Distinção Categórica de Informações*: Separar estritamente `FACT`, `INFERENCE`, `OPTION`, `RECOMMENDATION`, `HUMAN DECISION` e `UNKNOWN`. Nunca apresentar `INFERENCE` como `FACT`.
+  15. *Proibição de Auto-Certificação*: Texto do modelo não é evidência factual.
+  16. *Auditoria de Segredos Restrita ao Tracked Diff*: Inspeção booleana value-blind em `git diff origin/main...HEAD`.
+- **Commit Separado**: `8d70799863486c478a8f4c2c62c3f815049b80ce` (`docs: harden agent execution integrity rules`).
+
+---
+
+### 3. Auditoria de Contratos e Calibração Factual do Slice 006D
+- **Consistência Contratual de Model Usage**:
+  - `CONTRACT_DOC_MISMATCH: FOUND` (e corrigido factual):
+  - O código fonte real em `packages/contracts/src/voice/model-stream-contracts.ts` (source of truth técnico) define:
+    ```typescript
+    export interface ModelUsageEvent {
+      readonly type: 'usage';
+      readonly turnId: string;
+      readonly generationId: string;
+      readonly inputTokens?: number | undefined;
+      readonly outputTokens?: number | undefined;
+    }
+    ```
+  - Constatou-se que a entrada inicial do AI_WORKLOG descreveu conceitualmente `units` (`inputUnits?`, `outputUnits?`), enquanto o contrato técnico implementado e o ADR-017 formalizaram `tokens` (`inputTokens?`, `outputTokens?`).
+  - Correção factual registrada: o contrato real utiliza `tokens`; ADR-017 está 100% alinhado com o contrato de código.
+- **Remoção de Claim Absoluto em ADR-017**:
+  - Removida a expressão *"Total imunidade da autoridade do sistema e das regras de negócio contra tentativas de injeção de prompt do interlocutor"*.
+  - Substituída pela formulação qualificada e factual: *"Mitigação estrutural de escalada de autoridade por prompt injection: caller input permanece explicitamente não confiável e não possui autoridade sobre tenant, lifecycle, permissões ou regras de sistema. Comportamento semântico de modelos reais permanece PROVIDER-UNVERIFIED."*
+- **Semântica Terminal de Streaming (`processModelStream.ts`)**:
+  - `completed`: evento terminal de sucesso. O loop de consumo encerra imediatamente (`break`); deltas ou eventos tardios após `completed` são descartados.
+  - `failure`: evento terminal de falha; lança `ConversationModelError` imediatamente.
+  - `usage`: evento de telemetria; não altera o transporte e não ressuscita stream encerrado.
+  - `completed.fullText`: a fala emitida e persistida na memória é construída determinística e estritamente a partir da concatenação dos `text.delta` aceitos antes da finalização, impedindo injeção de texto divergente.
+- **Memória de Resposta Interrompida**:
+  - Teste de regressão adicionado comprovando que resposta do assistente interrompida no meio do turno NÃO é gravada como resposta aceita e o turno seguinte do usuário utiliza o histórico limpo.
+
+---
+
+### 4. Auditoria de Diff de Testes e Overengineering
+- **Testes Existentes Modificados no PR #26**:
+  1. `apps/voice/src/barge-in-generation.test.ts`:
+     - Alteração: Adicionado typeguard `'textDelta' in chunk` para conformidade com a expansão da união `ConversationTextChunk | ModelStreamEvent`.
+     - Classificação: `ASSERTION_EQUIVALENT`.
+  2. `packages/integrations/src/twilio/twilio-websocket-boundary.test.ts`:
+     - Alteração: Adicionado typeguard `'textDelta' in chunk`.
+     - Classificação: `ASSERTION_EQUIVALENT`.
+  - `ASSERTION_WEAKER`: 0 (ZERO).
+  - Novos testes ignorados (`NEW_SKIPS`): 0 (ZERO).
+  - Testes excluídos para esconder defeitos: 0 (ZERO).
+- **Auditoria de Overengineering (`OVERENGINEERING_AUDIT: PASS`)**:
+  - Todos os componentes criados (`ConversationContextComposer`, `InMemoryConversationHistoryStore`, `processModelStream`, `AssistantStreamCoordinator`, `FakeConversationModel`) respondem a requisitos explícitos do Slice 006D.
+  - Zero persistência durável em banco de dados; zero sumarização por LLM; zero tool calling; zero SDKs externos.
+- **Calibração de Evidência**:
+  - Runtime local neutro: `IMPLEMENTED` e `TESTED LOCALLY`.
+  - Fornecedor de Telefonia (Twilio): `PROVIDER-UNVERIFIED`.
+  - Fornecedor de Modelo Conversacional (OpenAI / Anthropic / Google): `PROVIDER-UNVERIFIED` (decisão pendente em `DECISIONS_LOG.md`).
+  - Redes e Contas Reais: **NÃO ACESSADAS**.
+
+---
+
+### 5. Métricas Factualmente Observadas do Quality Gate (`pnpm check`)
+- **HEAD Testado**: `3e0ef22fba5e80dc684aa5905d4a9611f7c35fa9`
+- **`pnpm format:check`**: Aprovado (todos os arquivos em conformidade com Prettier).
+- **`pnpm lint`**: 0 erros, 0 avisos (complexidade ciclomática <= 8, nesting <= 3, max-params <= 3, sem arquivos genéricos).
+- **`pnpm typecheck`**: 12/12 pacotes compilados com sucesso sem erros.
+- **`pnpm test`**: **84 passed | 6 skipped (90 arquivos)**; **448 passed | 45 skipped (493 testes)** (2 novos testes de semântica terminal e histórico pós-interrupção aprovados).
+- **`turbo build`**: 12/12 pacotes compilados com sucesso (Next.js 11/11 rotas estáticas/dinâmicas).
+- **`scripts/check-architecture.mjs`**: 100% de conformidade com fronteiras de AST.
+- **`scripts/check-file-size.mjs`**: 221 arquivos de lógica de produção verificados; todos estritamente abaixo do teto de 180 linhas (14 avisos, 0 violações).
+- **Auditoria de Segredos (`SECRET_AUDIT_PASS`)**: Verificada no diff contra `origin/main` via inspeção booleana value-blind. Zero credenciais no diff.
+
+---
+
+### 6. Autorização e Execução de Merge do PR #26
+Todas as condições de governança, integridade de contratos, proteção multi-tenant, testes de regressão e ausência de claims absolutos foram cumpridas. O merge do PR #26 está autorizado.
+
+
 
 
 
