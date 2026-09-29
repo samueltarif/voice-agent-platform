@@ -19,6 +19,16 @@ export interface ProcessModelStreamParams {
   readonly startTime: number;
 }
 
+function checkStreamControl(
+  item: ConversationTextChunk | ModelStreamEvent,
+): 'break' | 'continue' | 'process' {
+  if (!('type' in item)) return 'process';
+  if (item.type === 'failure') throw new ConversationModelError(item.error);
+  if (item.type === 'completed') return 'break';
+  if (item.type === 'usage') return 'continue';
+  return 'process';
+}
+
 export async function processModelStream(params: ProcessModelStreamParams): Promise<string> {
   const {
     session,
@@ -44,11 +54,9 @@ export async function processModelStream(params: ProcessModelStreamParams): Prom
       break;
     }
 
-    if ('type' in item) {
-      if (item.type === 'failure') throw new ConversationModelError(item.error);
-      if (item.type === 'completed') break;
-      if (item.type === 'usage') continue;
-    }
+    const control = checkStreamControl(item);
+    if (control === 'break') break;
+    if (control === 'continue') continue;
 
     const delta = extractModelTextDelta(item);
     if (!delta) continue;
