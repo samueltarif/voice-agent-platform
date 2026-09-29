@@ -6606,3 +6606,76 @@ Todas as condições de governança, integridade de contratos, proteção multi-
 - **APIs de Provedores Pagas Chamadas**: ZERO.
 - **Segredos Solicitados**: ZERO.
 - **PR #28**: Mantido **ABERTO** sem merge.
+
+---
+
+## [PROMPT-006E-GATE-CLOSE] — 2026-09-29 — Decision-Gate Consistency, Retry Safety & Research Merge
+
+### 1. Preflight e Contexto
+- **Pull Request**: PR #28 (`docs/006e-model-provider-decision-gate`) auditado e preparado para fechamento formal.
+- **Base**: `main` | **Head**: `docs/006e-model-provider-decision-gate`.
+- **Objetivo**: Fechar formalmente o Decision Gate documental anterior ao Slice 006E, assegurando consistência entre APIs, segurança estrita de retry em voz e calibração de alegações de cancelamento e custos.
+
+---
+
+### 2. Consistência Técnica de APIs e Superfície de Spike
+- **Decisão de Superfície do Spike (Responses vs Chat Completions)**:
+  - `SPIKE_SURFACE`: Chat Completions API (`/v1/chat/completions`).
+  - `WHY_CHAT_COMPLETIONS_FOR_SPIKE?`: O Chat Completions API possui a menor superfície de complexidade para validar a interface neutra `ConversationModelPort`. O formato linear de SSE com contagem de tokens em `stream_options` permite validar o runtime local com esforço mínimo de mapeamento.
+  - `PRIMARY_LONG_TERM_API`: `NOT DECIDED`.
+  - `MIGRATION_RISK`: Baixo. Como o core de voz (`apps/voice`) é 100% isolado pela porta `ConversationModelPort`, se a Responses API for adotada como superfície definitiva no longo prazo, a adaptação estará circunscrita ao adapter em `packages/integrations`, sem afetar o core.
+
+---
+
+### 3. Segurança de Retry em Voz e Regra de Saída Parcial
+- **Separação Categórica**: Separada a *Categoria de Transporte/Provedor* (ex.: 429, timeout, 5xx) da *Decisão de Retry em Runtime*.
+- **Classificação Potencial**: 429, timeout e 5xx foram classificados como `POTENTIALLY_RETRYABLE`, dependentes do estado do turno.
+- **Regra Mandatória de Saída Parcial**:
+  - Se **zero** `text.delta` foi aceito/reproduzido: retry futuro pode ser avaliado por política.
+  - Se **algum** `text.delta` já foi aceito ou falado pelo sintetizador: retry automático é **estritamente proibido** no runtime, para evitar duplicação audível de fala e alucinações.
+  - Erros derivados de `AbortSignal` por barge-in constituem cancelamento intencional (`NON_RETRYABLE`), não falha de provedor.
+- **Cálculo de `isRetryable`**: No contrato `ModelFailureEvent`, `isRetryable` deve ser calculado dinamicamente considerando: categoria do erro do provedor + se a saída já foi parcialmente aceita + motivo de cancelamento.
+- **Política Vigente**: `RETRY POLICY: DEFERRED`.
+
+---
+
+### 4. Calibração Factual de Afirmações e Terminologia
+- **Cancelamento (Abort)**:
+  - Removidas expressões de "cancelamento transparente" ou "cancelamento imediato".
+  - Formulação factual: *"O SDK/API expõe cancelamento compatível com AbortSignal; o tempo de cancelamento no lado do servidor permanece PROVIDER-UNVERIFIED."*
+  - A contenção determinística de fala defasada (*stale output*) permanece atribuída à máquina de estados interna e ao descarte por `generationId` em `apps/voice/src/process-model-stream.ts`.
+- **Custos**:
+  - Removida a alegação de "custo mínimo" absoluto.
+  - Ajustado para *"menor custo listado entre os candidatos comparados neste gate"*.
+  - A dominância dos custos de telefonia e TTS sobre custos de IA permanece classificada categoricamente como uma **INFERÊNCIA TÉCNICA**.
+- **Latência**:
+  - `LATENCY_REAL = NOT MEASURED`. Declarações de velocidade dos modelos foram qualificadas como `PROVIDER POSITIONING`.
+- **Português Brasileiro (pt-BR)**:
+  - Classificado como `SUPPORTED BY PROVIDER CLAIM` para os três provedores.
+  - `COMPARATIVE PT-BR QUALITY: NOT VERIFIED`.
+  - `TELEPHONE-SALES PT-BR QUALITY: NOT VERIFIED`.
+- **Termos de Privacidade**:
+  - Declarados contextualmente como *"De acordo com os termos/políticas do provedor acessados em 2026-09-29"*, sem assumir garantia jurídica universal.
+- **Modelos e SDKs Vigentes**:
+  - OpenAI: `gpt-4o-mini` (maduro/suportado em transição) | Pacote: `openai`.
+  - Anthropic: `claude-haiku-4-5-20251001` (ativo) | Pacote: `@anthropic-ai/sdk`.
+  - Google: `gemini-3.8-flash` (ativo Paid Tier) | Pacote: `@google/genai`.
+  - Fixação de versões numéricas diferida para o slice de implementação.
+
+---
+
+### 5. Governança e Decisão de Fornecedor
+- **Candidato para Spike Técnico Inicial**: **OpenAI (GPT-4o mini via Chat Completions API)**.
+- **Provedor Primário Corporativo Definitivo**: Permanece categorizado estritamente como **PENDING HUMAN DECISION** em `docs/DECISIONS_LOG.md`. O spike não constitui contratação nem decisão final.
+- **Governança de DECISIONS_LOG.md**:
+  - Conflito conceitual na linha 73 mantido como `TERMINOLOGY_CORRECTION_RECOMMENDED: YES` (proposta de separação entre "Conversation Model Provider" e "Telephony / Voice Transport Provider").
+  - O documento `docs/DECISIONS_LOG.md` foi mantido inalterado, aguardando aprovação explícita do operador humano.
+
+---
+
+### 6. Integridade Operacional e Fechamento
+- **Código de Produção ou Testes Alterado**: ZERO.
+- **Dependências Externas Instaladas**: ZERO.
+- **APIs de Provedores Pagas Chamadas**: ZERO.
+- **Segredos Solicitados**: ZERO.
+- **Próximo Slice (006F ou Adapter Implementation)**: **NÃO INICIADO**.
