@@ -1,6 +1,6 @@
 # ADR-017: Provider-Neutral Conversation Model Runtime and Context Composition
 
-- **Status**: Proposed
+- **Status**: Accepted
 - **Data**: 2026-09-29
 
 ---
