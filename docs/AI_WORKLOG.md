@@ -7183,3 +7183,78 @@ Status: `BENCHMARK HYPOTHESES` — NÃO são product requirements.
 - **Código de Testes**: Inalterado
 - **ADR-018**: `Proposed`
 - **PR #30**: `OPEN / NOT MERGED`
+
+---
+
+## PROMPT-006G-COST-CAP-001 — OpenAI Adapter Spend Guard — max_completion_tokens + Governance Repair
+
+- **Data**: 2026-09-29
+- **Branch**: `feature/openai-conversation-model-adapter`
+- **PR**: #30 (`feature/openai-conversation-model-adapter` -> `main`)
+- **Starting HEAD**: `b0a9dd475c61e6aecee68c1e7ac9124690fac6c6`
+
+### 1. Registro de Desvio de Processo de Segurança (SECURITY_PROCESS_DEVIATION)
+- **Fato**: No prompt de smoke anterior (PROMPT-006G-PROVIDER-SMOKE-002), o arquivo `.env` foi lido diretamente via `fs.readFileSync(...)` pelo agente para verificar a presença booleana de `OPENAI_API_KEY`.
+- **Avaliação de Risco**:
+  - O objetivo era estritamente checagem booleana (`OPENAI_API_KEY_PRESENT`).
+  - Nenhum valor, prefixo, tamanho ou fingerprint de credencial foi impresso no terminal ou nas respostas.
+  - Nenhum segredo foi commitado ou exposto no tracked diff (`SECRET_AUDIT_PASS`).
+  - Não há evidência factual de vazamento ou exposição de segredos (`NO_KNOWN_SECRET_EXPOSURE`).
+- **Ação Corretiva e Política Futura**:
+  - Proibição estrita e inegociável de leitura/abertura direta de arquivos de segredo (`.env`, `.env.local`, `.env.*`).
+  - A presença de credenciais deve ser avaliada exclusivamente através de variáveis já injetadas no ambiente do processo (`Boolean(process.env.OPENAI_API_KEY)`).
+  - Se a variável não estiver presente no processo, reportar `OPENAI_API_KEY_PRESENT=false` e interromper a execução (`STOP`).
+
+### 2. Fonte Oficial do Parâmetro & Wire Mapping
+- **Fonte Oficial Consultada (TLS Normal)**: `https://developers.openai.com/api/docs/guides/latest-model.md`, `reasoning.md` e especificação OpenAPI oficial da OpenAI (`https://raw.githubusercontent.com/openai/openai-openapi/master/openapi.yaml`).
+- **Parâmetro Oficial de Limite**: `max_completion_tokens`.
+  - Descrição da OpenAPI: *"An upper bound for the number of tokens that can be generated for a completion, including visible output tokens and reasoning tokens."*
+  - Para a família GPT-6 e modelos de raciocínio, `max_tokens` histórico está descontinuado. O parâmetro correto é `max_completion_tokens`.
+- **Wire Mapping no Adapter**:
+  - Configuração do adapter: `maxCompletionTokens` (TypeScript camelCase).
+  - Serialização no payload wire de Chat Completions: `max_completion_tokens` (snake_case).
+  - Escopo: Estritamente restrito ao adapter concreto (`OpenAiConversationModelAdapter` e `OpenAiModelConfig`). O `ConversationModelPort` do domínio permanece 100% agnóstico e inalterado.
+
+### 3. Validação Fail-Closed do Spend Guard
+- **Política Mandatória**: O adapter OpenAI recusa-se a inicializar ou despachar requisições sem limite explícito de tokens de completion.
+- **Validação Local (`resolveMaxCompletionTokens`)**:
+  - O valor deve ser obrigatoriamente um número inteiro positivo (`Number.isInteger(raw) && raw > 0`).
+  - Valores ausentes, vazios, zero, negativos, decimais/frações, `NaN` ou `Infinity` disparam erro imediato antes de qualquer chamada HTTP (`fail before network`).
+
+### 4. Auditoria de Compatibilidade de Temperatura (Temperature Compatibility Audit)
+- **Constatação Factual em Documentação Oficial**:
+  - `https://developers.openai.com/api/docs/guides/latest-model.md` estabelece explicitamente:
+    *"Unsupported parameters: When reasoning effort is not none, remove temperature, top_p, and top_logprobs. For Chat Completions, also remove logprobs."*
+  - O modelo `gpt-6-astra` opera obrigatoriamente com raciocínio ativo (não suporta `reasoning.effort: none`).
+  - Portanto, `temperature` é **UNSUPPORTED** para `gpt-6-astra` em Chat Completions.
+- **Adequação Mínima do Adapter**:
+  - O campo `temperature` na requisição tornou-se opcional, sendo serializado somente quando explicitamente definido em `defaultTemperature`.
+  - Modelos sem suporte a temperatura (como Astra) omitem o parâmetro `temperature` do corpo da requisição, prevenindo erros 400 Bad Request da OpenAI.
+
+### 5. Estimativas de Pior Caso para o Smoke Test Real (Spend Cap Decision)
+- **Preços Oficiais Astra**: Input US$ 10.00 / 1M tokens; Output US$ 50.00 / 1M tokens.
+- **Premissa de Prompt**: Prompt sintético curto (~50 tokens de input por chamada = US$ 0.0010 para 2 chamadas).
+- **Cenário 256 tokens**:
+  - Output máximo: 2 chamadas * 256 tokens * US$ 0.000050 = US$ 0.0256.
+  - `SMOKE_CAP_256_MAX_ESTIMATED_USD` = **US$ 0.0266** (~US$ 0.027).
+- **Cenário 512 tokens**:
+  - Output máximo: 2 chamadas * 512 tokens * US$ 0.000050 = US$ 0.0512.
+  - `SMOKE_CAP_512_MAX_ESTIMATED_USD` = **US$ 0.0522** (~US$ 0.053).
+- **Trade-off Técnico**:
+  - Ambos os limites respeitam rigorosamente o teto autorizado de US$ 0.10.
+  - Contudo, como o `gpt-6-astra` utiliza tokens de raciocínio antes do output visível, um limite excessivamente estreito (256 tokens) pode ser totalmente absorvido pelo raciocínio interno, resultando em término prematuro (`incomplete` / `length`) sem emissão de deltas de texto visíveis. O limite de 512 tokens oferece margem segura para raciocínio com nível `low`.
+
+### 6. Test-Diff Audit e Métricas do Quality Gate
+- **Testes Existentes Modificados**: 11 testes atualizados com `maxCompletionTokens: 256` explícito na fixture.
+  - Classificação de todas as alterações: **`ASSERTION_EQUIVALENT`** (nenhuma asserção removida ou enfraquecida; `ASSERTION_WEAKER = 0`).
+- **Novos Testes Adicionados**: 8 novos testes unitários (100% passing).
+  - 1 teste de regressão de wire mapping (`maxCompletionTokens` -> `max_completion_tokens`).
+  - 1 teste fail-closed no adapter para ausência de `maxCompletionTokens`.
+  - 6 testes fail-closed em `openai-model-config.test.ts` (ausente, zero, negativo, fração, NaN, Infinity).
+- **Novos Skips**: 0 (`NEW_SKIPS = 0`).
+- **Chamadas Reais de Provedor**: 0 (`REAL_PROVIDER_CALLS = 0`).
+- **Crédito OpenAI Consumido**: US$ 0.00 (`CREDIT_CONSUMED = 0.00`).
+- **TypeSafe Jev**: Intocado (`UNTOUCHED / BENCHMARK_CANDIDATE`).
+- **Resultado do Quality Gate (`pnpm check`)**: **`PASS`** (7/7 etapas com exit code 0).
+  - Testes totais do monorepo: 92 arquivos de teste aprovados, 6 de staging pulados (**490 testes aprovados**, 45 testes pulados em staging, 0 falhas).
+- **Auditoria Booleana de Segredos**: **`SECRET_AUDIT_PASS`** no diff contra `origin/main`.

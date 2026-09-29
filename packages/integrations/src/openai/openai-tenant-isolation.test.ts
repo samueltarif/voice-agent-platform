@@ -33,7 +33,7 @@ describe('OpenAI Tenant Isolation', () => {
     });
 
     const adapter = new OpenAiConversationModelAdapter({
-      config: { modelId: 'gpt-4o' },
+      config: { modelId: 'gpt-4o', maxCompletionTokens: 256 },
       fetchFn: fakeFetch,
     });
 

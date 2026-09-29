@@ -7,6 +7,7 @@ export interface OpenAiChatCompletionRequest {
   readonly model: string;
   readonly messages: readonly OpenAiChatMessage[];
   readonly stream: true;
+  readonly max_completion_tokens: number;
   readonly stream_options?: { readonly include_usage: boolean } | undefined;
   readonly temperature?: number | undefined;
 }

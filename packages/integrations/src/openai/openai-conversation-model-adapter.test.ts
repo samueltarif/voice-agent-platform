@@ -69,7 +69,12 @@ describe('OpenAiConversationModelAdapter', () => {
     });
 
     const adapter = new OpenAiConversationModelAdapter({
-      config: { modelId: 'gpt-4o', apiKey: 'test_key', apiBaseUrl: 'https://api.openai.com/v1' },
+      config: {
+        modelId: 'gpt-4o',
+        apiKey: 'test_key',
+        apiBaseUrl: 'https://api.openai.com/v1',
+        maxCompletionTokens: 256,
+      },
       fetchFn: fakeFetch,
     });
 
@@ -96,7 +101,7 @@ describe('OpenAiConversationModelAdapter', () => {
 
     const fakeFetch = vi.fn().mockResolvedValue(makeSseResponse(sse));
     const adapter = new OpenAiConversationModelAdapter({
-      config: { modelId: 'gpt-4o' },
+      config: { modelId: 'gpt-4o', maxCompletionTokens: 256 },
       fetchFn: fakeFetch,
     });
 
@@ -138,7 +143,7 @@ describe('OpenAiConversationModelAdapter', () => {
     const fakeFetch = vi.fn().mockResolvedValue(new Response('Unauthorized', { status: 401 }));
     const adapter = new OpenAiConversationModelAdapter({
       fetchFn: fakeFetch,
-      config: { modelId: 'gpt-4o' },
+      config: { modelId: 'gpt-4o', maxCompletionTokens: 256 },
     });
 
     const stream = await adapter.streamTurn(mockInput);
@@ -161,7 +166,7 @@ describe('OpenAiConversationModelAdapter', () => {
     const fakeFetch = vi.fn().mockResolvedValue(makeSseResponse(sse));
     const adapter = new OpenAiConversationModelAdapter({
       fetchFn: fakeFetch,
-      config: { modelId: 'gpt-4o' },
+      config: { modelId: 'gpt-4o', maxCompletionTokens: 256 },
     });
 
     const stream = await adapter.streamTurn(mockInput, { signal: controller.signal });
@@ -191,7 +196,7 @@ describe('OpenAiConversationModelAdapter', () => {
     const fakeFetch = vi.fn().mockResolvedValue(makeSseResponse(sse));
     const adapter = new OpenAiConversationModelAdapter({
       fetchFn: fakeFetch,
-      config: { modelId: 'gpt-4o' },
+      config: { modelId: 'gpt-4o', maxCompletionTokens: 256 },
     });
 
     const stream = await adapter.streamTurn(mockInput);
@@ -218,7 +223,7 @@ describe('OpenAiConversationModelAdapter', () => {
     const fakeFetch = vi.fn().mockResolvedValue(makeSseResponse(sse));
     const adapter = new OpenAiConversationModelAdapter({
       fetchFn: fakeFetch,
-      config: { modelId: 'gpt-4o' },
+      config: { modelId: 'gpt-4o', maxCompletionTokens: 256 },
     });
 
     const stream = await adapter.streamTurn(mockInput);
@@ -250,7 +255,7 @@ describe('OpenAiConversationModelAdapter', () => {
     const fakeFetch = vi.fn().mockResolvedValue(makeSseResponse(sse));
     const adapter = new OpenAiConversationModelAdapter({
       fetchFn: fakeFetch,
-      config: { modelId: 'gpt-4o' },
+      config: { modelId: 'gpt-4o', maxCompletionTokens: 256 },
     });
 
     const stream = await adapter.streamTurn(mockInput);
@@ -271,5 +276,41 @@ describe('OpenAiConversationModelAdapter', () => {
       generationId: 'gen_1',
       fullText: 'Correto',
     });
+  });
+
+  it('maps maxCompletionTokens to max_completion_tokens in request body and omits maxCompletionTokens', async () => {
+    let capturedBody: OpenAiChatCompletionRequest | null = null;
+    const fakeFetch = vi.fn().mockImplementation(async (_url, init: RequestInit) => {
+      capturedBody = JSON.parse(init.body as string) as OpenAiChatCompletionRequest;
+      return makeSseResponse(createSseChunk('Olá!') + 'data: [DONE]\n\n');
+    });
+
+    const adapter = new OpenAiConversationModelAdapter({
+      config: {
+        modelId: 'synthetic-explicit-model',
+        apiKey: 'test_key',
+        maxCompletionTokens: 256,
+      },
+      fetchFn: fakeFetch,
+    });
+
+    const stream = await adapter.streamTurn(mockInput);
+    const events: ModelStreamEvent[] = [];
+    for await (const ev of stream) events.push(ev);
+
+    expect(capturedBody).not.toBeNull();
+    const req = capturedBody as unknown as Record<string, unknown>;
+    expect(req.max_completion_tokens).toBe(256);
+    expect(req.maxCompletionTokens).toBeUndefined();
+    expect(req.model).toBe('synthetic-explicit-model');
+  });
+
+  it('fails closed when maxCompletionTokens is missing from config', () => {
+    expect(
+      () =>
+        new OpenAiConversationModelAdapter({
+          config: { modelId: 'gpt-6-astra' },
+        }),
+    ).toThrowError(/Missing OpenAI max completion tokens configuration/i);
   });
 });

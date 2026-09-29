@@ -26,7 +26,7 @@ describe('OpenAI FullText Accumulation Regression', () => {
 
     const fakeFetch = vi.fn().mockResolvedValue(makeSseResponse(sse));
     const adapter = new OpenAiConversationModelAdapter({
-      config: { modelId: 'gpt-4o' },
+      config: { modelId: 'gpt-4o', maxCompletionTokens: 256 },
       fetchFn: fakeFetch,
     });
 
