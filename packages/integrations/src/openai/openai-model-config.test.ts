@@ -1,9 +1,11 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import type { OpenAiReasoningEffort } from './openai-chat-completion-types.js';
 import { createOpenAiModelConfig } from './openai-model-config.js';
 
 describe('OpenAI Model Config Fail-Closed Boundary', () => {
   const originalEnv = process.env.OPENAI_CONVERSATION_MODEL;
   const originalMaxTokensEnv = process.env.OPENAI_MAX_COMPLETION_TOKENS;
+  const originalReasoningEffortEnv = process.env.OPENAI_REASONING_EFFORT;
 
   afterEach(() => {
     if (originalEnv !== undefined) {
@@ -15,6 +17,11 @@ describe('OpenAI Model Config Fail-Closed Boundary', () => {
       process.env.OPENAI_MAX_COMPLETION_TOKENS = originalMaxTokensEnv;
     } else {
       delete process.env.OPENAI_MAX_COMPLETION_TOKENS;
+    }
+    if (originalReasoningEffortEnv !== undefined) {
+      process.env.OPENAI_REASONING_EFFORT = originalReasoningEffortEnv;
+    } else {
+      delete process.env.OPENAI_REASONING_EFFORT;
     }
   });
 
@@ -103,5 +110,61 @@ describe('OpenAI Model Config Fail-Closed Boundary', () => {
         maxCompletionTokens: Number.POSITIVE_INFINITY,
       }),
     ).toThrowError(/Invalid OpenAI max completion tokens configuration/i);
+  });
+
+  it('parses valid reasoningEffort from input', () => {
+    const config = createOpenAiModelConfig({
+      modelId: 'gpt-6-astra',
+      maxCompletionTokens: 512,
+      reasoningEffort: 'low',
+    });
+    expect(config.reasoningEffort).toBe('low');
+  });
+
+  it('reads reasoningEffort from OPENAI_REASONING_EFFORT environment variable', () => {
+    process.env.OPENAI_REASONING_EFFORT = 'medium';
+    const config = createOpenAiModelConfig({
+      modelId: 'gpt-6-astra',
+      maxCompletionTokens: 512,
+    });
+    expect(config.reasoningEffort).toBe('medium');
+  });
+
+  it('fails closed when invalid reasoningEffort is provided', () => {
+    expect(() =>
+      createOpenAiModelConfig({
+        modelId: 'gpt-6-astra',
+        maxCompletionTokens: 512,
+        reasoningEffort: 'ultra' as unknown as OpenAiReasoningEffort,
+      }),
+    ).toThrowError(/Invalid OpenAI reasoning effort configuration/i);
+  });
+
+  it('fails closed when temperature is provided with active reasoningEffort', () => {
+    expect(() =>
+      createOpenAiModelConfig({
+        modelId: 'gpt-6-astra',
+        maxCompletionTokens: 512,
+        reasoningEffort: 'low',
+        defaultTemperature: 0.7,
+      }),
+    ).toThrowError(/temperature is not supported when reasoning effort is active/i);
+  });
+
+  it('allows temperature when reasoningEffort is none or undefined', () => {
+    const configNone = createOpenAiModelConfig({
+      modelId: 'gpt-4o',
+      maxCompletionTokens: 256,
+      reasoningEffort: 'none',
+      defaultTemperature: 0.7,
+    });
+    expect(configNone.defaultTemperature).toBe(0.7);
+
+    const configUndefined = createOpenAiModelConfig({
+      modelId: 'gpt-4o',
+      maxCompletionTokens: 256,
+      defaultTemperature: 0.5,
+    });
+    expect(configUndefined.defaultTemperature).toBe(0.5);
   });
 });

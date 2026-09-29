@@ -313,4 +313,72 @@ describe('OpenAiConversationModelAdapter', () => {
         }),
     ).toThrowError(/Missing OpenAI max completion tokens configuration/i);
   });
+
+  it('maps reasoningEffort to reasoning_effort in request body and omits temperature when undefined', async () => {
+    let capturedBody: OpenAiChatCompletionRequest | null = null;
+    const fakeFetch = vi.fn().mockImplementation(async (_url, init: RequestInit) => {
+      capturedBody = JSON.parse(init.body as string) as OpenAiChatCompletionRequest;
+      return makeSseResponse(createSseChunk('Olá!') + 'data: [DONE]\n\n');
+    });
+
+    const adapter = new OpenAiConversationModelAdapter({
+      config: {
+        modelId: 'gpt-6-astra',
+        apiKey: 'test_key',
+        maxCompletionTokens: 512,
+        reasoningEffort: 'low',
+      },
+      fetchFn: fakeFetch,
+    });
+
+    const stream = await adapter.streamTurn(mockInput);
+    const events: ModelStreamEvent[] = [];
+    for await (const ev of stream) events.push(ev);
+
+    expect(capturedBody).not.toBeNull();
+    const req = capturedBody as unknown as Record<string, unknown>;
+    expect(req.max_completion_tokens).toBe(512);
+    expect(req.reasoning_effort).toBe('low');
+    expect(req.reasoningEffort).toBeUndefined();
+    expect(req.temperature).toBeUndefined();
+  });
+
+  it('does not insert a silent default reasoning_effort when omitted', async () => {
+    let capturedBody: OpenAiChatCompletionRequest | null = null;
+    const fakeFetch = vi.fn().mockImplementation(async (_url, init: RequestInit) => {
+      capturedBody = JSON.parse(init.body as string) as OpenAiChatCompletionRequest;
+      return makeSseResponse(createSseChunk('Olá!') + 'data: [DONE]\n\n');
+    });
+
+    const adapter = new OpenAiConversationModelAdapter({
+      config: {
+        modelId: 'gpt-4o',
+        apiKey: 'test_key',
+        maxCompletionTokens: 256,
+      },
+      fetchFn: fakeFetch,
+    });
+
+    const stream = await adapter.streamTurn(mockInput);
+    const events: ModelStreamEvent[] = [];
+    for await (const ev of stream) events.push(ev);
+
+    expect(capturedBody).not.toBeNull();
+    const req = capturedBody as unknown as Record<string, unknown>;
+    expect(req.reasoning_effort).toBeUndefined();
+  });
+
+  it('fails closed when reasoning effort is active and temperature is provided', () => {
+    expect(
+      () =>
+        new OpenAiConversationModelAdapter({
+          config: {
+            modelId: 'gpt-6-astra',
+            maxCompletionTokens: 512,
+            reasoningEffort: 'low',
+            defaultTemperature: 0.7,
+          },
+        }),
+    ).toThrowError(/temperature is not supported when reasoning effort is active/i);
+  });
 });

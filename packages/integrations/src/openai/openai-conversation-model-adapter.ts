@@ -59,6 +59,9 @@ export class OpenAiConversationModelAdapter implements ConversationModelPort {
       stream: true,
       max_completion_tokens: this.config.maxCompletionTokens,
       stream_options: { include_usage: true },
+      ...(this.config.reasoningEffort !== undefined
+        ? { reasoning_effort: this.config.reasoningEffort }
+        : {}),
       ...(this.config.defaultTemperature !== undefined
         ? { temperature: this.config.defaultTemperature }
         : {}),

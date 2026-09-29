@@ -7258,3 +7258,78 @@ Status: `BENCHMARK HYPOTHESES` — NÃO são product requirements.
 - **Resultado do Quality Gate (`pnpm check`)**: **`PASS`** (7/7 etapas com exit code 0).
   - Testes totais do monorepo: 92 arquivos de teste aprovados, 6 de staging pulados (**490 testes aprovados**, 45 testes pulados em staging, 0 falhas).
 - **Auditoria Booleana de Segredos**: **`SECRET_AUDIT_PASS`** no diff contra `origin/main`.
+
+---
+
+## 2026-09-29 — PROMPT-006G-REASONING-CONTROL-001: OpenAI Astra Reasoning Effort Control & Temperature Fail-Closed Guard
+
+### 1. Contexto e Motivação
+- **Starting HEAD**: `ac43b06fd30684d66c190c3cc20d73854c8d2342` (PR #30, branch `feature/openai-conversation-model-adapter`).
+- **CURRENT_REQUIREMENT**: Controlar o custo e o TTFT (Time-To-First-Token) do modelo `gpt-6-astra` no baseline de conversação por voz antes do primeiro smoke pago real.
+- **EXISTING_OPTION**: Permitir que o modelo utilize o reasoning effort default do provedor (`medium`).
+- **PROBLEM**: O default `medium` pode consumir uma parcela desproporcional do hard cap de tokens (`max_completion_tokens: 512`) antes de emitir qualquer delta de texto visível, gerando latência perceptível no canal de voz e desperdício de tokens de raciocínio.
+- **MINIMAL_OPTION**: Adicionar campo de configuração provider-specific `reasoningEffort` ao adapter OpenAI, sem alterar interfaces genéricas de domínio.
+
+### 2. Auditoria Oficial de Documentação OpenAI (TLS Normal)
+- **Documentação Oficial Consultada**:
+  - `https://raw.githubusercontent.com/openai/openai-openapi/master/openapi.yaml` (especificação OpenAPI canônica)
+  - `https://developers.openai.com/api/docs/guides/latest-model.md` e `reasoning.md`
+- **Nome Exato do Parâmetro de Wire**: `reasoning_effort`.
+- **Valores Aceitos no Schema da API**: `'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max'`.
+- **Valores Suportados pelo `gpt-6-astra`**: `'low' | 'medium' | 'high' | 'xhigh' | 'max'`.
+- **Suporte a `none` no Astra?**: **NÃO**. Documentação oficial determina categoricamente: *"GPT-6 Astra and GPT-6.1 Sol do not support the none reasoning effort; use low instead."*
+- **Default Documentado**: `medium` (quando o parâmetro é omitido pelo cliente na API).
+- **Interação com `temperature`**:
+  - Documentação oficial estabelece: *"When reasoning effort is not none, remove temperature, top_p, and top_logprobs."*
+  - Como o `gpt-6-astra` requer raciocínio ativo (mínimo `low`), `temperature` é estritamente incompatível e deve ser omitida da requisição HTTP.
+  - Para evitar que o provedor retorne erro HTTP 400 em chamadas pagas, implementou-se validação local fail-closed que rejeita qualquer configuração combinando raciocínio ativo com `defaultTemperature`.
+
+### 3. Design de Configuração e Wire Mapping
+- **Configuração no Adapter**:
+  - Campo: `reasoningEffort?: OpenAiReasoningEffort` em `OpenAiModelConfig` e `OpenAiModelConfigInput`.
+  - Resolução: `input.reasoningEffort ?? process.env.OPENAI_REASONING_EFFORT`.
+  - Validação estrita: Aceita apenas `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`. Qualquer outro valor lança erro imediato antes de despachar tráfego HTTP.
+- **Wire Mapping**:
+  - Mapeado exclusivamente em `OpenAiChatCompletionRequest.reasoning_effort`.
+  - Não inserido em `ConversationModelPort`, `ModelStreamEvent` ou contratos de `@voice-agent/contracts`. O núcleo da aplicação permanece 100% provider-neutral.
+- **Configuração Escolhida para o Smoke do Astra**:
+  - `ASTRA_SMOKE_REASONING_EFFORT = low`.
+  - Motivo: Minimiza tokens de raciocínio interno e reduz TTFT mantendo o modelo autorizado `gpt-6-astra`.
+
+### 4. Recálculo do Teto de Custos (Spend Ceilings)
+- **Premissas Oficiais**:
+  - `gpt-6-astra` pricing: Input US$ 10.00 / 1M tokens; Output US$ 50.00 / 1M tokens.
+  - 2 chamadas máximas de smoke test.
+  - Input sintético: ~50 tokens / chamada = 100 tokens total = US$ 0.0010.
+- **512 Cost Ceiling**:
+  - Hard cap de output: 2 * 512 tokens * US$ 0.000050 = US$ 0.0512.
+  - Teto máximo esperado (512 tokens): **US$ 0.0522** (< US$ 0.10).
+- **768 Cost Ceiling (Comparativo Opcional)**:
+  - Hard cap de output: 2 * 768 tokens * US$ 0.000050 = US$ 0.0768.
+  - Teto máximo esperado (768 tokens): **US$ 0.0778** (< US$ 0.10).
+- **Decisão**: Manter o teto em **512 tokens** com `reasoningEffort: low`. O limite de 512 tokens já oferece margem folgada para o raciocínio em nível `low` com resposta curta de voice smoke, permanecendo dentro da margem segura de US$ 0.10.
+
+### 5. Testes e Métricas do Quality Gate
+- **Testes de Regressão e Contrato Adicionados**:
+  - `openai-conversation-model-adapter.test.ts`:
+    - Serialização de `reasoningEffort: 'low'` em `reasoning_effort: 'low'` e omissão de `temperature` quando indefinida.
+    - Ausência de injeção silenciosa de default quando `reasoningEffort` é omitido.
+    - Rejeição fail-closed quando `reasoningEffort` ativo é configurado juntamente com `temperature`.
+  - `openai-model-config.test.ts`:
+    - Resolução de `reasoningEffort` a partir do input explícito.
+    - Resolução de `reasoningEffort` a partir da variável `OPENAI_REASONING_EFFORT`.
+    - Falha fail-closed para valores inválidos de `reasoningEffort`.
+    - Falha fail-closed na combinação de raciocínio ativo com `defaultTemperature`.
+    - Aceitação de temperatura quando `reasoningEffort` é `'none'` ou indefinido.
+- **Test-Diff Audit**:
+  - Testes existentes modificados: 0 (`ASSERTION_STRONGER = 0`, `ASSERTION_EQUIVALENT = 0`, `ASSERTION_WEAKER = 0`).
+  - Novos testes adicionados: 8 novos testes unitários (100% aprovados).
+  - Novos skips: 0 (`NEW_SKIPS = 0`).
+- **Chamadas Reais de Provedor**: 0 (`REAL_OPENAI_CALLS = 0`).
+- **Crédito Consumido**: US$ 0.00 (`CREDIT_CONSUMED = 0.00`).
+- **TypeSafe Jev**: Intocado (`BENCHMARK_CANDIDATE / UNTOUCHED`).
+- **Port de Domínio (`ConversationModelPort`)**: Intocado.
+- **Resultado do Quality Gate (`pnpm check`)**: **`PASS`** (7/7 etapas com exit code 0).
+  - Testes totais: 92 arquivos de teste aprovados, 6 de staging pulados (**498 testes aprovados**, 45 testes pulados em staging, 0 falhas).
+- **Auditoria Booleana de Segredos**: **`SECRET_AUDIT_PASS`** no diff contra `origin/main`.
+

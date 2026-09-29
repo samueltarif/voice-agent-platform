@@ -1,3 +1,6 @@
+export type OpenAiReasoningEffort =
+  'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+
 export interface OpenAiChatMessage {
   readonly role: 'system' | 'user' | 'assistant';
   readonly content: string;
@@ -9,6 +12,7 @@ export interface OpenAiChatCompletionRequest {
   readonly stream: true;
   readonly max_completion_tokens: number;
   readonly stream_options?: { readonly include_usage: boolean } | undefined;
+  readonly reasoning_effort?: OpenAiReasoningEffort | undefined;
   readonly temperature?: number | undefined;
 }
 
