@@ -152,6 +152,8 @@ A execução de ferramentas por agentes de voz durante chamadas telefônicas apr
 
 ## 8. Threat Model do Gateway de Chamadas e Bootstrap de Sessão (Phase 6 / 006C)
 
+> **Classificação de Evidência da Fronteira (Slice 006C)**: `IMPLEMENTED` / `TESTED LOCALLY`. Todas as mitigações criptográficas (assinatura de webhook e handshake de WebSocket) e garantias de isolamento de bootstrap foram testadas deterministicamente com fixtures locais e simuladores. Validação contra infraestrutura de rede externa ou tráfego de telecomunicação real da Twilio permanece categorizada estritamente como `PROVIDER-UNVERIFIED`.
+
 1. **Falsificação de Webhook (Webhook Spoofing)**:
    - Todo webhook HTTP de voz é submetido à validação de assinatura `X-Twilio-Signature` (HMAC-SHA1 com o Auth Token do provedor) antes de qualquer parsing de regras de negócio, carregamento de configuração ou inicialização de chamada.
    - Requisições sem assinatura ou com assinatura inválida falham imediatamente (*fail-closed*) com `ProviderAuthenticationError` (HTTP 401).
@@ -183,6 +185,7 @@ A execução de ferramentas por agentes de voz durante chamadas telefônicas apr
 8. **Prevenção de Vazamento de Segredos e PII em Logs (PII & Log Leakage)**:
    - Logs do gateway e bootstrap limitam-se a metadados seguros: `callId`, `organizationId`, `agentId`, `agentVersionId`, nome de eventos canônicos (`call.bootstrap.created`, `call.bootstrap.consumed`) e códigos de erro.
    - É terminantemente proibido registrar em logs: o valor completo do token de bootstrap reutilizável, números de telefone de interlocutores, credenciais de autenticação, assinaturas ou conteúdo de prompt/regras.
+
 
 
 

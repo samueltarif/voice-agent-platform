@@ -47,7 +47,7 @@ A orquestração do gateway de chamadas impõe requisitos fundamentais de segura
 ## Consequences (Consequências)
 
 ### Positivas
-- Proteção completa contra falsificação de webhook (*webhook spoofing*) e *canonical URL confusion*.
+- Mitigação implementada contra falsificação de webhook por validação fail-closed de X-Twilio-Signature, testada localmente com fixtures sintéticas; validação contra tráfego Twilio real permanece PROVIDER-UNVERIFIED.
 - Eliminação de replay e reutilização de tokens de bootstrap através de consumo atômico *consume-once*.
 - Isolamento multi-tenant garantido: o provedor telefônico não possui autoridade sobre tenant ou versão do agente.
 - Zero dependências de pacotes npm externos adicionadas.

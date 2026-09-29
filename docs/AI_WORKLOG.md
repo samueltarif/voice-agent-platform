@@ -6082,6 +6082,96 @@ Todos os gates de conformidade de protocolo, validação de assinatura, robustez
 - **Bloqueios**: Nenhum.
 - **Próximo Slice**: Slice 006C-CLOSE (Auditoria Final, Protocol Verification e Merge PR #25). Próximo slice funcional: NÃO INICIADO.
 
+---
+
+## 2026-09-29 — PROMPT-006C-CLOSE — Final Security Audit, Protocol Auth Ordering and Merge Authorization
+
+### 1. Contexto e Objetivo
+- Fechamento formal do **Slice 006C** (Twilio Webhook Entrypoint, TwiML Generation & Live Call Lifecycle Gateway).
+- Auditoria de segurança rigorosa e conformidade de protocolos no PR #25 (`feature/twilio-live-call-gateway`).
+- Verificação da ordem de autenticação: garantia estrita de que nenhum token de bootstrap é consumido sem validação fail-closed prévia da assinatura Twilio (`X-Twilio-Signature`).
+- Calibração de claims em ADR-016 e SECURITY.md para alinhamento estrito com o vocabulário normativo (`IMPLEMENTED`, `TESTED LOCALLY`, `PROVIDER-UNVERIFIED`).
+
+---
+
+### 2. Resultados da Auditoria de Protocolos e Segurança
+
+1. **Ordem de Autenticação no Webhook de Voz (Signature-Before-Business-Processing)**:
+   - Auditado em `handleTwilioVoiceWebhook`: o parsing inicial limita-se estritamente ao material canônico necessário para reconstruir a URL e parâmetros da assinatura HMAC-SHA1.
+   - Qualquer processamento de negócio de domínio (busca de agente, criação de bootstrap, consulta a banco, inicialização de CallSession) só é executado **após** a validação bem-sucedida de `X-Twilio-Signature`.
+   - "Signature-before-processing" significa estritamente *antes do processamento de negócio/domínio*, permitindo a extração dos bytes/parâmetros HTTP exigidos pelo algoritmo de validação criptográfica.
+
+2. **Fidelidade Criptográfica e Segurança da URL Canônica**:
+   - `resolveTwilioCanonicalUrl` baseia-se exclusivamente em `PUBLIC_VOICE_BASE_URL` configurado server-side e normalizado.
+   - Headers não confiáveis vindos da rede (`Host`, `X-Forwarded-Host`, `X-Forwarded-Proto`, `Forwarded`) são sumariamente ignorados e descartados.
+   - Parâmetros de query e POST são ordenados lexicograficamente conforme a especificação oficial pública da Twilio.
+   - Comparação de hashes HMAC-SHA1 em tempo constante via `timingSafeEqual`.
+
+3. **Autenticação no Handshake de WebSocket e Proteção contra Consumo Não Autenticado**:
+   - `TwilioWebSocketBootstrapResolver` foi auditado e endurecido: a validação de assinatura `X-Twilio-Signature` na requisição de handshake (HTTP Upgrade) é mandatória antes de qualquer resolução ou consumo de bootstrap.
+   - **Regression Test Obrigatório**:
+     - Conexão WebSocket sem assinatura ou com assinatura forjada/inválida resulta em `ProviderAuthenticationError`, mantendo o bootstrap intacto em status `PENDING` (não consumido).
+     - Conexão com assinatura sintética válida consome atomicamente o bootstrap para status `CONSUMED` e vincula a `CallSession`.
+     - Tentativa de duplo consumo concorrente ou subsequente é rejeitada deterministicamente com `CallBootstrapAlreadyConsumedError`.
+   - Classificação factual da fronteira de WebSocket: `DESIGNED / UNIT-TESTED WHERE APPLICABLE`; entrypoint de rede real permanece `NOT IMPLEMENTED / PROVIDER-UNVERIFIED`.
+
+4. **Auditoria de Logs e Tokens de Bootstrap**:
+   - Confirmado: `bootstrapId` completo **NUNCA** é registrado em logs.
+   - Logs de lifecycle utilizam exclusivamente identificadores seguros (`callId` interno da aplicação, `organizationId`, `agentId`, `agentVersionId`).
+
+5. **Invariante Published-Only e Segregação de Identificadores**:
+   - `CallLifecycleGateway` exige estritamente `agentVersionStatus === 'PUBLISHED'`; versões `DRAFT` ou `ARCHIVED` são rejeitadas com `InvalidAgentVersionStatusError`.
+   - `callId` interno é um UUID v4 gerado pela aplicação; Twilio `CallSid` atua apenas como atributo opcional de transporte/correlação (`providerCallId`), sem qualquer autoridade sobre tenant ou permissões.
+
+6. **Lacunas Conhecidas Factualmente Documentadas (Authority Gaps)**:
+   - *Inbound number -> tenant/agent routing*: `NOT IMPLEMENTED / DEFERRED` (atualmente fornecido via fixtures autoritativas no servidor).
+   - *Outbound campaign/contact -> call bootstrap preparation*: `NOT IMPLEMENTED / DEFERRED`.
+   - Registro de persistência durável/compartilhada de bootstrap (Redis/Postgres): `DEFERRED` (atualmente single-process em memória via `InMemoryCallBootstrapRegistry`).
+   - TTL do bootstrap (`60_000` ms): documentado como `PROPOSED DEFAULT`, não regra constitucional imutável.
+
+7. **Fidelidade TwiML e Segurança XML**:
+   - Estrutura gerada: `<Response><Connect><ConversationRelay url="wss://..."><Parameter name="bootstrapId" value="..." /></ConversationRelay></Connect></Response>`.
+   - Todos os valores interpolados passam por escape estrito de caracteres XML (`&`, `<`, `>`, `"`, `'`).
+
+8. **Auditoria de Direção de Dependências de Pacotes (Package Dependency Direction)**:
+   - Em `packages/integrations/package.json`: `@voice-agent/voice` está listado estritamente como `devDependency` (apenas para testes locais e simuladores).
+   - Não há dependência de produção (`dependencies`) de `packages/integrations` para `@voice-agent/voice`.
+   - No código de produção (`src/twilio/`), foram utilizados apenas imports de tipos (`import type { CallLifecycleGateway }`), que são totalmente apagados na compilação TypeScript (zero impacto de runtime).
+   - Guardrails de arquitetura validados via `scripts/check-architecture.mjs` (0 violações).
+
+9. **Calibração de Claims em ADR-016 e SECURITY.md**:
+   - ADR-016 corrigido de claim absoluto ("Proteção completa...") para:
+     *"Mitigação implementada contra falsificação de webhook por validação fail-closed de X-Twilio-Signature, testada localmente com fixtures sintéticas; validação contra tráfego Twilio real permanece PROVIDER-UNVERIFIED."*
+   - SECURITY.md Seção 8 atualizada com nota de classificação de evidência formal.
+   - DEC-035 preservado; fornecedor primário de telefonia em `DECISIONS_LOG.md` permanece rigorosamente como `Pending Decision`.
+
+---
+
+### 3. Métricas do Quality Gate (`pnpm check`)
+- **`pnpm format:check`**: Aprovado (todos os arquivos formatados com Prettier).
+- **`pnpm lint`**: 0 erros, 0 avisos (complexidade ciclomática <= 8, nesting <= 3 respeitados).
+- **`pnpm typecheck`**: 12/12 projetos da workspace aprovados em modo strict.
+- **`pnpm test`**: **81 passed | 6 skipped (87 arquivos)**; **434 passed | 45 skipped (479 testes)**.
+- **`turbo build`**: 12/12 pacotes compilados com sucesso.
+- **`scripts/check-architecture.mjs`**: 100% de conformidade com as regras de fronteira via AST.
+- **`scripts/check-file-size.mjs`**: 213 arquivos de lógica verificados, todos dentro do limite de 180 linhas (13 avisos, 0 violações).
+- **Auditoria de Segredos (`SECRET_AUDIT_PASS`)**: Verificada no diff contra `origin/main` (inspeção booleana value-blind).
+
+---
+
+### 4. Classificação de Dependências e Provedores
+- **Dependências Externas npm Adicionadas**: **NÃO**.
+- **Manifestos da Workspace Modificados**: **SIM** (`packages/config/package.json` -> `@voice-agent/errors`; `packages/integrations/package.json` -> `@voice-agent/config`).
+- **`pnpm-lock.yaml` Modificado**: **SIM**.
+- **Redes / Provedores Externos**:
+  - Twilio Account / API / Console: **NÃO ACESSADO**.
+  - OpenAI / Anthropic / Google: **NÃO ACESSADO**.
+  - Neon / Staging / Production: **NÃO ACESSADO / INTOCADO**.
+  - Status da Integração Twilio: `PROVIDER-UNVERIFIED`.
+- **Security Process Deviations no Turno**: 0 (ZERO).
+- **Próximo Slice**: Slice 006D **NÃO INICIADO**.
+
+
 
 
 
