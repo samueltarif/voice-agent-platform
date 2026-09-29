@@ -44,7 +44,11 @@ export async function processModelStream(params: ProcessModelStreamParams): Prom
       break;
     }
 
-    if ('type' in item && item.type === 'failure') throw new ConversationModelError(item.error);
+    if ('type' in item) {
+      if (item.type === 'failure') throw new ConversationModelError(item.error);
+      if (item.type === 'completed') break;
+      if (item.type === 'usage') continue;
+    }
 
     const delta = extractModelTextDelta(item);
     if (!delta) continue;

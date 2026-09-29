@@ -49,7 +49,7 @@ O diálogo conversacional impõe desafios críticos de segurança e autoridade:
 ## Consequences (Consequências)
 
 ### Positivas
-- Total imunidade da autoridade do sistema e das regras de negócio contra tentativas de injeção de prompt do interlocutor.
+- Mitigação estrutural de escalada de autoridade por prompt injection: caller input permanece explicitamente não confiável e não possui autoridade sobre tenant, lifecycle, permissões ou regras de sistema. Comportamento semântico de modelos reais permanece PROVIDER-UNVERIFIED.
 - Isolamento estrito de memória conversacional entre organizações sem persistência durável desnecessária nesta fase.
 - Preservação da semântica de barge-in com cancelamento atômico e descarte de chunks obsoletos.
 - Telemetria de turno sem vazamento de PII ou conteúdo conversacional confidencial.

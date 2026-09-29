@@ -188,4 +188,109 @@ describe('Provider-Neutral Conversation Model Test Harness', () => {
     expect(session.agentVersionId).toBe('00000000-0000-0000-0000-000000000003');
     expect(transport.endCalls).toHaveLength(0);
   });
+
+  it('enforces terminal stream semantics: discards deltas after completed event and usage does not revive', async () => {
+    // Custom stream simulation with post-completed delta and usage
+    const customModel = {
+      providerName: 'custom-stream-model',
+      async streamTurn() {
+        return (async function* () {
+          yield {
+            type: 'text.delta' as const,
+            textDelta: 'Válido. ',
+            turnId: 't-term',
+            generationId: 'g-term',
+            isFinal: false,
+          };
+          yield {
+            type: 'completed' as const,
+            turnId: 't-term',
+            generationId: 'g-term',
+            fullText: 'Válido. ',
+          };
+          yield {
+            type: 'text.delta' as const,
+            textDelta: 'Inválido após completed.',
+            turnId: 't-term',
+            generationId: 'g-term',
+          };
+          yield {
+            type: 'usage' as const,
+            turnId: 't-term',
+            generationId: 'g-term',
+            inputTokens: 10,
+            outputTokens: 5,
+          };
+        })();
+      },
+    };
+
+    const terminalCoordinator = new AssistantStreamCoordinator({
+      transport,
+      model: customModel,
+      logger: createNullLogger(),
+      historyStore,
+    });
+
+    await terminalCoordinator.streamTurn({
+      session,
+      turnId: 't-term',
+      generationId: 'g-term',
+      snapshot: mockSnapshot,
+      callerTranscript: 'Teste terminal',
+      isGenerationActive: () => true,
+    });
+
+    expect(transport.speakCalls).toHaveLength(1);
+    expect(transport.speakCalls[0]?.command.text).toBe('Válido. ');
+    const history = await historyStore.listForCall({ organizationId: orgId, callId });
+    const assistantTurn = history.find((h) => h.role === 'assistant');
+    expect(assistantTurn?.content).toBe('Válido. ');
+  });
+
+  it('interrupted partial response does not enter memory and next turn uses clean history', async () => {
+    // Turn 1: Interrupted mid-stream
+    model.responseChunks = ['Início da resposta... ', 'segunda parte atrasada'];
+    let active = true;
+    model.onChunkYield = () => {
+      active = false; // barge-in simulated on first chunk
+    };
+
+    await coordinator.appendUserUtterance(session, 'turn-1', 'Pergunta 1');
+    await coordinator.streamTurn({
+      session,
+      turnId: 'turn-1',
+      generationId: 'gen-1',
+      snapshot: mockSnapshot,
+      callerTranscript: 'Pergunta 1',
+      isGenerationActive: () => active,
+    });
+
+    const historyAfterTurn1 = await historyStore.listForCall({ organizationId: orgId, callId });
+    expect(historyAfterTurn1).toHaveLength(1);
+    expect(historyAfterTurn1[0]?.role).toBe('user');
+    expect(historyAfterTurn1[0]?.content).toBe('Pergunta 1');
+
+    // Turn 2: New user turn completes successfully
+    model.onChunkYield = undefined;
+    model.responseChunks = ['Resposta completa ao segundo turno.'];
+    await coordinator.appendUserUtterance(session, 'turn-2', 'Pergunta 2');
+    await coordinator.streamTurn({
+      session,
+      turnId: 'turn-2',
+      generationId: 'gen-2',
+      snapshot: mockSnapshot,
+      callerTranscript: 'Pergunta 2',
+      isGenerationActive: () => true,
+    });
+
+    const historyAfterTurn2 = await historyStore.listForCall({ organizationId: orgId, callId });
+    expect(historyAfterTurn2).toHaveLength(3);
+    expect(historyAfterTurn2[0]?.role).toBe('user');
+    expect(historyAfterTurn2[0]?.content).toBe('Pergunta 1');
+    expect(historyAfterTurn2[1]?.role).toBe('user');
+    expect(historyAfterTurn2[1]?.content).toBe('Pergunta 2');
+    expect(historyAfterTurn2[2]?.role).toBe('assistant');
+    expect(historyAfterTurn2[2]?.content).toBe('Resposta completa ao segundo turno.');
+  });
 });
