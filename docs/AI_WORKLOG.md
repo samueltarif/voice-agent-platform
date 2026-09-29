@@ -6965,3 +6965,95 @@ Status: `BENCHMARK HYPOTHESES` — NÃO são product requirements.
 - TypeSafe Jev: **NÃO IMPLEMENTADO** (`BENCHMARK_CANDIDATE`).
 - PR #30: **OPEN / NOT MERGED**.
 
+---
+
+## PROMPT-006G-EVIDENCE-FINAL-R2 — Post-Reinstall Evidence Recovery, OpenAI Model/API Truth & PR #30 Final Gate
+
+- **Data**: 2026-09-29
+- **PR**: #30 (`feature/openai-conversation-model-adapter` -> `main`)
+- **Base SHA**: `29d72d0e35f2eea82a9d656059530ec9f02cd730`
+- **Initial HEAD**: `099bd25f5aee9de5b052a364c3ff8f620a58e518`
+
+### 1. Fatos da Recuperação Pós-Reinstalação (Recovery Facts)
+- O ambiente do Antigravity foi reinstalado pelo operador humano.
+- O contexto e o estado operacional foram recuperados exclusivamente a partir do Git, GitHub API e documentos versionados no repositório.
+- O prompt `PROMPT-006G-EVIDENCE-FINAL` anterior foi classificado como `NOT FOUND` / `NOT EXECUTED`; nenhum resultado, teste ou premissa daquele prompt foi presumido.
+- A decisão humana formal do operador confirmando **OpenAI como Provedor Primário de Modelo Conversacional** (DEC-037) permanece preservada e inalterada.
+
+### 2. Auditoria Factual do Catálogo Oficial de Modelos OpenAI (2026-09-29)
+- **Data de Acesso**: 2026-09-29
+- **Fontes Oficiais**: `https://developers.openai.com/api/docs/models.md` e páginas individuais de cada modelo.
+- **Famílias Atuais de Modelos Observadas**:
+  - `GPT-6`: Família topo de linha contemporânea (`gpt-6-astra`, `gpt-6.1-sol`, `gpt-6-luna`).
+  - `GPT-5.x`: Modelos de geração anterior (`gpt-5.6-sol`, `gpt-5.6-luna`, `gpt-5.6-terra`, `gpt-5.5`, `gpt-5.4`).
+  - `GPT-4.x`: Modelos não-raciocinantes (`gpt-4.1`, `gpt-4.1-mini`, `gpt-4.1-nano`) e linha omni/legada (`gpt-4o`, `gpt-4o-mini`).
+- **Verificação com Duas Fontes Oficiais por Modelo Candidato**:
+  1. `gpt-6-astra`:
+     - *Fonte 1*: `https://developers.openai.com/api/docs/models.md` ("Our most capable model for the most demanding work").
+     - *Fonte 2*: `https://developers.openai.com/api/docs/models/gpt-6-astra.md` (Contexto: 1.050.000 tokens; Endpoints: Chat Completions e Responses suportados; Preço: $10 / $50 por 1M tokens; Suporte a streaming: Sim; Reasoning: `low`, `medium`, `high`, `xhigh`, `max`).
+     - *Status*: `CONFIRMED`.
+  2. `gpt-6.1-sol`:
+     - *Fonte 1*: `https://developers.openai.com/api/docs/models.md` ("Balance intelligence and cost").
+     - *Fonte 2*: `https://developers.openai.com/api/docs/models/gpt-6.1-sol.md` (Endpoints: Chat Completions e Responses suportados; Preço: $2 / $10 por 1M tokens; Suporte a streaming: Sim; Reasoning: `low` a `max`).
+     - *Status*: `CONFIRMED`.
+  3. `gpt-6-luna`:
+     - *Fonte 1*: `https://developers.openai.com/api/docs/models.md` ("Our most efficient model for focused, high-volume tasks").
+     - *Fonte 2*: `https://developers.openai.com/api/docs/models/gpt-6-luna.md` (Endpoints: Chat Completions e Responses suportados; Preço: $0.10 / $0.50 por 1M tokens; Suporte a streaming: Sim; Reasoning: `none`, `low` a `max`).
+     - *Status*: `CONFIRMED`.
+  4. `gpt-4.1`:
+     - *Fonte 1*: `https://developers.openai.com/api/docs/models.md` ("Smartest non-reasoning model").
+     - *Fonte 2*: `https://developers.openai.com/api/docs/models/gpt-4.1.md` (Endpoints: Chat Completions e Responses suportados; Preço: $2 / $8 por 1M tokens; Suporte a streaming: Sim; Baixa latência sem etapa de raciocínio).
+     - *Status*: `CONFIRMED`.
+  5. `gpt-4o`:
+     - *Fonte 1*: `https://developers.openai.com/api/docs/models.md` ("Fast, intelligent, flexible GPT model").
+     - *Fonte 2*: `https://developers.openai.com/api/docs/models/gpt-4o.md` (Endpoints: Chat Completions e Responses suportados; Preço: $2.50 / $10 por 1M tokens; Suporte a streaming: Sim).
+     - *Status*: `CONFIRMED`.
+- **Reverificação de Claims Anteriores de GPT-6**: `CONFIRMED`. Modelos `gpt-6-astra`, `gpt-6.1-sol`, `gpt-6-sol` e `gpt-6-luna` constam formalmente na documentação oficial da OpenAI em 2026-09-29.
+
+### 3. Análise da Preferência Humana ("Modelo Mais Avançado") e Trade-Offs de Voz
+- **Intenção do Operador**: Preferência explícita pelo modelo OpenAI de maior capacidade.
+- **Modelo de Máxima Capacidade Factual**: `gpt-6-astra` ("Our most capable model for the most demanding work").
+- **Trade-Off Crítico para Voice Turns (Latência de Raciocínio)**:
+  - Modelos como `gpt-6-astra` e `gpt-6.1-sol` operam obrigatoriamente com raciocínio ativo (`reasoning.effort` não suporta `none`), gerando tokens de raciocínio prévios que aumentam o Time-to-First-Token (TTFT) antes da fala do agente.
+  - Para o caminho de voz em tempo real de baixa latência, os candidatos indicados são:
+    - `gpt-6-luna`: Modelo eficiente que permite `reasoning.effort: none`.
+    - `gpt-4.1`: Explicitamente documentado pela OpenAI como "Smartest non-reasoning model" para baixa latência.
+- **Latência Real**: `LATENCY_REAL = NOT MEASURED` (nenhuma suposição sem medição em tráfego real).
+- **Suporte a pt-BR**: `PT_BR_SUPPORTED = PROVIDER DOCUMENTED`, `PT_BR_QUALITY = NOT VERIFIED`, `PT_BR_VOICE_SALES_QUALITY = NOT VERIFIED`.
+- **Condição de Parada Humana**: Apresentado o trade-off ao operador. O runtime permanece estritamente fail-closed (`MISSING_MODEL_CONFIG_BEHAVIOR = FAIL_CLOSED`), sem selecionar nenhum modelo de forma silenciosa ou hardcoded.
+
+### 4. Reavaliação Factual: Responses API vs Chat Completions API
+- **Responses API (`POST /v1/responses`)**:
+  - *Status de Ciclo de Vida*: GA / Recomendada pela OpenAI para novos projetos (`Migrate to Responses API` guide).
+  - *Stateless*: Sim, suporta `store: false` e não exige `conversation_id` nem `previous_response_id`.
+  - *Streaming*: Sim, protocolo SSE com eventos semânticos (`response.output_text.delta`, `response.completed`).
+- **Chat Completions API (`POST /v1/chat/completions`)**:
+  - *Status de Ciclo de Vida*: Suportada (Supported).
+  - *Vantagem Concreta para Baseline*: Protocolo SSE linear mínimo (`chat.completion.chunk`), 100% aderente ao nosso runtime onde `CallSession` e `InMemoryConversationHistoryStore` detêm a autoridade do diálogo. Já implementada e coberta por 27 testes unitários e de integração.
+- **Trade-Off e Decisão de Superfície de API**:
+  - Migrar para Responses API exigiria reescrita material do adapter e dos parsers de wire.
+  - Mantém-se Chat Completions como baseline implementado no PR #30, deixando a Responses API documentada como evolução futura sob revisão do ADR-018.
+
+### 5. Hardening de Protocolo SSE e Test-Diff Audit
+- **Detecção Fail-Closed de JSON Malformado (`packages/integrations/src/openai/openai-sse-parser.ts`)**:
+  - Comentários SSE (`: keep-alive`) continuam ignorados com segurança (`skip`).
+  - Frames de dados (`data: <payload>`) com JSON corrompido retornam `malformed` (em vez de `skip`), disparando evento terminal `failure` com erro seguro sem expor o payload cru, interrompendo imediatamente o consumo.
+  - Teste pré-existente alterado: `skips malformed JSON gracefully` -> `identifies malformed JSON data frames fail-closed` (classificado como `ASSERTION_STRONGER`).
+- **Fechamento Prematuro de Stream (`packages/integrations/src/openai/openai-stream-events.ts`)**:
+  - Streams que encerram sem o marcador terminal `data: [DONE]` disparam deterministicamente `failure` (`stream closed prematurely without terminal marker`), impedindo emissão de evento `completed`.
+- **Contenção Pós-Terminal**:
+  - Chunks tardios após `[DONE]` são descartados sem gerar deltas adicionais ou duplicar `completed`.
+- **Test-Diff Audit**:
+  - Alterações em testes pré-existentes: 1 teste fortalecido (`ASSERTION_STRONGER`).
+  - Asserções enfraquecidas: ZERO (`ASSERTION_WEAKER = 0`).
+  - Novos testes adicionados: 4 testes (1 no parser SSE, 3 no adapter).
+  - Skips introduzidos: ZERO (`NEW_SKIPS = 0`).
+  - Total de testes em `packages/integrations`: 17 arquivos, 85 testes aprovados (100% passing).
+
+### 6. Governança, Homologação e Quality Gate
+- **Chamada Real a Provedor**: `REAL_PROVIDER_CALL = NOT EXECUTED`. Nenhuma chave de API acessada ou impressa.
+- **TypeSafe Jev**: Permanece categorizado como `BENCHMARK_CANDIDATE` / modelo auxiliar de decisão (não implementado).
+- **ADR-018**: Permanece `Proposed` enquanto o PR #30 estiver aberto.
+- **PR #30**: `OPEN / NOT MERGED`.
+
+

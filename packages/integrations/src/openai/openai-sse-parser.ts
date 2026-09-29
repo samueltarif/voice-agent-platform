@@ -3,7 +3,13 @@ import type { OpenAiChatCompletionChunk } from './openai-chat-completion-types.j
 export type SseLineResult =
   | { readonly kind: 'chunk'; readonly chunk: OpenAiChatCompletionChunk }
   | { readonly kind: 'done' }
-  | { readonly kind: 'skip' };
+  | { readonly kind: 'skip' }
+  | { readonly kind: 'malformed' };
+
+export type SseStreamItem =
+  | { readonly kind: 'chunk'; readonly chunk: OpenAiChatCompletionChunk }
+  | { readonly kind: 'done' }
+  | { readonly kind: 'malformed' };
 
 export function parseSseLine(line: string): SseLineResult {
   const normalized = line.endsWith('\r') ? line.slice(0, -1) : line;
@@ -13,6 +19,9 @@ export function parseSseLine(line: string): SseLineResult {
   }
 
   const payload = trimmed.slice(5).trim();
+  if (!payload) {
+    return { kind: 'skip' };
+  }
   if (payload === '[DONE]') {
     return { kind: 'done' };
   }
@@ -21,7 +30,7 @@ export function parseSseLine(line: string): SseLineResult {
     const chunk = JSON.parse(payload) as OpenAiChatCompletionChunk;
     return { kind: 'chunk', chunk };
   } catch {
-    return { kind: 'skip' };
+    return { kind: 'malformed' };
   }
 }
 
@@ -49,10 +58,19 @@ async function* readStreamLines(stream: ReadableStream<Uint8Array>): AsyncIterab
 
 export async function* parseOpenAiSseStream(
   stream: ReadableStream<Uint8Array>,
-): AsyncIterable<OpenAiChatCompletionChunk> {
+): AsyncIterable<SseStreamItem> {
   for await (const line of readStreamLines(stream)) {
     const result = parseSseLine(line);
-    if (result.kind === 'done') return;
-    if (result.kind === 'chunk') yield result.chunk;
+    if (result.kind === 'done') {
+      yield { kind: 'done' };
+      return;
+    }
+    if (result.kind === 'chunk') {
+      yield { kind: 'chunk', chunk: result.chunk };
+    }
+    if (result.kind === 'malformed') {
+      yield { kind: 'malformed' };
+      return;
+    }
   }
 }

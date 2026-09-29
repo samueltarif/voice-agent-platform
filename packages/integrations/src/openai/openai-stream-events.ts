@@ -29,19 +29,77 @@ export function extractChunkEvents(
   return { text: typeof text === 'string' && text.length > 0 ? text : undefined, usageEvent };
 }
 
+interface StreamEndContext {
+  readonly terminalReceived: boolean;
+  readonly accumulatedText: string;
+  readonly turnId: string;
+  readonly generationId: string;
+}
+
+function checkStreamEnd(ctx: StreamEndContext): ModelStreamEvent {
+  if (!ctx.terminalReceived) {
+    return {
+      type: 'failure',
+      turnId: ctx.turnId,
+      generationId: ctx.generationId,
+      error: 'OpenAI protocol failure: stream closed prematurely without terminal marker',
+      isRetryable: true,
+    };
+  }
+  return {
+    type: 'completed',
+    turnId: ctx.turnId,
+    generationId: ctx.generationId,
+    fullText: ctx.accumulatedText,
+  };
+}
+
+function applyChunkEvents(
+  chunk: OpenAiChatCompletionChunk,
+  turnId: string,
+  generationId: string,
+): { readonly text: string; readonly events: ModelStreamEvent[] } {
+  const { text, usageEvent } = extractChunkEvents(chunk, turnId, generationId);
+  const events: ModelStreamEvent[] = [];
+  const textValue = text ?? '';
+  if (textValue) {
+    events.push({ type: 'text.delta', textDelta: textValue, turnId, generationId, isFinal: false });
+  }
+  if (usageEvent) {
+    events.push(usageEvent);
+  }
+  return { text: textValue, events };
+}
+
 export async function* streamFromChunks(params: ConsumeSseParams): AsyncIterable<ModelStreamEvent> {
   const { body, turnId, generationId, signal } = params;
   let accumulatedText = '';
-  for await (const chunk of parseOpenAiSseStream(body)) {
+  let terminalReceived = false;
+
+  for await (const item of parseOpenAiSseStream(body)) {
     if (signal?.aborted) return;
 
-    const { text, usageEvent } = extractChunkEvents(chunk, turnId, generationId);
-    if (text) {
-      accumulatedText += text;
-      yield { type: 'text.delta', textDelta: text, turnId, generationId, isFinal: false };
+    if (item.kind === 'done') {
+      terminalReceived = true;
+      break;
     }
-    if (usageEvent) yield usageEvent;
+
+    if (item.kind === 'malformed') {
+      yield {
+        type: 'failure',
+        turnId,
+        generationId,
+        error: 'OpenAI protocol failure: malformed SSE data frame',
+        isRetryable: false,
+      };
+      return;
+    }
+
+    const { text, events } = applyChunkEvents(item.chunk, turnId, generationId);
+    accumulatedText += text;
+    yield* events;
   }
 
-  yield { type: 'completed', turnId, generationId, fullText: accumulatedText };
+  if (signal?.aborted) return;
+  yield checkStreamEnd({ terminalReceived, accumulatedText, turnId, generationId });
 }

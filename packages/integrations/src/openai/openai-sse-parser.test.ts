@@ -44,9 +44,9 @@ describe('OpenAI SSE Parser Conformance & Hardening', () => {
     expect(parseSseLine('   ')).toEqual({ kind: 'skip' });
   });
 
-  it('skips malformed JSON gracefully', () => {
+  it('identifies malformed JSON data frames fail-closed', () => {
     const line = 'data: {invalid-json';
-    expect(parseSseLine(line)).toEqual({ kind: 'skip' });
+    expect(parseSseLine(line)).toEqual({ kind: 'malformed' });
   });
 
   it('handles a frame split across multiple byte chunks', async () => {
@@ -58,9 +58,11 @@ describe('OpenAI SSE Parser Conformance & Hardening', () => {
     const stream = createStreamFromChunks([part1, part2, part3]);
     const chunks: string[] = [];
 
-    for await (const chunk of parseOpenAiSseStream(stream)) {
-      const text = chunk.choices?.[0]?.delta.content;
-      if (text) chunks.push(text);
+    for await (const item of parseOpenAiSseStream(stream)) {
+      if (item.kind === 'chunk') {
+        const text = item.chunk.choices?.[0]?.delta.content;
+        if (text) chunks.push(text);
+      }
     }
 
     expect(chunks).toEqual(['Partes']);
@@ -77,9 +79,11 @@ describe('OpenAI SSE Parser Conformance & Hardening', () => {
     const stream = createStreamFromChunks([data]);
     const chunks: string[] = [];
 
-    for await (const chunk of parseOpenAiSseStream(stream)) {
-      const text = chunk.choices?.[0]?.delta.content;
-      if (text) chunks.push(text);
+    for await (const item of parseOpenAiSseStream(stream)) {
+      if (item.kind === 'chunk') {
+        const text = item.chunk.choices?.[0]?.delta.content;
+        if (text) chunks.push(text);
+      }
     }
 
     expect(chunks).toEqual(['A', 'B']);
@@ -94,9 +98,11 @@ describe('OpenAI SSE Parser Conformance & Hardening', () => {
     const stream = createStreamFromChunks([data]);
     const chunks: string[] = [];
 
-    for await (const chunk of parseOpenAiSseStream(stream)) {
-      const text = chunk.choices?.[0]?.delta.content;
-      if (text) chunks.push(text);
+    for await (const item of parseOpenAiSseStream(stream)) {
+      if (item.kind === 'chunk') {
+        const text = item.chunk.choices?.[0]?.delta.content;
+        if (text) chunks.push(text);
+      }
     }
 
     expect(chunks).toEqual(['CRLF']);
@@ -115,9 +121,11 @@ describe('OpenAI SSE Parser Conformance & Hardening', () => {
     const stream = createStreamFromChunks([chunk1, chunk2]);
     const chunks: string[] = [];
 
-    for await (const chunk of parseOpenAiSseStream(stream)) {
-      const text = chunk.choices?.[0]?.delta.content;
-      if (text) chunks.push(text);
+    for await (const item of parseOpenAiSseStream(stream)) {
+      if (item.kind === 'chunk') {
+        const text = item.chunk.choices?.[0]?.delta.content;
+        if (text) chunks.push(text);
+      }
     }
 
     expect(chunks).toEqual(['Ação é você']);
@@ -132,9 +140,11 @@ describe('OpenAI SSE Parser Conformance & Hardening', () => {
     const stream = createStreamFromChunks([data1, done, late]);
     const chunks: string[] = [];
 
-    for await (const chunk of parseOpenAiSseStream(stream)) {
-      const text = chunk.choices?.[0]?.delta.content;
-      if (text) chunks.push(text);
+    for await (const item of parseOpenAiSseStream(stream)) {
+      if (item.kind === 'chunk') {
+        const text = item.chunk.choices?.[0]?.delta.content;
+        if (text) chunks.push(text);
+      }
     }
 
     expect(chunks).toEqual(['First']);
@@ -150,19 +160,43 @@ describe('OpenAI SSE Parser Conformance & Hardening', () => {
     const stream = createStreamFromChunks([data]);
     let usageSeen: { input: number; output: number } | undefined;
 
-    for await (const chunk of parseOpenAiSseStream(stream)) {
+    for await (const item of parseOpenAiSseStream(stream)) {
       if (
-        chunk.usage &&
-        chunk.usage.prompt_tokens !== undefined &&
-        chunk.usage.completion_tokens !== undefined
+        item.kind === 'chunk' &&
+        item.chunk.usage &&
+        item.chunk.usage.prompt_tokens !== undefined &&
+        item.chunk.usage.completion_tokens !== undefined
       ) {
         usageSeen = {
-          input: chunk.usage.prompt_tokens,
-          output: chunk.usage.completion_tokens,
+          input: item.chunk.usage.prompt_tokens,
+          output: item.chunk.usage.completion_tokens,
         };
       }
     }
 
     expect(usageSeen).toEqual({ input: 15, output: 25 });
+  });
+
+  it('yields malformed item and stops reading immediately on invalid JSON frame', async () => {
+    const encoder = new TextEncoder();
+    const data1 = encoder.encode('data: {"id":"1","choices":[{"delta":{"content":"Ok"}}]}\n\n');
+    const malformed = encoder.encode('data: {corrupted-json\n\n');
+    const late = encoder.encode('data: {"id":"2","choices":[{"delta":{"content":"Late"}}]}\n\n');
+
+    const stream = createStreamFromChunks([data1, malformed, late]);
+    const items: string[] = [];
+    let malformedEncountered = false;
+
+    for await (const item of parseOpenAiSseStream(stream)) {
+      if (item.kind === 'chunk') {
+        const text = item.chunk.choices?.[0]?.delta.content;
+        if (text) items.push(text);
+      } else if (item.kind === 'malformed') {
+        malformedEncountered = true;
+      }
+    }
+
+    expect(items).toEqual(['Ok']);
+    expect(malformedEncountered).toBe(true);
   });
 });

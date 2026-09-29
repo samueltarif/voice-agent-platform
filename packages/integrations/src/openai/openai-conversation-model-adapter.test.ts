@@ -180,4 +180,96 @@ describe('OpenAiConversationModelAdapter', () => {
       isFinal: false,
     });
   });
+
+  it('terminates fail-closed on malformed JSON data frame and suppresses later deltas', async () => {
+    const sse =
+      createSseChunk('Antes') +
+      'data: {invalid-json-structure\n\n' +
+      createSseChunk('Depois') +
+      'data: [DONE]\n\n';
+
+    const fakeFetch = vi.fn().mockResolvedValue(makeSseResponse(sse));
+    const adapter = new OpenAiConversationModelAdapter({
+      fetchFn: fakeFetch,
+      config: { modelId: 'gpt-4o' },
+    });
+
+    const stream = await adapter.streamTurn(mockInput);
+    const events: ModelStreamEvent[] = [];
+    for await (const ev of stream) events.push(ev);
+
+    expect(events).toHaveLength(2);
+    expect(events[0]).toEqual({
+      type: 'text.delta',
+      textDelta: 'Antes',
+      turnId: 'turn_1',
+      generationId: 'gen_1',
+      isFinal: false,
+    });
+    expect(events[1]?.type).toBe('failure');
+    if (events[1]?.type === 'failure') {
+      expect(events[1].error).toContain('malformed SSE data frame');
+      expect(events[1].isRetryable).toBe(false);
+    }
+  });
+
+  it('fails safely when stream closes prematurely without terminal marker', async () => {
+    const sse = createSseChunk('Texto sem finalizacao');
+    const fakeFetch = vi.fn().mockResolvedValue(makeSseResponse(sse));
+    const adapter = new OpenAiConversationModelAdapter({
+      fetchFn: fakeFetch,
+      config: { modelId: 'gpt-4o' },
+    });
+
+    const stream = await adapter.streamTurn(mockInput);
+    const events: ModelStreamEvent[] = [];
+    for await (const ev of stream) events.push(ev);
+
+    expect(events).toHaveLength(2);
+    expect(events[0]).toEqual({
+      type: 'text.delta',
+      textDelta: 'Texto sem finalizacao',
+      turnId: 'turn_1',
+      generationId: 'gen_1',
+      isFinal: false,
+    });
+    expect(events[1]?.type).toBe('failure');
+    if (events[1]?.type === 'failure') {
+      expect(events[1].error).toContain('stream closed prematurely');
+      expect(events[1].isRetryable).toBe(true);
+    }
+  });
+
+  it('ignores post-terminal data without emitting additional text deltas or completed events', async () => {
+    const sse =
+      createSseChunk('Correto') +
+      'data: [DONE]\n\n' +
+      createSseChunk('Fantasma') +
+      'data: [DONE]\n\n';
+
+    const fakeFetch = vi.fn().mockResolvedValue(makeSseResponse(sse));
+    const adapter = new OpenAiConversationModelAdapter({
+      fetchFn: fakeFetch,
+      config: { modelId: 'gpt-4o' },
+    });
+
+    const stream = await adapter.streamTurn(mockInput);
+    const events: ModelStreamEvent[] = [];
+    for await (const ev of stream) events.push(ev);
+
+    expect(events).toHaveLength(2);
+    expect(events[0]).toEqual({
+      type: 'text.delta',
+      textDelta: 'Correto',
+      turnId: 'turn_1',
+      generationId: 'gen_1',
+      isFinal: false,
+    });
+    expect(events[1]).toEqual({
+      type: 'completed',
+      turnId: 'turn_1',
+      generationId: 'gen_1',
+      fullText: 'Correto',
+    });
+  });
 });
