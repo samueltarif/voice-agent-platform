@@ -6453,3 +6453,102 @@ Todas as condições de governança, integridade de contratos, proteção multi-
 - **Novas Dependências**: ZERO.
 - **Esquema de Banco e Migrações**: ZERO alterações.
 - **Fase 006E**: **NÃO INICIADA**.
+
+---
+
+## [PROMPT-006E-GATE] — 2026-09-29 — Conversation Model Provider Decision Gate
+
+### 1. Preflight e Base Factual
+- **Base SHA**: `80abd11e475c4a71fe5d6db3e4e2215e5aebf5f7`
+- **Branch de Trabalho**: `docs/006e-model-provider-decision-gate`
+- **Working Tree**: Limpa antes do gate.
+- **Objetivo**: Conduzir pesquisa técnica em fontes oficiais e estruturar matriz comparativa de providers para `ConversationModelPort` sem implementar código de produto, sem instalar SDKs e sem solicitar API keys.
+
+---
+
+### 2. Documentação Oficial Consultada (URLs Canônicas)
+1. **OpenAI**:
+   - Pricing: `https://openai.com/api/pricing/`
+   - Chat API & Streaming: `https://platform.openai.com/docs/api-reference/chat`
+   - Enterprise Privacy: `https://openai.com/enterprise-privacy/`
+   - Node SDK: `https://github.com/openai/openai-node`
+2. **Anthropic**:
+   - Pricing: `https://claude.ai/pricing`
+   - Messages API Streaming: `https://docs.anthropic.com/en/api/messages-streaming`
+   - TypeScript SDK: `https://github.com/anthropics/anthropic-sdk-typescript`
+   - Data Privacy: `https://support.anthropic.com/en/articles/7996848-how-do-you-use-personal-data-in-model-training`
+3. **Google (Gemini)**:
+   - Pricing: `https://ai.google.dev/`
+   - Google Gen AI SDK (`@google/genai`): `https://ai.google.dev/gemini-api/docs/quickstart?lang=node`
+   - Data Governance & Terms: `https://ai.google.dev/gemini-api/terms`
+
+---
+
+### 3. Síntese Técnica de APIs e SDKs Atuais
+- **OpenAI**:
+  - API Atual: Chat Completions API (`/v1/chat/completions`) com SSE (`stream: true`).
+  - SDK Recomendado: `openai` v4.x+.
+  - Formato de Streaming: Chunks lineares com `choices[0].delta.content`.
+  - Telemetria de Uso: Habilitada via `stream_options: { include_usage: true }` no último chunk antes de `[DONE]`.
+  - Cancelamento / Barge-in: Suporte nativo a `AbortSignal` via `{ signal }`.
+- **Anthropic**:
+  - API Atual: Messages API (`/v1/messages`) com SSE (`stream: true`).
+  - SDK Recomendado: `@anthropic-ai/sdk` v0.36.x+.
+  - Formato de Streaming: Eventos SSE formais (`message_start`, `content_block_delta`, `message_delta`, `message_stop`).
+  - Telemetria de Uso: `input_tokens` em `message_start` e `output_tokens` em `message_delta`.
+  - Cancelamento / Barge-in: Suporte nativo a `AbortSignal` via `{ signal }`.
+- **Google**:
+  - API Atual: Gemini API via Google Gen AI SDK.
+  - SDK Recomendado: `@google/genai` (substitui o legatário `@google/generative-ai`).
+  - Formato de Streaming: `models.generateContentStream` com iteração assíncrona.
+  - Telemetria de Uso: `chunk.usageMetadata` no chunk final.
+  - Cancelamento / Barge-in: Suporte via `AbortSignal` nas opções de requisição ou interrupção de consumo.
+
+---
+
+### 4. Caminhos Depreciados ou Rejeitados
+- **OpenAI Assistants API / Threads API**: Rejeitada por gerenciar estado nos servidores da OpenAI, violando o princípio de autoridade de sessão e isolamento multi-tenant local.
+- **OpenAI Realtime API (WebRTC)**: Desnecessária nesta etapa, visto que o Twilio ConversationRelay já gerencia o canal de mídia, STT e TTS.
+- **Google `@google/generative-ai`**: Legatário; substituído pelo novo pacote unificado `@google/genai`.
+- **Google AI Studio Free Tier**: Rejeitado para ambiente B2B/produção em virtude de dados de prompt serem registrados para treinamento de modelos públicos da Google. Apenas o **Paid Tier** garante quarentena de dados.
+
+---
+
+### 5. Conformidade Contratual e Mapeamento (`ModelStreamEvent`)
+- **OpenAI**: Complexidade de mapeamento **LOW**. Eventos de texto e `usage` linear mapeiam diretamente para `ModelTextDeltaEvent`, `ModelUsageEvent` e `ModelCompletedEvent`.
+- **Anthropic**: Complexidade de mapeamento **MEDIUM**. Mapeamento exige agregação de `input_tokens` e `output_tokens` recebidos em eventos temporais distintos antes do disparo de `completed`.
+- **Google**: Complexidade de mapeamento **LOW / MEDIUM**. Requer mapeamento do papel de assistente para `'model'` e adaptação da interface `systemInstruction`.
+- **Semântica Terminal**: O adapter de qualquer fornecedor deve garantir que o evento `usage` seja emitido antes do evento terminal `completed`, preservando a semântica de encerramento de `processModelStream`.
+
+---
+
+### 6. Métricas Não Medidas e Disciplina de Evidência
+- **Latência Real**: `LATENCY_REAL = NOT MEASURED`. Sem credenciais ativas e sem autorização para tráfego em rede, tempos de TTFT ou tokens/segundo não foram inventados nem assumidos.
+- **Comparativo de pt-BR**: Não há benchmark público oficial comparativo de inteligência em voz telefônica pt-BR entre os três fornecedores (`NOT VERIFIED`).
+- **Comportamento em Telefonia Real**: Permanece categorizado como `PROVIDER-UNVERIFIED`.
+
+---
+
+### 7. Modelo de Custos Factual (Base Setembro 2026)
+- **OpenAI GPT-4o mini**: Entrada: $0.15 / 1M | Saída: $0.60 / 1M (Prompt Caching: $0.075 / 1M).
+- **Anthropic Claude 3.5 Haiku**: Entrada: $0.80 / 1M | Saída: $4.00 / 1M (Prompt Caching: $1.00 escrita / $0.08 leitura).
+- **Google Gemini 1.5 Flash (Paid Tier)**: Entrada: $0.075 / 1M | Saída: $0.30 / 1M.
+- **Inferência Factual**: Modelos compactos representam custo inferior a $0.01 por chamada típica de 10 turnos, posicionando a telefonia PSTN da Twilio e o TTS como principais componentes da estrutura de custos.
+
+---
+
+### 8. Recomendação para Primeiro Spike vs Decisão de Provedor
+- **Provedor Primário Definitivo**: Permanece categorizado estritamente como **PENDING HUMAN DECISION** em `docs/DECISIONS_LOG.md`.
+- **Recomendação para Spike Inicial de Prototipação**: **OpenAI (GPT-4o mini)** via Chat Completions API.
+  - *Justificativa*: Menor complexidade de mapeamento de stream linear, suporte maduro a `AbortSignal` no Node.js para cancelamento imediato de barge-in, e custo ultra-baixo para desenvolvimento e testes locais.
+  - *Alternativa Imediata*: **Anthropic (Claude 3.5 Haiku)** via Messages API.
+
+---
+
+### 9. Isolamento Operacional e Segurança
+- **Código de Produção ou Testes Alterado**: ZERO.
+- **Dependências Externas Instaladas**: ZERO.
+- **Segredos Solicitados ou Criados**: ZERO.
+- **APIs de Provedores Pagas Chamadas**: ZERO.
+- **Acesso à Rede**: Utilizado exclusivamente para consulta a páginas públicas de documentação técnica oficial dos fornecedores.
+- **Desvios de Segurança ou Processo**: ZERO.
