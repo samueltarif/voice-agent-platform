@@ -1,4 +1,4 @@
-﻿# PHASE 6 - TypeSafe Jev Auxiliary Model Decision Gate
+# PHASE 6 - TypeSafe Jev Auxiliary Model Decision Gate
 
 **Document Status:** Research Completed / Benchmark Pending
 **Classification:** `BENCHMARK_CANDIDATE`
@@ -452,9 +452,9 @@ Evidence observed:
 - No explicit "Early Access" designation found in current documentation.
 
 **Assessment:**
-- `GENERAL AVAILABILITY: INFERRED FROM PUBLIC API + SDK + PRICING`
-- Prior operator communication referenced "Early Access". Whether that label was
-  updated in official docs cannot be verified here.
+- `EARLY_ACCESS_ANNOUNCED: YES` — 2026-09-15 provider announcement by TypeSafe.
+- `CURRENT_PUBLIC_API: AVAILABLE` — documented API, SDK, and pricing page exist as of 2026-09-29.
+- `CURRENT_GA_STATUS: NOT VERIFIED` — existence of public API, SDKs, and pricing does not prove General Availability. No GA announcement confirmed from documentation accessed.
 
 **Risks regardless of GA status:**
 
@@ -587,11 +587,11 @@ processed by **two vendors**. A future privacy review must address:
 
 | Topic | Status |
 |:---|:---|
-| Jev data retention | `NOT VERIFIED - DPA at typesafe.ai/legal/data-processing` |
-| Training on customer data | `PROVIDER CLAIM: "not trained on customer requests"` |
-| Zero Data Retention (ZDR) | `AVAILABLE FOR ENTERPRISE - contact sales@typesafe.ai` |
+| Jev data retention | `NOT VERIFIED` — DPA referenced at typesafe.ai/legal/data-processing |
+| Training on customer data | `PROVIDER POLICY CLAIM`: "not trained on customer requests or responses" (typesafe.ai/legal.md) |
+| Zero Data Retention (ZDR) | `PROVIDER POLICY CLAIM`: AVAILABLE FOR ENTERPRISE — contact sales@typesafe.ai (typesafe.ai/legal.md) |
 | Cross-border processing / data region | `NOT VERIFIED` |
-| DPA / subprocessors | `DOCUMENT EXISTS - not reviewed in this gate` |
+| DPA / subprocessors | `PROVIDER POLICY CLAIM`: DPA document exists at typesafe.ai/legal/data-processing — not reviewed in this gate |
 | Interaction with generative provider data terms | `NOT VERIFIED` |
 
 > **No legal conclusion drawn.** Formal DPA review required before production use
@@ -704,7 +704,7 @@ Present evidence to operator. Decision belongs to the operator.
 | Criterion | Evidence |
 |:---|:---|
 | Supported HTTP API | `POST /v1/systemone` - FACT FROM DOCS |
-| Commercially usable path | Public API, pricing, JavaScript SDK - FACT FROM DOCS |
+| Commercial/production use terms | `COMMERCIAL_USE_FOR_OUR_PRODUCTION_CASE: NOT VERIFIED` — API, pricing, and SDK exist but full production/commercial terms require review of Master Customer Agreement at typesafe.ai/legal/mca (not audited in this gate) |
 | Structured decisions useful to architecture | Intent, guardrails, routing - PROVIDER-DOCUMENTED USE CASES |
 | Provider-neutral core preserved | Core never imports `@typesafe-ai/sdk` - ARCHITECTURAL RULE |
 

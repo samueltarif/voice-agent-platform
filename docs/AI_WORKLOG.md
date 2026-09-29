@@ -6756,3 +6756,66 @@ Status: `BENCHMARK HYPOTHESES` — NÃO são product requirements.
 - **Implementação Iniciada**: NÃO INICIADA.
 - **AuxiliaryDecisionPort Criada**: NÃO.
 - **Provider Principal Selecionado**: NÃO — PENDING HUMAN DECISION.
+
+---
+
+## PROMPT-006F-FINAL-INTEGRITY-CLOSE — Evidence Repair, Tooling Compliance & Merge Audit
+
+- **Data**: 2026-09-29
+- **PR**: #29 (`docs/006f-jev-auxiliary-model-gate` -> `main`)
+- **Objetivo**: Corrigir problemas de integridade de evidência, desvios de processo de tooling e claims documentais antes do merge do PR #29.
+
+### Retificações de Tooling e Evidência
+
+1. **Format Gate Anterior vs. Atual**:
+   - `PREVIOUS_FORMAT_GATE`: NOT EXECUTED — O fechamento anterior executou `npx --yes prettier --check ...` em vez do comando exigido pelo repo.
+   - `FORMAT_CHECK`: PASS — Executado factual e observado no repo: `pnpm format:check` (exit code 0; `All matched files use Prettier code style!`).
+
+2. **Desvio de Tooling (NPX)**:
+   - Classificação: `TOOLING PROCESS DEVIATION` (não classificado como security incident).
+   - `PACKAGE_JSON_CHANGED_BY_NPX`: NO.
+   - `PNPM_LOCK_CHANGED_BY_NPX`: NO.
+   - `NODE_MODULES_TRACKED_CHANGE`: NO.
+   - `DEPENDENCIES_ADDED_TO_REPO`: NO.
+   - *Nota factual*: `npx --yes` foi executado no fechamento anterior, mas nenhum manifesto ou lockfile do repositório foi modificado.
+
+3. **Erro de Edição e Restauração de docs/AI_WORKLOG.md**:
+   - Classificação: `EXECUTION_ERROR_CORRECTED` (não é security deviation).
+   - Durante a tentativa anterior de normalização de EOF via PowerShell, o arquivo `docs/AI_WORKLOG.md` foi temporariamente colapsado em runtime local.
+   - Nenhuma versão corrompida foi commitada.
+   - O arquivo foi imediatamente restaurado a partir do Git (`git checkout -- docs/AI_WORKLOG.md`).
+   - A entrada 006F foi reaplicada corretamente preservando todo o histórico.
+   - `WORKLOG_APPEND_ONLY`: PASS — Auditado via `git diff origin/main...HEAD -- docs/AI_WORKLOG.md`, comprovando zero deleções, zero modificações de entradas históricas e adição estrita no final do arquivo.
+
+4. **Retificação de Maturidade / GA do TypeSafe Jev**:
+   - A inferência anterior de "General Availability" baseada em API pública + SDKs + pricing foi revogada.
+   - `EARLY_ACCESS_ANNOUNCED`: YES — anúncio de 2026-09-15 pelo provedor TypeSafe AI indicava Early Access.
+   - `CURRENT_PUBLIC_API`: AVAILABLE — documentação de API, pricing e SDKs acessada em 2026-09-29.
+   - `CURRENT_GA_STATUS`: NOT VERIFIED — existência de API pública e SDKs não comprova General Availability; nenhum anúncio ou declaração de GA confirmado na documentação acessada.
+
+5. **Termos de Uso Comercial / Produção**:
+   - `COMMERCIAL_USE_FOR_OUR_PRODUCTION_CASE`: NOT VERIFIED — API, precificação pública e SDKs existem, mas os termos contratuais para uso comercial em produção exigem revisão do Master Customer Agreement (`typesafe.ai/legal/mca`), não auditado neste gate.
+
+6. **Classificação de Claims de Privacidade e ZDR**:
+   - Afirmações do provedor (não treinamento em dados de clientes, disponibilidade de ZDR para Enterprise, existência de DPA) classificadas estritamente como `PROVIDER POLICY CLAIM`, não como garantias jurídicas da plataforma.
+
+7. **Auditoria de Segredos (Secret Audit)**:
+   - `PREVIOUS_SECRET_AUDIT`: NOT EXECUTED — Ausência de comando/evidência factual versionada no log anterior.
+   - `SECRET_AUDIT`: PASS — Executada auditoria booleana real sobre o tracked diff do PR (`git diff origin/main...HEAD`), confirmando ausência de credenciais, senhas, tokens de sessão, JWTs, Bearer tokens, connection strings e chaves privadas.
+
+8. **Verificação de Diff do Git**:
+   - `GIT_DIFF_CHECK`: PASS — Executado `git diff --check` no HEAD final com zero erros de whitespace ou conflito.
+
+9. **Tamanho do Documento de Pesquisa**:
+   - `DOCUMENT_SIZE_REVIEW`: NO ACTION — Documento de pesquisa arquitetural (754 linhas), sem código de lógica de produção; nenhum fatiamento artificial ou segundo documento redundante criado.
+
+### Integridade Operacional Final
+
+- **Código de Produção Alterado**: ZERO.
+- **Código de Testes Alterado**: ZERO.
+- **Dependências Adicionadas ao Repo**: ZERO.
+- **APIs de Provedores Pagas Chamadas**: ZERO.
+- **Segredos Solicitados ou Expostos**: ZERO (`SECRET_AUDIT_PASS`).
+- **Classificação Jev**: `BENCHMARK_CANDIDATE`.
+- **Provedor Principal de Conversação**: `PENDING HUMAN DECISION`.
+- **Próximo Slice de Implementação**: **NÃO INICIADO**.
