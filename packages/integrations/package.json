@@ -13,6 +13,7 @@
     }
   },
   "dependencies": {
+    "@voice-agent/config": "workspace:*",
     "@voice-agent/contracts": "workspace:*",
     "@voice-agent/errors": "workspace:*",
     "@voice-agent/logger": "workspace:*"

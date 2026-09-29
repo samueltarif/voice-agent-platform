@@ -76,3 +76,45 @@ export class TransportDisconnectedError extends AppError {
     this.name = 'TransportDisconnectedError';
   }
 }
+
+export class InvalidCanonicalUrlError extends AppError {
+  constructor(message = 'Invalid canonical request URL') {
+    super(message, 400, 'INVALID_CANONICAL_URL');
+    this.name = 'InvalidCanonicalUrlError';
+  }
+}
+
+export class CallBootstrapNotFoundError extends AppError {
+  constructor(message = 'Call bootstrap token not found') {
+    super(message, 404, 'CALL_BOOTSTRAP_NOT_FOUND');
+    this.name = 'CallBootstrapNotFoundError';
+  }
+}
+
+export class CallBootstrapExpiredError extends AppError {
+  constructor(message = 'Call bootstrap token has expired') {
+    super(message, 410, 'CALL_BOOTSTRAP_EXPIRED');
+    this.name = 'CallBootstrapExpiredError';
+  }
+}
+
+export class CallBootstrapAlreadyConsumedError extends AppError {
+  constructor(message = 'Call bootstrap token has already been consumed') {
+    super(message, 409, 'CALL_BOOTSTRAP_ALREADY_CONSUMED');
+    this.name = 'CallBootstrapAlreadyConsumedError';
+  }
+}
+
+export class TwiMLGenerationError extends AppError {
+  constructor(message = 'Failed to generate valid TwiML response') {
+    super(message, 500, 'TWIML_GENERATION_ERROR');
+    this.name = 'TwiMLGenerationError';
+  }
+}
+
+export class InvalidProviderBindingError extends AppError {
+  constructor(message = 'Invalid provider binding or bootstrap correlation') {
+    super(message, 400, 'INVALID_PROVIDER_BINDING');
+    this.name = 'InvalidProviderBindingError';
+  }
+}

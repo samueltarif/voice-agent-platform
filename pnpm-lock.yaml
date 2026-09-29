@@ -306,7 +306,11 @@ importers:
         specifier: workspace:*
         version: link:../../packages/logger
 
-  packages/config: {}
+  packages/config:
+    dependencies:
+      '@voice-agent/errors':
+        specifier: workspace:*
+        version: link:../errors
 
   packages/contracts:
     dependencies:
@@ -340,6 +344,9 @@ importers:
 
   packages/integrations:
     dependencies:
+      '@voice-agent/config':
+        specifier: workspace:*
+        version: link:../config
       '@voice-agent/contracts':
         specifier: workspace:*
         version: link:../contracts

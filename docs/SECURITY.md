@@ -32,7 +32,7 @@ Este documento estabelece as normas mandatórias de proteção de dados, gestão
    - **Janela de Replay**: A expiração curta da asserção delimita a janela de reutilização; prevenção stateful de reutilização *one-time* não está implementada nesta fase (`PENDING EPHEMERAL INFRASTRUCTURE`).
    - **Perfil Criptográfico Tenant-Scoped (DEC-031 / ADR-012)**: Implementado e testado no Slice 005C com assinatura Ed25519 (`EdDSA`), formato JWK privado em `apps/web`, JWKS público em `apps/api`, biblioteca `jose` v6, TTL nominal de 30 segundos (`exp - iat <= 30`), clock tolerance de 5 segundos, header obrigatório (`alg: EdDSA`, `typ: JWT`, `kid`), e claims canônicas (`sub`, `orgId`, `iss`, `aud: 'voice-agent:api'`, `iat`, `exp`, `jti`). Exclusivo das rotas tenant-scoped (`/v1/agents/*`).
    - **Perfil Criptográfico User-Scoped para Bootstrap (DEC-032 / ADR-013)**: Aprovado formalmente para o Slice 005D-B0. Token segregado para descoberta de organizações (`scope: 'user:bootstrap'`, `sub: userId`, `aud: 'voice-agent:api:bootstrap'`), proibindo categoricamente `orgId` e claims de autorização. Consumido exclusivamente pelas rotas `/v1/me/*` via `BootstrapAssertionVerifier`. Revalidação determinística de membership e status no banco; resposta 404 em slugs não acessíveis para mitigar enumeração.
-   - **Status da Autenticação Interna de Serviços**: **005C: IMPLEMENTED / LOCAL + NEON STAGING INTEGRATION VALIDATED**. **Tenant Context Bootstrap**: **005D-B0: STAGING CRYPTOGRAPHIC + DATA/AUTHZ BOUNDARY VALIDATED** (DEC-032 / ADR-013). **Production**: NOT PROVISIONED / UNTOUCHED. **Browser Auth E2E**: NOT VALIDATED. **Slice 005D-B1**: NOT STARTED.
+   - **Status da Autenticação Interna de Serviços**: **005C: IMPLEMENTED / LOCAL + NEON STAGING INTEGRATION VALIDATED**. **Tenant Context Bootstrap**: **005D-B0: STAGING CRYPTOGRAPHIC + DATA/AUTHZ BOUNDARY VALIDATED** (DEC-032 / ADR-013). **Production**: NOT PROVISIONED / UNTOUCHED. **Slice 005D-B1**: MERGED / IMPLEMENTED. **Browser Session E2E**: VALIDATED. **Login UI visual E2E**: NOT VALIDATED.
 
 
 ---
@@ -147,5 +147,45 @@ A execução de ferramentas por agentes de voz durante chamadas telefônicas apr
    - Se a desconexão ocorrer antes da chamada atingir o estado `ACTIVE` (e.g. em `CONNECTING`), a máquina de estados transita deterministicamente para `FAILED`, prevenindo estados fantasmas em memória.
 7. **Mitigação de Chunks Tardios após Interrupção (Stale Output After Interruption)**:
    - O adapter de transporte (`TwilioVoiceTransportAdapter`) mantém controle de gerações canceladas e suprime síncronamente qualquer chunk residual gerado por modelos assíncronos após evento de barge-in.
+
+---
+
+## 8. Threat Model do Gateway de Chamadas e Bootstrap de Sessão (Phase 6 / 006C)
+
+> **Classificação de Evidência da Fronteira (Slice 006C)**: `IMPLEMENTED` / `TESTED LOCALLY`. Todas as mitigações criptográficas (assinatura de webhook e handshake de WebSocket) e garantias de isolamento de bootstrap foram testadas deterministicamente com fixtures locais e simuladores. Validação contra infraestrutura de rede externa ou tráfego de telecomunicação real da Twilio permanece categorizada estritamente como `PROVIDER-UNVERIFIED`.
+
+1. **Falsificação de Webhook (Webhook Spoofing)**:
+   - Todo webhook HTTP de voz é submetido à validação de assinatura `X-Twilio-Signature` (HMAC-SHA1 com o Auth Token do provedor) antes de qualquer parsing de regras de negócio, carregamento de configuração ou inicialização de chamada.
+   - Requisições sem assinatura ou com assinatura inválida falham imediatamente (*fail-closed*) com `ProviderAuthenticationError` (HTTP 401).
+
+2. **Confusão de URL Canônica e Cabeçalhos Não Confiáveis (Canonical URL Confusion & Untrusted Forwarded Headers)**:
+   - A URL canônica utilizada para validação de assinatura é derivada exclusivamente de `PUBLIC_VOICE_BASE_URL` configurado server-side de forma autoritativa.
+   - Cabeçalhos de proxy vindos da rede pública (`Host`, `X-Forwarded-Host`, `X-Forwarded-Proto`, `Forwarded`) são terminantemente ignorados e descartados pelo `TwilioCanonicalUrlResolver` na ausência de política formal de proxy confiável, impossibilitando bypass de assinatura ou redirecionamentos maliciosos.
+
+3. **Roubo, Replay e Duplo Consumo de Bootstrap (Bootstrap Theft, Replay & Double Consume)**:
+   - O identificador de bootstrap (`bootstrapId`) é um UUID aleatório opaco (`crypto.randomUUID()`) de uso estritamente único (*consume-once*).
+   - O consumo via `CallBootstrapRegistryPort.consume(bootstrapId)` é atômico. Se o identificador já tiver sido consumido, a requisição falha imediatamente com `CallBootstrapAlreadyConsumedError` (HTTP 409).
+   - Tokens expirados (`now > expiresAt`) são invalidados e rejeitados com `CallBootstrapExpiredError` (HTTP 410).
+
+4. **Isolamento de Tenant no Bootstrap (Cross-Tenant Bootstrap Misuse)**:
+   - O `CallBootstrap` armazena o contexto autoritativo (`organizationId`, `callId`, `agentId`, `agentVersionId`, `agentSnapshot`) provisionado pelo servidor.
+   - Parâmetros recebidos da Twilio (query params, body params, customParameters) não têm permissão para sobrescrever `organizationId` ou qualquer entidade de autorização vinculada ao bootstrap.
+
+5. **Injeção de XML (XML Injection Defense)**:
+   - A geração de TwiML pelo `generateConversationRelayTwiML` submete todos os valores interpolados (URLs, atributos, parâmetros customizados) a escape rigoroso de caracteres XML especiais (`&`, `<`, `>`, `"`, `'`), impedindo injeção de tags ou alteração da árvore XML.
+
+6. **Desacoplamento de Identificadores (Provider Identifier Confusion)**:
+   - O identificador interno de chamada (`callId`, UUID) é gerado pelo sistema e opera desacoplado do `CallSid` do provedor.
+   - O identificador do provedor é registrado apenas como atributo de transporte (`providerCallId`), impedindo spoofing de chamadas via colisão forjada de identificador externo.
+
+7. **Proteção contra Execução de Versões Não Homologadas (Published Version Bypass)**:
+   - O gateway valida que a preparação da chamada exige explicitamente `agentVersionStatus === 'PUBLISHED'`.
+   - Rascunhos (`DRAFT`) ou versões arquivadas (`ARCHIVED`) são rejeitados com `InvalidAgentVersionStatusError`, impossibilitando a execução inadvertida de prompts de teste ou rascunhos em chamadas vivas.
+
+8. **Prevenção de Vazamento de Segredos e PII em Logs (PII & Log Leakage)**:
+   - Logs do gateway e bootstrap limitam-se a metadados seguros: `callId`, `organizationId`, `agentId`, `agentVersionId`, nome de eventos canônicos (`call.bootstrap.created`, `call.bootstrap.consumed`) e códigos de erro.
+   - É terminantemente proibido registrar em logs: o valor completo do token de bootstrap reutilizável, números de telefone de interlocutores, credenciais de autenticação, assinaturas ou conteúdo de prompt/regras.
+
+
 
 
