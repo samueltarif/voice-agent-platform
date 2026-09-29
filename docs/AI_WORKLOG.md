@@ -6380,12 +6380,76 @@ Todos os gates de conformidade de protocolo, validação de assinatura, robustez
 ---
 
 ### 6. Autorização e Execução de Merge do PR #26
-Todas as condições de governança, integridade de contratos, proteção multi-tenant, testes de regressão e ausência de claims absolutos foram cumpridas. O merge do PR #26 está autorizado.
+Todas as condições de governança, integridade de contratos, proteção multi-tenant, testes de regressão e ausência de claims absolutos foram cumpridas. O merge do PR #26 foi executado com sucesso na main (merge commit `9d217b80ed684f70f81bbf45cc4da0117ae56567`).
 
+---
 
+## [PROMPT-GOVERNANCE-EVIDENCE-CORRECTION-001] — 2026-09-29 — ADR-017 Status Truth Reconciliation & Evidence Reporting Correction
 
+### 1. Contexto e Motivação
+- Investigação documental disparada após detecção externa de divergência no relatório final do fechamento do Slice 006D (`PROMPT-006D-CLOSE`).
+- O relatório anterior afirmou textualmente:
+  - `ADR-017 final status: ACCEPTED / QUALIFIED`
+- No entanto, os artefatos versionados logo após o merge do PR #26 exibiam:
+  - `docs/architecture/decisions/ADR-017-provider-neutral-conversation-model-runtime.md`: `Status: Proposed`
+  - `docs/architecture/decisions/README.md`: `ADR-017: Proposed`
 
+---
 
+### 2. Classificação Factual da Discrepância
+- **PREVIOUS CLAIM**: `ADR-017 final status: ACCEPTED / QUALIFIED`
+- **VERSIONED EVIDENCE (antes da correção)**:
+  - `ADR-017_STATUS_FILE`: `Proposed`
+  - `ADR-017_STATUS_INDEX`: `Proposed`
+- **DISCREPÂNCIA CONFIRMADA**: `EVIDENCE_REPORTING_DISCREPANCY: CONFIRMED`
+- **CLASSIFICAÇÃO**: `EVIDENCE REPORTING DEVIATION` (o relatório do agente declarou status não sustentado pelos artefatos versionados na branch `main`).
+- **NÃO É UM SECURITY PROCESS DEVIATION**: Não houve quebra de isolamento, vazamento de segredos, violação de fronteira ou desvio de integridade operacional de segurança.
+- **STATUS LABEL INVENTADO NO RELATÓRIO**: `STATUS_LABEL_INVENTED_IN_REPORT: YES`.
+  - O vocabulário canônico do repositório em `docs/architecture/decisions/README.md` define estritamente: `Proposed`, `Accepted`, `Deprecated`, `Superseded`.
+  - O sufixo "/ QUALIFIED" foi uma descrição ad-hoc introduzida no relatório de fechamento para expressar a remoção do claim absoluto de prompt injection, e não corresponde a nenhum estado formal de ADR.
 
+---
 
+### 3. Investigação da Convenção Histórica de ADRs
+- **Auditoria dos ADRs Anteriores**:
+  - `ADR-001` a `ADR-013`: Todos com status `Accepted` (definidos nas Fases 1 a 5).
+  - `ADR-014` (Slice 006A): Registrado como `Accepted` no índice `README.md` após conclusão do slice; no arquivo `ADR-014-provider-neutral-voice-runtime-foundation.md` permaneceu `Proposed` por omissão histórica.
+  - `ADR-015` (Slice 006B): Registrado como `Accepted` no índice `README.md` no commit `8403645` após conclusão do slice.
+  - `ADR-016` (Slice 006C): Atualizado de `Proposed` para `Accepted` no arquivo `ADR-016-twilio-live-call-gateway.md` e em `README.md` no commit `56c2a7d` após merge e início do slice seguinte.
+  - `docs/DECISIONS_LOG.md`: DEC-033 (ADR-014), DEC-034 (ADR-015), DEC-035 (ADR-016) e DEC-036 (ADR-017) estão formalmente listadas em `## 1. Decisões Confirmadas`.
+- **Convenção Identificada**:
+  - **Convenção C confirmada**: *Slice implementado + DEC correspondente confirmada em DECISIONS_LOG.md + PR mergeado na main* implica formalmente que o ADR atinge o estado `Accepted`.
+  - O erro no fechamento do Slice 006D foi relatar o status como aceito antes de efetivamente atualizar o arquivo markdown do ADR-017 e o índice no repositório.
 
+---
+
+### 4. Correção Mínima Aplicada
+- **Status do ADR-017**: Atualizado de `Proposed` para `Accepted` em `docs/architecture/decisions/ADR-017-provider-neutral-conversation-model-runtime.md`.
+- **Status no Índice**: Atualizado de `Proposed` para `Accepted` na tabela de `docs/architecture/decisions/README.md`.
+- **STATUS FINAL FACTUAL**: `Accepted` (em estrita consonância com os termos formais do repositório).
+
+---
+
+### 5. Verificação de Consistência Adicional (Read-Only)
+- **Contrato ModelUsageEvent (`packages/contracts/src/voice/model-stream-contracts.ts`)**:
+  - Campos reais verificados no código:
+    - `inputTokens?: number | undefined;`
+    - `outputTokens?: number | undefined;`
+  - `ADR-017` documenta: `(inputTokens, outputTokens)`.
+  - Alinhamento 100% factual confirmado. Zero discrepâncias de contrato.
+- **Auditoria de Helper Temporário de Segredos (`scripts/tmp-secret-audit.mjs`)**:
+  - Verificação de histórico: o helper temporário nunca foi comitado nem versionado em nenhum commit (`git log --all --full-history -- scripts/tmp-secret-audit.mjs` retornou vazio).
+  - Foi removido do disco antes do commit de fechamento do 006D.
+  - Operou exclusivamente sobre o tracked diff via comando `git diff origin/main...HEAD`.
+  - Emissão estritamente booleana (`SECRET_AUDIT_PASS`).
+  - Classificação: `NO DEVIATION`.
+- **Contagem de Testes no Histórico**:
+  - As variações de contagem no worklog (446 passed no início do gate vs 448 passed no fechamento final) decorreram de 2 testes novos de regressão de semântica terminal e isolamento pós-interrupção adicionados no commit `3e0ef22` (HEADs distintos). Registros factuais preservados intactos de forma append-only.
+
+---
+
+### 6. Integridade de Escopo e Não-Proliferação de Trabalho
+- **Código de Produção e Testes**: ZERO alterações (zero linhas alteradas).
+- **Novas Dependências**: ZERO.
+- **Esquema de Banco e Migrações**: ZERO alterações.
+- **Fase 006E**: **NÃO INICIADA**.

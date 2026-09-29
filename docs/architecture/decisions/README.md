@@ -35,7 +35,7 @@ Cada registro segue rigorosamente a seguinte anatomia:
 | [ADR-014](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-014-provider-neutral-voice-runtime-foundation.md) | Provider-Neutral Voice Runtime Foundation e Modelo Determinístico de Sessão | 2026-09-28 | Accepted |
 | [ADR-015](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-015-twilio-conversation-relay-adapter.md) | Twilio ConversationRelay Adapter Boundary e Protocolo de Transporte | 2026-09-28 | Accepted |
 | [ADR-016](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-016-twilio-live-call-gateway.md) | Twilio Live Call Gateway and Server-Side Bootstrap Binding | 2026-09-29 | Accepted |
-| [ADR-017](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-017-provider-neutral-conversation-model-runtime.md) | Provider-Neutral Conversation Model Runtime and Context Composition | 2026-09-29 | Proposed |
+| [ADR-017](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-017-provider-neutral-conversation-model-runtime.md) | Provider-Neutral Conversation Model Runtime and Context Composition | 2026-09-29 | Accepted |
 
 
 
