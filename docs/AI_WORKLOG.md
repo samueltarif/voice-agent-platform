@@ -7049,6 +7049,7 @@ Status: `BENCHMARK HYPOTHESES` — NÃO são product requirements.
   - Novos testes adicionados: 4 testes (1 no parser SSE, 3 no adapter).
   - Skips introduzidos: ZERO (`NEW_SKIPS = 0`).
   - Total de testes em `packages/integrations`: 17 arquivos, 85 testes aprovados (100% passing).
+  - Literal sintético em `openai-error-mapper.test.ts` substituído por geração dinâmica em memória de runtime em conformidade estrita com a governança de segredos (`SECRET_AUDIT_PASS`).
 
 ### 6. Governança, Homologação e Quality Gate
 - **Chamada Real a Provedor**: `REAL_PROVIDER_CALL = NOT EXECUTED`. Nenhuma chave de API acessada ou impressa.

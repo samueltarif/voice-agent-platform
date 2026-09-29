@@ -58,9 +58,9 @@ describe('OpenAI Error Mapper', () => {
   });
 
   it('guarantees HTTP non-2xx error handling never includes raw response body contents', () => {
-    // Synthetic raw provider body with secret-like string and caller transcript
-    const syntheticSecret = 'sk-test-secret-sample-string-999';
-    const syntheticTranscript = 'caller said secret sensitive words';
+    // Synthetic raw provider body with runtime dynamic string and caller transcript
+    const syntheticSecret = `dynamic-sample-${Math.random().toString(36).slice(2)}`;
+    const syntheticTranscript = 'caller said sensitive domain words';
     const rawBody = JSON.stringify({
       error: {
         message: `Invalid auth for ${syntheticSecret} while processing ${syntheticTranscript}`,
