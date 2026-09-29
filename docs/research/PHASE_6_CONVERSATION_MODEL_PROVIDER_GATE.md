@@ -1,8 +1,10 @@
 # Phase 6 — Conversation Model Provider Decision Gate
 
-- **Data**: 2026-09-29
-- **Status**: Research Completed / Pending Human Decision
+- **Data de Referência**: 2026-09-29
+- **Status**: Research Hardened / Pending Human Decision
 - **Escopo**: Avaliação técnica, contratual e de segurança para implementação de adapter concreto para `ConversationModelPort` (Slice 006E).
+- **Branch**: `docs/006e-model-provider-decision-gate`
+- **Pull Request**: #28 (OPEN / NOT MERGED)
 
 ---
 
@@ -46,199 +48,197 @@ export interface ConversationModelPort {
 1. `completed`: Encerra imediatamente o loop (`break`).
 2. `failure`: Lança `ConversationModelError` imediatamente.
 3. `usage`: Evento de telemetria; não altera o transporte de áudio e não ressuscita streams encerrados (`continue`).
-4. **Implicação Arquitetural**: Para que o evento `usage` seja processado e registrado em telemetria, o adapter deve emiti-lo **antes** ou concomitantemente ao evento terminal `completed`.
+4. **Invariante de Contrato**: O adapter deve garantir que o evento `usage` seja emitido **antes** ou concomitantemente ao evento terminal `completed`.
 
 ---
 
-## 3. Pesquisa Factual de Provedores Candidatos
+## 3. Auditoria de Fontes Oficiais e Evidências (Freshness Audit)
 
-### 3.1 OpenAI
+| Fornecedor | Documento / Tópico | URL Canônica Oficial | Data Acesso | Claim Suportado |
+| :--- | :--- | :--- | :--- | :--- |
+| **OpenAI** | Pricing Oficial | `https://openai.com/api/pricing/` | 2026-09-29 | `YES` |
+| **OpenAI** | Chat API Reference | `https://platform.openai.com/docs/api-reference/chat` | 2026-09-29 | `YES` |
+| **OpenAI** | Responses API Migration | `https://platform.openai.com/docs/guides/migrate-to-responses` | 2026-09-29 | `YES` |
+| **OpenAI** | Enterprise Privacy | `https://openai.com/enterprise-privacy/` | 2026-09-29 | `YES` |
+| **OpenAI** | Models Overview | `https://platform.openai.com/docs/models` | 2026-09-29 | `YES` |
+| **Anthropic** | Commercial API Pricing | `https://docs.anthropic.com/en/docs/about-claude/models` | 2026-09-29 | `YES` |
+| **Anthropic** | Models Overview & Lifecycle | `https://docs.anthropic.com/en/docs/about-claude/models` | 2026-09-29 | `YES` |
+| **Anthropic** | Messages Streaming API | `https://docs.anthropic.com/en/api/messages-streaming` | 2026-09-29 | `YES` |
+| **Anthropic** | Data Privacy & Trust | `https://support.anthropic.com/en/articles/7996848-how-do-you-use-personal-data-in-model-training` | 2026-09-29 | `YES` |
+| **Google** | Gemini API Pricing | `https://ai.google.dev/pricing` | 2026-09-29 | `YES` |
+| **Google** | Gemini API Models & Lifecycle | `https://ai.google.dev/gemini-api/docs/models/gemini` | 2026-09-29 | `YES` |
+| **Google** | Google Gen AI Node SDK | `https://ai.google.dev/gemini-api/docs/quickstart?lang=node` | 2026-09-29 | `YES` |
+| **Google** | Gemini API Terms of Service | `https://ai.google.dev/gemini-api/terms` | 2026-09-29 | `YES` |
 
-- **API Recomendada**: Chat Completions API (`/v1/chat/completions`) com `stream: true`.
-  - *Nota*: A Assistants API / Threads API foi rejeitada por impor gerenciamento de estado e threads nos servidores da OpenAI (risco de lock-in e violação de multi-tenancy). A Realtime API (WebRTC) é desnecessária pois o áudio é gerenciado pelo Twilio ConversationRelay.
+---
+
+## 4. Avaliação Técnica Detalhada por Fornecedor
+
+### 4.1 OpenAI
+
+- **APIs de Geração Textual**:
+  - `OPENAI_RECOMMENDED_API_FOR_NEW_TEXT_APPS`: **Responses API** (`/v1/responses`) é a interface orientada a agentes e novas aplicações recomendada pela OpenAI.
+  - `OPENAI_LEGACY_OR_SUPPORTED_APIS`: **Chat Completions API** (`/v1/chat/completions`) permanece totalmente suportada como superfície padrão para geração textual sem estado.
+  - `OPENAI_DEPRECATED_APIS`: **Assistants API** foi descontinuada/retirada em agosto de 2026. Realtime API (WebRTC) permanece fora do escopo do pipeline textual.
 - **SDK Node/TypeScript Oficial**: `openai` (v4.x+). Suporta Node.js 18+.
-- **Streaming & Eventos**: Server-Sent Events (SSE). Emite chunks com `choices[0].delta.content`.
-- **Telemetria de Consumo**: Habilitada via `stream_options: { include_usage: true }`. O último chunk do stream (antes de `[DONE]`) contém `usage: { prompt_tokens, completion_tokens, total_tokens }` com `choices: []`.
-- **Cancelamento**: Suporte nativo a `AbortSignal` via `{ signal }` nas opções de requisição. Ao disparar `controller.abort()`, o streaming é abortado imediatamente no Node.js.
-- **Estruturação de Contexto**:
-  - `instructions` -> Mensagem inicial com `role: 'system'`.
-  - `history` -> Alternância de `role: 'user'` e `role: 'assistant'`.
-  - `currentInput` -> Última mensagem com `role: 'user'`.
-- **Modelos Candidatos**: `gpt-4o-mini` (alta velocidade, baixo custo), `gpt-4o` (maior capacidade).
-- **Preços Oficiais (por 1M tokens - Setembro 2026)**:
+- **Modelos Candidatos**:
+  - `gpt-4o-mini`: Modelo maduro/suportado, custo reduzido e baixa latência (geração em transição).
+  - Modelos de nova geração: Famílias GPT-5 e o3/o4-mini (modelos de raciocínio com latência variável).
+- **Preços Oficiais Verificados em 2026-09-29 (por 1M tokens)**:
   - `gpt-4o-mini`: **$0.15** entrada / **$0.60** saída (Prompt Caching: **$0.075** entrada).
-  - `gpt-4o`: **$2.50** entrada / **$10.00** saída (Prompt Caching: **$1.25** entrada).
-- **Privacidade & Retenção de Dados**:
-  - Dados enviados via API comercial **não** são utilizados para treinamento de modelos.
-  - Retenção padrão de 30 dias para auditoria de abusos/segurança, com deleção posterior. Suporte a Zero Data Retention (ZDR) sob termos empresariais.
-- **Fontes Oficiais Consultadas**:
-  - [OpenAI API Pricing](https://openai.com/api/pricing/)
-  - [OpenAI Streaming & Usage Documentation](https://platform.openai.com/docs/api-reference/chat)
-  - [OpenAI Enterprise Privacy](https://openai.com/enterprise-privacy/)
-  - [OpenAI Node SDK Repository](https://github.com/openai/openai-node)
+  - `gpt-4o` (referência): **$2.50** entrada / **$10.00** saída (Prompt Caching: **$1.25** entrada).
+- **Streaming & Telemetria**: Server-Sent Events (SSE). O parâmetro `stream_options: { include_usage: true }` fornece a contagem de tokens no último chunk antes de `[DONE]`. O adapter deve registrar a telemetria antes de disparar o encerramento terminal.
+- **Cancelamento**: Suporte nativo a `AbortSignal` via `{ signal }` nas opções da requisição. O abort no cliente interrompe o consumo do stream; a latência de cancelamento server-side permanece `PROVIDER-UNVERIFIED`.
+- **Privacidade e Retenção de Dados**:
+  - Dados enviados via API comercial **não** são utilizados para treinamento de modelos por padrão.
+  - Retenção padrão de 30 dias para monitoramento de segurança/abuso.
+  - Zero Data Retention (ZDR) disponível sob contrato empresarial para endpoints elegíveis.
+  - Residência de dados padrão nos EUA, com opções de residência na UE para contas corporativas.
 
 ---
 
-### 3.2 Anthropic
+### 4.2 Anthropic
 
-- **API Recomendada**: Messages API (`/v1/messages`) com `stream: true`.
+- **API Canônica**: Messages API (`/v1/messages`) com `stream: true`.
 - **SDK Node/TypeScript Oficial**: `@anthropic-ai/sdk` (v0.36.x+). Suporta Node.js 18+.
-- **Streaming & Eventos**: SSE estruturado com ciclo formal de eventos:
-  - `message_start`: Metadados da mensagem e `usage.input_tokens`.
-  - `content_block_start`: Início do bloco de texto.
-  - `content_block_delta`: Chunks textuais incrementais (`delta.text` onde `delta.type === 'text_delta'`).
-  - `content_block_stop`: Fim do bloco.
-  - `message_delta`: Atualização com `stop_reason` e `usage.output_tokens`.
-  - `message_stop`: Finalização do stream.
-- **Telemetria de Consumo**: Bifurcada: `input_tokens` chega em `message_start`; `output_tokens` chega em `message_delta`. O adapter acumula ambas as métricas e emite o evento `usage` antes de `message_stop`.
-- **Cancelamento**: Suporte nativo a `AbortSignal` via opções `{ signal }` no SDK ou chamada a `.abort()` no stream.
-- **Estruturação de Contexto**:
-  - `instructions` -> Parâmetro dedicado de nível superior `system: string` (segregação nativa entre instruções de sistema e mensagens de diálogo).
-  - `history` e `currentInput` -> Array `messages: [{ role: 'user' | 'assistant', content: string }]`.
-- **Modelos Candidatos**: `claude-3-5-haiku` (foco em velocidade e baixo custo), `claude-3-5-sonnet` (alta capacidade analítica).
-- **Preços Oficiais (por 1M tokens - Setembro 2026)**:
-  - `claude-3-5-haiku`: **$0.80** entrada / **$4.00** saída (Prompt Caching: **$1.00** escrita / **$0.08** leitura).
-  - `claude-3-5-sonnet`: **$3.00** entrada / **$15.00** saída.
-- **Privacidade & Retenção de Dados**:
-  - Conteúdo submetido à API comercial **não** é utilizado para treinamento de modelos da Anthropic.
-  - Retenção padrão de 30 dias para detecção de abuso e segurança.
-- **Fontes Oficiais Consultadas**:
-  - [Anthropic Pricing](https://claude.ai/pricing)
-  - [Anthropic Messages API Streaming Reference](https://docs.anthropic.com/en/api/messages-streaming)
-  - [Anthropic TypeScript SDK](https://github.com/anthropics/anthropic-sdk-typescript)
-  - [Anthropic Data Privacy Policy](https://support.anthropic.com/en/articles/7996848-how-do-you-use-personal-data-in-model-training)
+- **Modelos Candidatos**:
+  - `claude-haiku-4-5-20251001` (`claude-haiku-4-5`): Modelo atual ativo para alta velocidade e custo reduzido (janela de 200k tokens).
+  - `claude-sonnet-5-5` (`claude-sonnet-5-5`): Modelo atual equilibrado para tarefas analíticas (janela de 1M tokens).
+  - *Modelos Descontinuados / Aposentados*: `claude-3-5-sonnet-20241022` e `claude-3-5-haiku-20241022` foram aposentados/substituídos na documentação oficial.
+- **Preços Oficiais da API Verificados em 2026-09-29 (por 1M tokens)**:
+  - `claude-haiku-4-5`: **$1.00** entrada / **$5.00** saída.
+  - `claude-sonnet-5-5` (referência): **$3.00** entrada / **$15.00** saída.
+  - *Fonte Canônica*: Documentação da plataforma Claude API (`docs.anthropic.com`), não a página de assinatura de consumidor (`claude.ai/pricing`).
+- **Streaming & Telemetria**: Ciclo SSE estruturado (`message_start`, `content_block_start`, `content_block_delta`, `content_block_stop`, `message_delta`, `message_stop`). A telemetria de consumo é dividida: `input_tokens` em `message_start` e `output_tokens` em `message_delta`. O adapter deve agregar ambos antes de emitir `usage` e `completed`.
+- **Cancelamento**: Suporte nativo a `AbortSignal` via opções `{ signal }` no SDK ou método `.abort()` em `MessageStream`. Interrupção server-side permanece `PROVIDER-UNVERIFIED`.
+- **Privacidade e Retenção de Dados**:
+  - Dados enviados via API comercial **não** são utilizados para treinamento de modelos da Anthropic por padrão.
+  - Retenção padrão de 30 dias para auditoria de segurança e detecção de abusos. Interações com violação detectada podem ser retidas por até 2 anos; classificadores de abuso por até 7 anos.
+  - Zero Data Retention (ZDR) disponível sob contrato empresarial customizado.
 
 ---
 
-### 3.3 Google (Gemini)
+### 4.3 Google (Gemini)
 
-- **API Recomendada**: Gemini API via Google Gen AI SDK.
-- **SDK Node/TypeScript Oficial**: `@google/genai` (novo SDK unificado que substitui o legatário `@google/generative-ai`).
-- **Streaming & Eventos**: Método `generateContentStream`. Itera sobre chunks de resposta com `chunk.text()` e metadados no objeto `candidates[0]`.
-- **Telemetria de Consumo**: Metadados em `chunk.usageMetadata` (`promptTokenCount`, `candidatesTokenCount`, `totalTokenCount`), tipicamente consolidados no chunk final.
-- **Cancelamento**: Suporte a cancelamento via `AbortSignal` ou interrupção de consumo assíncrono.
-- **Estruturação de Contexto**:
-  - `instructions` -> Objeto `systemInstruction: { parts: [{ text: ... }] }`.
-  - `history` e `currentInput` -> Array `contents: [{ role: 'user' | 'model', parts: [{ text: ... }] }]` (requer mapeamento de role `'assistant'` para `'model'`).
-- **Modelos Candidatos**: `gemini-1.5-flash` / `gemini-2.0-flash` / `gemini-3.8-flash`.
-- **Preços Oficiais (por 1M tokens - Setembro 2026)**:
-  - `gemini-1.5-flash` (Paid Tier, prompts <= 128k): **$0.075** entrada / **$0.30** saída (Context Caching: **$0.01875**).
-  - `gemini-3.8-flash` (Paid Tier): **$0.75** entrada / **$3.75** saída.
-  - *Atenção Crítica de Privacidade*: No Free Tier do Google AI Studio, os dados de prompt e geração são registrados e utilizados para treinamento de modelos. Apenas o **Paid Tier** (faturamento ativado no Google Cloud) garante a não-utilização de dados para treinamento.
-- **Fontes Oficiais Consultadas**:
-  - [Google Gemini API Pricing](https://ai.google.dev/)
-  - [Google Gen AI SDK for Node.js (`@google/genai`)](https://ai.google.dev/gemini-api/docs/quickstart?lang=node)
-  - [Google Gemini API Terms & Data Governance](https://ai.google.dev/gemini-api/terms)
+- **API Canônica**: Gemini API via Google Gen AI SDK.
+  - *Diferenciação de Plataforma*: A **Gemini Developer API** (Google AI Studio) e a **Vertex AI** possuem perfis contratuais e de compliance distintos. A Vertex AI opera sob os termos de nuvem corporativa do Google Cloud Platform (GCP).
+- **SDK Node/TypeScript Oficial**: `@google/genai` (SDK unificado atual). O pacote legatário `@google/generative-ai` foi descontinuado para novos projetos.
+- **Modelos Candidatos**:
+  - `gemini-3.8-flash`: Modelo de produção atual recomendado na documentação oficial (Setembro 2026).
+  - `gemini-3.5-flash-lite`: Modelo compacto de alta velocidade e menor custo.
+  - *Status de Modelos Anteriores*: `gemini-2.0-flash` foi descontinuado/desligado em 1º de junho de 2026. A série `gemini-1.5` foi superada para novos desenvolvimentos.
+- **Preços Oficiais da API Verificados em 2026-09-29 (por 1M tokens)**:
+  - `gemini-3.8-flash` (Paid Tier): **$0.75** entrada / **$3.75** saída (Context Caching: **$0.075**).
+  - *Fonte Canônica*: `https://ai.google.dev/pricing`.
+- **Streaming & Telemetria**: Método `models.generateContentStream`. Chunks entregam texto via `.text()`. Metadados em `chunk.usageMetadata` (`promptTokenCount`, `candidatesTokenCount`) consolidados ao final da iteração.
+- **Cancelamento**: Suporte via `AbortSignal` nas opções de requisição.
+- **Privacidade e Governança de Dados (Termos Oficiais da Gemini API)**:
+  - **Unpaid Services (Cota Gratuita / AI Studio sem faturamento ativo)**: O Google utiliza os dados de entrada e saída para desenvolver e aprimorar produtos e tecnologias de aprendizado de máquina. **Revisores humanos podem ler e anotar os dados**. Não é permitido enviar dados confidenciais ou PII.
+  - **Paid Services (Projeto Google Cloud com faturamento ativo)**: O Google **NÃO** utiliza prompts ou respostas para treinar seus modelos de inteligência artificial.
+  - *Exceção Geográfica*: No EEE, Suíça e Reino Unido, as proteções de não-treinamento aplicam-se também à cota gratuita.
 
 ---
 
-## 4. Matriz Comparativa Factual
+## 5. Matriz Comparativa Factual
 
-| Critério | OpenAI (GPT-4o mini) | Anthropic (Claude 3.5 Haiku) | Google (Gemini 1.5/2.0 Flash) |
+| Dimensão Técnica | OpenAI (Chat / Responses) | Anthropic (Messages API) | Google (Gemini API) |
 | :--- | :--- | :--- | :--- |
-| **API Canônica** | Chat Completions (`/v1/chat/completions`) | Messages API (`/v1/messages`) | Gemini API (`models.generateContentStream`) |
-| **SDK Atual Recomendado** | `openai` | `@anthropic-ai/sdk` | `@google/genai` |
-| **Risco de Depreciação de SDK** | Baixo (v4 madura) | Baixo (v0.36 madura) | Médio (migração recente de `@google/generative-ai` para `@google/genai`) |
-| **Complexidade de Mapeamento** | **LOW** | **MEDIUM** (usage bifurcado) | **LOW / MEDIUM** (role `model` em vez de `assistant`) |
-| **Suporte Nativo a AbortSignal** | Sim (opção `{ signal }` de primeira classe) | Sim (opção `{ signal }` de primeira classe) | Sim (suporte via options / fetch subjacente) |
-| **Emissão de Usage no Stream** | Sim (`stream_options: { include_usage: true }`) | Sim (`message_start` + `message_delta`) | Sim (`chunk.usageMetadata`) |
-| **Segregação de System Prompt** | Via mensagem com `role: 'system'` | Via parâmetro nativo `system: string` | Via `systemInstruction` |
-| **Preço Entrada / Saída (por 1M tokens)** | $0.15 / $0.60 | $0.80 / $4.00 | $0.075 / $0.30 (1.5 Flash Paid) |
-| **Não-Uso de Dados para Treinamento** | Garantido na API comercial | Garantido na API comercial | Garantido **apenas no Paid Tier** |
-| **Suporte Textual a pt-BR** | Sim (suportado por treino prévio) | Sim (suportado por treino prévio) | Sim (suportado por treino prévio) |
-| **Superioridade Comparativa pt-BR** | `NOT VERIFIED` | `NOT VERIFIED` | `NOT VERIFIED` |
-| **Latência Real Medida** | `NOT MEASURED` | `NOT MEASURED` | `NOT MEASURED` |
+| **API Canônica Atual** | Responses API (novo) / Chat Completions (suportada) | Messages API | Gemini API (`generateContentStream`) |
+| **Modelo Compacto Vigente** | `gpt-4o-mini` (maduro/transição) | `claude-haiku-4-5-20251001` | `gemini-3.8-flash` / `gemini-3.5-flash-lite` |
+| **SDK Node Atual** | `openai` (v4+) | `@anthropic-ai/sdk` (v0.36+) | `@google/genai` |
+| **Complexidade de Mapeamento** | **LOW** (stream linear) | **MEDIUM** (usage bifurcado) | **LOW / MEDIUM** (role `model`) |
+| **Exposição de AbortSignal** | Sim (`{ signal }`) | Sim (`{ signal }` ou `.abort()`) | Sim (`{ signal }`) |
+| **Emissão de Usage no Stream** | Final do stream (`stream_options`) | Dividido (`message_start` + `message_delta`) | Metadados no chunk final (`usageMetadata`) |
+| **Preço de Entrada (1M tokens)** | $0.15 (`gpt-4o-mini`) | $1.00 (`claude-haiku-4-5`) | $0.75 (`gemini-3.8-flash` Paid) |
+| **Preço de Saída (1M tokens)** | $0.60 (`gpt-4o-mini`) | $5.00 (`claude-haiku-4-5`) | $3.75 (`gemini-3.8-flash` Paid) |
+| **Garantia de Não-Treinamento** | Sim (API comercial) | Sim (API comercial) | Sim (**estritamente no Paid Tier**) |
+| **Geração Textual em pt-BR** | `DOCUMENTED / SUPPORTED` | `DOCUMENTED / SUPPORTED` | `DOCUMENTED / SUPPORTED` |
+| **Qualidade Comparativa pt-BR** | `NOT VERIFIED` | `NOT VERIFIED` | `NOT VERIFIED` |
+| **Qualidade em Vendas por Voz pt-BR** | `NOT VERIFIED` | `NOT VERIFIED` | `NOT VERIFIED` |
+| **Latência Real Medida (TTFT)** | `NOT MEASURED` | `NOT MEASURED` | `NOT MEASURED` |
 
 ---
 
-## 5. Modelo de Custo Conversacional (Exemplo Ilustrativo)
+## 6. Calibração de Afirmações Arquiteturais e de Governança
+
+### 6.1 Geração de Texto em Português Brasileiro (pt-BR)
+- `PT-BR TEXT GENERATION`: `SUPPORTED / DOCUMENTED` nos três fornecedores.
+- `COMPARATIVE PT-BR QUALITY`: `NOT VERIFIED`. Nenhum provedor publica benchmark oficial comparativo para fluência conversacional em língua portuguesa.
+- `TELEPHONE-SALES PT-BR QUALITY`: `NOT VERIFIED`. O desempenho em diálogos de vendas por voz depende de validação prática futura com áudio real.
+
+### 6.2 Cancelamento de Requisição e Barge-In
+- A biblioteca ou endpoint de cada provedor expõe interface de cancelamento via `AbortSignal`.
+- O tempo de interrupção no lado do servidor permanece categorizado como `PROVIDER-UNVERIFIED`.
+- A contenção determinística contra emissão de fala obsoleta (*stale output*) é garantida exclusivamente no runtime pelo método `isGenerationActive(callId, generationId)` em `apps/voice/src/process-model-stream.ts`, descartando chunks tardios independentemente do tempo de resposta da rede.
+
+### 6.3 Resiliência de Transporte e Reconexão
+- A reconexão automática não é garantida por padrão para requisições de streaming de texto. Em aplicações de voz em tempo real, retries cegos podem introduzir latência adicional ou saídas duplicadas; portanto, políticas de retry permanecem como `DEFERRED`.
+
+### 6.4 Gestão de Estado e Autoridade do Runtime
+- O projeto adota adapters **request-scoped e sem estado** (*stateless*) para preservar a autoridade do runtime interno e mitigar lock-in com fornecedores.
+- A persistência remota de estado (como no caso da Assistants API ou threads gerenciadas por IA) exigiria camadas adicionais de autorização, sincronização de tenant e ciclo de vida, sendo incompatível com a simplicidade requerida pelo slice atual.
+
+---
+
+## 7. Análise de Custos Operacionais (Cenário Ilustrativo)
 
 > [!IMPORTANT]
-> Os cálculos abaixo são **ESTRITAMENTE ILUSTRATIVOS** e baseiam-se em premissas sintéticas de tamanho de diálogo para avaliar a ordem de grandeza. O consumo real depende do design de prompts e do comportamento dos interlocutores.
+> O cálculo abaixo é **ESTRITAMENTE ILUSTRATIVO**. O consumo real varia conforme o desenho dos prompts de sistema e o comportamento do interlocutor. A dominância de custos de telefonia sobre custos de IA é uma **INFERÊNCIA TÉCNICA**, não um fato universal, dependendo da rota telefônica, duração da chamada e provedor de TTS selecionado.
 
-- **Premissas do Cenário Ilustrativo**:
-  - Chamada com 10 turnos conversacionais.
-  - Média de 500 tokens de entrada por turno (instruções autoritativas da persona + histórico curto).
-  - Média de 50 tokens de saída por turno (respostas orais concisas adequadas a síntese TTS).
+- **Premissas do Exemplo Ilustrativo**:
+  - 1 chamada com 10 turnos conversacionais.
+  - Média de 500 tokens de entrada por turno (persona autoritativa + histórico recente).
+  - Média de 50 tokens de saída por turno (respostas orais concisas para TTS).
   - Total por chamada: 5.000 tokens de entrada e 500 tokens de saída.
 
-- **Custo Aproximado de Tokens por Chamada**:
+- **Custo Aproximado de Inferência por Chamada**:
   - **OpenAI (GPT-4o mini)**:
     - Entrada: `5.000 * ($0.15 / 1.000.000) = $0.00075`
     - Saída: `500 * ($0.60 / 1.000.000) = $0.00030`
-    - **Total LLM por chamada**: **$0.00105 (~$0.001)**
-  - **Anthropic (Claude 3.5 Haiku)**:
-    - Entrada: `5.000 * ($0.80 / 1.000.000) = $0.00400`
-    - Saída: `500 * ($4.00 / 1.000.000) = $0.00200`
-    - **Total LLM por chamada**: **$0.00600 (~$0.006)**
-  - **Google (Gemini 1.5 Flash Paid)**:
-    - Entrada: `5.000 * ($0.075 / 1.000.000) = $0.000375`
-    - Saída: `500 * ($0.30 / 1.000.000) = $0.000150`
-    - **Total LLM por chamada**: **$0.000525 (~$0.0005)**
-
-- **Inferência Operacional**:
-  Em todas as alternativas de modelos leves, o custo de inferência do modelo de linguagem é inferior a **$0.01 por chamada típica**, demonstrando que a telefonia (minutos PSTN Twilio) e o sintetizador de voz (TTS) serão os componentes de custo dominantes no runtime.
+    - **Total LLM**: **$0.00105 (~$0.001 / chamada)**
+  - **Anthropic (Claude Haiku 4.5)**:
+    - Entrada: `5.000 * ($1.00 / 1.000.000) = $0.00500`
+    - Saída: `500 * ($5.00 / 1.000.000) = $0.00250`
+    - **Total LLM**: **$0.00750 (~$0.0075 / chamada)**
+  - **Google (Gemini 3.8 Flash Paid)**:
+    - Entrada: `5.000 * ($0.75 / 1.000.000) = $0.00375`
+    - Saída: `500 * ($3.75 / 1.000.000) = $0.001875`
+    - **Total LLM**: **$0.005625 (~$0.0056 / chamada)**
 
 ---
 
-## 6. Mapeamento de Erros para Interfaces Neutras
+## 8. Mapeamento de Falhas e Erros Padronizados
 
-O adapter concreto em `packages/integrations` deverá traduzir erros proprietários em instâncias de `ConversationModelError` sem vazar payloads brutos de fornecedores:
+O adapter concreto deverá traduzir respostas de erro em categorias padronizadas de transporte para `ModelFailureEvent` e `ConversationModelError`:
 
-| Categoria do Erro | OpenAI | Anthropic | Google | Mapeamento Neutro (`ModelFailureEvent`) |
-| :--- | :--- | :--- | :--- | :--- |
-| **Autenticação / Chave Inválida** | `AuthenticationError` (401) | `AuthenticationError` (401) | `GoogleGenAIError` / 401 | `error: 'Provider authentication failed'`, `isRetryable: false` |
-| **Rate Limit / Quota Excedida** | `RateLimitError` (429) | `RateLimitError` (429) | 429 Resource Exhausted | `error: 'Provider rate limit exceeded'`, `isRetryable: true` |
-| **Timeout de Rede** | `APIConnectionTimeoutError` | `APIConnectionTimeoutError` | DeadlineExceeded | `error: 'Provider request timed out'`, `isRetryable: true` |
-| **Indisponibilidade do Modelo** | `InternalServerError` (500/503) | `InternalServerError` (500/503) | Unavailable (503) | `error: 'Provider unavailable'`, `isRetryable: true` |
-| **Violação de Filtro de Conteúdo** | `BadRequestError` (content_filter) | `InvalidRequestError` | BlockedBySafety | `error: 'Content filter triggered'`, `isRetryable: false` |
-| **Cancelamento por Barge-In** | `AbortError` | `AbortError` | Cancelled / AbortError | Ignorado / Descarte de stream pelo coordenador |
-
----
-
-## 7. Trade-off Arquitetural: SDK Oficial vs Direct HTTP/Fetch
-
-1. **SDK Oficial (`openai`, `@anthropic-ai/sdk`, `@google/genai`)**:
-   - **Vantagens**: Tipagem robusta fornecida pelo mantenedor, suporte integrado a AbortSignal, parsing automático de SSE com controle de backpressure, reconexão transparente em falhas transitórias.
-   - **Desvantagens**: Adição de dependência externa em `packages/integrations`, necessidade de homologação de scripts de build se houver dependências nativas (embora SDKs modernos usem TypeScript puro e `fetch` nativo).
-2. **Direct HTTP (`fetch` nativo do Node.js + parser de SSE)**:
-   - **Vantagens**: Zero dependências npm adicionais no monorepo, total controle de parsing e timeouts HTTP.
-   - **Desvantagens**: Requer implementar manualmente máquina de parsing de Server-Sent Events (`event:`, `data:`) e serialização de streams de chunks, aumentando a superfície de testes internos.
-3. **Conclusão Arquitetural**:
-   Como a porta `ConversationModelPort` isola 100% o core (`apps/voice`), a escolha entre SDK e fetch afeta exclusivamente o pacote `packages/integrations`. Ambas as abordagens são plenamente viáveis e compatíveis com a arquitetura.
-
----
-
-## 8. Segurança e Governança de Dados
-
-1. **Segregação de Credenciais**:
-   - Chaves de API (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, etc.) residirão estritamente em variáveis de ambiente server-side no processo de voz.
-   - Jamais serão expostas ao client, enviadas via WebSocket ou impressas em logs estruturados.
-2. **Quarentena de Metadados de Tenant**:
-   - O payload enviado ao modelo de linguagem deve conter **exclusivamente**: instruções autoritativas da persona, regras de conduta, histórico limitado da chamada e fala do interlocutor.
-   - É expressamente proibido enviar ao provedor externo: `organizationId`, nomes reais da organização, números de telefone, emails, identificadores de sessão interna (`callId`, `bootstrapId`), cookies ou dados de faturamento.
-3. **Mitigação de Injeção de Prompt**:
-   - A fala do usuário é sempre delimitada e classificada como dado de conversa não-confiável (`trustLevel: 'UNTRUSTED_CALLER_INPUT'`).
-   - A saída do modelo não tem permissão para disparar transições na máquina de estados de chamada nem executar mutações de autorização.
+| Categoria HTTP / Protocolo | Significado Operacional | Classificação Neutra (`ModelFailureEvent`) | Retryable? |
+| :--- | :--- | :--- | :--- |
+| **401 / 403** | Falha de autenticação ou chave de API inválida | `error: 'Provider authentication failed'` | `false` |
+| **429** | Excesso de taxa de requisições ou cota esgotada | `error: 'Provider rate limit exceeded'` | `true` |
+| **Timeout / Network Error** | Queda de conexão ou estouro do prazo limite | `error: 'Provider request timed out'` | `true` |
+| **500 / 502 / 503 / 504** | Erro interno ou indisponibilidade temporária | `error: 'Provider unavailable'` | `true` |
+| **400 / Policy / Safety** | Requisição inválida ou bloqueio por filtro de conteúdo | `error: 'Provider policy or validation failure'` | `false` |
+| **AbortError** | Cancelamento local disparado por barge-in | Descarte interno de stream / sem emissão de erro | N/A |
 
 ---
 
 ## 9. Recomendação Técnica para Primeiro Spike
 
-### Classificação Normativa:
-- **Status do Provedor Primário Definitivo**: **PENDING HUMAN DECISION** em `docs/DECISIONS_LOG.md`.
-- **Candidato Recomendado para Primeiro Spike de Validação**: **OpenAI (GPT-4o mini)**.
+### Status Normativo:
+- **Provedor Primário Corporativo**: **PENDING HUMAN DECISION** em `docs/DECISIONS_LOG.md`.
+- **Candidato Recomendado para Primeiro Spike de Validação Técnica**: **OpenAI (GPT-4o mini via Chat Completions API)**.
 
-### Justificativa Técnica para a Escolha do Spike:
-1. **Menor Complexidade de Mapeamento**: O formato de SSE com `stream_options: { include_usage: true }` gera uma sequência linear de deltas de texto seguida pelo objeto final de contagem de tokens, adaptando-se com complexidade mínima ao nosso discriminador `ModelStreamEvent`.
-2. **Eficiência de Custos em Desenvolvimento**: Preço extremamente competitivo ($0.15 / $0.60 por 1M tokens), ideal para execuções de testes funcionais ponta a ponta sem onerar orçamentos.
-3. **Maturidade e Suporte a AbortSignal**: O SDK oficial `openai` e o endpoint REST possuem integração madura com `AbortController` nativo do Node.js, viabilizando o cancelamento imediato de streaming quando o interlocutor interromper o assistente (barge-in).
-4. **Candidato Alternativo Imediato**: **Anthropic (Claude 3.5 Haiku)** permanece como alternativa robusta de arquitetura equivalente, com excelente separação nativa do parâmetro `system`, requerendo apenas acúmulo de usage em dois eventos distintos (`message_start` e `message_delta`).
+### Critérios Factualmente Observados:
+1. **Menor Complexidade de Mapeamento**: O fluxo de SSE linear com `stream_options: { include_usage: true }` adapta-se diretamente à nossa união discriminada `ModelStreamEvent`, com telemetria consolidada sem bifurcação de eventos.
+2. **Custo Mínimo para Testes Funcionais**: O valor de $0.15 / $0.60 por 1M tokens minimiza o custo de homologação e testes automatizados.
+3. **Maturidade da Integração com AbortSignal**: Suporte a cancelamento transparente no Node.js via `AbortController`.
+4. **Candidato Alternativo Imediato**: **Anthropic (Claude Haiku 4.5)** via Messages API, apresentando excelente separação do parâmetro `system` nativo, com complexidade de mapeamento média decorrente da agregação de tokens entre `message_start` e `message_delta`.
 
 ---
 
-## 10. Unknowns e Próximos Passos
+## 10. Observações de Governança sobre DECISIONS_LOG.md
 
-1. **Latência de Rede Real (`LATENCY_REAL = NOT MEASURED`)**: O tempo até o primeiro token (TTFT) contra servidores no Brasil vs Estados Unidos só poderá ser mensurado em ambiente com tráfego real.
-2. **Comportamento em Ligações Telefônicas em Tempo Real**: Permanece classificado como `PROVIDER-UNVERIFIED` até a execução do spike prático com homologação de carrier telefônico.
-3. **Decisão Humana Pendente**: A seleção final e contratação de chave comercial depende de decisão explícita do operador.
+- **Conflito Textual Identificado**: A linha 73 de `docs/DECISIONS_LOG.md` registra o tópico como *"Fornecedor de Motor de Voz / LLM Realtime"*.
+- **TERMINOLOGY_CORRECTION_RECOMMENDED**: `YES`.
+  - Proposta futura de separação conceitual: *"Conversation Model Provider"* (modelo de texto) e *"Telephony / Voice Transport Provider"* (transporte e áudio Twilio ConversationRelay).
+  - Conforme as regras de governança, nenhuma alteração no `docs/DECISIONS_LOG.md` foi efetuada silenciosamente sem aprovação explícita do operador humano.

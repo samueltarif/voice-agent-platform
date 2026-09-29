@@ -6552,3 +6552,57 @@ Todas as condições de governança, integridade de contratos, proteção multi-
 - **APIs de Provedores Pagas Chamadas**: ZERO.
 - **Acesso à Rede**: Utilizado exclusivamente para consulta a páginas públicas de documentação técnica oficial dos fornecedores.
 - **Desvios de Segurança ou Processo**: ZERO.
+
+---
+
+## [PROMPT-006E-GATE-CORRECTION] — 2026-09-29 — Current-Provider Evidence Hardening
+
+### 1. Auditoria de Freshness e Atualização de Modelos
+- **Auditoria do Catálogo Oficial de Modelos (Data de Referência: 2026-09-29)**:
+  - *OpenAI*: Identificado que a OpenAI recomenda a **Responses API** (`/v1/responses`) para novas aplicações e agentes, enquanto a **Chat Completions API** (`/v1/chat/completions`) permanece suportada para geração de texto sem estado. A **Assistants API** foi descontinuada/retirada. O modelo `gpt-4o-mini` permanece disponível e suportado como modelo de transição/maduro de custo e latência reduzidos.
+  - *Anthropic*: Constatado que os modelos `claude-3-5-sonnet-20241022` e `claude-3-5-haiku-20241022` foram aposentados/substituídos na documentação oficial da plataforma. O modelo ativo recomendado para alta velocidade e menor custo é o **`claude-haiku-4-5-20251001`** (`claude-haiku-4-5`), e o modelo equilibrado ativo é o **`claude-sonnet-5-5`**.
+  - *Google (Gemini)*: Auditada a documentação oficial da Gemini API. Confirmado que o **`gemini-2.0-flash`** foi descontinuado/desligado em 1º de junho de 2026 e a série `gemini-1.5` foi superada para novos projetos. O modelo de produção atual ativo na documentação oficial é o **`gemini-3.8-flash`**, acompanhado pelo **`gemini-3.5-flash-lite`**.
+- **Proveniência de Fontes de Preço**:
+  - *Anthropic*: Corrigida a fonte canônica para a documentação de API da plataforma Claude (`https://docs.anthropic.com/en/docs/about-claude/models`), eliminando o uso da URL de assinatura de usuário (`claude.ai/pricing`). Preço atual verificado para `claude-haiku-4-5`: $1.00 entrada / $5.00 saída por 1M tokens.
+  - *Google*: Corrigida a URL canônica para `https://ai.google.dev/pricing`. Preço atual para `gemini-3.8-flash` (Paid Tier): $0.75 entrada / $3.75 saída por 1M tokens.
+  - *OpenAI*: Preço revalidado em `https://openai.com/api/pricing/` em 2026-09-29 para `gpt-4o-mini`: $0.15 entrada / $0.60 saída por 1M tokens ($0.075 cached input).
+
+---
+
+### 2. Calibração Factual de Afirmações
+- **Qualidade em Português Brasileiro (pt-BR)**:
+  - Removidos adjetivos subjetivos ("excelente", "fluida por pré-treinamento massivo").
+  - Classificação normativa: `PT-BR TEXT GENERATION: SUPPORTED / DOCUMENTED`; `COMPARATIVE PT-BR QUALITY: NOT VERIFIED`; `TELEPHONE-SALES PT-BR QUALITY: NOT VERIFIED`.
+- **Cancelamento e Abort**:
+  - A interface de cancelamento via `AbortSignal` é exposta pelos SDKs e endpoints REST.
+  - A latência de encerramento no lado do servidor permanece classificada como `PROVIDER-UNVERIFIED`.
+  - A proteção contra fala defasada (*stale output*) é garantida deterministicamente pela verificação interna `isGenerationActive(callId, generationId)` em `apps/voice/src/process-model-stream.ts`.
+- **Resiliência e Reconexão**:
+  - Removida a alegação genérica de "reconexão transparente em falhas transitórias" para streaming de texto, visto que retries cegos em voz podem introduzir latência inaceitável ou duplicações.
+- **Gestão de Estado de Provedor**:
+  - Redação ajustada para rigor arquitetural: a plataforma prefere adapters *request-scoped e stateless* para preservar a autoridade do runtime e o isolamento multi-tenant local. O estado remoto do fornecedor exigiria complexidade adicional desnecessária no slice atual.
+- **Mapeamento de Erros**:
+  - Padronizadas categorias de transporte HTTP/protocolo (401/403 auth, 429 rate limit, timeouts, 5xx server error, 400 policy/safety) em vez de nomes específicos de exceções proprietárias de SDKs.
+- **Inferência de Custos**:
+  - A dominância dos custos de telefonia e TTS sobre custos de inferência de IA foi explicitamente classificada como uma **INFERÊNCIA TÉCNICA**, sujeita à duração da chamada, tarifas de telefonia e vozes sintetizadas selecionadas.
+
+---
+
+### 3. Recomendação para Spike e Decisão de Provedor
+- **Provedor Primário Definitivo**: Permanece categorizado estritamente como **PENDING HUMAN DECISION** em `docs/DECISIONS_LOG.md`.
+- **Candidato para Primeiro Spike de Validação Técnica**: **OpenAI (GPT-4o mini via Chat Completions API)**.
+  - *Justificativa*: Menor complexidade de mapeamento no discriminated union `ModelStreamEvent`, telemetria de uso em chunk linear e custo reduzido para testes.
+  - *Alternativa Imediata*: **Anthropic (Claude Haiku 4.5)** via Messages API.
+- **Governança de DECISIONS_LOG.md**:
+  - Registrado conflito conceitual na linha 73 de `docs/DECISIONS_LOG.md` ("Fornecedor de Motor de Voz / LLM Realtime").
+  - `TERMINOLOGY_CORRECTION_RECOMMENDED: YES` (sugerida separação futura entre "Conversation Model Provider" e "Telephony / Voice Transport Provider").
+  - O arquivo `docs/DECISIONS_LOG.md` foi mantido inalterado, aguardando deliberação explícita do operador humano.
+
+---
+
+### 4. Integridade Operacional
+- **Código de Produção ou Testes Alterado**: ZERO.
+- **Dependências Externas Instaladas**: ZERO.
+- **APIs de Provedores Pagas Chamadas**: ZERO.
+- **Segredos Solicitados**: ZERO.
+- **PR #28**: Mantido **ABERTO** sem merge.
