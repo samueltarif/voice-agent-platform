@@ -1,6 +1,6 @@
 # ADR-016: Twilio Live Call Gateway and Server-Side Bootstrap Binding
 
-- **Status**: Proposed
+- **Status**: Accepted
 - **Data**: 2026-09-29
 
 ---
@@ -10,7 +10,7 @@
 Com a fundação do runtime de voz provider-neutral (ADR-014 / Slice 006A) e o adapter de transporte ConversationRelay (ADR-015 / Slice 006B), a plataforma necessita de uma fronteira de entrada HTTP e resolução de ciclo de vida (Slice 006C) para conectar chamadas telefônicas Twilio ao runtime de voz interno.
 
 A orquestração do gateway de chamadas impõe requisitos fundamentais de segurança e governança:
-1. **Validação de Assinatura Prévia (Signature-Before-Processing)**: Toda requisição HTTP recebida da Twilio deve ter sua assinatura criptográfica `X-Twilio-Signature` validada antes de qualquer processamento, consulta a banco, carregamento de configuração ou inicialização de sessão.
+1. **Validação de Assinatura Prévia (Signature-Before-Processing)**: Toda requisição HTTP recebida da Twilio deve ter sua assinatura criptográfica `X-Twilio-Signature` validada antes de qualquer processamento de negócio/domínio, permitindo apenas parsing mínimo necessário para validação criptográfica do request, e antes de qualquer consulta a banco, carregamento de configuração ou inicialização de sessão.
 2. **Resolução de URL Pública Canônica (Canonical Public URL Policy)**: A validação de assinatura exige a URL exata assinada pelo provedor. Cabeçalhos de rede não confiáveis (`Host`, `X-Forwarded-Host`, `X-Forwarded-Proto`) vindos da internet não podem ser aceitos cegamente para evitar ataques de confusão de URL canônica (*canonical URL confusion*).
 3. **Bootstrap Autoritativo Server-Side (Opaque Server-Side Bootstrap)**: A conexão WebSocket subsequente do ConversationRelay deve ser associada com segurança ao tenant (`organizationId`), agente (`agentId`), versão publicada (`agentVersionId`) e snapshot de configuração de forma autoritativa. Provedores externos nunca escolhem ou alteram essas entidades.
 4. **Semântica Consume-Once Atômica**: O identificador de bootstrap deve ser opaco, de uso único (*consume-once*), temporário (TTL configurável) e consumido de forma estritamente atômica para prevenir ataques de replay e condições de corrida concorrentes.

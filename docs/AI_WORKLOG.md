@@ -6171,6 +6171,108 @@ Todos os gates de conformidade de protocolo, validação de assinatura, robustez
 - **Security Process Deviations no Turno**: 0 (ZERO).
 - **Próximo Slice**: Slice 006D **NÃO INICIADO**.
 
+---
+
+## 2026-09-29 — PROMPT-006D: Provider-Neutral Conversation Model Runtime & Context Composition
+
+### 1. Preflight e Governança
+- **Base SHA**: `d1d4435404a1935722cae53e7206e2a6d640b261` (origin/main).
+- **Branch**: `feature/conversation-model-runtime`.
+- **ADR-016 Normalization**:
+  - Status atualizado de `Proposed` para `Accepted` em `docs/architecture/decisions/ADR-016-twilio-live-call-gateway.md` e `docs/architecture/decisions/README.md`.
+  - Contexto qualificado para remover linguagem excessivamente absoluta: *"antes de qualquer processamento de negócio/domínio, permitindo apenas parsing mínimo necessário para validação criptográfica do request"*.
+- **ADR-017**: Criado em `docs/architecture/decisions/ADR-017-provider-neutral-conversation-model-runtime.md` com status `Proposed`.
+- **DEC-036**: Registrado em `docs/DECISIONS_LOG.md` formalizando a arquitetura de runtime neutro de modelo e isolamento de contexto de conversação. A decisão de fornecedor de modelo (`Model Provider`) permanece estritamente como `Pending Decision`.
+- **SECURITY.md**: Seção 9 adicionada detalhando o Threat Model de runtime de modelo conversacional (quarentena de prompt injection, segregação de instruções autoritativas vs caller input não confiável, isolamento multi-tenant de memória, contenção de autoridade de lifecycle e contenção de vazamento em logs).
+
+---
+
+### 2. Auditoria e Evolução de Contratos (`packages/contracts/src/voice/`)
+- **`ConversationModelPort`**:
+  - Evoluído minimamente de forma 100% retrocompatível.
+  - `ConversationModelInput` recebeu campo opcional `context?: ComposedConversationContext`.
+  - Assinatura de `streamTurn` atualizada para retornar `Promise<AsyncIterable<ConversationTextChunk | ModelStreamEvent>>`, permitindo tanto streaming de chunks textuais legados quanto eventos estruturados neutros.
+- **Model Streaming Events (`model-stream-contracts.ts`)**:
+  - `ModelTextDeltaEvent` (`type: 'text.delta'`, `textDelta`, `turnId`, `generationId`, `isFinal`).
+  - `ModelCompletedEvent` (`type: 'completed'`, `turnId`, `generationId`, `fullText`).
+  - `ModelUsageEvent` (`type: 'usage'`, `inputUnits?`, `outputUnits?`, `totalUnits?`).
+  - `ModelFailureEvent` (`type: 'failure'`, `error`, `safeCode?`, `isRetryable`).
+- **Context Composition Contracts (`conversation-context-contracts.ts`)**:
+  - `AuthoritativeInstructions`: persona, objective, tone, greeting, fallback, closing, languageCode, conversational rules, deterministic rules.
+  - `CallerUtterance`: `text`, `turnId`, `trustLevel: 'UNTRUSTED_CALLER_INPUT'`.
+  - `ComposedConversationContext`: `authoritativeInstructions`, `priorHistory`, `currentCallerInput`, `metadata`.
+- **Conversation History Contracts (`conversation-history-contracts.ts`)**:
+  - `ConversationHistoryPort`: interface neutra com `appendTurn`, `listForCall`, `clearForCall`.
+
+---
+
+### 3. Implementação do Runtime Neutro (`apps/voice/src/`)
+- **`ConversationContextComposer`**:
+  - Montagem determinística de contexto conversacional estruturado a partir de `AgentConfigurationSnapshotV1` publicado e histórico de turnos.
+  - Separação estrita de autoridade: o texto do interlocutor (`callerTranscript`) é classificado como `UNTRUSTED_CALLER_INPUT` e jamais é concatenado em instruções autoritativas do sistema.
+- **`InMemoryConversationHistoryStore`**:
+  - Implementação de `ConversationHistoryPort` puramente em memória, com isolamento multi-tenant formal via chave composta `${organizationId}:${callId}`.
+  - Estratégia de limite de memória: `PROPOSED_DEFAULT_MAX_TURNS = 20`. Descarte FIFO ordenado dos turnos mais antigos quando o teto configurável é excedido.
+  - Zero persistência durável em banco de dados; zero dependência externa de cache.
+- **`AssistantStreamCoordinator` & `processModelStream`**:
+  - Coordenação de turnos com proteção de stale chunk baseada em `isGenerationActive(callId, generationId)`.
+  - Descarte imediato de deltas de modelo após barge-in do usuário.
+  - Política de resposta interrompida: respostas incompletas ou canceladas por interrupção não são persistidas no histórico como resposta aceita do assistente.
+  - Observabilidade estruturada de turnos via `logger.info` (`call.turn.started`, `model.stream.first_chunk`, `call.turn.completed`) contendo apenas métricas temporais (`durationMs`) e identificadores de correlação (`callId`, `turnId`, `generationId`). Zero log de transcrições ou prompts do usuário/sistema.
+- **`ConversationOrchestrator`**:
+  - Registro de utterance do caller na memória conversacional antes do disparo de streaming do modelo.
+  - Limpeza de histórico efêmero acionada ao término da chamada (`clearHistory`).
+- **`FakeConversationModel`**:
+  - Suporte a eventos estruturados (`ModelStreamEvent`), atraso determinístico configurável (`delayMs`), injeção de falhas (`shouldFail`) e controle assíncrono de pausa/retomada para testes de concorrência e barge-in.
+
+---
+
+### 4. Cobertura de Testes Automatizados
+- **`in-memory-conversation-history-store.test.ts` (5 testes)**:
+  - Preservação da ordem cronológica de turnos.
+  - Isolamento multi-tenant: chamadas com o mesmo `callId` em tenants distintos têm histórico completamente segregado sem colisão ou vazamento.
+  - Política de despejo de limite por teto de turnos (`maxTurns`).
+  - Limpeza de histórico ao finalizar chamada.
+- **`conversation-context-composer.test.ts` (2 testes)**:
+  - Composição determinística a partir de snapshot publicado (`PUBLISHED`).
+  - Quarentena de prompt injection: comandos hostis do caller permanecem confinados a `currentCallerInput` com `trustLevel: 'UNTRUSTED_CALLER_INPUT'`, sem capacidade de escalar privilégios ou alterar instruções do sistema.
+- **`conversation-model-harness.test.ts` (5 testes)**:
+  - Preservação de ordem de deltas no streaming.
+  - Confinamento fail-closed de falhas de modelo (`ModelFailureEvent` / `ConversationModelError`).
+  - Cancelamento no meio do stream e descarte de chunks obsoletos.
+  - Métricas de turno sem vazamento de transcrição em logs operacionais.
+  - Impossibilidade de strings geradas pelo modelo alterarem o lifecycle ou o tenant da sessão.
+- **`barge-in-generation.test.ts` (3 testes)**:
+  - Regressão de barge-in mantida 100% verde: interrupção do caller cancela geração ativa, descarta chunks atrasados e abre novo turno limpo.
+
+---
+
+### 5. Métricas do Quality Gate (`pnpm check`)
+- **`pnpm format:check`**: Aprovado (todos os arquivos em conformidade com Prettier).
+- **`pnpm lint`**: 0 erros, 0 avisos (complexidade ciclomática <= 8, nesting <= 3, max-params <= 3 e limites de linhas respeitados).
+- **`pnpm typecheck`**: 12/12 pacotes compilados sem erros em modo strict.
+- **`pnpm test`**: **84 passed | 6 skipped (90 arquivos)**; **446 passed | 45 skipped (491 testes)**.
+- **`turbo build`**: 12/12 pacotes compilados com sucesso (Next.js 11/11 rotas estáticas/dinâmicas).
+- **`scripts/check-architecture.mjs`**: 100% de conformidade com fronteiras de pacotes via AST (zero SDKs externos de LLM no core).
+- **`scripts/check-file-size.mjs`**: 221 arquivos de lógica de produção verificados; todos estritamente abaixo do teto de 180 linhas (14 avisos, 0 violações).
+- **Auditoria de Segredos (`SECRET_AUDIT_PASS`)**: Verificada no diff contra `origin/main` via inspeção booleana value-blind. Zero credenciais no diff.
+
+---
+
+### 6. Classificação de Dependências e Provedores
+- **Dependências Externas npm Adicionadas**: **ZERO**.
+- **Manifestos da Workspace Modificados**: **NÃO** (`pnpm-workspace.yaml` e `package.json` inalterados).
+- **Banco de Dados / Schema**: **INTOCADO** (zero migrations, zero DDL).
+- **Redes e Provedores Externos**:
+  - Twilio: **NÃO ACESSADO** (`PROVIDER-UNVERIFIED`).
+  - OpenAI / Anthropic / Google: **NÃO ACESSADO** (decisão humana pendente em `DECISIONS_LOG.md`).
+  - Neon / Staging / Produção: **NÃO ACESSADO / INTOCADO**.
+- **Tool Calling**: `DEFERRED` (Phase 7).
+- **Durable Transcript**: `DEFERRED`.
+- **Security Process Deviations no Turno**: 0 (ZERO).
+- **Próximo Slice**: Slice 006E **NÃO INICIADO**.
+
+
 
 
 
