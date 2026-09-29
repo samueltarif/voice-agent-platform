@@ -6819,3 +6819,78 @@ Status: `BENCHMARK HYPOTHESES` — NÃO são product requirements.
 - **Classificação Jev**: `BENCHMARK_CANDIDATE`.
 - **Provedor Principal de Conversação**: `PENDING HUMAN DECISION`.
 - **Próximo Slice de Implementação**: **NÃO INICIADO**.
+
+---
+
+## PROMPT-006G — OpenAI Primary Conversation Model Baseline & First Real Adapter
+
+- **Data**: 2026-09-29
+- **Base SHA**: `29d72d0e35f2eea82a9d656059530ec9f02cd730`
+- **Branch**: `feature/openai-conversation-model-adapter`
+- **Objetivo**: Formalizar a decisão humana do operador selecionando a OpenAI como provedor primário de modelo conversacional e implementar o adapter real para `ConversationModelPort`.
+
+### 1. Decisão Humana do Operador (Human Decision)
+- **Primary Conversation Model Provider**: **OpenAI** (formalmente aceito e confirmado via ADR-018 e DEC-037).
+- Substitui o status anterior `PENDING HUMAN DECISION` exclusivamente para o provedor de modelo conversacional principal.
+- **TypeSafe Jev**: Permanece categorizado estritamente como `BENCHMARK_CANDIDATE` / `AUXILIARY DECISION MODEL`. Não foi adotado como modelo principal e não foi alterado neste slice.
+
+### 2. Pesquisa Técnica Oficial OpenAI (2026-09-29)
+- **Documentação Oficial Consultada**:
+  - `https://platform.openai.com/docs/models` (Overview e especificações de modelos flagship).
+  - `https://platform.openai.com/docs/api-reference/chat` (Chat Completions API, SSE streaming, `stream_options`).
+  - `https://platform.openai.com/docs/guides/migrate-to-responses` (Responses API vs Chat Completions).
+- **Superfície de API Selecionada**: `Chat Completions API` (`POST /v1/chat/completions`).
+  - *Motivo Factual*: A Responses API é voltada para fluxos agênticos complexos com ferramentas embutidas e gerenciamento de estado no servidor (`conversation_id`). Como o nosso runtime de voz (`apps/voice`) detém a autoridade total do estado através de `CallSession` e `InMemoryConversationHistoryStore`, a Chat Completions API possui a menor superfície de complexidade, protocolo Server-Sent Events (SSE) linear e determinístico, suporte a cancelamento por `AbortSignal` e contagem de tokens com `stream_options.include_usage: true`.
+- **Seleção de Modelo ("Most Advanced" vs "Most Suitable")**:
+  - `MOST_CAPABLE_GENERAL_MODEL`: Família de raciocínio `o1`/`o3` (alta latência de inicialização devido ao *chain-of-thought*, inadequada para voice path conversacional streaming de baixa latência).
+  - `MOST_SUITABLE_ADVANCED_VOICE_TEXT_MODEL`: `gpt-4o` (modelo multimodal de alta inteligência, rápida geração de tokens a ~100+ tokens/s, baixa latência de primeiro token / TTFT, alta naturalidade em pt-BR e seguimento rigoroso de instruções).
+  - *Identificador de Modelo Padrão*: `gpt-4o` (verificado em 2026-09-29).
+  - *Política de Model ID*: Estritamente configurável em runtime via variável de ambiente `OPENAI_CONVERSATION_MODEL`, sem hardcoding de modelo no domínio.
+
+### 3. Decisão de Dependências e Build Scripts (Dependency Gate)
+- **Decisão**: Adoção de `native fetch` do Node.js 22/24 com parser puro de Server-Sent Events (SSE).
+- **Motivo**: Dispensa a instalação do SDK da OpenAI (`openai`), eliminando supply-chain risk, dependências transitivas e lockfile churn.
+- **Dependências Adicionadas ao Repo**: ZERO (`DEPENDENCIES_ADDED_TO_REPO: NO`).
+- **Scripts de Build / Lifecycle**: Nenhum script executado ou autorizado (`pnpm approve-builds` NÃO foi necessário nem executado).
+
+### 4. Implementação do Adapter
+- **Arquivos Criados/Atualizados**:
+  - `packages/integrations/src/openai/openai-model-config.ts`: Definição de configuração tipada e factory.
+  - `packages/integrations/src/openai/openai-chat-completion-types.ts`: DTOs de wire da API da OpenAI.
+  - `packages/integrations/src/openai/openai-error-mapper.ts`: Sanitização de erros HTTP e exceções para categorias neutras sem vazamento de dados.
+  - `packages/integrations/src/openai/openai-sse-parser.ts`: Parser de streaming SSE puro com leitura em chunks e buffers.
+  - `packages/integrations/src/openai/openai-input-mapper.ts`: Mapeamento de `ConversationModelInput` e `AuthoritativeInstructions` para `messages` do chat.
+  - `packages/integrations/src/openai/openai-conversation-model-adapter.ts`: Implementação de `ConversationModelPort` (`providerName = 'openai'`).
+  - `packages/integrations/src/openai/index.ts`: Re-exportações do módulo.
+  - `packages/integrations/src/index.ts`: Exposição do módulo OpenAI na package pública.
+- **Suíte de Testes Implementada**:
+  - `openai-error-mapper.test.ts`: Validação de mapeamento de status 401, 403, 429, 400, 500, network abort e sanitização.
+  - `openai-conversation-model-adapter.test.ts`: Mapeamento de instructions, histórico, streaming incremental, telemetria de usage, abort signal e terminação.
+  - `openai-fulltext-regression.test.ts`: Acumulação determinística obrigatória de `fullText` igual à soma dos deltas aceitos.
+  - `openai-barge-in-regression.test.ts`: Descarte de chunks tardios em interrupções (*barge-in*) e garantia de que texto parcial não é persistido no histórico.
+  - `openai-tenant-isolation.test.ts`: Isolamento estrito de contexto entre organizações com `organizationId` autoritativo.
+  - `openai-model-authority.test.ts`: Garantia de que saídas do modelo ("end_call", "transfer") permanecem estritamente texto conversacional sem autoridade de estado.
+
+### 5. Auditorias de Qualidade e Governança
+- **Test-Diff Audit**:
+  - Testes pré-existentes alterados: ZERO.
+  - Testes novos adicionados: 14 testes passando em 6 arquivos.
+  - Classificação de asserções: Nenhuma asserção enfraquecida (`ASSERTION_WEAKER: ZERO`).
+  - Novos skips introduzidos: ZERO.
+- **Quality Gates**:
+  - `pnpm format:check`: PASS (All matched files use Prettier code style!).
+  - `pnpm check:architecture`: PASS (Todas as fronteiras arquiteturais respeitadas).
+  - `pnpm check:file-size`: PASS (Todos os arquivos de lógica em conformidade com limites de tamanho).
+  - `turbo typecheck`: PASS (12 packages successful).
+  - `eslint .`: PASS (0 errors, 0 warnings).
+  - `vitest run packages/integrations`: PASS (15 test files, 65 tests passed).
+- **Auditoria de Segredos (Secret Audit)**:
+  - Executado sobre o diff rastreado do PR (`git diff origin/main...HEAD`).
+  - Resultado booleano: `SECRET_AUDIT_PASS`.
+  - Nenhuma API key, token, senha ou DSN exposta em código, testes ou logs.
+- **Homologação e Rede**:
+  - Rede real da OpenAI: NÃO CHAMADA (`ZERO EXTERNAL NETWORK CALLS`).
+  - Status da integração: `IMPLEMENTED`, `TESTED LOCALLY`, `PROVIDER-UNVERIFIED`.
+  - Schema de banco / Migrations: INALTERADOS.
+  - Próximo Slice de Implementação: **NÃO INICIADO**.
+
