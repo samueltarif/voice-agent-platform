@@ -95,7 +95,7 @@ describe('Turn Model & Barge-In Semantics', () => {
 
     // Intercept yield of chunk 2 to trigger user interruption (barge-in) after chunk 1
     model.onChunkYield = async (chunk) => {
-      if (chunk.textDelta === 'Chunk 2. ') {
+      if ('textDelta' in chunk && chunk.textDelta === 'Chunk 2. ') {
         await orchestrator.handleEvent({
           type: 'user.interruption',
           callId,

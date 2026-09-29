@@ -1,5 +1,7 @@
 import type { AgentConfigurationSnapshotV1 } from '../agents/agent-configuration-v1.js';
 import type { CallSession } from './call-session-contracts.js';
+import type { ComposedConversationContext } from './conversation-context-contracts.js';
+import type { ModelStreamEvent } from './model-stream-contracts.js';
 
 export interface ConversationMessage {
   readonly role: 'user' | 'assistant' | 'system';
@@ -13,6 +15,7 @@ export interface ConversationModelInput {
   readonly messages: ReadonlyArray<ConversationMessage>;
   readonly turnId: string;
   readonly generationId: string;
+  readonly context?: ComposedConversationContext | undefined;
 }
 
 export interface ConversationTextChunk {
@@ -24,7 +27,9 @@ export interface ConversationTextChunk {
 
 export interface ConversationModelPort {
   readonly providerName: string;
-  streamTurn(input: ConversationModelInput): Promise<AsyncIterable<ConversationTextChunk>>;
+  streamTurn(
+    input: ConversationModelInput,
+  ): Promise<AsyncIterable<ConversationTextChunk | ModelStreamEvent>>;
 }
 
 export interface VoiceTransportPort {

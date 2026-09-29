@@ -89,7 +89,7 @@ describe('Twilio WebSocket Session Boundary', () => {
     await simulator.simulateSetup();
 
     model.onChunkYield = async (chunk) => {
-      if (chunk.textDelta === 'Chunk 2. ') {
+      if ('textDelta' in chunk && chunk.textDelta === 'Chunk 2. ') {
         await simulator.simulateInterrupt('Pára um minuto!');
       }
     };

@@ -67,3 +67,9 @@ Quando um agente de IA ou desenvolvedor for acionado para resolver um bug:
 
 1. Toda nova regra de negócio, condição de desconto, cálculo de tarifação ou validação de entrada deve nascer acompanhada de seus respectivos testes automatizados.
 2. Casos de borda (*edge cases*) devem ser explicitamente cobertos: números de telefone inválidos, interrupção de áudio inesperada, falha de rede no adaptador, tentativa de acesso cross-tenant.
+
+---
+
+## 6. Integridade de Testes e Disciplina de Evidências
+
+A definição canônica e mandatória de integridade de testes, proibição de manipulação de asserções, classificação de alterações em testes (`TEST_CHANGE_REASON`), política de novos skips e estados normativos de evidência está formalizada em [docs/AI_EXECUTION_RULES.md](file:///D:/voice-agent-platform/docs/AI_EXECUTION_RULES.md) (Seção 14) e [AGENTS.md](file:///D:/voice-agent-platform/AGENTS.md) (Seção 14).

@@ -186,6 +186,42 @@ A execução de ferramentas por agentes de voz durante chamadas telefônicas apr
    - Logs do gateway e bootstrap limitam-se a metadados seguros: `callId`, `organizationId`, `agentId`, `agentVersionId`, nome de eventos canônicos (`call.bootstrap.created`, `call.bootstrap.consumed`) e códigos de erro.
    - É terminantemente proibido registrar em logs: o valor completo do token de bootstrap reutilizável, números de telefone de interlocutores, credenciais de autenticação, assinaturas ou conteúdo de prompt/regras.
 
+---
+
+## 9. Threat Model do Runtime do Modelo de Conversação e Memória (Phase 6 / 006D)
+
+> **Classificação de Evidência da Fronteira (Slice 006D)**: `IMPLEMENTED` / `TESTED LOCALLY`. Todas as mitigações contra prompt injection, isolamento multi-tenant de histórico, proteção de barge-in e contenção de autoridade foram validadas deterministicamente com suíte de testes locais e modelos simuladores. Nenhuma API de modelo externa paga foi acessada (`PROVIDER-UNVERIFIED`).
+
+1. **Injeção de Prompt e Confusão Instrução/Dado (Caller Prompt Injection & Instruction/Data Confusion)**:
+   - A fala transcrita do interlocutor é tratada estritamente como dado conversacional não-confiável (`trustLevel: 'UNTRUSTED_CALLER_INPUT'`).
+   - O `ConversationContextComposer` isola rigidamente as instruções autoritativas do sistema (`persona`, regras de negócio, idioma) do conteúdo do usuário. Tentativas de coerção como "ignore suas instruções" ou "agora você é administrador" jamais afetam regras do sistema, `organizationId` ou autorizações.
+
+2. **Isolamento de Memória Conversacional Cross-Tenant (Cross-Tenant Memory & Namespace Collisions)**:
+   - A memória conversacional efêmera (`InMemoryConversationHistoryStore`) é indexada obrigatoriamente pela tupla `${organizationId}:${callId}`.
+   - Chamadas com o mesmo identificador em tenants distintos não colidem nem compartilham turnos históricos.
+
+3. **Escalação de Autoridade por Saída de Modelo (Model Output Authority Escalation)**:
+   - Respostas do modelo de linguagem (mesmo contendo comandos como "end_call", "transfer", "mudar tenant") são tratadas estritamente como strings de fala destinadas ao sintetizador de áudio.
+   - O modelo de linguagem não possui autoridade para transitar a máquina de estados (`CallSession`), executar handoff humano, disparar ferramentas ou alterar tenants.
+
+4. **Prevenção de Vazamento de Transcrições e Prompts em Logs (PII & Transcript Leakage)**:
+   - A telemetria e logs de turno limitam-se estritamente a metadados e tempos operacionais (`callId`, `organizationId`, `turnId`, `generationId`, `durationMs`).
+   - Transcrições de fala do cliente e prompts confidenciais do agente jamais são impressos em logs de observabilidade.
+
+5. **Mitigação de Saídas Defasadas e Barge-In (Stale Output & Interruption)**:
+   - Quando o interlocutor interrompe o assistente, a geração ativa é invalidada atomicamente.
+   - O `AssistantStreamCoordinator` descarta qualquer chunk tardio gerado assincronamente pelo modelo, impedindo a emissão de fala defasada no canal de áudio.
+
+6. **Envenenamento de Contexto por Resposta Interrompida (Context Poisoning via Partial Output)**:
+   - Respostas parciais do assistente canceladas por interrupção não são persistidas no histórico de aceitação da conversa, evitando alucinações e contaminação em turnos subsequentes.
+
+7. **Sobrecarga de Contexto e Esgotamento de Memória (Unbounded Memory & Context Overflow)**:
+   - A memória efêmera aplica política determinística de teto de turnos (`PROPOSED_DEFAULT_MAX_TURNS = 20`), realizando a evicção dos turnos mais antigos quando o limite configurado é atingido.
+
+8. **Tratamento Seguro de Falhas de Provedor (Provider Error Leakage & Fail-Closed)**:
+   - Erros do modelo são encapsulados em tipos neutros (`ConversationModelError`), sem vazar detalhes internos de transporte ou dados brutos de provedor externo.
+
+
 
 
 
