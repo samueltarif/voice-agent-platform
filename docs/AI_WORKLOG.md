@@ -6820,7 +6820,6 @@ Status: `BENCHMARK HYPOTHESES` — NÃO são product requirements.
 - **Provedor Principal de Conversação**: `PENDING HUMAN DECISION`.
 - **Próximo Slice de Implementação**: **NÃO INICIADO**.
 
----
 
 ## PROMPT-006G — OpenAI Primary Conversation Model Baseline & First Real Adapter
 
@@ -7127,6 +7126,60 @@ Status: `BENCHMARK HYPOTHESES` — NÃO são product requirements.
 - **Chamada Real a Provedor**: `REAL_PROVIDER_CALL = NOT EXECUTED`.
 - **Status do PR #30**: `OPEN / NOT MERGED` (aguardando smoke test real aprovado).
 
+---
 
+## PROMPT-006G-PROVIDER-SMOKE-002 — OpenAI gpt-6-astra — First Real Provider Validation With Strict Spend Control
 
+- **Data**: 2026-09-29
+- **Branch**: `feature/openai-conversation-model-adapter`
+- **PR**: #30 (`feature/openai-conversation-model-adapter` -> `main`)
+- **Pre-Smoke HEAD**: `8645ee9ea6949326fc5dd6760bf78c1428be6101`
+- **Tested Code HEAD**: `3a4c6dfc431e38cccc01fcc6de496f23e993e5c1`
+- **OPENAI_API_KEY_PRESENT**: `true` (validado value-blind no `.env` local)
+- **Model**: `gpt-6-astra`
+- **API Surface**: `Chat Completions` (`POST /v1/chat/completions`)
 
+### 1. Auditoria de Parâmetros de Spend Control & Cost Cap Precondition
+- **Pricing Oficial OpenAI**:
+  - *Fonte*: `https://developers.openai.com/api/docs/models/gpt-6-astra.md` (e `https://developers.openai.com/api/docs/models.md`)
+  - *Data de Verificação*: 2026-09-29
+  - *Input Price*: US$ 10.00 / 1M tokens (US$ 0.000010 / token)
+  - *Output Price*: US$ 50.00 / 1M tokens (US$ 0.000050 / token)
+- **Parâmetro de Limite para Modelos de Raciocínio (Reasoning Models)**:
+  - Na documentação oficial da OpenAI para a família GPT-6 e modelos de raciocínio, o parâmetro mandatório para limitar tokens gerados é `max_completion_tokens` (o parâmetro histórico `max_tokens` foi descontinuado para modelos com raciocínio ativo).
+  - `max_completion_tokens` engloba tanto tokens de raciocínio internos (`reasoning_tokens`) quanto tokens visíveis de saída (`completion_tokens`).
+- **Capacidade do Adapter Atual (PR #30)**:
+  - O contrato atual `OpenAiChatCompletionRequest` e a implementação do `OpenAiConversationModelAdapter` em PR #30 serializam apenas `{ model, messages, stream: true, stream_options: { include_usage: true }, temperature }`.
+  - O adapter NÃO possui campo ou suporte para serializar `max_completion_tokens` (ou `max_tokens`).
+- **Condição de Parada (STOP BEFORE NETWORK)**:
+  - Conforme estipulado na Seção 6 do prompt: *"Se o adapter atual NÃO consegue enviar o parâmetro de limite necessário: STOP BEFORE NETWORK. Resultado: ADAPTER_COST_CAP_SUPPORT_REQUIRED. Não fazer raw fetch como workaround."*
+  - **Resultado**: `ADAPTER_COST_CAP_SUPPORT_REQUIRED`. Nenhuma chamada externa à rede da OpenAI foi executada sem o hard cap de tokens ativo.
+
+### 2. Métricas de Execução de Chamadas Reais
+- **Chamadas Autorizadas**: Máximo 2
+- **Chamadas Executadas**: 0
+- **Retries**: 0
+- **Call A Status**: `NOT_EXECUTED` (interrompida preventivamente antes da rede pela pré-condição de cost cap)
+- **Call B Status**: `NOT_EXECUTED`
+- **Custo Efetivo Incorrido**: US$ 0.00 (Zero crédito consumido)
+- **Conteúdo de Prompts ou Respostas Logado**: NÃO (`CONTENT_LOGGED = NO`)
+- **Payload Bruto de Provedor Logado**: NÃO (`RAW_PROVIDER_PAYLOAD_LOGGED = NO`)
+- **Segredos Expostos**: NÃO (`SECRET_AUDIT_PASS`)
+- **Twilio Chamado**: NÃO
+- **TypeSafe Jev Chamado**: NÃO
+- **Arquivos Temporários de Smoke Restantes**: 0 (`TEMP_SMOKE_FILES_REMAINING = 0`)
+
+### 3. Classificação de Evidências
+- **OPENAI_CONNECTIVITY**: `PROVIDER-UNVERIFIED` / `STOPPED_BEFORE_NETWORK`
+- **OPENAI_STREAMING**: `PROVIDER-UNVERIFIED` / `STOPPED_BEFORE_NETWORK`
+- **OPENAI_ABORT**: `PROVIDER-UNVERIFIED` / `STOPPED_BEFORE_NETWORK`
+- **PRODUCTION_READINESS**: `NOT VALIDATED`
+- **VOICE_QUALITY**: `NOT VALIDATED`
+- **TWILIO_E2E**: `NOT VALIDATED`
+- **PT_BR_SALES_QUALITY**: `NOT VALIDATED`
+- **LATENCY_SLA**: `NOT VALIDATED`
+- **JEV**: `BENCHMARK_CANDIDATE` / `NOT IMPLEMENTED`
+- **Código de Produção**: Inalterado
+- **Código de Testes**: Inalterado
+- **ADR-018**: `Proposed`
+- **PR #30**: `OPEN / NOT MERGED`
