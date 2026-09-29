@@ -7333,3 +7333,66 @@ Status: `BENCHMARK HYPOTHESES` — NÃO são product requirements.
   - Testes totais: 92 arquivos de teste aprovados, 6 de staging pulados (**498 testes aprovados**, 45 testes pulados em staging, 0 falhas).
 - **Auditoria Booleana de Segredos**: **`SECRET_AUDIT_PASS`** no diff contra `origin/main`.
 
+---
+
+## 2026-09-29 — PROMPT-006G-PAID-SMOKE-001: OpenAI gpt-6-astra — Real Adapter Streaming + Abort Validation
+
+### 1. Parâmetros e Governança do Smoke Test
+- **Pre-Smoke HEAD**: `ddd93d35fb58135104bc1afdab6accfe259ccf7b` (PR #30, branch `feature/openai-conversation-model-adapter`).
+- **PR #30**: `OPEN / NOT MERGED`.
+- **OPENAI_API_KEY_PRESENT**: `true` (validado estritamente via runtime booleano sem leitura de disco ou exposição de valor).
+- **Provedor e Modelo**: OpenAI `gpt-6-astra` via Chat Completions API.
+- **Configuração Efetiva**:
+  - `reasoningEffort`: `low` (explícito).
+  - `maxCompletionTokens`: `512` (hard cap validado antes do envio de rede).
+  - `temperature`: omitida (`undefined`).
+- **Limites Operacionais**:
+  - Chamadas autorizadas: 2.
+  - Chamadas executadas: 2.
+  - Tentativas automáticas (retries): 0.
+
+### 2. Resultados da CALL A (Normal Stream)
+- **Status**: **`PASS`**.
+- **Métricas Observadas**:
+  - `deltaCount`: 2 deltas de texto aceitos.
+  - `characterCount`: 4 caracteres (conteúdo de texto não impresso em logs).
+  - `ttftMs`: 3047 ms (Time-To-First-Token medido via relógio monotônico).
+  - `totalDurationMs`: 3096 ms.
+  - `deltasAfterTerminal`: 0 (nenhum evento emitido após evento terminal).
+  - `failuresCount`: 0.
+- **Telemetria de Tokens e Custo**:
+  - `inputTokens`: 62 tokens.
+  - `outputTokens`: 5 tokens.
+  - `CALL_A_ESTIMATED_COST_USD`: **US$ 0.000870** (baseado no pricing oficial de US$ 10.00 / 1M input e US$ 50.00 / 1M output).
+- **Critérios de Aceitação**: Todos cumpridos integralmente (request aceita com HTTP 200, deltas incrementais, completed emitido exatamente uma vez com texto idêntico à concatenação dos deltas, zero falhas).
+
+### 3. Resultados da CALL B (Real Abort)
+- **Status**: **`PASS`**.
+- **Procedimento**: Requisição iniciada via adapter -> aguardou primeiro `text.delta` -> disparou imediatamente `AbortController.abort()` -> observou encerramento do stream.
+- **Métricas Observadas**:
+  - `ABORT_REQUESTED`: `true`.
+  - `ABORT_OBSERVED`: `true`.
+  - `DELTA_BEFORE_ABORT`: `true`.
+  - `LATE_ACCEPTED_DELTA_COUNT`: 0 (nenhum delta adicional aceito após o abort).
+  - `COMPLETED_AFTER_ABORT`: `false` (evento `completed` não foi emitido após abort).
+  - `FAILURE_CLASSIFICATION`: `NONE`.
+  - `CALL_B_ESTIMATED_COST_USD`: US$ 0.000000 (interrompido no primeiro delta antes do chunk final de usage).
+
+### 4. Resumo Financeiro e Conformidade de Segurança
+- **Custo Total Estimado do Smoke**: **US$ 0.000870** (< US$ 0.001, amplamente abaixo do teto autorizado de US$ 0.10).
+- **Conteúdo Textual Registrado**: ZERO (nenhum texto de prompt ou resposta foi impresso).
+- **Payload Bruto Registrado**: ZERO (nenhum JSON ou frame SSE bruto foi logado).
+- **Segredos Expostos**: ZERO (`SECRET_AUDIT_PASS`).
+- **Leitura Direta de Arquivos .env**: ZERO (`fs.readFileSync` não utilizado, arquivo não aberto).
+- **Chamadas a Twilio / TypeSafe Jev**: ZERO.
+- **Harness Temporário**: Totalmente removido (`TEMP_SMOKE_FILES_REMAINING = 0`).
+
+### 5. Classificação Normativa de Evidências
+- `OPENAI_CONNECTIVITY`: **VALIDATED — LIMITED REAL PROVIDER SMOKE**
+- `OPENAI_STREAMING`: **VALIDATED — LIMITED REAL PROVIDER SMOKE**
+- `OPENAI_ABORT`: **VALIDATED — LIMITED REAL PROVIDER SMOKE**
+- `PRODUCTION_READINESS`: **NOT VALIDATED** (requer tráfego real, resiliência prolongada e validação operacional completa).
+- `TWILIO_E2E`: **NOT VALIDATED** (nenhuma chamada telefônica realizada).
+- `VOICE_QUALITY`: **NOT VALIDATED** (áudio sintético e conversão de voz não avaliados).
+- `PT_BR_SALES_QUALITY`: **NOT VALIDATED** (avaliação de vendas em português pendente de benchmarking formal).
+- `LATENCY_SLA`: **NOT VALIDATED** (TTFT de 3047 ms observado em amostra única de raciocínio, sem caracterizar SLA de produção).
