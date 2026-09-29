@@ -7057,4 +7057,66 @@ Status: `BENCHMARK HYPOTHESES` — NÃO são product requirements.
 - **ADR-018**: Permanece `Proposed` enquanto o PR #30 estiver aberto.
 - **PR #30**: `OPEN / NOT MERGED`.
 
+---
+
+## PROMPT-006G-INTEGRITY-CLOSE-R3 — Final Quality Evidence, Secure Provider Revalidation & Baseline Model Confirmation
+
+- **Data**: 2026-09-29
+- **PR**: #30 (`feature/openai-conversation-model-adapter` -> `main`)
+- **Base SHA**: `29d72d0e35f2eea82a9d656059530ec9f02cd730`
+- **Initial HEAD**: `730f676e408431c3b29dc960a3c6b84212ca5f31`
+
+### 1. Retificação de Estado do Quality Gate Anterior (Integrity Correction)
+- **Status do pnpm check anterior**: `PREVIOUS_FINAL_PNPM_CHECK = FAILED`.
+- **Causa da Falha**: `TEST_ENVIRONMENT_UNAVAILABLE_POSTGRES`. Durante o prompt anterior (R2), 11 arquivos de teste de integração PostgreSQL falharam com erro de conexão `ECONNREFUSED ::1:5432` decorrente da indisponibilidade temporária do daemon Docker PostgreSQL local após reinicialização do sistema.
+- **Princípio Factual**: Execuções individuais bem-sucedidas de subetapas (`format`, `lint`, `typecheck`, `build`, `architecture`, `file-size` e testes isolados de `packages/integrations`) NÃO convertem a suíte global em `PASS`. O gate anterior foi categoricamente classificado como `FAILED`.
+- **Evidência Obsoleta**: Após o `pnpm check` anterior, o arquivo `openai-error-mapper.test.ts` foi alterado e commitado (`730f676`), tornando qualquer evidência anterior obsoleta (`FINAL_HEAD_TEST_EVIDENCE = STALE`) até a reexecução completa e observada.
+
+### 2. Auditoria da Alteração de Fixture de Teste (openai-error-mapper.test.ts)
+- **Motivo da Mudança (`SECRET_AUDIT_FIXTURE_CHANGE_REASON`)**: Eliminação de string literal com formato estático (`sk-...`) em favor de geração dinâmica em memória de runtime (`dynamic-sample-${Math.random().toString(36).slice(2)}`), em estrito cumprimento à regra de que credenciais sintéticas de teste devem residir unicamente em memória de runtime sem persistência estática em disco (Rule 7.7).
+- **Classificação Semântica (`SEMANTIC_TEST_STRENGTH`)**: `ASSERTION_EQUIVALENT`.
+- **Comprovação de Propriedade**: O teste preserva integralmente as asserções de sanitização: tanto a chave sintética gerada dinamicamente quanto o trecho sensível da transcrição e o payload JSON completo continuam sendo injetados no corpo bruto de resposta simulada e testados com `expect(...).not.toContain(...)`. Nenhuma asserção foi enfraquecida (`ASSERTION_WEAKER = 0`).
+
+### 3. Registro de Desvio Operacional de TLS (TLS Verification Deviation)
+- **Classificação**: `SECURITY / RESEARCH PROCESS DEVIATION`.
+- **Fato Objetivo**: Durante a fase inicial de pesquisa do prompt anterior (R2), o comando `curl.exe` foi executado com a flag `-k` (`--insecure`) para contornar falhas de certificado na cadeia do ambiente Windows.
+- **Registro de Governança**: `PROVIDER_RESEARCH_TLS_VERIFICATION_BYPASS = YES`.
+- **Contenção e Escopo**: Nenhuma credencial, segredo ou token confidencial esteve envolvido (consultas a endpoints públicos de documentação em `developers.openai.com`). Toda a evidência documental obtida sob `-k` foi revogada para fins de homologação oficial.
+
+### 4. Revalidação Segura de Fontes Oficiais da OpenAI (Strict TLS Revalidation)
+- **Status da Revalidação**: `PASS` (executado exclusivamente via conexões HTTPS com validação TLS estrita e certificados do sistema habilitados, sem `--insecure` ou bypass).
+- **Confirmação do Modelo Flagship (gpt-6-astra)**:
+  - *Fonte 1 (TLS Seguro)*: `https://developers.openai.com/api/docs/models.md` ("Our most capable model for the most demanding work").
+  - *Fonte 2 (TLS Seguro)*: `https://developers.openai.com/api/docs/models/gpt-6-astra.md` (Contexto de 1.050.000 tokens; Endpoints: Chat Completions e Responses suportados; Streaming: suportado; Preço: $10 / $50 por 1M tokens; Reasoning: ativo por padrão).
+  - *Status Factual*: `ASTRA_STATUS = VERIFIED_FROM_SECURE_OFFICIAL_SOURCES`.
+- **Confirmação de Modelos Auxiliares e de Baixa Latência**:
+  - `gpt-6.1-sol`: Confirmado ("Near-Astra performance for complex work at a lower cost").
+  - `gpt-6-luna`: Confirmado ("Our most efficient model for focused, high-volume tasks", suporta `reasoning.effort: none`).
+- **Superfície de API**:
+  - `Chat Completions API`: Confirmada oficialmente como `Supported` no guia de migração (`Chat Completions remains supported`) e na especificação oficial do `gpt-6-astra`.
+  - `Responses API`: Confirmada como recomendada para novos projetos pela OpenAI, com suporte a modo stateless (`store: false`).
+
+### 5. Confirmação do Modelo Baseline e Superfície de API
+- **Preferência do Operador**: "o modelo da OpenAI mais avançado".
+- **Modelo Baseline Selecionado**: `BASELINE_MODEL_CANDIDATE = gpt-6-astra`.
+  - *Justificativa*: `MATCHES_EXPLICIT_OPERATOR_PREFERENCE` (modelo de máxima inteligência geral confirmado).
+  - *Governança*: Configuração permanece estritamente fail-closed via `OPENAI_CONVERSATION_MODEL` (sem hardcoding no domínio).
+- **Superfície de API Baseline**: `BASELINE_API_SURFACE = Chat Completions`.
+  - *Justificativa (YAGNI & Estabilidade)*: A API Chat Completions é totalmente suportada para o modelo `gpt-6-astra`, possui menor complexidade de protocolo streaming SSE, está 100% implementada e testada no PR #30 sem necessidade de reescrita material. Migração futura para Responses API fica registrada como `DEFERRED / FUTURE EVALUATION`.
+
+### 6. Restauração do Ambiente PostgreSQL Local
+- **Status do Docker**: `DOCKER_DAEMON_AVAILABLE = YES`.
+- **Contêiner PostgreSQL**: `POSTGRES_CONTAINER_RUNNING = YES` (`voice-agent-postgres`, `postgres:16-alpine` na porta 5432).
+- **Healthcheck**: `POSTGRES_HEALTHY = YES` (`Up (healthy)`).
+- **Migrações de Banco**: `pnpm --filter @voice-agent/database run db:migrate` executado com sucesso (`migrations applied successfully!`).
+- **Testes de Integração PostgreSQL**: Executados e aprovados com conectividade real local (`auth.test.ts`, `agent-api-lifecycle`, `agent-api-security`, `me-organization`).
+
+### 7. Full Final Quality Gate e Auditoria de Segredos
+- **Suíte Completa Executada**: `pnpm install --frozen-lockfile && pnpm check` observado na íntegra.
+- **Resultado Final do Gate**: `FINAL_PNPM_CHECK = PASS`.
+- **Auditoria Booleana de Segredos**: `SECRET_AUDIT_PASS` verificado sobre `git diff origin/main...HEAD`.
+- **Chamada Real a Provedor**: `REAL_PROVIDER_CALL = NOT EXECUTED`.
+- **Status do PR #30**: `OPEN / NOT MERGED` (aguardando smoke test real aprovado).
+
+
 
