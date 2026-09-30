@@ -4,6 +4,9 @@ import {
   calculateAtomicSignalsByClass,
   calculateChoiceMetrics,
   calculateDistribution,
+  filterCalibrationCases,
+  type RawV2Dataset,
+  serializeSanitizedResults,
 } from './jev-calibration-calculator.js';
 import { executeAtomicRequest, executeChoiceRequest } from './jev-calibration-case-executor.js';
 import type {
@@ -18,63 +21,6 @@ import {
 } from './jev-calibration-types.js';
 import type { JevRoutingClass } from './jev-routing-types.js';
 import { TYPESAFE_MODEL } from './jev-routing-types.js';
-
-interface RawV2Case {
-  readonly caseId: string;
-  readonly split: 'CALIBRATION' | 'HOLDOUT';
-  readonly expectedRoutingClass: JevRoutingClass;
-  readonly subtype: string;
-  readonly syntheticCallerInput: string;
-}
-
-interface RawV2Dataset {
-  readonly version: string;
-  readonly cases: readonly RawV2Case[];
-}
-
-export function filterCalibrationCases(allCases: readonly RawV2Case[]): readonly RawV2Case[] {
-  const calib = allCases.filter((c) => c.split === 'CALIBRATION');
-
-  if (calib.some((c) => c.split !== 'CALIBRATION')) {
-    throw new Error('GUARD_VIOLATION: Non-calibration case included in calibration list');
-  }
-  if (calib.length !== CALIBRATION_CASE_COUNT) {
-    throw new Error(
-      `CALIBRATION_COUNT_MISMATCH: Expected ${CALIBRATION_CASE_COUNT} cases, got ${calib.length}`,
-    );
-  }
-  return calib;
-}
-
-export function serializeSanitizedResults(
-  cases: readonly JevCalibrationCaseResult[],
-  summary: JevCalibrationPhaseASummary,
-) {
-  return {
-    metadata: {
-      benchmark: 'Phase 6 Jev Calibration v2 Phase A',
-      datasetVersion: '2.0.0',
-      executionTimestamp: new Date().toISOString(),
-      requestedModel: summary.requestedModel,
-      resolvedModelVersion: summary.resolvedModelVersion,
-      modelVersionDrift: summary.modelVersionDrift,
-      benchmarkStatus: summary.benchmarkStatus,
-      totalPlannedRequests: summary.totalPlannedRequests,
-      totalExecutedRequests: summary.totalExecutedRequests,
-      retries: 0,
-      holdoutRequests: 0,
-    },
-    summary,
-    cases: cases.map((c) => ({
-      caseId: c.caseId,
-      expectedRoutingClass: c.expectedRoutingClass,
-      choice: c.choice,
-      atomic: c.atomic,
-      status: c.status,
-      ...(c.safeFailureCategory ? { safeFailureCategory: c.safeFailureCategory } : {}),
-    })),
-  };
-}
 
 async function runCalibrationPhaseA() {
   const apiKey = process.env.TYPESAFE_API_KEY;
@@ -319,9 +265,7 @@ async function runCalibrationPhaseA() {
   }
 }
 
-if (!process.env.VITEST && process.argv.some((arg) => arg.includes('run-jev-calibration-phase-a'))) {
-  void runCalibrationPhaseA().catch((err: unknown) => {
-    console.error('Fatal execution error:', err);
-    process.exit(1);
-  });
-}
+void runCalibrationPhaseA().catch((err: unknown) => {
+  console.error('Fatal execution error:', err);
+  process.exit(1);
+});

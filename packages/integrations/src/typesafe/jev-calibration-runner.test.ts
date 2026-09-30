@@ -26,7 +26,7 @@ import {
 import {
   filterCalibrationCases,
   serializeSanitizedResults,
-} from '../../../../scripts/benchmarks/voice/run-jev-calibration-phase-a.js';
+} from '../../../../scripts/benchmarks/voice/jev-calibration-calculator.js';
 
 describe('Jev Calibration Phase A Runner Unit Tests (Deterministic / No Network)', () => {
   const v2Path = resolve('scripts/benchmarks/voice/jev-calibration-v2-cases.json');
