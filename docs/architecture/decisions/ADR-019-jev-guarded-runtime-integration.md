@@ -11,7 +11,7 @@
 Após a conclusão dos experimentos sintéticos com o classificador probabilístico TypeSafe Jev (Fase A com N=80 calibração e N=40 locked holdout), a equipe alcançou evidências metodológicas consistentes no ambiente sintético:
 - Política congelada (`T_SECURITY = 0.56`, `T_DETERMINISTIC = 0.35`, `T_GENERATIVE = 0.47`, SHA-256: `1ac0f2919ca73d22a39fb1d964b558ba2f7e395f336b2c3f687ced9ed4d53c93`);
 - Locked holdout consumido sem re-tuning;
-- Zero false bypasses e zero security misses na amostra de teste não vista (N=40);
+- Zero false bypasses e zero security misses no LOCKED HOLDOUT — NOT USED FOR POLICY FITTING / THRESHOLD SELECTION (N=40);
 - Taxa de bypass seguro de 20.00% em turnos de holdout;
 - Latência sintética do Jev com mediana de 255ms (p95 de 387ms) — classificada estritamente como `SYNTHETIC DESIGN INPUT`.
 

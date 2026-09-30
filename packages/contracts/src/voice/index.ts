@@ -5,3 +5,4 @@ export * from './call-bootstrap-contracts.js';
 export * from './model-stream-contracts.js';
 export * from './conversation-context-contracts.js';
 export * from './conversation-history-contracts.js';
+export * from './auxiliary-turn-decision-contracts.js';

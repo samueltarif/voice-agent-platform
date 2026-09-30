@@ -15,28 +15,25 @@ import {
 } from '@voice-agent/errors';
 import { createNullLogger, type Logger } from '@voice-agent/logger';
 import { AssistantStreamCoordinator } from './assistant-stream-coordinator.js';
-import { transitionCallSession } from './call-session-state-machine.js';
-import type {
-  ConversationOrchestratorDependencies,
-  OrchestratorOptions,
+import type { AuxiliaryTurnShadowObserver } from './auxiliary-turn-shadow-observer.js';
+import {
+  transitionCallSession,
+  transitionToTerminalSession,
+} from './call-session-state-machine.js';
+import {
+  type ConversationOrchestratorDependencies,
+  type OrchestratorOptions,
+  resolveOrchestratorDeps,
 } from './conversation-orchestrator-types.js';
 
 export type { ConversationOrchestratorDependencies, OrchestratorOptions };
-
-function resolveOrchestratorDeps(
-  deps: CallSessionStorePort | ConversationOrchestratorDependencies,
-  transport?: VoiceTransportPort,
-  model?: ConversationModelPort,
-): ConversationOrchestratorDependencies {
-  if ('sessionStore' in deps) return deps;
-  return { sessionStore: deps, transport: transport!, model: model! };
-}
 
 export class ConversationOrchestrator {
   private readonly sessionStore: CallSessionStorePort;
   private readonly transport: VoiceTransportPort;
   private readonly logger: Logger;
   private readonly streamCoordinator: AssistantStreamCoordinator;
+  private readonly shadowObserver?: AuxiliaryTurnShadowObserver | undefined;
   private readonly activeGenerations = new Map<string, string>();
   private generationCounter = 0;
 
@@ -49,6 +46,7 @@ export class ConversationOrchestrator {
     this.sessionStore = resolved.sessionStore;
     this.transport = resolved.transport;
     this.logger = resolved.options?.logger ?? createNullLogger();
+    this.shadowObserver = resolved.shadowObserver;
     this.streamCoordinator = new AssistantStreamCoordinator({
       transport: this.transport,
       model: resolved.model,
@@ -79,8 +77,11 @@ export class ConversationOrchestrator {
 
   private async handleDisconnect(session: CallSession, reason?: string): Promise<void> {
     const isPre = session.runtimeState === 'CONNECTING' || session.runtimeState === 'CREATED';
-    const opt = reason ? { reason } : undefined;
-    await this.handleTerminalState(session, isPre ? 'FAILED' : 'ENDED', opt);
+    await this.handleTerminalState(
+      session,
+      isPre ? 'FAILED' : 'ENDED',
+      reason ? { reason } : undefined,
+    );
   }
 
   private async dispatchEvent(
@@ -117,6 +118,17 @@ export class ConversationOrchestrator {
     const generationId = `gen_${turnId}_${++this.generationCounter}`;
     this.activeGenerations.set(session.callId, generationId);
 
+    try {
+      this.shadowObserver?.observeTurn({
+        organizationId: session.organizationId,
+        callId: session.callId,
+        turnId,
+        callerTranscript: transcript,
+      });
+    } catch {
+      // Shadow observer must NEVER throw into authoritative path
+    }
+
     await this.streamCoordinator.appendUserUtterance(session, turnId, transcript);
     await this.sessionStore.save({ ...session, currentTurnId: turnId, generationId });
 
@@ -134,23 +146,17 @@ export class ConversationOrchestrator {
     if (session.runtimeState !== 'ACTIVE') return;
 
     const previousGen = this.activeGenerations.get(session.callId);
-    const staleCancelledGen = `stale_${turnId}_${++this.generationCounter}`;
-    this.activeGenerations.set(session.callId, staleCancelledGen);
+    const staleGen = `stale_${turnId}_${++this.generationCounter}`;
+    this.activeGenerations.set(session.callId, staleGen);
 
-    try {
-      const opt = previousGen !== undefined ? { generationId: previousGen } : undefined;
-      await this.transport.interruptSpeech(session.callId, opt);
-    } catch (err) {
+    const opt = previousGen !== undefined ? { generationId: previousGen } : undefined;
+    await this.transport.interruptSpeech(session.callId, opt).catch((err) => {
       throw new VoiceTransportError(
         err instanceof Error ? err.message : 'Transport interrupt error',
       );
-    }
-
-    await this.sessionStore.save({
-      ...session,
-      currentTurnId: turnId,
-      generationId: staleCancelledGen,
     });
+
+    await this.sessionStore.save({ ...session, currentTurnId: turnId, generationId: staleGen });
   }
 
   private async handleTerminalState(
@@ -160,13 +166,10 @@ export class ConversationOrchestrator {
   ): Promise<void> {
     if (TERMINAL_CALL_SESSION_STATES.has(session.runtimeState)) return;
     this.activeGenerations.delete(session.callId);
+    this.shadowObserver?.abortCall(session.callId);
     void this.streamCoordinator.clearHistory(session.organizationId, session.callId);
 
-    const failOpt = options?.reason !== undefined ? { failureReason: options.reason } : undefined;
-    const isEnding = targetState === 'ENDED' && session.runtimeState === 'ACTIVE';
-    const base = isEnding ? transitionCallSession(session, 'ENDING') : session;
-    const current = transitionCallSession(base, targetState, failOpt);
-
+    const current = transitionToTerminalSession(session, targetState, options?.reason);
     await this.sessionStore.save(current);
     await this.transport.endCall(session.callId, options?.reason);
   }
