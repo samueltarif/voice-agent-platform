@@ -19,7 +19,6 @@ import {
   PLANNED_CHOICE_REQUESTS,
   TOTAL_PLANNED_CALIBRATION_REQUESTS,
 } from './jev-calibration-types.js';
-import type { JevRoutingClass } from './jev-routing-types.js';
 import { TYPESAFE_MODEL } from './jev-routing-types.js';
 
 async function runCalibrationPhaseA() {
