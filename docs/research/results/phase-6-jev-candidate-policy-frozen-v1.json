@@ -1,0 +1,96 @@
+{
+  "policyVersion": "1.0.0",
+  "frozenPolicySha256": "1ac0f2919ca73d22a39fb1d964b558ba2f7e395f336b2c3f687ced9ed4d53c93",
+  "sourcePhaseAArtifactHash": "5355b3639f011c0812b5e370a3dc7675e89e8f077d82fb3595dafdef2f0a0565",
+  "sourceFitArtifactHash": "61fb3a835910a240e9f4ded480772b30977770d29720c55392f03a4039dcae2e",
+  "policyFamily": "THREE_THRESHOLD_ORDERED_RULE",
+  "exactThresholds": {
+    "tSecurity": 0.56,
+    "tDeterministic": 0.35,
+    "tGenerative": 0.47
+  },
+  "exactOperators": {
+    "rule1Security": ">=",
+    "rule2Deterministic": ">=",
+    "rule2Generative": "<="
+  },
+  "canonicalPolicyDefinition": {
+    "policyVersion": "1.0.0",
+    "family": "THREE_THRESHOLD_ORDERED_RULE",
+    "rules": [
+      {
+        "order": 1,
+        "ruleId": "RULE_1_SECURITY_ESCALATE",
+        "condition": {
+          "signal": "securityNoul",
+          "operator": ">=",
+          "threshold": 0.56
+        },
+        "targetRoutingClass": "SECURITY_ESCALATE"
+      },
+      {
+        "order": 2,
+        "ruleId": "RULE_2_DETERMINISTIC_CANDIDATE",
+        "condition": {
+          "all": [
+            {
+              "signal": "deterministicNoul",
+              "operator": ">=",
+              "threshold": 0.35
+            },
+            {
+              "signal": "generativeNoul",
+              "operator": "<=",
+              "threshold": 0.47
+            }
+          ]
+        },
+        "targetRoutingClass": "DETERMINISTIC_CANDIDATE"
+      },
+      {
+        "order": 3,
+        "ruleId": "RULE_3_GENERATIVE_FALLBACK",
+        "condition": "DEFAULT",
+        "targetRoutingClass": "GENERATIVE_REQUIRED"
+      }
+    ]
+  },
+  "selectionRationale": "HUMAN_APPROVED_CONSERVATIVE_TIE_BREAK",
+  "selectionTieBreakDetail": {
+    "rule1": "Maximize T_DETERMINISTIC among 66 calibration-equivalent triples to make bypass most restrictive (max = 0.35, narrowing candidates from 66 to 3 triples)",
+    "rule2": "Minimize T_GENERATIVE among remaining ties to make bypass most restrictive (min = 0.47, narrowing candidates from 3 to 1 unique triple)",
+    "rule3": "Maximize margin distance to nearest observed security/non-security scores (T_SECURITY = 0.56 with 0.25 distance to 0.31 and 0.81)"
+  },
+  "calibrationMetrics": {
+    "routingAccuracy": 0.975,
+    "safeBypassCount": 26,
+    "safeBypassRecall": 0.9285714285714286,
+    "falseBypassCount": 0,
+    "falseBypassRateOverNonDeterministic": 0.0,
+    "falseBypassRateAmongPredictedBypasses": 0.0,
+    "deterministicPrecision": 1.0,
+    "securityTruePositiveCount": 12,
+    "securityMissCount": 0,
+    "securityMissRate": 0.0,
+    "unnecessarySecurityEscalationCount": 0,
+    "unnecessarySecurityEscalationRate": 0.0,
+    "calibrationSafeBypassRate": 0.325,
+    "missedCases": [
+      "v2-013",
+      "v2-027"
+    ]
+  },
+  "governanceStatus": {
+    "candidatePolicySelected": "YES",
+    "policyFrozen": "YES",
+    "holdoutEvaluated": "NO",
+    "holdoutRequests": 0,
+    "immutableForLockedHoldout": true
+  },
+  "limitations": [
+    "Calibration sample metrics do not constitute holdout results or production performance guarantees.",
+    "TypeSafe Jev is strictly an auxiliary advisory signal; deterministic orchestrator holds application authority.",
+    "Deterministic signal was redundant on calibration (generative signal alone separated the 26 bypasses), but retained as a fail-closed conservative guard.",
+    "Any modification to thresholds, operators, or rules after this freeze invalidates the locked holdout evaluation."
+  ]
+}
