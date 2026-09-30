@@ -46,9 +46,7 @@ Data de Registro Inicial: 21 de Setembro de 2026.
 | **DEC-034** | 2026-09-28 | Telefonia & Adapter | **Twilio ConversationRelay Adapter Boundary e Protocolo de Transporte** | Adoção do Twilio ConversationRelay como candidato conversacional primário no pacote `packages/integrations/src/twilio/`, com tradução imediata de eventos e comandos para interfaces provider-neutral, validação de assinatura `X-Twilio-Signature` via HMAC-SHA1 nativo, simulador local determinístico (`FakeTwilioConversationRelaySimulator`), Media Streams e Conference diferidos (*deferred*), zero dependências do SDK da Twilio no core e status de integração classificado como `PROVIDER-UNVERIFIED`. Consulte ADR-015. |
 | **DEC-035** | 2026-09-29 | Gateway & Telefonia | **Twilio Live Call Gateway e Vinculação de Bootstrap Server-Side** | Implementação do gateway de entrada para chamadas ao vivo com validação prévia de assinatura `X-Twilio-Signature` (fail-closed), resolução de URL canônica confiável com descarte de headers de proxy forjados, registro de bootstrap em memória com identificador UUID opaco e semântica atômica consume-once, geração segura de TwiML ConversationRelay com escape estrito de XML, invariante mandatório de versão publicada (`PUBLISHED`), segregação entre callId interno e provider CallSid, e status do provedor real mantido estritamente como `PROVIDER-UNVERIFIED`. Consulte ADR-016. |
 | **DEC-036** | 2026-09-29 | Voz & Runtime | **Runtime de Modelo de Conversação Provider-Neutral e Composição de Contexto** | Estruturação de contexto conversacional com segregação estrita entre instruções autoritativas (snapshot) e conteúdo não-confiável do interlocutor (`UNTRUSTED_CALLER_INPUT`), memória conversacional efêmera multi-tenant em memória (`InMemoryConversationHistoryStore`), formalização de eventos de streaming neutros (`ModelStreamEvent`), proteção contra barge-in com descarte de chunks obsoletos e isolamento total de lifecycle (model output sem autoridade sobre máquina de estados ou tenant). Provedor de modelo permanece como `Pending Decision`. Consulte ADR-017. |
-
-
-
+| **DEC-037** | 2026-09-29 | Voz & IA | **OpenAI como Provedor Primário de Modelo Conversacional (ConversationModelPort)** | Decisão humana formal do operador confirmando OpenAI como provedor do modelo de conversação textual em streaming. O modelo concreto permanece estritamente configurável em modo fail-closed (sem fallback silencioso para modelos históricos). Twilio permanece como transporte de telefonia candidato conforme DEC-034 e DEC-035. TypeSafe Jev permanece classificado como modelo auxiliar de decisão / candidato a benchmark (`BENCHMARK_CANDIDATE`). Consulte ADR-018. |
 
 ---
 
@@ -69,8 +67,9 @@ Nenhuma das tecnologias e fornecedores abaixo foi selecionada de forma definitiv
 | **Motor de Sessão em Tempo Real & Cache** | Redis / Valkey / Dragonfly | **Status: Pending Decision** |
 | **Sistema de Filas e Mensageria Assíncrona** | BullMQ (Redis) / RabbitMQ / AWS SQS / Temporal | **Status: Pending Decision** |
 | **Estratégia de Identificadores Internos** | PostgreSQL `uuid` (`crypto.randomUUID()`) + Better Auth text IDs | **Status: Decided (DEC-027)** |
-| **Fornecedor Primário de Telefonia** | Twilio / Telnyx / Plivo / Zadarma | **Status: Pending Decision** |
-| **Fornecedor de Motor de Voz / LLM Realtime**| OpenAI Realtime API / ElevenLabs Conversational / Deepgram + LiveKit | **Status: Pending Decision** |
+| **Fornecedor de Telefonia / Voice Transport** | Twilio (candidato com adapters implementados nos Slices 006A–006C; status `PROVIDER-UNVERIFIED`) / Telnyx / Plivo | **Status: Candidate Integration Selected (Twilio ConversationRelay — DEC-034/035); Production Verification Pending** |
+| **Provedor de Modelo Conversacional Primário** | OpenAI | **Status: Provider Decided (DEC-037) / API Surface Accepted (ADR-018: Chat Completions)** |
+| **Modelo Auxiliar de Decisão / Roteamento** | TypeSafe Jev | **Status: Benchmark Candidate (Phase 6 Jev Gate / PR #29)** |
 | **Provedor de Object Storage** | Cloudflare R2 / AWS S3 / Google Cloud Storage | **Status: Pending Decision** |
 | **Framework do Frontend Web (`apps/web`)** | Next.js (App Router) + React 19 + Tailwind v4 | **Status: Decided (DEC-025 / ADR-007)** |
 | **Infraestrutura de Hospedagem / Cloud** | AWS / Google Cloud Platform / Fly.io / Kubernetes | **Status: Pending Decision** |

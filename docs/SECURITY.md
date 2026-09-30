@@ -221,6 +221,37 @@ A execução de ferramentas por agentes de voz durante chamadas telefônicas apr
 8. **Tratamento Seguro de Falhas de Provedor (Provider Error Leakage & Fail-Closed)**:
    - Erros do modelo são encapsulados em tipos neutros (`ConversationModelError`), sem vazar detalhes internos de transporte ou dados brutos de provedor externo.
 
+---
+
+## 10. Threat Model do OpenAI Conversation Model Adapter (Phase 6 / 006G)
+
+> **Classificação de Evidência da Fronteira (Slice 006G)**: `IMPLEMENTED` / `TESTED LOCALLY`. Todas as mitigações contra vazamento de credenciais, sanitização de erros HTTP/SSE, isolamento de autoridade, cancelamento de turno e isolamento multi-tenant foram validadas deterministicamente com suíte de testes locais sem chamadas à rede externa (`PROVIDER-UNVERIFIED`).
+
+1. **Vazamento de Chave de API do Provedor (Provider Key Leakage)**:
+   - A chave de API (`OPENAI_API_KEY`) reside exclusivamente no servidor em tempo de execução.
+   - O adapter nunca registra a chave de API em logs, métricas ou mensagens de erro.
+   - Chaves reais são estritamente proibidas em testes, fixtures, commits e documentação.
+
+2. **Vazamento de Prompt e Dados do Usuário em Exceções e Logs (Prompt & PII Leakage)**:
+   - Respostas de erro da API da OpenAI ou de rede são tratadas sem gravar o corpo bruto da requisição ou resposta nos logs operacionais.
+   - O mapper sanitiza erros em mensagens padronizadas por categoria (`authentication`, `rate_limit`, `timeout_network`, `provider_unavailable`, `invalid_request`, `unknown`).
+
+3. **Vazamento de Erros e Stack Traces Brutos (Provider Error Leakage)**:
+   - Mensagens de erro de infraestrutura ou cabeçalhos de resposta proprietários não são propagados para a máquina de estados ou para a interface do usuário.
+
+4. **Isolamento de Contexto Multi-Tenant (Cross-Tenant Context Leakage)**:
+   - O adapter não define ou altera a organização (`organizationId`). O contexto é fornecido exclusivamente pelo runtime autoritativo.
+   - Requisições paralelas para tenants distintos com o mesmo `turnId` geram payloads estritamente isolados sem cruzamento de dados.
+
+5. **Mitigação de Saídas Tardias e Cancelamento (Stale Output & Abort Signal)**:
+   - O cancelamento por interrupção (*barge-in*) propaga o `AbortSignal` diretamente para o fetch nativo e o parser SSE, descartando imediatamente chunks tardios.
+
+6. **Contenção de Autoridade de Saída do Modelo (Model Output Authority Escalation)**:
+   - Expressões produzidas pelo modelo (como "end_call", "transfer", "change organization") são estritamente mantidas como texto conversacional e não realizam transições de máquina de estados ou de autorização.
+
+7. **Indisponibilidade e Queda do Provedor (Provider Outage & Fallback Isolation)**:
+   - Falhas 5xx e erros de rede emitem evento terminal de falha com indicação de retryabilidade (`isRetryable`), sem bloquear indefinidamente a sessão de chamada.
+
 
 
 
