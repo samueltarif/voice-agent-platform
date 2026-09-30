@@ -85,6 +85,7 @@ describe('OpenAI Conversation Baseline Dataset & Metrics Validation', () => {
     ];
 
     const summary = computeBaselineSummary(mockResults, 2);
+    expect(summary.benchmarkStatus).toBe('COMPLETE');
     expect(summary.totalCases).toBe(2);
     expect(summary.executedCases).toBe(2);
     expect(summary.failedCases).toBe(0);
@@ -94,5 +95,90 @@ describe('OpenAI Conversation Baseline Dataset & Metrics Validation', () => {
     expect(summary.maxTtftMs).toBe(2400);
     expect(summary.medianTtftMs).toBe(1800);
     expect(summary.mainModelCallAvoidanceRate).toBe(0.0);
+  });
+
+  it('marks unexecuted benchmark as NOT_EXECUTED and avoidance as null (NOT MEASURED)', () => {
+    const summary = computeBaselineSummary([], 12);
+    expect(summary.benchmarkStatus).toBe('NOT_EXECUTED');
+    expect(summary.executedCases).toBe(0);
+    expect(summary.failedCases).toBe(0);
+    expect(summary.mainModelRequests).toBe(0);
+    expect(summary.mainModelCallAvoidanceRate).toBeNull();
+    expect(summary.totalInputTokens).toBeNull();
+    expect(summary.totalOutputTokens).toBeNull();
+    expect(summary.totalCostUsd).toBeNull();
+    expect(summary.knownPartialCostUsd).toBe(0);
+  });
+
+  it('marks partial run with failure as PARTIAL and avoidance as null', () => {
+    const mockResults: BaselineCaseResult[] = [
+      {
+        caseId: 'base-01',
+        category: 'DETERMINISTIC_CANDIDATE',
+        expectedRoutingClass: 'DETERMINISTIC_CANDIDATE',
+        status: 'PASS',
+        deltaCount: 3,
+        characterCount: 15,
+        ttftMs: 1200,
+        totalDurationMs: 1500,
+        inputTokens: 50,
+        outputTokens: 10,
+        estimatedCostUsd: calculateTurnCostUsd(50, 10),
+        terminalEvent: 'completed',
+      },
+      {
+        caseId: 'base-02',
+        category: 'GENERATIVE_REQUIRED',
+        expectedRoutingClass: 'GENERATIVE_REQUIRED',
+        status: 'FAIL',
+        deltaCount: 0,
+        characterCount: 0,
+        ttftMs: null,
+        totalDurationMs: 500,
+        inputTokens: null,
+        outputTokens: null,
+        estimatedCostUsd: null,
+        terminalEvent: 'exception',
+        providerFailureCategory: 'network_timeout',
+      },
+    ];
+
+    const summary = computeBaselineSummary(mockResults, 12);
+    expect(summary.benchmarkStatus).toBe('PARTIAL');
+    expect(summary.executedCases).toBe(1);
+    expect(summary.failedCases).toBe(1);
+    expect(summary.mainModelRequests).toBe(2);
+    expect(summary.mainModelCallAvoidanceRate).toBeNull();
+    expect(summary.totalCostUsd).not.toBeNull();
+  });
+
+  it('preserves null tokens and null cost when provider usage is missing (never defaults to $0)', () => {
+    const cost = calculateTurnCostUsd(null, null);
+    expect(cost).toBeNull();
+
+    const mockResults: BaselineCaseResult[] = [
+      {
+        caseId: 'base-01',
+        category: 'DETERMINISTIC_CANDIDATE',
+        expectedRoutingClass: 'DETERMINISTIC_CANDIDATE',
+        status: 'PASS',
+        deltaCount: 3,
+        characterCount: 15,
+        ttftMs: 1200,
+        totalDurationMs: 1500,
+        inputTokens: null,
+        outputTokens: null,
+        estimatedCostUsd: null,
+        terminalEvent: 'completed',
+      },
+    ];
+
+    const summary = computeBaselineSummary(mockResults, 1);
+    expect(summary.benchmarkStatus).toBe('COMPLETE');
+    expect(summary.totalInputTokens).toBeNull();
+    expect(summary.totalOutputTokens).toBeNull();
+    expect(summary.totalCostUsd).toBeNull();
+    expect(summary.averageCostPerTurnUsd).toBeNull();
+    expect(summary.knownPartialCostUsd).toBe(0);
   });
 });

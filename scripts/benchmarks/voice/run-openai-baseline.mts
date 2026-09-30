@@ -67,9 +67,8 @@ async function runSingleCase(
   let deltaCount = 0;
   let characterCount = 0;
   let accumulatedText = '';
-  let terminalEvent = 'NONE';
-  let usageInputTokens = 0;
-  let usageOutputTokens = 0;
+  let usageInputTokens: number | null = null;
+  let usageOutputTokens: number | null = null;
   let failureCategory: string | undefined;
 
   try {
@@ -114,6 +113,7 @@ async function runSingleCase(
     };
   } catch (err) {
     const totalDurationMs = Math.round(performance.now() - t0);
+    const costUsd = calculateTurnCostUsd(usageInputTokens, usageOutputTokens);
     return {
       caseId: testCase.caseId,
       category: testCase.category,
@@ -125,7 +125,7 @@ async function runSingleCase(
       totalDurationMs,
       inputTokens: usageInputTokens,
       outputTokens: usageOutputTokens,
-      estimatedCostUsd: 0,
+      estimatedCostUsd: costUsd,
       terminalEvent: 'exception',
       providerFailureCategory: err instanceof Error ? err.message : String(err),
     };
@@ -179,8 +179,14 @@ export async function runOpenAiBaseline(datasetPath: string): Promise<void> {
     const result = await runSingleCase(adapter, testCase);
     results.push(result);
 
+    const costStr =
+      result.estimatedCostUsd !== null ? `$${result.estimatedCostUsd.toFixed(6)}` : 'NOT_VERIFIED';
+    const inTokensStr = result.inputTokens !== null ? String(result.inputTokens) : 'NOT_OBSERVED';
+    const outTokensStr =
+      result.outputTokens !== null ? String(result.outputTokens) : 'NOT_OBSERVED';
+
     console.log(
-      `[CASE ${testCase.caseId}] status: ${result.status} | deltas: ${result.deltaCount} | chars: ${result.characterCount} | ttft: ${result.ttftMs}ms | dur: ${result.totalDurationMs}ms | in: ${result.inputTokens} | out: ${result.outputTokens} | cost: $${result.estimatedCostUsd.toFixed(6)}`,
+      `[CASE ${testCase.caseId}] status: ${result.status} | deltas: ${result.deltaCount} | chars: ${result.characterCount} | ttft: ${result.ttftMs}ms | dur: ${result.totalDurationMs}ms | in: ${inTokensStr} | out: ${outTokensStr} | cost: ${costStr}`,
     );
 
     if (result.status === 'FAIL') {
@@ -196,11 +202,18 @@ export async function runOpenAiBaseline(datasetPath: string): Promise<void> {
   console.log('\n========================================');
   console.log('BASELINE BENCHMARK SUMMARY (N=12)');
   console.log('========================================');
+  console.log(`Benchmark Status: ${summary.benchmarkStatus}`);
   console.log(`Executed: ${summary.executedCases} / ${summary.totalCases}`);
   console.log(`Failed: ${summary.failedCases}`);
-  console.log(`Total Tokens: in=${summary.totalInputTokens}, out=${summary.totalOutputTokens}`);
-  console.log(`Total Cost: $${summary.totalCostUsd.toFixed(6)} USD`);
-  console.log(`Average Cost/Turn: $${summary.averageCostPerTurnUsd.toFixed(6)} USD`);
+  console.log(
+    `Total Tokens: in=${summary.totalInputTokens ?? 'NOT_OBSERVED'}, out=${summary.totalOutputTokens ?? 'NOT_OBSERVED'}`,
+  );
+  console.log(
+    `Total Cost: ${summary.totalCostUsd !== null ? `$${summary.totalCostUsd.toFixed(6)} USD` : 'NOT_VERIFIED'} (Known partial: $${summary.knownPartialCostUsd.toFixed(6)} USD)`,
+  );
+  console.log(
+    `Average Cost/Turn: ${summary.averageCostPerTurnUsd !== null ? `$${summary.averageCostPerTurnUsd.toFixed(6)} USD` : 'NOT_VERIFIED'}`,
+  );
   console.log(
     `TTFT (ms): min=${summary.minTtftMs}, median=${summary.medianTtftMs}, max=${summary.maxTtftMs}, p95=${summary.descriptiveP95TtftMs}`,
   );
@@ -208,7 +221,7 @@ export async function runOpenAiBaseline(datasetPath: string): Promise<void> {
     `Duration (ms): min=${summary.minDurationMs}, median=${summary.medianDurationMs}, max=${summary.maxDurationMs}, p95=${summary.descriptiveP95DurationMs}`,
   );
   console.log(
-    `Main Model Call Avoidance Rate: ${summary.mainModelCallAvoidanceRate}% (Baseline reference)`,
+    `Main Model Call Avoidance Rate: ${summary.mainModelCallAvoidanceRate !== null ? `${summary.mainModelCallAvoidanceRate}%` : 'NOT_MEASURED'} (Baseline reference)`,
   );
   console.log('========================================\n');
 }
