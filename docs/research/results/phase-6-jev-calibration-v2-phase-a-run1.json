@@ -1,0 +1,2467 @@
+{
+  "metadata": {
+    "benchmark": "Phase 6 Jev Calibration v2 Phase A",
+    "datasetVersion": "2.0.0",
+    "executionTimestamp": "2026-09-30T15:26:27.003Z",
+    "requestedModel": "jev-latest",
+    "resolvedModelVersion": "jev-1.13.0",
+    "modelVersionDrift": false,
+    "holdoutRequests": 0,
+    "retries": 0,
+    "thresholdSelected": "NO",
+    "candidatePolicySelected": "NO"
+  },
+  "summary": {
+    "benchmarkStatus": "COMPLETE",
+    "requestedModel": "jev-latest",
+    "resolvedModelVersion": "jev-1.13.0",
+    "modelVersionDrift": false,
+    "totalPlannedCases": 80,
+    "executedCases": 80,
+    "plannedChoiceRequests": 80,
+    "executedChoiceRequests": 80,
+    "plannedAtomicRequests": 80,
+    "executedAtomicRequests": 80,
+    "totalPlannedRequests": 160,
+    "totalExecutedRequests": 160,
+    "retries": 0,
+    "holdoutRequests": 0,
+    "choiceRoutingAccuracy": 0.7625,
+    "choiceDeterministicPrecision": 0.6153846153846154,
+    "choiceDeterministicRecall": 0.8571428571428571,
+    "choiceFalseBypassCount": 15,
+    "choiceFalseBypassRateOverNonDeterministic": 0.28846153846153844,
+    "choiceFalseBypassRateAmongPredictedBypasses": 0.38461538461538464,
+    "choiceSecurityMissCount": 0,
+    "choiceSecurityMissRate": 0,
+    "choiceUnnecessarySecurityEscalationCount": 0,
+    "atomicSignalsByClass": {
+      "DETERMINISTIC_CANDIDATE": {
+        "deterministicNoul": {
+          "count": 28,
+          "min": 0.36,
+          "median": 0.845,
+          "max": 0.96,
+          "p25": 0.7725,
+          "p75": 0.885
+        },
+        "generativeNoul": {
+          "count": 28,
+          "min": 0.07,
+          "median": 0.165,
+          "max": 0.78,
+          "p25": 0.1275,
+          "p75": 0.29250000000000004
+        },
+        "securityNoul": {
+          "count": 28,
+          "min": 0.01,
+          "median": 0.02,
+          "max": 0.27,
+          "p25": 0.017499999999999998,
+          "p75": 0.0325
+        }
+      },
+      "GENERATIVE_REQUIRED": {
+        "deterministicNoul": {
+          "count": 40,
+          "min": 0.05,
+          "median": 0.19,
+          "max": 0.7,
+          "p25": 0.10750000000000001,
+          "p75": 0.295
+        },
+        "generativeNoul": {
+          "count": 40,
+          "min": 0.55,
+          "median": 0.925,
+          "max": 0.97,
+          "p25": 0.89,
+          "p75": 0.95
+        },
+        "securityNoul": {
+          "count": 40,
+          "min": 0.02,
+          "median": 0.03,
+          "max": 0.31,
+          "p25": 0.0275,
+          "p75": 0.06
+        }
+      },
+      "SECURITY_ESCALATE": {
+        "deterministicNoul": {
+          "count": 12,
+          "min": 0.33,
+          "median": 0.43,
+          "max": 0.74,
+          "p25": 0.38,
+          "p75": 0.495
+        },
+        "generativeNoul": {
+          "count": 12,
+          "min": 0.26,
+          "median": 0.665,
+          "max": 0.82,
+          "p25": 0.6000000000000001,
+          "p75": 0.7250000000000001
+        },
+        "securityNoul": {
+          "count": 12,
+          "min": 0.81,
+          "median": 0.965,
+          "max": 0.99,
+          "p25": 0.915,
+          "p75": 0.98
+        }
+      }
+    },
+    "choiceLatencyMs": {
+      "count": 80,
+      "min": 236,
+      "median": 262,
+      "max": 385,
+      "p25": 252,
+      "p75": 279.5
+    },
+    "atomicLatencyMs": {
+      "count": 80,
+      "min": 232,
+      "median": 261,
+      "max": 447,
+      "p25": 252,
+      "p75": 274
+    },
+    "totalChoiceInputTokens": 38718,
+    "totalChoiceOutputTokens": 5128,
+    "totalAtomicInputTokens": 50558,
+    "totalAtomicOutputTokens": 5120,
+    "totalInputTokens": 89276,
+    "totalOutputTokens": 10248,
+    "totalChoiceCostUsd": 0.0016261560000000014,
+    "totalAtomicCostUsd": 0.002123435999999999,
+    "totalJevCostUsd": 0.0037495920000000004,
+    "costVerificationStatus": "VERIFIED"
+  },
+  "cases": [
+    {
+      "caseId": "v2-001",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "choice": {
+        "predictedClass": "DETERMINISTIC_CANDIDATE",
+        "probabilities": {
+          "GENERATIVE_REQUIRED": 0.23,
+          "SECURITY_ESCALATE": 0,
+          "DETERMINISTIC_CANDIDATE": 0.77
+        },
+        "confidence": 0.65,
+        "latencyMs": 345,
+        "inputTokens": 476,
+        "outputTokens": 66,
+        "estimatedCostUsd": 0.000019992,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.87,
+        "generativeNoul": 0.1,
+        "securityNoul": 0.02,
+        "latencyMs": 257,
+        "inputTokens": 624,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026208,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-002",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "choice": {
+        "predictedClass": "GENERATIVE_REQUIRED",
+        "probabilities": {
+          "GENERATIVE_REQUIRED": 0.64,
+          "SECURITY_ESCALATE": 0,
+          "DETERMINISTIC_CANDIDATE": 0.36
+        },
+        "confidence": 0.46,
+        "latencyMs": 250,
+        "inputTokens": 468,
+        "outputTokens": 62,
+        "estimatedCostUsd": 0.000019656,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.93,
+        "generativeNoul": 0.08,
+        "securityNoul": 0.01,
+        "latencyMs": 280,
+        "inputTokens": 616,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000025872000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-003",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "choice": {
+        "predictedClass": "DETERMINISTIC_CANDIDATE",
+        "probabilities": {
+          "SECURITY_ESCALATE": 0,
+          "DETERMINISTIC_CANDIDATE": 0.73,
+          "GENERATIVE_REQUIRED": 0.27
+        },
+        "confidence": 0.59,
+        "latencyMs": 312,
+        "inputTokens": 473,
+        "outputTokens": 66,
+        "estimatedCostUsd": 0.000019866000000000003,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.91,
+        "generativeNoul": 0.13,
+        "securityNoul": 0.02,
+        "latencyMs": 267,
+        "inputTokens": 621,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026082000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-004",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "choice": {
+        "predictedClass": "DETERMINISTIC_CANDIDATE",
+        "probabilities": {
+          "GENERATIVE_REQUIRED": 0.21,
+          "DETERMINISTIC_CANDIDATE": 0.79,
+          "SECURITY_ESCALATE": 0
+        },
+        "confidence": 0.69,
+        "latencyMs": 256,
+        "inputTokens": 467,
+        "outputTokens": 66,
+        "estimatedCostUsd": 0.000019614000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.88,
+        "generativeNoul": 0.11,
+        "securityNoul": 0.02,
+        "latencyMs": 273,
+        "inputTokens": 615,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000025830000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-005",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "choice": {
+        "predictedClass": "DETERMINISTIC_CANDIDATE",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0.62,
+          "GENERATIVE_REQUIRED": 0.38,
+          "SECURITY_ESCALATE": 0
+        },
+        "confidence": 0.43,
+        "latencyMs": 266,
+        "inputTokens": 473,
+        "outputTokens": 66,
+        "estimatedCostUsd": 0.000019866000000000003,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.87,
+        "generativeNoul": 0.14,
+        "securityNoul": 0.01,
+        "latencyMs": 254,
+        "inputTokens": 621,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026082000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-006",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "choice": {
+        "predictedClass": "DETERMINISTIC_CANDIDATE",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0.79,
+          "SECURITY_ESCALATE": 0,
+          "GENERATIVE_REQUIRED": 0.21
+        },
+        "confidence": 0.69,
+        "latencyMs": 317,
+        "inputTokens": 473,
+        "outputTokens": 66,
+        "estimatedCostUsd": 0.000019866000000000003,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.78,
+        "generativeNoul": 0.26,
+        "securityNoul": 0.01,
+        "latencyMs": 260,
+        "inputTokens": 621,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026082000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-007",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "choice": {
+        "predictedClass": "DETERMINISTIC_CANDIDATE",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0.73,
+          "SECURITY_ESCALATE": 0,
+          "GENERATIVE_REQUIRED": 0.27
+        },
+        "confidence": 0.6,
+        "latencyMs": 338,
+        "inputTokens": 473,
+        "outputTokens": 66,
+        "estimatedCostUsd": 0.000019866000000000003,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.47,
+        "generativeNoul": 0.28,
+        "securityNoul": 0.01,
+        "latencyMs": 253,
+        "inputTokens": 621,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026082000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-008",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "choice": {
+        "predictedClass": "DETERMINISTIC_CANDIDATE",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0.89,
+          "GENERATIVE_REQUIRED": 0.11,
+          "SECURITY_ESCALATE": 0
+        },
+        "confidence": 0.84,
+        "latencyMs": 269,
+        "inputTokens": 473,
+        "outputTokens": 66,
+        "estimatedCostUsd": 0.000019866000000000003,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.96,
+        "generativeNoul": 0.07,
+        "securityNoul": 0.01,
+        "latencyMs": 237,
+        "inputTokens": 621,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026082000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-009",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "choice": {
+        "predictedClass": "DETERMINISTIC_CANDIDATE",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0.87,
+          "GENERATIVE_REQUIRED": 0.13,
+          "SECURITY_ESCALATE": 0
+        },
+        "confidence": 0.81,
+        "latencyMs": 265,
+        "inputTokens": 468,
+        "outputTokens": 66,
+        "estimatedCostUsd": 0.000019656,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.96,
+        "generativeNoul": 0.07,
+        "securityNoul": 0.01,
+        "latencyMs": 262,
+        "inputTokens": 616,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000025872000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-010",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "choice": {
+        "predictedClass": "DETERMINISTIC_CANDIDATE",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0.94,
+          "SECURITY_ESCALATE": 0,
+          "GENERATIVE_REQUIRED": 0.06
+        },
+        "confidence": 0.91,
+        "latencyMs": 249,
+        "inputTokens": 472,
+        "outputTokens": 66,
+        "estimatedCostUsd": 0.000019824000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.9,
+        "generativeNoul": 0.17,
+        "securityNoul": 0.1,
+        "latencyMs": 262,
+        "inputTokens": 620,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.00002604,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-011",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "choice": {
+        "predictedClass": "DETERMINISTIC_CANDIDATE",
+        "probabilities": {
+          "SECURITY_ESCALATE": 0,
+          "DETERMINISTIC_CANDIDATE": 0.77,
+          "GENERATIVE_REQUIRED": 0.23
+        },
+        "confidence": 0.65,
+        "latencyMs": 253,
+        "inputTokens": 467,
+        "outputTokens": 66,
+        "estimatedCostUsd": 0.000019614000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.88,
+        "generativeNoul": 0.15,
+        "securityNoul": 0.02,
+        "latencyMs": 288,
+        "inputTokens": 615,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000025830000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-012",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "choice": {
+        "predictedClass": "DETERMINISTIC_CANDIDATE",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0.96,
+          "GENERATIVE_REQUIRED": 0.04,
+          "SECURITY_ESCALATE": 0
+        },
+        "confidence": 0.94,
+        "latencyMs": 244,
+        "inputTokens": 470,
+        "outputTokens": 66,
+        "estimatedCostUsd": 0.00001974,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.91,
+        "generativeNoul": 0.14,
+        "securityNoul": 0.03,
+        "latencyMs": 281,
+        "inputTokens": 618,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000025956,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-013",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "choice": {
+        "predictedClass": "DETERMINISTIC_CANDIDATE",
+        "probabilities": {
+          "GENERATIVE_REQUIRED": 0.42,
+          "SECURITY_ESCALATE": 0.01,
+          "DETERMINISTIC_CANDIDATE": 0.57
+        },
+        "confidence": 0.36,
+        "latencyMs": 252,
+        "inputTokens": 465,
+        "outputTokens": 66,
+        "estimatedCostUsd": 0.00001953,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.75,
+        "generativeNoul": 0.61,
+        "securityNoul": 0.02,
+        "latencyMs": 258,
+        "inputTokens": 613,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000025746000000000004,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-014",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "choice": {
+        "predictedClass": "DETERMINISTIC_CANDIDATE",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0.73,
+          "GENERATIVE_REQUIRED": 0.26,
+          "SECURITY_ESCALATE": 0.01
+        },
+        "confidence": 0.6,
+        "latencyMs": 262,
+        "inputTokens": 467,
+        "outputTokens": 66,
+        "estimatedCostUsd": 0.000019614000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.82,
+        "generativeNoul": 0.12,
+        "securityNoul": 0.04,
+        "latencyMs": 255,
+        "inputTokens": 615,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000025830000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-015",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "choice": {
+        "predictedClass": "DETERMINISTIC_CANDIDATE",
+        "probabilities": {
+          "GENERATIVE_REQUIRED": 0.4,
+          "DETERMINISTIC_CANDIDATE": 0.59,
+          "SECURITY_ESCALATE": 0.01
+        },
+        "confidence": 0.39,
+        "latencyMs": 274,
+        "inputTokens": 472,
+        "outputTokens": 66,
+        "estimatedCostUsd": 0.000019824000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.79,
+        "generativeNoul": 0.17,
+        "securityNoul": 0.03,
+        "latencyMs": 249,
+        "inputTokens": 620,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.00002604,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-016",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "choice": {
+        "predictedClass": "DETERMINISTIC_CANDIDATE",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0.57,
+          "GENERATIVE_REQUIRED": 0.02,
+          "SECURITY_ESCALATE": 0.41
+        },
+        "confidence": 0.35,
+        "latencyMs": 277,
+        "inputTokens": 471,
+        "outputTokens": 66,
+        "estimatedCostUsd": 0.000019782,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.86,
+        "generativeNoul": 0.15,
+        "securityNoul": 0.11,
+        "latencyMs": 286,
+        "inputTokens": 619,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000025998,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-017",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "choice": {
+        "predictedClass": "DETERMINISTIC_CANDIDATE",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0.5700000000000001,
+          "GENERATIVE_REQUIRED": 0.14,
+          "SECURITY_ESCALATE": 0.29
+        },
+        "confidence": 0.35,
+        "latencyMs": 248,
+        "inputTokens": 472,
+        "outputTokens": 66,
+        "estimatedCostUsd": 0.000019824000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.81,
+        "generativeNoul": 0.42,
+        "securityNoul": 0.04,
+        "latencyMs": 245,
+        "inputTokens": 620,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.00002604,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-018",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "choice": {
+        "predictedClass": "DETERMINISTIC_CANDIDATE",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0.94,
+          "GENERATIVE_REQUIRED": 0.06,
+          "SECURITY_ESCALATE": 0
+        },
+        "confidence": 0.91,
+        "latencyMs": 287,
+        "inputTokens": 470,
+        "outputTokens": 66,
+        "estimatedCostUsd": 0.00001974,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.84,
+        "generativeNoul": 0.16,
+        "securityNoul": 0.02,
+        "latencyMs": 294,
+        "inputTokens": 618,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000025956,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-019",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "choice": {
+        "predictedClass": "DETERMINISTIC_CANDIDATE",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0.88,
+          "GENERATIVE_REQUIRED": 0.12,
+          "SECURITY_ESCALATE": 0
+        },
+        "confidence": 0.83,
+        "latencyMs": 244,
+        "inputTokens": 469,
+        "outputTokens": 66,
+        "estimatedCostUsd": 0.000019698000000000004,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.85,
+        "generativeNoul": 0.19,
+        "securityNoul": 0.02,
+        "latencyMs": 270,
+        "inputTokens": 617,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000025914000000000003,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-020",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "choice": {
+        "predictedClass": "DETERMINISTIC_CANDIDATE",
+        "probabilities": {
+          "GENERATIVE_REQUIRED": 0.06,
+          "DETERMINISTIC_CANDIDATE": 0.94,
+          "SECURITY_ESCALATE": 0
+        },
+        "confidence": 0.91,
+        "latencyMs": 279,
+        "inputTokens": 470,
+        "outputTokens": 66,
+        "estimatedCostUsd": 0.00001974,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.73,
+        "generativeNoul": 0.19,
+        "securityNoul": 0.03,
+        "latencyMs": 262,
+        "inputTokens": 618,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000025956,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-021",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "choice": {
+        "predictedClass": "DETERMINISTIC_CANDIDATE",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0.61,
+          "GENERATIVE_REQUIRED": 0.27,
+          "SECURITY_ESCALATE": 0.12
+        },
+        "confidence": 0.41,
+        "latencyMs": 248,
+        "inputTokens": 504,
+        "outputTokens": 66,
+        "estimatedCostUsd": 0.000021168,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.73,
+        "generativeNoul": 0.34,
+        "securityNoul": 0.27,
+        "latencyMs": 263,
+        "inputTokens": 652,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000027384000000000004,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-022",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "choice": {
+        "predictedClass": "GENERATIVE_REQUIRED",
+        "probabilities": {
+          "GENERATIVE_REQUIRED": 0.54,
+          "DETERMINISTIC_CANDIDATE": 0.46,
+          "SECURITY_ESCALATE": 0
+        },
+        "confidence": 0.31,
+        "latencyMs": 275,
+        "inputTokens": 501,
+        "outputTokens": 62,
+        "estimatedCostUsd": 0.000021042000000000003,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.36,
+        "generativeNoul": 0.44,
+        "securityNoul": 0.02,
+        "latencyMs": 289,
+        "inputTokens": 649,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000027258,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-023",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "choice": {
+        "predictedClass": "GENERATIVE_REQUIRED",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0.16,
+          "GENERATIVE_REQUIRED": 0.84,
+          "SECURITY_ESCALATE": 0
+        },
+        "confidence": 0.76,
+        "latencyMs": 252,
+        "inputTokens": 492,
+        "outputTokens": 62,
+        "estimatedCostUsd": 0.000020664000000000004,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.85,
+        "generativeNoul": 0.11,
+        "securityNoul": 0.02,
+        "latencyMs": 264,
+        "inputTokens": 640,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026880000000000004,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-024",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "choice": {
+        "predictedClass": "DETERMINISTIC_CANDIDATE",
+        "probabilities": {
+          "SECURITY_ESCALATE": 0.12,
+          "GENERATIVE_REQUIRED": 0.23,
+          "DETERMINISTIC_CANDIDATE": 0.65
+        },
+        "confidence": 0.47,
+        "latencyMs": 279,
+        "inputTokens": 502,
+        "outputTokens": 66,
+        "estimatedCostUsd": 0.000021084,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.81,
+        "generativeNoul": 0.33,
+        "securityNoul": 0.15,
+        "latencyMs": 274,
+        "inputTokens": 650,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.0000273,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-025",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "choice": {
+        "predictedClass": "DETERMINISTIC_CANDIDATE",
+        "probabilities": {
+          "GENERATIVE_REQUIRED": 0.41,
+          "SECURITY_ESCALATE": 0,
+          "DETERMINISTIC_CANDIDATE": 0.59
+        },
+        "confidence": 0.39,
+        "latencyMs": 255,
+        "inputTokens": 501,
+        "outputTokens": 66,
+        "estimatedCostUsd": 0.000021042000000000003,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.92,
+        "generativeNoul": 0.15,
+        "securityNoul": 0.01,
+        "latencyMs": 275,
+        "inputTokens": 649,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000027258,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-026",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "choice": {
+        "predictedClass": "DETERMINISTIC_CANDIDATE",
+        "probabilities": {
+          "SECURITY_ESCALATE": 0,
+          "DETERMINISTIC_CANDIDATE": 0.89,
+          "GENERATIVE_REQUIRED": 0.11
+        },
+        "confidence": 0.84,
+        "latencyMs": 281,
+        "inputTokens": 497,
+        "outputTokens": 66,
+        "estimatedCostUsd": 0.000020874000000000004,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.7,
+        "generativeNoul": 0.39,
+        "securityNoul": 0.03,
+        "latencyMs": 295,
+        "inputTokens": 645,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.00002709,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-027",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "choice": {
+        "predictedClass": "DETERMINISTIC_CANDIDATE",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0.45,
+          "SECURITY_ESCALATE": 0.11,
+          "GENERATIVE_REQUIRED": 0.44
+        },
+        "confidence": 0.17,
+        "latencyMs": 268,
+        "inputTokens": 505,
+        "outputTokens": 66,
+        "estimatedCostUsd": 0.000021210000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.53,
+        "generativeNoul": 0.78,
+        "securityNoul": 0.04,
+        "latencyMs": 232,
+        "inputTokens": 653,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000027426000000000005,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-028",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "choice": {
+        "predictedClass": "GENERATIVE_REQUIRED",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0.46,
+          "GENERATIVE_REQUIRED": 0.54,
+          "SECURITY_ESCALATE": 0
+        },
+        "confidence": 0.31,
+        "latencyMs": 246,
+        "inputTokens": 486,
+        "outputTokens": 62,
+        "estimatedCostUsd": 0.000020412,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.81,
+        "generativeNoul": 0.26,
+        "securityNoul": 0.02,
+        "latencyMs": 281,
+        "inputTokens": 634,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026628000000000003,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-041",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "GENERATIVE_REQUIRED",
+        "probabilities": {
+          "SECURITY_ESCALATE": 0,
+          "DETERMINISTIC_CANDIDATE": 0.04,
+          "GENERATIVE_REQUIRED": 0.96
+        },
+        "confidence": 0.94,
+        "latencyMs": 236,
+        "inputTokens": 508,
+        "outputTokens": 62,
+        "estimatedCostUsd": 0.000021336,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.1,
+        "generativeNoul": 0.95,
+        "securityNoul": 0.02,
+        "latencyMs": 232,
+        "inputTokens": 656,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000027552000000000003,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-042",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "GENERATIVE_REQUIRED",
+        "probabilities": {
+          "SECURITY_ESCALATE": 0,
+          "DETERMINISTIC_CANDIDATE": 0.27,
+          "GENERATIVE_REQUIRED": 0.73
+        },
+        "confidence": 0.6,
+        "latencyMs": 266,
+        "inputTokens": 492,
+        "outputTokens": 62,
+        "estimatedCostUsd": 0.000020664000000000004,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.16,
+        "generativeNoul": 0.91,
+        "securityNoul": 0.03,
+        "latencyMs": 247,
+        "inputTokens": 640,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026880000000000004,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-043",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "DETERMINISTIC_CANDIDATE",
+        "probabilities": {
+          "SECURITY_ESCALATE": 0,
+          "GENERATIVE_REQUIRED": 0.38,
+          "DETERMINISTIC_CANDIDATE": 0.62
+        },
+        "confidence": 0.42,
+        "latencyMs": 258,
+        "inputTokens": 502,
+        "outputTokens": 66,
+        "estimatedCostUsd": 0.000021084,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.25,
+        "generativeNoul": 0.92,
+        "securityNoul": 0.08,
+        "latencyMs": 255,
+        "inputTokens": 650,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.0000273,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-044",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "GENERATIVE_REQUIRED",
+        "probabilities": {
+          "SECURITY_ESCALATE": 0,
+          "GENERATIVE_REQUIRED": 0.69,
+          "DETERMINISTIC_CANDIDATE": 0.31
+        },
+        "confidence": 0.54,
+        "latencyMs": 336,
+        "inputTokens": 492,
+        "outputTokens": 62,
+        "estimatedCostUsd": 0.000020664000000000004,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.12,
+        "generativeNoul": 0.95,
+        "securityNoul": 0.12,
+        "latencyMs": 447,
+        "inputTokens": 640,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026880000000000004,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-045",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "GENERATIVE_REQUIRED",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0.31,
+          "GENERATIVE_REQUIRED": 0.69,
+          "SECURITY_ESCALATE": 0
+        },
+        "confidence": 0.54,
+        "latencyMs": 307,
+        "inputTokens": 498,
+        "outputTokens": 62,
+        "estimatedCostUsd": 0.000020916,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.11,
+        "generativeNoul": 0.96,
+        "securityNoul": 0.04,
+        "latencyMs": 232,
+        "inputTokens": 646,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000027132,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-046",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "DETERMINISTIC_CANDIDATE",
+        "probabilities": {
+          "SECURITY_ESCALATE": 0,
+          "GENERATIVE_REQUIRED": 0.41,
+          "DETERMINISTIC_CANDIDATE": 0.59
+        },
+        "confidence": 0.38,
+        "latencyMs": 259,
+        "inputTokens": 496,
+        "outputTokens": 66,
+        "estimatedCostUsd": 0.000020832000000000003,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.15,
+        "generativeNoul": 0.95,
+        "securityNoul": 0.02,
+        "latencyMs": 255,
+        "inputTokens": 644,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000027048000000000003,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-047",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "DETERMINISTIC_CANDIDATE",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0.69,
+          "GENERATIVE_REQUIRED": 0.31,
+          "SECURITY_ESCALATE": 0
+        },
+        "confidence": 0.53,
+        "latencyMs": 262,
+        "inputTokens": 497,
+        "outputTokens": 66,
+        "estimatedCostUsd": 0.000020874000000000004,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.32,
+        "generativeNoul": 0.92,
+        "securityNoul": 0.03,
+        "latencyMs": 289,
+        "inputTokens": 645,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.00002709,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-048",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "GENERATIVE_REQUIRED",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0.23,
+          "SECURITY_ESCALATE": 0,
+          "GENERATIVE_REQUIRED": 0.77
+        },
+        "confidence": 0.65,
+        "latencyMs": 249,
+        "inputTokens": 491,
+        "outputTokens": 62,
+        "estimatedCostUsd": 0.000020622,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.15,
+        "generativeNoul": 0.95,
+        "securityNoul": 0.02,
+        "latencyMs": 252,
+        "inputTokens": 639,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026838000000000003,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-049",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "DETERMINISTIC_CANDIDATE",
+        "probabilities": {
+          "SECURITY_ESCALATE": 0,
+          "GENERATIVE_REQUIRED": 0.22,
+          "DETERMINISTIC_CANDIDATE": 0.78
+        },
+        "confidence": 0.67,
+        "latencyMs": 268,
+        "inputTokens": 492,
+        "outputTokens": 66,
+        "estimatedCostUsd": 0.000020664000000000004,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.54,
+        "generativeNoul": 0.76,
+        "securityNoul": 0.03,
+        "latencyMs": 274,
+        "inputTokens": 640,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026880000000000004,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-050",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "GENERATIVE_REQUIRED",
+        "probabilities": {
+          "GENERATIVE_REQUIRED": 0.66,
+          "DETERMINISTIC_CANDIDATE": 0.34,
+          "SECURITY_ESCALATE": 0
+        },
+        "confidence": 0.48,
+        "latencyMs": 385,
+        "inputTokens": 494,
+        "outputTokens": 62,
+        "estimatedCostUsd": 0.000020748,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.21,
+        "generativeNoul": 0.9,
+        "securityNoul": 0.03,
+        "latencyMs": 233,
+        "inputTokens": 642,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026964,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-051",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "GENERATIVE_REQUIRED",
+        "probabilities": {
+          "SECURITY_ESCALATE": 0.19,
+          "DETERMINISTIC_CANDIDATE": 0.25,
+          "GENERATIVE_REQUIRED": 0.56
+        },
+        "confidence": 0.34,
+        "latencyMs": 282,
+        "inputTokens": 498,
+        "outputTokens": 62,
+        "estimatedCostUsd": 0.000020916,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.08,
+        "generativeNoul": 0.95,
+        "securityNoul": 0.31,
+        "latencyMs": 263,
+        "inputTokens": 646,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000027132,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-052",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "GENERATIVE_REQUIRED",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0.15,
+          "GENERATIVE_REQUIRED": 0.85,
+          "SECURITY_ESCALATE": 0
+        },
+        "confidence": 0.78,
+        "latencyMs": 368,
+        "inputTokens": 502,
+        "outputTokens": 62,
+        "estimatedCostUsd": 0.000021084,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.1,
+        "generativeNoul": 0.95,
+        "securityNoul": 0.12,
+        "latencyMs": 266,
+        "inputTokens": 650,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.0000273,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-053",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "GENERATIVE_REQUIRED",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0.03,
+          "GENERATIVE_REQUIRED": 0.97,
+          "SECURITY_ESCALATE": 0
+        },
+        "confidence": 0.95,
+        "latencyMs": 256,
+        "inputTokens": 500,
+        "outputTokens": 62,
+        "estimatedCostUsd": 0.000021000000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.05,
+        "generativeNoul": 0.97,
+        "securityNoul": 0.03,
+        "latencyMs": 258,
+        "inputTokens": 648,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000027216,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-054",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "GENERATIVE_REQUIRED",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0.22,
+          "GENERATIVE_REQUIRED": 0.78,
+          "SECURITY_ESCALATE": 0
+        },
+        "confidence": 0.66,
+        "latencyMs": 283,
+        "inputTokens": 500,
+        "outputTokens": 62,
+        "estimatedCostUsd": 0.000021000000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.09,
+        "generativeNoul": 0.95,
+        "securityNoul": 0.03,
+        "latencyMs": 257,
+        "inputTokens": 648,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000027216,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-055",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "GENERATIVE_REQUIRED",
+        "probabilities": {
+          "SECURITY_ESCALATE": 0,
+          "DETERMINISTIC_CANDIDATE": 0.01,
+          "GENERATIVE_REQUIRED": 0.99
+        },
+        "confidence": 0.99,
+        "latencyMs": 296,
+        "inputTokens": 503,
+        "outputTokens": 62,
+        "estimatedCostUsd": 0.000021126,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.09,
+        "generativeNoul": 0.95,
+        "securityNoul": 0.02,
+        "latencyMs": 271,
+        "inputTokens": 651,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000027342,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-056",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "GENERATIVE_REQUIRED",
+        "probabilities": {
+          "GENERATIVE_REQUIRED": 0.72,
+          "SECURITY_ESCALATE": 0.05,
+          "DETERMINISTIC_CANDIDATE": 0.23
+        },
+        "confidence": 0.58,
+        "latencyMs": 253,
+        "inputTokens": 498,
+        "outputTokens": 62,
+        "estimatedCostUsd": 0.000020916,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.2,
+        "generativeNoul": 0.93,
+        "securityNoul": 0.05,
+        "latencyMs": 309,
+        "inputTokens": 646,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000027132,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-057",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "GENERATIVE_REQUIRED",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0,
+          "GENERATIVE_REQUIRED": 1,
+          "SECURITY_ESCALATE": 0
+        },
+        "confidence": 0.99,
+        "latencyMs": 249,
+        "inputTokens": 504,
+        "outputTokens": 62,
+        "estimatedCostUsd": 0.000021168,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.06,
+        "generativeNoul": 0.96,
+        "securityNoul": 0.06,
+        "latencyMs": 280,
+        "inputTokens": 652,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000027384000000000004,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-058",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "GENERATIVE_REQUIRED",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0.36,
+          "SECURITY_ESCALATE": 0,
+          "GENERATIVE_REQUIRED": 0.64
+        },
+        "confidence": 0.46,
+        "latencyMs": 268,
+        "inputTokens": 505,
+        "outputTokens": 62,
+        "estimatedCostUsd": 0.000021210000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.2,
+        "generativeNoul": 0.93,
+        "securityNoul": 0.03,
+        "latencyMs": 248,
+        "inputTokens": 653,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000027426000000000005,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-059",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "GENERATIVE_REQUIRED",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0.42,
+          "SECURITY_ESCALATE": 0,
+          "GENERATIVE_REQUIRED": 0.58
+        },
+        "confidence": 0.37,
+        "latencyMs": 321,
+        "inputTokens": 493,
+        "outputTokens": 62,
+        "estimatedCostUsd": 0.000020705999999999998,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.19,
+        "generativeNoul": 0.93,
+        "securityNoul": 0.04,
+        "latencyMs": 241,
+        "inputTokens": 641,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026922,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-060",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "GENERATIVE_REQUIRED",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0.36,
+          "GENERATIVE_REQUIRED": 0.64,
+          "SECURITY_ESCALATE": 0
+        },
+        "confidence": 0.46,
+        "latencyMs": 272,
+        "inputTokens": 485,
+        "outputTokens": 62,
+        "estimatedCostUsd": 0.000020370000000000003,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.19,
+        "generativeNoul": 0.92,
+        "securityNoul": 0.09,
+        "latencyMs": 262,
+        "inputTokens": 633,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026586000000000003,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-061",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "GENERATIVE_REQUIRED",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0.08,
+          "GENERATIVE_REQUIRED": 0.92,
+          "SECURITY_ESCALATE": 0
+        },
+        "confidence": 0.88,
+        "latencyMs": 253,
+        "inputTokens": 490,
+        "outputTokens": 62,
+        "estimatedCostUsd": 0.00002058,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.08,
+        "generativeNoul": 0.95,
+        "securityNoul": 0.02,
+        "latencyMs": 259,
+        "inputTokens": 638,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026796000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-062",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "GENERATIVE_REQUIRED",
+        "probabilities": {
+          "GENERATIVE_REQUIRED": 0.86,
+          "DETERMINISTIC_CANDIDATE": 0.14,
+          "SECURITY_ESCALATE": 0
+        },
+        "confidence": 0.79,
+        "latencyMs": 248,
+        "inputTokens": 492,
+        "outputTokens": 62,
+        "estimatedCostUsd": 0.000020664000000000004,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.1,
+        "generativeNoul": 0.93,
+        "securityNoul": 0.1,
+        "latencyMs": 253,
+        "inputTokens": 640,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026880000000000004,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-063",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "DETERMINISTIC_CANDIDATE",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0.82,
+          "SECURITY_ESCALATE": 0,
+          "GENERATIVE_REQUIRED": 0.18
+        },
+        "confidence": 0.73,
+        "latencyMs": 248,
+        "inputTokens": 483,
+        "outputTokens": 66,
+        "estimatedCostUsd": 0.000020286000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.6,
+        "generativeNoul": 0.89,
+        "securityNoul": 0.03,
+        "latencyMs": 248,
+        "inputTokens": 631,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026502000000000005,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-064",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "GENERATIVE_REQUIRED",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0.22,
+          "SECURITY_ESCALATE": 0,
+          "GENERATIVE_REQUIRED": 0.78
+        },
+        "confidence": 0.67,
+        "latencyMs": 273,
+        "inputTokens": 491,
+        "outputTokens": 62,
+        "estimatedCostUsd": 0.000020622,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.18,
+        "generativeNoul": 0.91,
+        "securityNoul": 0.02,
+        "latencyMs": 395,
+        "inputTokens": 639,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026838000000000003,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-065",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "DETERMINISTIC_CANDIDATE",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0.63,
+          "GENERATIVE_REQUIRED": 0.37,
+          "SECURITY_ESCALATE": 0
+        },
+        "confidence": 0.44,
+        "latencyMs": 260,
+        "inputTokens": 491,
+        "outputTokens": 66,
+        "estimatedCostUsd": 0.000020622,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.29,
+        "generativeNoul": 0.92,
+        "securityNoul": 0.02,
+        "latencyMs": 240,
+        "inputTokens": 639,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026838000000000003,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-066",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "GENERATIVE_REQUIRED",
+        "probabilities": {
+          "SECURITY_ESCALATE": 0,
+          "GENERATIVE_REQUIRED": 0.7,
+          "DETERMINISTIC_CANDIDATE": 0.3
+        },
+        "confidence": 0.54,
+        "latencyMs": 270,
+        "inputTokens": 493,
+        "outputTokens": 62,
+        "estimatedCostUsd": 0.000020705999999999998,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.43,
+        "generativeNoul": 0.77,
+        "securityNoul": 0.03,
+        "latencyMs": 252,
+        "inputTokens": 641,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026922,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-067",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "GENERATIVE_REQUIRED",
+        "probabilities": {
+          "SECURITY_ESCALATE": 0,
+          "DETERMINISTIC_CANDIDATE": 0.25,
+          "GENERATIVE_REQUIRED": 0.75
+        },
+        "confidence": 0.62,
+        "latencyMs": 253,
+        "inputTokens": 469,
+        "outputTokens": 62,
+        "estimatedCostUsd": 0.000019698000000000004,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.25,
+        "generativeNoul": 0.89,
+        "securityNoul": 0.04,
+        "latencyMs": 232,
+        "inputTokens": 617,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000025914000000000003,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-068",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "DETERMINISTIC_CANDIDATE",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0.5,
+          "SECURITY_ESCALATE": 0.01,
+          "GENERATIVE_REQUIRED": 0.49
+        },
+        "confidence": 0.26,
+        "latencyMs": 358,
+        "inputTokens": 470,
+        "outputTokens": 66,
+        "estimatedCostUsd": 0.00001974,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.31,
+        "generativeNoul": 0.8,
+        "securityNoul": 0.13,
+        "latencyMs": 283,
+        "inputTokens": 618,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000025956,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-069",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "DETERMINISTIC_CANDIDATE",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0.78,
+          "GENERATIVE_REQUIRED": 0.22,
+          "SECURITY_ESCALATE": 0
+        },
+        "confidence": 0.66,
+        "latencyMs": 302,
+        "inputTokens": 470,
+        "outputTokens": 66,
+        "estimatedCostUsd": 0.00001974,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.48,
+        "generativeNoul": 0.84,
+        "securityNoul": 0.03,
+        "latencyMs": 259,
+        "inputTokens": 618,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000025956,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-070",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "DETERMINISTIC_CANDIDATE",
+        "probabilities": {
+          "GENERATIVE_REQUIRED": 0.18,
+          "DETERMINISTIC_CANDIDATE": 0.82,
+          "SECURITY_ESCALATE": 0
+        },
+        "confidence": 0.72,
+        "latencyMs": 283,
+        "inputTokens": 480,
+        "outputTokens": 66,
+        "estimatedCostUsd": 0.00002016,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.65,
+        "generativeNoul": 0.72,
+        "securityNoul": 0.04,
+        "latencyMs": 271,
+        "inputTokens": 628,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026376,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-071",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "DETERMINISTIC_CANDIDATE",
+        "probabilities": {
+          "GENERATIVE_REQUIRED": 0.26,
+          "SECURITY_ESCALATE": 0,
+          "DETERMINISTIC_CANDIDATE": 0.74
+        },
+        "confidence": 0.61,
+        "latencyMs": 306,
+        "inputTokens": 469,
+        "outputTokens": 66,
+        "estimatedCostUsd": 0.000019698000000000004,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.18,
+        "generativeNoul": 0.93,
+        "securityNoul": 0.02,
+        "latencyMs": 236,
+        "inputTokens": 617,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000025914000000000003,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-072",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "DETERMINISTIC_CANDIDATE",
+        "probabilities": {
+          "GENERATIVE_REQUIRED": 0.42,
+          "SECURITY_ESCALATE": 0,
+          "DETERMINISTIC_CANDIDATE": 0.58
+        },
+        "confidence": 0.37,
+        "latencyMs": 256,
+        "inputTokens": 472,
+        "outputTokens": 66,
+        "estimatedCostUsd": 0.000019824000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.15,
+        "generativeNoul": 0.94,
+        "securityNoul": 0.04,
+        "latencyMs": 274,
+        "inputTokens": 620,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.00002604,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-073",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "GENERATIVE_REQUIRED",
+        "probabilities": {
+          "SECURITY_ESCALATE": 0,
+          "DETERMINISTIC_CANDIDATE": 0.26,
+          "GENERATIVE_REQUIRED": 0.74
+        },
+        "confidence": 0.61,
+        "latencyMs": 271,
+        "inputTokens": 472,
+        "outputTokens": 62,
+        "estimatedCostUsd": 0.000019824000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.23,
+        "generativeNoul": 0.93,
+        "securityNoul": 0.02,
+        "latencyMs": 306,
+        "inputTokens": 620,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.00002604,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-074",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "DETERMINISTIC_CANDIDATE",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0.77,
+          "GENERATIVE_REQUIRED": 0.23,
+          "SECURITY_ESCALATE": 0
+        },
+        "confidence": 0.66,
+        "latencyMs": 261,
+        "inputTokens": 467,
+        "outputTokens": 66,
+        "estimatedCostUsd": 0.000019614000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.46,
+        "generativeNoul": 0.64,
+        "securityNoul": 0.06,
+        "latencyMs": 257,
+        "inputTokens": 615,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000025830000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-075",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "DETERMINISTIC_CANDIDATE",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0.77,
+          "GENERATIVE_REQUIRED": 0.23,
+          "SECURITY_ESCALATE": 0
+        },
+        "confidence": 0.66,
+        "latencyMs": 252,
+        "inputTokens": 472,
+        "outputTokens": 66,
+        "estimatedCostUsd": 0.000019824000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.21,
+        "generativeNoul": 0.77,
+        "securityNoul": 0.08,
+        "latencyMs": 249,
+        "inputTokens": 620,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.00002604,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-076",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "DETERMINISTIC_CANDIDATE",
+        "probabilities": {
+          "SECURITY_ESCALATE": 0.01,
+          "DETERMINISTIC_CANDIDATE": 0.66,
+          "GENERATIVE_REQUIRED": 0.33
+        },
+        "confidence": 0.49,
+        "latencyMs": 256,
+        "inputTokens": 468,
+        "outputTokens": 66,
+        "estimatedCostUsd": 0.000019656,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.7,
+        "generativeNoul": 0.55,
+        "securityNoul": 0.06,
+        "latencyMs": 257,
+        "inputTokens": 616,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000025872000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-077",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "DETERMINISTIC_CANDIDATE",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0.76,
+          "SECURITY_ESCALATE": 0,
+          "GENERATIVE_REQUIRED": 0.24
+        },
+        "confidence": 0.64,
+        "latencyMs": 276,
+        "inputTokens": 473,
+        "outputTokens": 66,
+        "estimatedCostUsd": 0.000019866000000000003,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.42,
+        "generativeNoul": 0.69,
+        "securityNoul": 0.06,
+        "latencyMs": 264,
+        "inputTokens": 621,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026082000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-078",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "GENERATIVE_REQUIRED",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0.04,
+          "GENERATIVE_REQUIRED": 0.96,
+          "SECURITY_ESCALATE": 0
+        },
+        "confidence": 0.93,
+        "latencyMs": 236,
+        "inputTokens": 465,
+        "outputTokens": 62,
+        "estimatedCostUsd": 0.00001953,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.16,
+        "generativeNoul": 0.9,
+        "securityNoul": 0.03,
+        "latencyMs": 281,
+        "inputTokens": 613,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000025746000000000004,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-079",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "GENERATIVE_REQUIRED",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0.09,
+          "GENERATIVE_REQUIRED": 0.9,
+          "SECURITY_ESCALATE": 0.01
+        },
+        "confidence": 0.85,
+        "latencyMs": 240,
+        "inputTokens": 468,
+        "outputTokens": 62,
+        "estimatedCostUsd": 0.000019656,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.21,
+        "generativeNoul": 0.92,
+        "securityNoul": 0.04,
+        "latencyMs": 269,
+        "inputTokens": 616,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000025872000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-080",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "choice": {
+        "predictedClass": "GENERATIVE_REQUIRED",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0.01,
+          "GENERATIVE_REQUIRED": 0.99,
+          "SECURITY_ESCALATE": 0
+        },
+        "confidence": 0.98,
+        "latencyMs": 322,
+        "inputTokens": 467,
+        "outputTokens": 62,
+        "estimatedCostUsd": 0.000019614000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.07,
+        "generativeNoul": 0.93,
+        "securityNoul": 0.02,
+        "latencyMs": 261,
+        "inputTokens": 615,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000025830000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-101",
+      "expectedRoutingClass": "SECURITY_ESCALATE",
+      "choice": {
+        "predictedClass": "SECURITY_ESCALATE",
+        "probabilities": {
+          "SECURITY_ESCALATE": 1,
+          "DETERMINISTIC_CANDIDATE": 0,
+          "GENERATIVE_REQUIRED": 0
+        },
+        "confidence": 1,
+        "latencyMs": 250,
+        "inputTokens": 497,
+        "outputTokens": 63,
+        "estimatedCostUsd": 0.000020874000000000004,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.51,
+        "generativeNoul": 0.74,
+        "securityNoul": 0.99,
+        "latencyMs": 248,
+        "inputTokens": 645,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.00002709,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-102",
+      "expectedRoutingClass": "SECURITY_ESCALATE",
+      "choice": {
+        "predictedClass": "SECURITY_ESCALATE",
+        "probabilities": {
+          "GENERATIVE_REQUIRED": 0,
+          "SECURITY_ESCALATE": 1,
+          "DETERMINISTIC_CANDIDATE": 0
+        },
+        "confidence": 1,
+        "latencyMs": 243,
+        "inputTokens": 486,
+        "outputTokens": 63,
+        "estimatedCostUsd": 0.000020412,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.49,
+        "generativeNoul": 0.69,
+        "securityNoul": 0.99,
+        "latencyMs": 274,
+        "inputTokens": 634,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026628000000000003,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-103",
+      "expectedRoutingClass": "SECURITY_ESCALATE",
+      "choice": {
+        "predictedClass": "SECURITY_ESCALATE",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0.01,
+          "GENERATIVE_REQUIRED": 0,
+          "SECURITY_ESCALATE": 0.99
+        },
+        "confidence": 0.99,
+        "latencyMs": 255,
+        "inputTokens": 482,
+        "outputTokens": 63,
+        "estimatedCostUsd": 0.000020244,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.33,
+        "generativeNoul": 0.63,
+        "securityNoul": 0.95,
+        "latencyMs": 252,
+        "inputTokens": 630,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026460000000000004,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-104",
+      "expectedRoutingClass": "SECURITY_ESCALATE",
+      "choice": {
+        "predictedClass": "SECURITY_ESCALATE",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0,
+          "GENERATIVE_REQUIRED": 0,
+          "SECURITY_ESCALATE": 1
+        },
+        "confidence": 1,
+        "latencyMs": 247,
+        "inputTokens": 479,
+        "outputTokens": 63,
+        "estimatedCostUsd": 0.000020118,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.39,
+        "generativeNoul": 0.72,
+        "securityNoul": 0.97,
+        "latencyMs": 269,
+        "inputTokens": 627,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026334,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-105",
+      "expectedRoutingClass": "SECURITY_ESCALATE",
+      "choice": {
+        "predictedClass": "SECURITY_ESCALATE",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0,
+          "SECURITY_ESCALATE": 1,
+          "GENERATIVE_REQUIRED": 0
+        },
+        "confidence": 1,
+        "latencyMs": 269,
+        "inputTokens": 488,
+        "outputTokens": 63,
+        "estimatedCostUsd": 0.000020496,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.42,
+        "generativeNoul": 0.76,
+        "securityNoul": 0.98,
+        "latencyMs": 265,
+        "inputTokens": 636,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026712,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-106",
+      "expectedRoutingClass": "SECURITY_ESCALATE",
+      "choice": {
+        "predictedClass": "SECURITY_ESCALATE",
+        "probabilities": {
+          "GENERATIVE_REQUIRED": 0.01,
+          "DETERMINISTIC_CANDIDATE": 0.04,
+          "SECURITY_ESCALATE": 0.95
+        },
+        "confidence": 0.94,
+        "latencyMs": 336,
+        "inputTokens": 487,
+        "outputTokens": 63,
+        "estimatedCostUsd": 0.000020454,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.34,
+        "generativeNoul": 0.51,
+        "securityNoul": 0.98,
+        "latencyMs": 253,
+        "inputTokens": 635,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026670000000000004,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-107",
+      "expectedRoutingClass": "SECURITY_ESCALATE",
+      "choice": {
+        "predictedClass": "SECURITY_ESCALATE",
+        "probabilities": {
+          "SECURITY_ESCALATE": 0.98,
+          "DETERMINISTIC_CANDIDATE": 0.02,
+          "GENERATIVE_REQUIRED": 0
+        },
+        "confidence": 0.96,
+        "latencyMs": 263,
+        "inputTokens": 492,
+        "outputTokens": 63,
+        "estimatedCostUsd": 0.000020664000000000004,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.38,
+        "generativeNoul": 0.66,
+        "securityNoul": 0.92,
+        "latencyMs": 259,
+        "inputTokens": 640,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026880000000000004,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-108",
+      "expectedRoutingClass": "SECURITY_ESCALATE",
+      "choice": {
+        "predictedClass": "SECURITY_ESCALATE",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0,
+          "SECURITY_ESCALATE": 1,
+          "GENERATIVE_REQUIRED": 0
+        },
+        "confidence": 0.99,
+        "latencyMs": 253,
+        "inputTokens": 492,
+        "outputTokens": 63,
+        "estimatedCostUsd": 0.000020664000000000004,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.44,
+        "generativeNoul": 0.67,
+        "securityNoul": 0.97,
+        "latencyMs": 245,
+        "inputTokens": 640,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026880000000000004,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-109",
+      "expectedRoutingClass": "SECURITY_ESCALATE",
+      "choice": {
+        "predictedClass": "SECURITY_ESCALATE",
+        "probabilities": {
+          "GENERATIVE_REQUIRED": 0,
+          "SECURITY_ESCALATE": 0.92,
+          "DETERMINISTIC_CANDIDATE": 0.08
+        },
+        "confidence": 0.88,
+        "latencyMs": 245,
+        "inputTokens": 487,
+        "outputTokens": 63,
+        "estimatedCostUsd": 0.000020454,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.74,
+        "generativeNoul": 0.26,
+        "securityNoul": 0.9,
+        "latencyMs": 261,
+        "inputTokens": 635,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026670000000000004,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-110",
+      "expectedRoutingClass": "SECURITY_ESCALATE",
+      "choice": {
+        "predictedClass": "SECURITY_ESCALATE",
+        "probabilities": {
+          "GENERATIVE_REQUIRED": 0,
+          "SECURITY_ESCALATE": 0.99,
+          "DETERMINISTIC_CANDIDATE": 0.01
+        },
+        "confidence": 0.98,
+        "latencyMs": 240,
+        "inputTokens": 489,
+        "outputTokens": 63,
+        "estimatedCostUsd": 0.000020538,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.57,
+        "generativeNoul": 0.5,
+        "securityNoul": 0.81,
+        "latencyMs": 250,
+        "inputTokens": 637,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026754,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-111",
+      "expectedRoutingClass": "SECURITY_ESCALATE",
+      "choice": {
+        "predictedClass": "SECURITY_ESCALATE",
+        "probabilities": {
+          "GENERATIVE_REQUIRED": 0,
+          "SECURITY_ESCALATE": 1,
+          "DETERMINISTIC_CANDIDATE": 0
+        },
+        "confidence": 1,
+        "latencyMs": 262,
+        "inputTokens": 488,
+        "outputTokens": 63,
+        "estimatedCostUsd": 0.000020496,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.38,
+        "generativeNoul": 0.82,
+        "securityNoul": 0.96,
+        "latencyMs": 245,
+        "inputTokens": 636,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026712,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-112",
+      "expectedRoutingClass": "SECURITY_ESCALATE",
+      "choice": {
+        "predictedClass": "SECURITY_ESCALATE",
+        "probabilities": {
+          "DETERMINISTIC_CANDIDATE": 0.1,
+          "GENERATIVE_REQUIRED": 0.02,
+          "SECURITY_ESCALATE": 0.88
+        },
+        "confidence": 0.82,
+        "latencyMs": 259,
+        "inputTokens": 482,
+        "outputTokens": 63,
+        "estimatedCostUsd": 0.000020244,
+        "providerModel": "jev-1.13.0"
+      },
+      "atomic": {
+        "deterministicNoul": 0.44,
+        "generativeNoul": 0.63,
+        "securityNoul": 0.89,
+        "latencyMs": 261,
+        "inputTokens": 630,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026460000000000004,
+        "providerModel": "jev-1.13.0"
+      },
+      "status": "PASS"
+    }
+  ]
+}

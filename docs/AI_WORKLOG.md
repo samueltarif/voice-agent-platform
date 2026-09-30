@@ -8005,3 +8005,98 @@ Status: `BENCHMARK HYPOTHESES` — NÃO são product requirements.
 - Quality evidence anterior válida para código/testes inalterados (517 passed, 45 skips históricos, 0 novos skips).
 - `git diff --check` e `pnpm format:check`: PASS.
 - Auditoria de segredos no tracked diff: `SECRET_AUDIT_PASS`.
+
+---
+
+## 2026-09-30 — PROMPT-006K-JEV-CALIBRATION-EXECUTION-001: TypeSafe Jev Phase A Calibration Data Collection (Choice V1 + Atomic Noul V1)
+
+- **Branch**: `research/006k-jev-calibration-execution`
+- **PR**: #34 (`https://github.com/samueltarif/voice-agent-platform/pull/34`) — OPEN / NOT MERGED
+- **Main / Base SHA**: `2959067601749d02af08a486450606bb57ab39fa`
+- **Pre-Provider Commit SHA**: `1de5e4f4fce00bf3dd230dfa6c8e31293c3be921` (inicial: `b0d2e7fc80fa9b1b8e003ad86beca6c80b2ed1c3`)
+- **Status do Benchmark**: `PHASE A SIGNAL COLLECTION — COMPLETE / SYNTHETIC / LIMITED`
+- **Dataset de Calibração**: `scripts/benchmarks/voice/jev-calibration-v2-cases.json` (v2.0.0)
+
+### 1. Correções Documentais e Revalidação de Hashes
+- **Correção de Metadados do PR #33**: Atualizado em `docs/research/PHASE_6_JEV_CALIBRATION_PLAN.md` o status factual para `PR #33 — MERGED` com merge commit `2959067601749d02af08a486450606bb57ab39fa`.
+- **Remoção de Threshold Anchoring**: Substituídos os valores numéricos de exemplo na documentação por notação puramente simbólica (`T_DET`, `T_GEN`, `T_SEC`), registrando formalmente que nenhum threshold está selecionado.
+- **Hashes Revalidados (Todos Idênticos e Intactos)**:
+  - V1 Dataset SHA-256: `9ab7cbd2fbfcf508673a700d4a484e0c674d0124766c7b7fa0eee05a573e0d50` (VERIFICADO)
+  - V2 Dataset SHA-256: `3e7e0a20ecd3341c99b84d40162b10eff17ba0600d191dd143bc99f00aec3047` (VERIFICADO)
+  - Choice V1 SHA-256: `1e6aaccdb562cde6e0c005ac6d95417922c3351a17ef6592c2ca9b65b6290788` (VERIFICADO)
+  - Atomic V1 SHA-256: `3fecf9ce82ad600a74549d3459fe2b2b516fc3bd7b5fff33bf5b850cd48e8725` (VERIFICADO)
+
+### 2. Documentação Oficial TypeSafe e Pricing Snapshot
+- **Documentação Oficial Consultado**: `https://docs.typesafe.ai/api.md` e `https://docs.typesafe.ai/models.md` consultados via TLS padrão.
+- **Endpoint**: `POST https://api.typesafe.ai/v1/systemone`
+- **Pricing**: $0.042 / 1M tokens de entrada; tokens de saída gratuitos ($0.00).
+- **Modelo Solicitado**: `jev-latest`.
+- **Política de Versão do Modelo**: Registro obrigatório de `response.model` em cada requisição; bloqueio imediato se houvesse divergência. Modelo resolvido: `jev-1.13.0` em 100% das requisições (`MODEL_VERSION_DRIFT = NO`).
+
+### 3. Governança Pré-Rede e Quality Gates
+- **Filtro Estrito de Calibração**: 80 casos selecionados com `case.split === 'CALIBRATION'`.
+- **Guard de Holdout**: Verificação estrita antes de requisições de rede. Se qualquer caso com `split === 'HOLDOUT'` fosse incluído, exceção imediata antes da rede. `HOLDOUT_REQUESTS = 0`.
+- **Testes Unitários Determinísticos**: Criado `packages/integrations/src/typesafe/jev-calibration-runner.test.ts` (7 testes determinísticos cobrindo seleção de casos, guard de holdout, contagens planejadas, hashes intactos, serialização higienizada sem inputs brutos ou ground truth em payload).
+- **Quality Gate Pré-Provedor**: `pnpm check` executado com sucesso (524 testes aprovados, 45 skips históricos, 0 novos skips, lint/build/architecture/file-size limpos).
+- **Verificação de Ambiente (.env)**:
+  - `git check-ignore .env`: Retornou `.env` (ignorado pelo git).
+  - Verificação de chave booleana: `TYPESAFE_API_KEY_PRESENT = true`.
+  - Nenhuma variável de ambiente, secret ou token foi inspecionado ou impresso.
+- **Previsão Financeira e Limite Rígido**:
+  - `CHOICE_COST_ESTIMATE`: ~$0.0016 USD
+  - `ATOMIC_COST_ESTIMATE`: ~$0.0021 USD
+  - `TOTAL_CALIBRATION_COST_ESTIMATE`: ~$0.0037 USD
+  - `MAX_AUTHORIZED_JEV_CALIBRATION_COST_USD`: $0.05 USD (autorizado formalmente no prompt).
+
+### 4. Execução da Fase A (N=80 Casos / 160 Requisições)
+- **Casos de Calibração Executados**: 80 / 80 (100%).
+- **Requisições Choice V1**: 80 planejadas / 80 executadas.
+- **Requisições Atomic V1**: 80 planejadas / 80 executadas (3 perguntas Noul por requisição).
+- **Total de Requisições TypeSafe**: 160 planejadas / 160 executadas.
+- **Retries**: 0 (zero retries).
+- **Falhas de Rede/HTTP**: 0.
+- **Model Version Drift**: `NO` (`jev-latest` -> `jev-1.13.0` em todas as 160 chamadas).
+- **Holdout Requests**: 0 (nenhuma chamada de holdout).
+
+### 5. Métricas Descritivas Choice V1 (N=80)
+- **Routing Accuracy**: 76.25% (61/80)
+- **Deterministic Precision**: 61.54% (24/39)
+- **Deterministic Recall**: 85.71% (24/28)
+- **False Bypass Count**: 15 casos
+- **False Bypass Rate s/ Não-Determinísticos**: 28.85% (15/52)
+- **False Bypass Rate entre Propostos**: 38.46% (15/39)
+- **Security Miss Count**: 0 (0/12)
+- **Security Miss Rate**: 0.00%
+- **Unnecessary Security Escalation Count**: 0 (0/68)
+
+### 6. Distribuições Descritivas Atomic Noul V1 (N=80)
+- **`DETERMINISTIC_CANDIDATE` (Ground Truth N=28)**:
+  - `deterministicNoul`: min=0.36, p25=0.7725, mediana=0.845, p75=0.885, max=0.96
+  - `generativeNoul`: min=0.07, p25=0.1275, mediana=0.165, p75=0.2925, max=0.78
+  - `securityNoul`: min=0.01, p25=0.0175, mediana=0.020, p75=0.0325, max=0.27
+- **`GENERATIVE_REQUIRED` (Ground Truth N=40)**:
+  - `deterministicNoul`: min=0.05, p25=0.1075, mediana=0.190, p75=0.295, max=0.70
+  - `generativeNoul`: min=0.55, p25=0.8900, mediana=0.925, p75=0.950, max=0.97
+  - `securityNoul`: min=0.02, p25=0.0275, mediana=0.030, p75=0.060, max=0.31
+- **`SECURITY_ESCALATE` (Ground Truth N=12)**:
+  - `deterministicNoul`: min=0.33, p25=0.3800, mediana=0.430, p75=0.495, max=0.74
+  - `generativeNoul`: min=0.26, p25=0.6000, mediana=0.665, p75=0.725, max=0.82
+  - `securityNoul`: min=0.81, p25=0.9150, mediana=0.965, p75=0.980, max=0.99
+
+### 7. Latência e Custos Medidos
+- **Latência Choice V1**: min=236ms, p25=252ms, mediana=262ms, p75=279.5ms, max=385ms
+- **Latência Atomic V1**: min=232ms, p25=252ms, mediana=261ms, p75=274.0ms, max=447ms
+- **Tokens Choice V1**: 38.718 entrada / 5.128 saída ($0.001626 USD)
+- **Tokens Atomic V1**: 50.558 entrada / 5.120 saída ($0.002123 USD)
+- **Total de Tokens**: 89.276 entrada / 10.248 saída
+- **Custo Total Verificado**: $0.003750 USD (abaixo do teto de $0.05 USD)
+- **Status do Custo**: `VERIFIED`
+
+### 8. Integridade de Governança
+- `THRESHOLD_SELECTED = NO`
+- `CANDIDATE_POLICY_SELECTED = NO`
+- `HOLDOUT_EVALUATED = NO`
+- `OPENAI_CALLS = 0`
+- `TWILIO_CALLS = 0`
+- `PRODUCTION_INTEGRATION = NO`
+- `PR_STATUS = OPEN / NOT MERGED`
