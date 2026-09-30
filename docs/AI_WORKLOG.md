@@ -7735,6 +7735,7 @@ Status: `BENCHMARK HYPOTHESES` — NÃO são product requirements.
 - **Revalidação da Documentação Oficial TypeSafe**:
   - Endpoint: `POST https://api.typesafe.ai/v1/systemone`
   - Modelo: `jev-latest`
+  - Projeto / Identificador de Chave no Console TypeSafe: `voice_ia`
   - Documentação Oficial: `https://docs.typesafe.ai/primitives/choice.md`
   - Tabela de Preço snapshot: $42 / bilhão de tokens de entrada ($0.042 / 1M tokens), saída gratuita ($0.00).
   - Teto de Custo Autorizado: US$ 0.10. Teto matemático conservador verificado: < US$ 0.002 para 12 requisições.

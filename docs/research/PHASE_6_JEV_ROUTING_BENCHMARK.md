@@ -76,6 +76,7 @@ O payload enviado ao Jev continha exclusivamente os dados contextuais disponíve
 ## 4. Governança e Configuração de Execução
 
 - **Provedor**: TypeSafe AI
+- **Projeto / Identificador de Chave (Console)**: `voice_ia`
 - **Endpoint**: `https://api.typesafe.ai/v1/systemone`
 - **Modelo**: `jev-latest`
 - **Tabela de Preço Vigente (Verificada em docs oficiais)**:
