@@ -8728,3 +8728,70 @@ Este fechamento retifica a formulação epistemológica da base de evidência da
 - `pnpm format:check`: PASS.
 - Auditoria de segredos: `SECRET_AUDIT_PASS` (`git diff origin/main...HEAD`, boolean-only).
 - PR #37 validado e pronto para merge.
+
+## [2026-09-30] PROMPT-006N-JEV-GUARDED-RUNTIME-INTEGRATION-DESIGN-001: Phase 6 — Jev Guarded Runtime Integration Architecture Gate
+
+### 1. Base State & Context
+- **Base Commit**: `b8cd1c296ee7626e9d0f7c775e465c4e1d0d2b2e` (`origin/main`).
+- **PR #37**: `MERGED`.
+- **Branch**: `research/006n-jev-runtime-integration-design`.
+- **Slice Scope**: Strict ARCHITECTURE / DESIGN GATE ONLY (Docs-only).
+- **Provedores Externos / Chamadas Reais**: Zero (`OPENAI_CALLS_THIS_PROMPT = 0`, `JEV_CALLS_THIS_PROMPT = 0`, `TWILIO_CALLS_THIS_PROMPT = 0`).
+- **Carregamento de `.env`**: Não carregado (`ENV_LOADED = NO`, `UNNECESSARY_ENV_RUNTIME_LOAD = NO`).
+- **Jev Synthetic Research Status**:
+  - `SYNTHETIC_RESEARCH_STATUS = LOCKED_HOLDOUT_CRITERIA_MET`
+  - `JEV_PRODUCTION_READY = NO`
+  - `JEV_PRODUCTION_INTEGRATION = NO`
+- **Frozen Policy**: `T_SECURITY = 0.56`, `T_DETERMINISTIC = 0.35`, `T_GENERATIVE = 0.47`.
+- **Frozen Policy Hash**: `1ac0f2919ca73d22a39fb1d964b558ba2f7e395f336b2c3f687ced9ed4d53c93` (inalterado).
+- **Locked Holdout**: `CONSUMED` (não reutilizado para re-tuning ou fitting).
+
+### 2. Análise de Handlers Determinísticos & Limite Rígido de Autoridade
+- **Auditoria de Código Versionado**: Inspecionados `apps/voice/src/` e `packages/contracts/src/voice/`.
+- **Handlers Existentes**:
+  - Catálogo de respostas determinísticas: `INEXISTENTE`.
+  - Deterministic turn handler: `INEXISTENTE`.
+  - State-driven fixed response: `INEXISTENTE`.
+  - Deterministic acknowledgment / repeat / transfer / confirmation: `INEXISTENTE`.
+  - Caminho de resposta independente de ferramentas: `INEXISTENTE`.
+- **Prontidão de Bypass Determinístico**: `ACTIVE_DETERMINISTIC_BYPASS_READINESS = BLOCKED`.
+- **Invariante Formal de Runtime**: `NO_KNOWN_DETERMINISTIC_HANDLER -> NO_DETERMINISTIC_BYPASS`.
+- **Hard Authority Boundary**: O Jev é puramente consultivo. Não possui autoridade sobre `organizationId`, dados de tenant, versões de agente, permissões, transações financeiras, invocação de tools, ciclo de vida da chamada ou escrita durável em banco de dados.
+
+### 3. Semântica de Falhas & Topologias Arquiteturais
+- **Semântica Dual**:
+  - `FAIL-OPEN TO MAIN MODEL`: Em caso de timeout, falha de rede, erro de schema, model drift ou circuito aberto, o turno segue imediatamente para o modelo conversacional principal (OpenAI). A chamada nunca é interrompida por falha do Jev.
+  - `FAIL-CLOSED WITH RESPECT TO DETERMINISTIC BYPASS`: Qualquer falha, anomalia ou ambiguidade proíbe expressamente o bypass determinístico.
+- **Topologias Avaliadas**:
+  - **Opção A (Always-On Serial Gate)**: Penalidade sistemática de latência (~255ms mediana) em 80% dos turnos não-bypassed. Desaconselhada para produção.
+  - **Opção B (Parallel Speculative)**: Concorrente, mas com alto risco de não economizar custos (streaming iniciado, tokens faturáveis gerados antes do abort) e risco de truncamento audível de fala.
+  - **Opção C (Application-Eligibility Filtered Serial Gate)**: Aplicação determina a priori se o estado atual possui handler determinístico conhecido; Jev atua apenas validando se o turno é elegível. Topologia arquiteturalmente correta para quando handlers existirem.
+  - **Opção D (Shadow-Only)**: Zero latência, zero risco conversacional, coleta de telemetria desacoplada. Topologia obrigatória para a primeira etapa de runtime.
+
+### 4. Análise YAGNI de Portas, Política e Resiliência
+- **YAGNI Gate**:
+  - `CURRENT_REQUIREMENT`: Obter sinais atômicos de classificação sem acoplar a SDKs nem conceder autoridade sobre streaming.
+  - `EXISTING_OPTION`: `ConversationModelPort` é desenhada exclusivamente para streaming (`streamTurn`). Poluir essa interface violaria ISP/LSP.
+  - `MINIMAL_OPTION`: Proposição da interface consultiva mínima `AuxiliaryTurnDecisionPort` (`evaluateTurn -> deterministicScore, generativeScore, securityScore, providerModel, latencyMs`). Sem métodos de mutação ou execução de ferramentas.
+- **Localização da Política**:
+  - Provider Adapter (`packages/integrations`): Retorna apenas scores brutos tipados e telemetria de modelo/latência.
+  - Application Policy Evaluator (`apps/voice/src/domain/policy`): Aplica thresholds congelados e ordem de regras.
+  - Conversation Orchestrator (`apps/voice/src/orchestrator`): Detém autoridade exclusiva de roteamento.
+- **Circuit Breaker**: Estados `CLOSED`, `OPEN`, `HALF_OPEN`. Circuito aberto aplica fail-open direto para o modelo principal sem impactar a chamada telefônica. Limiares numéricos não congelados arbitrariamente.
+- **Timeout**: `JEV_TIMEOUT_MS = NOT SELECTED`. Derivação formal postergada para medições reais em Staging.
+- **Model Version Drift**: Modelo resolvido inesperado aplica fallback automático para o modelo principal (`FAIL-OPEN`).
+- **Feature States**: `DISABLED` (padrão global seguro), `SHADOW` (primeira etapa futura), `ACTIVE_GUARDED` (bloqueado, condicional a handlers). Isolamento estrito de tenant (`organizationId`).
+
+### 5. Artefatos Criados & Atualizados
+- `docs/research/PHASE_6_JEV_RUNTIME_INTEGRATION_DESIGN.md`: Documento formal de design arquitetural e fronteiras de autoridade.
+- `docs/architecture/decisions/ADR-019-jev-guarded-runtime-integration.md`: ADR formal (Status: `Proposed`).
+- `docs/adr/ADR-019-jev-guarded-runtime-integration.md`: Cópia para aderência estrita ao path do prompt.
+- `docs/architecture/decisions/README.md`: Índice atualizado com ADR-019.
+- `docs/research/PHASE_6_JEV_RUNTIME_LATENCY_COST_PLAN.md`: Plano formal de benchmark de latência e custos (Design Only / Future Cost Authorization Gate).
+- `docs/AI_WORKLOG.md`: Entrada append-only registrada.
+
+### 6. Validação e Qualidade
+- `git diff --check`: PASS.
+- `pnpm format:check`: PASS.
+- `SECRET_AUDIT_PASS`: Auditoria booleana via `git diff origin/main...HEAD`. Zero segredos expostos.
+- `PR_STATUS`: Aberto e **NÃO MERGEADO** (conforme instrução estrita).
