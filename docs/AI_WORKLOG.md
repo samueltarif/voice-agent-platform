@@ -7822,3 +7822,49 @@ Status: `BENCHMARK HYPOTHESES` — NÃO são product requirements.
 - `packages/integrations/src/typesafe/jev-routing-benchmark.test.ts`
 - `docs/research/results/phase-6-jev-routing-benchmark-v1.json`
 - `docs/research/PHASE_6_JEV_ROUTING_BENCHMARK.md`
+
+---
+
+## 2026-09-30 — PROMPT-006I-FINAL-EVIDENCE-CLOSE-001: Jev Routing Benchmark Evidence Correction, Final Quality Gate & PR #32 Close
+
+- **Branch**: `research/006i-jev-routing-benchmark`
+- **PR**: #32
+- **Objetivo**: Corrigir exclusivamente problemas de semântica e evidência, revalidar o quality gate integral no HEAD final e fechar o PR #32 sem chamadas de provedor.
+
+### 1. Auditoria de Staleness do Quality Gate Anterior
+- **Fato Observado**: O runner `run-jev-routing-benchmark.ts` recebeu ajustes de invocação nos commits `9b8c813` e `c55d5d6` após o `pnpm check` anterior (que rodou no commit `8389388`).
+- **Classificação Normativa**: `DID_CODE_CHANGE_AFTER_LAST_FULL_PNPM_CHECK = YES`. O resultado anterior do gate é estritamente `STALE` para o HEAD final, exigindo reexecução completa e observação factual no HEAD definitivo.
+
+### 2. Correções Semânticas de Evidência e Nomenclatura
+- **Correção da Descrição do Caso `base-08`**: Corrigida a referência equivocada de "objeção anual" para a descrição factual do dataset congelado: *"Esclarecimento de capacidade e requisitos de integração técnica com prefeituras municipais"* (`description` factual inalterada no dataset).
+- **Correção da Semântica de Segurança**:
+  - `SECURITY_MISSES_OBSERVED = 0/2`
+  - `UNNECESSARY_SECURITY_ESCALATIONS_OBSERVED = 0/10`
+  - Amostra sensível a segurança: $N = 2$.
+  - Termos hiperbólicos ("Segurança Excepcional", "100% de contenção") formalmente removidos.
+  - Declaração explícita de limitação: `THIS DOES NOT ESTABLISH PRODUCTION SECURITY PERFORMANCE`.
+- **Correção de Métricas de False Bypass**:
+  - `FALSE_BYPASS_RATE_OVER_NON_DETERMINISTIC = 2 / 8 = 25.0%` (taxa sobre a totalidade de casos não-determinísticos).
+  - `DIRECT_CHOICE_FALSE_BYPASS_RATE_AMONG_BYPASSES = 2 / 5 = 40.0%` (proporção de erro entre os 5 desvios propostos pelo modelo via Choice direto).
+- **Correção Semântica do Contrafactual (Oracle-Filtered)**:
+  - `ORACLE_CONFIRMED_SAFE_POTENTIAL_AVOIDED_CALLS = 3 / 12` (25.0% — casos `base-02`, `base-03`, `base-04`).
+  - `ORACLE_FILTERED_COUNTERFACTUAL_OPENAI_REQUESTS = 9` (12 - 3).
+  - `ORACLE_FILTERED_COUNTERFACTUAL_TOTAL_PROVIDER_REQUESTS = 21` (12 Jev + 9 OpenAI).
+  - `ORACLE_FILTERED_COUNTERFACTUAL_COMBINED_COST = US$ 0.019871752`.
+  - `ORACLE_FILTERED_COUNTERFACTUAL_COST_REDUCTION = US$ 0.005398248` (21.36%).
+  - Declaração explícita: `POTENTIAL_ORACLE_FILTERED_SAVINGS = 21.36%`, `DEPLOYABLE_POLICY_SAVINGS = NOT ESTABLISHED`, `NOT IMPLEMENTABLE AS CURRENT RUNTIME POLICY WITHOUT AN INDEPENDENT DECISION RULE`.
+- **Correção Aritmética do Custo do Jev em Relação ao Baseline OpenAI**:
+  - Custo Total Jev (12 chamadas): US$ 0.000241752.
+  - Total do Baseline OpenAI v1 (12 chamadas): US$ 0.025270.
+  - Turno Médio do Baseline OpenAI v1: US$ 0.002106.
+  - `JEV_TOTAL_AS_PERCENT_OF_OPENAI_BASELINE_TOTAL ≈ 0.96%` (0.000241752 / 0.025270).
+  - `JEV_TOTAL_AS_PERCENT_OF_AVERAGE_OPENAI_TURN ≈ 11.5%` (0.000241752 / 0.002106).
+  - Afirmação corrigida: o custo total do Jev (12 chamadas) equivale a ~11.5% do custo de um único turno médio do OpenAI (e não "< 1% de um turno").
+- **Calibração de Confiança**: `NOT PERFORMED` (não adotar thresholds arbitrários como `> 0.52` com base em $N=12$).
+- **Posicionamento Arquitetural**: `Jev = BENCHMARK_CANDIDATE`. A evidência apoia a realização de um benchmark ampliado de calibração (`EVIDENCE SUPPORTS LARGER CALIBRATION EXPERIMENT`). A política de desvio direto é inadequada para produção no momento (`DIRECT BYPASS POLICY = NOT ACCEPTABLE FOR PRODUCTION EVALUATION YET`).
+
+### 3. Chamadas de Provedores Neste Fechamento
+- `OPENAI_CALLS_THIS_PROMPT = 0`
+- `JEV_CALLS_THIS_PROMPT = 0`
+- `TWILIO_CALLS_THIS_PROMPT = 0`
+- Carregamento de `.env`: `NO` (não necessário para fechamento).
