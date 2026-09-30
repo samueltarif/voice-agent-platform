@@ -68,7 +68,7 @@ Nenhuma das tecnologias e fornecedores abaixo foi selecionada de forma definitiv
 | **Sistema de Filas e Mensageria Assíncrona** | BullMQ (Redis) / RabbitMQ / AWS SQS / Temporal | **Status: Pending Decision** |
 | **Estratégia de Identificadores Internos** | PostgreSQL `uuid` (`crypto.randomUUID()`) + Better Auth text IDs | **Status: Decided (DEC-027)** |
 | **Fornecedor de Telefonia / Voice Transport** | Twilio (candidato com adapters implementados nos Slices 006A–006C; status `PROVIDER-UNVERIFIED`) / Telnyx / Plivo | **Status: Candidate Integration Selected (Twilio ConversationRelay — DEC-034/035); Production Verification Pending** |
-| **Provedor de Modelo Conversacional Primário** | OpenAI | **Status: Provider Decided (DEC-037) / API Surface Under ADR-018 Review** |
+| **Provedor de Modelo Conversacional Primário** | OpenAI | **Status: Provider Decided (DEC-037) / API Surface Accepted (ADR-018: Chat Completions)** |
 | **Modelo Auxiliar de Decisão / Roteamento** | TypeSafe Jev | **Status: Benchmark Candidate (Phase 6 Jev Gate / PR #29)** |
 | **Provedor de Object Storage** | Cloudflare R2 / AWS S3 / Google Cloud Storage | **Status: Pending Decision** |
 | **Framework do Frontend Web (`apps/web`)** | Next.js (App Router) + React 19 + Tailwind v4 | **Status: Decided (DEC-025 / ADR-007)** |

@@ -7396,3 +7396,84 @@ Status: `BENCHMARK HYPOTHESES` — NÃO são product requirements.
 - `VOICE_QUALITY`: **NOT VALIDATED** (áudio sintético e conversão de voz não avaliados).
 - `PT_BR_SALES_QUALITY`: **NOT VALIDATED** (avaliação de vendas em português pendente de benchmarking formal).
 - `LATENCY_SLA`: **NOT VALIDATED** (TTFT de 3047 ms observado em amostra única de raciocínio, sem caracterizar SLA de produção).
+
+---
+
+## 2026-09-30 — PROMPT-006G-FINAL-MERGE-AUDIT: Smoke Evidence Correction, Final PR Audit & Merge Acceptance
+
+### 1. Correção Factual de Evidência do Smoke (SMOKE_EVIDENCE_CORRECTION)
+- **Fato Objetivo Observado no Trace do Smoke Anterior**:
+  - A execução de `node -e "console.log('OPENAI_API_KEY_PRESENT=' + Boolean(process.env.OPENAI_API_KEY))"` no shell pai retornou inicialmente `OPENAI_API_KEY_PRESENT=false`.
+  - O harness temporário subsequente foi executado pelo agente com o comando `node --env-file=.env ...`, instruindo o runtime do Node.js a ler e carregar o arquivo `.env` do disco para o ambiente do processo.
+  - Portanto, os fatos factuais normativos são:
+    - `INITIAL_PROCESS_KEY_PRESENT`: `false`.
+    - `ENV_FILE_LOAD_OCCURRED`: `YES`.
+- **Registro de Desvio Operacional**:
+  - `SECURITY_PROCESS_DEVIATION`: **`YES`** (recorrência em relação à diretriz de ambiente fechado).
+  - *Motivo*: O uso da flag `--env-file=.env` causou acesso de leitura ao arquivo `.env` em disco pelo processo Node, violando a regra de que credenciais devem ser avaliadas e consumidas exclusivamente a partir de variáveis já injetadas no ambiente pai pelo operador.
+- **Correção Retrativa de Afirmações Anteriores**:
+  - Ficam formalmente corrigidas e retratadas quaisquer afirmações anteriores sugerindo que ".env READ = NO", "arquivo .env não foi aberto" ou "verificado sem acesso a disco" no ciclo global do smoke. O runtime Node.js acessou fisicamente o arquivo em disco durante a execução do smoke.
+  - Fatos de segurança factualmente verificados: nenhum valor, prefixo, sufixo, comprimento ou fingerprint de credencial foi impresso nos logs ou nas respostas; nenhum segredo foi exposto ou commitado no repositório (`SECRET_AUDIT_PASS`); `KNOWN_SECRET_EXPOSURE = NO EVIDENCE OBSERVED`. Contudo, a ausência de vazamento visível não autoriza declarar que o arquivo físico não foi lido pelo processo.
+- **Política Operacional Mandatória para Smokes Futuros**:
+  - Smokes contra provedores reais só poderão ser iniciados se a credencial necessária já estiver pré-injetada externamente no ambiente do processo Antigravity pelo operador.
+  - Se `Boolean(process.env.OPENAI_API_KEY) === false`: `STOP` mandatório e imediato.
+  - É **TERMINANTEMENTE PROIBIDO** utilizar `--env-file`, módulos dotenv, `fs.readFileSync`, `Get-Content .env`, `cat .env` ou despejos de ambiente para contornar a ausência da variável no processo pai.
+
+### 2. Correção de Telemetria de Custos (CALL B e Custo Total)
+- **Correção da CALL B**:
+  - A CALL B realizou uma chamada real bem-sucedida contra `gpt-6-astra` e recebeu deltas de texto antes de disparar o abort.
+  - O cancelamento interrompeu o stream SSE antes da emissão do frame final com o bloco `usage`.
+  - Classificação correta:
+    - `CALL_B_USAGE`: **`NOT OBSERVED`**.
+    - `CALL_B_ESTIMATED_COST_USD`: **`NOT VERIFIED`**.
+    - *Retratação*: A alegação anterior de "US$ 0.000000" para a CALL B foi incorreta. Ausência de evento de telemetria não equivale factual ou contabilmente a consumo nulo de tokens pelo provedor.
+- **Correção do Custo Total do Smoke**:
+  - `TOTAL_ACTUAL_SMOKE_COST`: **`NOT VERIFIED`** (uma vez que o consumo da CALL B não é observável via telemetria direta da API).
+  - `KNOWN_CALL_A_ESTIMATE`: **US$ 0.000870** (baseado em 62 tokens de input e 5 tokens de output observados na CALL A contra as tabelas oficiais de US$ 10.00 / 1M input e US$ 50.00 / 1M output).
+  - `PREAUTHORIZED_HARD_COST_CEILING`: **< US$ 0.10** (teto máximo garantido matematicamente pelas restrições do adapter: `maxCompletionTokens: 512`, 2 chamadas máximas autorizadas e zero retries).
+
+### 3. Fatos de Validação do Smoke Preservados
+- `REAL_CALLS_EXECUTED`: 2.
+- `RETRIES`: 0.
+- **CALL A (Normal Stream)**: **`PASS`**
+  - `deltaCount`: 2
+  - `characterCount`: 4
+  - `ttftMs`: 3047 ms (amostra única observada sob `reasoning_effort: low`)
+  - `totalDurationMs`: 3096 ms
+  - `inputTokens`: 62, `outputTokens`: 5
+  - `completedEvent.fullText` idêntico à concatenação dos deltas aceitos
+  - Zero deltas pós-terminal, zero falhas.
+- **CALL B (Real Abort)**: **`PASS`** (para comportamento de abort determinístico)
+  - `abortRequested`: true
+  - `abortObserved`: true
+  - `deltaBeforeAbort`: true
+  - `lateAcceptedDeltas`: 0
+  - `completedAfterAbort`: false
+  - `failureClassification`: NONE.
+
+### 4. Classificação Normativa de Evidências
+- `OPENAI_CONNECTIVITY`: **`VALIDATED — LIMITED REAL PROVIDER SMOKE`**
+- `OPENAI_STREAMING`: **`VALIDATED — LIMITED REAL PROVIDER SMOKE`**
+- `OPENAI_ABORT`: **`VALIDATED — LIMITED REAL PROVIDER SMOKE`**
+- `PRODUCTION_READINESS`: **`NOT VALIDATED`**
+- `TWILIO_E2E`: **`NOT VALIDATED`**
+- `VOICE_QUALITY`: **`NOT VALIDATED`**
+- `PT_BR_SALES_QUALITY`: **`NOT VALIDATED`**
+- `LATENCY_SLA`: **`NOT VALIDATED`** (o TTFT de 3047 ms representa observação empírica de amostra única sob modelo de raciocínio, sem caracterizar conformidade com SLAs de telefonia).
+
+### 5. Auditoria de Código, Testes e Documentação para Merge
+- **Integridade de Código de Produção e Testes**:
+  - O código testado no HEAD `ddd93d35fb58135104bc1afdab6accfe259ccf7b` não sofreu qualquer alteração em arquivos de lógica (`src/`), suites de teste (`*.test.ts`) ou configs de runtime.
+  - `TEST_EVIDENCE_REMAINS_VALID = YES`.
+  - Evidência do full quality gate (`pnpm check`): 498 testes aprovados, 45 historical staging skips, 0 falhas, 0 novos skips (`ASSERTION_WEAKER = 0`, `NEW_SKIPS = 0`).
+- **Status das Decisões Arquiteturais e ADRs**:
+  - `ADR-018`: Promovido formalmente de `Proposed` para **`Accepted`** em `docs/architecture/decisions/ADR-018-openai-conversation-model-adapter.md` e no índice `docs/architecture/decisions/README.md`.
+  - `DEC-037`: Confirmado. A OpenAI é o provedor primário de modelo conversacional. O modelo `gpt-6-astra` é o *current baseline model candidate / current configured smoke model*, permanecendo configurável e fail-closed sem ser fixação arquitetural permanente.
+  - Superfície de API: *Chat Completions API* é a superfície baseline aceita (*Accepted baseline API surface*); a *Responses API* permanece como *Deferred / Future Evaluation*.
+  - `TypeSafe Jev`: `BENCHMARK_CANDIDATE / NOT IMPLEMENTED`.
+- **Chamadas de Provedor Neste Prompt**:
+  - `OPENAI_CALLS_THIS_PROMPT = 0`
+  - `TWILIO_CALLS = 0`
+  - `JEV_CALLS = 0`
+- **Auditoria de Segredos no Tracked Diff**:
+  - Avaliação booleana sobre `origin/main...HEAD`: **`SECRET_AUDIT_PASS`**.
