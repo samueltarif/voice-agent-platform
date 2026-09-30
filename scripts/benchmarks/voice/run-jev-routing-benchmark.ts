@@ -121,7 +121,7 @@ async function runBenchmark(): Promise<void> {
   console.log(`Artifact saved to: ${resultPath}`);
 }
 
-if (process.argv[1]?.includes('run-jev-routing-benchmark')) {
+if (process.argv.some((arg) => arg.includes('run-jev-routing-benchmark'))) {
   runBenchmark().catch((err: unknown) => {
     const message = err instanceof Error ? err.message : 'Unknown error';
     console.error('Fatal execution error:', message);
