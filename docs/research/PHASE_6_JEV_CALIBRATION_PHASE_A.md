@@ -3,10 +3,21 @@
 - **Status**: PHASE A SIGNAL COLLECTION — COMPLETE / SYNTHETIC / LIMITED
 - **Data**: 2026-09-30
 - **Branch**: `research/006k-jev-calibration-execution`
-- **PR**: #34 (OPEN / NOT MERGED)
-- **Pre-Provider Commit**: `1de5e4f4fce00bf3dd230dfa6c8e31293c3be921`
+- **PR**: #34 (MERGED)
 - **Dataset de Calibração**: `scripts/benchmarks/voice/jev-calibration-v2-cases.json` (Version 2.0.0)
 - **Resultados Salvos em**: `docs/research/results/phase-6-jev-calibration-v2-phase-a-run1.json`
+
+### Rastreabilidade de Execução
+
+| Item | SHA / Valor |
+| :--- | :--- |
+| **Initial pre-provider commit** | `b0d2e7fc80fa9b1b8e003ad86beca6c80b2ed1c3` (research: add Jev calibration phase A runner) |
+| **Provider execution code HEAD** | `b2a434820082e883b652f5dee316f552c664654f` (commit em vigência quando `vite-node` executou as 160 requests — entrypoint com guarda `!VITEST && argv.includes(...)`) |
+| **Post-run refactor commit** | `1de5e4f48c5fc7df2ceb59f514cf8ce6a184f100` (decoupling imports; code changed **after** provider run) |
+| **Lint fix commit** | `662ebcdf88a32156f97e2de7951f9abd6db2217d` (remove stale unused import) |
+| **Final tested HEAD** | `662ebcdf88a32156f97e2de7951f9abd6db2217d` |
+
+> **Nota de Staleness**: O `pnpm check` anterior (524 passed, 45 skips) foi observado **antes** dos commits `1de5e4f` e `662ebcd`. Após essas alterações de código/teste, a evidência anterior tornou-se `STALE`. O quality gate definitivo foi reexecutado no HEAD final `662ebcd` e confirmado: **PASS** (524 passed, 45 skips, 0 failures, 0 new skips).
 
 ---
 
@@ -55,11 +66,13 @@ O Direct Choice V1 foi executado para medir o comportamento basal do classificad
 | **False Bypass Count** | **15** | 15 turnos não-determinísticos classificados como determinísticos |
 | **False Bypass Rate s/ Não-Determinísticos** | **28.85%** | 15 falsos bypasses em 52 casos não-determinísticos |
 | **False Bypass Rate entre Propostos** | **38.46%** | 15 erros entre os 39 desvios propostos |
-| **Security Miss Count** | **0** | 0 falhas em 12 casos de segurança |
-| **Security Miss Rate** | **0.00%** | 100% dos casos de segurança escalados corretamente |
+| **Security Miss Count** | **0 observados** | 0 misses observados nos 12 casos de segurança da amostra de calibração |
+| **Security Miss Rate** | **0.00%** | Observado nesta amostra de N=12; não caracteriza garantia de contenção em produção |
 | **Unnecessary Security Escalation** | **0** | Nenhum caso não-segurança foi classificado como segurança |
 
 > **Nota Crítica sobre o Direct Choice**: A taxa de falsos bypasses permaneceu alta no Choice direto (38.46% de erro entre os turnos desviados), confirmando a evidência preliminar de que o Choice V1 não pode ser utilizado diretamente para desvio em produção sem calibração ou regras auxiliares adicionais.
+
+> **Nota sobre Security Misses**: `SECURITY_MISSES_OBSERVED = 0/12` nesta amostra de calibração. Esta é uma observação empírica descritiva, **não** uma garantia de segurança ou contenção perfeita em produção.
 
 ---
 
@@ -104,18 +117,20 @@ As 3 perguntas atômicas Noul (`is_deterministic_candidate`, `is_generative_requ
 
 ---
 
-## 6. Consumo de Tokens e Custos Reais
+## 6. Consumo de Tokens e Custo Estimado por Uso
 
 - **Tabela Oficial TypeSafe**: $0.042 / 1.000.000 tokens de entrada; tokens de saída gratuitos ($0.00).
 - **Teto Autorizado no Prompt**: US$ 0.05
 
-| Componente | Tokens Entrada | Tokens Saída | Custo Estimado (USD) | Status |
+| Componente | Tokens Entrada | Tokens Saída | Custo Estimado por Uso (USD) | Status |
 | :--- | :---: | :---: | :---: | :---: |
-| **Choice V1 (80 reqs)** | 38.718 | 5.128 | $0.001626 | **VERIFIED** |
-| **Atomic V1 (80 reqs)** | 50.558 | 5.120 | $0.002123 | **VERIFIED** |
-| **Total Combinado (160 reqs)** | **89.276** | **10.248** | **$0.003750** | **VERIFIED** |
+| **Choice V1 (80 reqs)** | 38.718 | 5.128 | $0.001626 | **USAGE OBSERVED / ARITHMETIC VERIFIED** |
+| **Atomic V1 (80 reqs)** | 50.558 | 5.120 | $0.002123 | **USAGE OBSERVED / ARITHMETIC VERIFIED** |
+| **Total Combinado (160 reqs)** | **89.276** | **10.248** | **$0.003750** | **USAGE OBSERVED / ARITHMETIC VERIFIED** |
 
-O custo total da execução completa de calibração ($0.003750 USD) representou apenas 7.5% do teto financeiro autorizado ($0.05 USD).
+O custo estimado por uso ($0.003750 USD) representou aproximadamente 7.5% do teto financeiro autorizado ($0.05 USD).
+
+> **Semântica de Custo**: Os valores acima são `USAGE_BASED_ESTIMATED_COST`: o campo `usage` foi observado na resposta da API, e a aritmética ($tokens × $0.042 / 1M) foi verificada deterministicamente. O valor de cobrança real (`ACTUAL_BILLING_COST`) permanece `NOT INDEPENDENTLY RECONCILED` — nenhuma consulta ao painel de faturamento do provedor foi realizada.
 
 ---
 

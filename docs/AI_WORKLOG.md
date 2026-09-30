@@ -8100,3 +8100,134 @@ Status: `BENCHMARK HYPOTHESES` — NÃO são product requirements.
 - `TWILIO_CALLS = 0`
 - `PRODUCTION_INTEGRATION = NO`
 - `PR_STATUS = OPEN / NOT MERGED`
+
+---
+
+## 2026-09-30 — PROMPT-006K-PHASE-A-FINAL-EVIDENCE-CLOSE-001: Jev Phase A Evidence Repair, Final Quality Gate & PR #34 Merge
+
+- **Branch**: `research/006k-jev-calibration-execution`
+- **PR**: #34 — MERGED
+- **Main / Base SHA (pré-merge)**: `2959067601749d02af08a486450606bb57ab39fa`
+- **Status**: PHASE A FINAL EVIDENCE CLOSE — COMPLETE
+
+### 1. Preflight
+- **Branch Atual**: `research/006k-jev-calibration-execution` ✓
+- **Reported HEAD confirmado**: `940c595dc073993d08d8cc39945a7aad07d53159` ✓
+- **PR #34**: `OPEN` / `state: open` / base: `main` / head: `research/006k-jev-calibration-execution` / `sha: 940c595dc073993d08d8cc39945a7aad07d53159` ✓
+- **PR não havia sido mergeado**: `merged_at: null` ✓
+
+### 2. Reconstrução do Código de Execução do Provedor (via git log versionado)
+
+Sequência de commits reconstruída exclusivamente via `git log`, `git show --stat` e ancestralidade de commits. Proibido uso de transcripts internos, shell history ou task logs.
+
+| SHA | Timestamp | Descrição | Arquivos Alterados |
+| :--- | :--- | :--- | :--- |
+| `b0d2e7f` | 2026-09-30 12:10 | research: add Jev calibration phase A runner | 6 arquivos (runner, test, calculator, executor, types, plan) |
+| `7c73491` | 2026-09-30 12:19 | fix: adjust CLI entrypoint detection | `run-jev-calibration-phase-a.ts` |
+| `b2a4348` | 2026-09-30 12:22 | fix: guard runner execution against vitest runner environment | `run-jev-calibration-phase-a.ts` |
+| `1de5e4f` | 2026-09-30 12:25 | refactor: decoupling calibration runner from unit test imports | `run-jev-calibration-phase-a.ts`, `jev-calibration-calculator.ts`, `jev-calibration-runner.test.ts` |
+| `940c595` | 2026-09-30 12:28 | docs: record Jev calibration phase A signals | AI_WORKLOG, PHASE_6_JEV_CALIBRATION_PHASE_A.md, results JSON |
+
+- **INITIAL_PRE_PROVIDER_COMMIT**: `b0d2e7fc80fa9b1b8e003ad86beca6c80b2ed1c3` (inicial, antes de qualquer fix do runner)
+- **ACTUAL_PROVIDER_EXECUTION_CODE_HEAD**: `b2a434820082e883b652f5dee316f552c664654f` (HEAD efetivo no momento da run de 160 requests; entrypoint tinha guarda `!VITEST && argv.includes(...)` que o `vite-node` satisfazia)
+- **Correção Documental**: O WORKLOG anterior (`PROMPT-006K`) registrou `1de5e4f` como "pre-provider commit". Isso é factualmente impreciso: `1de5e4f` foi commitado *após* a execução do provedor. O código efetivamente executado nas 160 requisições estava no commit `b2a4348`. Esta correção é registrada aqui como nova entrada append-only; a entrada anterior não foi reescrita.
+
+### 3. Quality Gate Staleness Audit
+
+- **DID_PRODUCTION_OR_BENCHMARK_CODE_CHANGE_AFTER_LAST_FULL_CHECK**: **YES**
+  - `1de5e4f` alterou `run-jev-calibration-phase-a.ts` e `jev-calibration-calculator.ts` após o `pnpm check` anterior.
+  - `662ebcd` removeu import `JevRoutingClass` não utilizado de `run-jev-calibration-phase-a.ts`.
+- **DID_TEST_CODE_CHANGE_AFTER_LAST_FULL_CHECK**: **YES**
+  - `1de5e4f` alterou o import de `filterCalibrationCases`/`serializeSanitizedResults` em `jev-calibration-runner.test.ts` de `run-jev-calibration-phase-a.js` para `jev-calibration-calculator.js`.
+- **PREVIOUS_FINAL_PNPM_CHECK**: **`STALE`** (código/teste alterados depois).
+
+### 4. Test-Diff Audit
+
+Alteração em `packages/integrations/src/typesafe/jev-calibration-runner.test.ts` entre `b2a4348` e `1de5e4f`:
+
+- **Tipo**: Somente alteração de import path (`run-jev-calibration-phase-a.js` → `jev-calibration-calculator.js`).
+- **Assertions afetadas**: 0 (nenhuma assertion alterada).
+- **Testes adicionados**: 0 | **Testes removidos**: 0 | **Testes com skip**: 0.
+- **Classificação**: `ASSERTION_EQUIVALENT` (refactor de import sem impacto em lógica ou assertions).
+- **ASSERTION_WEAKER**: **0**.
+- **NEW_SKIPS**: **0**.
+
+### 5. Final Full Quality Gate (HEAD: 662ebcdf88a32156f97e2de7951f9abd6db2217d)
+
+- **FINAL_TESTED_HEAD**: `662ebcdf88a32156f97e2de7951f9abd6db2217d`
+- **format**: PASS (`prettier --check .` — all files use Prettier code style)
+- **lint**: PASS (`eslint .` — 0 errors, 0 warnings após remoção do import não utilizado)
+- **typecheck**: PASS (`tsc` em todos os packages)
+- **test files**: 96 passed | 6 skipped (102 total)
+- **tests passed**: 524
+- **historical skips**: 45
+- **new skips**: 0
+- **failures**: 0
+- **build**: PASS (`turbo build` — 12/12 successful, FULL TURBO cache)
+- **architecture**: PASS (`check-architecture.mjs` — todas as fronteiras respeitadas)
+- **file-size**: PASS (`check-file-size.mjs` — 14 avisos históricos, nenhum blocker novo)
+
+### 6. Hash Revalidation
+
+| Artefato | Hash Esperado | Hash Computado | Status |
+| :--- | :--- | :--- | :---: |
+| V1 Dataset | `9ab7cbd2fbfcf...e0d50` | `9AB7CBD2FBFCF...E0D50` (case-insensitive match) | **MATCH** ✓ |
+| V2 Dataset | `3e7e0a20ecd33...ec3047` | `3E7E0A20ECD33...EC3047` (case-insensitive match) | **MATCH** ✓ |
+| Choice V1 | `1e6aaccdb562c...90788` | Presente no código-fonte (export canônico) | **VERIFIED** ✓ |
+| Atomic V1 | `3fecf9ce82ad6...25` | Presente no código-fonte (export canônico) | **VERIFIED** ✓ |
+
+### 7. Result Artifact Immutability Audit
+
+Arquivo: `docs/research/results/phase-6-jev-calibration-v2-phase-a-run1.json`
+- **CASES**: 80 ✓
+- **BENCHMARK_STATUS**: COMPLETE ✓
+- **CHOICE_EXEC**: 80 ✓
+- **ATOMIC_EXEC**: 80 ✓
+- **TOTAL_EXEC**: 160 ✓
+- **RETRIES**: 0 ✓
+- **HOLDOUT**: 0 ✓
+- **MODEL**: jev-1.13.0 ✓
+- **DRIFT**: false ✓
+- **FAILURES**: 0 ✓
+- **Resultado não alterado após a run**: CONFIRMED
+
+### 8. Correção de Semântica de Custo
+
+- **Custo Choice**: $0.001626156 USD (calculado deterministicamente: 38.718 × $0.042 / 1M). **ARITHMETIC VERIFIED**.
+- **Custo Atomic**: $0.002123436 USD (calculado deterministicamente: 50.558 × $0.042 / 1M). **ARITHMETIC VERIFIED**.
+- **Custo Total**: $0.003749592 USD. **ARITHMETIC VERIFIED**.
+- **Classificação Correta**: `USAGE_BASED_ESTIMATED_COST`. O campo `usage` foi observado na resposta da API e a aritmética foi verificada.
+- **Billing-Ledger Reconciliation**: `NOT PERFORMED` / `NOT INDEPENDENTLY RECONCILED`. Nenhuma consulta ao painel de cobrança do provedor foi realizada.
+- **Aplicado em**: `docs/research/PHASE_6_JEV_CALIBRATION_PHASE_A.md` (seção 6 renomeada e nota adicionada).
+
+### 9. Correção de Semântica de Segurança
+
+- **Observado**: `SECURITY_MISSES_OBSERVED = 0/12` na amostra de calibração.
+- **Não declarado**: garantia de segurança, 100% production-safe, perfect containment.
+- **Aplicado em**: `docs/research/PHASE_6_JEV_CALIBRATION_PHASE_A.md` (wording corrigido na tabela e nota explicativa adicionada).
+
+### 10. Correty de Latência
+
+- **Choice**: min=236ms / mediana=262ms / max=385ms — classificado como HTTP request start → complete typed response parsed. Não chamado de TTFT.
+- **Atomic**: min=232ms / mediana=261ms / max=447ms — idem.
+
+### 11. Correções Documentais Aplicadas
+
+- `docs/research/PHASE_6_JEV_CALIBRATION_PHASE_A.md`:
+  - Header: adicionada tabela de rastreabilidade de execução (INITIAL / ACTUAL_PROVIDER_EXECUTION_CODE_HEAD / post-run refactor / lint fix / final tested HEAD).
+  - Nota de staleness: quality gate anterior classificado como STALE; final gate em `662ebcd` confirmado PASS.
+  - Tabela de métricas: wording de security miss corrigido.
+  - Nota de security miss: adicionada distinção entre observação empírica e garantia de produção.
+  - Seção de custo: título e status corrigidos para `USAGE_BASED_ESTIMATED_COST`; nota de billing-ledger adicionada.
+  - Status do PR atualizado para MERGED.
+
+### 12. Governança Deste Prompt
+
+- `OPENAI_CALLS = 0`
+- `JEV_CALLS = 0`
+- `TWILIO_CALLS = 0`
+- `.env` não carregado
+- `THRESHOLD_SELECTED = NO`
+- `CANDIDATE_POLICY_SELECTED = NO`
+- `HOLDOUT_EVALUATED = NO`
+- `PROVIDER_CALLS_THIS_PROMPT = 0`
