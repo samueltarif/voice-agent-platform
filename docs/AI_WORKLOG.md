@@ -8795,3 +8795,63 @@ Este fechamento retifica a formulação epistemológica da base de evidência da
 - `pnpm format:check`: PASS.
 - `SECRET_AUDIT_PASS`: Auditoria booleana via `git diff origin/main...HEAD`. Zero segredos expostos.
 - `PR_STATUS`: Aberto e **NÃO MERGEADO** (conforme instrução estrita).
+
+## [2026-09-30] PROMPT-006N-JEV-RUNTIME-DESIGN-FINAL-CLOSE-001: Jev Guarded Runtime Integration — Evidence Corrections, ADR Canonicalization & PR #38 Merge
+
+### 1. Base State & Context
+- **Base Commit**: `b8cd1c296ee7626e9d0f7c775e465c4e1d0d2b2e` (`origin/main`).
+- **PR #38**: Aberto, sob auditoria final para merge.
+- **Branch**: `research/006n-jev-runtime-integration-design`.
+- **Aprovação de Direção**: O envio do prompt pelo operador constitui aprovação humana formal da direção arquitetural do ADR-019 (design-only; não autoriza implementação).
+- **Provedores Externos / Chamadas Reais**: Zero (`OPENAI_CALLS_THIS_PROMPT = 0`, `JEV_CALLS_THIS_PROMPT = 0`, `TWILIO_CALLS_THIS_PROMPT = 0`).
+- **Carregamento de `.env`**: Não carregado (`ENV_LOADED = NO`, `UNNECESSARY_ENV_RUNTIME_LOAD = NO`).
+- **Escopo do Slice**: Estritamente DOCS-ONLY (`docs/**`). Zero código, teste, config ou lockfile alterados.
+
+### 2. Resolução de Duplicação e Canonicalização de ADR
+- **Duplicação Eliminada**: Arquivo duplicado `docs/adr/ADR-019-jev-guarded-runtime-integration.md` e diretório `docs/adr/` removidos do repositório.
+- `ADR_DUPLICATION_RESOLVED = YES`.
+- `CANONICAL_ADR_PATH = docs/architecture/decisions/ADR-019-jev-guarded-runtime-integration.md`.
+- **Status do ADR-019**: Alterado formalmente de `Proposed` para **`Accepted`** no arquivo do ADR e no índice `docs/architecture/decisions/README.md`.
+- *Qualificação*: O status `Accepted` aceita exclusivamente o design arquitetural. Não significa `IMPLEMENTED`, `PRODUCTION_READY` ou `ACTIVE_GUARDED_ENABLED`.
+
+### 3. Correção de Overclaims e Precisão de Evidência
+- **Remoção de Termos Absolutos**: Expressões como "zero risk", "zero latency", "risk zero", "100% compatible" e "guarantees no degradation" foram substituídas por descrições factuais.
+- **Semântica de Modo Shadow**:
+  - Definido formalmente que a execução em Shadow "não bloqueia nem altera intencionalmente o caminho conversacional autoritativo por design".
+  - Registrado que o Shadow consome recursos locais (CPU, memória), capacidade de rede, quota de provedor e orçamento monetário, podendo gerar contenção indireta se não for delimitado.
+  - **Bounded Shadow**: Exigência de concorrência limitada (`SHADOW_MAX_CONCURRENCY = NOT SELECTED`), fila/backlog delimitado (`SHADOW_MAX_BACKLOG = NOT SELECTED`), descarte seguro sob pressão e impossibilidade de exaurir pools de conexão HTTP ou gerar promises pendentes ilimitadas.
+  - Em Shadow, falhas ou timeouts do Jev não provocam fallback de roteamento (o fluxo autoritativo da OpenAI prossegue de forma independente). A falha afeta apenas a completude da telemetria de auditoria.
+- **Staging-First**:
+  - Rollout estritamente estagiado: `DISABLED` -> `CONTROLLED STAGING SHADOW` -> `measured staging evidence` -> portão posterior de produção se expressamente aprovado.
+  - Produção permanece: `JEV_PRODUCTION_INTEGRATION = NO`.
+- **Customer Transcript & Privacy Gate**:
+  - Registrado: `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`.
+  - Proibida a transmissão de transcrições de clientes reais antes da revisão formal de minimização de dados, termos de processamento/retenção do provedor, consentimento e políticas de log.
+  - A telemetria rotineira não deve registrar transcrições brutas (`callerTranscript`) nos logs estruturados.
+- **Contexto do Provedor**:
+  - Substituída afirmação genérica por requisito arquitetural normativo: "A integração NÃO DEVE depender de estado conversacional persistente no provedor externo (*The integration MUST NOT rely on provider-side persistent conversation state*). Toda avaliação recebe exclusivamente o estado fornecido explicitamente pela aplicação."
+- **Teto Global de Funcionalidade (Global Feature Ceiling)**:
+  - `GLOBAL_ALLOWED_MODE` atua como teto rígido e kill switch global. Configurações por organização (`organizationId`) só podem selecionar modos dentro do teto global permitido.
+- **Prontidão de Handlers Determinísticos**:
+  - Mantido: `ACTIVE_DETERMINISTIC_BYPASS_READINESS = BLOCKED`.
+  - Invariante: `NO_KNOWN_DETERMINISTIC_HANDLER -> NO_DETERMINISTIC_BYPASS`.
+  - Total de handlers existentes = 0.
+- **Topologias Arquiteturais**:
+  - Opção A: `NOT SELECTED under current latency evidence`.
+  - Opção B: `NOT SELECTED due cancellation/cost/streaming complexity`.
+  - Opção C: `SELECTED FUTURE ACTIVE TOPOLOGY, conditional on known deterministic handlers and new evidence`.
+  - Opção D: `SELECTED FIRST INTEGRATION TOPOLOGY, initially in controlled staging shadow`.
+- **Remoção de Limiares Arbitrários**:
+  - Removidos critérios não derivados de evidência (como "< 1.0%" ou "1000-1500ms").
+  - Mantidos placeholders não selecionados: `JEV_ACCEPTABLE_TIMEOUT_RATE = NOT SELECTED`, `CONVERSATIONAL_LATENCY_BUDGET_MS = NOT SELECTED`, `CIRCUIT_BREAKER_TRIGGER_THRESHOLDS = NOT SELECTED`, `JEV_TIMEOUT_MS = NOT SELECTED`.
+- **Plano de Benchmark & Cenário D**:
+  - Registrado: `SCENARIO_D_EXECUTION = BLOCKED_UNTIL_DETERMINISTIC_HANDLER_EXISTS`.
+  - Parâmetros orçamentários mantidos desancorados: `BUDGET_CAP_USD = NOT AUTHORIZED`, `MAX_CALLS_OR_TURNS = NOT AUTHORIZED`, `SCENARIO_SAMPLE_COUNTS = NOT SELECTED`.
+- **Porta Mínima**:
+  - `AuxiliaryTurnDecisionPort`: `ACCEPTED DESIGN / NOT IMPLEMENTED`.
+
+### 4. Validação e Qualidade
+- `git diff --check`: PASS.
+- `pnpm format:check`: PASS.
+- `SECRET_AUDIT_PASS`: Auditoria booleana via `git diff origin/main...HEAD`. Zero segredos expostos.
+- `PR #38`: Auditado e pronto para merge.
