@@ -7596,17 +7596,18 @@ Status: `BENCHMARK HYPOTHESES` — NÃO são product requirements.
   - Temperature: Omitida
   - Ordem estrita: `base-01` a `base-12`
   - Teto de custo: US$ 0.40
-  - Retries: 0 (interrupção na primeira falha)
-- **Resultado Observado**:
-  - Tentativa do caso `base-01`: Falhou com `OpenAI authentication failed or invalid credentials` (HTTP 401).
-  - Ação executada: **`STOP` imediato**. Zero retries.
-  - Casos seguintes (`base-02` a `base-12`): `NOT_EXECUTED` (11 restantes).
-  - **Benchmark Status**: `PARTIAL`.
-  - **Main Model Requests Observadas**: 1 tentativa.
-  - **Main Model Call Avoidance Rate**: `NOT MEASURED`.
-  - **Usage Completeness**: `NONE` (`NOT_OBSERVED`).
-  - **Cost Completeness**: `NOT_VERIFIED` (Known partial: $0.000000 USD).
-  - **Métricas de Latência (TTFT / Duração)**: `null` (nenhum caso concluído com sucesso).
+  - Retries: 0 (zero retries)
+- **Resultado Observado (N=12 Concluído com Sucesso)**:
+  - **Benchmark Status**: `COMPLETE`.
+  - **Casos Executados / Total**: 12 / 12 (0 falhas, 0 retries).
+  - **Main Model Requests Observadas**: 12.
+  - **Main Model Call Avoidance Rate**: `0%` (Baseline de referência).
+  - **Tokens de Entrada Observados**: 1032 tokens.
+  - **Tokens de Saída Observados**: 299 tokens.
+  - **Custo Total Estimado**: $0.025270 USD (abaixo do teto autorizado de $0.40).
+  - **Custo Médio por Turno**: $0.002106 USD.
+  - **Latência TTFT (ms)**: min=1020, mediana=1771, max=2911, descriptive sample p95=2911.
+  - **Duração Total (ms)**: min=1513, mediana=2475, max=3659, descriptive sample p95=3659.
   - **Log de Conteúdo de Resposta**: `NO` (zero prompts, tokens ou texto gravados em log).
   - **Chamadas de Telefonia (Twilio)**: 0.
   - **Chamadas de TypeSafe Jev**: 0.

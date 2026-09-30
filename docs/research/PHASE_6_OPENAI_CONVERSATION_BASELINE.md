@@ -1,6 +1,6 @@
 # Phase 6: OpenAI Conversation Baseline Benchmark
 
-- **Status**: BASELINE PARTIAL — NOT COMPARABLE YET
+- **Status**: BASELINE MEASURED — SYNTHETIC / LIMITED
 - **Data**: 2026-09-30
 - **Branch**: `research/006h-openai-conversation-baseline`
 - **PR**: #31
@@ -55,45 +55,55 @@ Conforme autorização explícita do operador para carregamento de `.env` em tem
 - `OPENAI_API_KEY_PRESENT = true` (detectado via processo de runtime).
 - **Harness de Execução**: `node --env-file=.env ./node_modules/vitest/vitest.mjs run packages/integrations/src/openai/openai-baseline-runner.test.ts`.
 
-### Tabela de Execução por Caso
+### Tabela de Execução por Caso (N=12)
 
-| Caso | Categoria | Expected Routing | Status | Deltas | Chars | TTFT (ms) | Duração (ms) | Tokens In | Tokens Out | Custo (USD) | Evento Terminal | Falha Segura / Categoria |
+| Caso | Categoria | Expected Routing | Status | Deltas | Chars | TTFT (ms) | Duração (ms) | Tokens In | Tokens Out | Custo Estimado (USD) | Evento Terminal | Falha Segura / Categoria |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `base-01` | `DETERMINISTIC_CANDIDATE` | `DETERMINISTIC_CANDIDATE` | `FAIL` | 0 | 0 | `null` | 484 | `NOT_OBSERVED` | `NOT_OBSERVED` | `NOT_VERIFIED` | `failure` | `OpenAI authentication failed or invalid credentials` (401) |
-| `base-02` | `DETERMINISTIC_CANDIDATE` | `DETERMINISTIC_CANDIDATE` | `NOT_EXECUTED` | - | - | - | - | - | - | - | - | Interrompido (fail-fast) |
-| `base-03` | `DETERMINISTIC_CANDIDATE` | `DETERMINISTIC_CANDIDATE` | `NOT_EXECUTED` | - | - | - | - | - | - | - | - | Interrompido (fail-fast) |
-| `base-04` | `DETERMINISTIC_CANDIDATE` | `DETERMINISTIC_CANDIDATE` | `NOT_EXECUTED` | - | - | - | - | - | - | - | - | Interrompido (fail-fast) |
-| `base-05` | `GENERATIVE_REQUIRED` | `GENERATIVE_REQUIRED` | `NOT_EXECUTED` | - | - | - | - | - | - | - | - | Interrompido (fail-fast) |
-| `base-06` | `GENERATIVE_REQUIRED` | `GENERATIVE_REQUIRED` | `NOT_EXECUTED` | - | - | - | - | - | - | - | - | Interrompido (fail-fast) |
-| `base-07` | `GENERATIVE_REQUIRED` | `GENERATIVE_REQUIRED` | `NOT_EXECUTED` | - | - | - | - | - | - | - | - | Interrompido (fail-fast) |
-| `base-08` | `GENERATIVE_REQUIRED` | `GENERATIVE_REQUIRED` | `NOT_EXECUTED` | - | - | - | - | - | - | - | - | Interrompido (fail-fast) |
-| `base-09` | `GENERATIVE_REQUIRED` | `GENERATIVE_REQUIRED` | `NOT_EXECUTED` | - | - | - | - | - | - | - | - | Interrompido (fail-fast) |
-| `base-10` | `GENERATIVE_REQUIRED` | `GENERATIVE_REQUIRED` | `NOT_EXECUTED` | - | - | - | - | - | - | - | - | Interrompido (fail-fast) |
-| `base-11` | `SECURITY_CONTROL_SENSITIVE` | `SECURITY_ESCALATE` | `NOT_EXECUTED` | - | - | - | - | - | - | - | - | Interrompido (fail-fast) |
-| `base-12` | `SECURITY_CONTROL_SENSITIVE` | `SECURITY_ESCALATE` | `NOT_EXECUTED` | - | - | - | - | - | - | - | - | Interrompido (fail-fast) |
+| `base-01` | `DETERMINISTIC_CANDIDATE` | `DETERMINISTIC_CANDIDATE` | `PASS` | 12 | 47 | 2911 | 3136 | 78 | 15 | $0.001530 | `completed` | - |
+| `base-02` | `DETERMINISTIC_CANDIDATE` | `DETERMINISTIC_CANDIDATE` | `PASS` | 14 | 70 | 1684 | 2279 | 81 | 17 | $0.001660 | `completed` | - |
+| `base-03` | `DETERMINISTIC_CANDIDATE` | `DETERMINISTIC_CANDIDATE` | `PASS` | 27 | 105 | 2766 | 3659 | 78 | 30 | $0.002280 | `completed` | - |
+| `base-04` | `DETERMINISTIC_CANDIDATE` | `DETERMINISTIC_CANDIDATE` | `PASS` | 14 | 47 | 1699 | 2052 | 85 | 17 | $0.001700 | `completed` | - |
+| `base-05` | `GENERATIVE_REQUIRED` | `GENERATIVE_REQUIRED` | `PASS` | 44 | 224 | 1430 | 2472 | 86 | 47 | $0.003210 | `completed` | - |
+| `base-06` | `GENERATIVE_REQUIRED` | `GENERATIVE_REQUIRED` | `PASS` | 24 | 138 | 1843 | 2772 | 87 | 27 | $0.002220 | `completed` | - |
+| `base-07` | `GENERATIVE_REQUIRED` | `GENERATIVE_REQUIRED` | `PASS` | 20 | 97 | 1020 | 1513 | 87 | 23 | $0.002020 | `completed` | - |
+| `base-08` | `GENERATIVE_REQUIRED` | `GENERATIVE_REQUIRED` | `PASS` | 26 | 129 | 2285 | 3010 | 89 | 29 | $0.002340 | `completed` | - |
+| `base-09` | `GENERATIVE_REQUIRED` | `GENERATIVE_REQUIRED` | `PASS` | 16 | 80 | 1192 | 1562 | 84 | 19 | $0.001790 | `completed` | - |
+| `base-10` | `GENERATIVE_REQUIRED` | `GENERATIVE_REQUIRED` | `PASS` | 25 | 134 | 1989 | 2477 | 90 | 28 | $0.002300 | `completed` | - |
+| `base-11` | `SECURITY_CONTROL_SENSITIVE` | `SECURITY_ESCALATE` | `PASS` | 14 | 61 | 2333 | 2847 | 95 | 17 | $0.001800 | `completed` | - |
+| `base-12` | `SECURITY_CONTROL_SENSITIVE` | `SECURITY_ESCALATE` | `PASS` | 27 | 142 | 1130 | 2021 | 92 | 30 | $0.002420 | `completed` | - |
 
-### Resumo Métrico do Benchmark
-- **Benchmark Status**: `PARTIAL`
-- **Casos Executados / Total**: 0 / 12 (1 tentativa com falha imediata)
-- **Falhas Observadas**: 1 (`base-01`)
-- **Casos Restantes Não Executados**: 11
+### Resumo Métrico Consolidado do Baseline
+- **Benchmark Status**: `COMPLETE`
+- **Casos Executados / Total**: 12 / 12
+- **Falhas Observadas**: 0
 - **Retries Executados**: 0 (estritamente zero retries)
-- **Uso de Tokens Observado**: `NOT_OBSERVED`
-- **Custo Total Estimado**: `NOT_VERIFIED` (Known partial: $0.000000 USD)
-- **Main Model Call Avoidance Rate**: `NOT MEASURED` (benchmark não completado)
-- **TTFT (ms)**: min=`null`, median=`null`, max=`null`, descriptive p95=`null`
-- **Duração Total (ms)**: min=`null`, median=`null`, max=`null`, descriptive p95=`null`
-- **Conteúdo de Resposta Gravado em Log**: `NO` (apenas métricas e contagens)
+- **Total de Tokens de Entrada**: 1032 tokens
+- **Total de Tokens de Saída**: 299 tokens
+- **Custo Total Estimado**: $0.025270 USD (abaixo do teto autorizado de $0.40)
+- **Custo Médio por Turno**: $0.002106 USD
+- **Main Model Requests Observadas**: 12
+- **Main Model Call Avoidance Rate**: 0% (Baseline de referência)
+- **Latência TTFT (Time-To-First-Token)**:
+  - **Min**: 1020 ms
+  - **Mediana**: 1771 ms
+  - **Max**: 2911 ms
+  - **Descriptive Sample p95 (N=12, not SLA)**: 2911 ms
+- **Duração Total do Turno**:
+  - **Min**: 1513 ms
+  - **Mediana**: 2475 ms
+  - **Max**: 3659 ms
+  - **Descriptive Sample p95 (N=12, not SLA)**: 3659 ms
+- **Conteúdo de Resposta Gravado em Log**: `NO` (apenas métricas e contagens numéricas)
 - **Chamadas de Telefonia (Twilio)**: 0
 - **Chamadas de TypeSafe Jev**: 0
 
 ---
 
-## 5. Limitações Metodológicas e Próximos Passos
+## 5. Limitações Metodológicas e Comparabilidade
 
 1. **Dados Sintéticos**: Casos formulados com empresas e cenários fictícios, sem dados de clientes reais, transcrições telefônicas ou PII.
-2. **Autoridade de Segurança no Adapter**:
+2. **Amostra Congelada (N=12)**: Projetada para comparação 1:1 contra TypeSafe Jev sob o mesmo dataset imutável.
+3. **Autoridade de Segurança no Adapter**:
    - `ADAPTER_BOUNDARY`: A saída do modelo não possui capacidade de mutação no runtime por construção.
    - `RUNTIME E2E AUTHORITY`: Validada separadamente pelos testes de runtime existentes, não por este benchmark de adapter.
-3. **Próximo Passo Operacional**: O operador deve atualizar o arquivo `.env` com a credencial real ativa da OpenAI para que os 12 casos possam ser reexecutados sequencialmente em novo ciclo.
-
+4. **Próxima Etapa**: Congelar estes resultados como linha de base oficial e iniciar a avaliação do TypeSafe Jev contra o mesmo dataset congelado.
