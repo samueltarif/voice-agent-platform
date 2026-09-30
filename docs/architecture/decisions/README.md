@@ -37,6 +37,4 @@ Cada registro segue rigorosamente a seguinte anatomia:
 | [ADR-016](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-016-twilio-live-call-gateway.md) | Twilio Live Call Gateway and Server-Side Bootstrap Binding | 2026-09-29 | Accepted |
 | [ADR-017](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-017-provider-neutral-conversation-model-runtime.md) | Provider-Neutral Conversation Model Runtime and Context Composition | 2026-09-29 | Accepted |
 | [ADR-018](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-018-openai-conversation-model-adapter.md) | OpenAI Conversation Model Adapter and Primary Provider Decision | 2026-09-29 | Accepted |
-
-
-
+| [ADR-019](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-019-jev-guarded-runtime-integration.md) | Jev Guarded Runtime Integration Architecture | 2026-09-30 | Accepted |
