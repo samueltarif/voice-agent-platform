@@ -3,8 +3,8 @@
 - **Status**: JEV ROUTING BENCHMARK — SYNTHETIC / LIMITED
 - **Data**: 2026-09-30
 - **Branch**: `research/006i-jev-routing-benchmark`
-- **PR**: #32 (DO NOT MERGE)
-- **Starting HEAD**: `08a5a7d0f13f1c0465504c8759a7eb5c31e168c0`
+- **PR**: #32 — MERGED
+- **Merge SHA**: `8605938d0d47a98aa83587d9fd37c30f41791959`
 - **Pre-Provider Commit**: `c55d5d60a501b8c64035317c1e179dce9ddc831f`
 
 ---

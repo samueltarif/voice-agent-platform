@@ -7868,3 +7868,140 @@ Status: `BENCHMARK HYPOTHESES` — NÃO são product requirements.
 - `JEV_CALLS_THIS_PROMPT = 0`
 - `TWILIO_CALLS_THIS_PROMPT = 0`
 - Carregamento de `.env`: `NO` (não necessário para fechamento).
+
+---
+
+## 2026-09-30 — PROMPT-006J-JEV-CALIBRATION-DESIGN-001: Independent Jev Calibration Dataset & Frozen Holdout Design
+
+- **Branch**: `research/006j-jev-calibration-design`
+- **Status**: DESIGN FROZEN / PROVIDER EXECUTION NOT STARTED
+- **Objetivo**: Projetar e congelar um benchmark de calibração significativamente maior e independente (120 casos) para o TypeSafe Jev com split estratificado e determinístico (80 Calibration / 40 Holdout), conjunto de perguntas atômicas Noul e testes determinísticos, sem executar qualquer chamada a provedores externos e sem alterar runtime de produção.
+
+### 1. Correção de Header Estágio PR #32
+- **Documento**: `docs/research/PHASE_6_JEV_ROUTING_BENCHMARK.md`
+- **Correção Factual**: Header atualizado de `PR: #32 (DO NOT MERGE)` para `PR: #32 — MERGED` com `Merge SHA: 8605938d0d47a98aa83587d9fd37c30f41791959`.
+- **Integridade**: Todas as métricas históricas de benchmark foram integralmente preservadas.
+
+### 2. Verificação de Imutabilidade do Dataset v1
+- **Arquivo**: `scripts/benchmarks/voice/openai-baseline-v1-cases.json`
+- **SHA-256 Esperado**: `9ab7cbd2fbfcf508673a700d4a484e0c674d0124766c7b7fa0eee05a573e0d50`
+- **SHA-256 Observado**: `9ab7cbd2fbfcf508673a700d4a484e0c674d0124766c7b7fa0eee05a573e0d50`
+- **Status**: HASH VERIFICADO / DATASET v1 INALTERADO.
+
+### 3. Novo Dataset Independente v2
+- **Arquivo**: `scripts/benchmarks/voice/jev-calibration-v2-cases.json`
+- **Versão**: `2.0.0`
+- **Total de Casos**: 120 casos sintéticos em `pt-BR`, orientados a atendimento telefônico, zero PII, zero dados de clientes reais.
+- **SHA-256**: `3e7e0a20ecd3341c99b84d40162b10eff17ba0600d191dd143bc99f00aec3047`
+- **Distribuição de Classes Estratificada**:
+  - `DETERMINISTIC_CANDIDATE`: 40 casos (33.3%)
+  - `GENERATIVE_REQUIRED`: 60 casos (50.0%)
+  - `SECURITY_ESCALATE`: 20 casos (16.7%)
+  - *Nota*: Distribuição deliberadamente estratificada para auditoria de risco, não reflete proporção empírica de produção.
+
+### 4. Split Determinístico Congelado (Calibration vs Holdout)
+- **CALIBRATION**: 80 casos
+  - 28 `DETERMINISTIC_CANDIDATE`
+  - 40 `GENERATIVE_REQUIRED`
+  - 12 `SECURITY_ESCALATE`
+- **HOLDOUT**: 40 casos
+  - 12 `DETERMINISTIC_CANDIDATE`
+  - 20 `GENERATIVE_REQUIRED`
+  - 8 `SECURITY_ESCALATE`
+- **Regra de Ouro**: O split está explicitamente versionado. Casos não podem ser movidos após congelamento. O Holdout permanece estritamente cego e intocado durante a calibração de políticas.
+
+### 5. Desenho de Casos Críticos e Diversidade de Segurança
+- **Hard Negatives (20 casos em `GENERATIVE_REQUIRED`)**:
+  - Casos curtos/aparentemente simples que pressionam a falha observada em `base-08`/`base-09`.
+  - 14 no split de Calibração, 6 no split de Holdout.
+- **Hard Positives (12 casos em `DETERMINISTIC_CANDIDATE`)**:
+  - Casos prolixos ou com ruído verbal que permanecem deterministicamente tratáveis (evita associar extensão textual a generativo).
+  - 8 no split de Calibração, 4 no split de Holdout.
+- **Diversidade de Segurança (20 casos em `SECURITY_ESCALATE`)**:
+  - Cobertura de 10 categorias estruturalmente distintas: prompt injection, instruction override, tenant mutation, agent version mutation, permission escalation, financial action, unauthorized tool execution, secret extraction, lifecycle override, unauthorized handoff authority.
+  - 12 no split de Calibração, 8 no split de Holdout.
+
+### 6. Question Sets Congelados e Hashes
+- **Question Set A (Direct Choice — Controle)**:
+  - Definição: `JEV_ROUTING_QUESTION_V1`
+  - SHA-256 Canônico: `1e6aaccdb562cde6e0c005ac6d95417922c3351a17ef6592c2ca9b65b6290788` (preservado 100% idêntico ao benchmark v1).
+- **Question Set B (Atomic Signals — Novo)**:
+  - Definição: `JEV_ROUTING_ATOMIC_V1` (3 perguntas atômicas Noul: `is_deterministic_candidate`, `is_generative_required`, `is_security_escalation`).
+  - SHA-256 Canônico: `3fecf9ce82ad600a74549d3459fe2b2b516fc3bd7b5fff33bf5b850cd48e8725`.
+- **Thresholds e Booleanização**:
+  - `NO BOOLEANIZATION OF NOUL` — saídas Noul permanecem contínuas (probabilidades 0.0 a 1.0).
+  - `THRESHOLD_SELECTED = NO` — nenhum threshold inventado ou fixado neste design slice.
+
+### 7. Isolamento de Chamadas de Provedores
+- `OPENAI_CALLS = 0`
+- `JEV_CALLS = 0`
+- `TWILIO_CALLS = 0`
+- Leitura de `.env`: Nenhuma.
+- Acesso a secrets: Nenhum.
+
+### 8. Testes Determinísticos Implementados
+- **Arquivo**: `packages/integrations/src/typesafe/jev-calibration-dataset.test.ts`
+- 7 testes automatizados validando:
+  1. Imutabilidade do dataset v1 (SHA-256).
+  2. Integridade e exatos 120 casos do dataset v2 (SHA-256).
+  3. Distribuição exata de classes (40 Det / 60 Gen / 20 Sec).
+  4. Divisão exata de splits (80 Calib / 40 Holdout) e estratos por split.
+  5. Unicidade de `caseId`, interseção nula, ausência de inputs vazios e ausência de marcadores de PII.
+  6. Estabilidade dos hashes canônicos do Choice V1 e Atomic V1.
+  7. Anti-leakage nos builders de payload (nenhum metadado de benchmark no runtime state).
+
+---
+
+## 2026-09-30 — PROMPT-006J-DESIGN-FINAL-AUDIT-001: Jev Calibration v2 Final Methodology Audit, Freeze & PR #33 Merge
+
+- **Branch**: `research/006j-jev-calibration-design`
+- **PR**: #33
+- **Status**: METHODOLOGY AUDITED / V2 DESIGN VALIDATED FOR CALIBRATION
+- **Objetivo**: Auditoria final de metodologia, semântica e governança do dataset de calibração Jev v2, verificação estrita de hashes, auditoria do schema oficial TypeSafe Noul e preparação para merge do PR #33 sem chamadas de provedores.
+
+### 1. Verificação Factual de Hashes
+- **V1 Dataset SHA-256**: `9ab7cbd2fbfcf508673a700d4a484e0c674d0124766c7b7fa0eee05a573e0d50` (VERIFICADO / INALTERADO)
+- **V2 Dataset SHA-256**: `3e7e0a20ecd3341c99b84d40162b10eff17ba0600d191dd143bc99f00aec3047` (VERIFICADO / INALTERADO)
+- **Choice V1 SHA-256**: `1e6aaccdb562cde6e0c005ac6d95417922c3351a17ef6592c2ca9b65b6290788` (VERIFICADO / INALTERADO)
+- **Atomic V1 SHA-256**: `3fecf9ce82ad600a74549d3459fe2b2b516fc3bd7b5fff33bf5b850cd48e8725` (VERIFICADO / INALTERADO)
+
+### 2. Auditoria Semântica do Dataset v2
+- **Arquivo**: `scripts/benchmarks/voice/jev-calibration-v2-cases.json`
+- **Total de Casos**: 120 (40 Det / 60 Gen / 20 Sec)
+- **Duplicatas de Case ID**: 0
+- **Duplicatas Exatas de Input**: 0
+- **Pares com Jaccard Token > 0.8**: 0
+- **Classificação**: `V2_DESIGN_VALIDATED_FOR_CALIBRATION` (zero blockers, zero edição pós-freeze).
+
+### 3. Auditoria do Schema Oficial TypeSafe Atomic Noul
+- **Verificação**: Conforme documentação oficial do TypeSafe System One (`docs.typesafe.ai/introduction.md`, `docs.typesafe.ai/api.md`), múltiplas perguntas coexistem sob o mapa `questions` em uma única requisição HTTP e são avaliadas concorrentemente.
+- **Saídas Noul**: Contínuas de 0.0 a 1.0 (não booleanas).
+- **Status do Schema**: AUDIT_PASS.
+
+### 4. Correções Metodológicas e de Governança
+- **Locked Holdout**: Holdout formalmente classificado como `LOCKED HOLDOUT — NOT USED FOR POLICY FITTING / THRESHOLD SELECTION`. Termos hiperbólicos como "cego absoluto" removidos, refletindo com precisão que o autor gerou ambos os splits no mesmo processo experimental.
+- **Governança do Holdout**: Métricas de ajuste e seleção de políticas na Fase A utilizarão estritamente os 80 casos de calibração; tabelas de performance do Holdout não serão calculadas antes do congelamento da política candidata.
+- **Correção de Reivindicações Estatísticas**: Removidas afirmações de "matematicamente mandatório" ou mínimos universais abstratos. Registrado factualmente que $N=12$ é insuficiente para calibração robusta e apresenta alto risco de overfitting.
+- **Congelamento de Requisições Futuras (Fase A)**:
+  - `CHOICE_CALIBRATION_REQUESTS_PLANNED = 80`
+  - `ATOMIC_CALIBRATION_REQUESTS_PLANNED = 80`
+  - `TOTAL_JEV_CALIBRATION_REQUESTS_PLANNED = 160`
+  - `RETRIES = 0`
+  - `3 atomic questions != 3 HTTP requests` (3 perguntas Noul na mesma chamada por caso).
+- **Threshold**: `THRESHOLD_SELECTED = NO` (nenhum threshold de corte pré-estabelecido).
+- **Estimativa de Custo**: `CALIBRATION_COST_ESTIMATE = ESTIMATE ONLY`. Autorização financeira formal reservada para o prompt de execução.
+
+### 5. Registro de Desvio de Ferramental (Tooling Process Deviation)
+- **TOOLING_PROCESS_DEVIATION**: `YES`
+- **Fato**: Execução de `npx prettier --check` no turno anterior em vez do comando canônico do repositório (`pnpm`).
+- **Impacto**: Nenhum `package.json`, lockfile ou manifesto foi alterado. O resultado foi integralmente revalidado com o ferramental canônico do repositório (`pnpm check` e `pnpm format:check`).
+- **Classificação**: Desvio estritamente operacional/processual de tooling, NÃO configurando incidente de segurança. Não deve ser repetido em slices futuros.
+
+### 6. Isolamento e Quality Gate
+- `OPENAI_CALLS = 0`
+- `JEV_CALLS = 0`
+- `TWILIO_CALLS = 0`
+- Carregamento de `.env`: Não realizado.
+- Quality evidence anterior válida para código/testes inalterados (517 passed, 45 skips históricos, 0 novos skips).
+- `git diff --check` e `pnpm format:check`: PASS.
+- Auditoria de segredos no tracked diff: `SECRET_AUDIT_PASS`.
