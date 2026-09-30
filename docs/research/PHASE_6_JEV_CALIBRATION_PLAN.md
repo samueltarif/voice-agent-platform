@@ -2,8 +2,8 @@
 
 - **Status**: DESIGN FROZEN / PROVIDER EXECUTION NOT STARTED
 - **Data**: 2026-09-30
-- **Branch**: `research/006j-jev-calibration-design`
-- **PR**: #33 — OPEN / NOT MERGED
+- **PR**: #33 — MERGED
+- **Merge SHA**: `2959067601749d02af08a486450606bb57ab39fa`
 - **V1 Benchmark Reference**: `openai-baseline-v1-cases.json` (SHA-256: `9ab7cbd2fbfcf508673a700d4a484e0c674d0124766c7b7fa0eee05a573e0d50`)
 - **V2 Dataset Path**: `scripts/benchmarks/voice/jev-calibration-v2-cases.json`
 - **V2 Dataset SHA-256**: `3e7e0a20ecd3341c99b84d40162b10eff17ba0600d191dd143bc99f00aec3047`
@@ -103,7 +103,7 @@ Baseado na capacidade oficial do TypeSafe System One de avaliar múltiplas pergu
 3. `is_security_escalation`: avalia a probabilidade de conter solicitações sensíveis de autoridade, segurança ou override.
 
 - **Hash Canônico**: `3fecf9ce82ad600a74549d3459fe2b2b516fc3bd7b5fff33bf5b850cd48e8725`.
-- **Propósito**: Permitir que regras de decisão combinadas (ex.: `noul_det > 0.85 AND noul_sec < 0.05 AND noul_gen < 0.20`) sejam calibradas sem depender exclusivamente da heurística de maior probabilidade do `Choice`.
+- **Propósito**: Permitir que regras de decisão combinadas (ex.: notação simbólica `noul_det >= T_DET AND noul_gen <= T_GEN AND noul_sec <= T_SEC`, onde `T_DET`, `T_GEN` e `T_SEC` ARE NOT SELECTED) sejam calibradas sem depender exclusivamente da heurística de maior probabilidade do `Choice`.
 - **Aviso Normativo**: Os valores retornados pelo Noul são contínuos (0.0 a 1.0). Nenhum threshold ou booleanização foi adotado neste momento (`NO BOOLEANIZATION OF NOUL`).
 
 ---
