@@ -1,6 +1,6 @@
 # Phase 6: OpenAI Conversation Baseline Benchmark
 
-- **Status**: DATASET FROZEN & VALIDATED — AWAITING EXTERNALLY INJECTED RUNTIME KEY
+- **Status**: BASELINE PARTIAL — NOT COMPARABLE YET
 - **Data**: 2026-09-30
 - **Branch**: `research/006h-openai-conversation-baseline`
 - **PR**: #31
@@ -47,22 +47,53 @@ O objetivo deste baseline é fornecer métricas empíricas para responder se a i
 
 ---
 
-## 4. Auditoria de Segurança e Política de Credenciais (ETAPA B)
+## 4. Execução Controlada do Benchmark e Evidências Observadas
 
-Conforme a política mandatória de governança aprovada no PR #30:
-- A verificação de presença da credencial é estritamente booleana: `Boolean(process.env.OPENAI_API_KEY)`.
-- Fato factual observado no ambiente do processo: `OPENAI_API_KEY_PRESENT = false`.
-- **Ação Executada**: **`STOP` imediato**.
-- Em estrita conformidade com a regra de processo, **nenhuma tentativa de carregar arquivos `.env` via `--env-file`, dotenv ou leitura de disco foi realizada**.
-- A execução das 12 chamadas pagas permanece congelada até que a credencial seja pré-injetada externamente no ambiente do processo pelo operador.
-- **Chamadas Reais Realizadas Neste Slice**: 0 (`REAL_OPENAI_CALLS = 0`).
-- **Crédito Consumido**: US$ 0.00 (`CREDIT_CONSUMED = 0.00`).
+Conforme autorização explícita do operador para carregamento de `.env` em tempo de execução (`node --env-file=.env`):
+- `ENV_GIT_IGNORED = YES` (verificado via `git check-ignore .env`).
+- `ENV_CONTENT_INSPECTED = NO` (conteúdo de `.env` não foi lido, aberto, impresso ou parseado).
+- `OPENAI_API_KEY_PRESENT = true` (detectado via processo de runtime).
+- **Harness de Execução**: `node --env-file=.env ./node_modules/vitest/vitest.mjs run packages/integrations/src/openai/openai-baseline-runner.test.ts`.
+
+### Tabela de Execução por Caso
+
+| Caso | Categoria | Expected Routing | Status | Deltas | Chars | TTFT (ms) | Duração (ms) | Tokens In | Tokens Out | Custo (USD) | Evento Terminal | Falha Segura / Categoria |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `base-01` | `DETERMINISTIC_CANDIDATE` | `DETERMINISTIC_CANDIDATE` | `FAIL` | 0 | 0 | `null` | 484 | `NOT_OBSERVED` | `NOT_OBSERVED` | `NOT_VERIFIED` | `failure` | `OpenAI authentication failed or invalid credentials` (401) |
+| `base-02` | `DETERMINISTIC_CANDIDATE` | `DETERMINISTIC_CANDIDATE` | `NOT_EXECUTED` | - | - | - | - | - | - | - | - | Interrompido (fail-fast) |
+| `base-03` | `DETERMINISTIC_CANDIDATE` | `DETERMINISTIC_CANDIDATE` | `NOT_EXECUTED` | - | - | - | - | - | - | - | - | Interrompido (fail-fast) |
+| `base-04` | `DETERMINISTIC_CANDIDATE` | `DETERMINISTIC_CANDIDATE` | `NOT_EXECUTED` | - | - | - | - | - | - | - | - | Interrompido (fail-fast) |
+| `base-05` | `GENERATIVE_REQUIRED` | `GENERATIVE_REQUIRED` | `NOT_EXECUTED` | - | - | - | - | - | - | - | - | Interrompido (fail-fast) |
+| `base-06` | `GENERATIVE_REQUIRED` | `GENERATIVE_REQUIRED` | `NOT_EXECUTED` | - | - | - | - | - | - | - | - | Interrompido (fail-fast) |
+| `base-07` | `GENERATIVE_REQUIRED` | `GENERATIVE_REQUIRED` | `NOT_EXECUTED` | - | - | - | - | - | - | - | - | Interrompido (fail-fast) |
+| `base-08` | `GENERATIVE_REQUIRED` | `GENERATIVE_REQUIRED` | `NOT_EXECUTED` | - | - | - | - | - | - | - | - | Interrompido (fail-fast) |
+| `base-09` | `GENERATIVE_REQUIRED` | `GENERATIVE_REQUIRED` | `NOT_EXECUTED` | - | - | - | - | - | - | - | - | Interrompido (fail-fast) |
+| `base-10` | `GENERATIVE_REQUIRED` | `GENERATIVE_REQUIRED` | `NOT_EXECUTED` | - | - | - | - | - | - | - | - | Interrompido (fail-fast) |
+| `base-11` | `SECURITY_CONTROL_SENSITIVE` | `SECURITY_ESCALATE` | `NOT_EXECUTED` | - | - | - | - | - | - | - | - | Interrompido (fail-fast) |
+| `base-12` | `SECURITY_CONTROL_SENSITIVE` | `SECURITY_ESCALATE` | `NOT_EXECUTED` | - | - | - | - | - | - | - | - | Interrompido (fail-fast) |
+
+### Resumo Métrico do Benchmark
+- **Benchmark Status**: `PARTIAL`
+- **Casos Executados / Total**: 0 / 12 (1 tentativa com falha imediata)
+- **Falhas Observadas**: 1 (`base-01`)
+- **Casos Restantes Não Executados**: 11
+- **Retries Executados**: 0 (estritamente zero retries)
+- **Uso de Tokens Observado**: `NOT_OBSERVED`
+- **Custo Total Estimado**: `NOT_VERIFIED` (Known partial: $0.000000 USD)
+- **Main Model Call Avoidance Rate**: `NOT MEASURED` (benchmark não completado)
+- **TTFT (ms)**: min=`null`, median=`null`, max=`null`, descriptive p95=`null`
+- **Duração Total (ms)**: min=`null`, median=`null`, max=`null`, descriptive p95=`null`
+- **Conteúdo de Resposta Gravado em Log**: `NO` (apenas métricas e contagens)
+- **Chamadas de Telefonia (Twilio)**: 0
+- **Chamadas de TypeSafe Jev**: 0
 
 ---
 
-## 5. Limitações Metodológicas do Benchmark
+## 5. Limitações Metodológicas e Próximos Passos
 
 1. **Dados Sintéticos**: Casos formulados com empresas e cenários fictícios, sem dados de clientes reais, transcrições telefônicas ou PII.
-2. **Amostra Reduzida (N=12)**: Projetada para validação preliminar de viabilidade técnica e custo, sem equivalência a benchmark estatístico de produção.
-3. **Isolamento de Áudio**: Medição focada em turnos textuais do modelo, sem áudio PSTN/WebRTC, codecs de telefonia ou síntese de voz (TTS/STT).
-4. **Ausência de Jev**: O TypeSafe Jev permanece classificado como `BENCHMARK_CANDIDATE / NOT IMPLEMENTED`. A taxa atual de evasão de modelo principal é categoricamente `0%` (baseline de referência).
+2. **Autoridade de Segurança no Adapter**:
+   - `ADAPTER_BOUNDARY`: A saída do modelo não possui capacidade de mutação no runtime por construção.
+   - `RUNTIME E2E AUTHORITY`: Validada separadamente pelos testes de runtime existentes, não por este benchmark de adapter.
+3. **Próximo Passo Operacional**: O operador deve atualizar o arquivo `.env` com a credencial real ativa da OpenAI para que os 12 casos possam ser reexecutados sequencialmente em novo ciclo.
+

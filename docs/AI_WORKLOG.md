@@ -7551,3 +7551,67 @@ Status: `BENCHMARK HYPOTHESES` — NÃO são product requirements.
 - **Auditoria de Segredos**: Mantida em regime puramente booleano (`SECRET_AUDIT_PASS`) sobre o diff rastreado (`git diff origin/main...HEAD`).
 - **Classificação Normativa**: A partir desta atualização de política formalizada pelo operador, o carregamento de `.env` pelo runtime Node/aplicação **não é classificado como desvio de processo** (*is NOT a security process deviation*).
 - **Imutabilidade Histórica**: Registros anteriores de desvios operacionais permanecem como fatos históricos imutáveis do log.
+
+---
+
+## 2026-09-30 — PROMPT-006H-BASELINE-INTEGRITY-AND-RUN-001-R1: OpenAI Baseline Evidence Semantics Repair + Controlled Execution
+
+- **Branch**: `research/006h-openai-conversation-baseline`
+- **PR**: #31 (OPEN / NOT MERGED)
+- **Status**: BASELINE PARTIAL — NOT COMPARABLE YET
+
+### 1. Correção Semântica de Evidências no Benchmark
+- **Nullable Result & Summary Fields**:
+  - `inputTokens: number | null` (representa `NOT_OBSERVED` se provedor não retornar usage).
+  - `outputTokens: number | null` (representa `NOT_OBSERVED` se provedor não retornar usage).
+  - `estimatedCostUsd: number | null` (representa `NOT_VERIFIED` quando tokens não estão presentes, nunca default para `$0.00`).
+  - `totalCostUsd: number | null` e `averageCostPerTurnUsd: number | null`.
+- **Benchmark Execution Status**:
+  - `NOT_EXECUTED`: 0 casos executados.
+  - `PARTIAL`: Menos de 12 casos ou falhas parciais.
+  - `COMPLETE`: 12/12 casos executados com 0 falhas e zero retries.
+- **Taxa de Evasão do Modelo Principal (`mainModelCallAvoidanceRate`)**:
+  - Classificada como `null` (`NOT MEASURED`) antes da conclusão integral do benchmark de 12 casos.
+  - Fixada em `0.0%` exclusivamente quando `benchmarkStatus === 'COMPLETE'`.
+- **Regressões de Teste**:
+  - 4 novos testes unitários em `packages/integrations/src/openai/openai-baseline-dataset.test.ts` cobrindo todas as variantes semânticas.
+  - Classificação de alterações de teste: `ASSERTION_STRONGER` (cobertura estendida).
+  - New Skips: 0.
+
+### 2. Quality Gate e Commit Pré-Provedor
+- **Quality Gate (`pnpm check`)**: Executado e 100% aprovado (505 testes passando, 45 historical staging skips, 0 falhas, 0 erros de tipo/lint/build/arquitetura/tamanho de arquivo).
+- **Commit de Correção**: `7fa3043` (`fix: preserve unknown benchmark usage and execution state`).
+- **Push para Remoto**: Publicado em `origin/research/006h-openai-conversation-baseline`.
+
+### 3. Execução Controlada do Benchmark contra Provedor
+- **Git Safety**: `ENV_GIT_IGNORED = YES` (`git check-ignore .env` = PASS).
+- **Inspeção de Arquivo**: `ENV_CONTENT_INSPECTED = NO` (conteúdo de `.env` não foi lido, aberto, impresso ou parseado).
+- **Detecção de Presença no Runtime**: `OPENAI_API_KEY_PRESENT = true` (via carregamento de processo `--env-file=.env`).
+- **Dataset Hash Validado**: `9ab7cbd2fbfcf508673a700d4a484e0c674d0124766c7b7fa0eee05a573e0d50` (intacto, 12 casos).
+- **Parâmetros de Execução**:
+  - Modelo: `gpt-6-astra`
+  - API: Chat Completions
+  - Reasoning Effort: `low`
+  - Max Completion Tokens: `512`
+  - Temperature: Omitida
+  - Ordem estrita: `base-01` a `base-12`
+  - Teto de custo: US$ 0.40
+  - Retries: 0 (interrupção na primeira falha)
+- **Resultado Observado**:
+  - Tentativa do caso `base-01`: Falhou com `OpenAI authentication failed or invalid credentials` (HTTP 401).
+  - Ação executada: **`STOP` imediato**. Zero retries.
+  - Casos seguintes (`base-02` a `base-12`): `NOT_EXECUTED` (11 restantes).
+  - **Benchmark Status**: `PARTIAL`.
+  - **Main Model Requests Observadas**: 1 tentativa.
+  - **Main Model Call Avoidance Rate**: `NOT MEASURED`.
+  - **Usage Completeness**: `NONE` (`NOT_OBSERVED`).
+  - **Cost Completeness**: `NOT_VERIFIED` (Known partial: $0.000000 USD).
+  - **Métricas de Latência (TTFT / Duração)**: `null` (nenhum caso concluído com sucesso).
+  - **Log de Conteúdo de Resposta**: `NO` (zero prompts, tokens ou texto gravados em log).
+  - **Chamadas de Telefonia (Twilio)**: 0.
+  - **Chamadas de TypeSafe Jev**: 0.
+
+### 4. Auditoria de Segredos e Estado de Governança
+- **Auditoria Booleana de Segredos (`git diff origin/main...HEAD`)**: **`SECRET_AUDIT_PASS`**.
+- **PR #31**: `OPEN / NOT MERGED`.
+
