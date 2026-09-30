@@ -319,8 +319,8 @@ async function runCalibrationPhaseA() {
   }
 }
 
-if (process.argv.some((arg) => arg.includes('run-jev-calibration-phase-a'))) {
-  runCalibrationPhaseA().catch((err) => {
+if (!process.env.VITEST && process.argv.some((arg) => arg.includes('run-jev-calibration-phase-a'))) {
+  void runCalibrationPhaseA().catch((err: unknown) => {
     console.error('Fatal execution error:', err);
     process.exit(1);
   });
