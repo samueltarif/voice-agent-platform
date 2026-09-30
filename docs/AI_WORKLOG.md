@@ -8372,3 +8372,86 @@ Este fechamento retifica a formulação epistemológica da base de evidência da
 - `CANDIDATE_POLICY_SELECTED = NO`
 - `HOLDOUT_EVALUATED = NO`
 - `PROVIDER_CALLS_THIS_PROMPT = 0`
+
+---
+
+## 2026-09-30 — Offline Candidate Policy Fitting on Calibration Only (PR #36)
+
+### PROMPT-006L-JEV-CANDIDATE-POLICY-FIT-001
+
+### 1. Auditoria Histórica de Segredos do PR #35
+
+- **Fato Registrado**: O fechamento do PR #35 utilizou comando `git diff origin/main` em vez do formato de escopo estrito `git diff <base>...<head>`.
+- **Status do Escopo Anterior**: `PR35_PREVIOUS_REQUIRED_SCOPE_SECRET_AUDIT = NOT VERIFIED`.
+- **Auditoria Histórica Reexecutada sobre Diff Exato do PR #35**:
+  - `PR35_BASE_SHA = 78e3d053f5adfa48551c47b95f2a3d8cf13838fe`
+  - `PR35_HEAD_SHA = 1be285446d26d9427f267058d95bc9e4753f0d0c`
+  - Escopo avaliado: `git diff 78e3d053f5adfa48551c47b95f2a3d8cf13838fe...1be285446d26d9427f267058d95bc9e4753f0d0c` (boolean-only, cobrindo sk-, apikey_, Bearer, GitHub tokens, JWT, PostgreSQL credential URIs e private key markers).
+  - Resultado: `PR35_HISTORICAL_EXACT_DIFF_SECRET_AUDIT = PASS`.
+
+### 2. Integridade do Artefato de Entrada e Bloqueio do Holdout
+
+- **Artefato de Entrada Exclusivo**: `docs/research/results/phase-6-jev-calibration-v2-phase-a-run1.json` (N=80 casos de calibração).
+- **SHA-256 do Artefato**: `5355b3639f011c0812b5e370a3dc7675e89e8f077d82fb3595dafdef2f0a0565` (VERIFICADO / INTACTO).
+- **Holdout Lock**: `HOLDOUT_FILES_PARSED_FOR_POLICY_FIT = NO`, `HOLDOUT_REQUESTS = 0`, `HOLDOUT_METRICS = NOT COMPUTED`.
+- O dataset completo V2 não foi aberto nem parseado para o fitting, preservando a inviolabilidade do split HOLDOUT.
+
+### 3. Família da Política e Espaço de Busca
+
+- **Família Congelada (3 Thresholds Escalares, Zero ML)**:
+  - Regra 1: `IF securityNoul >= T_SECURITY THEN SECURITY_ESCALATE`
+  - Regra 2: `ELSE IF deterministicNoul >= T_DETERMINISTIC AND generativeNoul <= T_GENERATIVE THEN DETERMINISTIC_CANDIDATE`
+  - Regra 3: `ELSE GENERATIVE_REQUIRED`
+- **Operadores Congelados**: `>=`, `>=`, `<=`.
+- **Geração Determinística de Candidatos** (pontos médios entre valores únicos observados + fronteiras [0.0, 1.0]):
+  - `T_SECURITY`: 25 candidatos.
+  - `T_DETERMINISTIC`: 56 candidatos.
+  - `T_GENERATIVE`: 45 candidatos.
+  - Total de combinações avaliadas: 63.000.
+
+### 4. Restrições de Viabilidade e Resultados da Otimização
+
+- **Critério de Viabilidade Estrito**: `falseBypassCount == 0` AND `securityMissCount == 0` na amostra de calibração.
+- **Políticas Viáveis Encontradas**: 29.301 / 63.000.
+- **Ordem de Otimização**: 1º Maximizar `safeBypassCount`, 2º Minimizar `unnecessarySecurityEscalationCount`, 3º Maximizar `routingAccuracy`.
+- **Região Candidata Ótima (`REGION-CALIB-FEASIBLE-01`)**:
+  - Triplas equivalentes agrupadas: 66 triplas geram predições rigorosamente idênticas para todos os 80 casos.
+  - Faixas de threshold:
+    - `T_SECURITY`: [0.56, 0.56]
+    - `T_DETERMINISTIC`: [0.00, 0.35]
+    - `T_GENERATIVE`: [0.47, 0.53]
+    - Tripla representativa: `(0.56, 0.185, 0.47)`
+  - Métricas observadas:
+    - Acurácia global: 97.50% (78/80)
+    - Safe bypass count: 26 / 28 determinísticos (92.86% recall)
+    - False bypass count: 0 / 52 não-determinísticos (0.00%)
+    - False bypass rate entre predições de bypass: 0.00% (0/26)
+    - Precisão determinística: 100.00% (26/26)
+    - Security true positives: 12/12 (100.00%)
+    - Security misses: 0/12 (0.00%)
+    - Escalonamentos desnecessários de segurança: 0/68 (0.00%)
+  - Falsos negativos (fail-safe para generativo): `v2-013` e `v2-027`.
+  - Margem de separação de segurança: 0.50 (min security 0.81 vs max non-security 0.31).
+  - Margem de separação generativa: 0.12 (max det 0.44 vs min non-det no bypass 0.56).
+
+### 5. Comparativo com Baseline Direct Choice
+
+- Acurácia: Choice 76.25% vs Candidata 97.50% (+21.25 p.p.).
+- Precisão Determinística: Choice 61.54% vs Candidata 100.00% (+38.46 p.p.).
+- False Bypasses: Choice 15/52 (28.85%) vs Candidata 0/52 (0.00%).
+- False Bypasses entre Predições: Choice 38.46% (15/39) vs Candidata 0.00% (0/26).
+- Security Misses: Choice 0/12 vs Candidata 0/12.
+
+### 6. Economia Contrafactual (Calibration-Only)
+
+- Taxa de bypass seguro na calibração: 26 / 80 = 32.50%.
+- Requisições contrafactuais ao modelo principal: 54 / 80.
+- Ressalva: CALIBRATION-ONLY COUNTERFACTUAL, NOT HOLDOUT RESULT, NOT PRODUCTION SAVINGS.
+
+### 7. Governança e Decisões
+
+- `CANDIDATE_POLICY_SELECTED = NO` (região candidata submetida para revisão humana).
+- `POLICY_FROZEN = NO`.
+- `HOLDOUT_EVALUATED = NO`.
+- `OPENAI_CALLS = 0`, `JEV_CALLS = 0`, `TWILIO_CALLS = 0`.
+- `.env` não carregado.
