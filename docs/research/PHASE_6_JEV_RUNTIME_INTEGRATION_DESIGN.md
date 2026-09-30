@@ -6,7 +6,7 @@
 - **Contexto**: Conclusão da pesquisa sintética preliminar do Jev (Fase A, Fitting Offline, Frozen Candidate Policy e Locked Holdout Evaluation) e aprovação da direção arquitetural pelo operador.
 - **Evidência Base (Synthetic Design Input)**:
   - **Calibração (N=80)**: 26/28 safe bypasses, 0/52 false bypasses, 0/12 security misses, 32.50% safe bypass rate.
-  - **Locked Holdout (N=40)**: 8/12 safe bypasses, 0/28 false bypasses, 0/8 security misses, 20.00% safe bypass rate em amostra não vista.
+  - **Locked Holdout (N=40)**: 8/12 safe bypasses, 0/28 false bypasses, 0/8 security misses, 20.00% safe bypass rate no LOCKED HOLDOUT — NOT USED FOR POLICY FITTING / THRESHOLD SELECTION.
   - **Latência Observada Jev Holdout (Design Input)**: Mínima 225ms, Mediana 255ms, P95 descritivo 387ms, Máxima 446ms.
   - **Baseline Histórico OpenAI (Sintético)**: TTFT mediana aproximadamente 1771ms.
   - **Qualificações**: Experimentos sintéticos distintos; não representam latência E2E telefônica, não constituem SLA de produção e não são prova de produção diretamente aditiva.
@@ -167,8 +167,11 @@ Contudo, a execução em Shadow consome recursos de CPU, memória, capacidade de
 ## 7. Porta Mínima (YAGNI Analysis)
 
 ### 7.1 Status da Porta
-**`AuxiliaryTurnDecisionPort`**: **`ACCEPTED DESIGN / NOT IMPLEMENTED`**
-*(Trata-se da porta mínima proposta para o slice de integração em Shadow; nenhum arquivo de código foi criado neste slice)*.
+- **DESIGN STATUS**: `ACCEPTED`
+- **IMPLEMENTATION STATUS**: `PROVIDER-NEUTRAL PORT IMPLEMENTED IN PR #39` (`packages/contracts/src/voice/auxiliary-turn-decision-contracts.ts` e `apps/voice/src/auxiliary-turn-shadow-observer.ts`)
+- **CONCRETE TYPESAFE ADAPTER**: `NOT IMPLEMENTED`
+- **SHADOW PROVIDER WIRING**: `NOT IMPLEMENTED`
+- **STAGING EXECUTION**: `NOT EXECUTED`
 
 ### 7.2 Semântica da Interface Proposta
 
@@ -212,7 +215,7 @@ export interface AuxiliaryTurnDecisionPort {
 ### 8.1 Circuit Breaker
 - Estados: `CLOSED`, `OPEN`, `HALF_OPEN`.
 - Com circuito `OPEN`: suprime chamadas ao Jev; o modelo principal da OpenAI permanece autoritativo.
-- Abertura de circuito **nunca encerra ou degrada uma chamada telefônica**.
+- Normative invariant: **the auxiliary path MUST NOT block or terminate the authoritative conversation path**.
 
 ### 8.2 Parâmetros Postergados para Medição Empírica em Staging
 Para evitar ancoragem em limiares não derivados de dados de tráfego real, os seguintes parâmetros ficam registrados como:

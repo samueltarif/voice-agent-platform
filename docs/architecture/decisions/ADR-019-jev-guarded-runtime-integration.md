@@ -11,7 +11,7 @@
 Após a conclusão dos experimentos sintéticos com o classificador probabilístico TypeSafe Jev (Fase A com N=80 calibração e N=40 locked holdout), a equipe alcançou evidências metodológicas consistentes no ambiente sintético:
 - Política congelada (`T_SECURITY = 0.56`, `T_DETERMINISTIC = 0.35`, `T_GENERATIVE = 0.47`, SHA-256: `1ac0f2919ca73d22a39fb1d964b558ba2f7e395f336b2c3f687ced9ed4d53c93`);
 - Locked holdout consumido sem re-tuning;
-- Zero false bypasses e zero security misses na amostra de teste não vista (N=40);
+- Zero false bypasses e zero security misses no LOCKED HOLDOUT — NOT USED FOR POLICY FITTING / THRESHOLD SELECTION (N=40);
 - Taxa de bypass seguro de 20.00% em turnos de holdout;
 - Latência sintética do Jev com mediana de 255ms (p95 de 387ms) — classificada estritamente como `SYNTHETIC DESIGN INPUT`.
 
@@ -99,8 +99,12 @@ Em 2026-09-30, o operador aprovou formalmente a direção arquitetural deste des
      - `ACTIVE_GUARDED` exige autorização global explícita.
 
 6. **Porta Mínima Provider-Neutral**:
-   - Porta proposta: `AuxiliaryTurnDecisionPort` (`ACCEPTED DESIGN / NOT IMPLEMENTED`).
-   - Define a interface mínima para o futuro slice de integração em Shadow: `evaluateTurn(...)` retornando scores brutos (`deterministicScore`, `generativeScore`, `securityScore`) e telemetria de latência/modelo.
+   - **DESIGN STATUS**: `ACCEPTED`.
+   - **IMPLEMENTATION STATUS**: `PROVIDER-NEUTRAL PORT IMPLEMENTED IN PR #39` (`packages/contracts/src/voice/auxiliary-turn-decision-contracts.ts` e `apps/voice/src/auxiliary-turn-shadow-observer.ts`).
+   - **CONCRETE TYPESAFE ADAPTER**: `NOT IMPLEMENTED`.
+   - **SHADOW PROVIDER WIRING**: `NOT IMPLEMENTED`.
+   - **STAGING EXECUTION**: `NOT EXECUTED`.
+   - Porta: `AuxiliaryTurnDecisionPort` define a interface mínima provider-neutral: `evaluateTurn(...)` retornando scores brutos (`deterministicScore`, `generativeScore`, `securityScore`) e telemetria de latência/modelo.
    - Separação estrita:
      - Adapter (`packages/integrations`): scores brutos tipados;
      - Application Policy (`apps/voice/src/domain/policy`): política congelada e ordenação de regras;

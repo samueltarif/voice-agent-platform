@@ -26,3 +26,4 @@ export * from './in-memory-call-bootstrap-registry.js';
 export * from './call-lifecycle-gateway.js';
 export * from './in-memory-conversation-history-store.js';
 export * from './conversation-context-composer.js';
+export * from './auxiliary-turn-shadow-observer.js';

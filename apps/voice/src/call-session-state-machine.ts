@@ -51,3 +51,14 @@ export function transitionCallSession(
     ...(options?.failureReason ? { failureReason: options.failureReason } : {}),
   };
 }
+
+export function transitionToTerminalSession(
+  session: CallSession,
+  targetState: 'ENDED' | 'FAILED',
+  failureReason?: string,
+): CallSession {
+  const failOpt = failureReason !== undefined ? { failureReason } : undefined;
+  const isEnding = targetState === 'ENDED' && session.runtimeState === 'ACTIVE';
+  const base = isEnding ? transitionCallSession(session, 'ENDING') : session;
+  return transitionCallSession(base, targetState, failOpt);
+}

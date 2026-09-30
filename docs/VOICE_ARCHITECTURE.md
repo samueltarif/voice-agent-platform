@@ -139,3 +139,111 @@ O motor de voz integra-se nativamente aos subsistemas de acompanhamento de chama
 
 > Para a especificação completa de fluxos, estados, modo listen-only e eventos canônicos de gravação e handoff, consulte [docs/LIVE_CALLS_AND_HANDOFF.md](file:///d:/voice-agent-platform/docs/LIVE_CALLS_AND_HANDOFF.md).
 
+---
+
+## 7. Expressividade Conversacional de Voz (Conversational Voice Expressivity)
+
+> **Status do Requisito**: `VOICE_CONVERSATIONAL_EXPRESSIVITY = REQUIRED_FUTURE_CAPABILITY`<br />
+> **Prioridade de Engenharia**: `PRODUCT_DESIRED = YES` | `CURRENT_IMPLEMENTATION_PRIORITY = LATER_VOICE_EXPERIENCE_SLICE`<br />
+> **Suporte Técnico de Provedor**: `NATURAL_LAUGHTER_PROVIDER_SUPPORT = NOT VERIFIED`<br />
+> **Implementação no Slice Atual**: `NO` (Registro documental de requisito futuro)
+
+### 7.1. Objetivo e Escopo do Requisito
+
+Permitir que agentes de voz demonstrem expressividade acústica e conversacional limitada, contextual e configurável, reduzindo comportamentos robóticos ou mecânicos e preservando a naturalidade, adequação situacional e segurança da chamada.
+
+### 7.2. Capacidades-Alvo Futuras (Target Capabilities)
+
+As capacidades planejadas para a camada de expressividade incluem:
+- **Risadas ou risos curtos e contextuais (*short laughter / chuckle*)**;
+- **Pausas naturais e ritmo de fala humanizado**;
+- **Reconhecimentos conversacionais (*conversational acknowledgements*)**;
+- **Sinais de escuta ativa (*backchannels*)**;
+- **Variação de prosódia e entonação**;
+- **Estilo de resposta consciente de interrupção (*interruption-aware response style*)**;
+- **Recuperação enxuta e rápida após interrupção (*shorter recovery after barge-in*)**;
+- **Espelhamento emocional contido e calibrado (*restrained emotional mirroring*)**;
+- **Expressividade configurável granularmente por agente de voz**.
+
+### 7.3. Princípio de Não-Espelhamento Automático (No Blind Emotion Mirroring)
+
+Fica formalmente estabelecida a invariante comportamental:
+$$\text{CUSTOMER\_LAUGHTER} \centernot\implies \text{AGENT\_LAUGHTER}$$
+
+O riso ou descontração do usuário **NÃO IMPLICA** riso correspondente pelo agente. A decisão conversacional deve ponderar obrigatoriamente:
+1. Contexto semântico e tópico do diálogo;
+2. Persona e perfil de personalidade do agente;
+3. Nível configurado de expressividade;
+4. Segurança e sensibilidade da situação;
+5. Estado atual da interação na chamada.
+
+**Exemplos Conceituais**:
+- *Cenário Leve / Seguro*: Interlocutor diz *"Hahaha, essa foi boa."* $\to$ Agente responde com comentário amigável/bem-humorado ou riso curto natural, prosseguindo com o objetivo da chamada.
+- *Cenário Delicado / Risco*: Interlocutor diz *"Haha... tô devendo muito e não sei o que fazer."* $\to$ Agente **NÃO PODE** espelhar o riso sob nenhuma hipótese; deve manter tom sóbrio, empático e focado na resolução.
+
+### 7.4. Restrição Estrita em Contextos Sensíveis
+
+A expressividade humorística ou risadas devem ser estritamente bloqueadas/suprimidas em situações sensíveis, incluindo (sem constituir classificação exaustiva):
+- Cobrança e renegociação de dívidas;
+- Reclamações e contestações;
+- Situações de perda, luto ou fragilidade;
+- Questões de saúde e emergência médica;
+- Fraude, denúncia e disputas;
+- Ameaças e riscos à segurança física ou patrimonial;
+- Notificação de erro operacional grave do sistema ou serviço;
+- Cancelamentos críticos ou sensíveis;
+- Qualquer interação classificada como emocionalmente delicada.
+
+### 7.5. Separação de Responsabilidades (LLM vs. TTS vs. Aplicação)
+
+1. **Camada Conversacional / LLM**: Determina o conteúdo da fala e se uma expressão é contextualmente apropriada com base nas diretrizes do agente.
+2. **Camada de Síntese de Voz / TTS**: Renderiza a expressão acústica suportada de forma natural e sem artefatos mecânicos.
+3. **Plataforma / Aplicação (`apps/voice`)**: Aplica políticas de segurança, limites configurados no Agent Studio, cancelamento imediato em barge-in e observabilidade.
+
+> [!WARNING]
+> Nunca presumir que emitir texto bruto como `"hahaha"` ou `"kkk"` resulte em risada natural na síntese. Texto com risadas literais frequentemente soa artificial, mecânico e robotizado em sintetizadores de fala tradicionais.
+
+### 7.6. Gate de Capacidades Técnicas do Provedor (Provider Capability Gate)
+
+Antes de qualquer implementação funcional em código, é obrigatório homologar formalmente contra a documentação oficial e API do provedor de voz/TTS em uso:
+- Suporte nativo a risos ou expressões não-verbais (*laughter/chuckle support*);
+- Estilos expressivos e controle fino de prosódia/entonação;
+- Inserção de pausas e suporte a SSML ou marcações canônicas de eventos;
+- Compatibilidade com streaming de áudio bidirecional e ConversationRelay / WebSockets;
+- Comportamento acústico diante de interrupções imediatas.
+
+*Status atual*: `NATURAL_LAUGHTER_PROVIDER_SUPPORT = NOT VERIFIED`. É vedado presumir capacidades não homologadas.
+
+### 7.7. Política de Fallback
+
+Se o provedor de síntese em uso não possuir capacidade acústica nativa para renderizar expressões naturais:
+- **Priorizar resposta verbal natural limpa sem risada artificial**: Uma resposta textual como *"Essa foi boa, entendi perfeitamente"* é superior e preferível a uma sintetização robótica e constrangedora de *"ha ha ha"*.
+
+### 7.8. Invariante de Interrupção (*Barge-In Relation*)
+
+A camada de expressividade conversacional subordina-se estritamente ao mecanismo de barge-in da plataforma:
+- Expressões e risadas constituem áudio sintetizado e **devem ser imediatamente canceláveis** ao menor sinal de atividade vocal humana (`user.interruption`);
+- A expressividade nunca pode bloquear ou postergar o descarte de buffers de áudio, o cancelamento da geração em andamento ou a supressão de chunks desatualizados (*stale chunks*).
+
+### 7.9. Observabilidade e Telemetria de Expressividade
+
+Métricas estruturadas planejadas para futura instrumentação:
+- `expressive_event_requested`: Tentativas de acionamento deliberadas pelo modelo;
+- `expressive_event_rendered`: Expressões efetivamente sintetizadas pelo TTS;
+- `expressive_event_suppressed`: Expressões bloqueadas por contexto sensível ou política do agente;
+- `expressive_event_interrupted`: Expressões canceladas por barge-in do usuário;
+- `provider_expression_capability`: Disponibilidade e latência das extensões expressivas no provedor.
+
+> [!IMPORTANT]
+> Em conformidade com as regras de privacidade e proteção de dados, é proibido registrar transcripts de usuários ou dados sensíveis em logs estruturados apenas para telemetria de expressividade.
+
+### 7.10. Quality Gate Perceptual Humano
+
+Antes de qualquer liberação de recursos de expressividade vocal em ambiente de produção, será conduzida uma avaliação perceptual humana controlada sobre amostras gravadas, avaliando:
+- Naturalidade (*naturalness*);
+- Constrangimento ou estranheza (*awkwardness*);
+- Risos descontextualizados ou inapropriados (*inappropriate laughter*);
+- Fluidez de recuperação sob interrupção (*interruption behavior*);
+- Artefatos de pronúncia ou clipping acústico;
+- Latência adicional introduzida no pipeline de síntese;
+- Consistência auditiva entre vozes, idiomas e gêneros.

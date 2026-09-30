@@ -8855,3 +8855,151 @@ Este fechamento retifica a formulação epistemológica da base de evidência da
 - `pnpm format:check`: PASS.
 - `SECRET_AUDIT_PASS`: Auditoria booleana via `git diff origin/main...HEAD`. Zero segredos expostos.
 - `PR #38`: Auditado e pronto para merge.
+
+## [2026-09-30] PROMPT-006O-JEV-SHADOW-RUNTIME-FOUNDATION-001: Phase 6 — Provider-Neutral Jev Shadow Runtime Foundation
+
+### 1. Base State & Preflight
+- **Base Commit**: `3e6d84f36455066b528b8b4b16ee191c59c314d3` (`origin/main`).
+- **PR #38**: `MERGED` (Merge SHA: `3e6d84f36455066b528b8b4b16ee191c59c314d3`).
+- **Branch**: `feat/006o-jev-shadow-runtime-foundation`.
+- **ADR-019**: `Accepted` em `docs/architecture/decisions/ADR-019-jev-guarded-runtime-integration.md`.
+- **Provedores Externos / Chamadas Reais**: Zero (`OPENAI_CALLS = 0`, `JEV_CALLS = 0`, `TWILIO_CALLS = 0`).
+- **Carregamento de `.env`**: Não carregado (`ENV_LOADED = NO`, `UNNECESSARY_ENV_RUNTIME_LOAD = NO`).
+- **Transmissão Externa de Transcrição**: `NO_TRANSCRIPT_EXTERNAL_TRANSMISSION = YES`.
+- **Privacy Gate**: `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`.
+
+### 2. Análise YAGNI & Fronteiras de Implementação
+- **YAGNI Gate**:
+  - `CURRENT_REQUIREMENT`: Permitir ao runtime de voz observar uma decisão consultiva provider-neutral de forma assíncrona sem alterar o comportamento conversacional autoritativo.
+  - `EXISTING_OPTION`: `ConversationModelPort` gerencia streaming de texto/áudio e não é semanticamente apropriada para scores atômicos de probabilidade.
+  - `MINIMAL_OPTION`: 1 porta consultiva provider-neutral (`AuxiliaryTurnDecisionPort`) + 1 observador/coordenador delimitado (`AuxiliaryTurnShadowObserver`) + injeção opcional mínima no orquestrador de voz.
+  - *Abstrações Não Criadas*: Nenhuma fila genérica de jobs, barramento de eventos, engine de regras, circuit breaker runtime prematuro ou framework genérico de concorrência foi introduzido.
+- **Adapter TypeSafe**: `NOT IMPLEMENTED` (nenhum cliente HTTP, chaves de API ou configuração de endpoint foram criados neste slice).
+- **Backlog**: `SHADOW_BACKLOG_IMPLEMENTED = NO`, `SHADOW_BACKPRESSURE_POLICY = DROP_WHEN_AT_CONCURRENCY_LIMIT`.
+- **Modos de Feature**: `DISABLED`, `SHADOW`, `ACTIVE_GUARDED`.
+  - Padrão de Runtime: `DISABLED`.
+  - `ACTIVE_GUARDED`: Bloqueado fail-closed na validação (`unreachable in current runtime foundation`).
+  - Teto Global: `globalAllowedMode` atua como kill switch e teto rígido; `ORG_OVERRIDE_IMPLEMENTED = NO`.
+- **Handlers Determinísticos**: `KNOWN_DETERMINISTIC_HANDLERS = 0`, `ACTIVE_DETERMINISTIC_BYPASS_READINESS = BLOCKED`.
+- **Invariante Formal**: `NO_KNOWN_DETERMINISTIC_HANDLER -> NO_DETERMINISTIC_BYPASS`.
+
+### 3. Modificações de Código e Arquitetura
+- `packages/contracts/src/voice/auxiliary-turn-decision-contracts.ts`:
+  - Definida interface `AuxiliaryTurnDecisionPort` (`evaluateTurn: input -> deterministicScore, generativeScore, securityScore, providerModel, latencyMs`).
+  - Função de validação determinística `validateAuxiliaryTurnDecisionOutput` garantindo scores finitos em `[0, 1]` e ausência de campos de autoridade de negócio.
+- `packages/contracts/src/voice/index.ts`: Exportada interface e tipos de decisão auxiliar.
+- `apps/voice/src/auxiliary-turn-shadow-observer.ts`:
+  - Implementado `AuxiliaryTurnShadowObserver` com despacho síncrono não-bloqueante (`observeTurn`), rastreamento interno de promessas in-flight, concorrência delimitada opcional (`maxConcurrency`), descarte observável sob saturação (`DROPPED_CAPACITY`) e absorção de falhas com proteção contra unhandled rejections.
+  - Telemetria estruturada sanitizada (proibido registrar `callerTranscript`).
+- `apps/voice/src/conversation-orchestrator-types.ts`:
+  - Adicionado `shadowObserver` opcional em `ConversationOrchestratorDependencies`.
+- `apps/voice/src/conversation-orchestrator.ts`:
+  - Ponto de integração em `handleUserSpeechFinal`: despacho síncrono da observação antes do streaming, sem aguardar o retorno da porta auxiliar. O streaming principal da OpenAI inicia imediatamente.
+  - Tratamento de desconexão: `abortCall` invocado em `handleTerminalState`.
+- `docs/architecture/decisions/ADR-019-jev-guarded-runtime-integration.md` e `docs/research/PHASE_6_JEV_RUNTIME_INTEGRATION_DESIGN.md`:
+  - Correção terminológica normativa aplicada: "LOCKED HOLDOUT — NOT USED FOR POLICY FITTING / THRESHOLD SELECTION" e "the auxiliary path MUST NOT block or terminate the authoritative conversation path".
+- `docs/research/PHASE_6_JEV_SHADOW_RUNTIME_FOUNDATION.md`: Documento formal da fundação do runtime de shadow criado.
+
+### 4. Testes & Classificação
+- `packages/contracts/src/voice/auxiliary-turn-decision-contracts.test.ts`: 7 testes novos (validação de scores, rejeição de NaN/out-of-range, garantia de ausência de comandos de autoridade).
+- `apps/voice/src/auxiliary-turn-shadow-observer.test.ts`: 9 testes novos (default DISABLED, teto global, bloqueio fail-closed de ACTIVE_GUARDED, concorrência limitada, descarte sob saturação, absorção de rejeições, cancelamento por abort, privacidade de transcrição).
+- `apps/voice/src/auxiliary-turn-shadow-orchestrator.test.ts`: 4 testes novos (início imediato do modelo principal sem aguardar shadow lento, resiliência do streaming a falhas auxiliares, abort em disconnect, garantia de ausência de bypass determinístico ou mutações).
+- **Classificação de Testes**:
+  - `TESTS_ADDED`: 20 novos testes automatizados.
+  - `EXISTING_TESTS_ALTERED`: 0.
+  - `ASSERTION_STRONGER`: 0.
+  - `ASSERTION_EQUIVALENT`: 0.
+  - `ASSERTION_WEAKER`: 0.
+  - `NEW_SKIPS`: 0.
+
+### 5. Validação e Qualidade
+- `check:file-size`: PASS (todos os arquivos <= 180 linhas).
+- `check:architecture`: PASS (fronteiras e diretivas respeitadas).
+- `git diff --check`: PASS.
+- `pnpm format:check`: PASS.
+- `pnpm check`: PASS.
+- `SECRET_AUDIT_PASS`: Auditoria booleana via `git diff origin/main...HEAD`. Zero segredos expostos.
+- `PR_STATUS`: Aberto e **NÃO MERGEADO**.
+
+## [2026-09-30] PROMPT-VOICE-EXPRESSIVITY-REQUIREMENT-001: Conversational Voice Expressivity — Product Requirement Registration
+
+### 1. Contexto & Requisito de Produto
+- **Status do Requisito**: `VOICE_CONVERSATIONAL_EXPRESSIVITY = REQUIRED_FUTURE_CAPABILITY`.
+- **Origem**: Solicitação explícita do operador humano para registro formal de requisito de produto visando reduzir comportamento mecânico/robótico em chamadas de voz e introduzir expressividade humana contextual e controlada.
+- **Prioridade Estratégica**: `PRODUCT_DESIRED = YES` | `CURRENT_IMPLEMENTATION_PRIORITY = LATER_VOICE_EXPERIENCE_SLICE`.
+- **Roadmap Técnico Atual**: Inalterado; implementação funcional em código postergada para slice dedicado de experiência de voz após consolidação do runtime.
+
+### 2. Capacidades-Alvo Registradas
+- Risadas curtas e contextuais (*short laughter / chuckle*).
+- Pausas naturais e variação de prosódia/entonação.
+- Reconhecimentos conversacionais (*conversational acknowledgements*) e sinais de escuta ativa (*backchannels*).
+- Resposta consciente de interrupção e recuperação ágil pós-barge-in (*shorter recovery after barge-in*).
+- Espelhamento emocional contido (*restrained emotional mirroring*).
+- Expressividade granularmente configurável por agente no Agent Studio.
+
+### 3. Invariantes de Segurança e Comportamento
+- **Não-Espelhamento Cego de Risadas**: `CUSTOMER_LAUGHTER DOES NOT IMPLY AGENT_LAUGHTER`. Riso do interlocutor não aciona riso do agente automaticamente; requer avaliação semântica, de tom, de persona e de risco.
+- **Supressão Estrita em Contextos Sensíveis**: Cobrança, dívida, reclamação, perda/luto, saúde, fraude, ameaça, segurança, erro grave do sistema e cancelamentos sensíveis proíbem riso/expressividade humorística.
+- **Subordinação Total ao Barge-In**: Expressões constituem áudio sintetizado e nunca podem bloquear o cancelamento imediato pelo VAD (`user.interruption`), descarte de buffers ou supressão de chunks desatualizados.
+- **Separação de Responsabilidades**: LLM decide adequação contextual; TTS renderiza expressão acústica; Aplicação (`apps/voice`) impõe políticas, limites e observabilidade.
+- **Política de Fallback**: Na ausência de suporte acústico nativo do provedor TTS, priorizar resposta verbal natural e limpa (ex.: "Essa foi boa") sem sintetizar risadas artificiais mecânicas ("ha ha ha").
+
+### 4. Gates de Provedor & Avaliação de Qualidade
+- **Suporte de Provedor**: `NATURAL_LAUGHTER_PROVIDER_SUPPORT = NOT VERIFIED` (proibido presumir capacidades de TTS/ConversationRelay sem teste/homologação documental oficial prévia).
+- **Agent Studio**: Configuração futura por agente (`OFF`, `SUBTLE`, `NATURAL` conceituais); dimensões, faixas e defaults numéricos `NOT SELECTED`.
+- **Quality Gate Perceptual Humano**: Obrigatório conduzir avaliação perceptual humana controlada sobre amostras gravadas antes de qualquer liberação em produção.
+
+### 5. Execução & Governança do Prompt
+- **Escopo**: Documental somente (`docs-only`).
+- **Arquivos Alterados**:
+  - `docs/VOICE_ARCHITECTURE.md`: Adicionada Seção 7 ("Expressividade Conversacional de Voz").
+  - `docs/AGENT_STUDIO.md`: Adicionado item de expressividade na Seção 2.8 ("Voz e Síntese").
+  - `docs/AI_WORKLOG.md`: Entrada append-only registrada.
+- **Alterações em Runtime**: `0` (nenhum arquivo de código ou runtime alterado).
+- **Chamadas a Provedores**: OpenAI `0`, Twilio `0`, TypeSafe/Jev `0`.
+- **Validação**: `git diff --check` e `pnpm format:check`.
+
+## [2026-09-30] PROMPT-006O-JEV-SHADOW-FOUNDATION-FINAL-CLOSE-001: Provider-Neutral Jev Shadow Foundation — Consistency Audit & PR #39 Merge
+
+### 1. Estado Base & Auditoria de PR
+- **Branch**: `feat/006o-jev-shadow-runtime-foundation`.
+- **PR #39**: Aberto, mergeável, base `main` (`3e6d84f36455066b528b8b4b16ee191c59c314d3`).
+- **HEAD Auditado**: `f438112b80c592cc0cd3c1b930263851a3070071`.
+- **Validação de Evidência de Testes**: Nenhuma alteração em código de produção, testes, scripts, configurações ou lockfile ocorreu após o último full quality gate. `FULL_GATE_EVIDENCE_REMAINS_VALID = YES` (560 passed, 45 historical skips, 0 new skips, 0 failures, `ASSERTION_WEAKER = 0`).
+
+### 2. Confirmação Factual de Código & Runtime
+- `AuxiliaryTurnDecisionPort`: **`IMPLEMENTED`** (`packages/contracts/src/voice/auxiliary-turn-decision-contracts.ts`).
+- `AuxiliaryTurnShadowObserver`: **`IMPLEMENTED`** (`apps/voice/src/auxiliary-turn-shadow-observer.ts`).
+- `ConversationOrchestrator`: Integração opcional de shadow **`IMPLEMENTED`** (despacho não-bloqueante no recebimento de `user.speech.final`).
+- **Caminho Autoritativo**: Início imediato do stream do modelo principal sem aguardar avaliação auxiliar por design e coberto por testes de orquestração.
+- `DEFAULT_MODE`: **`DISABLED`** (`DEFAULT_AUXILIARY_PROVIDER_CALLS = 0`). Com modo auxiliar `DISABLED`, o comportamento autoritativo pretendido da conversa permanece funcionalmente inalterado.
+- Alegações de "byte-for-byte identical" removidas de toda documentação.
+- **Adapter Concreto TypeSafe**: **`NOT IMPLEMENTED`** (nenhum cliente HTTP, chaves de API, parsing de resposta remota ou endpoints criados).
+- `CONTROLLED_STAGING_JEV_EXECUTION_READY = NO` (faltam adapter concreto TypeSafe HTTP, configuração de provedor, aprovação formal do portão de dados e autorização explícita de execução em staging).
+- **Tráfego de Clientes e Privacidade**: `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`, `NO_TRANSCRIPT_EXTERNAL_TRANSMISSION = YES`, `CUSTOMER_TRAFFIC = PROHIBITED`. Telemetria estruturada omite categoricamente o `callerTranscript`.
+- **Prontidão de Bypass**: `KNOWN_DETERMINISTIC_HANDLERS = 0`, `ACTIVE_DETERMINISTIC_BYPASS_READINESS = BLOCKED`.
+- **Modo ACTIVE_GUARDED**: Bloqueado na validação e inalcançável no runtime.
+
+### 3. Auditoria de Concorrência, Backlog e Timeout Operacional
+- **Concorrência Delimitada**: Concorrência máxima suportada via injeção/configuração explícita (`maxConcurrency`).
+- `SHADOW_MAX_CONCURRENCY_OPERATIONAL = NOT SELECTED` (nenhum valor operacional de staging ou produção foi selecionado ou hardcoded no código).
+- `SHADOW_BACKLOG_IMPLEMENTED = NO` (sem filas ilimitadas ou buffers de espera).
+- `SHADOW_BACKPRESSURE_POLICY = DROP_WHEN_AT_CONCURRENCY_LIMIT`.
+- **Auditoria de Timeout**: `SHADOW_OPERATIONAL_TIMEOUT_IMPLEMENTED = NO`, `JEV_TIMEOUT_MS = NOT SELECTED`. Rejeição de provedor, falhas síncronas do observer, aborts e descartes por capacidade são estritamente contidos pelo caminho de shadow sem propagar para a conversa principal. `SCOPE_VIOLATION_FOUND = NO`.
+
+### 4. Reconciliação Documental
+- `docs/architecture/decisions/ADR-019-jev-guarded-runtime-integration.md`: Atualizada Seção 6 para distinguir:
+  - `DESIGN STATUS`: `ACCEPTED`.
+  - `IMPLEMENTATION STATUS`: `PROVIDER-NEUTRAL PORT IMPLEMENTED IN PR #39`.
+  - `CONCRETE TYPESAFE ADAPTER`: `NOT IMPLEMENTED`.
+  - `SHADOW PROVIDER WIRING`: `NOT IMPLEMENTED`.
+  - `STAGING EXECUTION`: `NOT EXECUTED`.
+- `docs/research/PHASE_6_JEV_RUNTIME_INTEGRATION_DESIGN.md`: Atualizada Seção 7.1 com a mesma distinção precisa entre design e status de implementação.
+- `docs/research/PHASE_6_JEV_SHADOW_RUNTIME_FOUNDATION.md`: Status corrigido para `PROVIDER-NEUTRAL SHADOW FOUNDATION IMPLEMENTED`, registrado `CONTROLLED_STAGING_JEV_EXECUTION_READY = NO`, removidas alegações inadequadas de equivalência de bytes e registrado `SHADOW_OPERATIONAL_TIMEOUT_IMPLEMENTED = NO`.
+
+### 5. Execução, Validação e Merge
+- **Chamadas a Provedores**: OpenAI `0`, Twilio `0`, TypeSafe/Jev `0`.
+- **Carregamento de .env**: `NO`.
+- **Validação Documental**: `git diff --check` (PASS), `pnpm format:check` (PASS).
+- **Auditoria de Segredos**: `SECRET_AUDIT_PASS` (via `git diff origin/main...HEAD`, boolean-only, zero segredos expostos).
+- **Merge**: PR #39 mergeado via GitHub MCP (método `merge`).
