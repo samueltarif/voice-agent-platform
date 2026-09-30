@@ -8605,3 +8605,126 @@ Este fechamento retifica a formulação epistemológica da base de evidência da
 - `pnpm format:check`: PASS.
 - Auditoria de segredos: `SECRET_AUDIT_PASS` (`git diff origin/main...HEAD`, boolean-only).
 - PR #36: Auditado, validado e mergeado na `main`.
+
+---
+
+## 2026-09-30 — PROMPT-006M-JEV-LOCKED-HOLDOUT-EVALUATION-001
+
+### 1. Parâmetros e Preflight
+- PR #36 Merge SHA: `55646470f7f4faaa173150842987d0648cad80ad`.
+- Branch de avaliação: `research/006m-jev-locked-holdout-evaluation`.
+- Dataset: `scripts/benchmarks/voice/jev-calibration-v2-cases.json` (v2.0.0).
+  - SHA-256: `3e7e0a20ecd3341c99b84d40162b10eff17ba0600d191dd143bc99f00aec3047` (CONFERE).
+- Question Set Atômico (`JEV_ROUTING_ATOMIC_V1`):
+  - SHA-256: `3fecf9ce82ad600a74549d3459fe2b2b516fc3bd7b5fff33bf5b850cd48e8725` (CONFERE).
+- Política Candidata Congelada (`FROZEN_POLICY_SHA256`):
+  - `1ac0f2919ca73d22a39fb1d964b558ba2f7e395f336b2c3f687ced9ed4d53c93` (CONFERE).
+  - Thresholds: `T_SECURITY = 0.56`, `T_DETERMINISTIC = 0.35`, `T_GENERATIVE = 0.47`.
+
+### 2. Governança Pré-Rede e Gates
+- Critérios de Aceitação Primários Pré-Declarados:
+  - `PRIMARY SAFETY CRITERION A`: `falseBypassCount == 0`.
+  - `PRIMARY SAFETY CRITERION B`: `securityMissCount == 0`.
+- Casos selecionados: exatamente 40 casos com `split === 'HOLDOUT'` (12 determinísticos, 20 generativos, 8 segurança).
+- Casos de calibração enviados ao provedor: `CALIBRATION_PROVIDER_REQUESTS = 0`.
+- Teto de custo: `MAX_AUTHORIZED_HOLDOUT_JEV_COST_USD = 0.01` (estimativa conservadora de pior caso <= $0.003 USD).
+- Pre-network unit tests adicionados: 9 testes em `packages/integrations/src/typesafe/jev-locked-holdout.test.ts`.
+- Quality Gate Pré-Rede (`pnpm check`):
+  - 540 tests passed, 45 historical skips, 0 new skips, 0 failures.
+  - `turbo build`: 12/12 successful.
+  - `check:architecture` e `check:file-size`: SUCESSO.
+- Pre-provider commit: `597e813b47b30179a1ef63f5128bd1ba3d57aad5`.
+- Pull Request aberto: PR #37 (`research: evaluate Jev frozen policy on locked holdout`) — OPEN / NOT MERGED.
+- Verificação de chave: `git check-ignore .env` = YES; `TYPESAFE_API_KEY_PRESENT = true` (boolean-only, sem exposição de credenciais).
+
+### 3. Execução Live contra o Provedor
+- Requisições autorizadas: 40.
+- Requisições executadas: 40 (1 requisição atômica por caso com 3 perguntas Noul).
+- Retries: 0 (`retries = 0`).
+- Falhas de provedor: 0 (`failures = 0`).
+- Consumo do holdout: `LOCKED_HOLDOUT_CONSUMED = YES`.
+- Modelo solicitado: `jev-latest`.
+- Modelo resolvido: `jev-1.13.0` (idêntico à calibração Phase A; `MODEL_VERSION_COMPARABILITY = SAME`).
+- Model drift entre as 40 requests: `false` (todas as 40 respostas resolveram estritamente para `jev-1.13.0`).
+
+### 4. Resultados e Métricas no Locked Holdout (N=40)
+- Status do benchmark: `COMPLETE`.
+- Status dos critérios de segurança: `HOLDOUT_SAFETY_CRITERIA = MET`.
+- Resultado do holdout sintético: `SYNTHETIC_LOCKED_HOLDOUT_RESULT = CRITERIA_MET`.
+- Acurácia global de roteamento: 36 / 40 = 90.00%.
+- Safe bypasses (deterministic true positives): 8 / 12 = 66.67% recall.
+- False bypasses (deterministic false positives): 0 / 28 = 0.00%.
+- False bypass entre predições de bypass: 0 / 8 = 0.00%.
+- Precisão determinística: 8 / 8 = 100.00%.
+- Deterministic false negatives: 4 / 12 (`v2-034`, `v2-037`, `v2-038`, `v2-039`) — todos roteados para fallback generativo fail-closed seguro.
+- Security true positives: 8 / 8 = 100.00% recall.
+- Security misses observados: 0 / 8 = 0.00%.
+- Escalonamentos de segurança desnecessários: 0 / 32 = 0.00%.
+- Generative correct: 20 / 20 = 100.00%.
+- Safe bypass rate sobre toda a amostra holdout: 8 / 40 = 20.00%.
+
+### 5. Telemetria de Latência e Custos
+- Latência atômica (`atomicLatencyMs`): min = 225 ms, mediana = 255 ms, max = 446 ms, p95 = 387 ms.
+- Uso de tokens: 25.178 input tokens, 2.560 output tokens.
+- Custo estimado baseado no uso: $0.001057 USD (teto autorizado: $0.01 USD).
+- Reconciliação financeira: `NOT PERFORMED` (estimativa algorítmica por tokens).
+
+### 6. Imutabilidade e Governança Pós-Execução
+- Hash da política congelada pós-execução: `1ac0f2919ca73d22a39fb1d964b558ba2f7e395f336b2c3f687ced9ed4d53c93` (INALTERADO).
+- Nenhum threshold ou operador foi retunado ou alterado após a observação dos resultados.
+- Provedores externos não autorizados: OpenAI 0, Twilio 0.
+- Integração de produção: NÃO.
+- Artefato gerado: `docs/research/results/phase-6-jev-locked-holdout-v2-run1.json`.
+- Relatório de pesquisa gerado: `docs/research/PHASE_6_JEV_LOCKED_HOLDOUT_EVALUATION.md`.
+
+---
+
+## 2026-09-30 — PROMPT-006M-HOLDOUT-FINAL-CLOSE-001
+
+### 1. Parâmetros e Escopo
+- Fechamento formal da avaliação Locked Holdout do Jev v2.
+- Branch: `research/006m-jev-locked-holdout-evaluation`.
+- PR #37 (Base: `main`, Head: `research/006m-jev-locked-holdout-evaluation`).
+- SHA-256 do Artefato de Resultados do Holdout (`HOLDOUT_RESULT_ARTIFACT_SHA256`):
+  `21bd34ad26e0aa745a69d082a2c16d6d38dd3e685685f77cf027b9e1a3353850` (INALTERADO).
+- Imutabilidade da Política Congelada:
+  - `T_SECURITY = 0.56`
+  - `T_DETERMINISTIC = 0.35`
+  - `T_GENERATIVE = 0.47`
+  - `FROZEN_POLICY_SHA256 = 1ac0f2919ca73d22a39fb1d964b558ba2f7e395f336b2c3f687ced9ed4d53c93` (MATCH / PRESERVADO).
+
+### 2. Correções de Wording e Rigor Metodológico
+1. **Correção de Alegações Estatísticas**:
+   - Ajustado para registrar factual: "No 40-case synthetic locked holdout, 0 false bypasses and 0 security misses were observed."
+   - Adicionada qualificação explícita: `ZERO OBSERVED ERRORS DOES NOT ESTABLISH ZERO POPULATION RISK`.
+   - Nenhum intervalo de confiança artificial ou presunção estatística populacional foi introduzida.
+2. **Correção de Semântica Fail-Closed**:
+   - Para os 4 falsos negativos determinísticos (`v2-034`, `v2-037`, `v2-038`, `v2-039`), especificado: "fail-closed with respect to deterministic bypass: no deterministic bypass occurred for these four cases. This does not establish that the downstream generative response is intrinsically safe or correct."
+3. **Qualificação dos Critérios Pré-Declarados**:
+   - Mantido `HOLDOUT_SAFETY_CRITERIA = MET` e `SYNTHETIC_LOCKED_HOLDOUT_RESULT = CRITERIA_MET`, estritamente qualificados como critérios pré-declarados cumpridos na amostra sintética de holdout, sem equivalência a `PRODUCTION_SAFE`, `PRODUCTION_READY` ou `SECURITY_GUARANTEED`.
+4. **Lacuna de Generalização Observada (`OBSERVED GENERALIZATION GAP IN SYNTHETIC DATA`)**:
+   - Acurácia global: 97.50% (calibração) → 90.00% (holdout) (delta = -7.50 p.p.).
+   - Recall determinístico: 92.86% (calibração) → 66.67% (holdout) (delta ≈ -26.19 p.p.).
+   - Safe bypass rate total: 32.50% (calibração) → 20.00% (holdout) (delta = -12.50 p.p.).
+   - False bypass: 0 em ambos.
+   - Security miss: 0 em ambos.
+5. **Consumo Permanente do Holdout**:
+   - Registrado: `LOCKED_HOLDOUT_CONSUMED = YES`. O split não pode ser reutilizado para tuning, fitting ou modificação de question sets. Qualquer mudança futura de política demandará novo holdout independente.
+6. **Comparabilidade do Modelo**:
+   - Requested: `jev-latest`, Resolved: `jev-1.13.0` (40/40 requisições).
+   - `MODEL_VERSION_COMPARABILITY = SAME` (idêntico à calibração Phase A); `MODEL_DRIFT_OBSERVED = NO`.
+7. **Interpretação de Latência e Custo**:
+   - Latência atômica medida exclusivamente entre início da requisição HTTP e parsing tipado completo (min = 225ms, mediana = 255ms, max = 446ms, p95 = 387ms). Não constitui TTFT, SLA ou latência ponta a ponta de voz.
+   - Registrado: `SERIAL_JEV_PLUS_OPENAI_E2E_LATENCY = NOT MEASURED`. A política poupou chamadas ao modelo principal em 20% dos casos, mas o impacto serial nos 80% restantes permanece como necessidade de medição futura.
+   - Custo: `USAGE_BASED_ESTIMATED_COST` de ~$0.001057 USD; `BILLING_LEDGER = NOT INDEPENDENTLY RECONCILED`.
+
+### 3. Auditoria de Validade do Quality Gate e Governança
+- Diff entre pre-provider commit (`597e813b47b30179a1ef63f5128bd1ba3d57aad5`) e HEAD: restrito exclusivamente a `results JSON`, `research docs` e `AI_WORKLOG`.
+- `FULL_GATE_EVIDENCE_REMAINS_VALID = YES`.
+- Evidência de testes preservada: 540 passed, 45 historical skips, 0 new skips, 0 failures, `ASSERTION_WEAKER = 0`.
+- Chamadas a provedores neste prompt: `OPENAI_CALLS_THIS_PROMPT = 0`, `JEV_CALLS_THIS_PROMPT = 0`, `TWILIO_CALLS_THIS_PROMPT = 0`.
+- `.env` não carregado neste prompt (`UNNECESSARY_ENV_RUNTIME_LOAD = NO`).
+- `git diff --check`: PASS.
+- `pnpm format:check`: PASS.
+- Auditoria de segredos: `SECRET_AUDIT_PASS` (`git diff origin/main...HEAD`, boolean-only).
+- PR #37 validado e pronto para merge.
