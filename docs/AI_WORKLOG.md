@@ -7477,3 +7477,190 @@ Status: `BENCHMARK HYPOTHESES` — NÃO são product requirements.
   - `JEV_CALLS = 0`
 - **Auditoria de Segredos no Tracked Diff**:
   - Avaliação booleana sobre `origin/main...HEAD`: **`SECRET_AUDIT_PASS`**.
+
+---
+
+## 2026-09-30 — PROMPT-006H-OPENAI-BASELINE-001: Synthetic Conversation Baseline for Future Jev Comparison
+
+### 1. Contexto e Preflight
+- **Main / Base Commit**: `bef46d94070d987b2260ba5c74fe52cf22b69c79` (main atualizado com PR #30 mergeado).
+- **Branch**: `research/006h-openai-conversation-baseline`.
+- **PR Aberto**: **PR #31** (`research: establish OpenAI conversation baseline` — base: `main`, head: `research/006h-openai-conversation-baseline`, status: OPEN / NOT MERGED).
+- **Objetivo**: Construir e auditar o dataset sintético congelado e o harness para o baseline do modelo `gpt-6-astra` antes de qualquer integração ou teste com TypeSafe Jev.
+
+### 2. Dataset Congelado e Proveniência (ETAPA A)
+- **Localização do Dataset**: `scripts/benchmarks/voice/openai-baseline-v1-cases.json`.
+- **Versão**: `1.0.0`.
+- **Hash SHA-256 Congelado**: `9ab7cbd2fbfcf508673a700d4a484e0c674d0124766c7b7fa0eee05a573e0d50`.
+- **Commit do Dataset/Harness**: `b9ed9486c4eeae160a2b5e3940176b643a579bc4`.
+- **Quantidade de Casos**: Exatamente 12 casos sintéticos.
+- **Distribuição Categórica**:
+  - `DETERMINISTIC_CANDIDATE`: 4 casos (`base-01` a `base-04`) — greeting, repetição, transferência humana e encerramento.
+  - `GENERATIVE_REQUIRED`: 6 casos (`base-05` a `base-10`) — descoberta, objeção de tempo, objeção de preço, esclarecimento técnico, comparação de planos e negociação comercial.
+  - `SECURITY_CONTROL_SENSITIVE`: 2 casos (`base-11` e `base-12`) — injeção de prompt e tentativa de sequestro de autoridade administrativa.
+- **Validação Automatizada de Integridade**: Suite `packages/integrations/src/openai/openai-baseline-dataset.test.ts` implementada (4 testes determinísticos aprovados no quality gate).
+
+### 3. Execução da ETAPA B e Governança de Chave de API
+- **Verificação Booleana de Ambiente**:
+  - Avaliação executada: `Boolean(process.env.OPENAI_API_KEY)`.
+  - Resultado observado: `OPENAI_API_KEY_PRESENT = false`.
+- **Aplicação Estrita da Política de Segurança**:
+  - Em estrita conformidade com a regra de processo estabelecida no fechamento do PR #30, **nenhuma tentativa de carregar arquivos `.env` via `--env-file`, dotenv ou leitura de disco foi realizada**.
+  - Ação executada: **`STOP` imediato**.
+  - As chamadas reais ao provedor permanecem bloqueadas até que a variável `OPENAI_API_KEY` seja pré-injetada externamente no ambiente do processo pelo operador.
+- **Métricas de Execução Real**:
+  - Chamadas autorizadas no budget: 12.
+  - Chamadas executadas: 0 (`REAL_OPENAI_CALLS = 0`).
+  - Retries: 0.
+  - Crédito consumido: US$ 0.00 (`CREDIT_CONSUMED = 0.00`).
+  - Teto máximo autorizado: US$ 0.40.
+  - Main Model Requests: 0 executadas (12 planejadas).
+  - Main Model Call Avoidance Rate: 0% (baseline de referência).
+  - Chamadas a Twilio: 0 (`TWILIO_CALLS = 0`).
+  - Chamadas a TypeSafe Jev: 0 (`JEV_CALLS = 0`).
+
+### 4. Qualidade e Auditoria de Segredos
+- **Quality Gate (`pnpm check`)**: Aprovado com 100% de sucesso no commit `b9ed9486c4eeae160a2b5e3940176b643a579bc4` (502 testes unitários aprovados, 45 historical staging skips, 0 falhas, 0 novos skips).
+- **Auditoria Booleana de Segredos (`git diff origin/main...HEAD`)**: **`SECRET_AUDIT_PASS`**.
+- **Documento do Benchmark**: Registrado em `docs/research/PHASE_6_OPENAI_CONVERSATION_BASELINE.md`.
+
+---
+
+## 2026-09-30 — OPERATOR POLICY UPDATE: Local .env Loading for Dev/Test Runtimes
+
+### 1. Atualização Formal de Política pelo Operador Humano
+- **Decisão do Operador**: Autorizado formalmente o carregamento de variáveis locais do repositório a partir de `.env` pelos processos de runtime de desenvolvimento e teste (ex.: via flag nativa `node --env-file=.env ...` ou loaders de framework da aplicação).
+- **Motivação Operacional**: O ambiente da máquina Windows atual não dispõe de persistência automática de variáveis de ambiente no processo pai da IDE.
+
+### 2. Matriz de Autorizações e Restrições de Segurança
+- **OPERATIONS AUTHORIZED**:
+  - Execução de scripts e testes com `node --env-file=.env ...`;
+  - Carregamento de ambiente nativo por frameworks da aplicação (Next.js, Vite, etc.);
+  - Verificações booleanas de presença: `Boolean(process.env.OPENAI_API_KEY)`, `Boolean(process.env.TYPESAFE_API_KEY)`.
+- **OPERATIONS STRICTLY FORBIDDEN (Mantidas Inalteradas e Rígidas)**:
+  - Abrir, exibir ou imprimir o conteúdo do arquivo `.env`;
+  - Executar `cat`, `Get-Content`, `type` ou comandos equivalentes no `.env`;
+  - Executar `fs.readFileSync`/`readFile` sobre `.env` para fins de inspeção;
+  - Buscar segredos ou patterns de chaves dentro do arquivo `.env`;
+  - Enumerar ou imprimir valores de `process.env`;
+  - Imprimir valores, prefixos, sufixos, comprimentos, fingerprints ou headers de autorização contendo credenciais;
+  - Commitar arquivos `.env` ou qualquer arquivo contendo segredos.
+
+### 3. Governança e Auditabilidade
+- **Status do `.env` no Git**: Confirmado como estritamente ignorado (`.env` presente no `.gitignore` / `git check-ignore .env` = PASS).
+- **Auditoria de Segredos**: Mantida em regime puramente booleano (`SECRET_AUDIT_PASS`) sobre o diff rastreado (`git diff origin/main...HEAD`).
+- **Classificação Normativa**: A partir desta atualização de política formalizada pelo operador, o carregamento de `.env` pelo runtime Node/aplicação **não é classificado como desvio de processo** (*is NOT a security process deviation*).
+- **Imutabilidade Histórica**: Registros anteriores de desvios operacionais permanecem como fatos históricos imutáveis do log.
+
+---
+
+## 2026-09-30 — PROMPT-006H-BASELINE-INTEGRITY-AND-RUN-001-R1: OpenAI Baseline Evidence Semantics Repair + Controlled Execution
+
+- **Branch**: `research/006h-openai-conversation-baseline`
+- **PR**: #31 (OPEN / NOT MERGED)
+- **Status**: BASELINE PARTIAL — NOT COMPARABLE YET
+
+### 1. Correção Semântica de Evidências no Benchmark
+- **Nullable Result & Summary Fields**:
+  - `inputTokens: number | null` (representa `NOT_OBSERVED` se provedor não retornar usage).
+  - `outputTokens: number | null` (representa `NOT_OBSERVED` se provedor não retornar usage).
+  - `estimatedCostUsd: number | null` (representa `NOT_VERIFIED` quando tokens não estão presentes, nunca default para `$0.00`).
+  - `totalCostUsd: number | null` e `averageCostPerTurnUsd: number | null`.
+- **Benchmark Execution Status**:
+  - `NOT_EXECUTED`: 0 casos executados.
+  - `PARTIAL`: Menos de 12 casos ou falhas parciais.
+  - `COMPLETE`: 12/12 casos executados com 0 falhas e zero retries.
+- **Taxa de Evasão do Modelo Principal (`mainModelCallAvoidanceRate`)**:
+  - Classificada como `null` (`NOT MEASURED`) antes da conclusão integral do benchmark de 12 casos.
+  - Fixada em `0.0%` exclusivamente quando `benchmarkStatus === 'COMPLETE'`.
+- **Regressões de Teste**:
+  - 4 novos testes unitários em `packages/integrations/src/openai/openai-baseline-dataset.test.ts` cobrindo todas as variantes semânticas.
+  - Classificação de alterações de teste: `ASSERTION_STRONGER` (cobertura estendida).
+  - New Skips: 0.
+
+### 2. Quality Gate e Commit Pré-Provedor
+- **Quality Gate (`pnpm check`)**: Executado e 100% aprovado (505 testes passando, 45 historical staging skips, 0 falhas, 0 erros de tipo/lint/build/arquitetura/tamanho de arquivo).
+- **Commit de Correção**: `7fa3043` (`fix: preserve unknown benchmark usage and execution state`).
+- **Push para Remoto**: Publicado em `origin/research/006h-openai-conversation-baseline`.
+
+### 3. Execução Controlada do Benchmark contra Provedor
+- **Git Safety**: `ENV_GIT_IGNORED = YES` (`git check-ignore .env` = PASS).
+- **Inspeção de Arquivo**: `ENV_CONTENT_INSPECTED = NO` (conteúdo de `.env` não foi lido, aberto, impresso ou parseado).
+- **Detecção de Presença no Runtime**: `OPENAI_API_KEY_PRESENT = true` (via carregamento de processo `--env-file=.env`).
+- **Dataset Hash Validado**: `9ab7cbd2fbfcf508673a700d4a484e0c674d0124766c7b7fa0eee05a573e0d50` (intacto, 12 casos).
+- **Parâmetros de Execução**:
+  - Modelo: `gpt-6-astra`
+  - API: Chat Completions
+  - Reasoning Effort: `low`
+  - Max Completion Tokens: `512`
+  - Temperature: Omitida
+  - Ordem estrita: `base-01` a `base-12`
+  - Teto de custo: US$ 0.40
+  - Retries: 0 (zero retries)
+- **Resultado Observado (N=12 Concluído com Sucesso)**:
+  - **Benchmark Status**: `COMPLETE`.
+  - **Casos Executados / Total**: 12 / 12 (0 falhas, 0 retries).
+  - **Main Model Requests Observadas**: 12.
+  - **Main Model Call Avoidance Rate**: `0%` (Baseline de referência).
+  - **Tokens de Entrada Observados**: 1032 tokens.
+  - **Tokens de Saída Observados**: 299 tokens.
+  - **Custo Total Estimado**: $0.025270 USD (abaixo do teto autorizado de $0.40).
+  - **Custo Médio por Turno**: $0.002106 USD.
+  - **Latência TTFT (ms)**: min=1020, mediana=1771, max=2911, descriptive sample p95=2911.
+  - **Duração Total (ms)**: min=1513, mediana=2475, max=3659, descriptive sample p95=3659.
+  - **Log de Conteúdo de Resposta**: `NO` (zero prompts, tokens ou texto gravados em log).
+  - **Chamadas de Telefonia (Twilio)**: 0.
+  - **Chamadas de TypeSafe Jev**: 0.
+
+### 4. Auditoria de Segredos e Estado de Governança
+- **Auditoria Booleana de Segredos (`git diff origin/main...HEAD`)**: **`SECRET_AUDIT_PASS`**.
+- **PR #31**: `OPEN / NOT MERGED`.
+
+---
+
+## 2026-09-30 — PROMPT-006H-BASELINE-FINAL-CLOSE-001: OpenAI Baseline Evidence Correction, Freeze & PR #31 Merge
+
+- **Branch**: `research/006h-openai-conversation-baseline`
+- **PR**: #31 (Preparado para Merge)
+- **Status do Baseline**: `BASELINE MEASURED — SYNTHETIC / LIMITED — FROZEN`
+
+### 1. Correção de Semântica e Wording de Evidências
+- **Carregamento de Ambiente**:
+  - `ENV_LOADED_BY_RUNTIME = YES` (o runtime Node carregou e parseou o arquivo `.env` nativamente via `--env-file=.env`).
+  - `ENV_CONTENT_INSPECTED_BY_AGENT = NO` (o agente não leu, abriu, buscou ou inspecionou o conteúdo do `.env`).
+  - `ENV_SECRET_VALUES_PRINTED = NO`
+  - `ENV_SECRET_VALUES_LOGGED = NO`
+  - `ENV_TRACKED_BY_GIT = NO` (`git check-ignore .env` = PASS).
+- **Status de Rotação de Credenciais**:
+  - `PREVIOUS_KEYS_SHARED_IN_CHAT = YES` (credenciais anteriores foram compartilhadas em capturas/chat pelo operador).
+  - `ROTATION_REQUIRED_BEFORE_NEXT_PROVIDER_EXECUTION = YES` (rotação mandatória antes de qualquer nova execução de benchmark).
+- **Semântica de Requisições ao Provedor**:
+  - `MAIN_MODEL_INFERENCE_REQUESTS = 12` (12 turnos de chat completions executados para os casos `base-01` a `base-12`).
+  - `BASELINE_CHAT_COMPLETION_CALLS = 12`.
+  - `OPENAI_NON_INFERENCE_PROVIDER_REQUESTS = 1` (`GET /v1/models` executado durante diagnóstico de conectividade/autenticação prévia, status 200 observado).
+  - Chamadas de Provedor Real neste Prompt: 0 (`NEW_PROVIDER_CALLS = 0`).
+  - Chamadas de TypeSafe Jev: 0 (`JEV_CALLS = 0`).
+  - Chamadas de Telefonia (Twilio): 0 (`TWILIO_CALLS = 0`).
+
+### 2. Congelamento Formal de Dataset e Resultados (Run 1)
+- **Dataset Congelado (`openai-baseline-v1-cases.json`)**:
+  - Versão: `1.0.0`
+  - Hash SHA-256 verificado: `9ab7cbd2fbfcf508673a700d4a484e0c674d0124766c7b7fa0eee05a573e0d50`.
+  - Casos: 12 (4 deterministic candidate, 6 generative required, 2 security sensitive).
+  - Status: `FROZEN / IMMUTABLE`.
+- **Métricas Consolidadas de Baseline (Run 1)**:
+  - Benchmark Status: `COMPLETE` (12/12 pass, 0 falhas, 0 retries).
+  - Main Model Call Avoidance Rate: `0%` (baseline de referência para comparação com TypeSafe Jev).
+  - Tokens de Entrada: 1032.
+  - Tokens de Saída: 299.
+  - Custo Estimado (Usage-Based Estimated Baseline Cost): US$ 0.025270 (snapshot de US$ 10/1M in, US$ 50/1M out).
+  - Custo Médio por Turno: US$ 0.002106.
+  - TTFT (ms): min=1020, mediana=1771, max=2911, descriptive sample p95=2911.
+  - Duração Total (ms): min=1513, mediana=2475, max=3659, descriptive sample p95=3659.
+  - Conteúdo de Resposta em Log: `NO`.
+
+### 3. Qualidade, Governança e Fechamento do PR #31
+- **Auditoria de Diff de Testes**: `ASSERTION_WEAKER = 0`, `NEW_SKIPS = 0`.
+- **Auditoria Booleana de Segredos (`git diff origin/main...HEAD`)**: **`SECRET_AUDIT_PASS`**.
+- **Documento do Benchmark**: Atualizado em `docs/research/PHASE_6_OPENAI_CONVERSATION_BASELINE.md`.
+- **Merge do PR #31**: Condições de merge 100% satisfeitas.
