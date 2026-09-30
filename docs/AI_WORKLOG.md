@@ -7523,3 +7523,31 @@ Status: `BENCHMARK HYPOTHESES` — NÃO são product requirements.
 - **Quality Gate (`pnpm check`)**: Aprovado com 100% de sucesso no commit `b9ed9486c4eeae160a2b5e3940176b643a579bc4` (502 testes unitários aprovados, 45 historical staging skips, 0 falhas, 0 novos skips).
 - **Auditoria Booleana de Segredos (`git diff origin/main...HEAD`)**: **`SECRET_AUDIT_PASS`**.
 - **Documento do Benchmark**: Registrado em `docs/research/PHASE_6_OPENAI_CONVERSATION_BASELINE.md`.
+
+---
+
+## 2026-09-30 — OPERATOR POLICY UPDATE: Local .env Loading for Dev/Test Runtimes
+
+### 1. Atualização Formal de Política pelo Operador Humano
+- **Decisão do Operador**: Autorizado formalmente o carregamento de variáveis locais do repositório a partir de `.env` pelos processos de runtime de desenvolvimento e teste (ex.: via flag nativa `node --env-file=.env ...` ou loaders de framework da aplicação).
+- **Motivação Operacional**: O ambiente da máquina Windows atual não dispõe de persistência automática de variáveis de ambiente no processo pai da IDE.
+
+### 2. Matriz de Autorizações e Restrições de Segurança
+- **OPERATIONS AUTHORIZED**:
+  - Execução de scripts e testes com `node --env-file=.env ...`;
+  - Carregamento de ambiente nativo por frameworks da aplicação (Next.js, Vite, etc.);
+  - Verificações booleanas de presença: `Boolean(process.env.OPENAI_API_KEY)`, `Boolean(process.env.TYPESAFE_API_KEY)`.
+- **OPERATIONS STRICTLY FORBIDDEN (Mantidas Inalteradas e Rígidas)**:
+  - Abrir, exibir ou imprimir o conteúdo do arquivo `.env`;
+  - Executar `cat`, `Get-Content`, `type` ou comandos equivalentes no `.env`;
+  - Executar `fs.readFileSync`/`readFile` sobre `.env` para fins de inspeção;
+  - Buscar segredos ou patterns de chaves dentro do arquivo `.env`;
+  - Enumerar ou imprimir valores de `process.env`;
+  - Imprimir valores, prefixos, sufixos, comprimentos, fingerprints ou headers de autorização contendo credenciais;
+  - Commitar arquivos `.env` ou qualquer arquivo contendo segredos.
+
+### 3. Governança e Auditabilidade
+- **Status do `.env` no Git**: Confirmado como estritamente ignorado (`.env` presente no `.gitignore` / `git check-ignore .env` = PASS).
+- **Auditoria de Segredos**: Mantida em regime puramente booleano (`SECRET_AUDIT_PASS`) sobre o diff rastreado (`git diff origin/main...HEAD`).
+- **Classificação Normativa**: A partir desta atualização de política formalizada pelo operador, o carregamento de `.env` pelo runtime Node/aplicação **não é classificado como desvio de processo** (*is NOT a security process deviation*).
+- **Imutabilidade Histórica**: Registros anteriores de desvios operacionais permanecem como fatos históricos imutáveis do log.
