@@ -8676,3 +8676,55 @@ Este fechamento retifica a formulação epistemológica da base de evidência da
 - Integração de produção: NÃO.
 - Artefato gerado: `docs/research/results/phase-6-jev-locked-holdout-v2-run1.json`.
 - Relatório de pesquisa gerado: `docs/research/PHASE_6_JEV_LOCKED_HOLDOUT_EVALUATION.md`.
+
+---
+
+## 2026-09-30 — PROMPT-006M-HOLDOUT-FINAL-CLOSE-001
+
+### 1. Parâmetros e Escopo
+- Fechamento formal da avaliação Locked Holdout do Jev v2.
+- Branch: `research/006m-jev-locked-holdout-evaluation`.
+- PR #37 (Base: `main`, Head: `research/006m-jev-locked-holdout-evaluation`).
+- SHA-256 do Artefato de Resultados do Holdout (`HOLDOUT_RESULT_ARTIFACT_SHA256`):
+  `21bd34ad26e0aa745a69d082a2c16d6d38dd3e685685f77cf027b9e1a3353850` (INALTERADO).
+- Imutabilidade da Política Congelada:
+  - `T_SECURITY = 0.56`
+  - `T_DETERMINISTIC = 0.35`
+  - `T_GENERATIVE = 0.47`
+  - `FROZEN_POLICY_SHA256 = 1ac0f2919ca73d22a39fb1d964b558ba2f7e395f336b2c3f687ced9ed4d53c93` (MATCH / PRESERVADO).
+
+### 2. Correções de Wording e Rigor Metodológico
+1. **Correção de Alegações Estatísticas**:
+   - Ajustado para registrar factual: "No 40-case synthetic locked holdout, 0 false bypasses and 0 security misses were observed."
+   - Adicionada qualificação explícita: `ZERO OBSERVED ERRORS DOES NOT ESTABLISH ZERO POPULATION RISK`.
+   - Nenhum intervalo de confiança artificial ou presunção estatística populacional foi introduzida.
+2. **Correção de Semântica Fail-Closed**:
+   - Para os 4 falsos negativos determinísticos (`v2-034`, `v2-037`, `v2-038`, `v2-039`), especificado: "fail-closed with respect to deterministic bypass: no deterministic bypass occurred for these four cases. This does not establish that the downstream generative response is intrinsically safe or correct."
+3. **Qualificação dos Critérios Pré-Declarados**:
+   - Mantido `HOLDOUT_SAFETY_CRITERIA = MET` e `SYNTHETIC_LOCKED_HOLDOUT_RESULT = CRITERIA_MET`, estritamente qualificados como critérios pré-declarados cumpridos na amostra sintética de holdout, sem equivalência a `PRODUCTION_SAFE`, `PRODUCTION_READY` ou `SECURITY_GUARANTEED`.
+4. **Lacuna de Generalização Observada (`OBSERVED GENERALIZATION GAP IN SYNTHETIC DATA`)**:
+   - Acurácia global: 97.50% (calibração) → 90.00% (holdout) (delta = -7.50 p.p.).
+   - Recall determinístico: 92.86% (calibração) → 66.67% (holdout) (delta ≈ -26.19 p.p.).
+   - Safe bypass rate total: 32.50% (calibração) → 20.00% (holdout) (delta = -12.50 p.p.).
+   - False bypass: 0 em ambos.
+   - Security miss: 0 em ambos.
+5. **Consumo Permanente do Holdout**:
+   - Registrado: `LOCKED_HOLDOUT_CONSUMED = YES`. O split não pode ser reutilizado para tuning, fitting ou modificação de question sets. Qualquer mudança futura de política demandará novo holdout independente.
+6. **Comparabilidade do Modelo**:
+   - Requested: `jev-latest`, Resolved: `jev-1.13.0` (40/40 requisições).
+   - `MODEL_VERSION_COMPARABILITY = SAME` (idêntico à calibração Phase A); `MODEL_DRIFT_OBSERVED = NO`.
+7. **Interpretação de Latência e Custo**:
+   - Latência atômica medida exclusivamente entre início da requisição HTTP e parsing tipado completo (min = 225ms, mediana = 255ms, max = 446ms, p95 = 387ms). Não constitui TTFT, SLA ou latência ponta a ponta de voz.
+   - Registrado: `SERIAL_JEV_PLUS_OPENAI_E2E_LATENCY = NOT MEASURED`. A política poupou chamadas ao modelo principal em 20% dos casos, mas o impacto serial nos 80% restantes permanece como necessidade de medição futura.
+   - Custo: `USAGE_BASED_ESTIMATED_COST` de ~$0.001057 USD; `BILLING_LEDGER = NOT INDEPENDENTLY RECONCILED`.
+
+### 3. Auditoria de Validade do Quality Gate e Governança
+- Diff entre pre-provider commit (`597e813b47b30179a1ef63f5128bd1ba3d57aad5`) e HEAD: restrito exclusivamente a `results JSON`, `research docs` e `AI_WORKLOG`.
+- `FULL_GATE_EVIDENCE_REMAINS_VALID = YES`.
+- Evidência de testes preservada: 540 passed, 45 historical skips, 0 new skips, 0 failures, `ASSERTION_WEAKER = 0`.
+- Chamadas a provedores neste prompt: `OPENAI_CALLS_THIS_PROMPT = 0`, `JEV_CALLS_THIS_PROMPT = 0`, `TWILIO_CALLS_THIS_PROMPT = 0`.
+- `.env` não carregado neste prompt (`UNNECESSARY_ENV_RUNTIME_LOAD = NO`).
+- `git diff --check`: PASS.
+- `pnpm format:check`: PASS.
+- Auditoria de segredos: `SECRET_AUDIT_PASS` (`git diff origin/main...HEAD`, boolean-only).
+- PR #37 validado e pronto para merge.

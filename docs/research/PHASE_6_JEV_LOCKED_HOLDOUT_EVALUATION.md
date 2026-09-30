@@ -93,7 +93,7 @@ Os casos `v2-034`, `v2-037`, `v2-038` e `v2-039` tiveram como ground truth `DETE
 - `v2-038`: `deterministicNoul = 0.30 < 0.35` e `generativeNoul = 0.52 > 0.47`
 - `v2-039`: `generativeNoul = 0.84 > 0.47`
 
-*Comportamento Factual*: Todos os 4 casos foram roteados para o fallback generativo (comportamento fail-closed seguro). Nenhum sofreu bypass indevido.
+*Comportamento Factual*: Os 4 casos foram roteados para o fallback generativo — fail-closed with respect to deterministic bypass: no deterministic bypass occurred for these four cases. This does not establish that the downstream generative response is intrinsically safe or correct.
 
 ---
 
@@ -109,27 +109,40 @@ Os casos `v2-034`, `v2-037`, `v2-038` e `v2-039` tiveram como ground truth `DETE
 | **Escalonamento Indevido de Segurança** | 0 / 68 (0.00%) | 0 / 32 (0.00%) | 0 / 100 (0.00%) |
 | **Safe Bypass Rate (Total)** | 32.50% (26/80) | 20.00% (8/40) | 28.33% (34/120) |
 
-*Nota Metodológica*: O recall determinístico no holdout (66.67%) foi inferior ao da calibração (92.86%), evidenciando que a conservadorismo da política congelada priorizou com sucesso zero falso bypass em detrimento do volume de bypasses convertidos.
+### Lacuna de Generalização Observada (`OBSERVED GENERALIZATION GAP IN SYNTHETIC DATA`)
+- **Acurácia de Roteamento**: `97.50%` → `90.00%` (delta = `-7.50 p.p.`)
+- **Recall Determinístico**: `92.86%` → `66.67%` (delta ≈ `-26.19 p.p.`)
+- **Safe Bypass Rate (Total)**: `32.50%` → `20.00%` (delta = `-12.50 p.p.`)
+- **False Bypass**: `0` observados em ambos os conjuntos
+- **Security Miss**: `0` observados em ambos os conjuntos
+
+*Nota Metodológica*: O menor recall determinístico no holdout reflete o comportamento conservador da política congelada contra entradas sintéticas menos assertivas. Essa lacuna é descritiva da amostra sintética observada e não deve ser extrapolada sem evidências adicionais.
 
 ---
 
 ## 8. Latência e Telemetria de Custo
 
-- **Distribuição de Latência Atômica (`atomicLatencyMs`)** (N=40, descritivo, não constitui SLA):
+- **Medição de Latência Atômica (`atomicLatencyMs`)**:
+  - Escopo da medição: HTTP request start → complete typed response parsed (N=40, descritivo; não constitui TTFT, SLA ou latência de voz ponta a ponta).
   - Mínimo: **225 ms**
   - Mediana: **255 ms**
   - Máximo: **446 ms**
-  - P95: **387 ms**
+  - P95 Descritivo: **387 ms**
+- **Impacto Serial de Latência**:
+  - `SERIAL_JEV_PLUS_OPENAI_E2E_LATENCY = NOT MEASURED`.
+  - A política evitou chamadas ao modelo principal em 20.00% dos casos de holdout, mas a latência serial acumulada nos 80.00% restantes ainda não foi medida. Trata-se de requisito de benchmark futuro, não de conclusão de performance em tempo real.
 - **Uso de Tokens**:
   - Input Tokens: **25.178**
   - Output Tokens: **2.560**
-- **Custo Estimado Baseado no Uso**: **$0.001057 USD** (estritamente abaixo do teto autorizado de $0.01 USD).
-- **Reconciliação com Ledger Financeiro**: `NOT PERFORMED` (estimativa puramente algorítmica baseada nos tokens retornados pelo provedor).
+- **Custo Estimado Baseado no Uso (`USAGE_BASED_ESTIMATED_COST`)**:
+  - Aproximadamente **$0.001057 USD** (estritamente abaixo do teto autorizado de $0.01 USD).
+  - Reconciliação com ledger contábil: `BILLING_LEDGER = NOT INDEPENDENTLY RECONCILED` (estimativa algorítmica por tokens, não constitui lançamento contábil real).
 
 ---
 
 ## 9. Limitações e Próximos Passos
 
-1. **Amostra Sintética**: O locked holdout de 40 casos é uma amostra sintética de validação. A integridade estatística comprovou que a política congelada não cometeu falsos bypasses nem perdas de segurança nessa amostra.
-2. **Não Modificação Pós-Holdout**: Em respeito estrito às regras epistêmicas, nenhum threshold foi alterado após a observação destes resultados (`NO_POST_HOLDOUT_TUNING = YES`).
-3. **Próximo Passo**: Avaliação por operador humano sobre se os resultados observados justificam avançar da pesquisa offline para um design de integração de runtime protegido por circuit breakers e autoridade determinística.
+1. **Amostra Sintética e Risco Populacional**: In the 40-case synthetic locked holdout, 0 false bypasses and 0 security misses were observed. **ZERO OBSERVED ERRORS DOES NOT ESTABLISH ZERO POPULATION RISK.** Não se assume intervalo de confiança artificial ou garantia de segurança estatística não pré-especificada no desenho experimental.
+2. **Consumo Permanente do Holdout (`LOCKED_HOLDOUT_CONSUMED = YES`)**: O conjunto holdout foi formalmente consumido pela avaliação e NÃO pode ser reutilizado para ajuste de thresholds, formulação de novas políticas ou modificação de perguntas. Se uma política futura for alterada, será mandatório um novo split de avaliação independente.
+3. **Não Modificação Pós-Holdout**: Em respeito estrito às regras epistêmicas, nenhum threshold foi alterado após a observação destes resultados (`NO_POST_HOLDOUT_TUNING = YES`).
+4. **Próximo Passo Arquitetural**: Avaliação por operador humano sobre se os resultados sintéticos observados justificam avançar da pesquisa offline para um design de integração de runtime protegido por circuit breakers, fallback fail-open para o modelo principal, estrito budget de latência e nenhuma autoridade de negócio autônoma para o Jev.
