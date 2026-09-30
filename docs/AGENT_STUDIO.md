@@ -83,6 +83,11 @@ Documentos que o agente pode consultar como contexto conversacional:
 ### 2.8. Voz e Síntese
 - **VoiceConfig**: Configuração de voz sintética (timbre, velocidade, idioma, sotaque).
 - Selecionável a partir de catálogo de vozes do provider configurado (Pending Decision).
+- **Expressividade Conversacional (*Conversational Voice Expressivity*)** [Capacidade Futura]:
+  - Requisito de produto registrado: `VOICE_CONVERSATIONAL_EXPRESSIVITY = REQUIRED_FUTURE_CAPABILITY` (prioridade: `PRODUCT_DESIRED = YES` | `CURRENT_IMPLEMENTATION_PRIORITY = LATER_VOICE_EXPERIENCE_SLICE`).
+  - Configuração futura granular por agente (exemplo conceitual: `OFF`, `SUBTLE`, `NATURAL` — dimensões e faixas numéricas `NOT SELECTED`).
+  - Restrições estritas de segurança: ausência de espelhamento cego de risadas (`CUSTOMER_LAUGHTER DOES NOT IMPLY AGENT_LAUGHTER`), bloqueio em tópicos sensíveis (cobrança, saúde, fraude, luto), e subordinação total ao cancelamento de áudio por barge-in.
+  - Especificação detalhada em [docs/VOICE_ARCHITECTURE.md (Seção 7)](file:///d:/voice-agent-platform/docs/VOICE_ARCHITECTURE.md#7-expressividade-conversacional-de-voz-conversational-voice-expressivity).
 
 ### 2.9. Transferência para Humano (Human Handoff)
 - Condições configuráveis que disparam transferência para operador humano.

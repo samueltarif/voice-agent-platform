@@ -99,8 +99,12 @@ Em 2026-09-30, o operador aprovou formalmente a direção arquitetural deste des
      - `ACTIVE_GUARDED` exige autorização global explícita.
 
 6. **Porta Mínima Provider-Neutral**:
-   - Porta proposta: `AuxiliaryTurnDecisionPort` (`ACCEPTED DESIGN / NOT IMPLEMENTED`).
-   - Define a interface mínima para o futuro slice de integração em Shadow: `evaluateTurn(...)` retornando scores brutos (`deterministicScore`, `generativeScore`, `securityScore`) e telemetria de latência/modelo.
+   - **DESIGN STATUS**: `ACCEPTED`.
+   - **IMPLEMENTATION STATUS**: `PROVIDER-NEUTRAL PORT IMPLEMENTED IN PR #39` (`packages/contracts/src/voice/auxiliary-turn-decision-contracts.ts` e `apps/voice/src/auxiliary-turn-shadow-observer.ts`).
+   - **CONCRETE TYPESAFE ADAPTER**: `NOT IMPLEMENTED`.
+   - **SHADOW PROVIDER WIRING**: `NOT IMPLEMENTED`.
+   - **STAGING EXECUTION**: `NOT EXECUTED`.
+   - Porta: `AuxiliaryTurnDecisionPort` define a interface mínima provider-neutral: `evaluateTurn(...)` retornando scores brutos (`deterministicScore`, `generativeScore`, `securityScore`) e telemetria de latência/modelo.
    - Separação estrita:
      - Adapter (`packages/integrations`): scores brutos tipados;
      - Application Policy (`apps/voice/src/domain/policy`): política congelada e ordenação de regras;

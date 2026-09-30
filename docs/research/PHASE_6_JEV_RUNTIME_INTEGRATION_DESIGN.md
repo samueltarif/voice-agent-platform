@@ -167,8 +167,11 @@ Contudo, a execução em Shadow consome recursos de CPU, memória, capacidade de
 ## 7. Porta Mínima (YAGNI Analysis)
 
 ### 7.1 Status da Porta
-**`AuxiliaryTurnDecisionPort`**: **`ACCEPTED DESIGN / NOT IMPLEMENTED`**
-*(Trata-se da porta mínima proposta para o slice de integração em Shadow; nenhum arquivo de código foi criado neste slice)*.
+- **DESIGN STATUS**: `ACCEPTED`
+- **IMPLEMENTATION STATUS**: `PROVIDER-NEUTRAL PORT IMPLEMENTED IN PR #39` (`packages/contracts/src/voice/auxiliary-turn-decision-contracts.ts` e `apps/voice/src/auxiliary-turn-shadow-observer.ts`)
+- **CONCRETE TYPESAFE ADAPTER**: `NOT IMPLEMENTED`
+- **SHADOW PROVIDER WIRING**: `NOT IMPLEMENTED`
+- **STAGING EXECUTION**: `NOT EXECUTED`
 
 ### 7.2 Semântica da Interface Proposta
 
