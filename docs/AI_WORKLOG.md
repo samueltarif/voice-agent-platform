@@ -7477,3 +7477,49 @@ Status: `BENCHMARK HYPOTHESES` — NÃO são product requirements.
   - `JEV_CALLS = 0`
 - **Auditoria de Segredos no Tracked Diff**:
   - Avaliação booleana sobre `origin/main...HEAD`: **`SECRET_AUDIT_PASS`**.
+
+---
+
+## 2026-09-30 — PROMPT-006H-OPENAI-BASELINE-001: Synthetic Conversation Baseline for Future Jev Comparison
+
+### 1. Contexto e Preflight
+- **Main / Base Commit**: `bef46d94070d987b2260ba5c74fe52cf22b69c79` (main atualizado com PR #30 mergeado).
+- **Branch**: `research/006h-openai-conversation-baseline`.
+- **PR Aberto**: **PR #31** (`research: establish OpenAI conversation baseline` — base: `main`, head: `research/006h-openai-conversation-baseline`, status: OPEN / NOT MERGED).
+- **Objetivo**: Construir e auditar o dataset sintético congelado e o harness para o baseline do modelo `gpt-6-astra` antes de qualquer integração ou teste com TypeSafe Jev.
+
+### 2. Dataset Congelado e Proveniência (ETAPA A)
+- **Localização do Dataset**: `scripts/benchmarks/voice/openai-baseline-v1-cases.json`.
+- **Versão**: `1.0.0`.
+- **Hash SHA-256 Congelado**: `9ab7cbd2fbfcf508673a700d4a484e0c674d0124766c7b7fa0eee05a573e0d50`.
+- **Commit do Dataset/Harness**: `b9ed9486c4eeae160a2b5e3940176b643a579bc4`.
+- **Quantidade de Casos**: Exatamente 12 casos sintéticos.
+- **Distribuição Categórica**:
+  - `DETERMINISTIC_CANDIDATE`: 4 casos (`base-01` a `base-04`) — greeting, repetição, transferência humana e encerramento.
+  - `GENERATIVE_REQUIRED`: 6 casos (`base-05` a `base-10`) — descoberta, objeção de tempo, objeção de preço, esclarecimento técnico, comparação de planos e negociação comercial.
+  - `SECURITY_CONTROL_SENSITIVE`: 2 casos (`base-11` e `base-12`) — injeção de prompt e tentativa de sequestro de autoridade administrativa.
+- **Validação Automatizada de Integridade**: Suite `packages/integrations/src/openai/openai-baseline-dataset.test.ts` implementada (4 testes determinísticos aprovados no quality gate).
+
+### 3. Execução da ETAPA B e Governança de Chave de API
+- **Verificação Booleana de Ambiente**:
+  - Avaliação executada: `Boolean(process.env.OPENAI_API_KEY)`.
+  - Resultado observado: `OPENAI_API_KEY_PRESENT = false`.
+- **Aplicação Estrita da Política de Segurança**:
+  - Em estrita conformidade com a regra de processo estabelecida no fechamento do PR #30, **nenhuma tentativa de carregar arquivos `.env` via `--env-file`, dotenv ou leitura de disco foi realizada**.
+  - Ação executada: **`STOP` imediato**.
+  - As chamadas reais ao provedor permanecem bloqueadas até que a variável `OPENAI_API_KEY` seja pré-injetada externamente no ambiente do processo pelo operador.
+- **Métricas de Execução Real**:
+  - Chamadas autorizadas no budget: 12.
+  - Chamadas executadas: 0 (`REAL_OPENAI_CALLS = 0`).
+  - Retries: 0.
+  - Crédito consumido: US$ 0.00 (`CREDIT_CONSUMED = 0.00`).
+  - Teto máximo autorizado: US$ 0.40.
+  - Main Model Requests: 0 executadas (12 planejadas).
+  - Main Model Call Avoidance Rate: 0% (baseline de referência).
+  - Chamadas a Twilio: 0 (`TWILIO_CALLS = 0`).
+  - Chamadas a TypeSafe Jev: 0 (`JEV_CALLS = 0`).
+
+### 4. Qualidade e Auditoria de Segredos
+- **Quality Gate (`pnpm check`)**: Aprovado com 100% de sucesso no commit `b9ed9486c4eeae160a2b5e3940176b643a579bc4` (502 testes unitários aprovados, 45 historical staging skips, 0 falhas, 0 novos skips).
+- **Auditoria Booleana de Segredos (`git diff origin/main...HEAD`)**: **`SECRET_AUDIT_PASS`**.
+- **Documento do Benchmark**: Registrado em `docs/research/PHASE_6_OPENAI_CONVERSATION_BASELINE.md`.
