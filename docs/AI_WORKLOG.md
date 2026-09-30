@@ -7664,3 +7664,49 @@ Status: `BENCHMARK HYPOTHESES` — NÃO são product requirements.
 - **Auditoria Booleana de Segredos (`git diff origin/main...HEAD`)**: **`SECRET_AUDIT_PASS`**.
 - **Documento do Benchmark**: Atualizado em `docs/research/PHASE_6_OPENAI_CONVERSATION_BASELINE.md`.
 - **Merge do PR #31**: Condições de merge 100% satisfeitas.
+
+---
+
+## 2026-09-30 — PROMPT-006I-SKIP-GOVERNANCE-REPAIR-001: Remove Live Provider Harness from Default Test Discovery Without Weakening Coverage
+
+- **Branch**: `research/006i-jev-routing-benchmark`
+- **HEAD Testado**: `research/006i-jev-routing-benchmark`
+- **Status de Governança**: REPAIRED — HISTORICAL SKIPS RESTORED (45)
+
+### 1. Diagnóstico e Causa Raiz do Skip
+- **Causa Raiz**: O arquivo `packages/integrations/src/openai/openai-baseline-runner.test.ts` foi introduzido no PR #31 como harness opt-in para o benchmark real. Por conter o sufixo `.test.ts` dentro de `packages/integrations/src/`, o Vitest o incluía na suíte padrão (`**/*.test.ts`), gerando 1 skip condicional quando `OPENAI_RUN_LIVE_BASELINE` não estava ativo (elevando a contagem de 45 para 46).
+- **Classificação do Arquivo**: `LIVE_PROVIDER_BENCHMARK_HARNESS` (execução manual/opt-in de benchmark pago, não um teste unitário de regressão).
+- **Mecanismo Anterior**: Descoberta automática de testes pelo Vitest com `describe.skip` condicional.
+- **Localização Canônica da Funcionalidade Live**: `scripts/benchmarks/voice/run-openai-baseline.ts` (execução explícita via script de benchmark, fora da árvore de testes automáticos).
+
+### 2. Ação Corretiva Aplicada e Preservação de Cobertura
+- **Remoção**: `packages/integrations/src/openai/openai-baseline-runner.test.ts` removido do controle de versão.
+- **Preservação de Cobertura Determinística**: Toda a suíte determinística de integridade de dataset, cálculo de métricas, estados de execução, percentis e custos permanece 100% ativa em `packages/integrations/src/openai/openai-baseline-dataset.test.ts` (7 testes aprovados).
+- **Classificação de Alterações de Testes Existentes**:
+  - `ASSERTION_STRONGER`: 0
+  - `ASSERTION_EQUIVALENT`: 0
+  - `ASSERTION_WEAKER`: 0
+- **Preservação da Capacidade de Benchmark Live**: O script `scripts/benchmarks/voice/run-openai-baseline.ts` permanece íntegro e executável sob demanda.
+
+### 3. Evidências de Validação e Quality Gate
+- **`pnpm test` Observado**:
+  - Test Files: 93 passed | 6 skipped (99 total).
+  - Tests: 505 passed | 45 skipped (550 total).
+  - **Skips Históricos Observados**: 45 (estritamente os 6 arquivos de staging opt-in).
+  - **Novos Skips Neste Slice**: 0 (`NEW_SKIPS_THIS_SLICE = 0`).
+- **`pnpm check` Observado**:
+  - Format: PASS
+  - Lint: PASS
+  - Typecheck: PASS
+  - Tests: PASS (505 passed, 45 skipped, 0 failed)
+  - Turbo Build: PASS (12 packages)
+  - Check Architecture: PASS (0 violações)
+  - Check File Size: PASS (229 arquivos de lógica conformes)
+- **Integridade do Dataset Congelado**:
+  - SHA-256: `9ab7cbd2fbfcf508673a700d4a484e0c674d0124766c7b7fa0eee05a573e0d50` (verificado e inalterado).
+- **OpenAI Baseline Run 1**: `FROZEN / UNCHANGED` (12/12, 1032 in, 299 out, US$ 0.025270, 0 retries).
+- **Chamadas Reais de Provedores Neste Prompt**:
+  - `OPENAI_CALLS = 0`
+  - `JEV_CALLS = 0`
+  - `TWILIO_CALLS = 0`
+- **Implementação do Jev**: Permanece pausada (`NOT YET IMPLEMENTED`) até retomada no próximo passo.
