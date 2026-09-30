@@ -7616,3 +7616,51 @@ Status: `BENCHMARK HYPOTHESES` — NÃO são product requirements.
 - **Auditoria Booleana de Segredos (`git diff origin/main...HEAD`)**: **`SECRET_AUDIT_PASS`**.
 - **PR #31**: `OPEN / NOT MERGED`.
 
+---
+
+## 2026-09-30 — PROMPT-006H-BASELINE-FINAL-CLOSE-001: OpenAI Baseline Evidence Correction, Freeze & PR #31 Merge
+
+- **Branch**: `research/006h-openai-conversation-baseline`
+- **PR**: #31 (Preparado para Merge)
+- **Status do Baseline**: `BASELINE MEASURED — SYNTHETIC / LIMITED — FROZEN`
+
+### 1. Correção de Semântica e Wording de Evidências
+- **Carregamento de Ambiente**:
+  - `ENV_LOADED_BY_RUNTIME = YES` (o runtime Node carregou e parseou o arquivo `.env` nativamente via `--env-file=.env`).
+  - `ENV_CONTENT_INSPECTED_BY_AGENT = NO` (o agente não leu, abriu, buscou ou inspecionou o conteúdo do `.env`).
+  - `ENV_SECRET_VALUES_PRINTED = NO`
+  - `ENV_SECRET_VALUES_LOGGED = NO`
+  - `ENV_TRACKED_BY_GIT = NO` (`git check-ignore .env` = PASS).
+- **Status de Rotação de Credenciais**:
+  - `PREVIOUS_KEYS_SHARED_IN_CHAT = YES` (credenciais anteriores foram compartilhadas em capturas/chat pelo operador).
+  - `ROTATION_REQUIRED_BEFORE_NEXT_PROVIDER_EXECUTION = YES` (rotação mandatória antes de qualquer nova execução de benchmark).
+- **Semântica de Requisições ao Provedor**:
+  - `MAIN_MODEL_INFERENCE_REQUESTS = 12` (12 turnos de chat completions executados para os casos `base-01` a `base-12`).
+  - `BASELINE_CHAT_COMPLETION_CALLS = 12`.
+  - `OPENAI_NON_INFERENCE_PROVIDER_REQUESTS = 1` (`GET /v1/models` executado durante diagnóstico de conectividade/autenticação prévia, status 200 observado).
+  - Chamadas de Provedor Real neste Prompt: 0 (`NEW_PROVIDER_CALLS = 0`).
+  - Chamadas de TypeSafe Jev: 0 (`JEV_CALLS = 0`).
+  - Chamadas de Telefonia (Twilio): 0 (`TWILIO_CALLS = 0`).
+
+### 2. Congelamento Formal de Dataset e Resultados (Run 1)
+- **Dataset Congelado (`openai-baseline-v1-cases.json`)**:
+  - Versão: `1.0.0`
+  - Hash SHA-256 verificado: `9ab7cbd2fbfcf508673a700d4a484e0c674d0124766c7b7fa0eee05a573e0d50`.
+  - Casos: 12 (4 deterministic candidate, 6 generative required, 2 security sensitive).
+  - Status: `FROZEN / IMMUTABLE`.
+- **Métricas Consolidadas de Baseline (Run 1)**:
+  - Benchmark Status: `COMPLETE` (12/12 pass, 0 falhas, 0 retries).
+  - Main Model Call Avoidance Rate: `0%` (baseline de referência para comparação com TypeSafe Jev).
+  - Tokens de Entrada: 1032.
+  - Tokens de Saída: 299.
+  - Custo Estimado (Usage-Based Estimated Baseline Cost): US$ 0.025270 (snapshot de US$ 10/1M in, US$ 50/1M out).
+  - Custo Médio por Turno: US$ 0.002106.
+  - TTFT (ms): min=1020, mediana=1771, max=2911, descriptive sample p95=2911.
+  - Duração Total (ms): min=1513, mediana=2475, max=3659, descriptive sample p95=3659.
+  - Conteúdo de Resposta em Log: `NO`.
+
+### 3. Qualidade, Governança e Fechamento do PR #31
+- **Auditoria de Diff de Testes**: `ASSERTION_WEAKER = 0`, `NEW_SKIPS = 0`.
+- **Auditoria Booleana de Segredos (`git diff origin/main...HEAD`)**: **`SECRET_AUDIT_PASS`**.
+- **Documento do Benchmark**: Atualizado em `docs/research/PHASE_6_OPENAI_CONVERSATION_BASELINE.md`.
+- **Merge do PR #31**: Condições de merge 100% satisfeitas.

@@ -67,6 +67,7 @@ async function runSingleCase(
   let deltaCount = 0;
   let characterCount = 0;
   let accumulatedText = '';
+  let terminalEvent = 'NONE';
   let usageInputTokens: number | null = null;
   let usageOutputTokens: number | null = null;
   let failureCategory: string | undefined;
@@ -82,8 +83,8 @@ async function runSingleCase(
         characterCount += ev.textDelta.length;
         accumulatedText += ev.textDelta;
       } else if (ev.type === 'usage') {
-        usageInputTokens = ev.inputTokens;
-        usageOutputTokens = ev.outputTokens;
+        usageInputTokens = ev.inputTokens ?? null;
+        usageOutputTokens = ev.outputTokens ?? null;
       } else if (ev.type === 'completed') {
         terminalEvent = 'completed';
       } else if (ev.type === 'failure') {
@@ -139,14 +140,17 @@ export async function runOpenAiBaseline(datasetPath: string): Promise<void> {
   }
 
   const dataset = loadAndVerifyDataset(datasetPath);
-  const worstCaseCost = EXPECTED_CASE_COUNT * calculateTurnCostUsd(150, 512);
+  const worstCaseCost = EXPECTED_CASE_COUNT * (calculateTurnCostUsd(150, 512) ?? 0);
   if (worstCaseCost > MAX_AUTHORIZED_BASELINE_COST_USD) {
     throw new Error(
       `Precondition failed: worst-case cost $${worstCaseCost.toFixed(4)} exceeds ceiling $${MAX_AUTHORIZED_BASELINE_COST_USD}. STOP.`,
     );
   }
 
-  const guardedFetch = async (url: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+  const guardedFetch = async (
+    url: string | URL | Request,
+    init?: RequestInit,
+  ): Promise<Response> => {
     const body = JSON.parse(init?.body as string) as OpenAiChatCompletionRequest;
     if (body.max_completion_tokens !== 512) {
       throw new Error(
