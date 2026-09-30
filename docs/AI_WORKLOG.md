@@ -7710,3 +7710,114 @@ Status: `BENCHMARK HYPOTHESES` — NÃO são product requirements.
   - `JEV_CALLS = 0`
   - `TWILIO_CALLS = 0`
 - **Implementação do Jev**: Permanece pausada (`NOT YET IMPLEMENTED`) até retomada no próximo passo.
+
+---
+
+## 2026-09-30 — PROMPT-006I-JEV-ROUTING-BENCHMARK-002: TypeSafe Jev Routing Benchmark Against OpenAI Baseline v1
+
+- **Branch**: `research/006i-jev-routing-benchmark`
+- **Starting HEAD**: `08a5a7d0f13f1c0465504c8759a7eb5c31e168c0`
+- **Pre-Provider Commit**: `c55d5d60a501b8c64035317c1e179dce9ddc831f`
+- **PR**: #32 (`OPEN / NOT MERGED`)
+- **Status do Benchmark**: `JEV ROUTING BENCHMARK — SYNTHETIC / LIMITED — COMPLETE`
+
+### 1. Governança e Pré-Condições de Execução
+- **Skip Governance Herdado**: `HISTORICAL_SKIPS = 45`, `NEW_SKIPS_THIS_SLICE = 0`.
+- **Precondição de Rotação de Credenciais**: `CREDENTIAL_ROTATION_OPERATOR_CONFIRMED = assumed from operator execution precondition` (confirmado previamente pelo operador humano após exibição de chave em chat).
+- **Política de Ambiente Local (`.env`)**:
+  - `ENV_LOADED_BY_RUNTIME = YES` (`node --env-file=.env ...`).
+  - `ENV_CONTENT_INSPECTED_BY_AGENT = NO` (zero leitura, exibição, cat/type ou regex sobre o arquivo `.env`).
+  - `ENV_GIT_IGNORED = YES` (`git check-ignore .env` confirmou que `.env` está estritamente ignorado).
+  - `TYPESAFE_API_KEY_PRESENT = true` (verificado exclusivamente via boolean).
+- **Integridade do Dataset Congelado**:
+  - Dataset: `scripts/benchmarks/voice/openai-baseline-v1-cases.json` (v1.0.0, exatamente 12 casos).
+  - SHA-256 Recalculado: `9ab7cbd2fbfcf508673a700d4a484e0c674d0124766c7b7fa0eee05a573e0d50` (MATCH perfeito).
+- **Revalidação da Documentação Oficial TypeSafe**:
+  - Endpoint: `POST https://api.typesafe.ai/v1/systemone`
+  - Modelo: `jev-latest`
+  - Documentação Oficial: `https://docs.typesafe.ai/primitives/choice.md`
+  - Tabela de Preço snapshot: $42 / bilhão de tokens de entrada ($0.042 / 1M tokens), saída gratuita ($0.00).
+  - Teto de Custo Autorizado: US$ 0.10. Teto matemático conservador verificado: < US$ 0.002 para 12 requisições.
+- **Congelamento da Pergunta Choice (`JEV_ROUTING_QUESTION_V1`)**:
+  - Versão: `JEV_ROUTING_QUESTION_V1`
+  - Question ID: `routing_decision`
+  - SHA-256 Canônico: `1e6aaccdb562cde6e0c005ac6d95417922c3351a17ef6592c2ca9b65b6290788`
+  - Opções congeladas: `DETERMINISTIC_CANDIDATE`, `GENERATIVE_REQUIRED`, `SECURITY_ESCALATE`.
+  - Justificativa do primitivo: `Choice` escolhido para classificação discreta 3-way fechada.
+  - Zero threshold de confiança inventado: `predictedClass = Choice.choice`.
+
+### 2. Validação Pré-Rede (Local Deterministic Tests & Quality Gate)
+- **Testes Unitários Locais Adicionados (`packages/integrations/src/typesafe/jev-routing-benchmark.test.ts`)**:
+  - Prova de integridade do dataset e 12 casos exatos.
+  - Prova de estabilidade do hash da pergunta e 3 opções fixas.
+  - Prova de anti-leakage (zero ground truth, labels, expectedRoutingClass, category ou caseId serializados no payload de estado).
+  - Prova de cálculo de matriz de confusão, acurácia, false bypass e avoidance.
+  - Prova de que usage ausente não vira custo zero (`calculateJevCostUsd(null) === null`) e semântica de run parcial.
+- **Quality Gate Pré-Provider (`pnpm check`)**:
+  - `pnpm format:check`: PASS
+  - `pnpm lint`: PASS
+  - `pnpm typecheck`: PASS
+  - `pnpm test`: PASS (510 passed, 45 skipped, 0 new skips)
+  - `turbo build`: PASS (12/12 pacotes)
+  - `scripts/check-architecture.mjs`: PASS (0 violações)
+  - `scripts/check-file-size.mjs`: PASS (229 arquivos conformes)
+
+### 3. Execução Controlada do Benchmark e Resultados
+- **Chamadas Reais Autorizadas / Executadas**: 12 / 12 chamadas sequenciais (`base-01` a `base-12`), 0 retries.
+- **Status da Execução**: `COMPLETE`.
+- **Acurácia de Roteamento**: **75.0%** (9 / 12).
+- **Matriz de Confusão**:
+  - `expectedDeterministic` (4 casos): 3 predictedDeterministic, 1 predictedGenerative, 0 predictedSecurity.
+  - `expectedGenerative` (6 casos): 2 predictedDeterministic, 4 predictedGenerative, 0 predictedSecurity.
+  - `expectedSecurity` (2 casos): 0 predictedDeterministic, 0 predictedGenerative, 2 predictedSecurity.
+- **Precisão Determinística**: **60.0%** (3 / 5).
+- **Recall Determinístico**: **75.0%** (3 / 4).
+- **False Bypass**:
+  - Count: **2 casos** (`base-08` e `base-09`).
+  - Rate: **25.0%** (2 / 8 casos não-determinísticos).
+- **Security Miss**:
+  - Count: **0 casos**.
+  - Rate: **0.0%** (0 / 2 casos de segurança).
+- **Unnecessary Security Escalation**:
+  - Count: **0 casos**.
+  - Rate: **0.0%** (0 / 10 casos não-segurança).
+- **Candidate Bypasses**: 5 casos.
+- **Safe Potential Avoided Calls**: **3 casos** (`base-02`, `base-03`, `base-04`).
+- **Unsafe False Bypasses**: 2 casos.
+- **Potential Safe Main Model Avoidance Rate**: **25.0%** (3 / 12).
+- **Volume de Requisições**:
+  - Baseline OpenAI: 12 chamadas.
+  - Jev: 12 chamadas.
+  - Contrafactual OpenAI: 9 chamadas (12 - 3).
+  - Total Contrafactual de Requisições a Provedores: 21 chamadas.
+- **Latência do Jev (`jevLatencyMs`)**:
+  - Min: 240 ms
+  - Mediana: 295 ms
+  - Max: 619 ms
+  - Descriptive Sample p95 (N=12, not SLA): 619 ms
+  - `SERIAL_E2E_LATENCY = NOT MEASURED`.
+- **Usage e Custos**:
+  - Total de Tokens Jev: 5.756 in / 766 out.
+  - Custo Total Jev Estimado: **US$ 0.000241752** (~US$ 0.000242).
+  - Custo OpenAI Evitado (Safe): US$ 0.005640.
+  - Custo Combinado Contrafactual: **US$ 0.019871752** (vs US$ 0.025270 no baseline).
+  - Redução de Custo Contrafactual: **US$ 0.005398248** (**21.36%**).
+  - *Aviso Normativo*: Rotulado em todos os relatórios como `COUNTERFACTUAL / NOT OBSERVED PRODUCTION COST`.
+- **Chamadas de Outros Provedores Neste Prompt**:
+  - `OPENAI_CALLS = 0`
+  - `TWILIO_CALLS = 0`
+- **Fronteira Arquitetural**:
+  - `PRODUCTION_INTEGRATION = NO`
+  - `NEW_PORT = NO`
+  - `AUXILIARY_DECISION_PORT = NO`
+
+### 4. Artefatos Produzidos
+- `scripts/benchmarks/voice/jev-routing-types.ts`
+- `scripts/benchmarks/voice/jev-routing-confusion-matrix.ts`
+- `scripts/benchmarks/voice/jev-routing-calculator.ts`
+- `scripts/benchmarks/voice/jev-payload-builder.ts`
+- `scripts/benchmarks/voice/jev-case-executor.ts`
+- `scripts/benchmarks/voice/run-jev-routing-benchmark.ts`
+- `packages/integrations/src/typesafe/jev-routing-benchmark.test.ts`
+- `docs/research/results/phase-6-jev-routing-benchmark-v1.json`
+- `docs/research/PHASE_6_JEV_ROUTING_BENCHMARK.md`
