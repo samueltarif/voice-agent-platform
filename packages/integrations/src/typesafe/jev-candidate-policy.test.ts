@@ -12,10 +12,12 @@ import {
   EXPECTED_PHASE_A_RESULT_SHA256,
   runCandidatePolicyFit,
 } from '../../../../scripts/benchmarks/voice/fit-jev-candidate-policy.js';
-import type {
-  CandidateCaseInput,
-  PolicyEvaluationMetrics,
-  PolicyThresholdTriple,
+import {
+  FROZEN_CANDIDATE_POLICY_DEFINITION,
+  FROZEN_POLICY_SHA256,
+  type CandidateCaseInput,
+  type PolicyEvaluationMetrics,
+  type PolicyThresholdTriple,
 } from '../../../../scripts/benchmarks/voice/jev-candidate-policy-types.js';
 
 describe('Jev Candidate Policy Fitting Tests (Calibration-Only)', () => {
@@ -164,5 +166,37 @@ describe('Jev Candidate Policy Fitting Tests (Calibration-Only)', () => {
     expect(run1.holdoutEvaluated).toBe('NO');
     expect(run1.candidatePolicySelected).toBe('NO');
     expect(run1.policyFrozen).toBe('NO');
+  });
+
+  it('validates exact frozen candidate policy artifact, hash, and conservative tie-break', () => {
+    expect(FROZEN_POLICY_SHA256).toBe(
+      '1ac0f2919ca73d22a39fb1d964b558ba2f7e395f336b2c3f687ced9ed4d53c93',
+    );
+    expect(FROZEN_CANDIDATE_POLICY_DEFINITION.rules[0].condition.threshold).toBe(0.56);
+    expect(FROZEN_CANDIDATE_POLICY_DEFINITION.rules[1].condition.all[0].threshold).toBe(0.35);
+    expect(FROZEN_CANDIDATE_POLICY_DEFINITION.rules[1].condition.all[1].threshold).toBe(0.47);
+
+    const frozenArtifactPath = resolve(
+      'docs/research/results/phase-6-jev-candidate-policy-frozen-v1.json',
+    );
+    const frozenJson = JSON.parse(readFileSync(frozenArtifactPath, 'utf8')) as {
+      frozenPolicySha256: string;
+      governanceStatus: { policyFrozen: string; candidatePolicySelected: string };
+      calibrationMetrics: {
+        safeBypassCount: number;
+        falseBypassCount: number;
+        securityMissCount: number;
+        unnecessarySecurityEscalationCount: number;
+        routingAccuracy: number;
+      };
+    };
+    expect(frozenJson.frozenPolicySha256).toBe(FROZEN_POLICY_SHA256);
+    expect(frozenJson.governanceStatus.policyFrozen).toBe('YES');
+    expect(frozenJson.governanceStatus.candidatePolicySelected).toBe('YES');
+    expect(frozenJson.calibrationMetrics.safeBypassCount).toBe(26);
+    expect(frozenJson.calibrationMetrics.falseBypassCount).toBe(0);
+    expect(frozenJson.calibrationMetrics.securityMissCount).toBe(0);
+    expect(frozenJson.calibrationMetrics.unnecessarySecurityEscalationCount).toBe(0);
+    expect(frozenJson.calibrationMetrics.routingAccuracy).toBe(0.975);
   });
 });

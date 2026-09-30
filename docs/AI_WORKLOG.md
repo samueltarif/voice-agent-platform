@@ -8455,3 +8455,85 @@ Este fechamento retifica a formulação epistemológica da base de evidência da
 - `HOLDOUT_EVALUATED = NO`.
 - `OPENAI_CALLS = 0`, `JEV_CALLS = 0`, `TWILIO_CALLS = 0`.
 - `.env` não carregado.
+
+---
+
+## 2026-09-30 — Candidate Policy Final Audit, Tie-Break & Freeze Before Holdout (PR #36)
+
+### PROMPT-006L-CANDIDATE-POLICY-FINAL-AUDIT-AND-FREEZE-001
+
+### 1. Correções Documentais e Overclaims Eliminados
+
+- Em `docs/research/PHASE_6_JEV_CANDIDATE_POLICY_FIT.md`:
+  - Substituído "Confiabilidade de execução garantida" por "0 false bypasses observed in the calibration sample (0/26 predicted bypasses)".
+  - Substituído "extremamente robusta" por "observed calibration separation of 0.50".
+  - Substituído "Eliminação total na calibração" por "0 false bypasses observed in calibration".
+  - Corrigido wording da família da política: "the POLICY FAMILY and relational operators were frozen before threshold search" (esclarecendo que a política em si não estava congelada até este prompt).
+  - Substituído wording de falsos negativos para "the policy routed these calibration cases to the generative fallback, so no deterministic bypass occurred for these cases" (removendo "sem expor a aplicação").
+
+### 2. Distinção entre Faixas Discretas e Auditoria de Região Invariante Contínua
+
+- Faixas discretas pesquisadas rotuladas formalmente como: `SEARCHED_EQUIVALENT_THRESHOLD_SET_BOUNDS`:
+  - `T_SECURITY`: [0.56, 0.56]
+  - `T_DETERMINISTIC`: [0.00, 0.35]
+  - `T_GENERATIVE`: [0.47, 0.53]
+- Limites contínuos invariantes derivados diretamente dos 80 casos de calibração que preservam exatamente a assinatura 78/80:
+  - `CONTINUOUS_SECURITY_INTERVAL`: `(0.31, 0.81]`
+  - `CONTINUOUS_DETERMINISTIC_INTERVAL`: `[0.00, 0.36]`
+  - `CONTINUOUS_GENERATIVE_INTERVAL`: `[0.44, 0.55)`
+  - Região acoplada? **NÃO** (dentro desses limites, os intervalos operam de forma retangular e independente).
+
+### 3. Auditoria de Redundância do Sinal Determinístico
+
+- `IS_DETERMINISTIC_NOUL_REDUNDANT_FOR_BEST_CALIBRATION_SIGNATURE`: **YES** (`REDUNDANT_ON_CALIBRATION = YES`).
+  - Como todos os 42 casos que não devem sofrer bypass possuem `generativeNoul >= 0.55` e os 26 casos aprovados possuem `generativeNoul <= 0.44`, o sinal generativo sozinho foi suficiente na calibração para isolar os bypasses com `T_DETERMINISTIC = 0`.
+- `NOT PROVEN REDUNDANT OUTSIDE CALIBRATION`: Essa redundância não é garantia em dados não vistos.
+- Retenção do guard de 3 sinais: **YES** (`RETAINED_AS_FAIL_CLOSED_GUARD = YES`).
+  - Justificativa conservadora: falso bypass é o risco prioritário; o sinal determinístico chega na mesma chamada de API atômica sem custo extra; manter $T_{\text{DETERMINISTIC}} = 0.35$ adiciona salvaguarda fail-closed sem alterar a arquitetura da família.
+
+### 4. Desempate Humano Conservador e Seleção Exata
+
+- Regras de desempate aplicadas sobre as 66 triplas equivalentes:
+  1. Maximizar `T_DETERMINISTIC` (máximo = `0.35`, reduz candidatos de 66 para 3 triplas).
+  2. Minimizar `T_GENERATIVE` (mínimo = `0.47`, reduz candidatos de 3 para exatamente 1 tripla).
+  3. Maximizar margem de segurança (`T_SECURITY = 0.56`, distância de 0.25 para 0.31 e 0.81).
+- Tripla exata selecionada e validada programaticamente:
+  - `T_SECURITY = 0.56`
+  - `T_DETERMINISTIC = 0.35`
+  - `T_GENERATIVE = 0.47`
+- A tripla pertence literalmente ao conjunto das 66 melhores triplas e reproduz a assinatura de 78/80 (26 safe bypasses, 0 false bypass, 0 security miss, 0 unnecessary escalations).
+
+### 5. Congelamento da Política e Hashing Canônico
+
+- Artefato criado: `docs/research/results/phase-6-jev-candidate-policy-frozen-v1.json`.
+- Hash Canônico (`FROZEN_POLICY_SHA256`):
+  `1ac0f2919ca73d22a39fb1d964b558ba2f7e395f336b2c3f687ced9ed4d53c93`
+- Status formal de congelamento:
+  - `CANDIDATE_POLICY_SELECTED = YES`
+  - `POLICY_FROZEN = YES`
+  - `HOLDOUT_EVALUATED = NO`
+  - `HOLDOUT_REQUESTS = 0`
+- Regra de imutabilidade: Qualquer modificação subsequente em thresholds, operadores ou regras invalida o uso do locked holdout como avaliação cega.
+
+### 6. Métricas de Calibração da Política Congelada (N=80)
+
+- Acurácia global: 97.50% (78/80).
+- Safe Bypasses: 26 / 28 (92.86% recall).
+- False Bypasses: 0 / 52 (0.00% sobre não-determinísticos).
+- False Bypasses entre predições de bypass: 0 / 26 (0.00%).
+- Precisão determinística: 100.00% (26/26).
+- Security True Positives: 12 / 12 (100.00%).
+- Security Misses: 0 / 12 (0.00%).
+- Escalonamentos desnecessários de segurança: 0 / 68 (0.00%).
+- Falsos negativos: `v2-013` e `v2-027` (fallback generativo seguro).
+
+### 7. Governança e Qualidade Deste Prompt
+
+- `HOLDOUT_PARSED = NO`.
+- `HOLDOUT_EVALUATED = NO`.
+- `HOLDOUT_REQUESTS = 0`.
+- `OPENAI_CALLS = 0`, `JEV_CALLS = 0`, `TWILIO_CALLS = 0`.
+- `.env` não carregado.
+- Testes: 531 passed, 45 historical skips, 0 new skips.
+- Secret audit: `SECRET_AUDIT_PASS` (`git diff origin/main...HEAD`, boolean-only).
+- PR #36: OPEN / NOT MERGED.

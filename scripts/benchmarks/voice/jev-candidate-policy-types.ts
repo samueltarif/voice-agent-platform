@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 export type CalibrationRoutingClass =
   'DETERMINISTIC_CANDIDATE' | 'GENERATIVE_REQUIRED' | 'SECURITY_ESCALATE';
 
@@ -89,7 +91,83 @@ export interface CandidatePolicyFitResult {
   readonly calibrationSafeBypassRate: number;
   readonly calibrationCounterfactualMainModelRequests: number;
   readonly status: 'CALIBRATION_CANDIDATE_REGION_FOUND' | 'NO_ZERO_FALSE_BYPASS_CANDIDATE_FOUND';
-  readonly candidatePolicySelected: 'NO';
-  readonly policyFrozen: 'NO';
+  readonly candidatePolicySelected: 'NO' | 'YES';
+  readonly policyFrozen: 'NO' | 'YES';
   readonly holdoutEvaluated: 'NO';
 }
+
+export interface FrozenPolicyCanonicalDefinition {
+  readonly policyVersion: string;
+  readonly family: 'THREE_THRESHOLD_ORDERED_RULE';
+  readonly rules: readonly [
+    {
+      readonly order: 1;
+      readonly ruleId: 'RULE_1_SECURITY_ESCALATE';
+      readonly condition: {
+        readonly signal: 'securityNoul';
+        readonly operator: '>=';
+        readonly threshold: number;
+      };
+      readonly targetRoutingClass: 'SECURITY_ESCALATE';
+    },
+    {
+      readonly order: 2;
+      readonly ruleId: 'RULE_2_DETERMINISTIC_CANDIDATE';
+      readonly condition: {
+        readonly all: readonly [
+          {
+            readonly signal: 'deterministicNoul';
+            readonly operator: '>=';
+            readonly threshold: number;
+          },
+          {
+            readonly signal: 'generativeNoul';
+            readonly operator: '<=';
+            readonly threshold: number;
+          },
+        ];
+      };
+      readonly targetRoutingClass: 'DETERMINISTIC_CANDIDATE';
+    },
+    {
+      readonly order: 3;
+      readonly ruleId: 'RULE_3_GENERATIVE_FALLBACK';
+      readonly condition: 'DEFAULT';
+      readonly targetRoutingClass: 'GENERATIVE_REQUIRED';
+    },
+  ];
+}
+
+export const FROZEN_CANDIDATE_POLICY_DEFINITION: FrozenPolicyCanonicalDefinition = {
+  policyVersion: '1.0.0',
+  family: 'THREE_THRESHOLD_ORDERED_RULE',
+  rules: [
+    {
+      order: 1,
+      ruleId: 'RULE_1_SECURITY_ESCALATE',
+      condition: { signal: 'securityNoul', operator: '>=', threshold: 0.56 },
+      targetRoutingClass: 'SECURITY_ESCALATE',
+    },
+    {
+      order: 2,
+      ruleId: 'RULE_2_DETERMINISTIC_CANDIDATE',
+      condition: {
+        all: [
+          { signal: 'deterministicNoul', operator: '>=', threshold: 0.35 },
+          { signal: 'generativeNoul', operator: '<=', threshold: 0.47 },
+        ],
+      },
+      targetRoutingClass: 'DETERMINISTIC_CANDIDATE',
+    },
+    {
+      order: 3,
+      ruleId: 'RULE_3_GENERATIVE_FALLBACK',
+      condition: 'DEFAULT',
+      targetRoutingClass: 'GENERATIVE_REQUIRED',
+    },
+  ],
+} as const;
+
+export const FROZEN_POLICY_SHA256 = createHash('sha256')
+  .update(Buffer.from(JSON.stringify(FROZEN_CANDIDATE_POLICY_DEFINITION), 'utf8'))
+  .digest('hex');
