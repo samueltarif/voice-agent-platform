@@ -85,7 +85,7 @@ Entre as políticas viáveis:
 
 ---
 
-## 5. Região Discreta Pesquisada e Auditoria Contínua
+## 5. Região Discreta Pesquisada e Sub-região Invariante Retangular
 
 O processo identificou **66 triplas de thresholds equivalentes** no espaço discreto pesquisado que produzem exatamente a mesma matriz de confusão e assinaturas de classificação idênticas para todos os 80 casos.
 
@@ -97,19 +97,20 @@ O processo identificou **66 triplas de thresholds equivalentes** no espaço disc
 | `T_DETERMINISTIC` | `0.00` | `0.35` |
 | `T_GENERATIVE` | `0.47` | `0.53` |
 
-### 5.2 Auditoria da Região Invariante Contínua
+### 5.2 Sub-região Invariante Retangular Verificada (`VERIFIED_RECTANGULAR_INVARIANT_SUBREGION`)
 
-A partir dos 80 casos de calibração, as fronteiras matemáticas contínuas exatas que preservam a assinatura de 78/80 são:
-- `CONTINUOUS_SECURITY_INTERVAL`: `(0.31, 0.81]`
-- `CONTINUOUS_DETERMINISTIC_INTERVAL`: `[0.00, 0.36]`
-- `CONTINUOUS_GENERATIVE_INTERVAL`: `[0.44, 0.55)`
-- **Acoplamento**: `NÃO` (dentro desses limites, os intervalos operam de forma retangular e desacoplada).
+A partir dos 80 casos de calibração, os intervalos observados que formam a sub-região invariante retangular verificada são:
+- `T_SECURITY` ∈ `(0.31, 0.81]`
+- `T_DETERMINISTIC` ∈ `[0.00, 0.36]`
+- `T_GENERATIVE` ∈ `[0.44, 0.55)`
+
+Every threshold triple inside this rectangular region preserves the observed 78/80 calibration signature. Não se afirma que este seja o conjunto de soluções contínuo completo sem prova exaustiva; a sub-região retangular acima é factual e formalmente verificada.
 
 ### 5.3 Auditoria de Redundância do Sinal Determinístico
 
 - **`REDUNDANT_ON_CALIBRATION = YES`**: Como a região viável inclui `T_DETERMINISTIC = 0` e todos os 42 casos que não devem sofrer bypass possuem `generativeNoul >= 0.55 > T_GENERATIVE`, o sinal generativo sozinho foi suficiente para separar os 26 casos de bypass nos dados de calibração.
 - **`NOT PROVEN REDUNDANT OUTSIDE CALIBRATION`**: Essa redundância empírica restringe-se à amostra de calibração e não há prova de que se manterá em dados não vistos.
-- **`RETAINED_AS_FAIL_CLOSED_GUARD = YES`**: O guard `deterministicNoul >= T_DETERMINISTIC` é mantido ativado com threshold positivo (`0.35`). Como o falso bypass é o risco prioritário e todos os sinais atômicos chegam na mesma requisição, manter o guard determinístico adiciona uma camada conservadora essencial sem custo adicional de rede.
+- **`RETAINED_AS_FAIL_CLOSED_GUARD = YES`**: O guard `deterministicNoul >= T_DETERMINISTIC` é mantido ativado com threshold positivo (`0.35`). Como o falso bypass é o risco prioritário e todos os sinais atômicos chegam na mesma requisição, manter o guard determinístico atua como an additional conservative guard retained before holdout. Its incremental benefit outside the calibration sample is NOT ESTABLISHED.
 
 ---
 
@@ -149,7 +150,7 @@ A tripla escolhida pertence literalmente ao conjunto das 66 melhores triplas pes
 - **Detalhamento dos Falsos Negativos (Fallback Generativo)**:
   - `v2-013`: Esperado determinístico, mas possui `generativeNoul = 0.61` (> 0.47).
   - `v2-027`: Esperado determinístico, mas possui `generativeNoul = 0.78` (> 0.47).
-  - *Comportamento Factual*: A política roteou esses casos de calibração para o fallback generativo, portanto nenhum bypass determinístico ocorreu para esses casos.
+  - *Comportamento Factual*: `v2-013` e `v2-027` são calibration deterministic false negatives routed to `GENERATIVE_REQUIRED`. Isso representa comportamento fail-closed na amostra de calibração (não é declarado como guaranteed safe fora da amostra).
 
 ---
 
@@ -189,5 +190,5 @@ A tripla escolhida pertence literalmente ao conjunto das 66 melhores triplas pes
 ## 11. Limitações e Regras Pós-Congelamento
 
 1. **Autoridade de Roteamento**: O TypeSafe Jev atua estritamente como sinalizador consultivo auxiliar. O runtime determinístico da aplicação mantém controle e autoridade sobre a máquina de estados.
-2. **Imutabilidade Pré-Holdout**: Com `POLICY_FROZEN = YES`, qualquer alteração em regras, operadores, question set ou thresholds **invalida** o split `HOLDOUT` como teste cego final.
-3. **Execução do Holdout**: A avaliação cega de 40 casos `HOLDOUT` somente ocorrerá em novo slice dedicado após a revisão e merge formal do PR #36.
+2. **Imutabilidade Pré-Holdout**: Com `POLICY_FROZEN = YES`, qualquer alteração em regras, operadores, question set ou thresholds **invalida** o split `LOCKED HOLDOUT — NOT USED FOR POLICY FITTING / THRESHOLD SELECTION`.
+3. **Execução do Holdout**: A avaliação dos 40 casos `LOCKED HOLDOUT` (com `HOLDOUT_PARSED = NO`, `HOLDOUT_EVALUATED = NO` e `HOLDOUT_REQUESTS = 0` preservados durante o fitting) somente ocorrerá em novo slice dedicado após a revisão e merge formal do PR #36.

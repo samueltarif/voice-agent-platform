@@ -8537,3 +8537,71 @@ Este fechamento retifica a formulação epistemológica da base de evidência da
 - Testes: 531 passed, 45 historical skips, 0 new skips.
 - Secret audit: `SECRET_AUDIT_PASS` (`git diff origin/main...HEAD`, boolean-only).
 - PR #36: OPEN / NOT MERGED.
+
+---
+
+## 2026-09-30 — PROMPT-006L-FROZEN-POLICY-FINAL-CLOSE-001
+
+### 1. Objetivo e Escopo
+- Fechamento formal do PR #36 com correção de 3 imprecisões documentais/metodológicas na documentação de evidência.
+- Escopo estritamente documental (`docs/research/PHASE_6_JEV_CANDIDATE_POLICY_FIT.md` e `docs/AI_WORKLOG.md`).
+- Nenhum arquivo de código, teste, script de benchmark ou artefato JSON de resultados foi alterado.
+
+### 2. Imutabilidade da Política Congelada
+- Política congelada rigorosamente intacta:
+  - `T_SECURITY = 0.56`
+  - `T_DETERMINISTIC = 0.35`
+  - `T_GENERATIVE = 0.47`
+- Operadores e ordem de regras inalterados:
+  1. `securityNoul >= T_SECURITY` -> `SECURITY_ESCALATE`
+  2. `deterministicNoul >= T_DETERMINISTIC AND generativeNoul <= T_GENERATIVE` -> `DETERMINISTIC_CANDIDATE`
+  3. `ELSE` -> `GENERATIVE_REQUIRED`
+- Hash Canônico (`FROZEN_POLICY_SHA256`) reverificado:
+  `1ac0f2919ca73d22a39fb1d964b558ba2f7e395f336b2c3f687ced9ed4d53c93` (MATCH).
+- Status formal de governança preservado:
+  - `CANDIDATE_POLICY_SELECTED = YES`
+  - `POLICY_FROZEN = YES`
+  - `HOLDOUT_EVALUATED = NO`
+  - `HOLDOUT_REQUESTS = 0`
+
+### 3. Correções Metodológicas e de Evidência Aplicadas
+1. **Terminologia do Holdout**:
+   - Termos como "teste cego" e "avaliação cega" foram substituídos por `LOCKED HOLDOUT` e `LOCKED HOLDOUT — NOT USED FOR POLICY FITTING / THRESHOLD SELECTION`.
+   - Motivo metodológico: O dataset completo foi versionado no mesmo ciclo de engenharia; a classificação correta é locked holdout com acesso blindado durante calibração/fitting, não cegueira absoluta prévia.
+   - Preservado: `HOLDOUT_PARSED = NO`, `HOLDOUT_EVALUATED = NO`, `HOLDOUT_REQUESTS = 0`.
+2. **Qualificação do Guard Determinístico**:
+   - Substituída a expressão "camada conservadora essencial" por "additional conservative guard retained before holdout."
+   - Adicionada a qualificação factual explícita: "Its incremental benefit outside the calibration sample is NOT ESTABLISHED."
+3. **Classificação da Sub-região Contínua**:
+   - Classificação ajustada para `VERIFIED_RECTANGULAR_INVARIANT_SUBREGION`.
+   - Intervalos observados preservados: `T_SECURITY ∈ (0.31, 0.81]`, `T_DETERMINISTIC ∈ [0.00, 0.36]`, `T_GENERATIVE ∈ [0.44, 0.55)`.
+   - Registrado formalmente: Every threshold triple inside this rectangular region preserves the observed 78/80 calibration signature; não se faz alegação de conjunto contínuo exaustivo completo sem prova matemática adicional de regiões acopladas externas.
+4. **Falsos Negativos Determinísticos na Calibração**:
+   - Preservados `v2-013` e `v2-027` como calibration deterministic false negatives routed to `GENERATIVE_REQUIRED`.
+   - Registrado como comportamento fail-closed na amostra de calibração, sem declaração de "guaranteed safe" fora da amostra.
+
+### 4. Métricas de Calibração Preservadas (Amostra de Calibração N=80)
+- Acurácia global: 97.50% (78/80).
+- Safe Bypasses: 26 / 28 (92.86% recall).
+- False Bypasses: 0 / 52 (0.00% sobre não-determinísticos).
+- False Bypasses entre predições de bypass: 0 / 26 (0.00%).
+- Precisão determinística: 100.00% (26/26).
+- Security Misses observados: 0 / 12 (0.00%).
+- Escalonamentos de segurança desnecessários: 0 / 68 (0.00%).
+- Qualificação mantida: `CALIBRATION SAMPLE ONLY`.
+
+### 5. Governança Operacional e Integridade
+- `HOLDOUT_PARSED = NO`.
+- `HOLDOUT_EVALUATED = NO`.
+- `HOLDOUT_REQUESTS = 0`.
+- Provedores externos:
+  - `OPENAI_CALLS = 0`
+  - `JEV_CALLS = 0`
+  - `TWILIO_CALLS = 0`
+- `.env` não carregado (`UNNECESSARY_ENV_RUNTIME_LOAD = NO`).
+- Alteração estritamente restrita a documentação (Markdown).
+- Qualidade de testes históricos preservada (531 passed, 45 historical skips, 0 new skips).
+- `git diff --check`: PASS.
+- `pnpm format:check`: PASS.
+- Auditoria de segredos: `SECRET_AUDIT_PASS` (`git diff origin/main...HEAD`, boolean-only).
+- PR #36: Auditado, validado e mergeado na `main`.
