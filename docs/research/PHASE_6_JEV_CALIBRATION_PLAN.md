@@ -3,7 +3,7 @@
 - **Status**: DESIGN FROZEN / PROVIDER EXECUTION NOT STARTED
 - **Data**: 2026-09-30
 - **Branch**: `research/006j-jev-calibration-design`
-- **PR**: (Preparado para abertura)
+- **PR**: #33 — OPEN / NOT MERGED
 - **V1 Benchmark Reference**: `openai-baseline-v1-cases.json` (SHA-256: `9ab7cbd2fbfcf508673a700d4a484e0c674d0124766c7b7fa0eee05a573e0d50`)
 - **V2 Dataset Path**: `scripts/benchmarks/voice/jev-calibration-v2-cases.json`
 - **V2 Dataset SHA-256**: `3e7e0a20ecd3341c99b84d40162b10eff17ba0600d191dd143bc99f00aec3047`
@@ -23,7 +23,7 @@ O benchmark preliminar v1 ($N=12$), executado sob o dataset congelado do OpenAI 
    - Entre os 5 desvios propostos pelo modelo via Choice direto, 2 foram incorretos (`DIRECT_CHOICE_FALSE_BYPASS_RATE_AMONG_BYPASSES = 40.0%`).
    - Em produção, isso enviaria chamadas com dúvidas comerciais e de integração complexas para respostas estáticas, degradando gravemente a experiência do cliente.
 4. **Economia Realizável Não Estabelecida**: A economia teórica de 21.36% dependia de um filtro *oracle* (conhecimento do ground truth a posteriori). Sem regra de decisão calibrada, o desvio direto é inaceitável para produção (`DIRECT BYPASS POLICY = NOT ACCEPTABLE FOR PRODUCTION EVALUATION YET`).
-5. **Limitação Amostral**: Com apenas 12 casos, qualquer ajuste de threshold de confiança configuraria *overfitting*. É matematicamente mandatório um dataset maior e dividido em splits para permitir calibração e teste cego.
+5. **Limitação Amostral**: Com apenas 12 casos, a amostra é insuficiente para uma calibração robusta e apresenta alto risco de *overfitting*. Um dataset maior e um holdout bloqueado fornecem evidência mais informativa para guiar decisões empíricas, embora não garantam generalização em produção. Não se assume um número mínimo universal abstrato de amostras.
 
 ---
 
@@ -39,8 +39,8 @@ A distribuição é deliberadamente estratificada para estressar a capacidade de
 
 > *Nota Metodológica*: Esta proporção reflete um desenho experimental controlado para auditoria de risco, não devendo ser confundida com a frequência empírica de tráfego em produção.
 
-### 2.2 Divisão Congelada (Calibration vs Holdout)
-Para assegurar integridade metodológica e impedir data leakage de avaliação, os 120 casos foram divididos deterministicamente antes de qualquer chamada a provedores:
+### 2.2 Divisão Congelada (Calibration vs Locked Holdout)
+Como o dataset completo foi sintetizado e versionado no mesmo ciclo de engenharia, o split de validação é classificado rigorosamente como **LOCKED HOLDOUT** (ou *evaluation holdout*), e não como dados cegos no sentido estrito de desconhecimento absoluto pelo autor. Para assegurar integridade metodológica e impedir *data leakage* de avaliação, os 120 casos foram divididos deterministicamente antes de qualquer chamada a provedores:
 
 | Estrato de Decisão | CALIBRATION (66.7%) | HOLDOUT (33.3%) | Total Geral |
 | :--- | :---: | :---: | :---: |
@@ -115,26 +115,38 @@ A execução futura do benchmark deverá seguir estritamente este fluxo bipartid
 ```mermaid
 flowchart TD
     Dataset[Dataset v2 - 120 Casos] --> CalibSplit[Phase A: Calibration Split - 80 Casos]
-    Dataset --> HoldoutSplit[Phase B: Holdout Split - 40 Casos]
+    Dataset --> HoldoutSplit[Phase B: Locked Holdout Split - 40 Casos]
     
     CalibSplit --> RunCalib[Executar Jev Choice + Atomic em N=80]
     RunCalib --> AnalyzeCalib[Análise de Curvas ROC, Probabilidades e Latência]
     AnalyzeCalib --> FormulatePolicy[Formular e Congelar Política de Decisão Candidata]
     
     FormulatePolicy --> FreezeGate{Política Congelada?}
-    FreezeGate -- Sim --> RunHoldout[Executar Jev no Holdout em N=40]
-    RunHoldout --> AuditHoldout[Avaliação Cega Final sem Ajustes]
+    FreezeGate -- Sim --> RunHoldout[Executar Jev no Locked Holdout em N=40]
+    RunHoldout --> AuditHoldout[Avaliação Final no Locked Holdout sem Ajustes]
 ```
 
 ### 5.1 Fase A: Execução e Calibração ($N=80$)
-- Execução controlada apenas nos 80 casos de calibração.
-- Coleta de métricas contínuas (probabilidades do Choice, valores Noul, latência, tokens, custo).
-- Ajuste empírico de regras e thresholds com objetivo explícito de **minimizar o False Bypass** mantendo volume útil de bypass seguro.
+- **Escopo Estrito de Execução**: O runner futuro deve filtrar exclusivamente `split === 'CALIBRATION'`, executando apenas os 80 casos de calibração.
+- **Requisições de Calibração Congeladas**:
+  - `CHOICE_CALIBRATION_REQUESTS_PLANNED = 80` (Direct Choice V1)
+  - `ATOMIC_CALIBRATION_REQUESTS_PLANNED = 80` (Atomic Noul V1 com 3 perguntas na mesma requisição)
+  - `TOTAL_JEV_CALIBRATION_REQUESTS_PLANNED = 160`
+  - `RETRIES = 0`
+  - *Nota Técnica*: As 3 perguntas atômicas coexistem na mesma requisição HTTP por caso (`3 atomic questions != 3 HTTP requests`). Nenhuma chamada é executada neste slice de design.
+- **Busca de Política Candidata (Policy Search)**:
+  - Todas as métricas de ajuste e calibração de regras devem utilizar **estritamente** os 80 casos de calibração.
+  - **Objetivo Primário**: Minimizar o *False Bypass* entre os desvios propostos (`FALSE_BYPASS_RATE_AMONG_PREDICTED_BYPASSES`).
+  - **Métrica de Segurança**: Reportada separadamente com denominador explícito (ex.: $0/12$).
+  - **Objetivo Secundário**: Reter volume útil de desvio seguro (*safe avoidance*).
+  - **Ausência de Threshold Prematuro**: `THRESHOLD_SELECTED = NO`. Nenhum threshold ou corte probabilístico (ex.: 0.5, 0.7, 0.85) é selecionado previamente.
 
-### 5.2 Regra de Ouro do Holdout ($N=40$)
-- A política candidata de roteamento deve ser formalmente congelada **antes** de qualquer chamada aos 40 casos do split de Holdout.
-- Os resultados do Holdout **NÃO PODEM** ser utilizados para calibrar thresholds, alterar perguntas, ajustar pesos ou selecionar políticas.
-- Qualquer alteração na política após a observação do Holdout invalidará irrevogavelmente a avaliação.
+### 5.2 Governança e Regra do Locked Holdout ($N=40$)
+- **Definição**: Split classificado como `LOCKED HOLDOUT — NOT USED FOR POLICY FITTING / THRESHOLD SELECTION`.
+- **Isolamento na Fase de Calibração**: Nenhuma métrica ou tabela de performance do Holdout pode ser computada ou consultada antes do congelamento formal da política candidata.
+- **Congelamento Prévio Obrigatório**: A política candidata de roteamento deve ser formalmente congelada antes de qualquer chamada aos 40 casos do Locked Holdout.
+- **Volume Futuro de Requisições do Holdout**: O número exato de requisições ao provedor no Holdout dependerá da política candidata selecionada (Choice e/ou Atomic necessários para a regra final). O gasto do Holdout não está autorizado nem calculado neste momento.
+- **Proibição de Ajustes Pós-Holdout**: Os resultados do Holdout **NÃO PODEM** ser utilizados para calibrar thresholds, alterar wording de perguntas, ajustar opções, selecionar features ou redefinir políticas. Qualquer alteração na política após a observação do Holdout invalidará irrevogavelmente a avaliação.
 
 ---
 
@@ -158,6 +170,6 @@ As métricas de avaliação futura estão hierarquizadas pela severidade do impa
 ## 7. Limitações e Guardrails Normativos
 
 - **Dataset Sintético**: Casos simulados focados em cenários de teste, não cobrindo áudio com ruído acústico real.
-- **Isolamento de Custos**: Nenhuma chamada foi realizada neste slice de design. O teto de custos para a futura execução da calibração ($N=80$) permanece estimado em $< \text{US\$} 0.015$.
+- **Isolamento de Custos e Orçamento Futuro**: Nenhuma chamada a provedores externos (OpenAI, TypeSafe, Twilio) foi realizada neste slice de design (`PROVIDER_CALLS = 0`). Para a futura Fase A de calibração (160 requisições: 80 Choice + 80 Atomic), registra-se `CALIBRATION_COST_ESTIMATE = ESTIMATE ONLY` (~US$ 0.005 a US$ 0.015 conforme tamanho dos payloads e precificação oficial). Não se declara um teto rígido até a medição exata dos payloads em runtime. A autorização formal de gasto financeiro fica estritamente reservada para o prompt de execução futura.
 - **Sem Garantias Prematuras**: Mesmo um resultado com 0 erros na calibração deve ser reportado com denominador explícito (ex.: $0/28$), sendo proibido declarar o modelo como "100% seguro para produção".
 - **Runtime Intocado**: Nenhum código de roteamento, interceptor ou porta de decisão foi acoplado ao runtime da plataforma de agentes de voz.

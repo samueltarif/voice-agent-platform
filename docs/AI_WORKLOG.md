@@ -7949,3 +7949,59 @@ Status: `BENCHMARK HYPOTHESES` — NÃO são product requirements.
   5. Unicidade de `caseId`, interseção nula, ausência de inputs vazios e ausência de marcadores de PII.
   6. Estabilidade dos hashes canônicos do Choice V1 e Atomic V1.
   7. Anti-leakage nos builders de payload (nenhum metadado de benchmark no runtime state).
+
+---
+
+## 2026-09-30 — PROMPT-006J-DESIGN-FINAL-AUDIT-001: Jev Calibration v2 Final Methodology Audit, Freeze & PR #33 Merge
+
+- **Branch**: `research/006j-jev-calibration-design`
+- **PR**: #33
+- **Status**: METHODOLOGY AUDITED / V2 DESIGN VALIDATED FOR CALIBRATION
+- **Objetivo**: Auditoria final de metodologia, semântica e governança do dataset de calibração Jev v2, verificação estrita de hashes, auditoria do schema oficial TypeSafe Noul e preparação para merge do PR #33 sem chamadas de provedores.
+
+### 1. Verificação Factual de Hashes
+- **V1 Dataset SHA-256**: `9ab7cbd2fbfcf508673a700d4a484e0c674d0124766c7b7fa0eee05a573e0d50` (VERIFICADO / INALTERADO)
+- **V2 Dataset SHA-256**: `3e7e0a20ecd3341c99b84d40162b10eff17ba0600d191dd143bc99f00aec3047` (VERIFICADO / INALTERADO)
+- **Choice V1 SHA-256**: `1e6aaccdb562cde6e0c005ac6d95417922c3351a17ef6592c2ca9b65b6290788` (VERIFICADO / INALTERADO)
+- **Atomic V1 SHA-256**: `3fecf9ce82ad600a74549d3459fe2b2b516fc3bd7b5fff33bf5b850cd48e8725` (VERIFICADO / INALTERADO)
+
+### 2. Auditoria Semântica do Dataset v2
+- **Arquivo**: `scripts/benchmarks/voice/jev-calibration-v2-cases.json`
+- **Total de Casos**: 120 (40 Det / 60 Gen / 20 Sec)
+- **Duplicatas de Case ID**: 0
+- **Duplicatas Exatas de Input**: 0
+- **Pares com Jaccard Token > 0.8**: 0
+- **Classificação**: `V2_DESIGN_VALIDATED_FOR_CALIBRATION` (zero blockers, zero edição pós-freeze).
+
+### 3. Auditoria do Schema Oficial TypeSafe Atomic Noul
+- **Verificação**: Conforme documentação oficial do TypeSafe System One (`docs.typesafe.ai/introduction.md`, `docs.typesafe.ai/api.md`), múltiplas perguntas coexistem sob o mapa `questions` em uma única requisição HTTP e são avaliadas concorrentemente.
+- **Saídas Noul**: Contínuas de 0.0 a 1.0 (não booleanas).
+- **Status do Schema**: AUDIT_PASS.
+
+### 4. Correções Metodológicas e de Governança
+- **Locked Holdout**: Holdout formalmente classificado como `LOCKED HOLDOUT — NOT USED FOR POLICY FITTING / THRESHOLD SELECTION`. Termos hiperbólicos como "cego absoluto" removidos, refletindo com precisão que o autor gerou ambos os splits no mesmo processo experimental.
+- **Governança do Holdout**: Métricas de ajuste e seleção de políticas na Fase A utilizarão estritamente os 80 casos de calibração; tabelas de performance do Holdout não serão calculadas antes do congelamento da política candidata.
+- **Correção de Reivindicações Estatísticas**: Removidas afirmações de "matematicamente mandatório" ou mínimos universais abstratos. Registrado factualmente que $N=12$ é insuficiente para calibração robusta e apresenta alto risco de overfitting.
+- **Congelamento de Requisições Futuras (Fase A)**:
+  - `CHOICE_CALIBRATION_REQUESTS_PLANNED = 80`
+  - `ATOMIC_CALIBRATION_REQUESTS_PLANNED = 80`
+  - `TOTAL_JEV_CALIBRATION_REQUESTS_PLANNED = 160`
+  - `RETRIES = 0`
+  - `3 atomic questions != 3 HTTP requests` (3 perguntas Noul na mesma chamada por caso).
+- **Threshold**: `THRESHOLD_SELECTED = NO` (nenhum threshold de corte pré-estabelecido).
+- **Estimativa de Custo**: `CALIBRATION_COST_ESTIMATE = ESTIMATE ONLY`. Autorização financeira formal reservada para o prompt de execução.
+
+### 5. Registro de Desvio de Ferramental (Tooling Process Deviation)
+- **TOOLING_PROCESS_DEVIATION**: `YES`
+- **Fato**: Execução de `npx prettier --check` no turno anterior em vez do comando canônico do repositório (`pnpm`).
+- **Impacto**: Nenhum `package.json`, lockfile ou manifesto foi alterado. O resultado foi integralmente revalidado com o ferramental canônico do repositório (`pnpm check` e `pnpm format:check`).
+- **Classificação**: Desvio estritamente operacional/processual de tooling, NÃO configurando incidente de segurança. Não deve ser repetido em slices futuros.
+
+### 6. Isolamento e Quality Gate
+- `OPENAI_CALLS = 0`
+- `JEV_CALLS = 0`
+- `TWILIO_CALLS = 0`
+- Carregamento de `.env`: Não realizado.
+- Quality evidence anterior válida para código/testes inalterados (517 passed, 45 skips históricos, 0 novos skips).
+- `git diff --check` e `pnpm format:check`: PASS.
+- Auditoria de segredos no tracked diff: `SECRET_AUDIT_PASS`.
