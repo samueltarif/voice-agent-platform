@@ -18,7 +18,7 @@
 | **Final tested code HEAD** | `662ebcdf88a32156f97e2de7951f9abd6db2217d` |
 | **PR #34 Merge commit** | `78e3d053f5adfa48551c47b95f2a3d8cf13838fe` |
 
-> **Correção de Rastreabilidade pós-PR #34**: A alegação inicial de que `b2a4348` foi o HEAD de execução foi formalmente retratada. A evidência factual do Git confirma que `1de5e4f` foi comitado antes da execução live do runner (`node --env-file=.env ... run-jev-calibration-phase-a.ts`), sendo portanto `1de5e4f48c5fc7df2ceb59f514cf8ce6a184f100` o `ACTUAL_PROVIDER_EXECUTION_CODE_HEAD`.
+> **Correção de Rastreabilidade pós-PR #34**: A alegação inicial de que `b2a4348` foi o HEAD de execução foi formalmente retratada. A sequência de comandos observada e fornecida pelo operador demonstra que o commit `1de5e4f` foi criado antes da invocação bem-sucedida do runner live (`node --env-file=.env ... run-jev-calibration-phase-a.ts`). O histórico e a ancestralidade do Git confirmam independentemente a ordenação dos commits. Juntas, essas fontes de evidência sustentam que `ACTUAL_PROVIDER_EXECUTION_CODE_HEAD = 1de5e4f48c5fc7df2ceb59f514cf8ce6a184f100`.
 >
 > **Nota de Staleness**: O `pnpm check` anterior (524 passed, 45 skips) foi observado **antes** dos commits `1de5e4f` e `662ebcd`. O quality gate definitivo foi reexecutado no HEAD final `662ebcd` e confirmado: **PASS** (524 passed, 45 skips, 0 failures, 0 new skips).
 

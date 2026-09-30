@@ -8303,3 +8303,72 @@ Este slice realiza retificações exclusivamente em documentação, sem executar
 - `CANDIDATE_POLICY_SELECTED = NO`
 - `HOLDOUT_EVALUATED = NO`
 - `PROVIDER_CALLS_THIS_PROMPT = 0`
+
+---
+
+## 2026-09-30 — Post-Merge Evidence Final Close: Jev Phase A (PR #35)
+
+### PROMPT-006K-POSTMERGE-EVIDENCE-FINAL-CLOSE-001
+
+### 1. Contexto e Objetivo
+
+Fechamento e auditoria final do PR #35 (`docs/006k-postmerge-evidence-correction`).
+Este fechamento retifica a formulação epistemológica da base de evidência da execução do provedor na Fase A, garantindo que o histórico do Git seja compreendido como comprovação de commits e ancestralidade, enquanto a cronologia de runtime provém da sequência de comandos observada e fornecida pelo operador.
+
+### 2. Confirmação do ACTUAL_PROVIDER_EXECUTION_CODE_HEAD
+
+- **Valor do HEAD de Execução**: `ACTUAL_PROVIDER_EXECUTION_CODE_HEAD = 1de5e4f48c5fc7df2ceb59f514cf8ce6a184f100` (mantido e inalterado).
+- **Correção da Formulação da Base de Evidência**:
+  - A sequência de comandos observada e fornecida pelo operador demonstra que o commit `1de5e4f` ("refactor: decoupling calibration runner from unit test imports") foi criado e comitado antes da invocação bem-sucedida do runner live (`node --env-file=.env ... run-jev-calibration-phase-a.ts`).
+  - O histórico e a ancestralidade do Git confirmam independentemente a ordenação dos commits no repositório.
+  - O Git isoladamente registra histórico de commits e árvores versionadas, não telemetria de execução externa de comandos no shell. Juntas, essas duas fontes de evidência sustentam formalmente que `ACTUAL_PROVIDER_EXECUTION_CODE_HEAD = 1de5e4f48c5fc7df2ceb59f514cf8ce6a184f100`.
+- **Alegação Anterior de b2a4348**: Mantida categoricamente como `RETRACTED`.
+
+### 3. Governança de Segurança e Desvios
+
+- `INTERNAL_AGENT_STORAGE_READ = YES` (registrado append-only no PR #35; nenhum storage interno de IA foi acessado).
+- `SECURITY_PROCESS_DEVIATION = YES` (registrado append-only).
+- `KNOWN_SECRET_EXPOSURE = NO EVIDENCE OBSERVED`.
+- `UNNECESSARY_ENV_RUNTIME_LOAD = YES` (registrado append-only para o fechamento do PR #34; `.env` não carregado neste prompt).
+- `PROMPT_INSTRUCTION_DEVIATION = YES` (registrado append-only).
+- `SECRET_VALUE_PRINTED = NO OBSERVED`.
+- Proibição estrita de acesso a armazenamento interno da IDE/agente (`.system_generated/`, `brain/`, task logs, etc.) mantida e respeitada.
+
+### 4. Integridade de Hashes, Datasets e Resultados da Fase A
+
+- Hashes canônicos preservados:
+  - `CHOICE_CANONICAL_HASH_MATCH = true` (`1e6aaccdb562cde6e0c005ac6d95417922c3351a17ef6592c2ca9b65b6290788`)
+  - `ATOMIC_CANONICAL_HASH_MATCH = true` (`3fecf9ce82ad600a74549d3459fe2b2b516fc3bd7b5fff33bf5b850cd48e8725`)
+  - `V1_DATASET_HASH_MATCH = true` (`9ab7cbd2fbfcf508673a700d4a484e0c674d0124766c7b7fa0eee05a573e0d50`)
+  - `V2_DATASET_HASH_MATCH = true` (`3e7e0a20ecd3341c99b84d40162b10eff17ba0600d191dd143bc99f00aec3047`)
+- Arquivos de calibração e baseline intactos (zero diff no PR #35):
+  - `scripts/benchmarks/voice/openai-baseline-v1-cases.json`: INTACTO
+  - `scripts/benchmarks/voice/jev-calibration-v2-cases.json`: INTACTO
+  - `scripts/benchmarks/voice/jev-calibration-question-set.ts`: INTACTO
+  - `docs/research/results/phase-6-jev-calibration-v2-phase-a-run1.json`: INTACTO (SHA-256: `5355b3639f011c0812b5e370a3dc7675e89e8f077d82fb3595dafdef2f0a0565`)
+- Métricas descritivas da Fase A inalteradas (80 calibration cases, 160 requests, 0 retries, 0 failures, 0 holdout requests).
+
+### 5. Semântica de Custos
+
+- Choice estimado: USD 0.001626156
+- Atomic estimado: USD 0.002123436
+- Total estimado: USD 0.003749592
+- Classificação: `USAGE_BASED_ESTIMATED_COST`
+- Billing ledger: `NOT INDEPENDENTLY RECONCILED`
+
+### 6. Evidência de Qualidade
+
+- Quality gate de referência anterior (`662ebcdf88a32156f97e2de7951f9abd6db2217d`): PASS (524 passed, 45 historical skips, 0 new skips, 0 failures).
+- PR diff: estritamente documental (`docs/`).
+- Checagens locais: `git diff --check` PASS, `pnpm format:check` PASS, `secret audit` PASS.
+
+### 7. Governança Deste Prompt
+
+- `OPENAI_CALLS = 0`
+- `JEV_CALLS = 0`
+- `TWILIO_CALLS = 0`
+- `.env` não carregado
+- `THRESHOLD_SELECTED = NO`
+- `CANDIDATE_POLICY_SELECTED = NO`
+- `HOLDOUT_EVALUATED = NO`
+- `PROVIDER_CALLS_THIS_PROMPT = 0`
