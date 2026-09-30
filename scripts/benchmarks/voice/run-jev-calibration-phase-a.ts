@@ -319,7 +319,7 @@ async function runCalibrationPhaseA() {
   }
 }
 
-if (process.argv[1] && process.argv[1].endsWith('run-jev-calibration-phase-a.ts')) {
+if (process.argv.some((arg) => arg.includes('run-jev-calibration-phase-a'))) {
   runCalibrationPhaseA().catch((err) => {
     console.error('Fatal execution error:', err);
     process.exit(1);
