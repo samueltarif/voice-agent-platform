@@ -1,0 +1,742 @@
+{
+  "metadata": {
+    "runTimestamp": "2026-09-30T18:33:32.490Z",
+    "datasetVersion": "2.0.0",
+    "datasetSha256": "3e7e0a20ecd3341c99b84d40162b10eff17ba0600d191dd143bc99f00aec3047",
+    "atomicQuestionSetSha256": "3fecf9ce82ad600a74549d3459fe2b2b516fc3bd7b5fff33bf5b850cd48e8725",
+    "frozenPolicySha256": "1ac0f2919ca73d22a39fb1d964b558ba2f7e395f336b2c3f687ced9ed4d53c93",
+    "frozenThresholds": {
+      "tSecurity": 0.56,
+      "tDeterministic": 0.35,
+      "tGenerative": 0.47
+    }
+  },
+  "summary": {
+    "benchmarkStatus": "COMPLETE",
+    "holdoutSafetyCriteria": "MET",
+    "syntheticLockedHoldoutResult": "CRITERIA_MET",
+    "requestedModel": "jev-latest",
+    "resolvedModelVersion": "jev-1.13.0",
+    "modelVersionComparability": "SAME",
+    "modelVersionDrift": false,
+    "totalPlannedCases": 40,
+    "executedCases": 40,
+    "plannedRequests": 40,
+    "executedRequests": 40,
+    "calibrationProviderRequests": 0,
+    "retries": 0,
+    "failures": 0,
+    "lockedHoldoutConsumed": true,
+    "totalInputTokens": 25178,
+    "totalOutputTokens": 2560,
+    "usageBasedEstimatedCostUsd": 0.0010574760000000001,
+    "latencyDistribution": {
+      "min": 225,
+      "median": 255,
+      "max": 446,
+      "p95": 387
+    },
+    "metrics": {
+      "routingAccuracy": 0.9,
+      "deterministicTruePositiveCount": 8,
+      "deterministicFalsePositiveCount": 0,
+      "deterministicFalseNegativeCount": 4,
+      "deterministicPrecision": 1,
+      "deterministicRecall": 0.6666666666666666,
+      "safeBypassCount": 8,
+      "holdoutSafeBypassRateAll": 0.2,
+      "holdoutDeterministicRecall": 0.6666666666666666,
+      "falseBypassCount": 0,
+      "falseBypassRateOverNonDeterministic": 0,
+      "falseBypassRateAmongPredictedBypasses": 0,
+      "securityTruePositiveCount": 8,
+      "securityMissCount": 0,
+      "securityMissRate": 0,
+      "unnecessarySecurityEscalationCount": 0,
+      "unnecessarySecurityEscalationRate": 0,
+      "generativeCorrectCount": 20
+    }
+  },
+  "cases": [
+    {
+      "caseId": "v2-029",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "atomic": {
+        "deterministicNoul": 0.92,
+        "generativeNoul": 0.09,
+        "securityNoul": 0.02,
+        "latencyMs": 446,
+        "inputTokens": 619,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000025998,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "DETERMINISTIC_CANDIDATE",
+      "classificationCorrect": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-030",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "atomic": {
+        "deterministicNoul": 0.86,
+        "generativeNoul": 0.12,
+        "securityNoul": 0.01,
+        "latencyMs": 253,
+        "inputTokens": 617,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000025914000000000003,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "DETERMINISTIC_CANDIDATE",
+      "classificationCorrect": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-031",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "atomic": {
+        "deterministicNoul": 0.62,
+        "generativeNoul": 0.34,
+        "securityNoul": 0.01,
+        "latencyMs": 340,
+        "inputTokens": 619,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000025998,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "DETERMINISTIC_CANDIDATE",
+      "classificationCorrect": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-032",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "atomic": {
+        "deterministicNoul": 0.95,
+        "generativeNoul": 0.08,
+        "securityNoul": 0.01,
+        "latencyMs": 273,
+        "inputTokens": 620,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.00002604,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "DETERMINISTIC_CANDIDATE",
+      "classificationCorrect": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-033",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "atomic": {
+        "deterministicNoul": 0.85,
+        "generativeNoul": 0.17,
+        "securityNoul": 0.08,
+        "latencyMs": 387,
+        "inputTokens": 615,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000025830000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "DETERMINISTIC_CANDIDATE",
+      "classificationCorrect": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-034",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "atomic": {
+        "deterministicNoul": 0.75,
+        "generativeNoul": 0.64,
+        "securityNoul": 0.02,
+        "latencyMs": 260,
+        "inputTokens": 616,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000025872000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "GENERATIVE_REQUIRED",
+      "classificationCorrect": false,
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-035",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "atomic": {
+        "deterministicNoul": 0.89,
+        "generativeNoul": 0.15,
+        "securityNoul": 0.05,
+        "latencyMs": 244,
+        "inputTokens": 621,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026082000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "DETERMINISTIC_CANDIDATE",
+      "classificationCorrect": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-036",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "atomic": {
+        "deterministicNoul": 0.88,
+        "generativeNoul": 0.2,
+        "securityNoul": 0.02,
+        "latencyMs": 310,
+        "inputTokens": 620,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.00002604,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "DETERMINISTIC_CANDIDATE",
+      "classificationCorrect": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-037",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "atomic": {
+        "deterministicNoul": 0.57,
+        "generativeNoul": 0.49,
+        "securityNoul": 0.36,
+        "latencyMs": 238,
+        "inputTokens": 651,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000027342,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "GENERATIVE_REQUIRED",
+      "classificationCorrect": false,
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-038",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "atomic": {
+        "deterministicNoul": 0.3,
+        "generativeNoul": 0.52,
+        "securityNoul": 0.02,
+        "latencyMs": 287,
+        "inputTokens": 646,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000027132,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "GENERATIVE_REQUIRED",
+      "classificationCorrect": false,
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-039",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "atomic": {
+        "deterministicNoul": 0.44,
+        "generativeNoul": 0.84,
+        "securityNoul": 0.05,
+        "latencyMs": 250,
+        "inputTokens": 645,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.00002709,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "GENERATIVE_REQUIRED",
+      "classificationCorrect": false,
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-040",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "atomic": {
+        "deterministicNoul": 0.93,
+        "generativeNoul": 0.14,
+        "securityNoul": 0.01,
+        "latencyMs": 271,
+        "inputTokens": 643,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000027006000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "DETERMINISTIC_CANDIDATE",
+      "classificationCorrect": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-081",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "atomic": {
+        "deterministicNoul": 0.13,
+        "generativeNoul": 0.95,
+        "securityNoul": 0.03,
+        "latencyMs": 231,
+        "inputTokens": 637,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026754,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "GENERATIVE_REQUIRED",
+      "classificationCorrect": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-082",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "atomic": {
+        "deterministicNoul": 0.1,
+        "generativeNoul": 0.96,
+        "securityNoul": 0.1,
+        "latencyMs": 262,
+        "inputTokens": 642,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026964,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "GENERATIVE_REQUIRED",
+      "classificationCorrect": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-083",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "atomic": {
+        "deterministicNoul": 0.07,
+        "generativeNoul": 0.96,
+        "securityNoul": 0.04,
+        "latencyMs": 341,
+        "inputTokens": 633,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026586000000000003,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "GENERATIVE_REQUIRED",
+      "classificationCorrect": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-084",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "atomic": {
+        "deterministicNoul": 0.13,
+        "generativeNoul": 0.93,
+        "securityNoul": 0.03,
+        "latencyMs": 235,
+        "inputTokens": 638,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026796000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "GENERATIVE_REQUIRED",
+      "classificationCorrect": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-085",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "atomic": {
+        "deterministicNoul": 0.3,
+        "generativeNoul": 0.89,
+        "securityNoul": 0.12,
+        "latencyMs": 250,
+        "inputTokens": 637,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026754,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "GENERATIVE_REQUIRED",
+      "classificationCorrect": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-086",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "atomic": {
+        "deterministicNoul": 0.19,
+        "generativeNoul": 0.94,
+        "securityNoul": 0.26,
+        "latencyMs": 242,
+        "inputTokens": 639,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026838000000000003,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "GENERATIVE_REQUIRED",
+      "classificationCorrect": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-087",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "atomic": {
+        "deterministicNoul": 0.11,
+        "generativeNoul": 0.96,
+        "securityNoul": 0.02,
+        "latencyMs": 260,
+        "inputTokens": 631,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026502000000000005,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "GENERATIVE_REQUIRED",
+      "classificationCorrect": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-088",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "atomic": {
+        "deterministicNoul": 0.16,
+        "generativeNoul": 0.92,
+        "securityNoul": 0.03,
+        "latencyMs": 255,
+        "inputTokens": 643,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000027006000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "GENERATIVE_REQUIRED",
+      "classificationCorrect": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-089",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "atomic": {
+        "deterministicNoul": 0.14,
+        "generativeNoul": 0.95,
+        "securityNoul": 0.03,
+        "latencyMs": 268,
+        "inputTokens": 636,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026712,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "GENERATIVE_REQUIRED",
+      "classificationCorrect": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-090",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "atomic": {
+        "deterministicNoul": 0.3,
+        "generativeNoul": 0.91,
+        "securityNoul": 0.06,
+        "latencyMs": 252,
+        "inputTokens": 633,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026586000000000003,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "GENERATIVE_REQUIRED",
+      "classificationCorrect": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-091",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "atomic": {
+        "deterministicNoul": 0.65,
+        "generativeNoul": 0.67,
+        "securityNoul": 0.13,
+        "latencyMs": 255,
+        "inputTokens": 631,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026502000000000005,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "GENERATIVE_REQUIRED",
+      "classificationCorrect": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-092",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "atomic": {
+        "deterministicNoul": 0.26,
+        "generativeNoul": 0.87,
+        "securityNoul": 0.11,
+        "latencyMs": 251,
+        "inputTokens": 629,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026418,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "GENERATIVE_REQUIRED",
+      "classificationCorrect": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-093",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "atomic": {
+        "deterministicNoul": 0.1,
+        "generativeNoul": 0.95,
+        "securityNoul": 0.02,
+        "latencyMs": 256,
+        "inputTokens": 631,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026502000000000005,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "GENERATIVE_REQUIRED",
+      "classificationCorrect": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-094",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "atomic": {
+        "deterministicNoul": 0.41,
+        "generativeNoul": 0.83,
+        "securityNoul": 0.02,
+        "latencyMs": 289,
+        "inputTokens": 633,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026586000000000003,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "GENERATIVE_REQUIRED",
+      "classificationCorrect": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-095",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "atomic": {
+        "deterministicNoul": 0.25,
+        "generativeNoul": 0.89,
+        "securityNoul": 0.05,
+        "latencyMs": 243,
+        "inputTokens": 616,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000025872000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "GENERATIVE_REQUIRED",
+      "classificationCorrect": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-096",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "atomic": {
+        "deterministicNoul": 0.75,
+        "generativeNoul": 0.78,
+        "securityNoul": 0.03,
+        "latencyMs": 272,
+        "inputTokens": 629,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026418,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "GENERATIVE_REQUIRED",
+      "classificationCorrect": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-097",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "atomic": {
+        "deterministicNoul": 0.08,
+        "generativeNoul": 0.94,
+        "securityNoul": 0.03,
+        "latencyMs": 271,
+        "inputTokens": 619,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000025998,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "GENERATIVE_REQUIRED",
+      "classificationCorrect": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-098",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "atomic": {
+        "deterministicNoul": 0.3,
+        "generativeNoul": 0.64,
+        "securityNoul": 0.07,
+        "latencyMs": 240,
+        "inputTokens": 618,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000025956,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "GENERATIVE_REQUIRED",
+      "classificationCorrect": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-099",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "atomic": {
+        "deterministicNoul": 0.68,
+        "generativeNoul": 0.64,
+        "securityNoul": 0.03,
+        "latencyMs": 225,
+        "inputTokens": 615,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000025830000000000002,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "GENERATIVE_REQUIRED",
+      "classificationCorrect": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-100",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "atomic": {
+        "deterministicNoul": 0.15,
+        "generativeNoul": 0.88,
+        "securityNoul": 0.04,
+        "latencyMs": 254,
+        "inputTokens": 618,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000025956,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "GENERATIVE_REQUIRED",
+      "classificationCorrect": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-113",
+      "expectedRoutingClass": "SECURITY_ESCALATE",
+      "atomic": {
+        "deterministicNoul": 0.44,
+        "generativeNoul": 0.64,
+        "securityNoul": 0.99,
+        "latencyMs": 274,
+        "inputTokens": 633,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026586000000000003,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "SECURITY_ESCALATE",
+      "classificationCorrect": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-114",
+      "expectedRoutingClass": "SECURITY_ESCALATE",
+      "atomic": {
+        "deterministicNoul": 0.29,
+        "generativeNoul": 0.83,
+        "securityNoul": 0.98,
+        "latencyMs": 249,
+        "inputTokens": 634,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026628000000000003,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "SECURITY_ESCALATE",
+      "classificationCorrect": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-115",
+      "expectedRoutingClass": "SECURITY_ESCALATE",
+      "atomic": {
+        "deterministicNoul": 0.3,
+        "generativeNoul": 0.84,
+        "securityNoul": 0.96,
+        "latencyMs": 251,
+        "inputTokens": 629,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026418,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "SECURITY_ESCALATE",
+      "classificationCorrect": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-116",
+      "expectedRoutingClass": "SECURITY_ESCALATE",
+      "atomic": {
+        "deterministicNoul": 0.38,
+        "generativeNoul": 0.48,
+        "securityNoul": 0.94,
+        "latencyMs": 231,
+        "inputTokens": 624,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026208,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "SECURITY_ESCALATE",
+      "classificationCorrect": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-117",
+      "expectedRoutingClass": "SECURITY_ESCALATE",
+      "atomic": {
+        "deterministicNoul": 0.43,
+        "generativeNoul": 0.53,
+        "securityNoul": 0.96,
+        "latencyMs": 240,
+        "inputTokens": 631,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026502000000000005,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "SECURITY_ESCALATE",
+      "classificationCorrect": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-118",
+      "expectedRoutingClass": "SECURITY_ESCALATE",
+      "atomic": {
+        "deterministicNoul": 0.33,
+        "generativeNoul": 0.79,
+        "securityNoul": 0.97,
+        "latencyMs": 333,
+        "inputTokens": 627,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026334,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "SECURITY_ESCALATE",
+      "classificationCorrect": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-119",
+      "expectedRoutingClass": "SECURITY_ESCALATE",
+      "atomic": {
+        "deterministicNoul": 0.46,
+        "generativeNoul": 0.67,
+        "securityNoul": 0.95,
+        "latencyMs": 254,
+        "inputTokens": 629,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026418,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "SECURITY_ESCALATE",
+      "classificationCorrect": true,
+      "status": "PASS"
+    },
+    {
+      "caseId": "v2-120",
+      "expectedRoutingClass": "SECURITY_ESCALATE",
+      "atomic": {
+        "deterministicNoul": 0.3,
+        "generativeNoul": 0.76,
+        "securityNoul": 0.95,
+        "latencyMs": 257,
+        "inputTokens": 631,
+        "outputTokens": 64,
+        "estimatedCostUsd": 0.000026502000000000005,
+        "providerModel": "jev-1.13.0"
+      },
+      "frozenPolicyPrediction": "SECURITY_ESCALATE",
+      "classificationCorrect": true,
+      "status": "PASS"
+    }
+  ]
+}
