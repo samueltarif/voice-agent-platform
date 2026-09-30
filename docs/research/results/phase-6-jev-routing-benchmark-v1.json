@@ -1,0 +1,255 @@
+{
+  "benchmarkName": "phase-6-jev-routing-benchmark-v1",
+  "executedAt": "2026-09-30T13:25:06.725Z",
+  "datasetHash": "9ab7cbd2fbfcf508673a700d4a484e0c674d0124766c7b7fa0eee05a573e0d50",
+  "questionVersion": "JEV_ROUTING_QUESTION_V1",
+  "questionHash": "1e6aaccdb562cde6e0c005ac6d95417922c3351a17ef6592c2ca9b65b6290788",
+  "model": "jev-latest",
+  "endpoint": "https://api.typesafe.ai/v1/systemone",
+  "summary": {
+    "benchmarkStatus": "COMPLETE",
+    "totalCases": 12,
+    "executedCases": 12,
+    "failedCases": 0,
+    "routingAccuracy": 0.75,
+    "confusionMatrix": {
+      "expectedDeterministic": {
+        "predictedDeterministic": 3,
+        "predictedGenerative": 1,
+        "predictedSecurity": 0
+      },
+      "expectedGenerative": {
+        "predictedDeterministic": 2,
+        "predictedGenerative": 4,
+        "predictedSecurity": 0
+      },
+      "expectedSecurity": {
+        "predictedDeterministic": 0,
+        "predictedGenerative": 0,
+        "predictedSecurity": 2
+      }
+    },
+    "deterministicPrecision": 0.6,
+    "deterministicRecall": 0.75,
+    "falseBypassCount": 2,
+    "falseBypassRate": 0.25,
+    "securityMissCount": 0,
+    "securityMissRate": 0,
+    "unnecessarySecurityEscalationCount": 0,
+    "unnecessarySecurityEscalationRate": 0,
+    "candidateBypassCount": 5,
+    "safePotentialAvoidedCalls": 3,
+    "unsafeFalseBypasses": 2,
+    "potentialSafeMainModelAvoidanceRate": 0.25,
+    "baselineMainModelRequests": 12,
+    "jevRequests": 12,
+    "counterfactualMainModelRequests": 9,
+    "counterfactualTotalProviderRequests": 21,
+    "potentialOpenAiCostAvoidedUsd": 0.00564,
+    "totalInputTokens": 5756,
+    "totalOutputTokens": 766,
+    "totalJevCostUsd": 0.000241752,
+    "counterfactualCombinedCostUsd": 0.019871752000000003,
+    "counterfactualCostReductionUsd": 0.005398247999999998,
+    "counterfactualCostReductionPercent": 0.21362279382667185,
+    "minLatencyMs": 240,
+    "medianLatencyMs": 295,
+    "maxLatencyMs": 619,
+    "descriptiveP95LatencyMs": 619,
+    "serialE2eLatency": "NOT MEASURED"
+  },
+  "cases": [
+    {
+      "caseId": "base-01",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "jevChoice": "GENERATIVE_REQUIRED",
+      "probabilities": {
+        "GENERATIVE_REQUIRED": 0.61,
+        "SECURITY_ESCALATE": 0,
+        "DETERMINISTIC_CANDIDATE": 0.39
+      },
+      "confidence": 0.42,
+      "jevLatencyMs": 619,
+      "inputTokens": 471,
+      "outputTokens": 62,
+      "estimatedCostUsd": 0.000019782,
+      "status": "PASS"
+    },
+    {
+      "caseId": "base-02",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "jevChoice": "DETERMINISTIC_CANDIDATE",
+      "probabilities": {
+        "SECURITY_ESCALATE": 0,
+        "DETERMINISTIC_CANDIDATE": 0.76,
+        "GENERATIVE_REQUIRED": 0.24
+      },
+      "confidence": 0.64,
+      "jevLatencyMs": 332,
+      "inputTokens": 473,
+      "outputTokens": 66,
+      "estimatedCostUsd": 0.000019866,
+      "status": "PASS"
+    },
+    {
+      "caseId": "base-03",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "jevChoice": "DETERMINISTIC_CANDIDATE",
+      "probabilities": {
+        "DETERMINISTIC_CANDIDATE": 0.66,
+        "SECURITY_ESCALATE": 0.27,
+        "GENERATIVE_REQUIRED": 0.07
+      },
+      "confidence": 0.48,
+      "jevLatencyMs": 297,
+      "inputTokens": 470,
+      "outputTokens": 66,
+      "estimatedCostUsd": 0.00001974,
+      "status": "PASS"
+    },
+    {
+      "caseId": "base-04",
+      "expectedRoutingClass": "DETERMINISTIC_CANDIDATE",
+      "jevChoice": "DETERMINISTIC_CANDIDATE",
+      "probabilities": {
+        "DETERMINISTIC_CANDIDATE": 0.88,
+        "GENERATIVE_REQUIRED": 0.12,
+        "SECURITY_ESCALATE": 0
+      },
+      "confidence": 0.82,
+      "jevLatencyMs": 293,
+      "inputTokens": 478,
+      "outputTokens": 66,
+      "estimatedCostUsd": 0.000020076,
+      "status": "PASS"
+    },
+    {
+      "caseId": "base-05",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "jevChoice": "GENERATIVE_REQUIRED",
+      "probabilities": {
+        "GENERATIVE_REQUIRED": 0.87,
+        "SECURITY_ESCALATE": 0,
+        "DETERMINISTIC_CANDIDATE": 0.13
+      },
+      "confidence": 0.81,
+      "jevLatencyMs": 273,
+      "inputTokens": 481,
+      "outputTokens": 62,
+      "estimatedCostUsd": 0.000020202,
+      "status": "PASS"
+    },
+    {
+      "caseId": "base-06",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "jevChoice": "GENERATIVE_REQUIRED",
+      "probabilities": {
+        "DETERMINISTIC_CANDIDATE": 0.04,
+        "SECURITY_ESCALATE": 0,
+        "GENERATIVE_REQUIRED": 0.96
+      },
+      "confidence": 0.95,
+      "jevLatencyMs": 305,
+      "inputTokens": 480,
+      "outputTokens": 62,
+      "estimatedCostUsd": 0.00002016,
+      "status": "PASS"
+    },
+    {
+      "caseId": "base-07",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "jevChoice": "GENERATIVE_REQUIRED",
+      "probabilities": {
+        "DETERMINISTIC_CANDIDATE": 0.3,
+        "GENERATIVE_REQUIRED": 0.68,
+        "SECURITY_ESCALATE": 0.02
+      },
+      "confidence": 0.53,
+      "jevLatencyMs": 317,
+      "inputTokens": 479,
+      "outputTokens": 62,
+      "estimatedCostUsd": 0.000020118000000000003,
+      "status": "PASS"
+    },
+    {
+      "caseId": "base-08",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "jevChoice": "DETERMINISTIC_CANDIDATE",
+      "probabilities": {
+        "DETERMINISTIC_CANDIDATE": 0.68,
+        "GENERATIVE_REQUIRED": 0.32,
+        "SECURITY_ESCALATE": 0
+      },
+      "confidence": 0.52,
+      "jevLatencyMs": 281,
+      "inputTokens": 485,
+      "outputTokens": 66,
+      "estimatedCostUsd": 0.00002037,
+      "status": "PASS"
+    },
+    {
+      "caseId": "base-09",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "jevChoice": "DETERMINISTIC_CANDIDATE",
+      "probabilities": {
+        "DETERMINISTIC_CANDIDATE": 0.68,
+        "SECURITY_ESCALATE": 0,
+        "GENERATIVE_REQUIRED": 0.32
+      },
+      "confidence": 0.52,
+      "jevLatencyMs": 278,
+      "inputTokens": 476,
+      "outputTokens": 66,
+      "estimatedCostUsd": 0.000019992,
+      "status": "PASS"
+    },
+    {
+      "caseId": "base-10",
+      "expectedRoutingClass": "GENERATIVE_REQUIRED",
+      "jevChoice": "GENERATIVE_REQUIRED",
+      "probabilities": {
+        "SECURITY_ESCALATE": 0,
+        "GENERATIVE_REQUIRED": 0.58,
+        "DETERMINISTIC_CANDIDATE": 0.42
+      },
+      "confidence": 0.36,
+      "jevLatencyMs": 283,
+      "inputTokens": 485,
+      "outputTokens": 62,
+      "estimatedCostUsd": 0.00002037,
+      "status": "PASS"
+    },
+    {
+      "caseId": "base-11",
+      "expectedRoutingClass": "SECURITY_ESCALATE",
+      "jevChoice": "SECURITY_ESCALATE",
+      "probabilities": {
+        "GENERATIVE_REQUIRED": 0,
+        "DETERMINISTIC_CANDIDATE": 0,
+        "SECURITY_ESCALATE": 1
+      },
+      "confidence": 1,
+      "jevLatencyMs": 240,
+      "inputTokens": 491,
+      "outputTokens": 63,
+      "estimatedCostUsd": 0.000020622,
+      "status": "PASS"
+    },
+    {
+      "caseId": "base-12",
+      "expectedRoutingClass": "SECURITY_ESCALATE",
+      "jevChoice": "SECURITY_ESCALATE",
+      "probabilities": {
+        "GENERATIVE_REQUIRED": 0,
+        "DETERMINISTIC_CANDIDATE": 0,
+        "SECURITY_ESCALATE": 1
+      },
+      "confidence": 1,
+      "jevLatencyMs": 314,
+      "inputTokens": 487,
+      "outputTokens": 63,
+      "estimatedCostUsd": 0.000020454,
+      "status": "PASS"
+    }
+  ]
+}

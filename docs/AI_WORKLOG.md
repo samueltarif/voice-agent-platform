@@ -7664,3 +7664,207 @@ Status: `BENCHMARK HYPOTHESES` — NÃO são product requirements.
 - **Auditoria Booleana de Segredos (`git diff origin/main...HEAD`)**: **`SECRET_AUDIT_PASS`**.
 - **Documento do Benchmark**: Atualizado em `docs/research/PHASE_6_OPENAI_CONVERSATION_BASELINE.md`.
 - **Merge do PR #31**: Condições de merge 100% satisfeitas.
+
+---
+
+## 2026-09-30 — PROMPT-006I-SKIP-GOVERNANCE-REPAIR-001: Remove Live Provider Harness from Default Test Discovery Without Weakening Coverage
+
+- **Branch**: `research/006i-jev-routing-benchmark`
+- **HEAD Testado**: `research/006i-jev-routing-benchmark`
+- **Status de Governança**: REPAIRED — HISTORICAL SKIPS RESTORED (45)
+
+### 1. Diagnóstico e Causa Raiz do Skip
+- **Causa Raiz**: O arquivo `packages/integrations/src/openai/openai-baseline-runner.test.ts` foi introduzido no PR #31 como harness opt-in para o benchmark real. Por conter o sufixo `.test.ts` dentro de `packages/integrations/src/`, o Vitest o incluía na suíte padrão (`**/*.test.ts`), gerando 1 skip condicional quando `OPENAI_RUN_LIVE_BASELINE` não estava ativo (elevando a contagem de 45 para 46).
+- **Classificação do Arquivo**: `LIVE_PROVIDER_BENCHMARK_HARNESS` (execução manual/opt-in de benchmark pago, não um teste unitário de regressão).
+- **Mecanismo Anterior**: Descoberta automática de testes pelo Vitest com `describe.skip` condicional.
+- **Localização Canônica da Funcionalidade Live**: `scripts/benchmarks/voice/run-openai-baseline.ts` (execução explícita via script de benchmark, fora da árvore de testes automáticos).
+
+### 2. Ação Corretiva Aplicada e Preservação de Cobertura
+- **Remoção**: `packages/integrations/src/openai/openai-baseline-runner.test.ts` removido do controle de versão.
+- **Preservação de Cobertura Determinística**: Toda a suíte determinística de integridade de dataset, cálculo de métricas, estados de execução, percentis e custos permanece 100% ativa em `packages/integrations/src/openai/openai-baseline-dataset.test.ts` (7 testes aprovados).
+- **Classificação de Alterações de Testes Existentes**:
+  - `ASSERTION_STRONGER`: 0
+  - `ASSERTION_EQUIVALENT`: 0
+  - `ASSERTION_WEAKER`: 0
+- **Preservação da Capacidade de Benchmark Live**: O script `scripts/benchmarks/voice/run-openai-baseline.ts` permanece íntegro e executável sob demanda.
+
+### 3. Evidências de Validação e Quality Gate
+- **`pnpm test` Observado**:
+  - Test Files: 93 passed | 6 skipped (99 total).
+  - Tests: 505 passed | 45 skipped (550 total).
+  - **Skips Históricos Observados**: 45 (estritamente os 6 arquivos de staging opt-in).
+  - **Novos Skips Neste Slice**: 0 (`NEW_SKIPS_THIS_SLICE = 0`).
+- **`pnpm check` Observado**:
+  - Format: PASS
+  - Lint: PASS
+  - Typecheck: PASS
+  - Tests: PASS (505 passed, 45 skipped, 0 failed)
+  - Turbo Build: PASS (12 packages)
+  - Check Architecture: PASS (0 violações)
+  - Check File Size: PASS (229 arquivos de lógica conformes)
+- **Integridade do Dataset Congelado**:
+  - SHA-256: `9ab7cbd2fbfcf508673a700d4a484e0c674d0124766c7b7fa0eee05a573e0d50` (verificado e inalterado).
+- **OpenAI Baseline Run 1**: `FROZEN / UNCHANGED` (12/12, 1032 in, 299 out, US$ 0.025270, 0 retries).
+- **Chamadas Reais de Provedores Neste Prompt**:
+  - `OPENAI_CALLS = 0`
+  - `JEV_CALLS = 0`
+  - `TWILIO_CALLS = 0`
+- **Implementação do Jev**: Permanece pausada (`NOT YET IMPLEMENTED`) até retomada no próximo passo.
+
+---
+
+## 2026-09-30 — PROMPT-006I-JEV-ROUTING-BENCHMARK-002: TypeSafe Jev Routing Benchmark Against OpenAI Baseline v1
+
+- **Branch**: `research/006i-jev-routing-benchmark`
+- **Starting HEAD**: `08a5a7d0f13f1c0465504c8759a7eb5c31e168c0`
+- **Pre-Provider Commit**: `c55d5d60a501b8c64035317c1e179dce9ddc831f`
+- **PR**: #32 (`OPEN / NOT MERGED`)
+- **Status do Benchmark**: `JEV ROUTING BENCHMARK — SYNTHETIC / LIMITED — COMPLETE`
+
+### 1. Governança e Pré-Condições de Execução
+- **Skip Governance Herdado**: `HISTORICAL_SKIPS = 45`, `NEW_SKIPS_THIS_SLICE = 0`.
+- **Precondição de Rotação de Credenciais**: `CREDENTIAL_ROTATION_OPERATOR_CONFIRMED = assumed from operator execution precondition` (confirmado previamente pelo operador humano após exibição de chave em chat).
+- **Política de Ambiente Local (`.env`)**:
+  - `ENV_LOADED_BY_RUNTIME = YES` (`node --env-file=.env ...`).
+  - `ENV_CONTENT_INSPECTED_BY_AGENT = NO` (zero leitura, exibição, cat/type ou regex sobre o arquivo `.env`).
+  - `ENV_GIT_IGNORED = YES` (`git check-ignore .env` confirmou que `.env` está estritamente ignorado).
+  - `TYPESAFE_API_KEY_PRESENT = true` (verificado exclusivamente via boolean).
+- **Integridade do Dataset Congelado**:
+  - Dataset: `scripts/benchmarks/voice/openai-baseline-v1-cases.json` (v1.0.0, exatamente 12 casos).
+  - SHA-256 Recalculado: `9ab7cbd2fbfcf508673a700d4a484e0c674d0124766c7b7fa0eee05a573e0d50` (MATCH perfeito).
+- **Revalidação da Documentação Oficial TypeSafe**:
+  - Endpoint: `POST https://api.typesafe.ai/v1/systemone`
+  - Modelo: `jev-latest`
+  - Projeto / Identificador de Chave no Console TypeSafe: `voice_ia`
+  - Documentação Oficial: `https://docs.typesafe.ai/primitives/choice.md`
+  - Tabela de Preço snapshot: $42 / bilhão de tokens de entrada ($0.042 / 1M tokens), saída gratuita ($0.00).
+  - Teto de Custo Autorizado: US$ 0.10. Teto matemático conservador verificado: < US$ 0.002 para 12 requisições.
+- **Congelamento da Pergunta Choice (`JEV_ROUTING_QUESTION_V1`)**:
+  - Versão: `JEV_ROUTING_QUESTION_V1`
+  - Question ID: `routing_decision`
+  - SHA-256 Canônico: `1e6aaccdb562cde6e0c005ac6d95417922c3351a17ef6592c2ca9b65b6290788`
+  - Opções congeladas: `DETERMINISTIC_CANDIDATE`, `GENERATIVE_REQUIRED`, `SECURITY_ESCALATE`.
+  - Justificativa do primitivo: `Choice` escolhido para classificação discreta 3-way fechada.
+  - Zero threshold de confiança inventado: `predictedClass = Choice.choice`.
+
+### 2. Validação Pré-Rede (Local Deterministic Tests & Quality Gate)
+- **Testes Unitários Locais Adicionados (`packages/integrations/src/typesafe/jev-routing-benchmark.test.ts`)**:
+  - Prova de integridade do dataset e 12 casos exatos.
+  - Prova de estabilidade do hash da pergunta e 3 opções fixas.
+  - Prova de anti-leakage (zero ground truth, labels, expectedRoutingClass, category ou caseId serializados no payload de estado).
+  - Prova de cálculo de matriz de confusão, acurácia, false bypass e avoidance.
+  - Prova de que usage ausente não vira custo zero (`calculateJevCostUsd(null) === null`) e semântica de run parcial.
+- **Quality Gate Pré-Provider (`pnpm check`)**:
+  - `pnpm format:check`: PASS
+  - `pnpm lint`: PASS
+  - `pnpm typecheck`: PASS
+  - `pnpm test`: PASS (510 passed, 45 skipped, 0 new skips)
+  - `turbo build`: PASS (12/12 pacotes)
+  - `scripts/check-architecture.mjs`: PASS (0 violações)
+  - `scripts/check-file-size.mjs`: PASS (229 arquivos conformes)
+
+### 3. Execução Controlada do Benchmark e Resultados
+- **Chamadas Reais Autorizadas / Executadas**: 12 / 12 chamadas sequenciais (`base-01` a `base-12`), 0 retries.
+- **Status da Execução**: `COMPLETE`.
+- **Acurácia de Roteamento**: **75.0%** (9 / 12).
+- **Matriz de Confusão**:
+  - `expectedDeterministic` (4 casos): 3 predictedDeterministic, 1 predictedGenerative, 0 predictedSecurity.
+  - `expectedGenerative` (6 casos): 2 predictedDeterministic, 4 predictedGenerative, 0 predictedSecurity.
+  - `expectedSecurity` (2 casos): 0 predictedDeterministic, 0 predictedGenerative, 2 predictedSecurity.
+- **Precisão Determinística**: **60.0%** (3 / 5).
+- **Recall Determinístico**: **75.0%** (3 / 4).
+- **False Bypass**:
+  - Count: **2 casos** (`base-08` e `base-09`).
+  - Rate: **25.0%** (2 / 8 casos não-determinísticos).
+- **Security Miss**:
+  - Count: **0 casos**.
+  - Rate: **0.0%** (0 / 2 casos de segurança).
+- **Unnecessary Security Escalation**:
+  - Count: **0 casos**.
+  - Rate: **0.0%** (0 / 10 casos não-segurança).
+- **Candidate Bypasses**: 5 casos.
+- **Safe Potential Avoided Calls**: **3 casos** (`base-02`, `base-03`, `base-04`).
+- **Unsafe False Bypasses**: 2 casos.
+- **Potential Safe Main Model Avoidance Rate**: **25.0%** (3 / 12).
+- **Volume de Requisições**:
+  - Baseline OpenAI: 12 chamadas.
+  - Jev: 12 chamadas.
+  - Contrafactual OpenAI: 9 chamadas (12 - 3).
+  - Total Contrafactual de Requisições a Provedores: 21 chamadas.
+- **Latência do Jev (`jevLatencyMs`)**:
+  - Min: 240 ms
+  - Mediana: 295 ms
+  - Max: 619 ms
+  - Descriptive Sample p95 (N=12, not SLA): 619 ms
+  - `SERIAL_E2E_LATENCY = NOT MEASURED`.
+- **Usage e Custos**:
+  - Total de Tokens Jev: 5.756 in / 766 out.
+  - Custo Total Jev Estimado: **US$ 0.000241752** (~US$ 0.000242).
+  - Custo OpenAI Evitado (Safe): US$ 0.005640.
+  - Custo Combinado Contrafactual: **US$ 0.019871752** (vs US$ 0.025270 no baseline).
+  - Redução de Custo Contrafactual: **US$ 0.005398248** (**21.36%**).
+  - *Aviso Normativo*: Rotulado em todos os relatórios como `COUNTERFACTUAL / NOT OBSERVED PRODUCTION COST`.
+- **Chamadas de Outros Provedores Neste Prompt**:
+  - `OPENAI_CALLS = 0`
+  - `TWILIO_CALLS = 0`
+- **Fronteira Arquitetural**:
+  - `PRODUCTION_INTEGRATION = NO`
+  - `NEW_PORT = NO`
+  - `AUXILIARY_DECISION_PORT = NO`
+
+### 4. Artefatos Produzidos
+- `scripts/benchmarks/voice/jev-routing-types.ts`
+- `scripts/benchmarks/voice/jev-routing-confusion-matrix.ts`
+- `scripts/benchmarks/voice/jev-routing-calculator.ts`
+- `scripts/benchmarks/voice/jev-payload-builder.ts`
+- `scripts/benchmarks/voice/jev-case-executor.ts`
+- `scripts/benchmarks/voice/run-jev-routing-benchmark.ts`
+- `packages/integrations/src/typesafe/jev-routing-benchmark.test.ts`
+- `docs/research/results/phase-6-jev-routing-benchmark-v1.json`
+- `docs/research/PHASE_6_JEV_ROUTING_BENCHMARK.md`
+
+---
+
+## 2026-09-30 — PROMPT-006I-FINAL-EVIDENCE-CLOSE-001: Jev Routing Benchmark Evidence Correction, Final Quality Gate & PR #32 Close
+
+- **Branch**: `research/006i-jev-routing-benchmark`
+- **PR**: #32
+- **Objetivo**: Corrigir exclusivamente problemas de semântica e evidência, revalidar o quality gate integral no HEAD final e fechar o PR #32 sem chamadas de provedor.
+
+### 1. Auditoria de Staleness do Quality Gate Anterior
+- **Fato Observado**: O runner `run-jev-routing-benchmark.ts` recebeu ajustes de invocação nos commits `9b8c813` e `c55d5d6` após o `pnpm check` anterior (que rodou no commit `8389388`).
+- **Classificação Normativa**: `DID_CODE_CHANGE_AFTER_LAST_FULL_PNPM_CHECK = YES`. O resultado anterior do gate é estritamente `STALE` para o HEAD final, exigindo reexecução completa e observação factual no HEAD definitivo.
+
+### 2. Correções Semânticas de Evidência e Nomenclatura
+- **Correção da Descrição do Caso `base-08`**: Corrigida a referência equivocada de "objeção anual" para a descrição factual do dataset congelado: *"Esclarecimento de capacidade e requisitos de integração técnica com prefeituras municipais"* (`description` factual inalterada no dataset).
+- **Correção da Semântica de Segurança**:
+  - `SECURITY_MISSES_OBSERVED = 0/2`
+  - `UNNECESSARY_SECURITY_ESCALATIONS_OBSERVED = 0/10`
+  - Amostra sensível a segurança: $N = 2$.
+  - Termos hiperbólicos ("Segurança Excepcional", "100% de contenção") formalmente removidos.
+  - Declaração explícita de limitação: `THIS DOES NOT ESTABLISH PRODUCTION SECURITY PERFORMANCE`.
+- **Correção de Métricas de False Bypass**:
+  - `FALSE_BYPASS_RATE_OVER_NON_DETERMINISTIC = 2 / 8 = 25.0%` (taxa sobre a totalidade de casos não-determinísticos).
+  - `DIRECT_CHOICE_FALSE_BYPASS_RATE_AMONG_BYPASSES = 2 / 5 = 40.0%` (proporção de erro entre os 5 desvios propostos pelo modelo via Choice direto).
+- **Correção Semântica do Contrafactual (Oracle-Filtered)**:
+  - `ORACLE_CONFIRMED_SAFE_POTENTIAL_AVOIDED_CALLS = 3 / 12` (25.0% — casos `base-02`, `base-03`, `base-04`).
+  - `ORACLE_FILTERED_COUNTERFACTUAL_OPENAI_REQUESTS = 9` (12 - 3).
+  - `ORACLE_FILTERED_COUNTERFACTUAL_TOTAL_PROVIDER_REQUESTS = 21` (12 Jev + 9 OpenAI).
+  - `ORACLE_FILTERED_COUNTERFACTUAL_COMBINED_COST = US$ 0.019871752`.
+  - `ORACLE_FILTERED_COUNTERFACTUAL_COST_REDUCTION = US$ 0.005398248` (21.36%).
+  - Declaração explícita: `POTENTIAL_ORACLE_FILTERED_SAVINGS = 21.36%`, `DEPLOYABLE_POLICY_SAVINGS = NOT ESTABLISHED`, `NOT IMPLEMENTABLE AS CURRENT RUNTIME POLICY WITHOUT AN INDEPENDENT DECISION RULE`.
+- **Correção Aritmética do Custo do Jev em Relação ao Baseline OpenAI**:
+  - Custo Total Jev (12 chamadas): US$ 0.000241752.
+  - Total do Baseline OpenAI v1 (12 chamadas): US$ 0.025270.
+  - Turno Médio do Baseline OpenAI v1: US$ 0.002106.
+  - `JEV_TOTAL_AS_PERCENT_OF_OPENAI_BASELINE_TOTAL ≈ 0.96%` (0.000241752 / 0.025270).
+  - `JEV_TOTAL_AS_PERCENT_OF_AVERAGE_OPENAI_TURN ≈ 11.5%` (0.000241752 / 0.002106).
+  - Afirmação corrigida: o custo total do Jev (12 chamadas) equivale a ~11.5% do custo de um único turno médio do OpenAI (e não "< 1% de um turno").
+- **Calibração de Confiança**: `NOT PERFORMED` (não adotar thresholds arbitrários como `> 0.52` com base em $N=12$).
+- **Posicionamento Arquitetural**: `Jev = BENCHMARK_CANDIDATE`. A evidência apoia a realização de um benchmark ampliado de calibração (`EVIDENCE SUPPORTS LARGER CALIBRATION EXPERIMENT`). A política de desvio direto é inadequada para produção no momento (`DIRECT BYPASS POLICY = NOT ACCEPTABLE FOR PRODUCTION EVALUATION YET`).
+
+### 3. Chamadas de Provedores Neste Fechamento
+- `OPENAI_CALLS_THIS_PROMPT = 0`
+- `JEV_CALLS_THIS_PROMPT = 0`
+- `TWILIO_CALLS_THIS_PROMPT = 0`
+- Carregamento de `.env`: `NO` (não necessário para fechamento).
