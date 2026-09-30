@@ -7868,3 +7868,84 @@ Status: `BENCHMARK HYPOTHESES` — NÃO são product requirements.
 - `JEV_CALLS_THIS_PROMPT = 0`
 - `TWILIO_CALLS_THIS_PROMPT = 0`
 - Carregamento de `.env`: `NO` (não necessário para fechamento).
+
+---
+
+## 2026-09-30 — PROMPT-006J-JEV-CALIBRATION-DESIGN-001: Independent Jev Calibration Dataset & Frozen Holdout Design
+
+- **Branch**: `research/006j-jev-calibration-design`
+- **Status**: DESIGN FROZEN / PROVIDER EXECUTION NOT STARTED
+- **Objetivo**: Projetar e congelar um benchmark de calibração significativamente maior e independente (120 casos) para o TypeSafe Jev com split estratificado e determinístico (80 Calibration / 40 Holdout), conjunto de perguntas atômicas Noul e testes determinísticos, sem executar qualquer chamada a provedores externos e sem alterar runtime de produção.
+
+### 1. Correção de Header Estágio PR #32
+- **Documento**: `docs/research/PHASE_6_JEV_ROUTING_BENCHMARK.md`
+- **Correção Factual**: Header atualizado de `PR: #32 (DO NOT MERGE)` para `PR: #32 — MERGED` com `Merge SHA: 8605938d0d47a98aa83587d9fd37c30f41791959`.
+- **Integridade**: Todas as métricas históricas de benchmark foram integralmente preservadas.
+
+### 2. Verificação de Imutabilidade do Dataset v1
+- **Arquivo**: `scripts/benchmarks/voice/openai-baseline-v1-cases.json`
+- **SHA-256 Esperado**: `9ab7cbd2fbfcf508673a700d4a484e0c674d0124766c7b7fa0eee05a573e0d50`
+- **SHA-256 Observado**: `9ab7cbd2fbfcf508673a700d4a484e0c674d0124766c7b7fa0eee05a573e0d50`
+- **Status**: HASH VERIFICADO / DATASET v1 INALTERADO.
+
+### 3. Novo Dataset Independente v2
+- **Arquivo**: `scripts/benchmarks/voice/jev-calibration-v2-cases.json`
+- **Versão**: `2.0.0`
+- **Total de Casos**: 120 casos sintéticos em `pt-BR`, orientados a atendimento telefônico, zero PII, zero dados de clientes reais.
+- **SHA-256**: `3e7e0a20ecd3341c99b84d40162b10eff17ba0600d191dd143bc99f00aec3047`
+- **Distribuição de Classes Estratificada**:
+  - `DETERMINISTIC_CANDIDATE`: 40 casos (33.3%)
+  - `GENERATIVE_REQUIRED`: 60 casos (50.0%)
+  - `SECURITY_ESCALATE`: 20 casos (16.7%)
+  - *Nota*: Distribuição deliberadamente estratificada para auditoria de risco, não reflete proporção empírica de produção.
+
+### 4. Split Determinístico Congelado (Calibration vs Holdout)
+- **CALIBRATION**: 80 casos
+  - 28 `DETERMINISTIC_CANDIDATE`
+  - 40 `GENERATIVE_REQUIRED`
+  - 12 `SECURITY_ESCALATE`
+- **HOLDOUT**: 40 casos
+  - 12 `DETERMINISTIC_CANDIDATE`
+  - 20 `GENERATIVE_REQUIRED`
+  - 8 `SECURITY_ESCALATE`
+- **Regra de Ouro**: O split está explicitamente versionado. Casos não podem ser movidos após congelamento. O Holdout permanece estritamente cego e intocado durante a calibração de políticas.
+
+### 5. Desenho de Casos Críticos e Diversidade de Segurança
+- **Hard Negatives (20 casos em `GENERATIVE_REQUIRED`)**:
+  - Casos curtos/aparentemente simples que pressionam a falha observada em `base-08`/`base-09`.
+  - 14 no split de Calibração, 6 no split de Holdout.
+- **Hard Positives (12 casos em `DETERMINISTIC_CANDIDATE`)**:
+  - Casos prolixos ou com ruído verbal que permanecem deterministicamente tratáveis (evita associar extensão textual a generativo).
+  - 8 no split de Calibração, 4 no split de Holdout.
+- **Diversidade de Segurança (20 casos em `SECURITY_ESCALATE`)**:
+  - Cobertura de 10 categorias estruturalmente distintas: prompt injection, instruction override, tenant mutation, agent version mutation, permission escalation, financial action, unauthorized tool execution, secret extraction, lifecycle override, unauthorized handoff authority.
+  - 12 no split de Calibração, 8 no split de Holdout.
+
+### 6. Question Sets Congelados e Hashes
+- **Question Set A (Direct Choice — Controle)**:
+  - Definição: `JEV_ROUTING_QUESTION_V1`
+  - SHA-256 Canônico: `1e6aaccdb562cde6e0c005ac6d95417922c3351a17ef6592c2ca9b65b6290788` (preservado 100% idêntico ao benchmark v1).
+- **Question Set B (Atomic Signals — Novo)**:
+  - Definição: `JEV_ROUTING_ATOMIC_V1` (3 perguntas atômicas Noul: `is_deterministic_candidate`, `is_generative_required`, `is_security_escalation`).
+  - SHA-256 Canônico: `3fecf9ce82ad600a74549d3459fe2b2b516fc3bd7b5fff33bf5b850cd48e8725`.
+- **Thresholds e Booleanização**:
+  - `NO BOOLEANIZATION OF NOUL` — saídas Noul permanecem contínuas (probabilidades 0.0 a 1.0).
+  - `THRESHOLD_SELECTED = NO` — nenhum threshold inventado ou fixado neste design slice.
+
+### 7. Isolamento de Chamadas de Provedores
+- `OPENAI_CALLS = 0`
+- `JEV_CALLS = 0`
+- `TWILIO_CALLS = 0`
+- Leitura de `.env`: Nenhuma.
+- Acesso a secrets: Nenhum.
+
+### 8. Testes Determinísticos Implementados
+- **Arquivo**: `packages/integrations/src/typesafe/jev-calibration-dataset.test.ts`
+- 7 testes automatizados validando:
+  1. Imutabilidade do dataset v1 (SHA-256).
+  2. Integridade e exatos 120 casos do dataset v2 (SHA-256).
+  3. Distribuição exata de classes (40 Det / 60 Gen / 20 Sec).
+  4. Divisão exata de splits (80 Calib / 40 Holdout) e estratos por split.
+  5. Unicidade de `caseId`, interseção nula, ausência de inputs vazios e ausência de marcadores de PII.
+  6. Estabilidade dos hashes canônicos do Choice V1 e Atomic V1.
+  7. Anti-leakage nos builders de payload (nenhum metadado de benchmark no runtime state).
