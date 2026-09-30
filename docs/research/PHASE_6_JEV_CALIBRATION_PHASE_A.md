@@ -12,12 +12,15 @@
 | Item | SHA / Valor |
 | :--- | :--- |
 | **Initial pre-provider commit** | `b0d2e7fc80fa9b1b8e003ad86beca6c80b2ed1c3` (research: add Jev calibration phase A runner) |
-| **Provider execution code HEAD** | `b2a434820082e883b652f5dee316f552c664654f` (commit em vigência quando `vite-node` executou as 160 requests — entrypoint com guarda `!VITEST && argv.includes(...)`) |
-| **Post-run refactor commit** | `1de5e4f48c5fc7df2ceb59f514cf8ce6a184f100` (decoupling imports; code changed **after** provider run) |
-| **Lint fix commit** | `662ebcdf88a32156f97e2de7951f9abd6db2217d` (remove stale unused import) |
-| **Final tested HEAD** | `662ebcdf88a32156f97e2de7951f9abd6db2217d` |
+| **Guarded runner commit** | `b2a434820082e883b652f5dee316f552c664654f` (fix: guard runner execution against vitest runner environment) |
+| **ACTUAL Provider execution code HEAD** | `1de5e4f48c5fc7df2ceb59f514cf8ce6a184f100` (refactor: decoupling calibration runner from unit test imports — commit efetivo em vigência quando as 160 requests foram executadas) |
+| **Post-run lint fix commit** | `662ebcdf88a32156f97e2de7951f9abd6db2217d` (remove stale unused import) |
+| **Final tested code HEAD** | `662ebcdf88a32156f97e2de7951f9abd6db2217d` |
+| **PR #34 Merge commit** | `78e3d053f5adfa48551c47b95f2a3d8cf13838fe` |
 
-> **Nota de Staleness**: O `pnpm check` anterior (524 passed, 45 skips) foi observado **antes** dos commits `1de5e4f` e `662ebcd`. Após essas alterações de código/teste, a evidência anterior tornou-se `STALE`. O quality gate definitivo foi reexecutado no HEAD final `662ebcd` e confirmado: **PASS** (524 passed, 45 skips, 0 failures, 0 new skips).
+> **Correção de Rastreabilidade pós-PR #34**: A alegação inicial de que `b2a4348` foi o HEAD de execução foi formalmente retratada. A sequência de comandos observada e fornecida pelo operador demonstra que o commit `1de5e4f` foi criado antes da invocação bem-sucedida do runner live (`node --env-file=.env ... run-jev-calibration-phase-a.ts`). O histórico e a ancestralidade do Git confirmam independentemente a ordenação dos commits. Juntas, essas fontes de evidência sustentam que `ACTUAL_PROVIDER_EXECUTION_CODE_HEAD = 1de5e4f48c5fc7df2ceb59f514cf8ce6a184f100`.
+>
+> **Nota de Staleness**: O `pnpm check` anterior (524 passed, 45 skips) foi observado **antes** dos commits `1de5e4f` e `662ebcd`. O quality gate definitivo foi reexecutado no HEAD final `662ebcd` e confirmado: **PASS** (524 passed, 45 skips, 0 failures, 0 new skips).
 
 ---
 
@@ -29,6 +32,8 @@
 | V2 Dataset (`jev-calibration-v2-cases.json`) | `3e7e0a20ecd3341c99b84d40162b10eff17ba0600d191dd143bc99f00aec3047` | **VERIFICADO** |
 | Choice V1 (`JEV_ROUTING_QUESTION_V1`) | `1e6aaccdb562cde6e0c005ac6d95417922c3351a17ef6592c2ca9b65b6290788` | **VERIFICADO** |
 | Atomic V1 (`JEV_ROUTING_ATOMIC_V1`) | `3fecf9ce82ad600a74549d3459fe2b2b516fc3bd7b5fff33bf5b850cd48e8725` | **VERIFICADO** |
+
+> **Nota de Recomputação Canônica**: Os hashes Choice V1 e Atomic V1 foram recomputados deterministicamente via serialização canônica das estruturas de dados e SHA-256 (`CHOICE_CANONICAL_HASH_MATCH=true`, `ATOMIC_CANONICAL_HASH_MATCH=true`), retificando a evidência anterior que se apoiava apenas em constantes exportadas.
 
 ---
 
