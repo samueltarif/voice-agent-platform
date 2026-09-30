@@ -169,7 +169,7 @@ Contudo, a execução em Shadow consome recursos de CPU, memória, capacidade de
 ### 7.1 Status da Porta
 - **DESIGN STATUS**: `ACCEPTED`
 - **IMPLEMENTATION STATUS**: `PROVIDER-NEUTRAL PORT IMPLEMENTED IN PR #39` (`packages/contracts/src/voice/auxiliary-turn-decision-contracts.ts` e `apps/voice/src/auxiliary-turn-shadow-observer.ts`)
-- **CONCRETE TYPESAFE ADAPTER**: `NOT IMPLEMENTED`
+- **CONCRETE TYPESAFE ADAPTER**: `IMPLEMENTED OFFLINE` (`packages/integrations/src/typesafe/typesafe-jev-turn-decision-adapter.ts`)
 - **SHADOW PROVIDER WIRING**: `NOT IMPLEMENTED`
 - **STAGING EXECUTION**: `NOT EXECUTED`
 

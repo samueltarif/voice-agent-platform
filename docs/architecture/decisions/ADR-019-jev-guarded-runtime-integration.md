@@ -101,7 +101,7 @@ Em 2026-09-30, o operador aprovou formalmente a direção arquitetural deste des
 6. **Porta Mínima Provider-Neutral**:
    - **DESIGN STATUS**: `ACCEPTED`.
    - **IMPLEMENTATION STATUS**: `PROVIDER-NEUTRAL PORT IMPLEMENTED IN PR #39` (`packages/contracts/src/voice/auxiliary-turn-decision-contracts.ts` e `apps/voice/src/auxiliary-turn-shadow-observer.ts`).
-   - **CONCRETE TYPESAFE ADAPTER**: `NOT IMPLEMENTED`.
+   - **CONCRETE TYPESAFE ADAPTER**: `IMPLEMENTED OFFLINE` (`packages/integrations/src/typesafe/typesafe-jev-turn-decision-adapter.ts`).
    - **SHADOW PROVIDER WIRING**: `NOT IMPLEMENTED`.
    - **STAGING EXECUTION**: `NOT EXECUTED`.
    - Porta: `AuxiliaryTurnDecisionPort` define a interface mínima provider-neutral: `evaluateTurn(...)` retornando scores brutos (`deterministicScore`, `generativeScore`, `securityScore`) e telemetria de latência/modelo.
