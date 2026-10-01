@@ -9064,3 +9064,49 @@ Este fechamento retifica a formulação epistemológica da base de evidência da
 - `pnpm check`: Executado e validado integralmente.
 - `SECRET_AUDIT_PASS`: Auditoria booleana via `git diff origin/main...HEAD`. Zero segredos expostos.
 - `PR_STATUS`: Aberto e **NÃO MERGEADO**.
+
+## [2026-10-01] PROMPT-006P-TYPESAFE-SHADOW-ADAPTER-FINAL-CLOSE-001: Quality Gate Recovery & PR #40 Final Close
+
+### 1. Contexto & Diagnóstico da Auditoria Forense
+- **Audit Failure Root Cause**: O rerun de `pnpm check` na auditoria independente falhou unicamente por indisponibilidade momentânea do serviço local do PostgreSQL na porta 5432 (`ECONNREFUSED ::1:5432 / 127.0.0.1:5432`), impactando 11 arquivos de teste de integração do banco de dados.
+- **Recuperação de Ambiente**: O serviço de banco de dados oficial do repositório (`docker-compose.yml`, contêiner `voice-agent-postgres` rodando `postgres:16-alpine`) foi inicializado e verificado com status saudável na porta 5432.
+- **Proteção de Segredos**: Zero credenciais literais ou strings de conexão foram expostas ou impressas.
+
+### 2. Execução de Testes & Quality Gate
+- **Teste Direcionado do Adapter**:
+  - Comando: `pnpm test packages/integrations/src/typesafe/typesafe-jev-turn-decision-adapter.test.ts`.
+  - Resultado: 14 passed (14 testes), 0 failed.
+- **Full Quality Gate (`pnpm check`)**:
+  - `pnpm format:check`: PASS.
+  - `pnpm lint`: PASS.
+  - `pnpm typecheck`: PASS (12 pacotes validados via Turbo).
+  - `pnpm test`: PASS (102 test files passed, 6 test files skipped; 574 tests passed, 45 historical skips, 0 new skips, 0 failures).
+  - `pnpm build`: PASS (12 pacotes compilados, incluindo Next.js 15.5.25).
+  - `check:architecture`: PASS (fronteiras arquiteturais e AST respeitados).
+  - `check:file-size`: PASS (todos os arquivos de lógica <= 180 linhas).
+  - Exit code: 0 (`PNPM_CHECK = PASS`).
+- **Tested HEAD**: `253cf92db2421e02b8cdee7002acd9c78e2f5897`.
+- **Governança de Testes**:
+  - `ASSERTION_WEAKER`: 0.
+  - `NEW_SKIPS`: 0.
+  - `EVIDENCE_STALE`: NO (alteração exclusivamente documental posterior no worklog).
+
+### 3. Chamadas a Provedores & Limitações Forenses
+- **Chamadas a Provedores neste Prompt**: TypeSafe `0`, OpenAI `0`, Twilio `0`.
+- **Tráfego Ambiente Histórico durante 006P**: `HISTORICAL_AMBIENT_PROVIDER_TRAFFIC_DURING_006P = NOT VERIFIED` (limitação forense de ambiente do host mantida).
+- **Ambiente de Processo Host Histórico durante 006P**: `HISTORICAL_HOST_PROCESS_ENV_DURING_006P = NOT VERIFIED`.
+- **Isolamento de Código Atual**: `CURRENT_CODE_PROVIDER_EXECUTION_PATH = OFFLINE / MOCKED ONLY`, `CURRENT_TEST_PROVIDER_CALLS = 0`.
+
+### 4. Governança e Portões
+- **Adapter Concreto**: `IMPLEMENTED` (`TypeSafeJevTurnDecisionAdapter`).
+- **Fiação de Runtime**: `NO` (`ADAPTER_RUNTIME_WIRED = NO`).
+- **Modo Padrão**: `DISABLED`.
+- **Modo ACTIVE_GUARDED**: `BLOCKED`.
+- **Handlers Determinísticos**: `0` (`ACTIVE_DETERMINISTIC_BYPASS_READINESS = BLOCKED`).
+- **Atomic V1 SHA-256**: `3fecf9ce82ad600a74549d3459fe2b2b516fc3bd7b5fff33bf5b850cd48e8725` (`ATOMIC_HASH_MATCH = YES`).
+- **Privacy Gate**: `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`, `CUSTOMER_TRAFFIC = PROHIBITED`.
+- **Auditoria de Segredos**: `SECRET_AUDIT_PASS` (via `git diff origin/main...HEAD`).
+
+### 5. Decisão de Merge
+- Todos os critérios do Pre-Merge Gate foram cumpridos.
+- Decisão: `MERGE_APPROVED`.
