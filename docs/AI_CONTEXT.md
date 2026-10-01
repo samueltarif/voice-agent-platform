@@ -6,12 +6,12 @@ CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-01
 CONTEXT_BASE_MAIN_SHA: 60b48367ac1a9a9a642ef9b78c312b1bbadcadf8
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
-CURRENT_SLICE: Operating Hours Deterministic Handler Implementation
+CURRENT_SLICE: Operating Hours Deterministic Handler Implementation & PR50 Reconciliation
 CONTEXT_UPDATE_BRANCH: feat/006w-operating-hours-deterministic-handler
 CONTEXT_UPDATE_PR: 50
 LAST_MERGED_PR_AT_REFRESH: 49
 LAST_MERGE_SHA_AT_REFRESH: 60b48367ac1a9a9a642ef9b78c312b1bbadcadf8
-LAST_TESTED_CODE_SHA: 2bb0b00bdf861808500544e698d087ea134500e0
+LAST_TESTED_CODE_SHA: 7cc576d3cc78e3d16878da9e34d6f6953fd75d9a
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
 AI_CONTEXT_HEADER_END
@@ -118,7 +118,7 @@ AI_CONTEXT_HEADER_END
 
 ## 6. Estado Atual da Evidência de Qualidade (Quality Gate Snapshot)
 
-- **Último `pnpm check` Global**: `PASS` (executado e observado no commit `2bb0b00bdf861808500544e698d087ea134500e0`).
+- **Último `pnpm check` Global**: `PASS` (executado e observado no commit `7cc576d3cc78e3d16878da9e34d6f6953fd75d9a`).
 - **Status das Asserções**: `659 passed`, `45 historical skips`, `0 new skips`, `0 failures` (105 arquivos de teste aprovados, 6 skipped de staging).
 - **Regressão de Asserções**: `ASSERTION_WEAKER = 0` (73 novos testes adicionados: `ASSERTION_STRONGER: 73`).
 - **QUALITY_EVIDENCE_STALE**: `NO` (commits subsequentes estritamente documentais em `docs/`).

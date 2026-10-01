@@ -10153,3 +10153,60 @@ Auditado o código versionado em `packages/contracts`, `packages/database`, `app
 
 ### 8. Próximo Passo Permitido
 - `NEXT_ALLOWED_STEP`: Revisão e merge do PR para o handler determinístico `agent.operating_hours` antes de qualquer fiação de runtime ou orquestrador.
+
+---
+
+## 2026-10-01 — PROMPT-006W-PR50-DOC-RECONCILIATION-QUALITY-AND-MERGE-001
+
+### 1. Preflight & Verificação de Linhagem de Código Testado
+- **PR #50**: `OPEN` (head inicial: `f2f384b8f96ba1cd3d27a51d4318a4f27a846926`, base main: `60b48367ac1a9a9a642ef9b78c312b1bbadcadf8`).
+- **Verificação de Código Anterior**: `git diff --name-status 2bb0b00bdf861808500544e698d087ea134500e0...HEAD` revelou alterações estritamente em `docs/**`.
+- **POST_TEST_CODE_CHANGE**: `NO` (zero alterações em `apps/**`, `packages/**`, testes ou configs após `2bb0b00`).
+
+### 2. Reconciliação Documental de Design e YAGNI
+- **Correção de Contradições de Status**: Removidas menções a "Implementation: NOT STARTED" e `KNOWN_DETERMINISTIC_HANDLERS = 0` em `docs/research/PHASE_6_DETERMINISTIC_HANDLER_DESIGN.md`.
+- **Revalidação YAGNI de Contratos**:
+  - `DESIGN_DECISION_SUPERSEDED_BY_IMPLEMENTATION_YAGNI_REVALIDATION`.
+  - `SHARED_HANDLER_CONTRACT_REQUIRED`: `NO`.
+  - `NEW_SHARED_CONTRACT_CREATED`: `NO`.
+  - O handler e seus tipos residem integralmente em `apps/voice`, inexistindo fronteira entre pacotes que justifique contrato genérico em `@voice-agent/contracts`.
+- **Tenant Binding Factual**:
+  - `TENANT_BINDING_SOURCE`: `CallSession.organizationId` e `CallBootstrap.organizationId` (enviados ao handler via input local como `sessionOrganizationId` e `configurationOrganizationId`; `AgentConfigurationSnapshotV1` não possui `organizationId` interno).
+  - `TENANT_GUARD`: `IMPLEMENTED / TESTED LOCALLY`.
+- **Matriz de Testes Reconciliada**: Seção transformada em "Plano Original de Testes & Cobertura Implementada", distinguindo `PLANNED_TEST_MATRIX` de `IMPLEMENTED_TEST_EVIDENCE`.
+- **Status Factual dos Handlers**:
+  - `HANDLER_IMPLEMENTATION`: `IMPLEMENTED / TESTED LOCALLY`.
+  - `CAPABILITY_RESOLUTION`: `IMPLEMENTED / TESTED LOCALLY`.
+  - `FIRST_DETERMINISTIC_HANDLER`: `agent.operating_hours`.
+  - `KNOWN_DETERMINISTIC_HANDLERS`: `1`.
+  - `RUNTIME_DETERMINISTIC_BYPASS`: `NOT WIRED`.
+  - `ACTIVE_DETERMINISTIC_BYPASS_READINESS`: `BLOCKED`.
+  - `ACTIVE_GUARDED`: `BLOCKED`.
+  - `PRODUCTION_RUNTIME_WIRING`: `NO`.
+
+### 3. Execução e Observação do Quality Gate Completo (`pnpm check`)
+- **Comando**: `pnpm check`.
+- **Resultado Observado**: Exit `0` (`QUALITY_GATE = PASS`).
+- **FINAL_QUALITY_TESTED_HEAD**: `7cc576d3cc78e3d16878da9e34d6f6953fd75d9a`.
+- **Métricas Observadas**:
+  - `Prettier`: All matched files use Prettier code style!
+  - `ESLint`: 0 errors, 0 warnings.
+  - `Typecheck`: 0 errors.
+  - `Vitest`: 105 passed | 6 skipped (111 test files), 659 passed | 45 skipped (704 tests), 0 failures.
+  - `Turbo Build`: 12/12 pacotes bem-sucedidos (full turbo / cache).
+  - `Architecture Check`: PASS.
+  - `File Size Check`: PASS (0 erros, 16 avisos preexistentes).
+  - `ASSERTION_WEAKER`: `0`.
+  - `NEW_SKIPS`: `0`.
+
+### 4. Governança e Fronteiras Operacionais
+- **Chamadas Reais a Provedores**: TypeSafe `0`, OpenAI `0`, Twilio `0`.
+- **Carga de `.env`**: `NO` (`ENV_LOADED = NO`).
+- **Conexão a Banco de Dados**: `NO` (`DB_CONNECTION = NO`).
+- **Dados de Clientes**: `NO` (`CUSTOMER_TRAFFIC = PROHIBITED`).
+- **Holdout de Pesquisa**: `TOUCHED = NO`.
+- **Desvios de Processo**: `NONE`.
+- **Secret Audit**: `SECRET_AUDIT_PASS`.
+
+### 5. Próximo Passo Permitido
+- `NEXT_ALLOWED_STEP`: Merge do PR #50 e design separado da integração controlada handler -> orquestrador, sem ativar produção ou tráfego de clientes.
