@@ -209,22 +209,27 @@ SECURITY_HISTORY_PERSISTENCE_READY = NO
 
 ## 10. Offline Implementation Boundary
 
-The next implementation slice MAY implement an offline, pure security action returning a typed result object.
+The offline, pure security action has been implemented in `apps/voice/src/security-blocked-action.ts` and verified with 5 focused unit tests.
 
-### 10.1 Conceptual Offline Return Structure (YAGNI Scoped)
+### 10.1 Minimal Offline Return Structure (YAGNI Verified)
 ```typescript
 export interface SecurityBlockedResult {
   readonly outcome: 'SECURITY_BLOCKED';
-  readonly responseText: string;
-  readonly allowOpenAiFallback: false;
-  readonly allowTools: false;
-  readonly terminateCall: false;
-  readonly handoff: false;
+}
+
+export function createSecurityBlockedResult(): SecurityBlockedResult {
+  return {
+    outcome: 'SECURITY_BLOCKED',
+  };
 }
 ```
+- `SECURITY_BLOCKED_RESULT_MINIMIZED` = `YES`
+- `SECURITY_BLOCKED_RESULT_SHAPE` = `{ outcome: 'SECURITY_BLOCKED' }`
+- `SECURITY_BLOCKED_RESULT_RESPONSE_TEXT_INCLUDED` = `NO`
+- `SECURITY_BLOCKED_RESULT_POLICY_FLAGS_INCLUDED` = `NO`
 
 ### 10.2 Prohibited Actions in Offline Implementation
-The offline implementation MUST NOT:
+The offline implementation does NOT:
 - Call `transport.speak()` or send WebSocket messages.
 - Append turns to `historyStore` or log transcripts.
 - Wire into `ConversationOrchestrator`.
@@ -238,8 +243,10 @@ The offline implementation MUST NOT:
 
 ```
 SECURITY_RUNTIME_SEMANTICS = DESIGNED
-SECURITY_OFFLINE_ACTION = RETURN_SECURITY_BLOCKED_RESULT
+SECURITY_OFFLINE_ACTION = IMPLEMENTED / TESTED LOCALLY (apps/voice/src/security-blocked-action.ts)
 SECURITY_DECISION_RESULT = SECURITY_BLOCKED
+SECURITY_BLOCKED_RESULT_SHAPE = { outcome: 'SECURITY_BLOCKED' }
+SECURITY_BLOCKED_RESULT_RESPONSE_TEXT_INCLUDED = NO
 SECURITY_USER_RESPONSE_TEMPLATE = PROPOSED
 SECURITY_USER_RESPONSE_DELIVERY = NOT IMPLEMENTED
 SECURITY_RESPONSE_DELIVERY_READY = NO
@@ -250,8 +257,8 @@ SECURITY_CALL_TERMINATION = NO
 SECURITY_HANDOFF = NO
 SECURITY_DESIGN_INTENT_CALL_REMAINS_ACTIVE = YES
 SECURITY_RUNTIME_ACTION_DECISION_REQUIRED = NO
-SECURITY_RUNTIME_ACTION_IMPLEMENTATION_REQUIRED = YES
-SECURITY_RUNTIME_ACTION_IMPLEMENTED = NO
+SECURITY_RUNTIME_ACTION_IMPLEMENTATION_REQUIRED = NO (Offline action implemented)
+SECURITY_RUNTIME_ACTION_IMPLEMENTED = OFFLINE ONLY / TESTED LOCALLY
 ACTIVE_GUARDED = BLOCKED
 RUNTIME_DETERMINISTIC_BYPASS = NOT WIRED
 ```
@@ -261,5 +268,5 @@ RUNTIME_DETERMINISTIC_BYPASS = NOT WIRED
 ## 12. Next-Slice Recommendation
 
 ```
-NEXT_ALLOWED_STEP = minimal offline SECURITY_BLOCKED action implementation with focused tests only, without transport/history/orchestrator wiring.
+NEXT_ALLOWED_STEP = review PR first. Do NOT wire orchestrator yet. After this implementation, the next architectural blocker to resolve is deterministic/security response delivery lifecycle, especially post-dispatch interruption and completion semantics.
 ```
