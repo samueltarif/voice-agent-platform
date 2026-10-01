@@ -6,7 +6,7 @@ CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-01
 CONTEXT_BASE_MAIN_SHA: 9e83f09f058ce9e7de531dff455638c7e44aa6a8
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
-CURRENT_SLICE: Deterministic Handler Candidate Design
+CURRENT_SLICE: Deterministic Handler Design & Capability Resolution Hardening
 CONTEXT_UPDATE_BRANCH: research/006v-deterministic-handler-design
 CONTEXT_UPDATE_PR: 49
 LAST_MERGED_PR_AT_REFRESH: 48
@@ -62,6 +62,7 @@ AI_CONTEXT_HEADER_END
 - **ACTIVE_GUARDED**: `BLOCKED` (fail-closed, inalcançável no runtime por design).
 - **FIRST_DETERMINISTIC_HANDLER_CANDIDATE**: `agent.operating_hours` (`docs/research/PHASE_6_DETERMINISTIC_HANDLER_DESIGN.md`).
 - **HANDLER_IMPLEMENTATION**: `NOT IMPLEMENTED`.
+- **CAPABILITY_RESOLUTION**: `DESIGNED / NOT IMPLEMENTED`.
 - **KNOWN_DETERMINISTIC_HANDLERS**: `0` (candidato desenhado NÃO conta como handler conhecido/implementado).
 - **ACTIVE_DETERMINISTIC_BYPASS_READINESS**: `BLOCKED` (invariante: `NO_KNOWN_DETERMINISTIC_HANDLER -> NO_DETERMINISTIC_BYPASS`).
 - **CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE**: `NOT CLEARED`.
