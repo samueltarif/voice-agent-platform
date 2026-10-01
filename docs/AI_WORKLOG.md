@@ -9264,3 +9264,58 @@ Este fechamento retifica a formulação epistemológica da base de evidência da
 
 ### 6. Próximo Passo Permitido
 - `NEXT_ALLOWED_STEP`: 1 teste smoke sintético controlado da TypeSafe em Staging com autorização humana prévia, orçamento monetário explícito (`BUDGET_CAP_USD`), payload não-sensível sintético, sem OpenAI, sem Twilio, sem bypass ativo, sem tráfego de cliente e sem fiação em produção.
+
+## [2026-10-01] PROMPT-AI-CONTEXT-V1-FINAL-HARDENING-001: AI Context Continuity — Final Self-Staleness & Reference Hardening
+
+### 1. Auditoria e Correção de Referências e Artefatos do PR #43
+- **PR #43 Aberto**: `docs: reconcile persistent AI context with repository evidence` (branch: `docs/ai-context-factual-reconciliation`, base: `main`).
+- **Correção da Referência do Artefato Fase A**:
+  - Caminho anterior incorreto: `docs/research/results/phase-6-jev-calibration-phase-a-run1.json`.
+  - Caminho canônico verificado e corrigido: `docs/research/results/phase-6-jev-calibration-v2-phase-a-run1.json`.
+  - `PHASE_A_ARTIFACT_REFERENCE_FIXED = YES`.
+- **Correção da Resolução de Links Markdown**:
+  - Como `docs/AI_CONTEXT.md` reside em `docs/`, referências a arquivos no repositório foram tornadas estritamente relativas ao diretório `docs/`:
+    - `[AGENTS.md](../AGENTS.md)`
+    - `[AI_EXECUTION_RULES.md](AI_EXECUTION_RULES.md)`
+    - `[AI_WORKLOG.md](AI_WORKLOG.md)`
+    - `[architecture/decisions/ADR-019-jev-guarded-runtime-integration.md](architecture/decisions/ADR-019-jev-guarded-runtime-integration.md)`
+    - `[research/PHASE_6_TYPESAFE_JEV_SHADOW_ADAPTER.md](research/PHASE_6_TYPESAFE_JEV_SHADOW_ADAPTER.md)`
+    - `[AGENT_STUDIO.md](AGENT_STUDIO.md)`
+  - Todos os arquivos locais apontados foram validados quanto à existência factual no disco (`PORTABLE_LINKS_VALIDATED = YES`).
+
+### 2. Superação da Auto-Obsolescência Imediata (Self-Staleness Flaw) & Schema 1.1.0
+- **Defeito Identificado**: A semântica anterior baseada exclusivamente em igualdade exata de SHA (`CONTEXT_MAIN_SHA == origin/main`) tornava o `AI_CONTEXT.md` instantaneamente `STALE` logo após o merge do seu próprio PR, pois o merge commit alterava o `origin/main`.
+- **Evolução do Cabeçalho para Schema 1.1.0**:
+  - `CONTEXT_SCHEMA_VERSION`: `1.1.0`.
+  - `CONTEXT_BASE_MAIN_SHA`: `40caab446ce2e8436e7efc9f73183d9373e2c75a` (base de origin/main sobre a qual o PR foi formulado).
+  - `CONTEXT_UPDATE_BRANCH`: `docs/ai-context-factual-reconciliation`.
+  - `CONTEXT_UPDATE_PR`: `43`.
+  - `LAST_MERGED_PR_AT_REFRESH`: `42`.
+  - `LAST_MERGE_SHA_AT_REFRESH`: `40caab446ce2e8436e7efc9f73183d9373e2c75a`.
+  - `CONTEXT_STATUS_AT_REFRESH`: `CURRENT`.
+  - Removido o campo estático `ACTIVE_PR` e o status armazenado `CONTEXT_STATUS: CURRENT`.
+- **Novos Estados de Bootstrap e Algoritmo Operacional**:
+  - `CURRENT_EXACT`: `origin/main == CONTEXT_BASE_MAIN_SHA`. O PR de contexto ainda não foi mergeado.
+  - `CURRENT_AFTER_SELF_MERGE`: `origin/main != CONTEXT_BASE_MAIN_SHA`, mas `CONTEXT_UPDATE_PR` foi mergeado e seu commit de merge é o `origin/main` atual. O contexto é formalmente válido sem necessidade de re-edição.
+  - `REVALIDATION_REQUIRED`: `origin/main` avançou com commits posteriores ao merge do PR de contexto. O agente deve classificar o diff posterior (se impactar arquitetura/runtime/provedores: refresh requerido; se puramente cosmético/docs: refresh não requerido).
+  - `NOT VERIFIED`: Linhagem ou PR não verificáveis. Bloqueio mandatório de implementação até reconciliação.
+- **Formalização em Governança**:
+  - `AGENTS.md` (Seção 15.3) e `docs/AI_CONTEXT.md` (Seção 10) atualizados com o algoritmo de bootstrap e estados derivados.
+  - Padrão de handoff atualizado para incluir `CONTEXT_UPDATE_PR`.
+
+### 3. Integridade e Isolamento Operacional
+- **Valores de Pesquisa Preservados**:
+  - OpenAI baseline: 12 casos, dataset SHA `9ab7cbd2fbfcf508673a700d4a484e0c674d0124766c7b7fa0eee05a573e0d50`.
+  - Jev V2: 120 casos totais (80 calibração, 40 holdout), Atomic V1 SHA `3fecf9ce82ad600a74549d3459fe2b2b516fc3bd7b5fff33bf5b850cd48e8725`.
+  - Frozen policy SHA: `1ac0f2919ca73d22a39fb1d964b558ba2f7e395f336b2c3f687ced9ed4d53c93`.
+  - Thresholds: `T_SECURITY = 0.56`, `T_DETERMINISTIC = 0.35`, `T_GENERATIVE = 0.47`.
+  - Locked holdout SHA: `21bd34ad26e0aa745a69d082a2c16d6d38dd3e685685f77cf027b9e1a3353850` (`CONSUMED` | `DO_NOT_REUSE_FOR_TUNING = YES`).
+- **Alterações de Código de Produção / Runtime**: Zero.
+- **Alterações de Testes**: Zero.
+- **Alterações de Banco / Migrações**: Zero.
+- **Chamadas a Provedores neste Prompt**: TypeSafe `0`, OpenAI `0`, Twilio `0`.
+- **Carga de `.env`**: Nenhuma (`ENV_LOADED = NO`).
+- **Validação Local**:
+  - `git diff --check`: PASS.
+  - `pnpm format:check`: PASS.
+  - `SECRET_AUDIT`: `SECRET_AUDIT_PASS` (boolean-only check sobre `git diff origin/main...HEAD`).

@@ -254,8 +254,12 @@ Uma tarefa só é considerada concluída quando:
    - Para tarefas específicas (voz, banco, auth, integrações), o agente deve consultar adicionalmente os ADRs e documentos de design relevantes.
 2. **Repositório como Fonte Durável da Verdade**:
    - A memória conversacional de modelos, histórico de chat ou suposições do operador NÃO constituem fonte de verdade. O estado durável reside exclusivamente no repositório Git, no código-fonte, nos testes e nos registros versionados.
-3. **Staleness Gate e Resolução de Conflitos**:
-   - No início de tarefas substanciais, o agente deve verificar se `CONTEXT_MAIN_SHA` em `docs/AI_CONTEXT.md` coincide com `git rev-parse origin/main`.
+3. **Staleness Gate e Algoritmo de Bootstrap (CONTEXT_BOOTSTRAP_STATUS)**:
+   - No início de tarefas substanciais, o agente executa `git fetch origin`, lê `CONTEXT_BASE_MAIN_SHA` e `CONTEXT_UPDATE_PR` em `docs/AI_CONTEXT.md` e compara com o `origin/main` atual para derivar o status:
+     - `CURRENT_EXACT`: `origin/main == CONTEXT_BASE_MAIN_SHA`. O PR de contexto ainda não foi mergeado.
+     - `CURRENT_AFTER_SELF_MERGE`: `origin/main != CONTEXT_BASE_MAIN_SHA`, mas `CONTEXT_UPDATE_PR` foi mergeado e seu commit de merge é o `origin/main` atual. Não requer reconstrução de contexto apenas pelo self-merge.
+     - `REVALIDATION_REQUIRED`: O PR de contexto foi mergeado, mas existem commits posteriores na `main`. O agente inspeciona as alterações (se impactarem arquitetura, runtime, provedores ou testes: `AI_CONTEXT_REFRESH_REQUIRED = YES`; se puramente cosméticas/docs não relacionados: `NO`).
+     - `NOT VERIFIED`: Linhagem ou estado do PR não puderem ser confirmados. **STOP** implementação substancial até reconciliação.
    - Se `AI_CONTEXT.md` divergir do código-fonte, do Git ou de testes reais observados, o arquivo está **STALE**. O código e as evidências factuais prevalecem obrigatoriamente.
 4. **Política de Atualização**:
    - `docs/AI_CONTEXT.md` é documentação mutável de estado atual (tamanho enxuto, alvo <= 250 linhas).
@@ -263,4 +267,4 @@ Uma tarefa só é considerada concluída quando:
    - Atualizar `AI_CONTEXT.md` apenas quando a tarefa alterar: arquitetura do sistema, integrações externas, prontidão de features, bloqueadores ativos, evidência de teste válida ou próximo passo permitido.
 5. **Padrão de Handoff ao Término da Tarefa (CONTEXT HANDOFF)**:
    - Ao final de toda resposta de tarefa substancial, o agente deve emitir um bloco estruturado compacto de handoff:
-     `CONTEXT HANDOFF: MAIN_SHA | PR | TASK_RESULT | LAST_TESTED_SHA | QUALITY_GATE | CURRENT_BLOCKERS | NEXT_ALLOWED_STEP`.
+     `CONTEXT HANDOFF: MAIN_SHA | CONTEXT_UPDATE_PR | TASK_RESULT | LAST_TESTED_SHA | QUALITY_GATE | CURRENT_BLOCKERS | NEXT_ALLOWED_STEP`.

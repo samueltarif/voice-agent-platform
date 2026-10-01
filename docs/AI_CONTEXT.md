@@ -2,17 +2,17 @@
 
 <!--
 AI_CONTEXT_HEADER_START
-CONTEXT_SCHEMA_VERSION: 1.0.0
+CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-01
-CONTEXT_MAIN_SHA: 40caab446ce2e8436e7efc9f73183d9373e2c75a
+CONTEXT_BASE_MAIN_SHA: 40caab446ce2e8436e7efc9f73183d9373e2c75a
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
-CURRENT_SLICE: AI Context Factual Reconciliation
-ACTIVE_BRANCH: docs/ai-context-factual-reconciliation
-ACTIVE_PR: NONE
-LAST_MERGED_PR: 42
-LAST_MERGE_SHA: 40caab446ce2e8436e7efc9f73183d9373e2c75a
+CURRENT_SLICE: AI Context Continuity Hardening
+CONTEXT_UPDATE_BRANCH: docs/ai-context-factual-reconciliation
+CONTEXT_UPDATE_PR: 43
+LAST_MERGED_PR_AT_REFRESH: 42
+LAST_MERGE_SHA_AT_REFRESH: 40caab446ce2e8436e7efc9f73183d9373e2c75a
 LAST_TESTED_CODE_SHA: 253cf92db2421e02b8cdee7002acd9c78e2f5897
-CONTEXT_STATUS: CURRENT
+CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
 AI_CONTEXT_HEADER_END
 -->
@@ -71,7 +71,7 @@ AI_CONTEXT_HEADER_END
 - **Jev Calibration V2**:
   - Dataset: `scripts/benchmarks/voice/jev-calibration-v2-cases.json` (120 casos totais: 80 calibração, 40 holdout).
   - Dataset SHA-256: `3e7e0a20ecd3341c99b84d40162b10eff17ba0600d191dd143bc99f00aec3047`.
-  - Execução: `docs/research/results/phase-6-jev-calibration-phase-a-run1.json`.
+  - Execução: `docs/research/results/phase-6-jev-calibration-v2-phase-a-run1.json`.
 - **Atomic V1 Question-Set**:
   - SHA-256: `3fecf9ce82ad600a74549d3459fe2b2b516fc3bd7b5fff33bf5b850cd48e8725`.
 - **Frozen Policy**:
@@ -141,24 +141,32 @@ AI_CONTEXT_HEADER_END
 
 ## 9. Referências Canônicas Autoritativas
 
-- [AGENTS.md](AGENTS.md): Regras operacionais obrigatórias para agentes de IA.
-- [docs/AI_EXECUTION_RULES.md](docs/AI_EXECUTION_RULES.md): Execução detalhada, integridade e classificação de evidências.
-- [docs/AI_WORKLOG.md](docs/AI_WORKLOG.md): Registro histórico cronológico append-only (com exceção de remoção emergencial de segredo conforme governança aplicável).
-- [docs/architecture/decisions/ADR-019-jev-guarded-runtime-integration.md](docs/architecture/decisions/ADR-019-jev-guarded-runtime-integration.md): Design de integração do Jev.
-- [docs/research/PHASE_6_TYPESAFE_JEV_SHADOW_ADAPTER.md](docs/research/PHASE_6_TYPESAFE_JEV_SHADOW_ADAPTER.md): Especificação e contrato do adapter offline.
-- [docs/AGENT_STUDIO.md](docs/AGENT_STUDIO.md): Especificação e matriz de entrega do Agent Studio (005B, 005C, 005D).
+- [AGENTS.md](../AGENTS.md): Regras operacionais obrigatórias para agentes de IA.
+- [AI_EXECUTION_RULES.md](AI_EXECUTION_RULES.md): Execução detalhada, integridade e classificação de evidências.
+- [AI_WORKLOG.md](AI_WORKLOG.md): Registro histórico cronológico append-only (com exceção de remoção emergencial de segredo conforme governança aplicável).
+- [architecture/decisions/ADR-019-jev-guarded-runtime-integration.md](architecture/decisions/ADR-019-jev-guarded-runtime-integration.md): Design de integração do Jev.
+- [research/PHASE_6_TYPESAFE_JEV_SHADOW_ADAPTER.md](research/PHASE_6_TYPESAFE_JEV_SHADOW_ADAPTER.md): Especificação e contrato do adapter offline.
+- [AGENT_STUDIO.md](AGENT_STUDIO.md): Especificação e matriz de entrega do Agent Studio (005B, 005C, 005D).
 
 ---
 
-## 10. Resolução de Conflitos e Protocolo de Desatualização (Staleness Gate)
+## 10. Resolução de Conflitos e Protocolo de Bootstrap (Bootstrap & Staleness Protocol)
 
 1. **Prevalência Factual**: Se `AI_CONTEXT.md` divergir do código-fonte, do Git, de ADRs aceitos ou de testes observados, este arquivo está **STALE**. A evidência factual do repositório prevalece obrigatoriamente.
-2. **Checagem no Início de Tarefas**:
-   - Comparar `CONTEXT_MAIN_SHA` do cabeçalho com `git rev-parse origin/main`.
-   - Se idênticos: `CONTEXT_STATUS = CURRENT`.
-   - Se divergentes: `CURRENT_FILE_WAS_STALE = YES` — o agente deve revalidar o estado factual no repositório antes de prosseguir.
-3. **Separação de Papéis**:
-   - `AI_CONTEXT.md`: Snapshot mutável de navegação do estado atual (alvo <= 250 linhas).
+2. **Separação de Papéis**:
+   - `AI_CONTEXT.md`: Snapshot mutável de navegação do estado verificado (alvo <= 250 linhas).
    - `AI_WORKLOG.md`: Registro histórico cronológico append-only.
    - `ADRs`: Registros formais de decisões arquiteturais.
    - Código / Git / Testes: Evidência factual primária.
+3. **Algoritmo de Bootstrap de Contexto (Bootstrap Context Status)**:
+   Ao iniciar qualquer tarefa substancial:
+   - A. Executar `git fetch origin`.
+   - B. Ler `CONTEXT_BASE_MAIN_SHA` e `CONTEXT_UPDATE_PR` do cabeçalho deste arquivo.
+   - C. Observar o SHA atual de `origin/main`.
+   - **Caso 1 (`CURRENT_EXACT`)**: Se `origin/main == CONTEXT_BASE_MAIN_SHA`, `CONTEXT_BOOTSTRAP_STATUS = CURRENT_EXACT`. O PR de contexto ainda não foi mergeado e nenhuma alteração posterior ocorreu na main.
+   - **Caso 2 (`CURRENT_AFTER_SELF_MERGE`)**: Se `origin/main != CONTEXT_BASE_MAIN_SHA`, inspecionar `CONTEXT_UPDATE_PR`. Se o PR estiver mergeado E seu commit de merge for idêntico ao `origin/main` atual, `CONTEXT_BOOTSTRAP_STATUS = CURRENT_AFTER_SELF_MERGE`. Nenhuma reconciliação é necessária meramente pelo fato de o PR de contexto ter atualizado o SHA da main.
+   - **Caso 3 (`REVALIDATION_REQUIRED`)**: Se o PR de contexto foi mergeado, mas `origin/main` contém commits posteriores ao seu merge: `CONTEXT_BOOTSTRAP_STATUS = REVALIDATION_REQUIRED`. O agente deve classificar as alterações posteriores (se afetarem arquitetura, runtime, provedores, prontidão de features, bloqueadores ou quality gate: `AI_CONTEXT_REFRESH_REQUIRED = YES`; se forem estritamente cosméticas/docs não relacionados: `AI_CONTEXT_REFRESH_REQUIRED = NO`, registrando a revalidação no worklog).
+   - **Caso 4 (`NOT VERIFIED`)**: Se o estado do PR ou a linhagem não puder ser confirmada: `CONTEXT_BOOTSTRAP_STATUS = NOT VERIFIED`. **STOP** implementação substancial até reconciliação.
+4. **Semântica de Status**:
+   - `CONTEXT_STATUS_AT_REFRESH` descreve exclusivamente o estado no momento em que o snapshot foi gerado.
+   - O status em tempo de execução (`CONTEXT_BOOTSTRAP_STATUS`) é dinamicamente derivado pelo algoritmo acima, eliminando o defeito de auto-obsolescência imediata pós-merge.
