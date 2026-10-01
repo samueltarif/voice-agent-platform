@@ -141,7 +141,7 @@ transcript
   -> Frozen Policy interpreta scores
   -> se DETERMINISTIC_CANDIDATE: handleOperatingHoursTurn()
   -> se GENERATIVE_REQUIRED: streamTurn() [OpenAI]
-  -> se SECURITY_ESCALATE: fail-closed (handler proibido; acao runtime UNDECIDED)
+  -> se SECURITY_ESCALATE: handler proibido; semântica interna SECURITY_BLOCKED DESENHADA; implementação offline pendente; entrega user-facing NÃO IMPLEMENTADA
   -> se NAO (no matcher): streamTurn() [OpenAI] sem chamar Jev
 ```
 
@@ -330,7 +330,7 @@ Antes do commit da resposta determinística, falhas direcionam para o fallback p
 | A | `matchesOperatingHoursCapability = false` | `streamTurn()` OpenAI (fluxo nominal inalterado) |
 | B | Jev timeout / network error / parse failure | `streamTurn()` OpenAI (fail-open para modelo principal) |
 | C | `GENERATIVE_REQUIRED` (Frozen Policy) | `streamTurn()` OpenAI |
-| D | `SECURITY_ESCALATE` (Frozen Policy) | **FALLBACK PROIBIDO / AÇÃO UNDECIDED** (ver Seção 7) |
+| D | `SECURITY_ESCALATE` (Frozen Policy) | **FALLBACK PROIBIDO / ROTA INTERNA SECURITY_BLOCKED (NOT IMPLEMENTED / NOT WIRED)** (ver Seção 7) |
 | E | Handler guard failure (`sessionOrg != configOrg`) | `streamTurn()` OpenAI |
 | F | Handler guard failure (`operatingHours` vazio) | `streamTurn()` OpenAI |
 | G | Handler execution `handled = false` | `streamTurn()` OpenAI |
@@ -495,7 +495,7 @@ Qualquer teste de integração futuro de wiring deve empregar exclusivamente:
 | A | `mode = DISABLED` | Rota determinística inalcançável; TypeSafe = 0; OpenAI nominal |
 | B | Suportado + `DETERMINISTIC_CANDIDATE` + guards válidos | Handler assume resposta; `streamTurn()` não chamado |
 | C | Suportado + `GENERATIVE_REQUIRED` | Handler não acionado; fallback `streamTurn()` executado |
-| D | Suportado + `SECURITY_ESCALATE` | Bypass proibido; ação de segurança aguarda definição |
+| D | Suportado + `SECURITY_ESCALATE` | Handler proibido; semântica interna SECURITY_BLOCKED desenhada; fallback OpenAI desautorizado |
 | E | Frase sem correspondência de capability | Matcher retorna false; Jev não chamado; OpenAI nominal |
 | F | Tenant mismatch (`sessionOrg != configOrg`) | Handler recusa (`handled = false`); fallback OpenAI |
 | G | `operatingHours` ausente/inválido | Handler recusa (`handled = false`); fallback OpenAI |

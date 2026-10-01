@@ -12,9 +12,11 @@ This slice is **DOCS / AUDIT ONLY**. No runtime security action code, orchestrat
 
 ### 2.1 Data Provenance Statement
 - `COMBINED_CALIBRATION_HOLDOUT_DATASET_OPENED_IN_006Z` = `YES` (`scripts/benchmarks/voice/jev-calibration-v2-cases.json` was opened by line range in previous turn).
-- `OBSERVED_CASE_SOURCE_SPLIT` = `CALIBRATION` (Phase A run 1 explicitly executes only the 80 calibration cases `v2-001` to `v2-080` / `v2-101` to `v2-112`).
-- `LOCKED_HOLDOUT_CONTENT_READ` = `NO EVIDENCE OF ACCESS` (holdout cases `v2-113` to `v2-120` appeared in text range output of the file view, but no holdout prompt texts were analyzed or used to derive policy semantics).
-- `HOLDOUT_CONTENT_CONTAMINATION` = `NO` (holdout data was not used for tuning or policy selection).
+- `LOCKED_HOLDOUT_CONTENT_EXPOSURE` = `OBSERVED`.
+- `HOLDOUT_LINES_DISPLAYED_IN_TOOL_OUTPUT` = `YES` (holdout cases `v2-113` to `v2-120` were displayed in line-range tool output).
+- `HOLDOUT_PROMPTS_USED_FOR_SEMANTIC_DESIGN` = `NOT OBSERVED`.
+- `HOLDOUT_USED_FOR_POLICY_TUNING` = `NOT OBSERVED`.
+- `HOLDOUT_CONTAMINATION_FOR_FUTURE_UNBIASED_EVALUATION` = `NOT APPLICABLE / ALREADY CONSUMED`.
 - `SECURITY_TAXONOMY_PROVENANCE` = `NOT FULLY VERIFIED` (categories below are treated as design inputs derived from observations, not absolute dataset ground truth).
 
 ### 2.2 Taxonomy Categories (Design Inputs)
