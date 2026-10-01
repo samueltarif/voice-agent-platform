@@ -10067,3 +10067,89 @@ Auditado o código versionado em `packages/contracts`, `packages/database`, `app
 
 ### 6. Próximo Passo Permitido
 - `NEXT_ALLOWED_STEP`: Slice mínimo de contrato e implementação para exatamente uma capacidade (`agent.operating_hours`), contendo a interface em `packages/contracts/src/voice/`, a função de matching estreita e o handler em `apps/voice`, com cobertura completa de testes positivos e negativos, sem fiação em produção, sem tráfego de clientes e sem ativar `ACTIVE_GUARDED`.
+
+---
+
+## 2026-10-01 — PROMPT-006W-OPERATING-HOURS-DETERMINISTIC-HANDLER-IMPLEMENTATION-001
+
+### 1. Preflight & Context Bootstrap
+- **Objetivo**: Implementar e testar o primeiro handler determinístico real da plataforma: `agent.operating_hours` com capability resolution local, estreita e fail-closed.
+- **Base Main**: `60b48367ac1a9a9a642ef9b78c312b1bbadcadf8` (merge do PR #49).
+- **Branch**: `feat/006w-operating-hours-deterministic-handler`.
+- **Status do Bootstrap**: `CONTEXT_BOOTSTRAP_STATUS = CURRENT_AFTER_SELF_MERGE`.
+- **TESTED_CODE_SHA**: `2bb0b00bdf861808500544e698d087ea134500e0`.
+
+### 2. Revalidação YAGNI de Contratos & Registry
+- **Contrato Compartilhado**: `SHARED_HANDLER_CONTRACT_REQUIRED = NO`.
+  - Inexiste fronteira entre pacotes exigindo que este handler seja exposto por `@voice-agent/contracts`. O consumo e execução do handler residem exclusivamente em `apps/voice`. Tipagem estrita local implementada via `OperatingHoursTurnHandlerInput` e `OperatingHoursHandlerResult`.
+- **Registry**: `REGISTRY_REQUIRED_FOR_FIRST_HANDLER = NO`.
+  - Zero frameworks de plugins, zero reflection, zero auto-discovery, zero maps genéricos ou DI containers.
+
+### 3. Arquivos Criados e Modificados
+- **Criados**:
+  - `apps/voice/src/operating-hours-capability-matcher.ts` (66 linhas): Matcher puro e determinístico via allowlist exata de frases canônicas normalizadas.
+  - `apps/voice/src/operating-hours-capability-matcher.test.ts` (55 testes): Cobertura de normalização, 24 positivos canônicos, 28 negativos fail-closed e edge cases.
+  - `apps/voice/src/operating-hours-turn-handler.ts` (104 linhas): Handler determinístico read-only com guards coesos (complexidade ciclomática <= 5 por função).
+  - `apps/voice/src/operating-hours-turn-handler.test.ts` (18 testes): Cobertura de execução com sucesso (string direta e snapshot), guards de tenant, runtime state, configuração, matcher negativo e pureza (ausência de mutação).
+- **Modificados**:
+  - `apps/voice/src/index.ts`: Re-exportação dos módulos `operating-hours-capability-matcher.js` e `operating-hours-turn-handler.js`.
+  - `docs/research/PHASE_6_DETERMINISTIC_HANDLER_DESIGN.md`: Seção 10 de evidência de implementação.
+  - `docs/AI_CONTEXT.md`: Atualização para `KNOWN_DETERMINISTIC_HANDLERS = 1` e novo snapshot de qualidade.
+
+### 4. Regras do Matcher e Categorias de Teste
+- **Regras de Normalização**: `trim`, `toLowerCase`, remoção de acentos via NFD regex `[\u0300-\u036f]`, conversão de pontuação para espaço, colapso de espaços repetidos.
+- **Frases Positivas (Allowlist Canônica)**: 23 formulações inequívocas de horário comercial de atendimento/funcionamento (ex.: `"qual é o horário de atendimento?"`, `"até que horas vocês atendem?"`, `"que horas vocês abrem?"`).
+- **Categorias Negativas Obrigatórias (Fail-Closed)**:
+  - Horário de consulta médica / agendamento (`"qual é o horário da minha consulta?"`);
+  - Horário de entrega / logística de pedido (`"que horas meu pedido chega?"`);
+  - Horário de callback de vendedor (`"qual horário o vendedor vai me ligar?"`);
+  - Dia da semana específico / amanhã (`"qual o horário amanhã?"`, `"vocês abrem no sábado?"`);
+  - Feriados (`"vocês abrem no feriado?"`);
+  - Fuso horário (`"qual horário em outro fuso?"`);
+  - Hora atual (`"que horas são agora?"`);
+  - Pergunta ambígua (`"qual é o horário?"`);
+  - Requisições não relacionadas ou generativas.
+
+### 5. Dados de Horário, Tenant Binding e Guards
+- **Fonte de operatingHours**: `AgentConfigurationSnapshotV1.rules.deterministic.operatingHours` (ou string direta).
+- **Fonte de Tenant Binding**: `sessionOrganizationId` (da sessão ativa) vs `configurationOrganizationId` (da autoridade da configuração do agente).
+- **Tenant Match Guard**: Rejeita fail-closed (`handled: false`) se `sessionOrganizationId !== configurationOrganizationId` ou se algum for vazio.
+- **Runtime State Guard**: Rejeita fail-closed (`handled: false`) se `runtimeState !== undefined && runtimeState !== 'ACTIVE'`.
+- **Configuration Guard**: Rejeita fail-closed (`handled: false`) se `operatingHours` for ausente, não-string, vazio ou apenas espaços.
+
+### 6. Governança de Asserções e Resultados de Testes
+- **Novos Testes Adicionados**: 73 testes unitários.
+- **Testes Modificados**: 0.
+- **Classificação de Asserções**: `ASSERTION_STRONGER: 73`, `ASSERTION_EQUIVALENT: 0`, `ASSERTION_WEAKER: 0`.
+- **Novos Skips**: `NEW_SKIPS: 0`.
+- **Testes Focados (`@voice-agent/voice`)**: 13/13 arquivos de teste aprovados, 143/143 testes aprovados (0 failures).
+- **Quality Gate Completo (`pnpm check`)**:
+  - `Prettier`: PASS.
+  - `ESLint`: PASS.
+  - `Typecheck`: PASS.
+  - `Vitest`: 105 passed | 6 skipped (111 test files), 659 passed | 45 skipped (704 tests), 0 failures.
+  - `Turbo Build`: 12/12 pacotes compilados com sucesso.
+  - `Check Architecture`: PASS (todas as fronteiras respeitadas).
+  - `Check File Size`: PASS (0 erros, 16 avisos preexistentes).
+  - `QUALITY_GATE`: `PASS`.
+
+### 7. Governança e Fronteiras Operacionais
+- **Chamadas Reais a Provedores**: TypeSafe `0`, OpenAI `0`, Twilio `0`.
+- **Carga de `.env`**: `NO` (`ENV_LOADED = NO`).
+- **Conexão a Banco de Dados**: `NO` (`DB_CONNECTION = NO`).
+- **Dados de Clientes**: `NO` (`CUSTOMER_TRAFFIC = PROHIBITED`).
+- **Holdout de Pesquisa**: `TOUCHED = NO`.
+- **Fiação de Runtime de Produção**: `NO` (`apps/voice` nominal sem fiação).
+- **Fiação com VoiceTransportPort.speak**: `NO` (capacidade arquitetural existe, fiação direta não implementada neste slice).
+- **Desvios de Processo**: `NONE`.
+- **Status Final dos Handlers**:
+  - `HANDLER_IMPLEMENTATION`: `IMPLEMENTED / TESTED LOCALLY`.
+  - `CAPABILITY_RESOLUTION`: `IMPLEMENTED / TESTED LOCALLY`.
+  - `FIRST_DETERMINISTIC_HANDLER`: `agent.operating_hours`.
+  - `KNOWN_DETERMINISTIC_HANDLERS`: `1`.
+  - `ACTIVE_DETERMINISTIC_BYPASS_READINESS`: `BLOCKED`.
+  - `ACTIVE_GUARDED`: `BLOCKED`.
+  - `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE`: `NOT CLEARED`.
+
+### 8. Próximo Passo Permitido
+- `NEXT_ALLOWED_STEP`: Revisão e merge do PR para o handler determinístico `agent.operating_hours` antes de qualquer fiação de runtime ou orquestrador.

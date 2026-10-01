@@ -4,14 +4,14 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-01
-CONTEXT_BASE_MAIN_SHA: 9e83f09f058ce9e7de531dff455638c7e44aa6a8
+CONTEXT_BASE_MAIN_SHA: 60b48367ac1a9a9a642ef9b78c312b1bbadcadf8
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
-CURRENT_SLICE: Deterministic Handler Design & Capability Resolution Hardening
-CONTEXT_UPDATE_BRANCH: research/006v-deterministic-handler-design
-CONTEXT_UPDATE_PR: 49
-LAST_MERGED_PR_AT_REFRESH: 48
-LAST_MERGE_SHA_AT_REFRESH: 9e83f09f058ce9e7de531dff455638c7e44aa6a8
-LAST_TESTED_CODE_SHA: efb52b4e4a780a68b08d25d7e2e492ace6fff375
+CURRENT_SLICE: Operating Hours Deterministic Handler Implementation
+CONTEXT_UPDATE_BRANCH: feat/006w-operating-hours-deterministic-handler
+CONTEXT_UPDATE_PR: NOT_ASSIGNED
+LAST_MERGED_PR_AT_REFRESH: 49
+LAST_MERGE_SHA_AT_REFRESH: 60b48367ac1a9a9a642ef9b78c312b1bbadcadf8
+LAST_TESTED_CODE_SHA: 2bb0b00bdf861808500544e698d087ea134500e0
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
 AI_CONTEXT_HEADER_END
@@ -30,7 +30,7 @@ AI_CONTEXT_HEADER_END
 | :--- | :--- | :--- |
 | **Web** | `PARTIAL` | `apps/web` (Next.js 15.5; Dashboard, Settings, Agent Studio Draft Editor; UI 005D incompleta) |
 | **API** | `IMPLEMENTED` | `apps/api` (Fastify/Node, rotas de drafts, lifecycle, auth interna com service token) |
-| **Voice** | `PARTIAL` | `apps/voice` (Orquestrador, streaming OpenAI; AuxiliaryTurnShadowObserver integrado non-blocking; fiação em runtime de produção: NÃO; chamadas shadow live: NÃO) |
+| **Voice** | `PARTIAL` | `apps/voice` (Orquestrador, streaming OpenAI; AuxiliaryTurnShadowObserver integrado non-blocking; primeiro handler determinístico `agent.operating_hours` implementado/testado localmente; fiação em runtime de produção: NÃO; chamadas shadow live: NÃO) |
 | **Worker** | `IMPLEMENTED` | `apps/worker` (Fundação de background tasks, processamento de filas assíncronas) |
 | **Database** | `IMPLEMENTED` | `packages/database` (PostgreSQL 16, Drizzle ORM, multi-tenancy, schemas comerciais e de auditoria) |
 | **Agent Studio** | `PARTIAL` | 005B (DB/contracts): `IMPLEMENTED / STAGING VALIDATED`; 005C (API): `IMPLEMENTED / NEON STAGING VALIDATED`; 005D (Web UI): `PARTIAL` (rascunhos existem em `apps/web/src/features/agents/`, fluxo completo não concluído) |
@@ -60,11 +60,11 @@ AI_CONTEXT_HEADER_END
 - **SHADOW_LIVE_ENABLED**: `NO` (desativado no fluxo nominal; zero chamadas a provedor externo em runtime nominal).
 - **DEFAULT_AUXILIARY_FEATURE_MODE**: `DISABLED`.
 - **ACTIVE_GUARDED**: `BLOCKED` (fail-closed, inalcançável no runtime por design).
-- **FIRST_DETERMINISTIC_HANDLER_CANDIDATE**: `agent.operating_hours` (`docs/research/PHASE_6_DETERMINISTIC_HANDLER_DESIGN.md`).
-- **HANDLER_IMPLEMENTATION**: `NOT IMPLEMENTED`.
-- **CAPABILITY_RESOLUTION**: `DESIGNED / NOT IMPLEMENTED`.
-- **KNOWN_DETERMINISTIC_HANDLERS**: `0` (candidato desenhado NÃO conta como handler conhecido/implementado).
-- **ACTIVE_DETERMINISTIC_BYPASS_READINESS**: `BLOCKED` (invariante: `NO_KNOWN_DETERMINISTIC_HANDLER -> NO_DETERMINISTIC_BYPASS`).
+- **FIRST_DETERMINISTIC_HANDLER**: `agent.operating_hours` (`apps/voice/src/operating-hours-turn-handler.ts`).
+- **HANDLER_IMPLEMENTATION**: `IMPLEMENTED / TESTED LOCALLY`.
+- **CAPABILITY_RESOLUTION**: `IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/operating-hours-capability-matcher.ts`).
+- **KNOWN_DETERMINISTIC_HANDLERS**: `1` (handler e matcher implementados e aprovados em 73 testes unitários e no pnpm check global).
+- **ACTIVE_DETERMINISTIC_BYPASS_READINESS**: `BLOCKED` (fail-closed, sem fiação de runtime para bypass).
 - **CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE**: `NOT CLEARED`.
 - **CUSTOMER_TRAFFIC**: `PROHIBITED`.
 - **PRODUCTION_SHADOW_MAX_CONCURRENCY**: `NOT SELECTED`.
@@ -118,9 +118,9 @@ AI_CONTEXT_HEADER_END
 
 ## 6. Estado Atual da Evidência de Qualidade (Quality Gate Snapshot)
 
-- **Último `pnpm check` Global**: `PASS` (executado e observado no commit `efb52b4e4a780a68b08d25d7e2e492ace6fff375`).
-- **Status das Asserções**: `586 passed`, `45 historical skips`, `0 new skips`, `0 failures` (103 arquivos de teste aprovados, 6 skipped de staging).
-- **Regressão de Asserções**: `ASSERTION_WEAKER = 0` (12 novos testes adicionados: `ASSERTION_STRONGER: 12`).
+- **Último `pnpm check` Global**: `PASS` (executado e observado no commit `2bb0b00bdf861808500544e698d087ea134500e0`).
+- **Status das Asserções**: `659 passed`, `45 historical skips`, `0 new skips`, `0 failures` (105 arquivos de teste aprovados, 6 skipped de staging).
+- **Regressão de Asserções**: `ASSERTION_WEAKER = 0` (73 novos testes adicionados: `ASSERTION_STRONGER: 73`).
 - **QUALITY_EVIDENCE_STALE**: `NO` (commits subsequentes estritamente documentais em `docs/`).
 
 ---
@@ -128,7 +128,7 @@ AI_CONTEXT_HEADER_END
 ## 7. Bloqueios Atuais (Current Blockers)
 
 1. `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`: Transmissão de transcrições de clientes para provedores externos proibida.
-2. `KNOWN_DETERMINISTIC_HANDLERS = 0` (`ACTIVE_DETERMINISTIC_BYPASS_READINESS = BLOCKED`).
+2. `KNOWN_DETERMINISTIC_HANDLERS = 1` (`ACTIVE_DETERMINISTIC_BYPASS_READINESS = BLOCKED` até implementação de fiação controlada e testes de integração de runtime).
 3. `PRODUCTION_SHADOW_MAX_CONCURRENCY = NOT SELECTED`: Limite de concorrência operacional de produção não definido.
 4. `PRODUCTION_JEV_TIMEOUT_MS = NOT SELECTED`: Timeout operacional de produção não definido.
 5. `PRODUCTION_RUNTIME_WIRING = NO`: Fiação de runtime em produção desautorizada.
@@ -138,7 +138,7 @@ AI_CONTEXT_HEADER_END
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- Minimal contract and implementation slice for single `agent.operating_hours` deterministic turn handler, without enabling production wiring, customer traffic or `ACTIVE_GUARDED`.
+- Review and merge PR for `agent.operating_hours` deterministic handler before any orchestrator/runtime wiring.
 
 ### `NOT_YET_ALLOWED`:
 - Transmissão de dados reais de clientes para provedores externos.

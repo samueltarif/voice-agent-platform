@@ -218,8 +218,47 @@ Quando a implementação for autorizada, os seguintes testes automatizados unit�
 
 ---
 
-## 9. Conclusão & Próximo Passo Permitido
+## 9. Conclusão da Fase de Design
 
-O design do primeiro handler determinístico (`agent.operating_hours`) está agora formalmente endurecido, com o gap de capability resolution resolvido através de um matcher determinístico local estreito (Opção A), preservando 100% a Frozen Policy e eliminando sobreafirmações causais e frameworks genéricos prematuros.
+O design do primeiro handler determinístico (`agent.operating_hours`) foi formalmente endurecido no PR #49, com o gap de capability resolution resolvido através de um matcher determinístico local estreito (Opção A), preservando 100% a Frozen Policy e eliminando sobreafirmações causais e frameworks genéricos prematuros.
 
-- **NEXT_ALLOWED_STEP**: Slice mínimo de contrato e implementação para exatamente uma capacidade (`agent.operating_hours`), contendo a interface em `packages/contracts/src/voice/`, a função de matching estreita e o handler em `apps/voice`, com cobertura completa de testes positivos e negativos, sem fiação em produção, sem tráfego de clientes e sem ativar `ACTIVE_GUARDED`.
+---
+
+## 10. Evidência de Implementação & Testes Locais (Implementation Evidence)
+
+> **Prompt de Execução**: `PROMPT-006W-OPERATING-HOURS-DETERMINISTIC-HANDLER-IMPLEMENTATION-001`
+> **Branch**: `feat/006w-operating-hours-deterministic-handler`
+> **TESTED_CODE_SHA**: `2bb0b00bdf861808500544e698d087ea134500e0`
+
+### 10.1. Revalidação YAGNI
+- **Contrato Compartilhado**: `SHARED_HANDLER_CONTRACT_REQUIRED = NO`.
+  - Inexiste fronteira entre pacotes exigindo exportação de interface genérica por `@voice-agent/contracts`. O consumo e a execução do handler ocorrem estritamente dentro de `apps/voice`, com tipagem TypeScript local rigorosa (`OperatingHoursTurnHandlerInput`, `OperatingHoursHandlerResult`).
+- **Registry**: `REGISTRY_REQUIRED_FOR_FIRST_HANDLER = NO`.
+  - Zero frameworks de plugins, zero reflection, zero auto-discovery e zero DI containers.
+
+### 10.2. Módulos Implementados
+1. **Matcher Determinístico de Capacidade**:
+   - Arquivo: [`apps/voice/src/operating-hours-capability-matcher.ts`](file:///d:/voice-agent-platform/apps/voice/src/operating-hours-capability-matcher.ts) (66 linhas).
+   - Testes: [`apps/voice/src/operating-hours-capability-matcher.test.ts`](file:///d:/voice-agent-platform/apps/voice/src/operating-hours-capability-matcher.test.ts) (55 testes unitários passando).
+   - Normalização: remoção de diacríticos, pontuação e espaços múltiplos.
+   - Correspondência: allowlist exata de 23 formulações canônicas de horário de atendimento do negócio.
+   - Fail-closed: rejeição comprovada de perguntas sobre consultas, pedidos, entregas, callbacks de vendedores, dias específicos, feriados, fusos e perguntas ambíguas (`"qual é o horário?"`).
+2. **Handler Determinístico de Turno**:
+   - Arquivo: [`apps/voice/src/operating-hours-turn-handler.ts`](file:///d:/voice-agent-platform/apps/voice/src/operating-hours-turn-handler.ts) (104 linhas, complexidade ciclomatica <= 5 por função).
+   - Testes: [`apps/voice/src/operating-hours-turn-handler.test.ts`](file:///d:/voice-agent-platform/apps/voice/src/operating-hours-turn-handler.test.ts) (18 testes unitários passando).
+   - Guards: Tenant Match Guard (`sessionOrganizationId === configurationOrganizationId`), Runtime State Guard (`runtimeState === 'ACTIVE'`), Configuration Guard (`operatingHours` não-vazio) e Capability Matcher Guard.
+   - Resposta: wrapper literal puro `"Nosso horário de atendimento é: ${operatingHours}."` sem chamadas generativas.
+
+### 10.3. Status Factual das Capacidades
+- `HANDLER_IMPLEMENTATION`: `IMPLEMENTED / TESTED LOCALLY`
+- `CAPABILITY_RESOLUTION`: `IMPLEMENTED / TESTED LOCALLY`
+- `FIRST_DETERMINISTIC_HANDLER`: `agent.operating_hours`
+- `KNOWN_DETERMINISTIC_HANDLERS`: `1` (após gates completos válidos)
+- `ACTIVE_DETERMINISTIC_BYPASS_READINESS`: `BLOCKED` (sem fiação de runtime para bypass)
+- `ACTIVE_GUARDED`: `BLOCKED` (inalcançável no runtime de produção)
+- `DIRECT_VOICE_SPEAK_CAPABILITY_EXISTS`: `YES`
+- `DIRECT_HANDLER_TO_TRANSPORT_WIRING`: `NO`
+- `PRODUCTION_RUNTIME_WIRING`: `NO`
+- `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE`: `NOT CLEARED`
+- `CUSTOMER_TRAFFIC`: `PROHIBITED`
+- `QUALITY_GATE`: `PASS` (pnpm check: 105 test files passed, 659 tests passed, 45 historical skips, 0 new skips, 0 failures)
