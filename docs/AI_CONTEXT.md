@@ -4,13 +4,13 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-01
-CONTEXT_BASE_MAIN_SHA: 42fed6e8eba88275536b0b3ed8a5d29126c6ced8
+CONTEXT_BASE_MAIN_SHA: 9e83f09f058ce9e7de531dff455638c7e44aa6a8
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
-CURRENT_SLICE: TypeSafe Staging Latency Evidence Execution
-CONTEXT_UPDATE_BRANCH: research/006u-typesafe-staging-latency-execution
-CONTEXT_UPDATE_PR: 48
-LAST_MERGED_PR_AT_REFRESH: 47
-LAST_MERGE_SHA_AT_REFRESH: 42fed6e8eba88275536b0b3ed8a5d29126c6ced8
+CURRENT_SLICE: Deterministic Handler Candidate Design
+CONTEXT_UPDATE_BRANCH: research/006v-deterministic-handler-design
+CONTEXT_UPDATE_PR: 49
+LAST_MERGED_PR_AT_REFRESH: 48
+LAST_MERGE_SHA_AT_REFRESH: 9e83f09f058ce9e7de531dff455638c7e44aa6a8
 LAST_TESTED_CODE_SHA: efb52b4e4a780a68b08d25d7e2e492ace6fff375
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
@@ -60,7 +60,9 @@ AI_CONTEXT_HEADER_END
 - **SHADOW_LIVE_ENABLED**: `NO` (desativado no fluxo nominal; zero chamadas a provedor externo em runtime nominal).
 - **DEFAULT_AUXILIARY_FEATURE_MODE**: `DISABLED`.
 - **ACTIVE_GUARDED**: `BLOCKED` (fail-closed, inalcançável no runtime por design).
-- **KNOWN_DETERMINISTIC_HANDLERS**: `0`.
+- **FIRST_DETERMINISTIC_HANDLER_CANDIDATE**: `agent.operating_hours` (`docs/research/PHASE_6_DETERMINISTIC_HANDLER_DESIGN.md`).
+- **HANDLER_IMPLEMENTATION**: `NOT IMPLEMENTED`.
+- **KNOWN_DETERMINISTIC_HANDLERS**: `0` (candidato desenhado NÃO conta como handler conhecido/implementado).
 - **ACTIVE_DETERMINISTIC_BYPASS_READINESS**: `BLOCKED` (invariante: `NO_KNOWN_DETERMINISTIC_HANDLER -> NO_DETERMINISTIC_BYPASS`).
 - **CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE**: `NOT CLEARED`.
 - **CUSTOMER_TRAFFIC**: `PROHIBITED`.
@@ -135,7 +137,7 @@ AI_CONTEXT_HEADER_END
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- Derive from remaining Phase 6 blockers (deterministic handlers design, transcript privacy governance, production operational parameters), without enabling production/customer traffic/ACTIVE_GUARDED.
+- Minimal contract and implementation slice for single `agent.operating_hours` deterministic turn handler, without enabling production wiring, customer traffic or `ACTIVE_GUARDED`.
 
 ### `NOT_YET_ALLOWED`:
 - Transmissão de dados reais de clientes para provedores externos.
@@ -158,6 +160,7 @@ AI_CONTEXT_HEADER_END
 - [research/PHASE_6_TYPESAFE_STAGING_LATENCY_PLAN.md](research/PHASE_6_TYPESAFE_STAGING_LATENCY_PLAN.md): Plano metodológico de medição controlada de latência em staging sintético.
 - [research/PHASE_6_TYPESAFE_STAGING_LATENCY_RESULT.md](research/PHASE_6_TYPESAFE_STAGING_LATENCY_RESULT.md): Relatório de evidência da bateria controlada de latência em staging sintético.
 - [research/results/phase-6-staging-shadow-latency-evidence.json](research/results/phase-6-staging-shadow-latency-evidence.json): Artefato estruturado de evidência de latência (N=12).
+- [research/PHASE_6_DETERMINISTIC_HANDLER_DESIGN.md](research/PHASE_6_DETERMINISTIC_HANDLER_DESIGN.md): Documento de design do primeiro candidato a handler determinístico (`agent.operating_hours`).
 - [AGENT_STUDIO.md](AGENT_STUDIO.md): Especificação e matriz de entrega do Agent Studio (005B, 005C, 005D).
 
 ---
