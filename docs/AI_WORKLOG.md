@@ -10210,3 +10210,100 @@ Auditado o código versionado em `packages/contracts`, `packages/database`, `app
 
 ### 5. Próximo Passo Permitido
 - `NEXT_ALLOWED_STEP`: Merge do PR #50 e design separado da integração controlada handler -> orquestrador, sem ativar produção ou tráfego de clientes.
+
+---
+
+## 2026-10-01 - PROMPT-006X-DETERMINISTIC-RUNTIME-WIRING-DESIGN-001
+
+### 1. Bootstrap e Verificacao de Linhagem
+
+- **Branch atual**: `main` (HEAD = `b0124ac3d0b060a03aace4a83b954054d70d85a5`)
+- **origin/main SHA**: `b0124ac3d0b060a03aace4a83b954054d70d85a5`
+- **CONTEXT_BOOTSTRAP_STATUS**: `CURRENT_AFTER_SELF_MERGE` (origin/main == merge do PR #50 == CONTEXT_UPDATE_PR anterior)
+- **Branch criada**: `research/006x-deterministic-runtime-wiring-design`
+- **Working tree ao inicio**: limpo (zero modificacoes).
+- **Chamadas reais a provedores**: TypeSafe `0`, OpenAI `0`, Twilio `0`.
+- **ENV_LOADED**: `NO`. **DB_CONNECTION**: `NO`. **CUSTOMER_TRAFFIC**: `PROHIBITED`.
+
+### 2. Reconciliacao Documental (Documentation Reconciliation)
+
+- **PHASE_6_DETERMINISTIC_HANDLER_DESIGN.md - Secao 3.2**: Corrigido estado historico `AT PR49 DESIGN TIME - CAPABILITY_RESOLUTION: NOT IMPLEMENTED` vs. `CURRENT STATE AFTER PR50 - CAPABILITY_RESOLUTION: IMPLEMENTED / TESTED LOCALLY`. Historia preservada sem contradicao.
+- **PHASE_6_DETERMINISTIC_HANDLER_DESIGN.md - Secao 6.3**: Substituida terminologia ambigua `DIRECT_DETERMINISTIC_HANDLER_RESPONSE_IMPLEMENTED = NO` por tres flags distintas: `DETERMINISTIC_RESPONSE_TEXT_IMPLEMENTED = YES`, `DIRECT_HANDLER_TO_TRANSPORT_WIRING = NO`, `RUNTIME_DETERMINISTIC_RESPONSE_DELIVERY = NOT WIRED`.
+- **AI_CONTEXT.md - NEXT_ALLOWED_STEP**: Removido `Review and merge PR #50` (PR ja mergeado). Atualizado para proximo slice de implementacao offline.
+
+### 3. Auditoria do Fluxo de Turno Atual
+
+Arquivos auditados:
+- `apps/voice/src/conversation-orchestrator.ts` (177 linhas)
+- `apps/voice/src/assistant-stream-coordinator.ts` (151 linhas)
+- `apps/voice/src/conversation-context-composer.ts` (65 linhas)
+- `apps/voice/src/call-lifecycle-gateway.ts` (127 linhas)
+- `apps/voice/src/process-model-stream.ts` (85 linhas)
+- `apps/voice/src/operating-hours-capability-matcher.ts` (66 linhas)
+- `apps/voice/src/operating-hours-turn-handler.ts` (99 linhas)
+- `apps/voice/src/auxiliary-turn-shadow-observer.ts` (158 linhas)
+- `apps/voice/src/composition-root.staging-shadow.ts` (153 linhas)
+- `packages/contracts/src/voice/voice-ports-contracts.ts` (49 linhas)
+- `docs/architecture/decisions/ADR-019-jev-guarded-runtime-integration.md`
+
+### 4. Seam de Interceptacao Deterministica
+
+`
+DETERMINISTIC_INTERCEPTION_SEAM = ConversationOrchestrator.handleUserSpeechFinal()
+  - apos sessionStore.save({ generationId })
+  - antes de AssistantStreamCoordinator.streamTurn()
+`
+
+Justificativa: generationId ja atribuido, user utterance ja no historico, session salva, OpenAI ainda nao chamado, shadow observer ja disparou.
+
+### 5. Topologias de Roteamento Avaliadas
+
+- **OPTION_A** (Matcher Local -> Jev -> Frozen Policy -> Handler): SELECTED. Confirma Opcao C do ADR-019. Menor exposicao de privacidade, menor latencia/custo para 80% dos turnos generativos.
+- **OPTION_B** (Jev -> Frozen Policy -> Matcher -> Handler): NOT SELECTED. Always-On Serial Gate classificado como NOT SELECTED no ADR-019. Viola minimizacao de privacidade.
+- **OPTION_C** (Matcher Local -> Handler sem Jev): Elegivel somente para testes internos com fakes. NOT SELECTED para topologia de producao com ACTIVE_GUARDED.
+
+### 6. Interpretador de Politica Congelada em Runtime
+
+`
+RUNTIME_FROZEN_POLICY_INTERPRETER = NOT IMPLEMENTED
+`
+Busca em `apps/voice/src/` e `packages/`: zero ocorrencias de `SECURITY_ESCALATE`, `DETERMINISTIC_CANDIDATE`, `GENERATIVE_REQUIRED` em codigo de runtime funcional. Pre-requisito bloqueante.
+
+### 7. Rota de Seguranca
+
+`
+SECURITY_RUNTIME_ACTION = NOT IMPLEMENTED
+`
+Nenhum codigo de runtime trata `SECURITY_ESCALATE`. Comportamento fail-closed necessario: bypass deterministico expressamente proibido nessa classificacao. NAO IMPLEMENTAR neste prompt.
+
+### 8. Modelo de Ownership de Resposta
+
+- **Single-response invariant**: exatamente um caminho de resposta por turno. Early return apos handler aceitar previne dupla resposta.
+- **DETERMINISTIC_BARGE_IN_MODEL**: Check `isGenerationActive` imediatamente antes de `transport.speak()`. Se stale: descartar. Se ativo: falar com `isFinal=true`. Texto completo como unico chunk.
+- **DETERMINISTIC_RESPONSE_HISTORY_REQUIRED**: `YES`. Seam: `AssistantStreamCoordinator.recordTurnCompletion()` ou equivalente.
+- **DIRECT_VOICETRANSPORT_SPEAK_SAFE**: `NOT VERIFIED (condicionalmente YES)` — handler nao deve chamar `speak()` diretamente sem staleness check.
+
+### 9. Analise YAGNI
+
+`
+NEW_COORDINATOR_REQUIRED = NO
+`
+`ConversationOrchestrator.handleUserSpeechFinal()` e o ponto exato de coordenacao. Funcao `tryDeterministicRoute()` privada e suficiente. Sem DeterministicTurnCoordinator generico, GuardedRoutingService, RoutingEngine ou DI container novo.
+
+### 10. Impacto de Tamanho de Arquivo
+
+- `conversation-orchestrator.ts`: 177 linhas, delta +15 a +30, extracao necessaria se >180.
+- `frozen-policy-interpreter.ts`: novo modulo obrigatorio (~40-60 linhas).
+- `deterministic-turn-router.ts`: condicional (~40-60 linhas) se orchestrator ultrapassar 180 linhas.
+
+### 11. Evidencias de Governanca
+
+- Chamadas reais a provedores: TypeSafe `0`, OpenAI `0`, Twilio `0`.
+- ENV_LOADED: `NO`. DB_CONNECTION: `NO`. CUSTOMER_TRAFFIC: `PROHIBITED`.
+- Holdout: `TOUCHED = NO`. Frozen Policy: `UNTOUCHED`.
+- Alteracoes em codigo/testes/configs: `0`.
+- Desvios de processo: `NONE`.
+
+### 12. Proximo Passo Permitido
+
+- `NEXT_ALLOWED_STEP`: Derivar proximo slice minimo de implementacao offline (`frozen-policy-interpreter.ts` + wiring de integracao no orchestrator), usando fakes provider-neutral, sem ativar producao ou trafego de clientes. Requer autorizacao formal em novo prompt.

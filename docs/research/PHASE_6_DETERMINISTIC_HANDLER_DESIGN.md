@@ -82,9 +82,12 @@ A política congelada (`FROZEN_POLICY`) interpreta esses scores e deriva uma cla
 
 **O Problema**: A classe de roteamento `DETERMINISTIC_CANDIDATE` informa apenas que o turno é elegível para tratamento determinístico, mas **não informa qual capacidade específica está sendo solicitada** (se é horário de atendimento, nome da empresa, status de pedido, etc.).
 
-Consequentemente:
-- `CAPABILITY_RESOLUTION`: `NOT IMPLEMENTED`
+Consequentemente (estado no momento do design em PR #49):
+- `AT PR49 DESIGN TIME — CAPABILITY_RESOLUTION`: `NOT IMPLEMENTED`
 - `CAPABILITY_RESOLUTION_REQUIRED_BEFORE_ACTIVE_BYPASS`: `YES`
+
+Essa lacuna foi resolvida no PR #50 com um matcher local estreito (Opção A da Seção 4):
+- `CURRENT STATE AFTER PR50 — CAPABILITY_RESOLUTION`: `IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/operating-hours-capability-matcher.ts`)
 
 Essa lacuna não pode ser mascarada ou presumida por registries genéricos.
 
@@ -159,8 +162,9 @@ Para evitar sobreafirmações e ambiguidades de evidência:
    - `HANDLER_TENANT_SAFETY`: `IMPLEMENTED / TESTED LOCALLY`.
 3. **Suporte a Resposta Direta de Áudio/Texto**:
    - `VOICE_TRANSPORT_DIRECT_SPEAK_CAPABILITY_EXISTS`: `YES` (`VoiceTransportPort.speak(callId, command)` já está implementado na interface de transporte)
-   - `DIRECT_DETERMINISTIC_HANDLER_RESPONSE_IMPLEMENTED`: `NO`
-   - `DIRECT_DETERMINISTIC_HANDLER_RESPONSE_TESTED`: `NO`.
+   - `DETERMINISTIC_RESPONSE_TEXT_IMPLEMENTED`: `YES` (o handler já produz `responseText` puro em `handleOperatingHoursTurn`)
+   - `DIRECT_HANDLER_TO_TRANSPORT_WIRING`: `NO` (o `responseText` ainda não é entregue ao `VoiceTransportPort.speak` no runtime)
+   - `RUNTIME_DETERMINISTIC_RESPONSE_DELIVERY`: `NOT WIRED` (camada que conecta handler → transporte ainda não existe no orquestrador de voz).
 4. **Interação com Privacidade e Dados do Cliente**:
    - `CUSTOMER_DATA_REQUIRED`: `NO` (100% testável com fixtures sintéticas)
    - `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE`: `NOT CLEARED`

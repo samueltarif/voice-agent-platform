@@ -4,13 +4,13 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-01
-CONTEXT_BASE_MAIN_SHA: 60b48367ac1a9a9a642ef9b78c312b1bbadcadf8
+CONTEXT_BASE_MAIN_SHA: b0124ac3d0b060a03aace4a83b954054d70d85a5
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
-CURRENT_SLICE: Operating Hours Deterministic Handler Implementation & PR50 Reconciliation
-CONTEXT_UPDATE_BRANCH: feat/006w-operating-hours-deterministic-handler
-CONTEXT_UPDATE_PR: 50
-LAST_MERGED_PR_AT_REFRESH: 49
-LAST_MERGE_SHA_AT_REFRESH: 60b48367ac1a9a9a642ef9b78c312b1bbadcadf8
+CURRENT_SLICE: Deterministic Runtime Wiring Design
+CONTEXT_UPDATE_BRANCH: research/006x-deterministic-runtime-wiring-design
+CONTEXT_UPDATE_PR: PENDING
+LAST_MERGED_PR_AT_REFRESH: 50
+LAST_MERGE_SHA_AT_REFRESH: b0124ac3d0b060a03aace4a83b954054d70d85a5
 LAST_TESTED_CODE_SHA: 7cc576d3cc78e3d16878da9e34d6f6953fd75d9a
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
@@ -63,12 +63,18 @@ AI_CONTEXT_HEADER_END
 - **FIRST_DETERMINISTIC_HANDLER**: `agent.operating_hours` (`apps/voice/src/operating-hours-turn-handler.ts`).
 - **HANDLER_IMPLEMENTATION**: `IMPLEMENTED / TESTED LOCALLY`.
 - **CAPABILITY_RESOLUTION**: `IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/operating-hours-capability-matcher.ts`).
-- **KNOWN_DETERMINISTIC_HANDLERS**: `1` (handler e matcher implementados e aprovados em 73 testes unitários e no pnpm check global).
-- **ACTIVE_DETERMINISTIC_BYPASS_READINESS**: `BLOCKED` (fail-closed, sem fiação de runtime para bypass).
+- **KNOWN_DETERMINISTIC_HANDLERS**: `1` (handler e matcher implementados e aprovados em 73 testes unitarios e no pnpm check global).
+- **DETERMINISTIC_RUNTIME_WIRING_DESIGN**: `IN PROGRESS` (`docs/research/PHASE_6_DETERMINISTIC_RUNTIME_WIRING_DESIGN.md`).
+- **DETERMINISTIC_INTERCEPTION_SEAM**: `ConversationOrchestrator.handleUserSpeechFinal() — apos save(generationId), antes de streamTurn()`.
+- **SELECTED_ROUTING_TOPOLOGY**: `OPTION_A (Application-Eligibility Filtered Serial Gate)` — confirma Opcao C do ADR-019.
+- **RUNTIME_FROZEN_POLICY_INTERPRETER**: `NOT IMPLEMENTED` (pre-requisito bloqueante).
+- **SECURITY_RUNTIME_ACTION**: `NOT IMPLEMENTED` (pre-requisito bloqueante).
+- **ACTIVE_DETERMINISTIC_BYPASS_READINESS**: `BLOCKED` (fail-closed, sem fiacao de runtime para bypass).
 - **CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE**: `NOT CLEARED`.
 - **CUSTOMER_TRAFFIC**: `PROHIBITED`.
 - **PRODUCTION_SHADOW_MAX_CONCURRENCY**: `NOT SELECTED`.
 - **PRODUCTION_JEV_TIMEOUT_MS**: `NOT SELECTED`.
+
 
 ---
 
@@ -138,7 +144,7 @@ AI_CONTEXT_HEADER_END
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- Review and merge PR for `agent.operating_hours` deterministic handler before any orchestrator/runtime wiring.
+- Derivar o proximo slice minimo de implementacao offline: frozen policy interpreter + wiring de integracao controlado no orchestrator, sem ativar producao ou trafego de clientes. Condicionado ao design nao apresentar blockers nao resolvidos.
 
 ### `NOT_YET_ALLOWED`:
 - Transmissão de dados reais de clientes para provedores externos.
