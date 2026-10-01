@@ -4,13 +4,13 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-01
-CONTEXT_BASE_MAIN_SHA: 40caab446ce2e8436e7efc9f73183d9373e2c75a
+CONTEXT_BASE_MAIN_SHA: bbeba8ec4ead2a9339f59c09853dfed78a27cc28
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
-CURRENT_SLICE: AI Context Continuity Hardening
-CONTEXT_UPDATE_BRANCH: docs/ai-context-factual-reconciliation
-CONTEXT_UPDATE_PR: 43
-LAST_MERGED_PR_AT_REFRESH: 42
-LAST_MERGE_SHA_AT_REFRESH: 40caab446ce2e8436e7efc9f73183d9373e2c75a
+CURRENT_SLICE: TypeSafe Synthetic Live Provider Smoke
+CONTEXT_UPDATE_BRANCH: research/006q-typesafe-live-synthetic-smoke
+CONTEXT_UPDATE_PR: 44
+LAST_MERGED_PR_AT_REFRESH: 43
+LAST_MERGE_SHA_AT_REFRESH: bbeba8ec4ead2a9339f59c09853dfed78a27cc28
 LAST_TESTED_CODE_SHA: 253cf92db2421e02b8cdee7002acd9c78e2f5897
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
@@ -36,7 +36,7 @@ AI_CONTEXT_HEADER_END
 | **Agent Studio** | `PARTIAL` | 005B (DB/contracts): `IMPLEMENTED / STAGING VALIDATED`; 005C (API): `IMPLEMENTED / NEON STAGING VALIDATED`; 005D (Web UI): `PARTIAL` (rascunhos existem em `apps/web/src/features/agents/`, fluxo completo não concluído) |
 | **OpenAI** | `IMPLEMENTED` | `packages/integrations/src/openai` (Adapter de modelo de conversa, baselines sintéticos) |
 | **Twilio** | `PARTIAL` | `packages/integrations/src/twilio` (ConversationRelay adapter; tráfego telefônico real `PROVIDER-UNVERIFIED`) |
-| **TypeSafe / Jev** | `PARTIAL` | `packages/integrations/src/typesafe` (Adapter offline implementado no PR #40; fiação em runtime: NÃO; live shadow: NÃO) |
+| **TypeSafe / Jev** | `PARTIAL` | `packages/integrations/src/typesafe` (Adapter implementado; LIVE PROVIDER RESPONSE OBSERVED; fiação em runtime: NÃO; live shadow: NÃO) |
 | **Human Handoff** | `DESIGN ONLY` | Especificado em `docs/ROADMAP.md` e `docs/VOICE_ARCHITECTURE.md` |
 | **Knowledge Base** | `DESIGN ONLY` | Arquitetura preliminar; implementação de retrieval postergada para fase posterior |
 | **Billing** | `PARTIAL` | Schemas de quotas, planos e entitlements em banco; adapter Stripe não iniciado |
@@ -48,7 +48,7 @@ AI_CONTEXT_HEADER_END
 
 - **AuxiliaryTurnDecisionPort**: `IMPLEMENTED` (`packages/contracts/src/voice/auxiliary-turn-decision-contracts.ts`).
 - **AuxiliaryTurnShadowObserver**: `IMPLEMENTED` (`apps/voice/src/auxiliary-turn-shadow-observer.ts`).
-- **TypeSafeJevTurnDecisionAdapter**: `IMPLEMENTED OFFLINE` (`packages/integrations/src/typesafe/typesafe-jev-turn-decision-adapter.ts`).
+- **TypeSafeJevTurnDecisionAdapter**: `IMPLEMENTED (LIVE PROVIDER RESPONSE OBSERVED)` (`packages/integrations/src/typesafe/typesafe-jev-turn-decision-adapter.ts`).
 - **ADAPTER_RUNTIME_WIRED**: `NO` (zero injeções em composition roots de produção).
 - **SHADOW_LIVE_ENABLED**: `NO` (zero chamadas a provedor externo em runtime).
 - **DEFAULT_AUXILIARY_FEATURE_MODE**: `DISABLED`.
@@ -121,14 +121,13 @@ AI_CONTEXT_HEADER_END
 2. `KNOWN_DETERMINISTIC_HANDLERS = 0` (`ACTIVE_DETERMINISTIC_BYPASS_READINESS = BLOCKED`).
 3. `SHADOW_MAX_CONCURRENCY_OPERATIONAL = NOT SELECTED`: Limite de concorrência operacional não definido.
 4. `JEV_TIMEOUT_MS = NOT SELECTED`: Timeout de chamada operacional não definido.
-5. `LIVE_TYPESAFE_SYNTHETIC_SMOKE = NOT EXECUTED`: Teste sintético do adapter TypeSafe em staging controlado ainda não homologado com chamada real.
 
 ---
 
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- 1 teste smoke sintético controlado da TypeSafe em Staging autorizado separadamente, com payload não-sensível sintético, orçamento monetário explícito (`BUDGET_CAP_USD`), sem OpenAI, sem Twilio, sem bypass ativo, sem tráfego de cliente e sem fiação em produção.
+- Design e implementação de fiação de composição controlada para modo SHADOW exclusiva de Staging com limites operacionais explícitos de segurança, tráfego sintético apenas, sem tráfego de cliente, sem OpenAI, sem Twilio, sem fiação em produção e sem `ACTIVE_GUARDED`.
 
 ### `NOT_YET_ALLOWED`:
 - Transmissão de dados reais de clientes para provedores externos.
@@ -146,6 +145,7 @@ AI_CONTEXT_HEADER_END
 - [AI_WORKLOG.md](AI_WORKLOG.md): Registro histórico cronológico append-only (com exceção de remoção emergencial de segredo conforme governança aplicável).
 - [architecture/decisions/ADR-019-jev-guarded-runtime-integration.md](architecture/decisions/ADR-019-jev-guarded-runtime-integration.md): Design de integração do Jev.
 - [research/PHASE_6_TYPESAFE_JEV_SHADOW_ADAPTER.md](research/PHASE_6_TYPESAFE_JEV_SHADOW_ADAPTER.md): Especificação e contrato do adapter offline.
+- [research/PHASE_6_TYPESAFE_LIVE_SYNTHETIC_SMOKE.md](research/PHASE_6_TYPESAFE_LIVE_SYNTHETIC_SMOKE.md): Registro factual do teste smoke sintético ao vivo do provedor.
 - [AGENT_STUDIO.md](AGENT_STUDIO.md): Especificação e matriz de entrega do Agent Studio (005B, 005C, 005D).
 
 ---

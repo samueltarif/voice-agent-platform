@@ -9319,3 +9319,94 @@ Este fechamento retifica a formulação epistemológica da base de evidência da
   - `git diff --check`: PASS.
   - `pnpm format:check`: PASS.
   - `SECRET_AUDIT`: `SECRET_AUDIT_PASS` (boolean-only check sobre `git diff origin/main...HEAD`).
+
+## [2026-10-01] PROMPT-006Q-TYPESAFE-LIVE-SYNTHETIC-SMOKE-001: Phase 6 — TypeSafe Jev Concrete Adapter — Single Live Synthetic Provider Smoke
+
+### 1. Context Bootstrap & Preflight
+- **CONTEXT_BOOTSTRAP_STATUS**: `CURRENT_AFTER_SELF_MERGE` (PR #43 merge commit `bbeba8ec4ead2a9339f59c09853dfed78a27cc28` idêntico ao `origin/main`).
+- **Main SHA de Base**: `bbeba8ec4ead2a9339f59c09853dfed78a27cc28`.
+- **Branch de Trabalho**: `research/006q-typesafe-live-synthetic-smoke`.
+- **Autorização Orçamentária Explícita**: `TYPESAFE_LIVE_REQUESTS_MAX = 1`, `BUDGET_CAP_USD = 0.01`, `OPENAI_LIVE_REQUESTS_MAX = 0`, `TWILIO_LIVE_REQUESTS_MAX = 0`, `CUSTOMER_DATA_ALLOWED = NO`.
+
+### 2. Auditoria de Documentação Oficial & Portão de Preço
+- **URLs Consultadas**:
+  - `https://docs.typesafe.ai/llms.txt`
+  - `https://docs.typesafe.ai/api.md`
+  - `https://docs.typesafe.ai/models.md`
+- **Conformidade de Interface**: Verificada conformidade exata de endpoint (`POST https://api.typesafe.ai/v1/systemone`), autenticação (`Authorization: Bearer <API_KEY>`), formato de request/response e semântica de Noul.
+- **Portão de Preço**: Preço oficial de $0.042 por 1 milhão de tokens de entrada (tokens de saída gratuitos).
+  - Custo estimado pré-chamada: `PRECALL_ESTIMATED_COST_USD = 0.00003` (< $0.0001 USD), amplamente abaixo do teto de $0.01.
+  - Custo real cobrado: `ACTUAL_BILLED_COST_USD = NOT VERIFIED` (nenhuma chamada adicional realizada).
+
+### 3. Execução Controlada do Smoke com o Adapter Concreto
+- **Presença de Credencial**: `TYPESAFE_API_KEY_PRESENT = YES` (avaliado de forma estritamente booleana; chave nunca logada, impressa ou inspecionada).
+- **Verificação do Hash Atômico**: SHA-256 local `3fecf9ce82ad600a74549d3459fe2b2b516fc3bd7b5fff33bf5b850cd48e8725` idêntico ao esperado (`ATOMIC_HASH_MATCH = YES`).
+- **Input Sintético**: `"Pode repetir a última frase para mim, por favor?"` (classificado como `SYNTHETIC / NON-CUSTOMER`, verificado ausente dos datasets congelados).
+- **Guardião de Contagem em Memória**: Enforce estrito de no máximo 1 requisição antes de despacho de rede.
+- **Resultado do Smoke**: `SMOKE_RESULT = PASS`.
+  - Requisições HTTP TypeSafe: `1` (sem retry).
+  - Modelo Solicitado: `jev-latest`.
+  - Modelo Resolvido: `jev-1.13.0`.
+  - Pontuações: `deterministicScore = 0.34`, `generativeScore = 0.32`, `securityScore = 0.02`.
+  - Latência Observada: `415 ms`.
+- **Limpeza de Helpers Temporários**: O script `scripts/tmp-typesafe-live-smoke.mjs` foi excluído do repositório imediatamente após a execução (`TEMPORARY_HELPER_REMAINING = NO`).
+
+### 4. Isolamento e Invariantes Preservadas
+- **Chamadas a Provedores neste Prompt**: TypeSafe `1`, OpenAI `0`, Twilio `0`.
+- **Alterações de Código de Produção / Runtime**: Zero.
+- **Alterações de Testes**: Zero.
+- **Alterações de Banco**: Zero.
+- **Privacidade e Governança**:
+  - `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`
+  - `CUSTOMER_TRAFFIC = PROHIBITED`
+  - `ADAPTER_RUNTIME_WIRED = NO`
+  - `SHADOW_LIVE_ENABLED = NO`
+  - `DEFAULT_AUXILIARY_FEATURE_MODE = DISABLED`
+  - `ACTIVE_GUARDED = BLOCKED`
+  - `KNOWN_DETERMINISTIC_HANDLERS = 0`
+  - `ACTIVE_DETERMINISTIC_BYPASS_READINESS = BLOCKED`
+  - `LOCKED_HOLDOUT = CONSUMED`
+  - `SHADOW_MAX_CONCURRENCY_OPERATIONAL = NOT SELECTED`
+  - `JEV_TIMEOUT_MS = NOT SELECTED`
+
+### 5. Próximo Passo Permitido
+- `NEXT_ALLOWED_STEP`: Design/implementação de fiação de composição controlada para modo SHADOW exclusiva de Staging com limites operacionais explícitos de segurança, tráfego sintético apenas, sem tráfego de cliente e sem `ACTIVE_GUARDED`.
+
+## [2026-10-01] PROMPT-006Q-LIVE-SMOKE-EVIDENCE-RECONCILIATION-001: PR #44 — TypeSafe Live Smoke Execution Integrity Reconciliation
+
+### 1. Fatos de Execução Observados & Qualificação Metodológica
+- **Execuções do Processo de Teste**: Duas tentativas de execução do script temporário `scripts/tmp-typesafe-live-smoke.mjs` foram realizadas pelo operador, com recriação do script efêmero entre elas.
+- **Resposta Funcional de Provedor**: Uma resposta válida da TypeSafe AI foi obtida com sucesso através do adapter concreto (`jev-1.13.0`, pontuações `0.34`, `0.32`, `0.02`, latência `415 ms`).
+- **Limitação Metodológica do Guardião de Requisições**: O guardião de contagem (`requestCount <= 1`) operava exclusivamente na memória local do processo (`PER_PROCESS`). A reinicialização do processo reinicia o contador, não comprovando isolamento entre múltiplas execuções de processos.
+- **Classificação da Contagem Agregada de Requisições**: Como o script foi efêmero e não há logs duráveis de rede ou faturamento no repositório, não é possível provar factualmente se a primeira execução encerrou antes do despacho de rede. Logo:
+  - `TOTAL_TYPESAFE_REQUESTS_DURING_006Q = NOT VERIFIED`.
+  - `SMOKE_PROCESS_DEVIATION = YES`.
+  - `CONCRETE_ADAPTER_LIVE_PROVIDER_COMPATIBILITY = OBSERVED`.
+  - `SMOKE_FUNCTIONAL_RESULT = PASS`.
+  - `SMOKE_EXECUTION_INTEGRITY = NOT FULLY VERIFIED`.
+
+### 2. Auditoria Orçamentária e de Faturamento
+- **Teto Orçamentário**: `BUDGET_CAP_USD = 0.01`.
+- **Custo Efetivamente Cobrado**: `ACTUAL_BILLED_COST_USD = NOT VERIFIED`.
+- **Violação de Teto**: `BUDGET_CAP_BREACH = NOT OBSERVED`.
+
+### 3. Linha do Tempo do Quality Gate & Auditoria de Segredos
+- **Linha do Tempo de Qualidade**: `pnpm check` foi executado integralmente no HEAD com `docs/AI_CONTEXT.md` presente e passou com sucesso (574 passed, 45 skipped, 0 failures, 12 turbo tasks).
+  - Alterações pós-check: estritamente documentais em `docs/`.
+  - `POST_CHECK_CODE_CHANGE = NO`.
+  - `POST_CHECK_TEST_CHANGE = NO`.
+  - `POST_CHECK_CONFIG_CHANGE = NO`.
+  - `QUALITY_EVIDENCE_STALE = NO`.
+- **Auditoria de Segredos no HEAD Final**: A auditoria anterior havia ocorrido antes do commit final selar o HEAD no Git (`FINAL_HEAD_SECRET_AUDIT_PREVIOUSLY_VALID = NO`). Reexecutada auditoria booleana value-blind sobre `git diff origin/main...HEAD`, confirmando `FINAL_PR_HEAD_SECRET_AUDIT = PASS`.
+- **Auditoria de Dependências (NPM / NPX)**: `package.json`, `pnpm-lock.yaml` e `pnpm-workspace.yaml` inalterados (`NO dependency changes`). `NPX_EXTERNAL_FETCH = NOT VERIFIED`.
+
+### 4. Isolamento Operacional nesta Reconciliação
+- **Chamadas a Provedores neste Prompt**: TypeSafe `0`, OpenAI `0`, Twilio `0`.
+- **Carga de `.env`**: Nenhuma (`ENV_LOADED = NO`).
+- **Código de Produção / Runtime**: Inalterado.
+- **Testes**: Inalterados.
+- **Limpeza da Seção CURRENT_BLOCKERS**: `LIVE_TYPESAFE_SYNTHETIC_SMOKE` movido para evidência de provedor, mantendo em `CURRENT_BLOCKERS` apenas os 4 bloqueios ativos do sistema.
+
+### 5. Decisão de PR & Próximo Passo
+- **Decisão**: PR #44 permanece `OPEN / NOT MERGED` aguardando revisão humana.
+- `NEXT_ALLOWED_STEP`: Design e implementação de fiação de composição controlada para modo SHADOW exclusiva de Staging com limites operacionais explícitos de segurança, tráfego sintético apenas, sem tráfego de cliente, sem OpenAI, sem Twilio, sem fiação em produção e sem `ACTIVE_GUARDED`.
