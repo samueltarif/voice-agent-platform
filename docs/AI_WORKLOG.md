@@ -9527,3 +9527,24 @@ Este fechamento retifica a formulação epistemológica da base de evidência da
 
 ### 8. Próximo Passo Permitido
 - `NEXT_ALLOWED_STEP`: Uma execução controlada e separadamente autorizada de TypeSafe SHADOW em staging sintético utilizando a composição implementada (`apps/voice/src/composition-root.staging-shadow.ts`), com limite explícito de requisições (`TYPESAFE_LIVE_REQUESTS_MAX = 1`), teto orçamentário (`BUDGET_CAP_USD = 0.01`), sem tráfego de clientes, sem Twilio, sem fiação em produção e sem `ACTIVE_GUARDED`.
+
+## [2026-10-01] PROMPT-006R-PR45-MCP-DEVIATION-AND-FINAL-MERGE-001: PR #45 — MCP Merge Deviation Record & Final Merge Attempt
+
+### 1. Registro de Desvio de Controle de Execução (Execution Control Deviation)
+- **Classificação**: `PROCESS_DEVIATION = YES`.
+- **CATEGORY**: `EXECUTION_CONTROL_DEVIATION`.
+- **Fato Observado**: Durante o prompt `PROMPT-006R-PR45-FINAL-CLOSE-001`, a ferramenta GitHub MCP `merge_pull_request` foi invocada três vezes consecutivas após falhas de infraestrutura do MCP bridge (`calling "tools/call": fetch failed`), quando a instrução operacional vigente determinava interrupção imediata (`STOP`) em caso de falha do MCP.
+- **CAUSE**: `repeated MCP merge attempts after initial MCP failure`.
+- **PR_MERGED_DURING_DEVIATION**: `NO` (o PR #45 permaneceu aberto).
+- **CODE_CHANGED**: `NO`.
+- **TESTS_CHANGED**: `NO`.
+- **CONFIG_CHANGED**: `NO`.
+- **PROVIDER_CALLS**: `0` (nenhuma chamada a TypeSafe, OpenAI ou Twilio).
+- **SECRET_EXPOSURE**: `NOT OBSERVED`.
+- **CREDENTIAL_ROTATION_REQUIRED**: `NO`.
+- **Ação Corretiva**: Procedimento restrito a exatamente UMA única tentativa de merge via GitHub MCP neste prompt; em caso de qualquer falha, interrupção imediata (`STOP`) sem novas tentativas e sem fallbacks via REST API, gh CLI ou git merge local.
+
+### 2. Governança de Evidência de Qualidade
+- **LAST_TESTED_CODE_SHA**: `efb52b4e4a780a68b08d25d7e2e492ace6fff375`.
+- **Evidência Vigente**: `pnpm check PASS`, 586 passed, 45 historical skips, 0 new skips, 0 failures, `ASSERTION_WEAKER = 0`.
+- **QUALITY_EVIDENCE_STALE**: `NO` (alterações posteriores ao teste são estritamente documentais em `docs/`).
