@@ -10395,3 +10395,158 @@ Endurecer o design de runtime wiring do PR #51 em `docs/research/PHASE_6_DETERMI
 - `LOCKED_HOLDOUT_TOUCHED = NO` | `FROZEN_POLICY_TOUCHED = NO`
 - Alterações em código/testes/configs funcionais: `0` (estritamente AUDIT / DOCS ONLY).
 - Desvios operacionais de segurança: `NONE`.
+
+---
+
+## PROMPT-006Y-FROZEN-POLICY-INTERPRETER-IMPLEMENTATION-001
+
+- **Data**: 2026-10-01
+- **Tipo**: FEATURE IMPLEMENTATION (Offline Pure Function & Tests)
+- **Branch**: `feat/006y-frozen-policy-interpreter`
+- **Base main SHA**: `27a7b2450574bac73bb15b7691676cdee8a1b460`
+- **Context Bootstrap Status**: `CURRENT_AFTER_SELF_MERGE`
+
+### 1. Verificação do Artefato Frozen Canônico
+
+- **Arquivo**: `docs/research/results/phase-6-jev-candidate-policy-frozen-v1.json`
+- **Policy SHA-256**: `1ac0f2919ca73d22a39fb1d964b558ba2f7e395f336b2c3f687ced9ed4d53c93`
+- **Thresholds Frozen Confirmados**:
+  - `T_SECURITY = 0.56` (Regra 1: `securityScore >= 0.56` => `SECURITY_ESCALATE`)
+  - `T_DETERMINISTIC = 0.35` (Regra 2: `deterministicScore >= 0.35 AND generativeScore <= 0.47` => `DETERMINISTIC_CANDIDATE`)
+  - `T_GENERATIVE = 0.47` (Regra 3: `otherwise` => `GENERATIVE_REQUIRED`)
+- **Precedência**: Regra de segurança domina estritamente qualquer outra condição.
+- **FROZEN_POLICY_CHANGED**: `NO` (zero alterações em JSONs de calibração, question-sets ou holdout).
+
+### 2. Implementação do Interpretador
+
+- **Arquivo**: `apps/voice/src/frozen-policy-interpreter.ts`
+- **Arquivo de Testes**: `apps/voice/src/frozen-policy-interpreter.test.ts`
+- **Tipo Union da Classificação**:
+  ```typescript
+  export type FrozenPolicyClassification =
+    | 'SECURITY_ESCALATE'
+    | 'DETERMINISTIC_CANDIDATE'
+    | 'GENERATIVE_REQUIRED';
+  ```
+- **Thresholds Imutáveis Locais**:
+  ```typescript
+  export const FROZEN_POLICY_THRESHOLDS = {
+    security: 0.56,
+    deterministic: 0.35,
+    generative: 0.47,
+  } as const;
+  ```
+- **Semântica de Validação de Entrada**:
+  - `typeof input !== 'object' || input === null` -> `TypeError`
+  - `typeof score !== 'number'` -> `TypeError`
+  - `!Number.isFinite(score) || score < 0 || score > 1` (inclui `NaN`, `Infinity`, `< 0`, `> 1`) -> `RangeError`
+- **Pureza e Isolamento**: Zero async, zero efeitos colaterais, zero mutação, zero dependências externas ou network.
+- **INDEX_EXPORT_REQUIRED**: `YES` (exportado em `apps/voice/src/index.ts` conforme padrão dos módulos irmãos de `@voice-agent/voice`).
+
+### 3. Evidências de Testes e Governança da Suíte
+
+- **Testes Focados (`frozen-policy-interpreter.test.ts`)**: 20 testes adicionados, 20 aprovados (7ms).
+  - Imutabilidade dos thresholds frozen canônicos: testado.
+  - Avaliação das regras canônicas (1, 2, 3): testado.
+  - Precedência estrita de segurança sobre condições determinísticas válidas: testado.
+  - Igualdade de fronteira exata e vizinhança lógica (0.56, 0.5599, 0.35, 0.3499, 0.47, 0.4701, extremos 0.0 e 1.0): testado.
+  - Validação de domínio de probabilidade (NaN, negativos, >1, Infinity, -Infinity, strings, null, undefined): testado.
+  - Determinismo e pureza referencial em invocações repetidas: testado.
+- **Alterações em Testes Existentes**:
+  - `tests added`: 20
+  - `tests modified`: 0
+  - `ASSERTION_STRONGER`: 20
+  - `ASSERTION_EQUIVALENT`: 0
+  - `ASSERTION_WEAKER`: 0
+  - `NEW_SKIPS`: 0
+- **Quality Gate Completo (`pnpm check`)**:
+  - `format:check`: PASS
+  - `lint`: PASS
+  - `typecheck`: PASS
+  - `vitest`: 106 test files passed, 6 skipped (staging), 679 tests passed, 45 historical skips, 0 failures.
+  - `build`: 12 packages built successfully (turbo).
+  - `check:architecture`: SUCESSO (0 violações).
+  - `check:file-size`: SUCESSO (0 violações).
+- **TESTED_CODE_SHA**: `5d830456fc25c0126683817fc3b428ffca058627`.
+- **POST_TEST_CODE_CHANGE**: `NO` (apenas documentação atualizada após o gate).
+- **QUALITY_EVIDENCE_STALE**: `NO`.
+
+### 4. Status de Arquitetura e Limites Operacionais
+
+- `RUNTIME_FROZEN_POLICY_INTERPRETER = IMPLEMENTED / TESTED LOCALLY`
+- `RUNTIME_DETERMINISTIC_BYPASS = NOT WIRED`
+- `KNOWN_DETERMINISTIC_HANDLERS = 1`
+- `SECURITY_RUNTIME_ACTION = NOT IMPLEMENTED`
+- `SECURITY_RUNTIME_SEMANTICS = UNDECIDED`
+- `DETERMINISTIC_POST_DISPATCH_BARGE_IN = NOT VERIFIED`
+- `ACTIVE_DETERMINISTIC_BYPASS_READINESS = BLOCKED`
+- `ACTIVE_GUARDED = BLOCKED`
+- `PRODUCTION_RUNTIME_WIRING = NO`
+- `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`
+- `CUSTOMER_TRAFFIC = PROHIBITED`
+
+### 5. Evidências de Governança
+
+- Provedores externos: TypeSafe `0`, OpenAI `0`, Twilio `0`.
+- `ENV_LOADED = NO` | `DB_CONNECTION = NO` | `CUSTOMER_DATA = NO`
+- `LOCKED_HOLDOUT_TOUCHED = NO` | `FROZEN_POLICY_TOUCHED = NO`
+- Desvios operacionais de segurança: `NONE`.
+
+### 6. Próximo Passo
+
+- `NEXT_ALLOWED_STEP`: Revisar o PR do interpretador (`frozen-policy-interpreter.ts`); não realizar fiação no orquestrador até que a semântica de segurança e a de completude de histórico/resposta pós-despacho sejam resolvidas separadamente.
+
+---
+
+## PROMPT-006Y-PR52-FINAL-RECONCILIATION-QUALITY-AND-MERGE-001
+
+- **Data**: 2026-10-01
+- **Tipo**: DOC RECONCILIATION, QUALITY GATE & MERGE (PR #52 Close)
+- **Branch**: `feat/006y-frozen-policy-interpreter`
+- **Base main SHA**: `27a7b2450574bac73bb15b7691676cdee8a1b460`
+- **PR**: #52
+- **PR52 HEAD pre-close**: `f8945399b3ab4274a19307991d994c261f5ed9ac`
+- **CONTEXT_UPDATE_PR**: `52`
+
+### 1. Reconciliações Documentais Realizadas
+
+- **Interpreter Terminology Reconciled**: `YES` (seção 6 de `docs/research/PHASE_6_DETERMINISTIC_RUNTIME_WIRING_DESIGN.md` reconciliada para registrar `CURRENT IMPLEMENTATION: apps/voice/src/frozen-policy-interpreter.ts` e `Status: IMPLEMENTED / TESTED LOCALLY`).
+- **Tenant Binding Reconciled**: `YES` (seção 14 reconciliada para refletir fontes autoritativas reais: `sessionOrganizationId` de `CallSession.organizationId` e `configurationOrganizationId` de `CallBootstrap.organizationId`).
+- **snapshot.organizationId factual**: `NO` (`AgentConfigurationSnapshotV1` não possui `organizationId`).
+- **Current Adapter Post-Dispatch Cancel Support**: `NO` (auditado em `TwilioVoiceTransportAdapter` e `twilio-command-translator.ts`).
+- **External Provider Cancel Capability**: `NOT VERIFIED` (fora do escopo do adapter versionado no repositório).
+- **Current Adapter Playback Completion Signal**: `NO` (`TwilioInboundMessage` não possui sinal de conclusão acústica).
+
+### 2. Evidência Observada do Quality Gate Completo
+
+- **Comando**: `pnpm check`
+- **Resultado Observado**: `PASS` (código de saída 0).
+- **Sub-etapas**:
+  - `pnpm format:check`: PASS (All matched files use Prettier code style!).
+  - `pnpm lint`: PASS (zero warnings, zero errors).
+  - `pnpm typecheck`: PASS (turbo typecheck em 12 pacotes sem erros).
+  - `pnpm test` (vitest): 106 test files passed, 6 skipped (staging), 679 tests passed, 45 historical skips, 0 failures.
+  - `pnpm build`: 12 pacotes compilados com sucesso (FULL TURBO).
+  - `check:architecture`: SUCESSO (0 violações).
+  - `check:file-size`: SUCESSO (0 violações).
+- **FINAL_QUALITY_TESTED_HEAD**: `f8945399b3ab4274a19307991d994c261f5ed9ac`
+- **Contagens Exatas de Teste**: `679 passed`, `45 skipped`, `0 failures`.
+- `ASSERTION_WEAKER`: `0`
+- `NEW_SKIPS`: `0`
+- `FROZEN_POLICY_CHANGED`: `NO`
+
+### 3. Status Consolidado
+
+- `RUNTIME_FROZEN_POLICY_INTERPRETER = IMPLEMENTED / TESTED LOCALLY`
+- `RUNTIME_DETERMINISTIC_BYPASS = NOT WIRED`
+- `ACTIVE_GUARDED = BLOCKED`
+- `PRODUCTION_RUNTIME_WIRING = NO`
+- `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`
+- `CUSTOMER_TRAFFIC = PROHIBITED`
+
+### 4. Evidências de Governança
+
+- Provedores externos: TypeSafe `0`, OpenAI `0`, Twilio `0`.
+- `ENV_LOADED = NO` | `DB_CONNECTION = NO` | `CUSTOMER_DATA = NO`
+- `LOCKED_HOLDOUT_TOUCHED = NO`
+- Desvios operacionais de segurança: `NONE`.

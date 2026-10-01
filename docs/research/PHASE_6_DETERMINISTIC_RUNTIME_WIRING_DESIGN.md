@@ -18,13 +18,13 @@ O design arquitetural da fiação do runtime determinístico foi conceituado, po
 
 1. `SECURITY_RUNTIME_ACTION`: `NOT IMPLEMENTED` e `SECURITY_RUNTIME_SEMANTICS = UNDECIDED`.
 2. `SECURITY_RUNTIME_ACTION_DECISION_REQUIRED`: `YES` (ACTIVE_GUARDED não pode ser implementado antes de definir e testar essa semântica).
-3. `DETERMINISTIC_POST_DISPATCH_BARGE_IN`: `NOT VERIFIED` (cancelamento de playback após speak não é suportado pelo transport atual).
-4. `TRANSPORT_POST_DISPATCH_CANCEL_SUPPORTED`: `NO` (auditado em `packages/integrations/src/twilio/**`).
-5. `TRANSPORT_PLAYBACK_COMPLETION_SIGNAL`: `NO` (Twilio Conversation Relay não emite sinal de conclusão de reprodução).
+3. `DETERMINISTIC_POST_DISPATCH_BARGE_IN`: `NOT VERIFIED`.
+4. `CURRENT_ADAPTER_POST_DISPATCH_CANCEL_SUPPORTED`: `NO` (auditado no adapter Twilio versionado em `packages/integrations/src/twilio/**`; `EXTERNAL_PROVIDER_CAPABILITY_BEYOND_CURRENT_ADAPTER = NOT VERIFIED`).
+5. `CURRENT_ADAPTER_PLAYBACK_COMPLETION_SIGNAL`: `NO` (adapter local não emite sinal de conclusão acústica; `EXTERNAL_PROVIDER_CAPABILITY_BEYOND_CURRENT_ADAPTER = NOT VERIFIED`).
 6. `DETERMINISTIC_AUDIO_FULLY_DELIVERED`: `NOT VERIFIED` após speak dispatch.
 7. `DETERMINISTIC_HISTORY_COMPLETION_AFTER_SPEAK`: `NOT AUTOMATICALLY SAFE` (risco de persistir resposta cancelada como completa).
 8. `ACTIVE_GUARDED_PROVIDER_CALL_OWNERSHIP`: `BLOCKED / NOT IMPLEMENTED` (risco de dupla consulta Jev se shadowObserver coexistir).
-9. `RUNTIME_FROZEN_POLICY_INTERPRETER`: `NOT IMPLEMENTED` (deve ser implementado offline e isoladamente no próximo slice).
+9. `RUNTIME_FROZEN_POLICY_INTERPRETER`: `IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/frozen-policy-interpreter.ts`; 20 testes unitários; `FROZEN_POLICY_CHANGED = NO`).
 
 ---
 
@@ -241,12 +241,19 @@ ACTIVE_GUARDED_PROVIDER_CALL_OWNERSHIP = BLOCKED / NOT IMPLEMENTED
 - `SECURITY_ESCALATE`, `DETERMINISTIC_CANDIDATE`, `GENERATIVE_REQUIRED` - **zero ocorrências** em código de produção.
 
 ```
-RUNTIME_FROZEN_POLICY_INTERPRETER = NOT IMPLEMENTED
+RUNTIME_FROZEN_POLICY_INTERPRETER = IMPLEMENTED / TESTED LOCALLY
+FROZEN_POLICY_CHANGED = NO
+SECURITY_RUNTIME_ACTION = NOT IMPLEMENTED
+SECURITY_RUNTIME_SEMANTICS = UNDECIDED
 ```
 
 ### Fronteira Estrita e Isolamento de Responsabilidade
 
-O futuro interpretador (`frozen-policy-interpreter.ts`) deve ser uma **função pura e determinística** com escopo estritamente delimitado:
+**CURRENT IMPLEMENTATION**:
+`apps/voice/src/frozen-policy-interpreter.ts`
+Status: `IMPLEMENTED / TESTED LOCALLY`
+
+O interpretador é uma **função pura e determinística** (`interpretFrozenTurnPolicy`) com escopo estritamente delimitado:
 
 - **Entrada**: Scores numéricos de `AuxiliaryTurnDecisionOutput` (`securityNoul`, `deterministicNoul`, `generativeNoul`).
 - **Lógica**: Aplicação estrita dos thresholds da Frozen Policy:
@@ -360,11 +367,11 @@ A auditoria no código versionado do adapter Twilio Conversation Relay (`TwilioV
    - `TwilioOutboundMessage` suporta exclusivamente `{ type: 'text' }` e `{ type: 'end' }`.
    - Não existe mensagem de cancelamento/limpeza de buffer de fala enviada ao WebSocket da Twilio.
    - `TwilioVoiceTransportAdapter.interruptSpeech()` apenas atualiza conjuntos e mapas em memória local; zero mensagens enviadas ao socket.
-   - Resultado: `TRANSPORT_POST_DISPATCH_CANCEL_SUPPORTED = NO`.
+   - Resultado: `CURRENT_ADAPTER_POST_DISPATCH_CANCEL_SUPPORTED = NO` (`EXTERNAL_PROVIDER_CAPABILITY_BEYOND_CURRENT_ADAPTER = NOT VERIFIED`).
 2. **Sinal de conclusão de reprodução (Playback Completion Signal)**:
    - `TwilioInboundMessage` recebe `{ type: 'setup' }`, `{ type: 'prompt' }`, `{ type: 'interrupt' }`, `{ type: 'error' }`, `{ type: 'disconnect' }`.
    - Não existe nenhum sinal de "playback complete", "audio drained" ou confirmação acústica enviado pela Twilio ao término da fala do bot.
-   - Resultado: `TRANSPORT_PLAYBACK_COMPLETION_SIGNAL = NO`.
+   - Resultado: `CURRENT_ADAPTER_PLAYBACK_COMPLETION_SIGNAL = NO` (`EXTERNAL_PROVIDER_CAPABILITY_BEYOND_CURRENT_ADAPTER = NOT VERIFIED`).
 3. **Uso de `generationId` no Provedor**:
    - `generationId` é um token puramente interno da aplicação (`ConversationOrchestrator`).
    - O comando enviado à Twilio (`TwilioTextTokenMessage`) recebe apenas `token: command.text` e `last: command.isFinal`.
@@ -386,7 +393,7 @@ DIRECT_VOICETRANSPORT_SPEAK_SAFE = NOT VERIFIED
 ```
 
 - **Pre-Dispatch**: Se o usuário interromper enquanto o handler determinístico estiver executando (antes do despacho para `speak`), a resposta é descartada com segurança.
-- **Post-Dispatch**: Uma vez que `transport.speak(isFinal=true)` for chamado, o áudio já foi transferido para a infraestrutura da Twilio. Como `TRANSPORT_POST_DISPATCH_CANCEL_SUPPORTED = NO`, o orquestrador não tem controle direto de cancelamento pós-despacho via código da aplicação.
+- **Post-Dispatch**: Uma vez que `transport.speak(isFinal=true)` for chamado, o áudio já foi transferido para a infraestrutura da Twilio. Como `CURRENT_ADAPTER_POST_DISPATCH_CANCEL_SUPPORTED = NO`, o orquestrador não tem controle direto de cancelamento pós-despacho via código da aplicação.
 
 ---
 
@@ -442,10 +449,11 @@ Não se aplica fragmentação artificial (fake streaming). O contrato de `VoiceT
 ```
 TENANT_BINDING_SOURCES =
   sessionOrganizationId: session.organizationId (CallSession)
-  configurationOrganizationId: snapshot.organizationId (AgentConfigurationSnapshotV1)
+  configurationOrganizationId: bootstrap.organizationId (CallBootstrap)
 ```
 
-- Invariante formal preservada: `CallBootstrap.organizationId === CallSession.organizationId`.
+- **Fato Arquitetural Auditado**: `AgentConfigurationSnapshotV1` **NÃO possui** o campo `organizationId`. O tenant binding factual deriva de `CallSession.organizationId` e `CallBootstrap.organizationId`, sendo entregue ao handler determinístico via `sessionOrganizationId` e `configurationOrganizationId` conforme a interface `OperatingHoursTurnHandlerInput`.
+- Invariante formal preservada: `CallBootstrap.organizationId === CallSession.organizationId` (assegurada pelo `CallLifecycleGateway.consumeBootstrapAndInitializeSession()`).
 - O guard `sessionOrg === configOrg` no handler determinístico atua como defesa em profundidade multi-tenant.
 
 ---
@@ -520,13 +528,13 @@ NEW_COORDINATOR_REQUIRED = NO
 |---|---|---|
 | `KNOWN_DETERMINISTIC_HANDLERS >= 1` | **MET** | Handler `agent.operating_hours` implementado/testado (PR #50) |
 | `CAPABILITY_RESOLUTION` | **MET** | Matcher local puro implementado/testado (PR #50) |
-| `RUNTIME_FROZEN_POLICY_INTERPRETER` | **NOT IMPLEMENTED** | Bloqueador (implementável offline no próximo slice) |
+| `RUNTIME_FROZEN_POLICY_INTERPRETER` | **IMPLEMENTED / TESTED LOCALLY** | Função pura implementada offline em `frozen-policy-interpreter.ts` com 20 testes unitários (`FROZEN_POLICY_CHANGED = NO`) |
 | `SECURITY_RUNTIME_ACTION` | **NOT IMPLEMENTED** | Bloqueador de runtime |
 | `SECURITY_RUNTIME_SEMANTICS` | **UNDECIDED** | Bloqueador formal |
 | `SECURITY_RUNTIME_ACTION_DECISION_REQUIRED` | **YES** | Bloqueador obrigatório antes de ACTIVE_GUARDED |
 | `DETERMINISTIC_POST_DISPATCH_BARGE_IN` | **NOT VERIFIED** | Bloqueador de fidelidade conversacional |
-| `TRANSPORT_POST_DISPATCH_CANCEL_SUPPORTED` | **NO** | Limitação do adapter Twilio atual |
-| `TRANSPORT_PLAYBACK_COMPLETION_SIGNAL` | **NO** | Limitação do protocolo Twilio Conversation Relay |
+| `CURRENT_ADAPTER_POST_DISPATCH_CANCEL_SUPPORTED` | **NO** | Limitação do adapter Twilio versionado no repositório (`EXTERNAL_PROVIDER_CAPABILITY_BEYOND_CURRENT_ADAPTER = NOT VERIFIED`) |
+| `CURRENT_ADAPTER_PLAYBACK_COMPLETION_SIGNAL` | **NO** | Limitação do adapter Twilio Conversation Relay versionado no repositório (`EXTERNAL_PROVIDER_CAPABILITY_BEYOND_CURRENT_ADAPTER = NOT VERIFIED`) |
 | `DETERMINISTIC_AUDIO_FULLY_DELIVERED` | **NOT VERIFIED** | Incerteza pós-despacho |
 | `DETERMINISTIC_HISTORY_COMPLETION_AFTER_SPEAK` | **NOT AUTOMATICALLY SAFE** | Risco de histórico inconsistente sob interrupção |
 | `ACTIVE_GUARDED_PROVIDER_CALL_OWNERSHIP` | **BLOCKED / NOT IMPLEMENTED** | Risco de chamadas concorrentes/duplicadas ao Jev |
