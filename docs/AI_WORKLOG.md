@@ -9508,3 +9508,22 @@ Este fechamento retifica a formulação epistemológica da base de evidência da
 - **Tráfego de Clientes**: Expressamente proibido (`CUSTOMER_TRAFFIC = PROHIBITED`).
 - **ACTIVE_GUARDED**: Permanece bloqueado (`BLOCKED`).
 
+### 7. Observação Factual do Quality Gate (pnpm check)
+- **PNPM_CHECK_EXIT_CODE**: `0`.
+- **HEAD Testado**: `efb52b4e4a780a68b08d25d7e2e492ace6fff375`.
+- **Subgates Observados**:
+  - `Prettier`: `PASS` (todos os arquivos compatíveis com formatação).
+  - `ESLint`: `PASS` (0 erros, 0 avisos).
+  - `Turbo Typecheck`: `PASS` (12 packages verificados com sucesso).
+  - `Vitest Suite`: `PASS` (103 arquivos aprovados, 6 skipped de staging; 586 testes aprovados, 45 skipped, 0 falhas).
+  - `Turbo Build`: `PASS` (12 packages compilados com sucesso).
+  - `Architecture Check`: `PASS` (`scripts/check-architecture.mjs` sem violações).
+  - `File Size Check`: `PASS` (`scripts/check-file-size.mjs` todos os arquivos de lógica <= 180 linhas).
+- **LAST_TESTED_CODE_SHA**: `efb52b4e4a780a68b08d25d7e2e492ace6fff375`.
+- **POST_GATE_CODE_CHANGE**: `NO`.
+- **POST_GATE_TEST_CHANGE**: `NO`.
+- **POST_GATE_CONFIG_CHANGE**: `NO`.
+- **QUALITY_EVIDENCE_STALE**: `NO` (alterações pós-gate são estritamente documentais em `docs/`).
+
+### 8. Próximo Passo Permitido
+- `NEXT_ALLOWED_STEP`: Uma execução controlada e separadamente autorizada de TypeSafe SHADOW em staging sintético utilizando a composição implementada (`apps/voice/src/composition-root.staging-shadow.ts`), com limite explícito de requisições (`TYPESAFE_LIVE_REQUESTS_MAX = 1`), teto orçamentário (`BUDGET_CAP_USD = 0.01`), sem tráfego de clientes, sem Twilio, sem fiação em produção e sem `ACTIVE_GUARDED`.

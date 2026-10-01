@@ -11,7 +11,7 @@ CONTEXT_UPDATE_BRANCH: feat/006r-typesafe-staging-shadow-composition
 CONTEXT_UPDATE_PR: 45
 LAST_MERGED_PR_AT_REFRESH: 44
 LAST_MERGE_SHA_AT_REFRESH: 01ced69224cec652942174e45017124911066686
-LAST_TESTED_CODE_SHA: 01ced69224cec652942174e45017124911066686
+LAST_TESTED_CODE_SHA: efb52b4e4a780a68b08d25d7e2e492ace6fff375
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
 AI_CONTEXT_HEADER_END
@@ -49,7 +49,7 @@ AI_CONTEXT_HEADER_END
 - **AuxiliaryTurnDecisionPort**: `IMPLEMENTED` (`packages/contracts/src/voice/auxiliary-turn-decision-contracts.ts`).
 - **AuxiliaryTurnShadowObserver**: `IMPLEMENTED` (`apps/voice/src/auxiliary-turn-shadow-observer.ts`).
 - **TypeSafeJevTurnDecisionAdapter**: `IMPLEMENTED (LIVE PROVIDER RESPONSE OBSERVED)` (`packages/integrations/src/typesafe/typesafe-jev-turn-decision-adapter.ts`).
-- **STAGING_SYNTHETIC_SHADOW_COMPOSITION**: `IMPLEMENTED` (testes em reconciliação final de gate; `apps/voice/src/composition-root.staging-shadow.ts`).
+- **STAGING_SYNTHETIC_SHADOW_COMPOSITION**: `IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/composition-root.staging-shadow.ts`).
 - **STAGING_SHADOW_MAX_CONCURRENCY**: `1` (teto seguro temporário de concorrência para staging sintético).
 - **STAGING_SHADOW_TIMEOUT_MS**: `1500` (timeout seguro temporário para staging sintético).
 - **PRODUCTION_RUNTIME_WIRING**: `NO` (zero injeções em composition roots de produção).
@@ -111,10 +111,10 @@ AI_CONTEXT_HEADER_END
 
 ## 6. Estado Atual da Evidência de Qualidade (Quality Gate Snapshot)
 
-- **QUALITY_GATE_CURRENT_HEAD**: `PENDING_REVALIDATION` (execução e observação integral do `pnpm check` em andamento neste prompt de reconciliação).
-- **Status Anterior de Referência**: `574 passed` (base main) / `586 passed` (cálculo intermediário 006R aguardando observação unificada).
-- **Regressão de Asserções**: `ASSERTION_WEAKER = 0` (zero testes enfraquecidos).
-- **QUALITY_EVIDENCE_STALE**: `PENDING_REVALIDATION`.
+- **Último `pnpm check` Global**: `PASS` (executado e observado no commit `efb52b4e4a780a68b08d25d7e2e492ace6fff375`).
+- **Status das Asserções**: `586 passed`, `45 historical skips`, `0 new skips`, `0 failures` (103 arquivos de teste aprovados, 6 skipped de staging).
+- **Regressão de Asserções**: `ASSERTION_WEAKER = 0` (12 novos testes adicionados: `ASSERTION_STRONGER: 12`).
+- **QUALITY_EVIDENCE_STALE**: `NO` (commits subsequentes estritamente documentais em `docs/`).
 
 ---
 
