@@ -9548,3 +9548,142 @@ Este fechamento retifica a formulação epistemológica da base de evidência da
 - **LAST_TESTED_CODE_SHA**: `efb52b4e4a780a68b08d25d7e2e492ace6fff375`.
 - **Evidência Vigente**: `pnpm check PASS`, 586 passed, 45 historical skips, 0 new skips, 0 failures, `ASSERTION_WEAKER = 0`.
 - **QUALITY_EVIDENCE_STALE**: `NO` (alterações posteriores ao teste são estritamente documentais em `docs/`).
+
+## [2026-10-01] PROMPT-006S-TYPESAFE-STAGING-SYNTHETIC-SHADOW-LIVE-001: Phase 6 — Controlled TypeSafe Staging Synthetic SHADOW Live Execution
+
+### 1. Context Bootstrap & Preflight
+- **CONTEXT_BOOTSTRAP_STATUS**: `CURRENT_AFTER_SELF_MERGE` (PR #45 merge commit `404bbc7c5a2360b578ef4332dfa114270bb409d1` idêntico ao `origin/main`).
+- **Main SHA de Base**: `404bbc7c5a2360b578ef4332dfa114270bb409d1`.
+- **Branch de Trabalho**: `research/006s-typesafe-staging-synthetic-shadow-live`.
+- **Autorização Orçamentária Explícita**: `TYPESAFE_LIVE_REQUESTS_MAX = 1`, `BUDGET_CAP_USD = 0.01`, `OPENAI_LIVE_REQUESTS_MAX = 0`, `TWILIO_LIVE_REQUESTS_MAX = 0`, `CUSTOMER_DATA_ALLOWED = NO`.
+
+### 2. Mecanismo de Execução e Guardiões Atômicos
+- **Harness de Execução**: `node --env-file=.env ./node_modules/vitest/vitest.mjs run apps/voice/src/tmp-006s-staging-shadow-live.test.ts`.
+- **Caminho Funcional Testado**: `createStagingSyntheticShadowComposition` -> `AuxiliaryTurnShadowObserver` -> `TimedAuxiliaryTurnDecisionPort` -> `TypeSafeJevTurnDecisionAdapter` -> TypeSafe AI endpoint (`https://api.typesafe.ai/v1/systemone`).
+- **Guardião Persistente Atômico**: Criado arquivo sentinel em disco `scripts/tmp-006s-typesafe-provider-attempted` com flag atômica exclusiva (`wx`) antes de qualquer despacho de rede (`SENTINEL_CREATED = YES`).
+- **Guardião de Despacho em Memória**: Enforce estrito limitando a 1 única invocação de rede (`FETCH_INVOCATIONS_MAX = 1`).
+- **Presença de Credencial**: `TYPESAFE_API_KEY_PRESENT = YES` (avaliado de forma estritamente booleana; chave nunca inspecionada, impressa ou logada).
+- **Classificação do Input**: `SYNTHETIC / NON-CUSTOMER / PT-BR`.
+  - Frase utilizada: `"Você consegue repetir de forma mais curta o que acabou de explicar?"`
+  - Verificação de Isolamento: Frase criada para a execução, ausente de datasets congelados de calibração ou holdout bloqueado.
+
+### 3. Resultados Observados & Qualificação Factual
+- **Classificação Factual**: `STAGING_LIVE_SHADOW_EXECUTION = OBSERVED / TIMEOUT`.
+- **RUNNER_PROCESS_EXECUTIONS**: `1`.
+- **PROVIDER_ATTEMPT_COUNT**: `1`.
+- **FETCH_INVOCATIONS**: `1` (`FETCH_DISPATCHED = YES`).
+- **Respostas de Provedor Recebidas com Sucesso**: `0` (a requisição foi abortada pelo teto temporário de 1500ms antes da conclusão do fetch pelo servidor remoto).
+- **Tempo Decorrido no Observer**: `1490 ms` (~1500 ms).
+- **Modelo Solicitado**: `jev-latest`.
+- **Modelo Resolvido**: `NOT OBSERVED` (requisição abortada no timeout).
+- **Pontuações Observadas**: `NOT OBSERVED` (requisição abortada no timeout).
+- **Telemetria Capturada**:
+  - `info`: `auxiliary.shadow.accepted` (`callId: 00000000-0000-0000-0000-000000000001, turnId: turn-006s-001, mode: SHADOW`).
+  - `warn`: `auxiliary.shadow.failed` (`callId: 00000000-0000-0000-0000-000000000001, turnId: turn-006s-001, error: "TypeSafe auxiliary evaluation timed out after 1500ms"`).
+- **Comportamento Non-Blocking**: O timeout disparou e encerrou a promessa auxiliar via `AbortController` sem bloquear a thread nem derrubar a aplicação.
+- **Ausência de Repetição**: Nenhuma nova tentativa foi realizada (`NO RETRY`, `PROVIDER_RETRY_ALLOWED = NO`).
+- **Orçamento**: `BUDGET_CAP_BREACH = NOT OBSERVED` (teto $0.01; chamadas reais = 1). `ACTUAL_BILLED_COST_USD = NOT VERIFIED`.
+
+### 4. Isolamento e Invariantes Preservadas
+- **Chamadas Reais a Provedores**: TypeSafe `1` (dispatched, timed out at 1500ms), OpenAI `0`, Twilio `0`.
+- **Tráfego de Clientes**: `PROHIBITED` (`CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`).
+- **Fiação em Produção**: `NO` (`PRODUCTION_RUNTIME_WIRING = NO`).
+- **ACTIVE_GUARDED**: `BLOCKED`.
+- **Handlers Determinísticos**: `0`.
+- **Holdout de Pesquisa**: `LOCKED_HOLDOUT = CONSUMED` (intocado).
+- **Desvios Operacionais**: `NONE`.
+
+### 5. Pull Request & Estado do HEAD
+- **PR Criado via GitHub MCP**: #46 (`research: record staging TypeSafe shadow live execution`).
+- **Estado do PR**: `OPEN / NOT MERGED` (aguardando revisão humana; auto-merge proibido).
+- **Branch**: `research/006s-typesafe-staging-synthetic-shadow-live`.
+- **Base `main`**: `404bbc7c5a2360b578ef4332dfa114270bb409d1`.
+- **Auditoria de Segredos no Tracked Diff**: `SECRET_AUDIT_PASS` (estritamente booleano, value-blind).
+
+### 6. Próximo Passo Permitido
+- `NEXT_ALLOWED_STEP`: Análise técnica do baseline de latência do provedor TypeSafe e decisão humana sobre eventual calibração do timeout para staging sintético antes de qualquer nova autorização de execução de provedor, mantendo zero tráfego de clientes, zero Twilio, zero fiação em produção e sem `ACTIVE_GUARDED`.
+
+## [2026-10-01] PROMPT-006S-PR46-EVIDENCE-RECONCILIATION-001: PR #46 — Staging Synthetic SHADOW Live Evidence Reconciliation
+
+### 1. Reconciliação Factual de Invocações do Runner
+- **RUNNER_COMMAND_INVOCATIONS_OBSERVED**: `2`.
+  - Invocação 1 (`node --env-file=.env ./node_modules/vitest/vitest.mjs run scripts/tmp-006s-staging-shadow-live.test.ts`): Falha no filtro de coleta de arquivos do Vitest (exit code 1, "No test files found"); encerrada antes de qualquer execução de teste ou despacho de rede.
+  - Invocação 2 (`node --env-file=.env ./node_modules/vitest/vitest.mjs run apps/voice/src/tmp-006s-staging-shadow-live.test.ts`): Executada com sucesso, criando o sentinel e disparando o fetch.
+- **FIRST_RUN_PROVIDER_DISPATCH**: `VERIFIED NO` (comprovado pela falha de coleta de arquivos antes do runner carregar o teste e pela ausência de arquivo sentinel em disco após a primeira invocação).
+- **AT_LEAST_ONE_FETCH_DISPATCH_OBSERVED**: `YES`.
+- **FETCH_DISPATCHES_AGGREGATE**: `1` (exatamente um despacho observado no segundo harness).
+- **PROVIDER_ATTEMPT_COUNT_AGGREGATE**: `1`.
+- **SUCCESSFUL_PROVIDER_RESPONSES**: `0` (timeout de 1500ms disparou antes da conclusão da resposta pelo servidor remoto).
+
+### 2. Qualificação do Guardião Sentinel
+- **PERSISTENT_SENTINEL_DESIGN**: `IMPLEMENTED IN TEMP HARNESS`.
+- **SENTINEL_CREATED_BEFORE_OBSERVED_FETCH**: `YES`.
+- **Qualificação de Efemeridade**: O helper temporário era efêmero e não está versionado no repositório; portanto, seu comportamento histórico pretendido não é extrapolado como prova de contagem além dos despachos factual e independentemente observados.
+
+### 3. Reconciliação de Classificação Funcional e Fatos de Provedor
+- **STAGING_LIVE_SHADOW_EXECUTION**: `OBSERVED / TIMEOUT`.
+- **COMPOSITION_TO_PROVIDER_DISPATCH**: `OBSERVED`.
+- **SHADOW_TIMEOUT_CONTAINMENT**: `OBSERVED` (limite seguro temporário de 1500ms abortou a requisição em 1490ms via AbortController).
+- **NON_BLOCKING_FAILURE_ISOLATION**: `OBSERVED` (aviso capturado e logado como warn sem quebrar a execução ou propagar exceção não tratada).
+- **SUCCESSFUL_END_TO_END_PROVIDER_RESPONSE_THROUGH_COMPOSITION**: `NOT OBSERVED`.
+- **Modelo Solicitado**: `jev-latest`.
+- **Modelo Resolvido**: `NOT OBSERVED`.
+- **Pontuações / Scores**: `NOT OBSERVED`.
+- **Conclusão de Processamento no Provedor**: `NOT OBSERVED`.
+- **Retries**: `0` (nenhuma repetição interna pelo adapter, observer ou composition).
+
+### 4. Orçamento & Governança de Timeout
+- **BUDGET_CAP_USD**: `0.01`.
+- **BUDGET_CAP_BREACH**: `NOT OBSERVED`.
+- **ACTUAL_BILLED_REQUEST_COUNT**: `NOT VERIFIED`.
+- **ACTUAL_BILLED_COST_USD**: `NOT VERIFIED`.
+- **STAGING_SHADOW_TIMEOUT_MS**: `1500` (inalterado).
+- **TIMEOUT_RECALIBRATION**: `NOT DECIDED` (uma única execução com timeout não constitui base estatística ou operacional suficiente para seleção ou recalibração de novo timeout; evidência anterior de resposta direta do adapter no PR #44 é preservada separadamente como medição isolada sem equivalência à composição SHADOW).
+
+### 5. Invariantes Mantidas nesta Reconciliação
+- **Chamadas Reais a Provedores neste Prompt**: TypeSafe `0`, OpenAI `0`, Twilio `0`.
+- **Carga de `.env`**: Nenhuma (`ENV_LOADED = NO`).
+- **Alterações de Código / Teste / Config**: `0` (estritamente documental).
+- **PR #46**: `OPEN / NOT MERGED` (branch `research/006s-typesafe-staging-synthetic-shadow-live`).
+- **Auditoria de Segredos no Tracked Diff**: `SECRET_AUDIT_PASS` (estritamente booleano, value-blind).
+
+### 6. Próximo Passo Permitido
+- `NEXT_ALLOWED_STEP`: Latency evidence design / staging timeout evaluation before another live provider execution.
+
+## [2026-10-01] PROMPT-006S-PR46-CONSERVATIVE-EVIDENCE-AND-MERGE-001: PR #46 — Conservative Evidence Qualification & Merge Preparation
+
+### 1. Correção e Qualificação Conservadora de Evidência
+- **SELF_AUTHORED_DOC_IS_NOT_INDEPENDENT_PROOF**: `YES` (documentos e logs gerados pelo próprio agente não constituem prova externa ou independente de saída de processo).
+- **RUNNER_COMMAND_INVOCATIONS_OBSERVED**: `2`.
+- **FIRST_RUN_PROVIDER_DISPATCH**: `NOT VERIFIED` (saída bruta da primeira invocação não está disponível de forma independente no repositório; não assumir nem inferir resultado sem prova independente).
+- **AT_LEAST_ONE_FETCH_DISPATCH_OBSERVED**: `YES` (despacho observado na invocação executada).
+- **FETCH_DISPATCHES_AGGREGATE**: `NOT VERIFIED` (não inferir 1 nem 2 como contagem factual global agregada).
+- **AGGREGATE_PROVIDER_ATTEMPTS**: `NOT VERIFIED`.
+- **SUCCESSFUL_PROVIDER_RESPONSES**: `0`.
+
+### 2. Preservação de Fatos Observados e Semântica de Retry
+- **STAGING_LIVE_SHADOW_EXECUTION**: `OBSERVED / TIMEOUT`.
+- **COMPOSITION_TO_PROVIDER_DISPATCH**: `OBSERVED`.
+- **SUCCESSFUL_END_TO_END_PROVIDER_RESPONSE_THROUGH_COMPOSITION**: `NOT OBSERVED`.
+- **STAGING_SHADOW_TIMEOUT_MS**: `1500`.
+- **OBSERVER_ELAPSED_MS**: `1490`.
+- **SHADOW_TIMEOUT_CONTAINMENT**: `OBSERVED`.
+- **NON_BLOCKING_FAILURE_ISOLATION**: `OBSERVED`.
+- **REQUESTED_MODEL**: `jev-latest`.
+- **RESOLVED_MODEL**: `NOT OBSERVED`.
+- **SCORES**: `NOT OBSERVED`.
+- **PROVIDER_PROCESSING_COMPLETION**: `NOT OBSERVED`.
+- **ADAPTER_INTERNAL_RETRY**: `0`.
+- **OBSERVER_INTERNAL_RETRY**: `0`.
+- **COMPOSITION_INTERNAL_RETRY**: `0`.
+- **TIMEOUT_RECALIBRATION**: `NOT DECIDED`.
+- **BUDGET_CAP_USD**: `0.01` (`BUDGET_CAP_BREACH = NOT OBSERVED`).
+- **ACTUAL_BILLED_REQUEST_COUNT**: `NOT VERIFIED`.
+- **ACTUAL_BILLED_COST_USD**: `NOT VERIFIED`.
+
+### 3. Invariantes deste Prompt
+- **Chamadas Reais a Provedores neste Prompt**: TypeSafe `0`, OpenAI `0`, Twilio `0`.
+- **ENV_LOADED**: `NO`.
+- **Alterações de Código / Teste / Config**: `0`.
+- **Quality Gate**: Docs-only slice (`git diff --check` + `pnpm format:check`).
+- **Auditoria de Segredos no Tracked Diff**: `SECRET_AUDIT_PASS`.
