@@ -125,14 +125,14 @@ AI_CONTEXT_HEADER_END
 2. `KNOWN_DETERMINISTIC_HANDLERS = 0` (`ACTIVE_DETERMINISTIC_BYPASS_READINESS = BLOCKED`).
 3. `PRODUCTION_SHADOW_MAX_CONCURRENCY = NOT SELECTED`: Limite de concorrência operacional de produção não definido.
 4. `PRODUCTION_JEV_TIMEOUT_MS = NOT SELECTED`: Timeout operacional de produção não definido.
-5. `STAGING_LIVE_SHADOW_EXECUTION = EXECUTED (OBSERVED / TIMEOUT)`: Execução live em staging sintético executada; latência do provedor excedeu o teto seguro temporário de 1500ms; requer análise e decisão humana sobre calibração de timeout de staging antes de nova autorização.
+5. `STAGING_LIVE_SHADOW_EXECUTION = EXECUTED (OBSERVED / TIMEOUT)`: Execução live em staging sintético executada sob teto de 1500ms; requer desenho de evidência de latência e avaliação de timeout de staging antes de qualquer nova autorização de execução.
 
 ---
 
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- Análise técnica do baseline de latência do provedor e decisão humana sobre eventual calibração de timeout para staging sintético antes de qualquer nova autorização de execução de provedor, mantendo zero tráfego de clientes, zero Twilio, zero fiação em produção e sem `ACTIVE_GUARDED`.
+- Latency evidence design / staging timeout evaluation before another live provider execution (mantendo zero tráfego de clientes, zero Twilio, zero fiação em produção e sem `ACTIVE_GUARDED`).
 
 ### `NOT_YET_ALLOWED`:
 - Transmissão de dados reais de clientes para provedores externos.

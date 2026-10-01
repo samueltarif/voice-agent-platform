@@ -31,38 +31,49 @@
 - **Ambiente**: `staging`
 - **Modo**: `SHADOW`
 - **Teto Operacional de Concorrência de Staging**: `STAGING_SHADOW_MAX_CONCURRENCY = 1`
-- **Timeout Operacional de Staging**: `STAGING_SHADOW_TIMEOUT_MS = 1500`
+- **Timeout Operacional de Staging**: `STAGING_SHADOW_TIMEOUT_MS = 1500` (mantido inalterado; `STAGING_TIMEOUT_RECALIBRATION = NOT DECIDED`)
 - **Parâmetros de Produção**:
   - `PRODUCTION_SHADOW_MAX_CONCURRENCY = NOT SELECTED`
   - `PRODUCTION_JEV_TIMEOUT_MS = NOT SELECTED`
-- **Guardião Persistente Atômico**: Sentinel em disco criado atomicamente com flag `wx` (`scripts/tmp-006s-typesafe-provider-attempted`) antes de qualquer despacho de rede (`SENTINEL_CREATED = YES`).
+- **Guardião Persistente Atômico**:
+  - `PERSISTENT_SENTINEL_DESIGN = IMPLEMENTED IN TEMP HARNESS`
+  - `SENTINEL_CREATED_BEFORE_OBSERVED_FETCH = YES`
+  - *Qualificação*: O arquivo sentinel (`scripts/tmp-006s-typesafe-provider-attempted`) foi projetado com flag atômica `wx`. Como o harness temporário era efêmero e não está versionado, seu comportamento histórico não deve ser extrapolado como prova de contagem além dos despachos de rede efetivamente observados e registrados.
 - **Guardião de Despacho de Rede**: Wrapper de `fetch` em memória limitando estritamente a 1 única invocação (`FETCH_INVOCATIONS_MAX = 1`).
 - **Política de Repetição**: `NO RETRY` (zero retries internos no adapter, observer ou composition).
 
 ---
 
-## 4. Resultados Factualmente Observados
+## 4. Resultados Factualmente Observados & Reconciliação de Invocação
 - **Classificação de Resultado**: `STAGING_LIVE_SHADOW_EXECUTION = OBSERVED / TIMEOUT`
-- **Execuções do Processo Runner**: `1`
-- **Tentativas de Provedor**: `1`
-- **Despachos de Rede (`fetch`)**: `1` (`FETCH_DISPATCHED = YES`)
-- **Respostas de Provedor Recebidas com Sucesso**: `0` (o timeout de 1500ms disparou antes da conclusão do fetch pelo servidor remoto da TypeSafe AI)
+- **Invocações do Comando Runner Observadas**: `RUNNER_COMMAND_INVOCATIONS_OBSERVED = 2`
+  - *Invocação 1* (`node --env-file=.env ./node_modules/vitest/vitest.mjs run scripts/tmp-006s-staging-shadow-live.test.ts`): Falhou na fase de coleta de arquivos do Vitest com exit code 1 ("No test files found") por filtro de workspace; encerrou antes da execução de qualquer teste e antes da criação do sentinel (`FIRST_RUN_PROVIDER_DISPATCH = VERIFIED NO`).
+  - *Invocação 2* (`node --env-file=.env ./node_modules/vitest/vitest.mjs run apps/voice/src/tmp-006s-staging-shadow-live.test.ts`): Executou o teste, criou o sentinel atômico e despachou a requisição.
+- **Despachos de Rede Agregados (`fetch`)**: `FETCH_DISPATCHES_AGGREGATE = 1` (`AT_LEAST_ONE_FETCH_DISPATCH_OBSERVED = YES`)
+- **Tentativas Agregadas a Provedor**: `PROVIDER_ATTEMPT_COUNT_AGGREGATE = 1`
+- **Respostas de Provedor Recebidas com Sucesso**: `SUCCESSFUL_PROVIDER_RESPONSES = 0` (o timeout de 1500ms abortou a requisição antes da conclusão pelo servidor remoto da TypeSafe AI)
 - **Status da Observação no Observer**: `ACCEPTED` (o turno sintético foi aceito em modo SHADOW)
 - **Tempo Decorrido no Observer**: `1490 ms` (~1500 ms)
 - **Modelo Solicitado**: `jev-latest`
 - **Modelo Efetivamente Resolvido**: `NOT OBSERVED` (requisição abortada no limite de 1500ms)
 - **Pontuações Observadas**: `NOT OBSERVED` (requisição abortada no limite de 1500ms)
+- **Conclusão de Processamento no Provedor**: `NOT OBSERVED` (nenhuma resposta concluída retornada antes do abort)
 - **Telemetria Capturada**:
   - `auxiliary.shadow.accepted`: `{ callId: '00000000-0000-0000-0000-000000000001', turnId: 'turn-006s-001', mode: 'SHADOW' }`
   - `auxiliary.shadow.failed`: `{ callId: '00000000-0000-0000-0000-000000000001', turnId: 'turn-006s-001', error: 'TypeSafe auxiliary evaluation timed out after 1500ms' }`
-- **Isolamento de Falha Comprovado**: O disparo do timeout de 1500ms abortou a requisição auxiliar de forma segura via `AbortController`, sem travar ou derrubar a thread, e o erro foi capturado e logado como aviso (`warn`) pela camada shadow, demonstrando na prática o comportamento non-blocking e não-autoritativo da arquitetura.
+- **Contenção e Isolamento de Falha**:
+  - `COMPOSITION_TO_PROVIDER_DISPATCH = OBSERVED`
+  - `SHADOW_TIMEOUT_CONTAINMENT = OBSERVED`
+  - `NON_BLOCKING_FAILURE_ISOLATION = OBSERVED`
+  - `SUCCESSFUL_END_TO_END_PROVIDER_RESPONSE_THROUGH_COMPOSITION = NOT OBSERVED`
+  - O disparo do timeout de 1500ms abortou a requisição auxiliar de forma segura via `AbortController`, sem travar ou derrubar a thread, e o erro foi capturado e logado como aviso (`warn`) pela camada shadow, demonstrando na prática o comportamento non-blocking e não-autoritativo da arquitetura.
 
 ---
 
 ## 5. Orçamento e Faturamento
 - **Teto Orçamentário Autorizado**: `BUDGET_CAP_USD = 0.01`
 - **Violação de Orçamento**: `BUDGET_CAP_BREACH = NOT OBSERVED`
-- **Contagem Faturada no Servidor**: `ACTUAL_BILLED_REQUEST_COUNT = NOT VERIFIED` (nenhuma chamada adicional realizada)
+- **Contagem Faturada no Servidor**: `ACTUAL_BILLED_REQUEST_COUNT = NOT VERIFIED` (não verificado no portal/faturamento do provedor)
 - **Custo Efetivamente Cobrado**: `ACTUAL_BILLED_COST_USD = NOT VERIFIED`
 
 ---
@@ -74,8 +85,9 @@
 
 ---
 
-## 7. Conclusões Arquiteturais
-1. O caminho completo `composition -> observer -> adapter -> provider` é plenamente funcional em tempo de execução real.
-2. O limite de segurança temporário `STAGING_SHADOW_TIMEOUT_MS = 1500` funcionou rigorosamente conforme a especificação, abortando a requisição quando a latência de rede/processamento do provedor ultrapassou o teto.
-3. A falha por timeout foi contida no observer e não propagou exceções não tratadas para a aplicação.
-4. Conforme a regra da Seção 13 do PROMPT-006S, a evidência de timeout é um resultado operacional válido e factual; nenhuma segunda tentativa de chamada ao provedor foi realizada (`PROVIDER_RETRY_ALLOWED = NO`).
+## 7. Conclusões Arquiteturais & Governança de Timeout
+1. **Composição e Despacho**: O despacho da requisição a partir da composição controlada até o provedor externo foi observado na prática (`COMPOSITION_TO_PROVIDER_DISPATCH = OBSERVED`), porém uma resposta pontuada de ponta a ponta não foi obtida devido ao abort por timeout (`SUCCESSFUL_END_TO_END_PROVIDER_RESPONSE_THROUGH_COMPOSITION = NOT OBSERVED`).
+2. **Contenção por Timeout**: O limite de segurança temporário `STAGING_SHADOW_TIMEOUT_MS = 1500` funcionou rigorosamente conforme a especificação, abortando a requisição quando a latência de rede/processamento ultrapassou o teto (`SHADOW_TIMEOUT_CONTAINMENT = OBSERVED`).
+3. **Isolamento Non-Blocking**: A falha por timeout foi contida no observer e não propagou exceções não tratadas para a aplicação (`NON_BLOCKING_FAILURE_ISOLATION = OBSERVED`).
+4. **Decisão sobre Timeout**: `STAGING_TIMEOUT_RECALIBRATION = NOT DECIDED`. Uma execução única com timeout não é suficiente para calibrar ou elevar o teto operacional. A evidência histórica separada do adapter direto obtida no smoke test do PR #44 (com resposta observada) permanece como registro de capacidade isolada, mas não equivale à medição da composição SHADOW completa atual.
+5. **Encerramento de Tentativas**: Conforme a regra da Seção 13 do PROMPT-006S, a evidência de timeout é um resultado operacional válido e factual; nenhuma segunda tentativa de chamada ao provedor foi realizada (`PROVIDER_RETRY_ALLOWED = NO`).

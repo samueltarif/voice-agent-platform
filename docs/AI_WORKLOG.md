@@ -9602,3 +9602,50 @@ Este fechamento retifica a formulação epistemológica da base de evidência da
 
 ### 6. Próximo Passo Permitido
 - `NEXT_ALLOWED_STEP`: Análise técnica do baseline de latência do provedor TypeSafe e decisão humana sobre eventual calibração do timeout para staging sintético antes de qualquer nova autorização de execução de provedor, mantendo zero tráfego de clientes, zero Twilio, zero fiação em produção e sem `ACTIVE_GUARDED`.
+
+## [2026-10-01] PROMPT-006S-PR46-EVIDENCE-RECONCILIATION-001: PR #46 — Staging Synthetic SHADOW Live Evidence Reconciliation
+
+### 1. Reconciliação Factual de Invocações do Runner
+- **RUNNER_COMMAND_INVOCATIONS_OBSERVED**: `2`.
+  - Invocação 1 (`node --env-file=.env ./node_modules/vitest/vitest.mjs run scripts/tmp-006s-staging-shadow-live.test.ts`): Falha no filtro de coleta de arquivos do Vitest (exit code 1, "No test files found"); encerrada antes de qualquer execução de teste ou despacho de rede.
+  - Invocação 2 (`node --env-file=.env ./node_modules/vitest/vitest.mjs run apps/voice/src/tmp-006s-staging-shadow-live.test.ts`): Executada com sucesso, criando o sentinel e disparando o fetch.
+- **FIRST_RUN_PROVIDER_DISPATCH**: `VERIFIED NO` (comprovado pela falha de coleta de arquivos antes do runner carregar o teste e pela ausência de arquivo sentinel em disco após a primeira invocação).
+- **AT_LEAST_ONE_FETCH_DISPATCH_OBSERVED**: `YES`.
+- **FETCH_DISPATCHES_AGGREGATE**: `1` (exatamente um despacho observado no segundo harness).
+- **PROVIDER_ATTEMPT_COUNT_AGGREGATE**: `1`.
+- **SUCCESSFUL_PROVIDER_RESPONSES**: `0` (timeout de 1500ms disparou antes da conclusão da resposta pelo servidor remoto).
+
+### 2. Qualificação do Guardião Sentinel
+- **PERSISTENT_SENTINEL_DESIGN**: `IMPLEMENTED IN TEMP HARNESS`.
+- **SENTINEL_CREATED_BEFORE_OBSERVED_FETCH**: `YES`.
+- **Qualificação de Efemeridade**: O helper temporário era efêmero e não está versionado no repositório; portanto, seu comportamento histórico pretendido não é extrapolado como prova de contagem além dos despachos factual e independentemente observados.
+
+### 3. Reconciliação de Classificação Funcional e Fatos de Provedor
+- **STAGING_LIVE_SHADOW_EXECUTION**: `OBSERVED / TIMEOUT`.
+- **COMPOSITION_TO_PROVIDER_DISPATCH**: `OBSERVED`.
+- **SHADOW_TIMEOUT_CONTAINMENT**: `OBSERVED` (limite seguro temporário de 1500ms abortou a requisição em 1490ms via AbortController).
+- **NON_BLOCKING_FAILURE_ISOLATION**: `OBSERVED` (aviso capturado e logado como warn sem quebrar a execução ou propagar exceção não tratada).
+- **SUCCESSFUL_END_TO_END_PROVIDER_RESPONSE_THROUGH_COMPOSITION**: `NOT OBSERVED`.
+- **Modelo Solicitado**: `jev-latest`.
+- **Modelo Resolvido**: `NOT OBSERVED`.
+- **Pontuações / Scores**: `NOT OBSERVED`.
+- **Conclusão de Processamento no Provedor**: `NOT OBSERVED`.
+- **Retries**: `0` (nenhuma repetição interna pelo adapter, observer ou composition).
+
+### 4. Orçamento & Governança de Timeout
+- **BUDGET_CAP_USD**: `0.01`.
+- **BUDGET_CAP_BREACH**: `NOT OBSERVED`.
+- **ACTUAL_BILLED_REQUEST_COUNT**: `NOT VERIFIED`.
+- **ACTUAL_BILLED_COST_USD**: `NOT VERIFIED`.
+- **STAGING_SHADOW_TIMEOUT_MS**: `1500` (inalterado).
+- **TIMEOUT_RECALIBRATION**: `NOT DECIDED` (uma única execução com timeout não constitui base estatística ou operacional suficiente para seleção ou recalibração de novo timeout; evidência anterior de resposta direta do adapter no PR #44 é preservada separadamente como medição isolada sem equivalência à composição SHADOW).
+
+### 5. Invariantes Mantidas nesta Reconciliação
+- **Chamadas Reais a Provedores neste Prompt**: TypeSafe `0`, OpenAI `0`, Twilio `0`.
+- **Carga de `.env`**: Nenhuma (`ENV_LOADED = NO`).
+- **Alterações de Código / Teste / Config**: `0` (estritamente documental).
+- **PR #46**: `OPEN / NOT MERGED` (branch `research/006s-typesafe-staging-synthetic-shadow-live`).
+- **Auditoria de Segredos no Tracked Diff**: `SECRET_AUDIT_PASS` (estritamente booleano, value-blind).
+
+### 6. Próximo Passo Permitido
+- `NEXT_ALLOWED_STEP`: Latency evidence design / staging timeout evaluation before another live provider execution.
