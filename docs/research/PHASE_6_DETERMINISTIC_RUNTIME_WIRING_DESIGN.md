@@ -243,7 +243,10 @@ ACTIVE_GUARDED_PROVIDER_CALL_OWNERSHIP = BLOCKED / NOT IMPLEMENTED
 ```
 RUNTIME_FROZEN_POLICY_INTERPRETER = IMPLEMENTED / TESTED LOCALLY
 FROZEN_POLICY_CHANGED = NO
-SECURITY_RUNTIME_ACTION = NOT IMPLEMENTED
+SECURITY_OFFLINE_ACTION = IMPLEMENTED / TESTED LOCALLY
+SECURITY_RUNTIME_ROUTING_INTEGRATION = NOT IMPLEMENTED
+SECURITY_RUNTIME_DELIVERY = NOT IMPLEMENTED
+SECURITY_RUNTIME_ACTION = NOT IMPLEMENTED (means runtime-integrated action, not the offline SECURITY_BLOCKED constructor)
 SECURITY_RUNTIME_SEMANTICS = DESIGNED (ver docs/research/PHASE_6_SECURITY_ESCALATE_RUNTIME_SEMANTICS.md)
 ```
 
@@ -284,10 +287,13 @@ O design preliminar continha uma contradição documental: declarava `SECURITY_R
 **Isso NÃO é um comportamento autorizado.**
 
 ```
-SECURITY_RUNTIME_ACTION = NOT IMPLEMENTED
+SECURITY_OFFLINE_ACTION = IMPLEMENTED / TESTED LOCALLY
+SECURITY_RUNTIME_ROUTING_INTEGRATION = NOT IMPLEMENTED
+SECURITY_RUNTIME_DELIVERY = NOT IMPLEMENTED
+SECURITY_RUNTIME_ACTION = NOT IMPLEMENTED (means runtime-integrated action, not the offline SECURITY_BLOCKED constructor)
 SECURITY_RUNTIME_SEMANTICS = DESIGNED (ver docs/research/PHASE_6_SECURITY_ESCALATE_RUNTIME_SEMANTICS.md)
 SECURITY_ESCALATE_DETERMINISTIC_BYPASS = PROHIBITED
-SECURITY_ESCALATE_OPENAI_FALLBACK = NOT AUTHORIZED / NOT DESIGNED
+SECURITY_ESCALATE_OPENAI_FALLBACK = NOT AUTHORIZED
 ```
 
 ### Regras Mandatórias de Segurança
@@ -299,6 +305,7 @@ SECURITY_ESCALATE_OPENAI_FALLBACK = NOT AUTHORIZED / NOT DESIGNED
    SECURITY_RUNTIME_SEMANTICS = DESIGNED
    SECURITY_OFFLINE_ACTION = IMPLEMENTED / TESTED LOCALLY
    SECURITY_RUNTIME_ROUTING_INTEGRATION = NOT IMPLEMENTED
+   SECURITY_USER_RESPONSE_DELIVERY = NOT IMPLEMENTED
    SECURITY_RESPONSE_DELIVERY_READY = NO
    DETERMINISTIC_POST_DISPATCH_BARGE_IN = NOT VERIFIED
    ACTIVE_GUARDED = BLOCKED
@@ -329,7 +336,7 @@ Antes do commit da resposta determinística, falhas direcionam para o fallback p
 | A | `matchesOperatingHoursCapability = false` | `streamTurn()` OpenAI (fluxo nominal inalterado) |
 | B | Jev timeout / network error / parse failure | `streamTurn()` OpenAI (fail-open para modelo principal) |
 | C | `GENERATIVE_REQUIRED` (Frozen Policy) | `streamTurn()` OpenAI |
-| D | `SECURITY_ESCALATE` (Frozen Policy) | **FALLBACK PROIBIDO / ROTA INTERNA SECURITY_BLOCKED (NOT IMPLEMENTED / NOT WIRED)** (ver Seção 7) |
+| D | `SECURITY_ESCALATE` (Frozen Policy) | **FALLBACK PROIBIDO / SECURITY_BLOCKED offline action = IMPLEMENTED / TESTED LOCALLY; routing integration = NOT WIRED; OpenAI fallback = NOT AUTHORIZED** (ver Seção 7) |
 | E | Handler guard failure (`sessionOrg != configOrg`) | `streamTurn()` OpenAI |
 | F | Handler guard failure (`operatingHours` vazio) | `streamTurn()` OpenAI |
 | G | Handler execution `handled = false` | `streamTurn()` OpenAI |
@@ -536,6 +543,7 @@ NEW_COORDINATOR_REQUIRED = NO
 | `SECURITY_RUNTIME_SEMANTICS` | **DESIGNED** | Definido em `docs/research/PHASE_6_SECURITY_ESCALATE_RUNTIME_SEMANTICS.md` |
 | `SECURITY_OFFLINE_ACTION` | **IMPLEMENTED / TESTED LOCALLY** | Implementado em `security-blocked-action.ts` (5 testes unitários) |
 | `SECURITY_RUNTIME_ROUTING_INTEGRATION` | **NOT IMPLEMENTED** | Bloqueador de fiação |
+| `SECURITY_USER_RESPONSE_DELIVERY` | **NOT IMPLEMENTED** | Entrega não implementada |
 | `SECURITY_RESPONSE_DELIVERY_READY` | **NO** | Bloqueador formal de entrega |
 | `DETERMINISTIC_POST_DISPATCH_BARGE_IN` | **NOT VERIFIED** | Bloqueador de fidelidade conversacional |
 | `CURRENT_ADAPTER_POST_DISPATCH_CANCEL_SUPPORTED` | **NO** | Limitação do adapter Twilio versionado no repositório (`EXTERNAL_PROVIDER_CAPABILITY_BEYOND_CURRENT_ADAPTER = NOT VERIFIED`) |
@@ -551,7 +559,7 @@ NEW_COORDINATOR_REQUIRED = NO
 
 ## 20. Redução do Próximo Passo de Implementação (Next Allowed Step Reduction)
 
-Devido aos múltiplos bloqueadores não resolvidos de runtime (`SECURITY_RUNTIME_ACTION`, `POST_DISPATCH_BARGE_IN`, `AUXILIARY_CALL_OWNERSHIP`), **NÃO É AUTORIZADA** a fiação simultânea do orquestrador com o interpretador.
+Devido aos múltiplos bloqueadores não resolvidos de runtime (`SECURITY_RUNTIME_ROUTING_INTEGRATION`, `POST_DISPATCH_BARGE_IN`, `AUXILIARY_CALL_OWNERSHIP`), **NÃO É AUTORIZADA** a fiação simultânea do orquestrador com o interpretador.
 
 ```
 NEXT_ALLOWED_STEP:
@@ -561,7 +569,7 @@ exclusivamente de testes unitarios focados e isolados (sem wiring no orquestrado
 
 ### Motivos da Redução de Escopo
 
-1. `SECURITY_RUNTIME_ACTION` permanece `UNDECIDED` e requer desenho/testes próprios.
+1. `SECURITY_RUNTIME_ROUTING_INTEGRATION` e delivery permanecem `NOT IMPLEMENTED` (ação offline `SECURITY_BLOCKED` está `IMPLEMENTED / TESTED LOCALLY`).
 2. `POST_DISPATCH_BARGE_IN` não possui suporte de cancelamento no transport versionado.
 3. A semântica de completude de histórico após `speak` não é comprovadamente segura.
 4. O ownership de chamadas auxiliares não impede dupla consulta se o shadow observer coexistir.
