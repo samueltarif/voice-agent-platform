@@ -4,14 +4,14 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-01
-CONTEXT_BASE_MAIN_SHA: bbeba8ec4ead2a9339f59c09853dfed78a27cc28
+CONTEXT_BASE_MAIN_SHA: 01ced69224cec652942174e45017124911066686
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
-CURRENT_SLICE: TypeSafe Synthetic Live Provider Smoke
-CONTEXT_UPDATE_BRANCH: research/006q-typesafe-live-synthetic-smoke
-CONTEXT_UPDATE_PR: 44
-LAST_MERGED_PR_AT_REFRESH: 43
-LAST_MERGE_SHA_AT_REFRESH: bbeba8ec4ead2a9339f59c09853dfed78a27cc28
-LAST_TESTED_CODE_SHA: 253cf92db2421e02b8cdee7002acd9c78e2f5897
+CURRENT_SLICE: Controlled Staging-Only TypeSafe SHADOW Composition
+CONTEXT_UPDATE_BRANCH: feat/006r-typesafe-staging-shadow-composition
+CONTEXT_UPDATE_PR: 45
+LAST_MERGED_PR_AT_REFRESH: 44
+LAST_MERGE_SHA_AT_REFRESH: 01ced69224cec652942174e45017124911066686
+LAST_TESTED_CODE_SHA: efb52b4e4a780a68b08d25d7e2e492ace6fff375
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
 AI_CONTEXT_HEADER_END
@@ -30,13 +30,13 @@ AI_CONTEXT_HEADER_END
 | :--- | :--- | :--- |
 | **Web** | `PARTIAL` | `apps/web` (Next.js 15.5; Dashboard, Settings, Agent Studio Draft Editor; UI 005D incompleta) |
 | **API** | `IMPLEMENTED` | `apps/api` (Fastify/Node, rotas de drafts, lifecycle, auth interna com service token) |
-| **Voice** | `PARTIAL` | `apps/voice` (Orquestrador, streaming OpenAI; AuxiliaryTurnShadowObserver integrado non-blocking; fiação em runtime: NÃO; chamadas shadow live: NÃO) |
+| **Voice** | `PARTIAL` | `apps/voice` (Orquestrador, streaming OpenAI; AuxiliaryTurnShadowObserver integrado non-blocking; fiação em runtime de produção: NÃO; chamadas shadow live: NÃO) |
 | **Worker** | `IMPLEMENTED` | `apps/worker` (Fundação de background tasks, processamento de filas assíncronas) |
 | **Database** | `IMPLEMENTED` | `packages/database` (PostgreSQL 16, Drizzle ORM, multi-tenancy, schemas comerciais e de auditoria) |
 | **Agent Studio** | `PARTIAL` | 005B (DB/contracts): `IMPLEMENTED / STAGING VALIDATED`; 005C (API): `IMPLEMENTED / NEON STAGING VALIDATED`; 005D (Web UI): `PARTIAL` (rascunhos existem em `apps/web/src/features/agents/`, fluxo completo não concluído) |
 | **OpenAI** | `IMPLEMENTED` | `packages/integrations/src/openai` (Adapter de modelo de conversa, baselines sintéticos) |
 | **Twilio** | `PARTIAL` | `packages/integrations/src/twilio` (ConversationRelay adapter; tráfego telefônico real `PROVIDER-UNVERIFIED`) |
-| **TypeSafe / Jev** | `PARTIAL` | `packages/integrations/src/typesafe` (Adapter implementado; LIVE PROVIDER RESPONSE OBSERVED; fiação em runtime: NÃO; live shadow: NÃO) |
+| **TypeSafe / Jev** | `PARTIAL` | `packages/integrations/src/typesafe` (Adapter implementado; LIVE PROVIDER RESPONSE OBSERVED; staging synthetic composition: IMPLEMENTED / TESTED LOCALLY; staging live shadow: NOT EXECUTED; fiação em produção: NÃO) |
 | **Human Handoff** | `DESIGN ONLY` | Especificado em `docs/ROADMAP.md` e `docs/VOICE_ARCHITECTURE.md` |
 | **Knowledge Base** | `DESIGN ONLY` | Arquitetura preliminar; implementação de retrieval postergada para fase posterior |
 | **Billing** | `PARTIAL` | Schemas de quotas, planos e entitlements em banco; adapter Stripe não iniciado |
@@ -49,7 +49,10 @@ AI_CONTEXT_HEADER_END
 - **AuxiliaryTurnDecisionPort**: `IMPLEMENTED` (`packages/contracts/src/voice/auxiliary-turn-decision-contracts.ts`).
 - **AuxiliaryTurnShadowObserver**: `IMPLEMENTED` (`apps/voice/src/auxiliary-turn-shadow-observer.ts`).
 - **TypeSafeJevTurnDecisionAdapter**: `IMPLEMENTED (LIVE PROVIDER RESPONSE OBSERVED)` (`packages/integrations/src/typesafe/typesafe-jev-turn-decision-adapter.ts`).
-- **ADAPTER_RUNTIME_WIRED**: `NO` (zero injeções em composition roots de produção).
+- **STAGING_SYNTHETIC_SHADOW_COMPOSITION**: `IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/composition-root.staging-shadow.ts`).
+- **STAGING_SHADOW_MAX_CONCURRENCY**: `1` (teto seguro temporário de concorrência para staging sintético).
+- **STAGING_SHADOW_TIMEOUT_MS**: `1500` (timeout seguro temporário para staging sintético).
+- **PRODUCTION_RUNTIME_WIRING**: `NO` (zero injeções em composition roots de produção).
 - **SHADOW_LIVE_ENABLED**: `NO` (zero chamadas a provedor externo em runtime).
 - **DEFAULT_AUXILIARY_FEATURE_MODE**: `DISABLED`.
 - **ACTIVE_GUARDED**: `BLOCKED` (fail-closed, inalcançável no runtime por design).
@@ -57,8 +60,8 @@ AI_CONTEXT_HEADER_END
 - **ACTIVE_DETERMINISTIC_BYPASS_READINESS**: `BLOCKED` (invariante: `NO_KNOWN_DETERMINISTIC_HANDLER -> NO_DETERMINISTIC_BYPASS`).
 - **CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE**: `NOT CLEARED`.
 - **CUSTOMER_TRAFFIC**: `PROHIBITED`.
-- **SHADOW_MAX_CONCURRENCY_OPERATIONAL**: `NOT SELECTED`.
-- **JEV_TIMEOUT_MS**: `NOT SELECTED`.
+- **PRODUCTION_SHADOW_MAX_CONCURRENCY**: `NOT SELECTED`.
+- **PRODUCTION_JEV_TIMEOUT_MS**: `NOT SELECTED`.
 
 ---
 
@@ -108,10 +111,10 @@ AI_CONTEXT_HEADER_END
 
 ## 6. Estado Atual da Evidência de Qualidade (Quality Gate Snapshot)
 
-- **Último `pnpm check` Global**: `PASS` (executado e observado em `253cf92db2421e02b8cdee7002acd9c78e2f5897`).
-- **Status das Asserções**: `574 passed`, `45 historical skips`, `0 new skips`, `0 failures`.
-- **Regressão de Asserções**: `ASSERTION_WEAKER = 0`.
-- **QUALITY_EVIDENCE_STALE**: `NO` (commits subsequentes estritamente documentais em `docs/` e `AGENTS.md`).
+- **Último `pnpm check` Global**: `PASS` (executado e observado no commit `efb52b4e4a780a68b08d25d7e2e492ace6fff375`).
+- **Status das Asserções**: `586 passed`, `45 historical skips`, `0 new skips`, `0 failures` (103 arquivos de teste aprovados, 6 skipped de staging).
+- **Regressão de Asserções**: `ASSERTION_WEAKER = 0` (12 novos testes adicionados: `ASSERTION_STRONGER: 12`).
+- **QUALITY_EVIDENCE_STALE**: `NO` (commits subsequentes estritamente documentais em `docs/`).
 
 ---
 
@@ -119,15 +122,16 @@ AI_CONTEXT_HEADER_END
 
 1. `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`: Transmissão de transcrições de clientes para provedores externos proibida.
 2. `KNOWN_DETERMINISTIC_HANDLERS = 0` (`ACTIVE_DETERMINISTIC_BYPASS_READINESS = BLOCKED`).
-3. `SHADOW_MAX_CONCURRENCY_OPERATIONAL = NOT SELECTED`: Limite de concorrência operacional não definido.
-4. `JEV_TIMEOUT_MS = NOT SELECTED`: Timeout de chamada operacional não definido.
+3. `PRODUCTION_SHADOW_MAX_CONCURRENCY = NOT SELECTED`: Limite de concorrência operacional de produção não definido.
+4. `PRODUCTION_JEV_TIMEOUT_MS = NOT SELECTED`: Timeout operacional de produção não definido.
+5. `STAGING_LIVE_SHADOW_EXECUTION = NOT EXECUTED`: Execução de live shadow em staging controlado com provedor real ainda não executada nesta composição.
 
 ---
 
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- Design e implementação de fiação de composição controlada para modo SHADOW exclusiva de Staging com limites operacionais explícitos de segurança, tráfego sintético apenas, sem tráfego de cliente, sem OpenAI, sem Twilio, sem fiação em produção e sem `ACTIVE_GUARDED`.
+- Uma execução controlada e separadamente autorizada de TypeSafe SHADOW em staging sintético utilizando a nova composição (`apps/voice/src/composition-root.staging-shadow.ts`), com limite explícito de requisições (`TYPESAFE_LIVE_REQUESTS_MAX = 1`), teto orçamentário (`BUDGET_CAP_USD = 0.01`), sem tráfego de clientes, sem Twilio, sem fiação em produção e sem `ACTIVE_GUARDED`.
 
 ### `NOT_YET_ALLOWED`:
 - Transmissão de dados reais de clientes para provedores externos.
