@@ -8,6 +8,8 @@ A bateria consistiu em exatamente **1 invocação de comando runner** executando
 
 Todas as 12 requisições obtiveram resposta válida do provedor sob o deadline de medição de 4000ms. A latência observada variou entre **249ms e 450ms**, com **mediana de 275ms**, resultando em **taxa de conclusão de 100% sob 1500ms** e **zero timeouts**.
 
+Com base nos resultados desta amostra exploratória (N=12), formaliza-se a decisão humana de manter o timeout nominal de staging-synthetic em 1500ms (`STAGING_TIMEOUT_DECISION = KEEP_1500MS_FOR_STAGING_SYNTHETIC`).
+
 ---
 
 ## 2. Invariantes de Governança, Segurança e Limites Operacionais
@@ -25,8 +27,8 @@ Todas as 12 requisições obtiveram resposta válida do provedor sob o deadline 
   - `ACTUAL_BILLED_REQUEST_COUNT`: `NOT VERIFIED` (consulta a API de faturamento desautorizada)
   - `ACTUAL_BILLED_COST_USD`: `NOT VERIFIED`
 - **Env / Segredos**:
-  - `.env loaded`: `YES` (via `node --env-file=.env` exclusivo no runner)
-  - `TYPESAFE_API_KEY_PRESENT`: `true` (validação puramente booleana; nenhuma chave ou header exposto)
+  - `.env loaded`: `YES` durante a execução única do runner em 006U; `NO` em prompts posteriores.
+  - `TYPESAFE_API_KEY_PRESENT`: `true` (validação puramente booleana; nenhuma chave ou header exposto).
 
 ---
 
@@ -38,7 +40,7 @@ createStagingSyntheticShadowComposition (options: timeoutMs=4000, maxConcurrency
   └── AuxiliaryTurnShadowObserver (mode: 'SHADOW')
         └── TimedAuxiliaryTurnDecisionPort (timeoutMs: 4000)
               └── TypeSafeJevTurnDecisionAdapter
-                    └── TypeSafe Provider (HTTP POST https://api.typesafe.ai/v1/turn-decisions)
+                    └── TypeSafe Provider (HTTP POST https://api.typesafe.ai/v1/systemone)
 ```
 
 Nenhum adapter ou porta foi invocado diretamente como atalho ou substituto da composição.
@@ -52,10 +54,13 @@ Nenhum adapter ou porta foi invocado diretamente como atalho ou substituto da co
 - **Runner Invocations**: `1` (`RUNNER_COMMAND_INVOCATIONS_MAX = 1`)
 - **Comando Executado**: `node --env-file=.env ./node_modules/vitest/vitest.mjs run apps/voice/src/tmp-006u-staging-latency-runner.test.ts`
 - **Measurement Deadline**: `4000ms` (`MEASUREMENT_ONLY_DEADLINE = 4000ms`)
-- **Staging Operational Timeout**: `1500ms` (`STAGING_SHADOW_TIMEOUT_MS = 1500` inalterado)
+- **Staging Operational Timeout**: `1500ms` (`STAGING_SHADOW_TIMEOUT_MS = 1500` mantido)
 - **Stop Condition Disparada**: `NONE` (todos os 12 casos completados sem erro)
 - **Modo de Concorrência**: Sequencial estrito (`concurrency = 1`), sem paralelismo ou filas.
 - **Retry**: `0` (adapter retry = 0, observer retry = 0, composition retry = 0).
+- **Evidência de Output Bruto**:
+  - `RAW_RUNNER_OUTPUT_OBSERVED_DURING_006U`: `YES`
+  - `STRUCTURED_RESULT_ARTIFACT`: `OBSERVED / VERSIONED`
 
 ---
 
@@ -94,10 +99,10 @@ Nenhum adapter ou porta foi invocado diretamente como atalho ou substituto da co
 | `completionRateUnderMeasurementDeadline` | 100.0% | Taxa de sucesso sob 4000ms |
 | `completionRateUnder1500Ms` | 100.0% | Taxa de sucesso sob o timeout nominal de 1500ms |
 | `minLatencyMs` | 249 ms | Caso mais rápido (`case-lat-010`, LONGER) |
-| `medianLatencyMs` | 275 ms | Indicador central da distribuição |
-| `p90ExploratoryMs` | 311 ms | Indicador de cauda exploratório (não-SLA) |
-| `p95ExploratoryMs` | 450 ms | Indicador de cauda exploratório (influenciado pelo cold start inicial) |
-| `maxLatencyMs` | 450 ms | Primeira requisição (`case-lat-001`, cold start / handshake TLS inicial) |
+| `medianLatencyMs` | 275 ms | Indicador central da distribuição (amostra exploratória N=12) |
+| `p90ExploratoryMs` | 311 ms | Indicador de cauda exploratório (amostra N=12; NÃO é SLA; NÃO é estimativa de cauda populacional) |
+| `p95ExploratoryMs` | 450 ms | Indicador de cauda exploratório (amostra N=12; NÃO é SLA; NÃO é estimativa de cauda populacional) |
+| `maxLatencyMs` | 450 ms | Primeira requisição (`case-lat-001`, SHORT; causa da maior latência = `NOT VERIFIED`) |
 | `errorCount` | 0 | Zero erros HTTP, zero falhas de rede, zero erros de schema |
 
 ---
@@ -105,38 +110,59 @@ Nenhum adapter ou porta foi invocado diretamente como atalho ou substituto da co
 ## 7. Análise de Dispersão e Sensibilidade ao Tamanho
 
 - **SHORT (30 a 36 chars)**:
-  - Latências: `450ms` (cold start inicial), `285ms`, `257ms`, `293ms`.
-  - Mediana SHORT (excluindo cold start): ~285ms.
+  - Latências: `450ms`, `285ms`, `257ms`, `293ms`.
+  - `case-lat-001` foi a primeira e mais lenta requisição observada (450ms); a causa técnica da latência mais alta na primeira chamada permanece `NOT VERIFIED` (nenhuma atribuição causal a cold start ou handshake TLS foi comprovada separadamente).
 - **MEDIUM (95 a 110 chars)**:
   - Latências: `273ms`, `263ms`, `294ms`, `277ms`.
-  - Variação muito estreita (amplitude de apenas 31ms).
+  - Distribuição com variação estreita na amostra.
 - **LONGER (218 a 259 chars)**:
   - Latências: `257ms`, `249ms`, `311ms`, `253ms`.
-  - Nenhuma degradação de latência observada em relação aos prompts mais curtos; a requisição mais rápida de toda a bateria (249ms) ocorreu na classe LONGER.
-- **Conclusão Técnica**:
-  Na faixa testada (30 a 259 caracteres), a latência do TypeSafe AI é dominada pelo RTT de rede e inferência básica (~250-300ms), sem sensibilidade mensurável ao comprimento do prompt de entrada.
+  - A requisição mais rápida observada (249ms) ocorreu nesta classe.
+- **Qualificação Metodológica de Sensibilidade**:
+  - A latência observada de composição end-to-end concentrou-se majoritariamente entre ~250ms e 300ms nesta amostra, com uma única observação de primeira chamada a 450ms.
+  - Within this exploratory N=12 sample, no monotonic or obvious latency degradation with input length was observed across the tested 30-259 character range.
+  - `NO_POPULATION_LENGTH_EFFECT_CLAIM`: `YES`.
+  - `NO_STATISTICAL_CAUSAL_INFERENCE`: `YES`.
 
 ---
 
-## 8. Aplicação das Heurísticas de Decisão
+## 8. Decisão Humana de Timeout para Staging Sintético
 
-Com base nas regras aprovadas na Seção 11 de `PHASE_6_TYPESAFE_STAGING_LATENCY_PLAN.md`:
+Com base na autorização formal do operador humano:
 
-- **Heurística `KEEP_1500MS`**:
-  - Condição: `completionRateUnder1500Ms >= 90%` E `medianLatencyMs < 1100 ms`.
-  - Fatos Observados: `completionRateUnder1500Ms = 100.0%` e `medianLatencyMs = 275 ms`.
-  - **Classificação**: `HEURISTIC_TRIGGERED = KEEP_1500MS`.
-
-### Status Formal da Recalibração de Timeout:
-- `STAGING_TIMEOUT_RECALIBRATION`: `NOT DECIDED` (permanece como classificação factual para deliberação humana; o timeout operacional não é alterado de forma autônoma).
-- `STAGING_SHADOW_TIMEOUT_MS`: `1500` (mantido inalterado).
-- `PRODUCTION_JEV_TIMEOUT_MS`: `NOT SELECTED`.
-- `PRODUCTION_SHADOW_MAX_CONCURRENCY`: `NOT SELECTED`.
+- **Decisão Formal**: `STAGING_TIMEOUT_DECISION = KEEP_1500MS_FOR_STAGING_SYNTHETIC`.
+- **Base Factual**:
+  - 12 de 12 requisições completadas sob 1500ms (100.0%).
+  - Mediana observada de 275ms, muito inferior ao teto de 1500ms.
+  - Latência máxima observada de 450ms, bem abaixo do teto de 1500ms.
+  - 0 timeouts observados neste experimento N=12.
+- **Qualificações Obrigatórias**:
+  - `EXPLORATORY_STAGING_DECISION`: Decisão exclusiva para ambiente staging-synthetic.
+  - `NOT production SLA`: Não constitui SLA de produção.
+  - `NOT customer traffic validation`: Não valida tráfego de clientes.
+  - `NOT production timeout selection`: Não seleciona parâmetros operacionais de produção.
+- **Status Operacional dos Parâmetros**:
+  - `STAGING_SHADOW_TIMEOUT_MS`: `1500` (mantido).
+  - `STAGING_TIMEOUT_RECALIBRATION`: `DECIDED_KEEP_1500MS_FOR_STAGING_SYNTHETIC`.
+  - `PRODUCTION_JEV_TIMEOUT_MS`: `NOT SELECTED`.
+  - `PRODUCTION_SHADOW_MAX_CONCURRENCY`: `NOT SELECTED`.
+  - `PRODUCTION_RUNTIME_WIRING`: `NO`.
+  - `SHADOW_LIVE_ENABLED`: `NO in nominal runtime`.
+  - `ACTIVE_GUARDED`: `BLOCKED`.
+  - `KNOWN_DETERMINISTIC_HANDLERS`: `0`.
+  - `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE`: `NOT CLEARED`.
+  - `CUSTOMER_TRAFFIC`: `PROHIBITED`.
 
 ---
 
-## 9. Próximos Passos Permitidos
+## 9. Conclusão & Próximos Passos Permitidos
 
-1. Submeter este relatório e o artefato estruturado `docs/research/results/phase-6-staging-shadow-latency-evidence.json` para revisão humana.
-2. Comprovar que o timeout operacional de 1500ms em staging é viável para tráfego sintético sob condições normais de conectividade.
-3. Não promover automaticamente para produção nem alterar `ACTIVE_GUARDED = BLOCKED`.
+- **Conclusão Factual**:
+  1. 12/12 casos completados com sucesso nesta amostra sintética controlada de staging;
+  2. Todos os tempos observados de conclusão ficaram abaixo de 1500ms;
+  3. O timeout atual de staging-synthetic permanece em 1500ms (`KEEP_1500MS_FOR_STAGING_SYNTHETIC`);
+  4. Nenhum claim de produção é derivado deste experimento.
+
+- **Próximos Passos Permitidos**:
+  - Manter `ACTIVE_GUARDED = BLOCKED` e runtime nominal com zero chamadas a provedores externos;
+  - Derivar próximos passos a partir dos bloqueios remanescentes da Fase 6 (handlers determinísticos, governança de transcrições e gates de produção).

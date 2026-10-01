@@ -9858,3 +9858,58 @@ Este fechamento retifica a formulação epistemológica da base de evidência da
 
 ### 7. Próximo Passo Permitido
 - `NEXT_ALLOWED_STEP`: Revisão humana do relatório de latência `docs/research/PHASE_6_TYPESAFE_STAGING_LATENCY_RESULT.md` e do artefato de evidência para decisão formal sobre timeout operacional e planejamento de etapas subsequentes de maturidade.
+
+---
+
+## 2026-10-01 — PROMPT-006U-PR48-EVIDENCE-PRECISION-AND-MERGE-001
+
+### 1. Context Bootstrap & Preflight
+- **Objetivo**: Corrigir imprecisões factuais/metodológicas do relatório de latência do PR #48, registrar a decisão humana de manter 1500ms como timeout nominal de staging-synthetic (`STAGING_TIMEOUT_DECISION = KEEP_1500MS_FOR_STAGING_SYNTHETIC`), e realizar uma tentativa controlada de merge via GitHub MCP.
+- **Base Main SHA**: `42fed6e8eba88275536b0b3ed8a5d29126c6ced8`.
+- **Branch**: `research/006u-typesafe-staging-latency-execution`.
+- **PR**: #48 (`OPEN`).
+- **Head SHA Inicial**: `cf44fabc43650cbcb7857278b950073d9dbc7cb9`.
+
+### 2. Auditoria e Correções de Precisão de Evidência
+- **Auditoria de Endpoint**: Auditado o código-fonte em `packages/integrations/src/typesafe/typesafe-jev-turn-decision-adapter.ts` (linha 9: `DEFAULT_TYPESAFE_ENDPOINT = 'https://api.typesafe.ai/v1/systemone'`). Corrigida a referência incorreta `/v1/turn-decisions` para `/v1/systemone` no diagrama do relatório de latência.
+- **Remoção de Atribuições Causais Não Comprovadas**:
+  - `unsupported cold-start attribution removed`: `YES` (`case-lat-001` registrado apenas como primeira e mais lenta chamada a 450ms; causa = `NOT VERIFIED`).
+  - `unsupported TLS attribution removed`: `YES`.
+  - `RTT/inference causal attribution removed`: `YES` (substituído por descrição factual de que as latências se concentraram em ~250-300ms nesta amostra).
+- **Qualificação de Sensibilidade ao Comprimento**:
+  - `length effect claim qualified`: `YES` ("Within this exploratory N=12 sample, no monotonic or obvious latency degradation with input length was observed across the tested 30-259 character range").
+  - `NO_POPULATION_LENGTH_EFFECT_CLAIM`: `YES`.
+  - `NO_STATISTICAL_CAUSAL_INFERENCE`: `YES`.
+- **Qualificação da Amostra & Percentis**:
+  - `sample size`: `12 exploratory` (`NOT SLA`, `NOT population tail estimate`).
+  - `p95 exploratory (450ms)`: Mantido como indicador meramente amostral sem explicação causal especulativa.
+- **Evidência de Output Bruto**:
+  - `RAW_RUNNER_OUTPUT_OBSERVED_DURING_006U`: `YES`.
+  - `STRUCTURED_RESULT_ARTIFACT`: `OBSERVED / VERSIONED`.
+
+### 3. Decisão Humana de Timeout para Staging Sintético
+- **Decisão Formal**: `STAGING_TIMEOUT_DECISION = KEEP_1500MS_FOR_STAGING_SYNTHETIC`.
+- **Base Factual**: 12/12 requisições completadas <=1500ms (100.0%), mediana de 275ms, máx de 450ms, 0 timeouts observados.
+- **Qualificação**: `EXPLORATORY_STAGING_DECISION` (`NOT production SLA`, `NOT customer traffic validation`, `NOT production timeout selection`).
+- **Status dos Parâmetros**:
+  - `STAGING_SHADOW_TIMEOUT_MS`: `1500` (mantido inalterado).
+  - `STAGING_TIMEOUT_RECALIBRATION`: `DECIDED_KEEP_1500MS_FOR_STAGING_SYNTHETIC`.
+  - `PRODUCTION_JEV_TIMEOUT_MS`: `NOT SELECTED`.
+  - `PRODUCTION_SHADOW_MAX_CONCURRENCY`: `NOT SELECTED`.
+  - `PRODUCTION_RUNTIME_WIRING`: `NO`.
+  - `SHADOW_LIVE_ENABLED`: `NO in nominal runtime`.
+  - `ACTIVE_GUARDED`: `BLOCKED`.
+  - `KNOWN_DETERMINISTIC_HANDLERS`: `0`.
+  - `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE`: `NOT CLEARED`.
+  - `CUSTOMER_TRAFFIC`: `PROHIBITED`.
+
+### 4. Governança e Fronteiras neste Prompt
+- **Chamadas Reais a Provedores**: TypeSafe `0`, OpenAI `0`, Twilio `0`.
+- **Carga de `.env`**: `NO` (`ENV_LOADED = NO`).
+- **Holdout de Pesquisa**: `TOUCHED = NO` (`LOCKED_HOLDOUT = CONSUMED` mantido).
+- **Dados de Clientes**: `NO` (`CUSTOMER_TRAFFIC = PROHIBITED`).
+- **Alterações de Código / Teste / Config**: `0` (estritamente documental).
+- **Desvios de Processo**: `NONE`.
+
+### 5. Próximo Passo Permitido
+- `NEXT_ALLOWED_STEP`: Derivar a partir dos bloqueios remanescentes da Fase 6 (design de handlers determinísticos, governança de privacidade de transcrições e parâmetros de produção), sem ativar produção, tráfego de clientes ou ACTIVE_GUARDED.

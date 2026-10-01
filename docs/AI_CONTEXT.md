@@ -52,8 +52,8 @@ AI_CONTEXT_HEADER_END
 - **STAGING_SYNTHETIC_SHADOW_COMPOSITION**: `IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/composition-root.staging-shadow.ts`).
 - **STAGING_LIVE_SHADOW_EXECUTION**: `EXECUTED (OBSERVED / TIMEOUT)` (disparo de timeout temporário de 1500ms em execução inicial).
 - **STAGING_LATENCY_PLAN**: `DESIGNED` (`docs/research/PHASE_6_TYPESAFE_STAGING_LATENCY_PLAN.md`).
-- **STAGING_LATENCY_EXECUTION**: `OBSERVED / 100% COMPLETED UNDER 1500MS` (N=12 casos sintéticos; completion rate 4000ms = 100.0%; completion rate 1500ms = 100.0%; median = 275ms; p90 = 311ms; p95 = 450ms; timeouts = 0; wouldHaveTimedOutUnder1500Ms = 0; measurement deadline = 4000ms; nominal staging timeout = 1500ms unchanged; heurística disparada: `KEEP_1500MS`).
-- **STAGING_TIMEOUT_RECALIBRATION**: `NOT DECIDED` (aguarda deliberação humana).
+- **STAGING_LATENCY_EXECUTION**: `OBSERVED / 12 OF 12 COMPLETED UNDER 1500MS` (N=12 casos sintéticos; completion rate 4000ms = 100.0%; completion rate 1500ms = 100.0%; median = 275ms; p90 = 311ms; p95 = 450ms; timeouts = 0; wouldHaveTimedOutUnder1500Ms = 0; measurement deadline = 4000ms; nominal staging timeout = 1500ms unchanged; heurística disparada: `KEEP_1500MS`).
+- **STAGING_TIMEOUT_RECALIBRATION**: `DECIDED_KEEP_1500MS_FOR_STAGING_SYNTHETIC` (decisão humana formalizada após 100% de conclusão sob 1500ms em amostra N=12).
 - **STAGING_SHADOW_MAX_CONCURRENCY**: `1` (teto seguro temporário de concorrência para staging sintético).
 - **STAGING_SHADOW_TIMEOUT_MS**: `1500` (timeout operacional nominal para staging sintético mantido inalterado).
 - **PRODUCTION_RUNTIME_WIRING**: `NO` (zero injeções em composition roots de produção).
@@ -128,14 +128,14 @@ AI_CONTEXT_HEADER_END
 2. `KNOWN_DETERMINISTIC_HANDLERS = 0` (`ACTIVE_DETERMINISTIC_BYPASS_READINESS = BLOCKED`).
 3. `PRODUCTION_SHADOW_MAX_CONCURRENCY = NOT SELECTED`: Limite de concorrência operacional de produção não definido.
 4. `PRODUCTION_JEV_TIMEOUT_MS = NOT SELECTED`: Timeout operacional de produção não definido.
-5. `STAGING_LATENCY_EVIDENCE = OBSERVED`: Medição de latência executada e observada com 100% de sucesso sob 1500ms (N=12; mediana 275ms; p90 311ms; 0 timeouts); requer revisão humana do relatório e decisão formal sobre confirmação do timeout (`STAGING_TIMEOUT_RECALIBRATION = NOT DECIDED`).
+5. `PRODUCTION_RUNTIME_WIRING = NO`: Fiação de runtime em produção desautorizada.
 
 ---
 
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- Human review of latency measurement report `docs/research/PHASE_6_TYPESAFE_STAGING_LATENCY_RESULT.md` and evidence artifact `docs/research/results/phase-6-staging-shadow-latency-evidence.json` to decide on staging timeout calibration and next architectural steps.
+- Derive from remaining Phase 6 blockers (deterministic handlers design, transcript privacy governance, production operational parameters), without enabling production/customer traffic/ACTIVE_GUARDED.
 
 ### `NOT_YET_ALLOWED`:
 - Transmissão de dados reais de clientes para provedores externos.
