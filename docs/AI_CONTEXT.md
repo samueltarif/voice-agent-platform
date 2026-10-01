@@ -11,7 +11,7 @@ CONTEXT_UPDATE_BRANCH: feat/006y-frozen-policy-interpreter
 CONTEXT_UPDATE_PR: 52
 LAST_MERGED_PR_AT_REFRESH: 51
 LAST_MERGE_SHA_AT_REFRESH: 27a7b2450574bac73bb15b7691676cdee8a1b460
-LAST_TESTED_CODE_SHA: 5d830456fc25c0126683817fc3b428ffca058627
+LAST_TESTED_CODE_SHA: f8945399b3ab4274a19307991d994c261f5ed9ac
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
 AI_CONTEXT_HEADER_END
@@ -131,7 +131,7 @@ AI_CONTEXT_HEADER_END
 
 ## 6. Estado Atual da Evidência de Qualidade (Quality Gate Snapshot)
 
-- **Último `pnpm check` Global**: `PASS` (executado e observado no commit `5d830456fc25c0126683817fc3b428ffca058627`).
+- **Último `pnpm check` Global**: `PASS` (executado e observado no commit `f8945399b3ab4274a19307991d994c261f5ed9ac`).
 - **Status das Asserções**: `679 passed`, `45 historical skips`, `0 new skips`, `0 failures` (106 arquivos de teste aprovados, 6 skipped de staging).
 - **Regressão de Asserções**: `ASSERTION_WEAKER = 0` (20 novos testes adicionados: `ASSERTION_STRONGER: 20`).
 - **QUALITY_EVIDENCE_STALE**: `NO` (commits subsequentes estritamente documentais em `docs/`).
