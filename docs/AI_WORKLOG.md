@@ -9460,5 +9460,12 @@ Este fechamento retifica a formulação epistemológica da base de evidência da
   - Chamadas reais Twilio: 0.
   - Carga de `.env`: Nenhuma (`ENV_LOADED = NO`).
 
-### 6. Próximo Passo Permitido
+### 6. Pull Request & Estado do HEAD
+- **PR Criado via GitHub MCP**: #45 (`feat: add staging-only TypeSafe shadow composition`).
+- **Estado do PR**: `OPEN / NOT MERGED` (aguardando revisão humana; merge automatizado expressamente proibido).
+- **Branch**: `feat/006r-typesafe-staging-shadow-composition`.
+- **Base `main`**: `01ced69224cec652942174e45017124911066686`.
+- **Auditoria de Segredos no Tracked Diff**: `SECRET_AUDIT_PASS` (estritamente booleano, value-blind).
+
+### 7. Próximo Passo Permitido
 - `NEXT_ALLOWED_STEP`: Uma execução controlada e separadamente autorizada de TypeSafe SHADOW em staging sintético utilizando a nova composição (`apps/voice/src/composition-root.staging-shadow.ts`), com limite explícito de requisições (`TYPESAFE_LIVE_REQUESTS_MAX = 1`), teto orçamentário (`BUDGET_CAP_USD = 0.01`), sem tráfego de clientes, sem Twilio, sem fiação em produção e sem `ACTIVE_GUARDED`.
