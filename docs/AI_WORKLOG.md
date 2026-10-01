@@ -10677,3 +10677,60 @@ Auditadas 10 categorias factuais no split de calibração:
 
 ### 6. Próximo Passo
 - `NEXT_ALLOWED_STEP`: Minimal offline SECURITY_BLOCKED action implementation with focused tests only, without transport/history/orchestrator wiring.
+
+---
+
+## 2026-10-01 - PROMPT-006Z1-PR53-POSTMERGE-EVIDENCE-AND-DEVIATION-RECONCILIATION-001
+
+- **Data**: 2026-10-01
+- **Tipo**: DOCS / AUDIT ONLY (PR #53 Post-Merge Evidence & Deviation Reconciliation)
+- **Branch**: `docs/006z1-pr53-postmerge-evidence-reconciliation`
+- **Base main SHA**: `d53ebe7e7e4d2e96f97e7e92fec28ee3b13f8c59`
+- **PR #53 Merge SHA**: `d53ebe7e7e4d2e96f97e7e92fec28ee3b13f8c59`
+
+### 1. Registro de Desvio de Execução (Execution Control Deviation)
+- `PROCESS_DEVIATION` = `YES`
+- `CATEGORY` = `EXECUTION_CONTROL_DEVIATION`
+- `DEVIATION_DETAIL` = `merge_pull_request invoked twice despite single-attempt instruction`
+- `merge_pull_request invocation count observed` = `2`
+- `SECOND_MERGE_CALL_REASON` = `NOT VERIFIED` (proibido acessar storage interno/logs para reconstrução)
+- `PR53_MERGED` = `YES`
+- `CODE_CHANGED_DURING_DEVIATION` = `NO`
+- `TESTS_CHANGED_DURING_DEVIATION` = `NO`
+- `CONFIG_CHANGED_DURING_DEVIATION` = `NO`
+- `PROVIDER_CALLS` = `0`
+- `SECRET_EXPOSURE` = `NOT OBSERVED`
+- `CREDENTIAL_ROTATION_REQUIRED` = `NO`
+
+### 2. Reconciliação de Exposição ao Holdout e Proveniência
+- `COMBINED_CALIBRATION_HOLDOUT_DATASET_OPENED_IN_006Z` = `YES`
+- `holdout content exposure` = `OBSERVED`
+- `holdout lines displayed` = `YES` (casos v2-113 a v2-120 exibidos em output de viewer)
+- `holdout prompts used for semantic design` = `NOT OBSERVED`
+- `holdout used for tuning` = `NOT OBSERVED`
+- `holdout contamination for future unbiased evaluation` = `NOT APPLICABLE / ALREADY CONSUMED`
+- `taxonomy provenance` = `NOT FULLY VERIFIED` (categorias mantidas como design inputs conceituais)
+
+### 3. Reconciliação de Wording em Wiring Design
+- `stale SECURITY_ESCALATE wording reconciled` = `YES`
+  - Substituído `acao runtime UNDECIDED` e `AÇÃO UNDECIDED` por rota interna `SECURITY_BLOCKED` desenhada, implementação offline pendente e entrega user-facing não implementada.
+  - Matriz de testes de integração e seam de roteamento atualizados para consistência factual com PR #53.
+
+### 4. Status de Prontidão e Limites Operacionais
+- `SECURITY_RUNTIME_SEMANTICS` = `DESIGNED`
+- `SECURITY_OFFLINE_ACTION` = `NOT IMPLEMENTED`
+- `SECURITY_RUNTIME_ACTION_IMPLEMENTATION_REQUIRED` = `YES`
+- `SECURITY_RESPONSE_DELIVERY_READY` = `NO`
+- `SECURITY_HISTORY_PERSISTENCE_READY` = `NO`
+- `RUNTIME_DETERMINISTIC_BYPASS` = `NOT WIRED`
+- `ACTIVE_GUARDED` = `BLOCKED`
+- `PRODUCTION_RUNTIME_WIRING` = `NO`
+- `CUSTOMER_TRAFFIC` = `PROHIBITED`
+
+### 5. Governança e Alterações no Repositório
+- Provedores externos: TypeSafe `0`, OpenAI `0`, Twilio `0`
+- `ENV_LOADED` = `NO` | `DB_CONNECTION` = `NO` | `CUSTOMER_DATA` = `NO` | `FROZEN_POLICY_CHANGED` = `NO`
+- Alterações em código/testes/configs funcionais: `0` (estritamente DOCS / AUDIT ONLY).
+
+### 6. Próximo Passo Permitido
+- `NEXT_ALLOWED_STEP`: Minimal offline SECURITY_BLOCKED action implementation with focused tests only.
