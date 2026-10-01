@@ -9687,3 +9687,90 @@ Este fechamento retifica a formulação epistemológica da base de evidência da
 - **Alterações de Código / Teste / Config**: `0`.
 - **Quality Gate**: Docs-only slice (`git diff --check` + `pnpm format:check`).
 - **Auditoria de Segredos no Tracked Diff**: `SECRET_AUDIT_PASS`.
+
+## [2026-10-01] PROMPT-006T-TYPESAFE-STAGING-LATENCY-EVIDENCE-DESIGN-001: Phase 6 — TypeSafe Staging Latency Evidence Design
+
+### 1. Context Bootstrap & Preflight
+- **CONTEXT_BOOTSTRAP_STATUS**: `CURRENT_AFTER_SELF_MERGE`.
+- **Main SHA de Base**: `9a8e259bbd6f83072620deb18e4d910450e601a8` (commit de merge do PR #46).
+- **Branch de Trabalho**: `research/006t-typesafe-staging-latency-plan`.
+- **Escopo deste Prompt**: Estritamente documental e design-only (`DESIGN-ONLY: Provider calls = 0`).
+
+### 2. Inventário de Evidências Existentes & Invariante de Comparabilidade
+- **A. Calibration & Holdout Benchmark**: N=120, script direto isolado, mediana 255ms, p95 387ms (`SYNTHETIC DESIGN INPUT`; `NÃO COMPARÁVEL` com composição).
+- **B. Direct Adapter Live Smoke (PR #44)**: N=1 resposta observada, latência 415ms (`NÃO COMPARÁVEL` com composição).
+- **C. Staging Composition SHADOW Live (PR #46)**: N=1 timeout observado (1490ms sob teto de 1500ms; `EXATA` composição de staging).
+- **Invariante Formal de Comparabilidade**: `DIRECT_ADAPTER_LATENCY != STAGING_SHADOW_COMPOSITION_LATENCY`.
+
+### 3. Desenho Metodológico do Experimento Futuro
+- **Pergunta de Pesquisa**: *"Qual é a distribuição observada de latência e a taxa de conclusão das requisições ao TypeSafe Jev quando executadas através da composição real de staging-synthetic em modo SHADOW?"*
+- **Tamanho Amostral Proposto**: `N = 12` requisições sintéticas (4 SHORT, 4 MEDIUM, 4 LONGER), em PT-BR, com conteúdo neutro, sem PII, sem segredos e sem dados de clientes.
+- **Teto Rígido Futuro de Requisições**: `FUTURE_TYPESAFE_REQUESTS_MAX = 12` (1 despacho por caso, 0 retries internos).
+- **Guardião em Camadas**: Contador/sentinel persistente em disco (`scripts/tmp-006t-typesafe-counter.json`) + guardião de dispatch em memória + log individual por caso.
+- **Estratégia de Des-Censura**: Adoção de `MEASUREMENT_ONLY_DEADLINE = 4000ms` estritamente no harness temporário de teste, mantendo `STAGING_SHADOW_TIMEOUT_MS = 1500ms` nominal inalterado.
+- **Orçamento Teórico**: ~$0.00025 USD para 12 chamadas (base catálogo $0.042/1M tokens); `HARD_BUDGET_CAP = $0.01 USD`; `COST_ESTIMATE = NOT VERIFIED`.
+- **Regras de Decisão Futuras**: Mapeadas formalmente para `KEEP_1500MS`, `CONSIDER_HIGHER_STAGING_TIMEOUT`, `PROVIDER_LATENCY_RISK` e `MEASURE_MORE`.
+
+### 4. Disciplina YAGNI e Limites Arquiteturais
+- **CURRENT_REQUIREMENT**: Medir latência de 12 casos sintéticos através da composição de staging shadow.
+- **EXISTING_OPTION**: Factory `createStagingSyntheticShadowComposition` + harness Vitest efêmero.
+- **MINIMAL_OPTION**: Script temporário gravando relatório consolidado JSON em `docs/research/results/`.
+- **Infraestruturas Dispensadas**: Sem load test framework, sem tabelas em DB, sem queues, sem workers, sem novas dependências.
+- **Parâmetros de Produção**: `PRODUCTION_JEV_TIMEOUT_MS = NOT SELECTED`, `PRODUCTION_SHADOW_MAX_CONCURRENCY = NOT SELECTED`.
+
+### 5. Invariantes de Execução neste Prompt
+- **Chamadas Reais a Provedores**: TypeSafe `0`, OpenAI `0`, Twilio `0`.
+- **Carga de `.env`**: Nenhuma (`ENV_LOADED = NO`).
+- **Holdout de Pesquisa**: Intocado (`LOCKED_HOLDOUT = CONSUMED`).
+- **Tráfego de Clientes**: Proibido (`CUSTOMER_TRAFFIC = PROHIBITED`).
+- **Alterações de Código / Teste / Config**: `0` (estritamente documental).
+- **Quality Gate**: Docs-only slice (`git diff --check` + `pnpm format:check`).
+- **Auditoria de Segredos no Tracked Diff**: `SECRET_AUDIT_PASS`.
+
+### 6. Próximo Passo Permitido
+- `NEXT_ALLOWED_STEP`: Execução separadamente autorizada do plano de evidência de latência aprovado, somente após revisão humana (N=12 requisições MAX, BUDGET_CAP_USD = 0.01, zero tráfego de clientes, zero Twilio, zero fiação em produção e ACTIVE_GUARDED = BLOCKED).
+
+## [2026-10-01] PROMPT-006T-PR47-METHODOLOGY-HARDENING-AND-MERGE-001: PR #47 — Latency Evidence Plan Methodology Hardening
+
+### 1. Preflight & Metadados do PR
+- **CONTEXT_UPDATE_PR**: `47`.
+- **Branch de Trabalho**: `research/006t-typesafe-staging-latency-plan`.
+- **Main SHA de Base**: `9a8e259bbd6f83072620deb18e4d910450e601a8`.
+- **Escopo deste Prompt**: Estritamente documental e endurecimento metodológico antes do merge (`audit/docs-only`).
+
+### 2. Reconstrução Factual do Inventário de Latência
+- **A1. Calibração Phase A (`phase-6-jev-calibration-v2-phase-a-run1.json`)**: N=80 casos planejados/executados (160 requisições); latência `NOT RECORDED / NOT VERIFIED` no artefato versionado.
+- **A2. Locked Holdout (`phase-6-jev-locked-holdout-v2-run1.json` / AI_WORKLOG 006M / ADR-019)**: N=40 casos (40 requisições atômicas); `atomicLatencyMs` observada (min = 225ms, mediana = 255ms, max = 446ms, p95 = 387ms) calculada restritamente sobre N=40. `NÃO COMPARÁVEL` com composição SHADOW.
+- **B. Direct Adapter Live Smoke (PR #44 / 006Q)**: N=1 resposta válida observada (415ms), `AGGREGATE_REQUEST_COUNT = NOT VERIFIED`, `HARNESS_PROCESS_EXECUTIONS = 2`. `NÃO COMPARÁVEL` com composição SHADOW (`DIRECT_ADAPTER_LATENCY != STAGING_SHADOW_COMPOSITION_LATENCY`).
+- **C. Staging Composition SHADOW Live (PR #46 / 006S)**: N=1 execução observada (timeout em 1490ms sob teto de 1500ms; resposta remota completa `NOT OBSERVED`).
+
+### 3. Auditoria Factual do Código-Fonte & Override de Deadline
+- **Auditoria de `apps/voice/src/composition-root.staging-shadow.ts`**:
+  - `MEASUREMENT_DEADLINE_OVERRIDE_SUPPORTED`: `YES` (`StagingShadowCompositionOptions.timeoutMs` já existe e é tipado na linha 23; fábrica atribui `options.timeoutMs ?? STAGING_SHADOW_TIMEOUT_MS` na linha 130).
+  - `MEASUREMENT_ONLY_DEADLINE_IMPLEMENTATION_PREREQUISITE`: `NO` (capacidade já implementada no código existente de staging).
+  - `DESIRED_MEASUREMENT_DEADLINE`: `4000ms` (exclusivo para o harness temporário de medição; NÃO constitui novo timeout operacional de staging, timeout de produção ou SLA).
+  - `STAGING_SHADOW_TIMEOUT_MS`: `1500` (inalterado).
+  - `STAGING_TIMEOUT_RECALIBRATION`: `NOT DECIDED`.
+  - `PRODUCTION_JEV_TIMEOUT_MS`: `NOT SELECTED`.
+  - `PRODUCTION_SHADOW_MAX_CONCURRENCY`: `NOT SELECTED`.
+
+### 4. Endurecimento de Controles e Semântica de Execução Futura
+- **Teto Planejado**: `PLANNED_CASES_MAX = 12`.
+- **Execuções Reais**: `TOTAL_CASES_EXECUTED = NOT EXECUTED` (`0` neste slice).
+- **Teto Rígido Futuro de Requisições**: `FUTURE_TYPESAFE_REQUESTS_MAX = 12` (teto máximo autorizado, não alvo obrigatório; encerra imediatamente se stop condition disparar).
+- **Controle do Runner Futuro**: `RUNNER_COMMAND_INVOCATIONS_MAX = 1` (exatamente UMA invocação do runner; proibido reinvocar automaticamente em caso de falha; STOP e reconciliar evidência).
+- **Ledger de Tarefa**: `scripts/tmp-006t-typesafe-counter.json` classificado estritamente como temporário, local da tarefa, não rastreado no git e nunca commitado (`TEMPORARY / UNTRACKED`). Registro durável será em `docs/research/results/`.
+- **Heurísticas de Decisão**: Classificadas rigorosamente como `PROPOSED_EXPLORATORY_DECISION_HEURISTICS` (não são política de produção, SLA nem gate automático de deploy).
+- **Contenção Orçamentária**: `AUTHORIZED_EXPERIMENT_BUDGET_CAP_USD = 0.01`, `COST_ESTIMATE = NOT VERIFIED`, `ACTUAL_BILLED_COST_USD = NOT VERIFIED`. Proteção operacional real garantida por request cap <= 12, no retry e stop conditions.
+
+### 5. Invariantes Mantidas neste Prompt
+- **Chamadas Reais a Provedores**: TypeSafe `0`, OpenAI `0`, Twilio `0`.
+- **Carga de `.env`**: Nenhuma (`ENV_LOADED = NO`).
+- **Holdout de Pesquisa**: Intocado (`LOCKED_HOLDOUT = CONSUMED`).
+- **Tráfego de Clientes**: Proibido (`CUSTOMER_TRAFFIC = PROHIBITED`).
+- **Alterações de Código / Teste / Config**: `0` (estritamente documental).
+- **Quality Gate**: Docs-only slice (`git diff --check` + `pnpm format:check`).
+- **Auditoria de Segredos no Tracked Diff**: `SECRET_AUDIT_PASS`.
+
+### 6. Próximo Passo Permitido
+- `NEXT_ALLOWED_STEP`: Execução separadamente autorizada do plano de evidência de latência aprovado, somente após aprovação humana explícita (N=12 requisições MAX, BUDGET_CAP_USD = 0.01, zero tráfego de clientes, zero Twilio, zero fiação em produção e ACTIVE_GUARDED = BLOCKED).
