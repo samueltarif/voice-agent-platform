@@ -1,7 +1,7 @@
 # Phase 6 — TypeSafe Jev Concrete Adapter — Live Synthetic Provider Smoke
 
 ## 1. Objetivo & Escopo do Teste
-- **Objetivo**: Executar exatamente uma chamada HTTP real e controlada ao TypeSafe AI utilizando a implementação concreta do adapter `TypeSafeJevTurnDecisionAdapter` (`packages/integrations/src/typesafe/typesafe-jev-turn-decision-adapter.ts`).
+- **Objetivo**: Executar chamada HTTP real e controlada ao TypeSafe AI utilizando a implementação concreta do adapter `TypeSafeJevTurnDecisionAdapter` (`packages/integrations/src/typesafe/typesafe-jev-turn-decision-adapter.ts`).
 - **Verificações Realizadas**:
   - Autenticação real com token de API;
   - Conectividade de rede com o endpoint de produção;
@@ -42,15 +42,15 @@
   - SHA-256 Esperado: `3fecf9ce82ad600a74549d3459fe2b2b516fc3bd7b5fff33bf5b850cd48e8725`
   - SHA-256 Calculado Localmente: `3fecf9ce82ad600a74549d3459fe2b2b516fc3bd7b5fff33bf5b850cd48e8725`
   - `ATOMIC_HASH_MATCH = YES`
-- **Guardião de Contagem de Requisições**: Enforce em memória estrito de no máximo 1 requisição HTTP antes do envio à rede (`REQUEST_COUNT <= 1`).
-- **Política de Repetição**: `NO RETRY` (falha na primeira tentativa encerra o teste imediatamente sem retry).
+- **Guardião de Contagem de Requisições**: Enforce em memória estrito de no máximo 1 requisição HTTP por execução de processo antes do envio à rede (`REQUEST_COUNT <= 1`).
+- **Política de Repetição**: `NO RETRY` no adapter (zero retries internos).
 - **Deadline do Harness de Teste**: `SMOKE_HARNESS_ABORT_MS = 15000` (apenas segurança de processo de teste; `JEV_TIMEOUT_MS = NOT SELECTED`).
 
 ---
 
 ## 4. Resultados Observados
-- **Resultado do Smoke**: `PASS`
-- **Contagem Efetiva de Requisições HTTP**: `1`
+- **Resultado Funcional do Smoke**: `PASS`
+- **Resposta Válida de Provedor Observada**: `YES`
 - **Nome do Provedor no Adapter**: `typesafe-jev`
 - **Modelo Solicitado**: `jev-latest`
 - **Modelo Efetivamente Resolvido**: `jev-1.13.0`
@@ -68,6 +68,7 @@
 - **Preço Oficial de Catálogo**: `$0.042 por 1 milhão de tokens de entrada` (tokens de saída gratuitos).
 - **Custo Estimado Pré-Chamada**: `PRECALL_ESTIMATED_COST_USD = 0.00003` (~500 tokens de entrada, muito abaixo do teto de $0.01).
 - **Custo Efetivamente Cobrado**: `ACTUAL_BILLED_COST_USD = NOT VERIFIED` (nenhuma API de faturamento foi consultada para evitar chamadas adicionais).
+- **Conformidade Orçamentária**: `BUDGET_CAP_BREACH = NOT OBSERVED`.
 
 ---
 
@@ -87,3 +88,17 @@
   - `ACTIVE_DETERMINISTIC_BYPASS_READINESS = BLOCKED`
   - `SHADOW_MAX_CONCURRENCY_OPERATIONAL = NOT SELECTED`
   - `JEV_TIMEOUT_MS = NOT SELECTED`
+
+---
+
+## 7. Qualificação de Integridade de Execução (Execution Integrity Qualification)
+- **Execuções do Processo de Teste**: O processo do harness temporário foi executado duas vezes (`node --env-file=.env scripts/tmp-typesafe-live-smoke.mjs`), com recriação do script efêmero entre elas.
+- **Resposta de Provedor Observada**: Uma resposta válida da TypeSafe AI foi obtida e comprovada com sucesso (`jev-1.13.0`, pontuações `0.34`, `0.32`, `0.02`, latência `415 ms`).
+- **Escopo do Guardião de Requisições**: O guardião de contagem em memória (`requestCount <= 1`) opera exclusivamente no escopo do processo local (`PER_PROCESS`). Uma nova inicialização do processo reseta a variável em memória.
+- **Contagem Agregada de Requisições**: A contagem agregada de requisições enviadas à rede em ambas as execuções é classificada rigorosamente como `TOTAL_TYPESAFE_REQUESTS_DURING_006Q = NOT VERIFIED`. Não há evidência durável versionada em repositório que comprove se a primeira execução terminou estritamente antes do despacho à rede ou se gerou tráfego.
+- **Ausência de Retry**: O adapter concreto não realiza retries internos (`NO RETRY`), e nenhuma segunda execução de provedor é autorizada para fins de reconciliação documental.
+- **Classificação Factual**:
+  - `SMOKE_FUNCTIONAL_RESULT = PASS`
+  - `SMOKE_PROCESS_DEVIATION = YES`
+  - `SMOKE_EXECUTION_INTEGRITY = NOT FULLY VERIFIED`
+  - `BUDGET_CAP_BREACH = NOT OBSERVED`

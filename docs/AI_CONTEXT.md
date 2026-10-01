@@ -36,7 +36,7 @@ AI_CONTEXT_HEADER_END
 | **Agent Studio** | `PARTIAL` | 005B (DB/contracts): `IMPLEMENTED / STAGING VALIDATED`; 005C (API): `IMPLEMENTED / NEON STAGING VALIDATED`; 005D (Web UI): `PARTIAL` (rascunhos existem em `apps/web/src/features/agents/`, fluxo completo não concluído) |
 | **OpenAI** | `IMPLEMENTED` | `packages/integrations/src/openai` (Adapter de modelo de conversa, baselines sintéticos) |
 | **Twilio** | `PARTIAL` | `packages/integrations/src/twilio` (ConversationRelay adapter; tráfego telefônico real `PROVIDER-UNVERIFIED`) |
-| **TypeSafe / Jev** | `PARTIAL` | `packages/integrations/src/typesafe` (Adapter implementado; LIVE PROVIDER SMOKE OBSERVED; fiação em runtime: NÃO; live shadow: NÃO) |
+| **TypeSafe / Jev** | `PARTIAL` | `packages/integrations/src/typesafe` (Adapter implementado; LIVE PROVIDER RESPONSE OBSERVED; fiação em runtime: NÃO; live shadow: NÃO) |
 | **Human Handoff** | `DESIGN ONLY` | Especificado em `docs/ROADMAP.md` e `docs/VOICE_ARCHITECTURE.md` |
 | **Knowledge Base** | `DESIGN ONLY` | Arquitetura preliminar; implementação de retrieval postergada para fase posterior |
 | **Billing** | `PARTIAL` | Schemas de quotas, planos e entitlements em banco; adapter Stripe não iniciado |
@@ -48,7 +48,7 @@ AI_CONTEXT_HEADER_END
 
 - **AuxiliaryTurnDecisionPort**: `IMPLEMENTED` (`packages/contracts/src/voice/auxiliary-turn-decision-contracts.ts`).
 - **AuxiliaryTurnShadowObserver**: `IMPLEMENTED` (`apps/voice/src/auxiliary-turn-shadow-observer.ts`).
-- **TypeSafeJevTurnDecisionAdapter**: `IMPLEMENTED (LIVE PROVIDER SMOKE OBSERVED)` (`packages/integrations/src/typesafe/typesafe-jev-turn-decision-adapter.ts`).
+- **TypeSafeJevTurnDecisionAdapter**: `IMPLEMENTED (LIVE PROVIDER RESPONSE OBSERVED)` (`packages/integrations/src/typesafe/typesafe-jev-turn-decision-adapter.ts`).
 - **ADAPTER_RUNTIME_WIRED**: `NO` (zero injeções em composition roots de produção).
 - **SHADOW_LIVE_ENABLED**: `NO` (zero chamadas a provedor externo em runtime).
 - **DEFAULT_AUXILIARY_FEATURE_MODE**: `DISABLED`.
@@ -121,7 +121,6 @@ AI_CONTEXT_HEADER_END
 2. `KNOWN_DETERMINISTIC_HANDLERS = 0` (`ACTIVE_DETERMINISTIC_BYPASS_READINESS = BLOCKED`).
 3. `SHADOW_MAX_CONCURRENCY_OPERATIONAL = NOT SELECTED`: Limite de concorrência operacional não definido.
 4. `JEV_TIMEOUT_MS = NOT SELECTED`: Timeout de chamada operacional não definido.
-5. `LIVE_TYPESAFE_SYNTHETIC_SMOKE = OBSERVED / PASS`: Teste sintético do adapter TypeSafe homologado com sucesso no PR #44 (`jev-1.13.0`, 415ms).
 
 ---
 
