@@ -10765,3 +10765,87 @@ Auditadas 10 categorias factuais no split de calibração:
 
 ### 4. Próximo Passo Permitido
 - `NEXT_ALLOWED_STEP`: Minimal offline SECURITY_BLOCKED action implementation with focused tests only.
+
+---
+
+## 2026-10-01 - PROMPT-006AA-SECURITY-BLOCKED-OFFLINE-ACTION-IMPLEMENTATION-001
+
+- **Data**: 2026-10-01
+- **Tipo**: CODE / TESTS / OFFLINE ACTION (Minimal offline SECURITY_BLOCKED action implementation)
+- **Branch**: `feat/006aa-security-blocked-offline-action`
+- **Base main SHA**: `24ee92aeee542ee8dcebbaf9c12dffa7330f2b6a` (post-PR #54 merge)
+- **CONTEXT_BOOTSTRAP_STATUS**: `CURRENT_AFTER_SELF_MERGE`
+
+### 1. Registro de Desvio de Processo do PR #54 (Correção Histórica Append-Only)
+- `PR54_SECRET_AUDIT_PROCESS_DEVIATION` = `YES`
+- `CATEGORY` = `EXECUTION_CONTROL_DEVIATION`
+- `DETAIL` = `multiple secret-audit execution mechanisms were attempted and a temporary scripts/tmp-secret-audit.mjs file was created and removed despite DOCS/AUDIT-only scope`
+- `TRACKED_CODE_CHANGE` = `NO`
+- `SECRET_VALUE_PRINTED` = `NOT OBSERVED`
+- `REMOTE_CREDENTIAL_EXPOSURE` = `NOT OBSERVED`
+- `ROTATION_REQUIRED` = `NO`
+
+### 2. Análise YAGNI e Shape do Resultado
+- `CURRENT_REQUIREMENT`: Produzir uma decisão interna tipada `SECURITY_BLOCKED` a partir da classificação `SECURITY_ESCALATE` já interpretada externamente.
+- `EXISTING_CONSUMER`: Nenhum consumidor runtime atual existe (wiring de orchestrator/transport permanece estritamente proibido).
+- `MINIMAL_OPTION`: `{ readonly outcome: 'SECURITY_BLOCKED'; }`
+- `SECURITY_BLOCKED_RESULT_MINIMIZED` = `YES`
+- `SECURITY_BLOCKED_RESULT_RESPONSE_TEXT_INCLUDED` = `NO`
+- `SECURITY_BLOCKED_RESULT_POLICY_FLAGS_INCLUDED` = `NO`
+- `RESULT_SHAPE` = `{ outcome: 'SECURITY_BLOCKED' }`
+
+### 3. Implementação e Testes Focados
+- Arquivo de implementação: `apps/voice/src/security-blocked-action.ts` (14 linhas, complexidade ciclomática 1, pura, síncrona, sem estado, sem dependências externas)
+- Arquivo de testes: `apps/voice/src/security-blocked-action.test.ts` (45 linhas, 5 testes focados)
+- `INDEX_EXPORT_REQUIRED` = `NO` (`apps/voice/src/index.ts` inalterado; nenhum consumidor externo precisa do módulo via API pública do package)
+- Testes focados: `pnpm --filter @voice-agent/voice test apps/voice/src/security-blocked-action.test.ts`
+  - Test files: 1 passed
+  - Tests: 5 passed (deep equality, exact keys, pure execution without accumulated state, no input required, zero exceptions)
+  - Failures: 0
+- Governança de testes:
+  - Testes adicionados: 5
+  - Testes modificados: 0
+  - `ASSERTION_STRONGER` = 0
+  - `ASSERTION_EQUIVALENT` = 0
+  - `ASSERTION_WEAKER` = 0
+  - `NEW_SKIPS` = 0
+
+### 4. Quality Gate Integral (pnpm check)
+- `CODE_COMMIT_SHA`: `ebbc69ec1dd0b1e9da7db8dcc296a967cca6d239` (`feat: add offline security blocked action`)
+- Resultado observado de `pnpm check`:
+  - `format:check`: PASS
+  - `lint`: PASS
+  - `typecheck`: PASS (12/12 packages)
+  - `vitest`: 107 test files passed | 6 skipped (113 total), 684 tests passed | 45 skipped (729 total), 0 failures
+  - `build`: 12 packages PASS
+  - `check:architecture`: PASS
+  - `check:file-size`: PASS (16 avisos pré-existentes, 0 erros)
+  - Exit code: `0` (PASS)
+- `TESTED_CODE_SHA`: `ebbc69ec1dd0b1e9da7db8dcc296a967cca6d239`
+
+### 5. Status Semântico e Invariantes de Segurança
+- `SECURITY_OFFLINE_ACTION` = `IMPLEMENTED / TESTED LOCALLY`
+- `SECURITY_DECISION_RESULT` = `SECURITY_BLOCKED`
+- `ORCHESTRATOR_WIRING` = `NO`
+- `TRANSPORT_WIRING` = `NO`
+- `HISTORY_WIRING` = `NO`
+- `SECURITY_USER_RESPONSE_TEMPLATE` = `PROPOSED`
+- `SECURITY_USER_RESPONSE_DELIVERY` = `NOT IMPLEMENTED`
+- `SECURITY_RESPONSE_DELIVERY_READY` = `NO`
+- `SECURITY_HISTORY_PERSISTENCE_READY` = `NO`
+- `SECURITY_ESCALATE_OPENAI_FALLBACK` = `NOT AUTHORIZED`
+- `SECURITY_TOOL_EXECUTION` = `PROHIBITED`
+- `SECURITY_CALL_TERMINATION` = `NO`
+- `SECURITY_HANDOFF` = `NO`
+- `ACTIVE_GUARDED` = `BLOCKED`
+- `PRODUCTION_RUNTIME_WIRING` = `NO`
+- `CUSTOMER_TRAFFIC` = `PROHIBITED`
+
+### 6. Governança e Limites Operacionais
+- Provedores externos: TypeSafe `0`, OpenAI `0`, Twilio `0`
+- `ENV_LOADED` = `NO` | `DB_CONNECTION` = `NO` | `CUSTOMER_DATA` = `NO` | `FROZEN_POLICY_CHANGED` = `NO`
+- `HOLDOUT_OPENED` = `NO`
+- Desvios operacionais: Nenhum neste slice. Desvio de controle de execução do PR #54 formalmente corrigido via append-only.
+
+### 7. Próximo Passo Permitido
+- `NEXT_ALLOWED_STEP`: Revisão e aprovação do PR antes de qualquer merge. Após este slice, o próximo bloqueador arquitetural a resolver é o ciclo de vida de delivery da resposta determinística/segurança (especialmente interrupção pós-dispatch e semântica de conclusão de playback) antes de qualquer wiring de runtime.

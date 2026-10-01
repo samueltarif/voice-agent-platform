@@ -16,8 +16,8 @@
 
 O design arquitetural da fiação do runtime determinístico foi conceituado, porém **NÃO está pronto para fiação no orquestrador** devido aos seguintes bloqueadores formais identificados na auditoria:
 
-1. `SECURITY_RUNTIME_ACTION`: `NOT IMPLEMENTED` (`SECURITY_RUNTIME_SEMANTICS = DESIGNED` em `docs/research/PHASE_6_SECURITY_ESCALATE_RUNTIME_SEMANTICS.md`).
-2. `SECURITY_RUNTIME_ACTION_IMPLEMENTATION_REQUIRED`: `YES` (ACTIVE_GUARDED não pode ser ativado no orquestrador antes da implementação offline e testes dessa ação de segurança).
+1. `SECURITY_OFFLINE_ACTION`: `IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/security-blocked-action.ts`; `SECURITY_RUNTIME_SEMANTICS = DESIGNED`).
+2. `SECURITY_RUNTIME_ROUTING_INTEGRATION`: `NOT IMPLEMENTED` (`SECURITY_RESPONSE_DELIVERY_READY = NO`; entrega e fiação no orquestrador permanecem bloqueadas).
 3. `DETERMINISTIC_POST_DISPATCH_BARGE_IN`: `NOT VERIFIED`.
 4. `CURRENT_ADAPTER_POST_DISPATCH_CANCEL_SUPPORTED`: `NO` (auditado no adapter Twilio versionado em `packages/integrations/src/twilio/**`; `EXTERNAL_PROVIDER_CAPABILITY_BEYOND_CURRENT_ADAPTER = NOT VERIFIED`).
 5. `CURRENT_ADAPTER_PLAYBACK_COMPLETION_SIGNAL`: `NO` (adapter local não emite sinal de conclusão acústica; `EXTERNAL_PROVIDER_CAPABILITY_BEYOND_CURRENT_ADAPTER = NOT VERIFIED`).
@@ -293,13 +293,12 @@ SECURITY_ESCALATE_OPENAI_FALLBACK = NOT AUTHORIZED / NOT DESIGNED
 ### Regras Mandatórias de Segurança
 
 1. **Bypass Proibido**: Quando a Frozen Policy retornar `SECURITY_ESCALATE`, o handler determinístico **NÃO PODE** ser executado sob nenhuma circunstância.
-2. **Semântica Definida, Implementação Pendente**: A semântica de ação interna (`SECURITY_BLOCKED`) foi desenhada em `docs/research/PHASE_6_SECURITY_ESCALATE_RUNTIME_SEMANTICS.md`. A implementação offline dessa ação e a entrega user-facing permanecem pendentes.
+2. **Ação Offline Implementada, Fiação Pendente**: A ação interna (`SECURITY_BLOCKED`) foi implementada offline (`apps/voice/src/security-blocked-action.ts`). A integração de runtime no orquestrador e a entrega user-facing permanecem pendentes.
 3. **Bloqueadores Ativos**:
    ```
    SECURITY_RUNTIME_SEMANTICS = DESIGNED
-   SECURITY_RUNTIME_ACTION_DECISION_REQUIRED = NO
-   SECURITY_RUNTIME_ACTION_IMPLEMENTATION_REQUIRED = YES
-   SECURITY_RUNTIME_ACTION_IMPLEMENTED = NO
+   SECURITY_OFFLINE_ACTION = IMPLEMENTED / TESTED LOCALLY
+   SECURITY_RUNTIME_ROUTING_INTEGRATION = NOT IMPLEMENTED
    SECURITY_RESPONSE_DELIVERY_READY = NO
    DETERMINISTIC_POST_DISPATCH_BARGE_IN = NOT VERIFIED
    ACTIVE_GUARDED = BLOCKED
@@ -535,9 +534,9 @@ NEW_COORDINATOR_REQUIRED = NO
 | `CAPABILITY_RESOLUTION` | **MET** | Matcher local puro implementado/testado (PR #50) |
 | `RUNTIME_FROZEN_POLICY_INTERPRETER` | **IMPLEMENTED / TESTED LOCALLY** | Função pura implementada offline em `frozen-policy-interpreter.ts` com 20 testes unitários (`FROZEN_POLICY_CHANGED = NO`) |
 | `SECURITY_RUNTIME_SEMANTICS` | **DESIGNED** | Definido em `docs/research/PHASE_6_SECURITY_ESCALATE_RUNTIME_SEMANTICS.md` |
-| `SECURITY_RUNTIME_ACTION_DECISION_REQUIRED` | **NO** | Semântica de ação definida |
-| `SECURITY_RUNTIME_ACTION_IMPLEMENTATION_REQUIRED` | **YES** | Bloqueador formal antes de fiação |
-| `SECURITY_RUNTIME_ACTION` | **NOT IMPLEMENTED** | Bloqueador de runtime |
+| `SECURITY_OFFLINE_ACTION` | **IMPLEMENTED / TESTED LOCALLY** | Implementado em `security-blocked-action.ts` (5 testes unitários) |
+| `SECURITY_RUNTIME_ROUTING_INTEGRATION` | **NOT IMPLEMENTED** | Bloqueador de fiação |
+| `SECURITY_RESPONSE_DELIVERY_READY` | **NO** | Bloqueador formal de entrega |
 | `DETERMINISTIC_POST_DISPATCH_BARGE_IN` | **NOT VERIFIED** | Bloqueador de fidelidade conversacional |
 | `CURRENT_ADAPTER_POST_DISPATCH_CANCEL_SUPPORTED` | **NO** | Limitação do adapter Twilio versionado no repositório (`EXTERNAL_PROVIDER_CAPABILITY_BEYOND_CURRENT_ADAPTER = NOT VERIFIED`) |
 | `CURRENT_ADAPTER_PLAYBACK_COMPLETION_SIGNAL` | **NO** | Limitação do adapter Twilio Conversation Relay versionado no repositório (`EXTERNAL_PROVIDER_CAPABILITY_BEYOND_CURRENT_ADAPTER = NOT VERIFIED`) |
