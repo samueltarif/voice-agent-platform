@@ -2,7 +2,7 @@
 
 Este documento define as regras operacionais obrigatórias para qualquer agente de IA que atue neste repositório. O cumprimento destas diretrizes é estrito e inegociável.
 
-Documento de referência operacional detalhada: [docs/AI_EXECUTION_RULES.md](file:///D:/voice-agent-platform/docs/AI_EXECUTION_RULES.md).
+Documento de referência operacional detalhada: [docs/AI_EXECUTION_RULES.md](docs/AI_EXECUTION_RULES.md).
 
 ---
 
@@ -259,7 +259,7 @@ Uma tarefa só é considerada concluída quando:
    - Se `AI_CONTEXT.md` divergir do código-fonte, do Git ou de testes reais observados, o arquivo está **STALE**. O código e as evidências factuais prevalecem obrigatoriamente.
 4. **Política de Atualização**:
    - `docs/AI_CONTEXT.md` é documentação mutável de estado atual (tamanho enxuto, alvo <= 250 linhas).
-   - `docs/AI_WORKLOG.md` permanece como registro histórico cronológico append-only (imutável). Nunca usar `AI_CONTEXT.md` para reescrever histórico.
+   - `docs/AI_WORKLOG.md` é registro histórico cronológico append-only (com exceção de remoção emergencial de segredo conforme governança aplicável). Nunca usar `AI_CONTEXT.md` para reescrever histórico.
    - Atualizar `AI_CONTEXT.md` apenas quando a tarefa alterar: arquitetura do sistema, integrações externas, prontidão de features, bloqueadores ativos, evidência de teste válida ou próximo passo permitido.
 5. **Padrão de Handoff ao Término da Tarefa (CONTEXT HANDOFF)**:
    - Ao final de toda resposta de tarefa substancial, o agente deve emitir um bloco estruturado compacto de handoff:
