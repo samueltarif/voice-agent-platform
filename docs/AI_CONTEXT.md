@@ -4,13 +4,13 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-01
-CONTEXT_BASE_MAIN_SHA: 9a8e259bbd6f83072620deb18e4d910450e601a8
+CONTEXT_BASE_MAIN_SHA: 42fed6e8eba88275536b0b3ed8a5d29126c6ced8
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
-CURRENT_SLICE: TypeSafe Staging Latency Evidence Design
-CONTEXT_UPDATE_BRANCH: research/006t-typesafe-staging-latency-plan
-CONTEXT_UPDATE_PR: 47
-LAST_MERGED_PR_AT_REFRESH: 46
-LAST_MERGE_SHA_AT_REFRESH: 9a8e259bbd6f83072620deb18e4d910450e601a8
+CURRENT_SLICE: TypeSafe Staging Latency Evidence Execution
+CONTEXT_UPDATE_BRANCH: research/006u-typesafe-staging-latency-execution
+CONTEXT_UPDATE_PR: 48
+LAST_MERGED_PR_AT_REFRESH: 47
+LAST_MERGE_SHA_AT_REFRESH: 42fed6e8eba88275536b0b3ed8a5d29126c6ced8
 LAST_TESTED_CODE_SHA: efb52b4e4a780a68b08d25d7e2e492ace6fff375
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
@@ -36,7 +36,7 @@ AI_CONTEXT_HEADER_END
 | **Agent Studio** | `PARTIAL` | 005B (DB/contracts): `IMPLEMENTED / STAGING VALIDATED`; 005C (API): `IMPLEMENTED / NEON STAGING VALIDATED`; 005D (Web UI): `PARTIAL` (rascunhos existem em `apps/web/src/features/agents/`, fluxo completo não concluído) |
 | **OpenAI** | `IMPLEMENTED` | `packages/integrations/src/openai` (Adapter de modelo de conversa, baselines sintéticos) |
 | **Twilio** | `PARTIAL` | `packages/integrations/src/twilio` (ConversationRelay adapter; tráfego telefônico real `PROVIDER-UNVERIFIED`) |
-| **TypeSafe / Jev** | `PARTIAL` | `packages/integrations/src/typesafe` (Adapter implementado; LIVE PROVIDER RESPONSE OBSERVED; staging synthetic composition: IMPLEMENTED / TESTED LOCALLY; staging live shadow: EXECUTED (OBSERVED / TIMEOUT sob teto de 1500ms); latency plan: DESIGNED; fiação em produção: NÃO) |
+| **TypeSafe / Jev** | `PARTIAL` | `packages/integrations/src/typesafe` (Adapter implementado; LIVE PROVIDER RESPONSE OBSERVED; staging synthetic composition: IMPLEMENTED / TESTED LOCALLY; staging latency execution: OBSERVED (N=12, 100% completion <=1500ms, median 275ms, 0 timeouts); fiação em produção: NÃO) |
 | **Human Handoff** | `DESIGN ONLY` | Especificado em `docs/ROADMAP.md` e `docs/VOICE_ARCHITECTURE.md` |
 | **Knowledge Base** | `DESIGN ONLY` | Arquitetura preliminar; implementação de retrieval postergada para fase posterior |
 | **Billing** | `PARTIAL` | Schemas de quotas, planos e entitlements em banco; adapter Stripe não iniciado |
@@ -50,12 +50,12 @@ AI_CONTEXT_HEADER_END
 - **AuxiliaryTurnShadowObserver**: `IMPLEMENTED` (`apps/voice/src/auxiliary-turn-shadow-observer.ts`).
 - **TypeSafeJevTurnDecisionAdapter**: `IMPLEMENTED (LIVE PROVIDER RESPONSE OBSERVED)` (`packages/integrations/src/typesafe/typesafe-jev-turn-decision-adapter.ts`).
 - **STAGING_SYNTHETIC_SHADOW_COMPOSITION**: `IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/composition-root.staging-shadow.ts`).
-- **STAGING_LIVE_SHADOW_EXECUTION**: `EXECUTED (OBSERVED / TIMEOUT)` (disparo de timeout temporário de 1500ms; falha de latência contida de forma non-blocking).
+- **STAGING_LIVE_SHADOW_EXECUTION**: `EXECUTED (OBSERVED / TIMEOUT)` (disparo de timeout temporário de 1500ms em execução inicial).
 - **STAGING_LATENCY_PLAN**: `DESIGNED` (`docs/research/PHASE_6_TYPESAFE_STAGING_LATENCY_PLAN.md`).
-- **STAGING_LATENCY_EXECUTION**: `NOT EXECUTED` (nenhuma chamada de medição realizada; aguarda autorização humana separada).
-- **STAGING_TIMEOUT_RECALIBRATION**: `NOT DECIDED`.
+- **STAGING_LATENCY_EXECUTION**: `OBSERVED / 12 OF 12 COMPLETED UNDER 1500MS` (N=12 casos sintéticos; completion rate 4000ms = 100.0%; completion rate 1500ms = 100.0%; median = 275ms; p90 = 311ms; p95 = 450ms; timeouts = 0; wouldHaveTimedOutUnder1500Ms = 0; measurement deadline = 4000ms; nominal staging timeout = 1500ms unchanged; heurística disparada: `KEEP_1500MS`).
+- **STAGING_TIMEOUT_RECALIBRATION**: `DECIDED_KEEP_1500MS_FOR_STAGING_SYNTHETIC` (decisão humana formalizada após 100% de conclusão sob 1500ms em amostra N=12).
 - **STAGING_SHADOW_MAX_CONCURRENCY**: `1` (teto seguro temporário de concorrência para staging sintético).
-- **STAGING_SHADOW_TIMEOUT_MS**: `1500` (timeout seguro temporário para staging sintético).
+- **STAGING_SHADOW_TIMEOUT_MS**: `1500` (timeout operacional nominal para staging sintético mantido inalterado).
 - **PRODUCTION_RUNTIME_WIRING**: `NO` (zero injeções em composition roots de produção).
 - **SHADOW_LIVE_ENABLED**: `NO` (desativado no fluxo nominal; zero chamadas a provedor externo em runtime nominal).
 - **DEFAULT_AUXILIARY_FEATURE_MODE**: `DISABLED`.
@@ -128,14 +128,14 @@ AI_CONTEXT_HEADER_END
 2. `KNOWN_DETERMINISTIC_HANDLERS = 0` (`ACTIVE_DETERMINISTIC_BYPASS_READINESS = BLOCKED`).
 3. `PRODUCTION_SHADOW_MAX_CONCURRENCY = NOT SELECTED`: Limite de concorrência operacional de produção não definido.
 4. `PRODUCTION_JEV_TIMEOUT_MS = NOT SELECTED`: Timeout operacional de produção não definido.
-5. `STAGING_LIVE_SHADOW_EXECUTION = EXECUTED (OBSERVED / TIMEOUT)`: Latência do provedor sob a composição excedeu o teto temporário de 1500ms; plano de evidência de latência desenhado (`STAGING_LATENCY_PLAN = DESIGNED`; `STAGING_LATENCY_EXECUTION = NOT EXECUTED`); requer aprovação humana e autorização separada para execução.
+5. `PRODUCTION_RUNTIME_WIRING = NO`: Fiação de runtime em produção desautorizada.
 
 ---
 
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- A separately authorized execution of the approved latency evidence plan only after human review (N=12 requests MAX, BUDGET_CAP_USD = 0.01, zero customer data, zero Twilio, zero production wiring, ACTIVE_GUARDED = BLOCKED).
+- Derive from remaining Phase 6 blockers (deterministic handlers design, transcript privacy governance, production operational parameters), without enabling production/customer traffic/ACTIVE_GUARDED.
 
 ### `NOT_YET_ALLOWED`:
 - Transmissão de dados reais de clientes para provedores externos.
@@ -156,6 +156,8 @@ AI_CONTEXT_HEADER_END
 - [research/PHASE_6_TYPESAFE_LIVE_SYNTHETIC_SMOKE.md](research/PHASE_6_TYPESAFE_LIVE_SYNTHETIC_SMOKE.md): Registro factual do teste smoke sintético ao vivo do provedor.
 - [research/PHASE_6_TYPESAFE_STAGING_SHADOW_LIVE_SYNTHETIC.md](research/PHASE_6_TYPESAFE_STAGING_SHADOW_LIVE_SYNTHETIC.md): Registro factual da execução live de staging sintético em modo SHADOW.
 - [research/PHASE_6_TYPESAFE_STAGING_LATENCY_PLAN.md](research/PHASE_6_TYPESAFE_STAGING_LATENCY_PLAN.md): Plano metodológico de medição controlada de latência em staging sintético.
+- [research/PHASE_6_TYPESAFE_STAGING_LATENCY_RESULT.md](research/PHASE_6_TYPESAFE_STAGING_LATENCY_RESULT.md): Relatório de evidência da bateria controlada de latência em staging sintético.
+- [research/results/phase-6-staging-shadow-latency-evidence.json](research/results/phase-6-staging-shadow-latency-evidence.json): Artefato estruturado de evidência de latência (N=12).
 - [AGENT_STUDIO.md](AGENT_STUDIO.md): Especificação e matriz de entrega do Agent Studio (005B, 005C, 005D).
 
 ---

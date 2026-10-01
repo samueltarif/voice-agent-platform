@@ -9774,3 +9774,142 @@ Este fechamento retifica a formulação epistemológica da base de evidência da
 
 ### 6. Próximo Passo Permitido
 - `NEXT_ALLOWED_STEP`: Execução separadamente autorizada do plano de evidência de latência aprovado, somente após aprovação humana explícita (N=12 requisições MAX, BUDGET_CAP_USD = 0.01, zero tráfego de clientes, zero Twilio, zero fiação em produção e ACTIVE_GUARDED = BLOCKED).
+
+---
+
+## 2026-10-01 — PROMPT-006U-TYPESAFE-STAGING-LATENCY-EXECUTION-001
+
+### 1. Context Bootstrap & Preflight
+- **Objetivo**: Executar UMA única bateria controlada de medição de latência TypeSafe Jev através da composição staging-synthetic SHADOW, seguindo estritamente o plano aprovado e mergeado no PR #47.
+- **Base Main SHA**: `42fed6e8eba88275536b0b3ed8a5d29126c6ced8` (merge commit do PR #47).
+- **Branch de Trabalho**: `research/006u-typesafe-staging-latency-execution`.
+- **Status do Bootstrap**: `CONTEXT_BOOTSTRAP_STATUS = CURRENT_AFTER_SELF_MERGE` (árvore limpa, origin/main verificado).
+- **Parâmetros do Plano Verificados**:
+  - `STAGING_LATENCY_PLAN`: `DESIGNED`
+  - `STAGING_LATENCY_EXECUTION`: `NOT EXECUTED` (antes desta execução)
+  - `PLANNED_CASES_MAX`: `12`
+  - `FUTURE_TYPESAFE_REQUESTS_MAX`: `12`
+  - `RUNNER_COMMAND_INVOCATIONS_MAX`: `1`
+  - `MEASUREMENT_DEADLINE_OVERRIDE_SUPPORTED`: `YES`
+  - `MEASUREMENT_ONLY_DEADLINE`: `4000ms`
+  - `STAGING_SHADOW_TIMEOUT_MS`: `1500` (nominal inalterado)
+  - `STAGING_TIMEOUT_RECALIBRATION`: `NOT DECIDED`
+  - `PRODUCTION_JEV_TIMEOUT_MS`: `NOT SELECTED`
+  - `PRODUCTION_SHADOW_MAX_CONCURRENCY`: `NOT SELECTED`
+
+### 2. Invocação do Runner & Execução Live
+- **Invocação do Runner**: Exatamente `1` comando executado (`RUNNER_COMMAND_INVOCATIONS = 1`).
+- **Comando**: `node --env-file=.env ./node_modules/vitest/vitest.mjs run apps/voice/src/tmp-006u-staging-latency-runner.test.ts`.
+- **Resultado do Comando**: Exit code 0, 1 test passed (duração total: 6.37s).
+- **Carga de `.env`**: `YES` (exclusivo para este comando live único).
+- **Validação de API Key**: `TYPESAFE_API_KEY_PRESENT = true` (checagem puramente booleana; nenhuma chave, prefixo, sufixo, comprimento ou header Authorization exposto).
+- **Caminho de Execução**: `createStagingSyntheticShadowComposition` → `AuxiliaryTurnShadowObserver` → `TimedAuxiliaryTurnDecisionPort` → `TypeSafeJevTurnDecisionAdapter` → TypeSafe Provider.
+- **Dataset Sintético**: 12 casos (4 SHORT, 4 MEDIUM, 4 LONGER), PT-BR, neutros, non-customer (`CUSTOMER_TRAFFIC = PROHIBITED`, `LOCKED_HOLDOUT = CONSUMED` intocado).
+- **Guardiões**:
+  - Ledger em disco atômico (`scripts/tmp-006u-typesafe-counter.json`, classificado como temporário/untracked, verificado antes de cada dispatch, cap persistente = 12).
+  - Wrapper em memória de fetch (`FETCH_INVOCATIONS_MAX_PER_CASE = 1`).
+  - Execução sequencial estrita (`concurrency = 1`, sem paralelismo ou filas).
+  - Retries internos: `0` (adapter=0, observer=0, composition=0).
+
+### 3. Evidência Observada e Métricas de Latência
+- `PLANNED_CASES_MAX`: `12`
+- `ACTUAL_CASES_STARTED`: `12`
+- `ACTUAL_CASES_COMPLETED`: `12`
+- `ACTUAL_FETCH_DISPATCHES`: `12`
+- `SUCCESSFUL_PROVIDER_RESPONSES`: `12`
+- `TIMEOUTS_UNDER_MEASUREMENT_DEADLINE (4000ms)`: `0`
+- `WOULD_HAVE_TIMED_OUT_UNDER_1500MS`: `0`
+- `COMPLETION_RATE_UNDER_MEASUREMENT_DEADLINE`: `100.0%`
+- `COMPLETION_RATE_UNDER_1500MS`: `100.0%`
+- `MIN_LATENCY_MS`: `249 ms`
+- `MEDIAN_LATENCY_MS`: `275 ms`
+- `P90_EXPLORATORY_MS`: `311 ms`
+- `P95_EXPLORATORY_MS`: `450 ms`
+- `MAX_LATENCY_MS`: `450 ms` (primeira requisição `case-lat-001`, cold start / handshake TLS inicial)
+- `ERROR_COUNT`: `0` (zero falhas HTTP, zero erros de rede, zero falhas de parsing)
+- `STOP_CONDITION`: `NONE`
+- `PROVIDER_MODELS_OBSERVED`: `jev-1.13.0` em 100% das 12 respostas.
+
+### 4. Classificação das Heurísticas de Decisão
+- **Heurística Disparada**: `KEEP_1500MS` (`completionRateUnder1500Ms >= 90%` [100.0%] e `medianLatencyMs < 1100 ms` [275 ms]).
+- **Status Operacional**:
+  - `STAGING_TIMEOUT_RECALIBRATION`: `NOT DECIDED` (permanece como classificação empírica para deliberação humana; timeout de staging mantido em 1500ms).
+  - `STAGING_SHADOW_TIMEOUT_MS`: `1500` (inalterado).
+  - `PRODUCTION_JEV_TIMEOUT_MS`: `NOT SELECTED`.
+  - `PRODUCTION_SHADOW_MAX_CONCURRENCY`: `NOT SELECTED`.
+
+### 5. Governança e Fronteiras de Custos
+- **Dispatches TypeSafe Reais**: `12` (estritamente dentro do teto autorizado de MAX=12).
+- **Chamadas OpenAI Reais**: `0`.
+- **Chamadas Twilio Reais**: `0`.
+- **Teto Orçamentário Autorizado**: `AUTHORIZED_EXPERIMENT_BUDGET_CAP_USD = 0.01`.
+- **Faturamento Real**:
+  - `ACTUAL_BILLED_REQUEST_COUNT`: `NOT VERIFIED`.
+  - `ACTUAL_BILLED_COST_USD`: `NOT VERIFIED`.
+- **Holdout de Pesquisa**: `TOUCHED = NO`.
+- **Dados de Cliente**: `NO`.
+- **Fiação em Produção**: `NO`.
+- **ACTIVE_GUARDED**: `BLOCKED` (fail-closed).
+- **Desvios de Processo**: `NONE`.
+
+### 6. Artefatos de Evidência Produzidos
+- `docs/research/results/phase-6-staging-shadow-latency-evidence.json`: Artefato estruturado consolidado de evidência de latência.
+- `docs/research/PHASE_6_TYPESAFE_STAGING_LATENCY_RESULT.md`: Relatório detalhado com distribuição por classe, análise de dispersão e aplicação das heurísticas.
+
+### 7. Próximo Passo Permitido
+- `NEXT_ALLOWED_STEP`: Revisão humana do relatório de latência `docs/research/PHASE_6_TYPESAFE_STAGING_LATENCY_RESULT.md` e do artefato de evidência para decisão formal sobre timeout operacional e planejamento de etapas subsequentes de maturidade.
+
+---
+
+## 2026-10-01 — PROMPT-006U-PR48-EVIDENCE-PRECISION-AND-MERGE-001
+
+### 1. Context Bootstrap & Preflight
+- **Objetivo**: Corrigir imprecisões factuais/metodológicas do relatório de latência do PR #48, registrar a decisão humana de manter 1500ms como timeout nominal de staging-synthetic (`STAGING_TIMEOUT_DECISION = KEEP_1500MS_FOR_STAGING_SYNTHETIC`), e realizar uma tentativa controlada de merge via GitHub MCP.
+- **Base Main SHA**: `42fed6e8eba88275536b0b3ed8a5d29126c6ced8`.
+- **Branch**: `research/006u-typesafe-staging-latency-execution`.
+- **PR**: #48 (`OPEN`).
+- **Head SHA Inicial**: `cf44fabc43650cbcb7857278b950073d9dbc7cb9`.
+
+### 2. Auditoria e Correções de Precisão de Evidência
+- **Auditoria de Endpoint**: Auditado o código-fonte em `packages/integrations/src/typesafe/typesafe-jev-turn-decision-adapter.ts` (linha 9: `DEFAULT_TYPESAFE_ENDPOINT = 'https://api.typesafe.ai/v1/systemone'`). Corrigida a referência incorreta `/v1/turn-decisions` para `/v1/systemone` no diagrama do relatório de latência.
+- **Remoção de Atribuições Causais Não Comprovadas**:
+  - `unsupported cold-start attribution removed`: `YES` (`case-lat-001` registrado apenas como primeira e mais lenta chamada a 450ms; causa = `NOT VERIFIED`).
+  - `unsupported TLS attribution removed`: `YES`.
+  - `RTT/inference causal attribution removed`: `YES` (substituído por descrição factual de que as latências se concentraram em ~250-300ms nesta amostra).
+- **Qualificação de Sensibilidade ao Comprimento**:
+  - `length effect claim qualified`: `YES` ("Within this exploratory N=12 sample, no monotonic or obvious latency degradation with input length was observed across the tested 30-259 character range").
+  - `NO_POPULATION_LENGTH_EFFECT_CLAIM`: `YES`.
+  - `NO_STATISTICAL_CAUSAL_INFERENCE`: `YES`.
+- **Qualificação da Amostra & Percentis**:
+  - `sample size`: `12 exploratory` (`NOT SLA`, `NOT population tail estimate`).
+  - `p95 exploratory (450ms)`: Mantido como indicador meramente amostral sem explicação causal especulativa.
+- **Evidência de Output Bruto**:
+  - `RAW_RUNNER_OUTPUT_OBSERVED_DURING_006U`: `YES`.
+  - `STRUCTURED_RESULT_ARTIFACT`: `OBSERVED / VERSIONED`.
+
+### 3. Decisão Humana de Timeout para Staging Sintético
+- **Decisão Formal**: `STAGING_TIMEOUT_DECISION = KEEP_1500MS_FOR_STAGING_SYNTHETIC`.
+- **Base Factual**: 12/12 requisições completadas <=1500ms (100.0%), mediana de 275ms, máx de 450ms, 0 timeouts observados.
+- **Qualificação**: `EXPLORATORY_STAGING_DECISION` (`NOT production SLA`, `NOT customer traffic validation`, `NOT production timeout selection`).
+- **Status dos Parâmetros**:
+  - `STAGING_SHADOW_TIMEOUT_MS`: `1500` (mantido inalterado).
+  - `STAGING_TIMEOUT_RECALIBRATION`: `DECIDED_KEEP_1500MS_FOR_STAGING_SYNTHETIC`.
+  - `PRODUCTION_JEV_TIMEOUT_MS`: `NOT SELECTED`.
+  - `PRODUCTION_SHADOW_MAX_CONCURRENCY`: `NOT SELECTED`.
+  - `PRODUCTION_RUNTIME_WIRING`: `NO`.
+  - `SHADOW_LIVE_ENABLED`: `NO in nominal runtime`.
+  - `ACTIVE_GUARDED`: `BLOCKED`.
+  - `KNOWN_DETERMINISTIC_HANDLERS`: `0`.
+  - `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE`: `NOT CLEARED`.
+  - `CUSTOMER_TRAFFIC`: `PROHIBITED`.
+
+### 4. Governança e Fronteiras neste Prompt
+- **Chamadas Reais a Provedores**: TypeSafe `0`, OpenAI `0`, Twilio `0`.
+- **Carga de `.env`**: `NO` (`ENV_LOADED = NO`).
+- **Holdout de Pesquisa**: `TOUCHED = NO` (`LOCKED_HOLDOUT = CONSUMED` mantido).
+- **Dados de Clientes**: `NO` (`CUSTOMER_TRAFFIC = PROHIBITED`).
+- **Alterações de Código / Teste / Config**: `0` (estritamente documental).
+- **Desvios de Processo**: `NONE`.
+
+### 5. Próximo Passo Permitido
+- `NEXT_ALLOWED_STEP`: Derivar a partir dos bloqueios remanescentes da Fase 6 (design de handlers determinísticos, governança de privacidade de transcrições e parâmetros de produção), sem ativar produção, tráfego de clientes ou ACTIVE_GUARDED.
