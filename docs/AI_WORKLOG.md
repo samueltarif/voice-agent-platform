@@ -9548,3 +9548,50 @@ Este fechamento retifica a formulação epistemológica da base de evidência da
 - **LAST_TESTED_CODE_SHA**: `efb52b4e4a780a68b08d25d7e2e492ace6fff375`.
 - **Evidência Vigente**: `pnpm check PASS`, 586 passed, 45 historical skips, 0 new skips, 0 failures, `ASSERTION_WEAKER = 0`.
 - **QUALITY_EVIDENCE_STALE**: `NO` (alterações posteriores ao teste são estritamente documentais em `docs/`).
+
+## [2026-10-01] PROMPT-006S-TYPESAFE-STAGING-SYNTHETIC-SHADOW-LIVE-001: Phase 6 — Controlled TypeSafe Staging Synthetic SHADOW Live Execution
+
+### 1. Context Bootstrap & Preflight
+- **CONTEXT_BOOTSTRAP_STATUS**: `CURRENT_AFTER_SELF_MERGE` (PR #45 merge commit `404bbc7c5a2360b578ef4332dfa114270bb409d1` idêntico ao `origin/main`).
+- **Main SHA de Base**: `404bbc7c5a2360b578ef4332dfa114270bb409d1`.
+- **Branch de Trabalho**: `research/006s-typesafe-staging-synthetic-shadow-live`.
+- **Autorização Orçamentária Explícita**: `TYPESAFE_LIVE_REQUESTS_MAX = 1`, `BUDGET_CAP_USD = 0.01`, `OPENAI_LIVE_REQUESTS_MAX = 0`, `TWILIO_LIVE_REQUESTS_MAX = 0`, `CUSTOMER_DATA_ALLOWED = NO`.
+
+### 2. Mecanismo de Execução e Guardiões Atômicos
+- **Harness de Execução**: `node --env-file=.env ./node_modules/vitest/vitest.mjs run apps/voice/src/tmp-006s-staging-shadow-live.test.ts`.
+- **Caminho Funcional Testado**: `createStagingSyntheticShadowComposition` -> `AuxiliaryTurnShadowObserver` -> `TimedAuxiliaryTurnDecisionPort` -> `TypeSafeJevTurnDecisionAdapter` -> TypeSafe AI endpoint (`https://api.typesafe.ai/v1/systemone`).
+- **Guardião Persistente Atômico**: Criado arquivo sentinel em disco `scripts/tmp-006s-typesafe-provider-attempted` com flag atômica exclusiva (`wx`) antes de qualquer despacho de rede (`SENTINEL_CREATED = YES`).
+- **Guardião de Despacho em Memória**: Enforce estrito limitando a 1 única invocação de rede (`FETCH_INVOCATIONS_MAX = 1`).
+- **Presença de Credencial**: `TYPESAFE_API_KEY_PRESENT = YES` (avaliado de forma estritamente booleana; chave nunca inspecionada, impressa ou logada).
+- **Classificação do Input**: `SYNTHETIC / NON-CUSTOMER / PT-BR`.
+  - Frase utilizada: `"Você consegue repetir de forma mais curta o que acabou de explicar?"`
+  - Verificação de Isolamento: Frase criada para a execução, ausente de datasets congelados de calibração ou holdout bloqueado.
+
+### 3. Resultados Observados & Qualificação Factual
+- **Classificação Factual**: `STAGING_LIVE_SHADOW_EXECUTION = OBSERVED / TIMEOUT`.
+- **RUNNER_PROCESS_EXECUTIONS**: `1`.
+- **PROVIDER_ATTEMPT_COUNT**: `1`.
+- **FETCH_INVOCATIONS**: `1` (`FETCH_DISPATCHED = YES`).
+- **Respostas de Provedor Recebidas com Sucesso**: `0` (a requisição foi abortada pelo teto temporário de 1500ms antes da conclusão do fetch pelo servidor remoto).
+- **Tempo Decorrido no Observer**: `1490 ms` (~1500 ms).
+- **Modelo Solicitado**: `jev-latest`.
+- **Modelo Resolvido**: `NOT OBSERVED` (requisição abortada no timeout).
+- **Pontuações Observadas**: `NOT OBSERVED` (requisição abortada no timeout).
+- **Telemetria Capturada**:
+  - `info`: `auxiliary.shadow.accepted` (`callId: 00000000-0000-0000-0000-000000000001, turnId: turn-006s-001, mode: SHADOW`).
+  - `warn`: `auxiliary.shadow.failed` (`callId: 00000000-0000-0000-0000-000000000001, turnId: turn-006s-001, error: "TypeSafe auxiliary evaluation timed out after 1500ms"`).
+- **Comportamento Non-Blocking**: O timeout disparou e encerrou a promessa auxiliar via `AbortController` sem bloquear a thread nem derrubar a aplicação.
+- **Ausência de Repetição**: Nenhuma nova tentativa foi realizada (`NO RETRY`, `PROVIDER_RETRY_ALLOWED = NO`).
+- **Orçamento**: `BUDGET_CAP_BREACH = NOT OBSERVED` (teto $0.01; chamadas reais = 1). `ACTUAL_BILLED_COST_USD = NOT VERIFIED`.
+
+### 4. Isolamento e Invariantes Preservadas
+- **Chamadas Reais a Provedores**: TypeSafe `1` (dispatched, timed out at 1500ms), OpenAI `0`, Twilio `0`.
+- **Tráfego de Clientes**: `PROHIBITED` (`CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`).
+- **Fiação em Produção**: `NO` (`PRODUCTION_RUNTIME_WIRING = NO`).
+- **ACTIVE_GUARDED**: `BLOCKED`.
+- **Handlers Determinísticos**: `0`.
+- **Holdout de Pesquisa**: `LOCKED_HOLDOUT = CONSUMED` (intocado).
+- **Desvios Operacionais**: `NONE`.
+
+### 5. Próximo Passo Permitido
+- `NEXT_ALLOWED_STEP`: Análise técnica do baseline de latência do provedor TypeSafe e decisão humana sobre eventual calibração do timeout para staging sintético antes de qualquer nova autorização de execução de provedor, mantendo zero tráfego de clientes, zero Twilio, zero fiação em produção e sem `ACTIVE_GUARDED`.
