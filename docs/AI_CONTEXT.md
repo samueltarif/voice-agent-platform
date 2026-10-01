@@ -49,7 +49,7 @@ AI_CONTEXT_HEADER_END
 - **AuxiliaryTurnDecisionPort**: `IMPLEMENTED` (`packages/contracts/src/voice/auxiliary-turn-decision-contracts.ts`).
 - **AuxiliaryTurnShadowObserver**: `IMPLEMENTED` (`apps/voice/src/auxiliary-turn-shadow-observer.ts`).
 - **TypeSafeJevTurnDecisionAdapter**: `IMPLEMENTED (LIVE PROVIDER RESPONSE OBSERVED)` (`packages/integrations/src/typesafe/typesafe-jev-turn-decision-adapter.ts`).
-- **STAGING_SYNTHETIC_SHADOW_COMPOSITION**: `IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/composition-root.staging-shadow.ts`).
+- **STAGING_SYNTHETIC_SHADOW_COMPOSITION**: `IMPLEMENTED` (testes em reconciliação final de gate; `apps/voice/src/composition-root.staging-shadow.ts`).
 - **STAGING_SHADOW_MAX_CONCURRENCY**: `1` (teto seguro temporário de concorrência para staging sintético).
 - **STAGING_SHADOW_TIMEOUT_MS**: `1500` (timeout seguro temporário para staging sintético).
 - **PRODUCTION_RUNTIME_WIRING**: `NO` (zero injeções em composition roots de produção).
@@ -111,10 +111,10 @@ AI_CONTEXT_HEADER_END
 
 ## 6. Estado Atual da Evidência de Qualidade (Quality Gate Snapshot)
 
-- **Último `pnpm check` Global**: `PASS` (executado e observado em `253cf92db2421e02b8cdee7002acd9c78e2f5897`).
-- **Status das Asserções**: `574 passed`, `45 historical skips`, `0 new skips`, `0 failures`.
-- **Regressão de Asserções**: `ASSERTION_WEAKER = 0`.
-- **QUALITY_EVIDENCE_STALE**: `NO` (commits subsequentes estritamente documentais em `docs/` e `AGENTS.md`).
+- **QUALITY_GATE_CURRENT_HEAD**: `PENDING_REVALIDATION` (execução e observação integral do `pnpm check` em andamento neste prompt de reconciliação).
+- **Status Anterior de Referência**: `574 passed` (base main) / `586 passed` (cálculo intermediário 006R aguardando observação unificada).
+- **Regressão de Asserções**: `ASSERTION_WEAKER = 0` (zero testes enfraquecidos).
+- **QUALITY_EVIDENCE_STALE**: `PENDING_REVALIDATION`.
 
 ---
 

@@ -9469,3 +9469,42 @@ Este fechamento retifica a formulação epistemológica da base de evidência da
 
 ### 7. Próximo Passo Permitido
 - `NEXT_ALLOWED_STEP`: Uma execução controlada e separadamente autorizada de TypeSafe SHADOW em staging sintético utilizando a nova composição (`apps/voice/src/composition-root.staging-shadow.ts`), com limite explícito de requisições (`TYPESAFE_LIVE_REQUESTS_MAX = 1`), teto orçamentário (`BUDGET_CAP_USD = 0.01`), sem tráfego de clientes, sem Twilio, sem fiação em produção e sem `ACTIVE_GUARDED`.
+
+## [2026-10-01] PROMPT-006R-PR45-EVIDENCE-RECONCILIATION-001: PR #45 — Staging Shadow Composition Final Evidence Reconciliation
+
+### 1. Context Bootstrap & Preflight
+- **PR #45**: Confirmado `OPEN` e não mergeado via GitHub MCP e git refs (`refs/pull/45/head` = `12ab3763b271f6ac1f27ac4f6dfe889739b521f2`, `refs/pull/45/merge` ativo).
+- **Branch Ativa**: `feat/006r-typesafe-staging-shadow-composition`.
+- **Base `main` SHA**: `01ced69224cec652942174e45017124911066686`.
+- **Pre-Gate HEAD SHA**: `12ab3763b271f6ac1f27ac4f6dfe889739b521f2`.
+
+### 2. Auditoria Factual de Escopo do PR #45
+- **Production Code Changes**: `apps/voice/src/composition-root.staging-shadow.ts` (nova factory de composição segura exclusiva para staging sintético).
+- **Test Changes**: `apps/voice/src/composition-root.staging-shadow.test.ts` (12 novos testes cobrindo isolamento, concorrência, timeouts e falhas).
+- **Config Changes**: `apps/voice/vitest.config.ts` (alias local para resolver pacote de integrações no runner Vitest sem gerar dependência cíclica no Turbo).
+- **Docs Changes**: `docs/architecture/decisions/ADR-019-jev-guarded-runtime-integration.md`, `docs/AI_CONTEXT.md`, `docs/AI_WORKLOG.md`.
+- **Dependency Changes**: `0` (`package.json`, `pnpm-lock.yaml` e `pnpm-workspace.yaml` rigorosamente inalterados).
+
+### 3. Registro de Desvio de Processo de Segurança (Security Process Deviation)
+- **Classificação**: `SECURITY_PROCESS_DEVIATION = YES`.
+- **SECRET_VALUE_PRINTED**: `NOT OBSERVED`.
+- **REMOTE_CREDENTIAL_EXPOSURE**: `NOT OBSERVED`.
+- **ROTATION_REQUIRED**: `NO`.
+- **Fato Objetivo**: Durante a depuração da auditoria de segredos no slice 006R, o helper de debug emitiu saídas informativas com contagem e índice de padrão em vez de produzir estritamente a saída booleana exigida (`SECRET_AUDIT_PASS` / `SECRET_AUDIT_FAIL`).
+- **Contenção Aplicada**: Nenhum valor de segredo, token, chave ou credencial foi impresso ou exposto. O helper foi corrigido e em seguida completamente removido. O procedimento estritamente booleano e value-blind foi restabelecido e reforçado.
+- **Necessidade de Rotação Humana**: Não aplicável (`ROTATION_REQUIRED = NO`), pois nenhuma credencial real ou sintética foi exposta.
+
+### 4. Auditoria de Arquivos Temporários
+- **TEMP_HELPERS_REMAINING**: `NO` (confirmada ausência de `scripts/tmp-secret-audit.mjs`, `scripts/tmp-*` ou qualquer outro arquivo efêmero no repositório).
+
+### 5. Governança de Alterações de Testes
+- **Testes Existentes Modificados**: `0`.
+- **Novos Testes Adicionados**: `12` (`ASSERTION_STRONGER = 12`, `ASSERTION_EQUIVALENT = 0`, `ASSERTION_WEAKER = 0`).
+- **Novos Skips**: `0` (`new skips = 0`).
+
+### 6. Isolamento de Provedores e Invariantes neste Prompt
+- **Chamadas Reais a Provedores**: TypeSafe `0`, OpenAI `0`, Twilio `0`.
+- **Carga de `.env`**: Nenhuma (`ENV_LOADED = NO`).
+- **Tráfego de Clientes**: Expressamente proibido (`CUSTOMER_TRAFFIC = PROHIBITED`).
+- **ACTIVE_GUARDED**: Permanece bloqueado (`BLOCKED`).
+
