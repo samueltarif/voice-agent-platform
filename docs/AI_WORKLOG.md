@@ -9156,3 +9156,31 @@ Este fechamento retifica a formulação epistemológica da base de evidência da
 
 ### 6. Próximo Passo
 - O próximo passo técnico (smoke sintético controlado em staging com TypeSafe) permanece formalmente condicionado à autorização humana prévia com teto orçamentário explícito.
+
+## [2026-10-01] PROMPT-AI-CONTEXT-CONTINUITY-FOUNDATION-001: Persistent AI Project Context & Context Loss Protection
+
+### 1. Motivação & Princípio de Continuidade
+- **Problema**: Sessões longas, troca de agentes/modelos e pausas entre dias de trabalho geram risco de perda de contexto operacional, regressões em invariantes ou suposições baseadas exclusivamente em memória conversacional.
+- **Princípio**: O repositório Git e os arquivos versionados são a fonte canônica e durável da verdade. A memória conversacional não substitui evidências.
+- **Solução**: Introdução do arquivo `docs/AI_CONTEXT.md` (snapshot enxuto, <= 250 linhas, mutável de estado verificado) e formalização do Protocolo de Continuidade no `AGENTS.md` (Seção 15).
+
+### 2. Modificações Realizadas
+- **Arquivos Criados**:
+  - `docs/AI_CONTEXT.md`: Documento de snapshot canônico de estado operacional atual, abrangendo status de subsistemas, estado do Jev, artefatos congelados, invariantes arquiteturais/segurança, bloqueios, próximo passo permitido e regras de desatualização (staleness gate).
+- **Arquivos Alterados**:
+  - `AGENTS.md`: Adicionada a Seção 15 ("Protocolo de Continuidade de Contexto de IA"), definindo leitura prévia mandatória, staleness gate com SHA do `origin/main`, regras de atualização e padrão de handoff ao fim da tarefa.
+  - `docs/AI_WORKLOG.md`: Entrada append-only registrada.
+
+### 3. Fontes de Reconstrução de Contexto
+- Base commit de referência: `8eaf042f9317b46b7f6732618c9108595c95fcc7` (`origin/main`).
+- Fontes consultadas: Git history, código em `packages/integrations/src/typesafe/`, `packages/contracts/`, `apps/voice/`, `docker-compose.yml`, ADR-019 e relatórios de pesquisa em `docs/research/`.
+
+### 4. Isolamento e Governança
+- **Alterações de Runtime**: Zero (`apps/**`, `packages/**` de código de produção inalterados).
+- **Alterações de Testes**: Zero.
+- **Chamadas a Provedores**: TypeSafe `0`, OpenAI `0`, Twilio `0`.
+- **Carga de `.env`**: Nenhuma.
+- **Validação**: `git diff --check` e `pnpm format:check`.
+
+### 5. Próximo Passo
+- O próximo passo técnico principal permanece: Preparação de 1 teste smoke sintético controlado da TypeSafe em Staging com autorização humana prévia e orçamento explícito.
