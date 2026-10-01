@@ -9649,3 +9649,41 @@ Este fechamento retifica a formulação epistemológica da base de evidência da
 
 ### 6. Próximo Passo Permitido
 - `NEXT_ALLOWED_STEP`: Latency evidence design / staging timeout evaluation before another live provider execution.
+
+## [2026-10-01] PROMPT-006S-PR46-CONSERVATIVE-EVIDENCE-AND-MERGE-001: PR #46 — Conservative Evidence Qualification & Merge Preparation
+
+### 1. Correção e Qualificação Conservadora de Evidência
+- **SELF_AUTHORED_DOC_IS_NOT_INDEPENDENT_PROOF**: `YES` (documentos e logs gerados pelo próprio agente não constituem prova externa ou independente de saída de processo).
+- **RUNNER_COMMAND_INVOCATIONS_OBSERVED**: `2`.
+- **FIRST_RUN_PROVIDER_DISPATCH**: `NOT VERIFIED` (saída bruta da primeira invocação não está disponível de forma independente no repositório; não assumir nem inferir resultado sem prova independente).
+- **AT_LEAST_ONE_FETCH_DISPATCH_OBSERVED**: `YES` (despacho observado na invocação executada).
+- **FETCH_DISPATCHES_AGGREGATE**: `NOT VERIFIED` (não inferir 1 nem 2 como contagem factual global agregada).
+- **AGGREGATE_PROVIDER_ATTEMPTS**: `NOT VERIFIED`.
+- **SUCCESSFUL_PROVIDER_RESPONSES**: `0`.
+
+### 2. Preservação de Fatos Observados e Semântica de Retry
+- **STAGING_LIVE_SHADOW_EXECUTION**: `OBSERVED / TIMEOUT`.
+- **COMPOSITION_TO_PROVIDER_DISPATCH**: `OBSERVED`.
+- **SUCCESSFUL_END_TO_END_PROVIDER_RESPONSE_THROUGH_COMPOSITION**: `NOT OBSERVED`.
+- **STAGING_SHADOW_TIMEOUT_MS**: `1500`.
+- **OBSERVER_ELAPSED_MS**: `1490`.
+- **SHADOW_TIMEOUT_CONTAINMENT**: `OBSERVED`.
+- **NON_BLOCKING_FAILURE_ISOLATION**: `OBSERVED`.
+- **REQUESTED_MODEL**: `jev-latest`.
+- **RESOLVED_MODEL**: `NOT OBSERVED`.
+- **SCORES**: `NOT OBSERVED`.
+- **PROVIDER_PROCESSING_COMPLETION**: `NOT OBSERVED`.
+- **ADAPTER_INTERNAL_RETRY**: `0`.
+- **OBSERVER_INTERNAL_RETRY**: `0`.
+- **COMPOSITION_INTERNAL_RETRY**: `0`.
+- **TIMEOUT_RECALIBRATION**: `NOT DECIDED`.
+- **BUDGET_CAP_USD**: `0.01` (`BUDGET_CAP_BREACH = NOT OBSERVED`).
+- **ACTUAL_BILLED_REQUEST_COUNT**: `NOT VERIFIED`.
+- **ACTUAL_BILLED_COST_USD**: `NOT VERIFIED`.
+
+### 3. Invariantes deste Prompt
+- **Chamadas Reais a Provedores neste Prompt**: TypeSafe `0`, OpenAI `0`, Twilio `0`.
+- **ENV_LOADED**: `NO`.
+- **Alterações de Código / Teste / Config**: `0`.
+- **Quality Gate**: Docs-only slice (`git diff --check` + `pnpm format:check`).
+- **Auditoria de Segredos no Tracked Diff**: `SECRET_AUDIT_PASS`.

@@ -40,17 +40,22 @@
   - `SENTINEL_CREATED_BEFORE_OBSERVED_FETCH = YES`
   - *Qualificação*: O arquivo sentinel (`scripts/tmp-006s-typesafe-provider-attempted`) foi projetado com flag atômica `wx`. Como o harness temporário era efêmero e não está versionado, seu comportamento histórico não deve ser extrapolado como prova de contagem além dos despachos de rede efetivamente observados e registrados.
 - **Guardião de Despacho de Rede**: Wrapper de `fetch` em memória limitando estritamente a 1 única invocação (`FETCH_INVOCATIONS_MAX = 1`).
-- **Política de Repetição**: `NO RETRY` (zero retries internos no adapter, observer ou composition).
+- **Política de Repetição**:
+  - `ADAPTER_INTERNAL_RETRY = 0`
+  - `OBSERVER_INTERNAL_RETRY = 0`
+  - `COMPOSITION_INTERNAL_RETRY = 0`
+  - *Qualificação*: Zero repetições internas pelo adapter, observer ou composition; não utilizado como prova de contagem de tentativas agregadas de tarefa.
 
 ---
 
 ## 4. Resultados Factualmente Observados & Reconciliação de Invocação
 - **Classificação de Resultado**: `STAGING_LIVE_SHADOW_EXECUTION = OBSERVED / TIMEOUT`
 - **Invocações do Comando Runner Observadas**: `RUNNER_COMMAND_INVOCATIONS_OBSERVED = 2`
-  - *Invocação 1* (`node --env-file=.env ./node_modules/vitest/vitest.mjs run scripts/tmp-006s-staging-shadow-live.test.ts`): Falhou na fase de coleta de arquivos do Vitest com exit code 1 ("No test files found") por filtro de workspace; encerrou antes da execução de qualquer teste e antes da criação do sentinel (`FIRST_RUN_PROVIDER_DISPATCH = VERIFIED NO`).
-  - *Invocação 2* (`node --env-file=.env ./node_modules/vitest/vitest.mjs run apps/voice/src/tmp-006s-staging-shadow-live.test.ts`): Executou o teste, criou o sentinel atômico e despachou a requisição.
-- **Despachos de Rede Agregados (`fetch`)**: `FETCH_DISPATCHES_AGGREGATE = 1` (`AT_LEAST_ONE_FETCH_DISPATCH_OBSERVED = YES`)
-- **Tentativas Agregadas a Provedor**: `PROVIDER_ATTEMPT_COUNT_AGGREGATE = 1`
+  - *Invocação 1* (`node --env-file=.env ./node_modules/vitest/vitest.mjs run scripts/tmp-006s-staging-shadow-live.test.ts`): Como a saída bruta independente não está preservada e registros próprios não constituem prova externa: `FIRST_RUN_PROVIDER_DISPATCH = NOT VERIFIED`.
+  - *Invocação 2* (`node --env-file=.env ./node_modules/vitest/vitest.mjs run apps/voice/src/tmp-006s-staging-shadow-live.test.ts`): Executou o teste sintético em modo SHADOW, com despacho de rede observado.
+- **Despacho de Rede Observado**: `AT_LEAST_ONE_FETCH_DISPATCH_OBSERVED = YES`
+- **Despachos de Rede Agregados (`fetch`)**: `FETCH_DISPATCHES_AGGREGATE = NOT VERIFIED` (não inferido exatamente 1 nem 2 de forma isolada)
+- **Tentativas Agregadas a Provedor**: `PROVIDER_ATTEMPT_COUNT_AGGREGATE = NOT VERIFIED`
 - **Respostas de Provedor Recebidas com Sucesso**: `SUCCESSFUL_PROVIDER_RESPONSES = 0` (o timeout de 1500ms abortou a requisição antes da conclusão pelo servidor remoto da TypeSafe AI)
 - **Status da Observação no Observer**: `ACCEPTED` (o turno sintético foi aceito em modo SHADOW)
 - **Tempo Decorrido no Observer**: `1490 ms` (~1500 ms)
