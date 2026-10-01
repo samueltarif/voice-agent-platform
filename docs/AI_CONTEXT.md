@@ -4,13 +4,13 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-01
-CONTEXT_BASE_MAIN_SHA: 27a7b2450574bac73bb15b7691676cdee8a1b460
+CONTEXT_BASE_MAIN_SHA: 2ae6dea8ede8efaac94590925f71821cb118b8ea
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
-CURRENT_SLICE: Frozen Policy Interpreter Implementation
-CONTEXT_UPDATE_BRANCH: feat/006y-frozen-policy-interpreter
-CONTEXT_UPDATE_PR: 52
-LAST_MERGED_PR_AT_REFRESH: 51
-LAST_MERGE_SHA_AT_REFRESH: 27a7b2450574bac73bb15b7691676cdee8a1b460
+CURRENT_SLICE: Security Escalate Runtime Semantics Design
+CONTEXT_UPDATE_BRANCH: research/006z-security-escalate-runtime-semantics
+CONTEXT_UPDATE_PR: 53
+LAST_MERGED_PR_AT_REFRESH: 52
+LAST_MERGE_SHA_AT_REFRESH: 2ae6dea8ede8efaac94590925f71821cb118b8ea
 LAST_TESTED_CODE_SHA: f8945399b3ab4274a19307991d994c261f5ed9ac
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
@@ -69,9 +69,11 @@ AI_CONTEXT_HEADER_END
 - **SELECTED_ROUTING_TOPOLOGY**: `DESIGNED / NOT WIRED` (Application-Eligibility Filtered Serial Gate — confirma Opcao C do ADR-019).
 - **RUNTIME_FROZEN_POLICY_INTERPRETER**: `IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/frozen-policy-interpreter.ts`; 20 testes unitários).
 - **FROZEN_POLICY_CHANGED**: `NO`.
-- **SECURITY_RUNTIME_ACTION**: `NOT IMPLEMENTED`.
-- **SECURITY_RUNTIME_SEMANTICS**: `UNDECIDED`.
-- **SECURITY_RUNTIME_ACTION_DECISION_REQUIRED**: `YES`.
+- **SECURITY_OFFLINE_ACTION**: `NOT IMPLEMENTED`.
+- **SECURITY_RUNTIME_SEMANTICS**: `DESIGNED` (`docs/research/PHASE_6_SECURITY_ESCALATE_RUNTIME_SEMANTICS.md`).
+- **SECURITY_RUNTIME_ACTION_IMPLEMENTATION_REQUIRED**: `YES`.
+- **SECURITY_RESPONSE_DELIVERY_READY**: `NO`.
+- **SECURITY_HISTORY_PERSISTENCE_READY**: `NO`.
 - **DETERMINISTIC_POST_DISPATCH_BARGE_IN**: `NOT VERIFIED`.
 - **RUNTIME_DETERMINISTIC_BYPASS**: `NOT WIRED`.
 - **ACTIVE_DETERMINISTIC_BYPASS_READINESS**: `BLOCKED`.
@@ -151,7 +153,7 @@ AI_CONTEXT_HEADER_END
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- Revisar o PR do interpretador (`frozen-policy-interpreter.ts`); não realizar fiação no orquestrador até que a semântica de segurança e a de completude de histórico/resposta pós-despacho sejam resolvidas separadamente.
+- Minimal offline SECURITY_BLOCKED action implementation with focused tests only, without transport/history/orchestrator wiring.
 
 ### `NOT_YET_ALLOWED`:
 - Transmissão de dados reais de clientes para provedores externos.

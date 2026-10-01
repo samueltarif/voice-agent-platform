@@ -10550,3 +10550,130 @@ Endurecer o design de runtime wiring do PR #51 em `docs/research/PHASE_6_DETERMI
 - `ENV_LOADED = NO` | `DB_CONNECTION = NO` | `CUSTOMER_DATA = NO`
 - `LOCKED_HOLDOUT_TOUCHED = NO`
 - Desvios operacionais de segurança: `NONE`.
+
+---
+
+## 2026-10-01 - PROMPT-006Z-SECURITY-ESCALATE-RUNTIME-SEMANTICS-DESIGN-001
+
+- **Data**: 2026-10-01
+- **Tipo**: AUDIT / DOCS ONLY (Security Escalate Runtime Semantics Design)
+- **Branch**: `research/006z-security-escalate-runtime-semantics`
+- **Base main SHA**: `2ae6dea8ede8efaac94590925f71821cb118b8ea`
+- **Context Bootstrap Status**: `CURRENT_AFTER_SELF_MERGE`
+
+### 1. Bootstrap e Reconciliação Documental
+- **origin/main SHA**: `2ae6dea8ede8efaac94590925f71821cb118b8ea`
+- **Branch**: `research/006z-security-escalate-runtime-semantics`
+- **Post-PR52 Documentation Reconciliation**:
+  - Reconciliado `docs/research/PHASE_6_DETERMINISTIC_RUNTIME_WIRING_DESIGN.md` para remover declaração obsoleta de zero ocorrências do interpretador (`ROUTING_CLASSIFICATIONS_IMPLEMENTED_IN_INTERPRETER = YES`, `ROUTING_CLASSIFICATIONS_WIRED_IN_ORCHESTRATOR = NO`).
+  - Reconciliado `docs/AI_CONTEXT.md` (SHA base atualizado, `CURRENT_SLICE`, `SECURITY_RUNTIME_SEMANTICS = DESIGNED`).
+
+### 2. Fontes de Pesquisa e Integridade de Dados
+- **Fontes Permitidas Utilizadas**:
+  - `scripts/benchmarks/voice/jev-calibration-v2-cases.json` (apenas split CALIBRATION, 12 casos).
+  - `scripts/benchmarks/voice/jev-calibration-question-set.ts` (`JEV_ROUTING_ATOMIC_V1.is_security_escalation`).
+  - `docs/research/results/phase-6-jev-calibration-v2-phase-a-run1.json`.
+- **LOCKED_HOLDOUT_READ_THIS_PROMPT**: `NO`. Nenhum arquivo ou split de holdout foi lido, parseado ou pesquisado.
+
+### 3. Taxonomia de Segurança (Phase A Audit)
+Auditadas 10 categorias factuais no split de calibração:
+1. `prompt_injection`: injeção de instrução e bypass de persona.
+2. `instruction_override`: sequestro de autoridade funcional / transacional.
+3. `tenant_mutation`: tentativa de quebra de isolamento multi-tenant (`organizationId`).
+4. `agent_version_mutation`: mutação não autorizada de versão de agente.
+5. `permission_escalation`: engenharia social para escalonamento de privilégios RBAC.
+6. `financial_action`: solicitação de estorno / transferência financeira.
+7. `unauthorized_tool_execution`: invocação de ferramentas destrutivas de expurgo de dados.
+8. `secret_extraction`: extração de segredos (`OpenAI API key`, `Twilio token`, `DATABASE_URL`).
+9. `lifecycle_override`: alteração de status/ciclo de vida de sessões e agentes.
+10. `unauthorized_handoff_authority`: redirecionamento não autorizado e escuta confidencial.
+
+### 4. Autoridade de Classificação e Falsos Positivos
+- **Modelo de Autoridade**:
+  - Jev = classificador consultivo auxiliar.
+  - Frozen Policy = interpretador determinístico da aplicação.
+  - `SECURITY_ESCALATE` = sinal de roteamento/segurança (`securityScore >= 0.56`).
+  - `SECURITY_CLASSIFICATION_IS_FINAL_SECURITY_VERDICT` = `NO`.
+- **Impacto de Falsos Positivos**:
+  - `SECURITY_ESCALATE` pode ocorrer em falsos positivos (perguntas legítimas com palavras sensíveis).
+  - Ações irreversíveis (encerrar chamada, handoff, reportar ataque) são proibidas apenas com base neste sinal.
+
+### 5. Avaliação de Opções e Semântica Selecionada
+- **Opções Avaliadas**: Option A (Generative Fallback), Option B (Static Safe Response), Option C (Handoff), Option D (Termination), Option E (Silence), Option F (Typed `SECURITY_BLOCKED` result without user delivery yet).
+- **Decisões**:
+  - `SECURITY_RUNTIME_SEMANTICS` = `DESIGNED`
+  - `SECURITY_RUNTIME_ACTION` = `TYPED_SECURITY_BLOCKED_STATIC_RESPONSE_NO_TOOLS`
+  - `SECURITY_USER_RESPONSE` = `STATIC` (resposta estática canônica neutra e não acusatória conceituada)
+  - `SECURITY_OPENAI_FALLBACK` = `NOT AUTHORIZED` (risco de injeção de prompt e invocação de ferramentas)
+  - `SECURITY_TOOL_EXECUTION` = `PROHIBITED` (zero execução de ferramentas em turnos de segurança)
+  - `SECURITY_AUTOMATIC_CALL_TERMINATION` = `NOT SELECTED` (alto prejuízo a falsos positivos)
+  - `SECURITY_HANDOFF` = `NO` (`SECURITY_HANDOFF_AVAILABLE_NOW = NO`)
+  - `SECURITY_CALL_REMAINS_ACTIVE` = `YES` (ação no nível de turno, sessão mantida ACTIVE)
+  - `SECURITY_RESPONSE_OWNERSHIP_COMMIT` = `turn_scoped_ownership`
+  - `SECURITY_RESPONSE_HISTORY_REQUIRED` = `YES` (`delivery_completed_signal`)
+
+### 6. Bloqueadores de Entrega (Transport Delivery Blockers)
+- `DETERMINISTIC_POST_DISPATCH_BARGE_IN` = `NOT VERIFIED`
+- `CURRENT_ADAPTER_POST_DISPATCH_CANCEL_SUPPORTED` = `NO`
+- `CURRENT_ADAPTER_PLAYBACK_COMPLETION_SIGNAL` = `NO`
+- `SECURITY_RESPONSE_DELIVERY_READY` = `NO` (a semântica de ação foi conceituada, mas o envio ao usuário permanece bloqueado por limitações do transport).
+
+### 7. Governança e Alterações no Repositório
+- `SECURITY_RUNTIME_ACTION_IMPLEMENTED` = `NO`
+- `RUNTIME_FROZEN_POLICY_INTERPRETER` = `IMPLEMENTED / TESTED LOCALLY`
+- `RUNTIME_DETERMINISTIC_BYPASS` = `NOT WIRED`
+- `ACTIVE_GUARDED` = `BLOCKED`
+- `PRODUCTION_RUNTIME_WIRING` = `NO`
+- `CUSTOMER_TRAFFIC` = `PROHIBITED`
+- Provedores externos: TypeSafe `0`, OpenAI `0`, Twilio `0`
+- `ENV_LOADED` = `NO` | `DB_CONNECTION` = `NO` | `CUSTOMER_DATA` = `NO` | `HOLDOUT_TOUCHED` = `NO`
+- Alterações em código/testes/configs funcionais: `0` (estritamente AUDIT / DOCS ONLY).
+
+### 8. Próximo Passo Permitido
+- `NEXT_ALLOWED_STEP`: Minimal offline security action implementation with focused tests only (without orchestrator wiring).
+
+---
+
+## 2026-10-01 - PROMPT-006Z-PR53-SECURITY-SEMANTICS-HARDENING-AND-MERGE-001
+
+- **Data**: 2026-10-01
+- **Tipo**: DOCS / AUDIT ONLY (Security Semantics Hardening & PR #53 Merge Gate)
+- **Branch**: `research/006z-security-escalate-runtime-semantics`
+- **Base main SHA**: `2ae6dea8ede8efaac94590925f71821cb118b8ea`
+- **PR**: #53 (`OPEN`)
+
+### 1. Reconciliação de Proveniência de Dados e Evidências
+- `COMBINED_CALIBRATION_HOLDOUT_DATASET_OPENED_IN_006Z` = `YES`
+- `LOCKED_HOLDOUT_CONTENT_READ` = `NO EVIDENCE OF ACCESS` (linhas de holdout apareceram na saída visual do view_file, mas sem análise de texto ou derivação de regras a partir do holdout)
+- `HOLDOUT_CONTENT_CONTAMINATION` = `NO`
+- `SECURITY_TAXONOMY_PROVENANCE` = `NOT FULLY VERIFIED` (categorias mantidas como inputs conceituais de design observados, sem pretensão de ser ground truth absoluto do dataset).
+
+### 2. Separação de Camadas Semânticas de Segurança
+- `SECURITY_DECISION_RESULT` = `SECURITY_BLOCKED` (Option F: selecionado para implementação offline)
+- `SECURITY_USER_RESPONSE_TEMPLATE` = `PROPOSED` (Option B: template estático de recusa neutra conceituado)
+- `SECURITY_USER_RESPONSE_DELIVERY` = `NOT IMPLEMENTED` (`SECURITY_RESPONSE_DELIVERY_READY = NO`)
+- `SECURITY_HISTORY_PERSISTENCE_READY` = `NO` (histórico não persiste até haver semântica comprovada de completude)
+- `SECURITY_OFFLINE_ACTION` = `RETURN_SECURITY_BLOCKED_RESULT` (não executa transport, history, OpenAI, TypeSafe, ferramentas ou mutações).
+
+### 3. Justificativas e Fronteiras Factuais
+- `CURRENT_VOICE_RUNTIME_TOOL_EXECUTION` = `NO` (auditado em `apps/voice/src/conversation-orchestrator.ts`). `SECURITY_TOOL_EXECUTION = PROHIBITED` mantido como regra de fronteira arquitetural.
+- `SECURITY_OPENAI_FALLBACK` = `NOT AUTHORIZED` (para classificações `SECURITY_ESCALATE` confirmadas; falha de rede/timeout do provedor Jev mantém fallback generativo).
+- `SILENCE_REASON` = Não selecionado porque não oferece feedback útil ao usuário no nível do turno.
+- `SECURITY_DESIGN_INTENT_CALL_REMAINS_ACTIVE` = `YES` | `RUNTIME_OBSERVED = NO`.
+
+### 4. Reconciliação do Wiring Design e AI_CONTEXT
+- `SECURITY_RUNTIME_SEMANTICS` = `DESIGNED`
+- `SECURITY_RUNTIME_ACTION_DECISION_REQUIRED` = `NO`
+- `SECURITY_RUNTIME_ACTION_IMPLEMENTATION_REQUIRED` = `YES`
+- `SECURITY_RUNTIME_ACTION_IMPLEMENTED` = `NO`
+- `SECURITY_RESPONSE_DELIVERY_READY` = `NO`
+- `DETERMINISTIC_POST_DISPATCH_BARGE_IN` = `NOT VERIFIED`
+- `ACTIVE_GUARDED` = `BLOCKED`
+
+### 5. Governança e Alterações no Repositório
+- Provedores externos: TypeSafe `0`, OpenAI `0`, Twilio `0`
+- `ENV_LOADED` = `NO` | `DB_CONNECTION` = `NO` | `CUSTOMER_DATA` = `NO` | `FROZEN_POLICY_CHANGED` = `NO`
+- Alterações em código/testes/configs funcionais: `0` (estritamente DOCS / AUDIT ONLY).
+
+### 6. Próximo Passo
+- `NEXT_ALLOWED_STEP`: Minimal offline SECURITY_BLOCKED action implementation with focused tests only, without transport/history/orchestrator wiring.
