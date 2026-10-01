@@ -241,3 +241,26 @@ Uma tarefa só é considerada concluída quando:
 14. **Autocorreção e Distinção Factual**: Mudar de posição diante de novas evidências é mandatório (`PREVIOUS ASSUMPTION`, `NEW EVIDENCE`, `CORRECTION`). Distinguir categoricamente `FACT`, `INFERENCE`, `OPTION`, `RECOMMENDATION`, `HUMAN DECISION` e `UNKNOWN`.
 15. **Proibição de Auto-Certificação**: Texto emitido pelo próprio agente não é evidência. A evidência provém unicamente de comandos, saídas de terminal, runners de teste e runners AST.
 16. **Auditoria de Segredos no Tracked Diff**: Auditoria final de segredos opera exclusivamente sobre o tracked diff (`git diff origin/main...HEAD`), de forma booleana (`SECRET_AUDIT_PASS` / `SECRET_AUDIT_FAIL`), sem expor linhas coincidentes.
+
+---
+
+## 15. Protocolo de Continuidade de Contexto de IA (AI Context Continuity Protocol)
+
+1. **Obrigatoriedade de Leitura Prévia de Contexto**:
+   - Antes de iniciar qualquer trabalho substancial no repositório, o agente DEVE ler obrigatoriamente:
+     - `AGENTS.md`
+     - `docs/AI_EXECUTION_RULES.md`
+     - `docs/AI_CONTEXT.md`
+   - Para tarefas específicas (voz, banco, auth, integrações), o agente deve consultar adicionalmente os ADRs e documentos de design relevantes.
+2. **Repositório como Fonte Durável da Verdade**:
+   - A memória conversacional de modelos, histórico de chat ou suposições do operador NÃO constituem fonte de verdade. O estado durável reside exclusivamente no repositório Git, no código-fonte, nos testes e nos registros versionados.
+3. **Staleness Gate e Resolução de Conflitos**:
+   - No início de tarefas substanciais, o agente deve verificar se `CONTEXT_MAIN_SHA` em `docs/AI_CONTEXT.md` coincide com `git rev-parse origin/main`.
+   - Se `AI_CONTEXT.md` divergir do código-fonte, do Git ou de testes reais observados, o arquivo está **STALE**. O código e as evidências factuais prevalecem obrigatoriamente.
+4. **Política de Atualização**:
+   - `docs/AI_CONTEXT.md` é documentação mutável de estado atual (tamanho enxuto, alvo <= 250 linhas).
+   - `docs/AI_WORKLOG.md` permanece como registro histórico cronológico append-only (imutável). Nunca usar `AI_CONTEXT.md` para reescrever histórico.
+   - Atualizar `AI_CONTEXT.md` apenas quando a tarefa alterar: arquitetura do sistema, integrações externas, prontidão de features, bloqueadores ativos, evidência de teste válida ou próximo passo permitido.
+5. **Padrão de Handoff ao Término da Tarefa (CONTEXT HANDOFF)**:
+   - Ao final de toda resposta de tarefa substancial, o agente deve emitir um bloco estruturado compacto de handoff:
+     `CONTEXT HANDOFF: MAIN_SHA | PR | TASK_RESULT | LAST_TESTED_SHA | QUALITY_GATE | CURRENT_BLOCKERS | NEXT_ALLOWED_STEP`.
