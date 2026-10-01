@@ -24,7 +24,7 @@ O design arquitetural da fiação do runtime determinístico foi conceituado, po
 6. `DETERMINISTIC_AUDIO_FULLY_DELIVERED`: `NOT VERIFIED` após speak dispatch.
 7. `DETERMINISTIC_HISTORY_COMPLETION_AFTER_SPEAK`: `NOT AUTOMATICALLY SAFE` (risco de persistir resposta cancelada como completa).
 8. `ACTIVE_GUARDED_PROVIDER_CALL_OWNERSHIP`: `BLOCKED / NOT IMPLEMENTED` (risco de dupla consulta Jev se shadowObserver coexistir).
-9. `RUNTIME_FROZEN_POLICY_INTERPRETER`: `NOT IMPLEMENTED` (deve ser implementado offline e isoladamente no próximo slice).
+9. `RUNTIME_FROZEN_POLICY_INTERPRETER`: `IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/frozen-policy-interpreter.ts`; 20 testes unitários; `FROZEN_POLICY_CHANGED = NO`).
 
 ---
 
@@ -241,7 +241,10 @@ ACTIVE_GUARDED_PROVIDER_CALL_OWNERSHIP = BLOCKED / NOT IMPLEMENTED
 - `SECURITY_ESCALATE`, `DETERMINISTIC_CANDIDATE`, `GENERATIVE_REQUIRED` - **zero ocorrências** em código de produção.
 
 ```
-RUNTIME_FROZEN_POLICY_INTERPRETER = NOT IMPLEMENTED
+RUNTIME_FROZEN_POLICY_INTERPRETER = IMPLEMENTED / TESTED LOCALLY
+FROZEN_POLICY_CHANGED = NO
+SECURITY_RUNTIME_ACTION = NOT IMPLEMENTED
+SECURITY_RUNTIME_SEMANTICS = UNDECIDED
 ```
 
 ### Fronteira Estrita e Isolamento de Responsabilidade
@@ -520,7 +523,7 @@ NEW_COORDINATOR_REQUIRED = NO
 |---|---|---|
 | `KNOWN_DETERMINISTIC_HANDLERS >= 1` | **MET** | Handler `agent.operating_hours` implementado/testado (PR #50) |
 | `CAPABILITY_RESOLUTION` | **MET** | Matcher local puro implementado/testado (PR #50) |
-| `RUNTIME_FROZEN_POLICY_INTERPRETER` | **NOT IMPLEMENTED** | Bloqueador (implementável offline no próximo slice) |
+| `RUNTIME_FROZEN_POLICY_INTERPRETER` | **IMPLEMENTED / TESTED LOCALLY** | Função pura implementada offline em `frozen-policy-interpreter.ts` com 20 testes unitários (`FROZEN_POLICY_CHANGED = NO`) |
 | `SECURITY_RUNTIME_ACTION` | **NOT IMPLEMENTED** | Bloqueador de runtime |
 | `SECURITY_RUNTIME_SEMANTICS` | **UNDECIDED** | Bloqueador formal |
 | `SECURITY_RUNTIME_ACTION_DECISION_REQUIRED` | **YES** | Bloqueador obrigatório antes de ACTIVE_GUARDED |

@@ -4,14 +4,14 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-01
-CONTEXT_BASE_MAIN_SHA: b0124ac3d0b060a03aace4a83b954054d70d85a5
+CONTEXT_BASE_MAIN_SHA: 27a7b2450574bac73bb15b7691676cdee8a1b460
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
-CURRENT_SLICE: Deterministic Runtime Wiring Design
-CONTEXT_UPDATE_BRANCH: research/006x-deterministic-runtime-wiring-design
-CONTEXT_UPDATE_PR: 51
-LAST_MERGED_PR_AT_REFRESH: 50
-LAST_MERGE_SHA_AT_REFRESH: b0124ac3d0b060a03aace4a83b954054d70d85a5
-LAST_TESTED_CODE_SHA: 7cc576d3cc78e3d16878da9e34d6f6953fd75d9a
+CURRENT_SLICE: Frozen Policy Interpreter Implementation
+CONTEXT_UPDATE_BRANCH: feat/006y-frozen-policy-interpreter
+CONTEXT_UPDATE_PR: PENDING
+LAST_MERGED_PR_AT_REFRESH: 51
+LAST_MERGE_SHA_AT_REFRESH: 27a7b2450574bac73bb15b7691676cdee8a1b460
+LAST_TESTED_CODE_SHA: 5d830456fc25c0126683817fc3b428ffca058627
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
 AI_CONTEXT_HEADER_END
@@ -67,7 +67,8 @@ AI_CONTEXT_HEADER_END
 - **DETERMINISTIC_RUNTIME_WIRING_DESIGN**: `DESIGNED_WITH_BLOCKERS` (`docs/research/PHASE_6_DETERMINISTIC_RUNTIME_WIRING_DESIGN.md`).
 - **DETERMINISTIC_INTERCEPTION_SEAM**: `ConversationOrchestrator.handleUserSpeechFinal() — apos save(generationId), antes de streamTurn()`.
 - **SELECTED_ROUTING_TOPOLOGY**: `DESIGNED / NOT WIRED` (Application-Eligibility Filtered Serial Gate — confirma Opcao C do ADR-019).
-- **RUNTIME_FROZEN_POLICY_INTERPRETER**: `NOT IMPLEMENTED`.
+- **RUNTIME_FROZEN_POLICY_INTERPRETER**: `IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/frozen-policy-interpreter.ts`; 20 testes unitários).
+- **FROZEN_POLICY_CHANGED**: `NO`.
 - **SECURITY_RUNTIME_ACTION**: `NOT IMPLEMENTED`.
 - **SECURITY_RUNTIME_SEMANTICS**: `UNDECIDED`.
 - **SECURITY_RUNTIME_ACTION_DECISION_REQUIRED**: `YES`.
@@ -130,9 +131,9 @@ AI_CONTEXT_HEADER_END
 
 ## 6. Estado Atual da Evidência de Qualidade (Quality Gate Snapshot)
 
-- **Último `pnpm check` Global**: `PASS` (executado e observado no commit `7cc576d3cc78e3d16878da9e34d6f6953fd75d9a`).
-- **Status das Asserções**: `659 passed`, `45 historical skips`, `0 new skips`, `0 failures` (105 arquivos de teste aprovados, 6 skipped de staging).
-- **Regressão de Asserções**: `ASSERTION_WEAKER = 0` (73 novos testes adicionados: `ASSERTION_STRONGER: 73`).
+- **Último `pnpm check` Global**: `PASS` (executado e observado no commit `5d830456fc25c0126683817fc3b428ffca058627`).
+- **Status das Asserções**: `679 passed`, `45 historical skips`, `0 new skips`, `0 failures` (106 arquivos de teste aprovados, 6 skipped de staging).
+- **Regressão de Asserções**: `ASSERTION_WEAKER = 0` (20 novos testes adicionados: `ASSERTION_STRONGER: 20`).
 - **QUALITY_EVIDENCE_STALE**: `NO` (commits subsequentes estritamente documentais em `docs/`).
 
 ---
@@ -150,7 +151,7 @@ AI_CONTEXT_HEADER_END
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- Implementar offline a funcao pura `frozen-policy-interpreter.ts` acompanhada exclusivamente de testes unitarios focados e isolados (sem wiring no orquestrador).
+- Revisar o PR do interpretador (`frozen-policy-interpreter.ts`); não realizar fiação no orquestrador até que a semântica de segurança e a de completude de histórico/resposta pós-despacho sejam resolvidas separadamente.
 
 ### `NOT_YET_ALLOWED`:
 - Transmissão de dados reais de clientes para provedores externos.
