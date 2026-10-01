@@ -9729,3 +9729,48 @@ Este fechamento retifica a formulação epistemológica da base de evidência da
 
 ### 6. Próximo Passo Permitido
 - `NEXT_ALLOWED_STEP`: Execução separadamente autorizada do plano de evidência de latência aprovado, somente após revisão humana (N=12 requisições MAX, BUDGET_CAP_USD = 0.01, zero tráfego de clientes, zero Twilio, zero fiação em produção e ACTIVE_GUARDED = BLOCKED).
+
+## [2026-10-01] PROMPT-006T-PR47-METHODOLOGY-HARDENING-AND-MERGE-001: PR #47 — Latency Evidence Plan Methodology Hardening
+
+### 1. Preflight & Metadados do PR
+- **CONTEXT_UPDATE_PR**: `47`.
+- **Branch de Trabalho**: `research/006t-typesafe-staging-latency-plan`.
+- **Main SHA de Base**: `9a8e259bbd6f83072620deb18e4d910450e601a8`.
+- **Escopo deste Prompt**: Estritamente documental e endurecimento metodológico antes do merge (`audit/docs-only`).
+
+### 2. Reconstrução Factual do Inventário de Latência
+- **A1. Calibração Phase A (`phase-6-jev-calibration-v2-phase-a-run1.json`)**: N=80 casos planejados/executados (160 requisições); latência `NOT RECORDED / NOT VERIFIED` no artefato versionado.
+- **A2. Locked Holdout (`phase-6-jev-locked-holdout-v2-run1.json` / AI_WORKLOG 006M / ADR-019)**: N=40 casos (40 requisições atômicas); `atomicLatencyMs` observada (min = 225ms, mediana = 255ms, max = 446ms, p95 = 387ms) calculada restritamente sobre N=40. `NÃO COMPARÁVEL` com composição SHADOW.
+- **B. Direct Adapter Live Smoke (PR #44 / 006Q)**: N=1 resposta válida observada (415ms), `AGGREGATE_REQUEST_COUNT = NOT VERIFIED`, `HARNESS_PROCESS_EXECUTIONS = 2`. `NÃO COMPARÁVEL` com composição SHADOW (`DIRECT_ADAPTER_LATENCY != STAGING_SHADOW_COMPOSITION_LATENCY`).
+- **C. Staging Composition SHADOW Live (PR #46 / 006S)**: N=1 execução observada (timeout em 1490ms sob teto de 1500ms; resposta remota completa `NOT OBSERVED`).
+
+### 3. Auditoria Factual do Código-Fonte & Override de Deadline
+- **Auditoria de `apps/voice/src/composition-root.staging-shadow.ts`**:
+  - `MEASUREMENT_DEADLINE_OVERRIDE_SUPPORTED`: `YES` (`StagingShadowCompositionOptions.timeoutMs` já existe e é tipado na linha 23; fábrica atribui `options.timeoutMs ?? STAGING_SHADOW_TIMEOUT_MS` na linha 130).
+  - `MEASUREMENT_ONLY_DEADLINE_IMPLEMENTATION_PREREQUISITE`: `NO` (capacidade já implementada no código existente de staging).
+  - `DESIRED_MEASUREMENT_DEADLINE`: `4000ms` (exclusivo para o harness temporário de medição; NÃO constitui novo timeout operacional de staging, timeout de produção ou SLA).
+  - `STAGING_SHADOW_TIMEOUT_MS`: `1500` (inalterado).
+  - `STAGING_TIMEOUT_RECALIBRATION`: `NOT DECIDED`.
+  - `PRODUCTION_JEV_TIMEOUT_MS`: `NOT SELECTED`.
+  - `PRODUCTION_SHADOW_MAX_CONCURRENCY`: `NOT SELECTED`.
+
+### 4. Endurecimento de Controles e Semântica de Execução Futura
+- **Teto Planejado**: `PLANNED_CASES_MAX = 12`.
+- **Execuções Reais**: `TOTAL_CASES_EXECUTED = NOT EXECUTED` (`0` neste slice).
+- **Teto Rígido Futuro de Requisições**: `FUTURE_TYPESAFE_REQUESTS_MAX = 12` (teto máximo autorizado, não alvo obrigatório; encerra imediatamente se stop condition disparar).
+- **Controle do Runner Futuro**: `RUNNER_COMMAND_INVOCATIONS_MAX = 1` (exatamente UMA invocação do runner; proibido reinvocar automaticamente em caso de falha; STOP e reconciliar evidência).
+- **Ledger de Tarefa**: `scripts/tmp-006t-typesafe-counter.json` classificado estritamente como temporário, local da tarefa, não rastreado no git e nunca commitado (`TEMPORARY / UNTRACKED`). Registro durável será em `docs/research/results/`.
+- **Heurísticas de Decisão**: Classificadas rigorosamente como `PROPOSED_EXPLORATORY_DECISION_HEURISTICS` (não são política de produção, SLA nem gate automático de deploy).
+- **Contenção Orçamentária**: `AUTHORIZED_EXPERIMENT_BUDGET_CAP_USD = 0.01`, `COST_ESTIMATE = NOT VERIFIED`, `ACTUAL_BILLED_COST_USD = NOT VERIFIED`. Proteção operacional real garantida por request cap <= 12, no retry e stop conditions.
+
+### 5. Invariantes Mantidas neste Prompt
+- **Chamadas Reais a Provedores**: TypeSafe `0`, OpenAI `0`, Twilio `0`.
+- **Carga de `.env`**: Nenhuma (`ENV_LOADED = NO`).
+- **Holdout de Pesquisa**: Intocado (`LOCKED_HOLDOUT = CONSUMED`).
+- **Tráfego de Clientes**: Proibido (`CUSTOMER_TRAFFIC = PROHIBITED`).
+- **Alterações de Código / Teste / Config**: `0` (estritamente documental).
+- **Quality Gate**: Docs-only slice (`git diff --check` + `pnpm format:check`).
+- **Auditoria de Segredos no Tracked Diff**: `SECRET_AUDIT_PASS`.
+
+### 6. Próximo Passo Permitido
+- `NEXT_ALLOWED_STEP`: Execução separadamente autorizada do plano de evidência de latência aprovado, somente após aprovação humana explícita (N=12 requisições MAX, BUDGET_CAP_USD = 0.01, zero tráfego de clientes, zero Twilio, zero fiação em produção e ACTIVE_GUARDED = BLOCKED).
