@@ -1,21 +1,38 @@
-﻿# Phase 6 - Deterministic Runtime Wiring: Documento de Design (PHASE_6_DETERMINISTIC_RUNTIME_WIRING_DESIGN.md)
+# Phase 6 - Deterministic Runtime Wiring: Documento de Design (PHASE_6_DETERMINISTIC_RUNTIME_WIRING_DESIGN.md)
 
-> **Status**: DESIGN IN PROGRESS
+> **Status**: DESIGNED_WITH_BLOCKERS
 > **Data**: 2026-10-01
 > **Fase**: Phase 6 (Voice Model Routing & Jev Evaluation)
 > **Prompt de Origem**: `PROMPT-006X-DETERMINISTIC-RUNTIME-WIRING-DESIGN-001`
+> **Prompt de Hardening**: `PROMPT-006X-PR51-WIRING-DESIGN-HARDENING-AND-MERGE-001`
 > **Branch**: `research/006x-deterministic-runtime-wiring-design`
 > **Base main SHA**: `b0124ac3d0b060a03aace4a83b954054d70d85a5`
 > **Invariante Formal**: `NO_KNOWN_DETERMINISTIC_HANDLER -> NO_DETERMINISTIC_BYPASS`
-> **Fronteira Estrita**: Este documento e DESIGN ONLY. Zero linhas de codigo funcional foram alteradas.
+> **Fronteira Estrita**: Este documento e AUDIT / DESIGN ONLY. Zero linhas de codigo funcional foram alteradas.
+
+---
+
+## Resumo Executivo de Status: DESIGNED_WITH_BLOCKERS
+
+O design arquitetural da fiação do runtime determinístico foi conceituado, porém **NÃO está pronto para fiação no orquestrador** devido aos seguintes bloqueadores formais identificados na auditoria:
+
+1. `SECURITY_RUNTIME_ACTION`: `NOT IMPLEMENTED` e `SECURITY_RUNTIME_SEMANTICS = UNDECIDED`.
+2. `SECURITY_RUNTIME_ACTION_DECISION_REQUIRED`: `YES` (ACTIVE_GUARDED não pode ser implementado antes de definir e testar essa semântica).
+3. `DETERMINISTIC_POST_DISPATCH_BARGE_IN`: `NOT VERIFIED` (cancelamento de playback após speak não é suportado pelo transport atual).
+4. `TRANSPORT_POST_DISPATCH_CANCEL_SUPPORTED`: `NO` (auditado em `packages/integrations/src/twilio/**`).
+5. `TRANSPORT_PLAYBACK_COMPLETION_SIGNAL`: `NO` (Twilio Conversation Relay não emite sinal de conclusão de reprodução).
+6. `DETERMINISTIC_AUDIO_FULLY_DELIVERED`: `NOT VERIFIED` após speak dispatch.
+7. `DETERMINISTIC_HISTORY_COMPLETION_AFTER_SPEAK`: `NOT AUTOMATICALLY SAFE` (risco de persistir resposta cancelada como completa).
+8. `ACTIVE_GUARDED_PROVIDER_CALL_OWNERSHIP`: `BLOCKED / NOT IMPLEMENTED` (risco de dupla consulta Jev se shadowObserver coexistir).
+9. `RUNTIME_FROZEN_POLICY_INTERPRETER`: `NOT IMPLEMENTED` (deve ser implementado offline e isoladamente no próximo slice).
 
 ---
 
 ## 1. Fluxo de Turno Atual (Current Turn Flow - Factual)
 
-Baseado na auditoria do codigo versionado em `apps/voice/src/`:
+Baseado na auditoria do código versionado em `apps/voice/src/`:
 
-`
+```
 [Twilio ConversationRelay WebSocket]
   |
   | VoiceInputEvent (type: user.speech.final)
@@ -49,451 +66,501 @@ AssistantStreamCoordinator.streamTurn()
   v
 processModelStream()
   | for await chunk of stream:
-  |   [guard] isGenerationActive(callId, genId)   <- STALENESS CHECK (barge-in)
+  |   [guard] isGenerationActive(callId, genId)   <- PRE-DISPATCH CHUNK CHECK
   |   transport.speak(callId, { text, generationId, isFinal })
   |
   v
-AssistantStreamCoordinator.recordTurnCompletion()
+AssistantStreamCoordinator.recordTurnCompletion()  <- PRIVATE METHOD
   | historyStore.appendTurn({ role: assistant, content: fullResponse })
   | logger.info(call.turn.completed, { generationId, durationMs })
-`
+```
 
-**Fatos derivados do codigo:**
+**Fatos derivados do código:**
 
-- `activeGenerations` (Map<callId, generationId>) e o marcador de ownership da geracao ativa.
-- O staleness check (`isGenerationActive`) e verificado a cada chunk do stream.
-- Interrupcao (`user.interruption`) substitui `generationId` por `stale_turnId`, invalidando o stream corrente.
-- `historyStore.appendTurn({ role: assistant })` e a unica porta de persistencia de resposta no contexto conversacional.
-- O transport (`VoiceTransportPort.speak`) e o unico ponto de saida de audio.
-- `ConversationModelPort.streamTurn()` (OpenAI adapter) e a unica fonte de geracao de texto atualmente.
+- `activeGenerations` (`Map<callId, generationId>`) é o marcador de ownership da geração ativa no processo.
+- O staleness check (`isGenerationActive`) é verificado a cada chunk recebido do modelo antes do despacho.
+- Interrupção (`user.interruption`) substitui `generationId` por `stale_turnId`, invalidando chunks subsequentes.
+- `AssistantStreamCoordinator.recordTurnCompletion()` é método **privado** de coordenação interna.
+- O transport (`VoiceTransportPort.speak`) submete texto para sintetização via WebSocket; não aguarda reprodução acústica.
+- `ConversationModelPort.streamTurn()` (OpenAI adapter) é a única fonte de geração de resposta de voz atualmente.
 
 ---
 
-## 2. Ponto de Interceptacao Deterministica (Interception Seam)
+## 2. Ponto de Interceptação Determinística e Separação de Fluxos
 
-### 2.1. Localizacao do Seam
+### 2.1. Localização do Seam de Response Ownership
 
-`
+```
 DETERMINISTIC_INTERCEPTION_SEAM = ConversationOrchestrator.handleUserSpeechFinal()
   - apos sessionStore.save({ generationId })
   - antes de AssistantStreamCoordinator.streamTurn()
-`
+```
 
-**Justificativa factual:**
+### 2.2. Separação Estrita: CURRENT SHADOW FLOW vs. FUTURE ACTIVE_GUARDED FLOW
 
-1. O `generationId` ja esta atribuido: a decisao deterministica pode reutilizar o mesmo `generationId` sem criar artefato paralelo.
-2. O `appendUserUtterance` ja ocorreu: o turno do usuario ja esta no historico.
-3. O `sessionStore.save` ja ocorreu: o session state e `ACTIVE` e `currentTurnId` esta correto.
-4. `streamTurn()` nao foi chamado: o modelo OpenAI ainda nao foi acionado. Interceptar aqui preserva o fallback natural.
-5. O `shadowObserver.observeTurn()` ja disparou: o Jev shadow nao precisa esperar a decisao deterministica.
+É mandatório separar a mecânica de shadow atual da futura mecânica ativa:
 
-### 2.2. Propriedades Preservadas pelo Seam
+- **CURRENT SHADOW FLOW (Vigente)**:
+  - O `shadowObserver.observeTurn()` dispara de forma assíncrona, desacoplada e estritamente consultiva logo após a criação de `generationId`.
+  - O fluxo principal de voz não aguarda nem consome o resultado do shadow observer.
+  - Zero bypass determinístico é possível (`DEFAULT_AUXILIARY_FEATURE_MODE = DISABLED`).
+- **FUTURE ACTIVE_GUARDED FLOW (Desenho Futuro)**:
+  - Uma avaliação serial do Jev precisaria ocorrer **antes** de decidir a rota determinística.
+  - **Atenção**: O fato de que "shadowObserver já disparou" **NÃO serve como justificativa** para o seam de decisão em `ACTIVE_GUARDED`.
+  - O seam após `save(generationId)` e antes de `streamTurn()` é adequado para **response ownership commit**, mas a consulta serial do Jev em `ACTIVE_GUARDED` exige ownership único de chamadas ao provedor auxiliar (ver Seção 5).
+
+### 2.3. Propriedades Preservadas pelo Seam
 
 | Propriedade | Status |
 |---|---|
-| Generation ownership (generationId) | PRESERVADO - mesmo ID reutilizado |
-| Cancellation / staleness check | PRESERVADO - activeGenerations continua autoritativo |
-| Interruption semantics | PRESERVADO - handleUserInterruption substitui generationId normalmente |
-| OpenAI fallback | PRESERVADO - simplesmente chamar streamTurn() se handler nao aceitar |
-| History persistence | PRESERVADO - mesmo seam (historyStore.appendTurn) |
-| Barge-in suppression | PRESERVADO - isGenerationActive guarda entrega de resposta |
-| Duplicate response prevention | GARANTIVEL - exactly-one branch (ver Secao 8) |
+| Generation ownership (`generationId`) | PRESERVADO - mesmo ID reutilizado |
+| Cancellation / staleness check | PRESERVADO - `activeGenerations` continua autoritativo para pre-dispatch |
+| Interruption semantics | PRESERVADO - `handleUserInterruption` substitui generationId normalmente |
+| OpenAI fallback | PRESERVADO - simplesmente chamar `streamTurn()` se pré-condições não forem aceitas |
+| History persistence | PRESERVADO - persistência via `historyStore.appendTurn(role=assistant)` |
+| Barge-in suppression | PARCIAL - apenas pre-dispatch staleness suppression garantido (ver Seção 11) |
+| Duplicate response prevention | GARANTIVEL - via `RESPONSE_OWNERSHIP_COMMIT` (ver Seção 8) |
 
 ---
 
-## 3. Comparacao de Topologias de Roteamento (Routing-Order Evaluation)
+## 3. Comparação de Topologias de Roteamento (Routing-Order Evaluation)
+
+### Classificação Factual de Métricas de Tráfego e Latência
+
+- `REAL_TRAFFIC_CAPABILITY_MATCH_RATE = NOT VERIFIED` (não há medição factual de distribuição de tráfego de produção).
+- `REAL_TRAFFIC_GENERATIVE_ROUTE_RATE = NOT VERIFIED` (proibido afirmar percentuais como "80% de tráfego" sem evidência real).
+- `PRODUCTION_SERIAL_JEV_OVERHEAD = NOT VERIFIED` (a mediana histórica de 255ms em benchmark sintético/holdout é dado de pesquisa, não previsão garantida de overhead de rede em produção).
+- `TYPE_SAFE_AVOIDED_FOR_UNMATCHED_CAPABILITY = DESIGN PROPERTY / NOT RUNTIME-OBSERVED`.
 
 ### OPTION_A: Matcher Local -> Jev -> Frozen Policy -> Handler
 
-`
+```
 transcript
   -> matchesOperatingHoursCapability()  [local, puro, zero-network]
   -> se SIM: AuxiliaryTurnDecisionPort.evaluateTurn()
   -> Frozen Policy interpreta scores
   -> se DETERMINISTIC_CANDIDATE: handleOperatingHoursTurn()
-  -> se NAO: streamTurn() [OpenAI]
+  -> se GENERATIVE_REQUIRED: streamTurn() [OpenAI]
+  -> se SECURITY_ESCALATE: fail-closed (handler proibido; acao runtime UNDECIDED)
   -> se NAO (no matcher): streamTurn() [OpenAI] sem chamar Jev
-`
+```
 
-| Criterio | Avaliacao |
+| Critério | Avaliação Qualitativa |
 |---|---|
-| Provider exposure | MINIMA - Jev so e chamado se capability conhecida |
-| Privacy | MELHOR - transcricoes de capabilities desconhecidas nunca chegam ao TypeSafe |
-| Latency | MENOR - 80% dos turnos pagam 0ms de Jev overhead |
-| Cost | MENOR - requests TypeSafe apenas para capabilities conhecidas |
-| False bypass surface | BAIXA - dois filtros (matcher + policy) antes do handler |
-| Frozen Policy compatibility | TOTAL - thresholds inalterados |
-| ADR-019 compatibility | TOTAL - e exatamente a Opcao C do ADR-019 (Application-Eligibility Filtered) |
-| Known-handler guard | FORTE - matcher e a porta de entrada obrigatoria |
-| Failure semantics | FAIL-CLOSED - qualquer falha no Jev -> OpenAI fallback |
-| YAGNI | OTIMO - sem overhead para maioria dos turnos |
+| Provider exposure | MÍNIMA - Jev só é avaliado quando há capability local correspondente |
+| Privacy | MELHOR - transcrições sem correspondência local nunca alcançam o TypeSafe |
+| Latency | OTIMIZADA - matcher-first evita chamadas TypeSafe para turnos sem capability conhecida |
+| Cost | MÍNIMO - chamadas TypeSafe restritas a candidatos a capabilities conhecidas |
+| False bypass surface | BAIXA - dois filtros sequenciais (matcher estático + policy frozen) |
+| Frozen Policy compatibility | TOTAL - thresholds frozen inalterados |
+| ADR-019 compatibility | TOTAL - confirma a Opção C do ADR-019 (Application-Eligibility Filtered) |
+| Known-handler guard | FORTE - matcher é o gate de entrada obrigatório |
+| Failure semantics | FAIL-CLOSED para bypass determinístico; fallback generativo para falhas do Jev |
 
 ### OPTION_B: Jev -> Frozen Policy -> Matcher Local -> Handler
 
-| Criterio | Avaliacao |
+| Critério | Avaliação Qualitativa |
 |---|---|
-| Provider exposure | MAXIMA - 100% das transcricoes chegam ao TypeSafe |
-| Privacy | PIOR - viola minimizacao mesmo antes do gate de dados de clientes |
-| Latency | PIOR - sempre serial: +255ms (mediana) em 100% dos turnos generativos |
-| ADR-019 compatibility | PARCIAL - Opcao A (Always-On Serial Gate) foi classificada NOT SELECTED no ADR-019 |
-| YAGNI | PESSIMO - overhead em 80% dos turnos que irao para OpenAI de qualquer forma |
+| Provider exposure | MÁXIMA - 100% das transcrições alcançariam o TypeSafe |
+| Privacy | PIOR - viola princípio de minimização de dados |
+| Latency | PIOR - Option B adiciona uma avaliação serial do Jev a todo turno que alcançar a topologia |
+| ADR-019 compatibility | INCOMPATÍVEL - Opção A (Always-On Serial Gate) foi classificada `NOT SELECTED` no ADR-019 |
+| YAGNI | DESFAVORÁVEL - avalia provedor auxiliar mesmo para turnos puramente generativos |
 
-**OPTION_B classificada**: `NOT SELECTED - incompativel com ADR-019 e com restricao de privacidade`.
+**OPTION_B classificada**: `NOT SELECTED - incompatível com ADR-019 e com restrição de privacidade`.
 
 ### OPTION_C: Matcher Local -> Handler (sem Jev)
 
-| Criterio | Avaliacao |
+| Critério | Avaliação Qualitativa |
 |---|---|
 | Provider exposure | ZERO - sem TypeSafe |
-| Security validation | AUSENTE - SECURITY_ESCALATE nunca verificado |
-| ADR-019 compatibility | PARCIAL - ADR-019 Stage 4 exige Jev para ACTIVE_GUARDED |
-| YAGNI | BOM (curto prazo) / PROBLEMATICO (longo prazo) |
+| Security validation | AUSENTE - score de segurança da Frozen Policy não é avaliado |
+| ADR-019 compatibility | INCOMPATÍVEL com Stage 4 do ADR-019 (`ACTIVE_GUARDED` exige guard do Jev) |
+| Semântica de Teste vs. Runtime | `OFFLINE_COMPONENT_TESTING_WITHOUT_JEV = ALLOWED` em testes unitários isolados com fakes; `DISABLED_RUNTIME_BYPASS = PROHIBITED` em qualquer execução de runtime. |
 
-**OPTION_C classificada**: `ELEGIVEL SOMENTE PARA MODE=DISABLED internal testing / staging unit tests. NOT SELECTED para topologia de producao futura com ACTIVE_GUARDED.`
-
-**Nota sobre testes offline**: Option C e valida para o primeiro slice de testes de integracao de wiring com fakes (sem Jev real), conforme Secao 11.
+**Correção Semântica Fundamental**:
+- Em runtime, `DISABLED` significa categoricamente que a rota determinística **DEVE permanecer inalcançável** (`DISABLED_RUNTIME_BYPASS = PROHIBITED`).
+- Testes unitários/integração offline podem testar componentes determinísticos isoladamente com fakes (`OFFLINE_COMPONENT_TESTING_WITHOUT_JEV = ALLOWED`), mas isso **NÃO constitui** um modo de execução em runtime.
 
 ### Topologia Selecionada
 
-**SELECTED_TOPOLOGY = OPTION_A** - Application-Eligibility Filtered Serial Gate, confirmando a Opcao C do ADR-019.
-
-`
-user.speech.final
-  -> [seam] apos save(generationId), antes de streamTurn()
-  -> matchesOperatingHoursCapability(transcript)    [local, puro]
-    -> NAO: streamTurn() [OpenAI - caminho atual inalterado]
-    -> SIM:
-      -> AuxiliaryTurnDecisionPort.evaluateTurn()   [Jev advisory]
-        -> TIMEOUT/ERRO: streamTurn() [OpenAI fallback]
-        -> RESULTADO:
-          -> applyFrozenPolicy(scores)              [local deterministico]
-            -> SECURITY_ESCALATE: [fail-closed - ver Secao 5]
-            -> GENERATIVE_REQUIRED: streamTurn() [OpenAI]
-            -> DETERMINISTIC_CANDIDATE:
-              -> handleOperatingHoursTurn(input)
-                -> handled=false: streamTurn() [OpenAI]
-                -> handled=true:
-                  -> deliverDeterministicResponse(responseText, generationId)
-                  -> recordDeterministicTurnHistory(responseText)
-`
+```
+SELECTED_ROUTING_TOPOLOGY = Application-Eligibility Filtered Serial Gate
+STATUS = DESIGNED / NOT WIRED
+```
 
 ---
 
 ## 4. Impacto de Privacidade (Privacy Impact)
 
-- **MATCHER_FIRST_PRIVACY_BENEFIT**: `YES`
-  - Transcricoes de capabilities desconhecidas nunca chegam ao TypeSafe.
-  - Reduz significativamente a exposicao de dados mesmo com gate nao liberado.
-- **CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE**: `NOT CLEARED`
-  - O gate permanece nao liberado. O design minimiza exposicao mas nao libera trafego de clientes.
-  - Staging sintetico apenas enquanto o gate nao for formalmente liberado.
+- **MATCHER_FIRST_PRIVACY_BENEFIT**: `YES` (qualitativo).
+  - Transcrições que não correspondem a capabilities locais conhecidas nunca são enviadas ao TypeSafe.
+  - Reduz a exposição de transcrições ao mínimo necessário para o guard.
+- **CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE**: `NOT CLEARED`.
+  - O gate permanece não liberado. O design minimiza a exposição, mas não autoriza tráfego de clientes.
+  - Testes com tráfego real de clientes permanecem estritamente proibidos (`CUSTOMER_TRAFFIC = PROHIBITED`).
 
 ---
 
-## 5. Interpretador de Politica Congelada em Runtime (Runtime Frozen Policy Interpreter)
+## 5. Ownership de Chamadas a Provedores Auxiliares (Auxiliary Provider Call Ownership)
+
+### Invariante de Chamada Única
+
+```
+AUXILIARY_DECISION_CALL_OWNERSHIP = SINGLE_OWNER_REQUIRED
+Invariante: AT MOST ONE auxiliary provider evaluation per turn for the same routing purpose.
+```
+
+### Semântica por Modo
+
+1. **`DISABLED`**:
+   - 0 chamadas a provedores auxiliares.
+   - Rota determinística inalcançável.
+2. **`SHADOW`**:
+   - `AuxiliaryTurnShadowObserver` pode deter o ownership da avaliação consultiva (telemetria/log).
+   - Zero bypass determinístico.
+3. **Future `ACTIVE_GUARDED`**:
+   - A avaliação serial de roteamento detém com exclusividade o ownership da consulta ao Jev para aquele turno.
+   - **Regra de Coexistência**: O `AuxiliaryTurnShadowObserver` **NÃO PODE** disparar independentemente uma segunda requisição ao Jev para o mesmo turno quando o roteamento serial `ACTIVE_GUARDED` detiver o ownership da avaliação.
+
+### Status de Prontidão da Arquitetura
+
+Como a base de código atual não possui mecanismo para coordenar ou suprimir o shadow observer durante uma avaliação serial:
+
+```
+ACTIVE_GUARDED_PROVIDER_CALL_OWNERSHIP = BLOCKED / NOT IMPLEMENTED
+```
+
+---
+
+## 6. Escopo do Interpretador de Política Congelada (Runtime Frozen Policy Interpreter Scope)
 
 ### Auditoria Factual
 
-Resultado da busca em `apps/voice/src/` e `packages/`:
+- `applyFrozenPolicy`, `interpretPolicy`, `frozenPolicy` - **zero ocorrências** em código de runtime funcional (`apps/voice/src/`).
+- `SECURITY_ESCALATE`, `DETERMINISTIC_CANDIDATE`, `GENERATIVE_REQUIRED` - **zero ocorrências** em código de produção.
 
-- `SECURITY_ESCALATE`, `DETERMINISTIC_CANDIDATE`, `GENERATIVE_REQUIRED` - **nenhuma ocorrencia** em codigo de runtime funcional.
-- `applyFrozenPolicy`, `interpretPolicy`, `frozenPolicy` - **nenhuma ocorrencia**.
-
-`
+```
 RUNTIME_FROZEN_POLICY_INTERPRETER = NOT IMPLEMENTED
-`
+```
 
-A logica que transforma `AuxiliaryTurnDecisionOutput` (scores brutos) nas classificacoes de roteamento usando os thresholds:
+### Fronteira Estrita e Isolamento de Responsabilidade
 
-- `T_SECURITY = 0.56`
-- `T_DETERMINISTIC = 0.35`
-- `T_GENERATIVE = 0.47`
+O futuro interpretador (`frozen-policy-interpreter.ts`) deve ser uma **função pura e determinística** com escopo estritamente delimitado:
 
-nao existe ainda em codigo de runtime. Os thresholds aparecem apenas em documentacao e dados de pesquisa.
+- **Entrada**: Scores numéricos de `AuxiliaryTurnDecisionOutput` (`securityNoul`, `deterministicNoul`, `generativeNoul`).
+- **Lógica**: Aplicação estrita dos thresholds da Frozen Policy:
+  - `T_SECURITY = 0.56` (Regra 1: se `securityNoul >= 0.56` -> `SECURITY_ESCALATE`)
+  - `T_DETERMINISTIC = 0.35` e `generativeNoul <= 0.47` (Regra 2: -> `DETERMINISTIC_CANDIDATE`)
+  - Caso contrário (Regra 3: -> `GENERATIVE_REQUIRED`)
+- **Saída**: Uma enum/union tipada com a classificação formal.
 
-Este e um **pre-requisito obrigatorio** para qualquer wiring com ACTIVE_GUARDED no futuro. A implementacao deve ser funcao pura deterministica em modulo coeso separado (`frozen-policy-interpreter.ts`).
+**O interpretador NÃO DEVE**:
+- Decidir ação de segurança em runtime;
+- Executar handlers;
+- Fazer chamadas de rede ou a provedores;
+- Chamar OpenAI ou transport;
+- Alterar estados de sessão.
 
-**NAO IMPLEMENTAR neste prompt.**
+```
+FROZEN_POLICY_INTERPRETER_CAN_BE_IMPLEMENTED_OFFLINE_INDEPENDENTLY = YES
+```
 
 ---
 
-## 6. Rota de Seguranca (Security Route - SECURITY_ESCALATE)
+## 7. Rota de Segurança (SECURITY_ESCALATE Semantics & Hardening)
 
-### Auditoria Factual
+### Auditoria e Correção de Inconsistência
 
-Nenhum codigo de runtime em `apps/voice/src/` implementa acao para `SECURITY_ESCALATE`:
+O design preliminar continha uma contradição documental: declarava `SECURITY_RUNTIME_ACTION = NOT IMPLEMENTED`, mas sugeria fallback automático para `streamTurn()` (OpenAI).
 
-`
+**Isso NÃO é um comportamento autorizado.**
+
+```
 SECURITY_RUNTIME_ACTION = NOT IMPLEMENTED
-`
+SECURITY_RUNTIME_SEMANTICS = UNDECIDED
+SECURITY_ESCALATE_DETERMINISTIC_BYPASS = PROHIBITED
+SECURITY_ESCALATE_OPENAI_FALLBACK = NOT AUTHORIZED / NOT DESIGNED
+```
 
-### Comportamento Fail-Closed Necessario
+### Regras Mandatórias de Segurança
 
-Quando a politica congelada classificar um turno como `SECURITY_ESCALATE`:
-
-1. O bypass deterministico e **expressamente proibido** - `handleOperatingHoursTurn` nao pode ser chamado.
-2. Tratamento conservador minimo: `streamTurn()` OpenAI (fail-open para o modelo principal).
-3. `SECURITY_ESCALATE` **NUNCA transforma** o resultado em bypass deterministico.
-
-**NOTA**: Status e `NOT IMPLEMENTED`. A implementacao futura deve ser decidida e testada separadamente.
+1. **Bypass Proibido**: Quando a Frozen Policy retornar `SECURITY_ESCALATE`, o handler determinístico **NÃO PODE** ser executado sob nenhuma circunstância.
+2. **Ação Posterior em Aberto**: O que acontece após a proibição do handler (se encerra chamada, transfere, silencia ou usa prompt de segurança) **NÃO ESTÁ DECIDIDO** e requer design e testes dedicados.
+3. **Bloqueador Ativo**:
+   ```
+   ACTIVE_GUARDED cannot be wired until SECURITY_ESCALATE runtime semantics are separately defined and tested.
+   SECURITY_RUNTIME_ACTION_DECISION_REQUIRED = YES
+   ```
+4. É terminantemente proibido mascarar esse bloqueador usando fallback silencioso para `streamTurn()`.
 
 ---
 
-## 7. Semantica de Fallback OpenAI (OpenAI Fallback Semantics)
+## 8. Semântica de Fallback OpenAI e Response Ownership Commit
 
-O caminho de fallback reutiliza **exatamente** `AssistantStreamCoordinator.streamTurn()` - zero criacao de segundo fluxo generativo.
+### Distinção Conceitual: GENERATION_ACTIVE vs. RESPONSE_PATH_OWNED
 
-| Caso | Condicao | Acao |
+- `GENERATION_ACTIVE`: Indica que o ID da geração (`generationId`) está vigente na sessão e no mapa de orquestração.
+- `RESPONSE_PATH_OWNED`: Indica qual caminho de execução assumiu formalmente o compromisso de responder ao usuário.
+
+### Definição Formal de RESPONSE_OWNERSHIP_COMMIT
+
+```
+RESPONSE_OWNERSHIP_COMMIT = the point after which OpenAI fallback must never start for that turn.
+```
+
+### Matriz de Decisão Pré-Commit (Fallback Permitido)
+
+Antes do commit da resposta determinística, falhas direcionam para o fallback padrão da OpenAI (com exceção explícita de `SECURITY_ESCALATE`):
+
+| Caso | Condição Pré-Commit | Ação de Roteamento |
 |---|---|---|
-| A | `matchesOperatingHoursCapability = false` | `streamTurn()` direto (Jev nao chamado) |
-| B | `Jev timeout / error` | `streamTurn()` (fail-open para modelo principal) |
-| C | `GENERATIVE_REQUIRED` (policy) | `streamTurn()` |
-| D | `SECURITY_ESCALATE` | `streamTurn()` (fail-open conservador) |
-| E | `handled = false` (handler guards) | `streamTurn()` |
-| F | `sessionOrg != configOrg` | `handled = false` -> `streamTurn()` |
-| G | `operatingHours` ausente/vazio | `handled = false` -> `streamTurn()` |
-| H | `runtimeState != ACTIVE` | `handled = false` -> `streamTurn()` |
-| I | Handler lanca excecao inesperada | Catch -> `streamTurn()` (nunca propagar sem fallback) |
+| A | `matchesOperatingHoursCapability = false` | `streamTurn()` OpenAI (fluxo nominal inalterado) |
+| B | Jev timeout / network error / parse failure | `streamTurn()` OpenAI (fail-open para modelo principal) |
+| C | `GENERATIVE_REQUIRED` (Frozen Policy) | `streamTurn()` OpenAI |
+| D | `SECURITY_ESCALATE` (Frozen Policy) | **FALLBACK PROIBIDO / AÇÃO UNDECIDED** (ver Seção 7) |
+| E | Handler guard failure (`sessionOrg != configOrg`) | `streamTurn()` OpenAI |
+| F | Handler guard failure (`operatingHours` vazio) | `streamTurn()` OpenAI |
+| G | Handler execution `handled = false` | `streamTurn()` OpenAI |
+| H | Handler lança exceção pré-dispatch | `streamTurn()` OpenAI |
 
-O `streamTurn()` atual e o caminho de fallback canonico. Zero logica nova de geracao necessaria.
+### Regra de Falha Pós-Despacho (Post-Dispatch Failure Rule)
+
+Se a resposta determinística já foi enviada ao transport (`VoiceTransportPort.speak`):
+
+```
+OPENAI_FALLBACK_AFTER_DETERMINISTIC_SPEAK_DISPATCH = PROHIBITED
+```
+
+**Motivo mandatório**: Evitar resposta dupla (*double speech*) para o usuário. Erros subsequentes em persistência de histórico, logs estruturados ou finalização de métricas **NUNCA** podem disparar `streamTurn()`.
 
 ---
 
-## 8. Ownership de Resposta - Prevencao de Resposta Duplicada (Single-Response Invariant)
+## 9. Prevenção de Resposta Duplicada (Single-Response Invariant)
 
 ### Invariante Formal
 
-`
+```
 EXACTLY ONE response path owns each turn's generation.
-`
+```
 
-Se o handler deterministico aceita o turno (`handled = true`):
-- **`streamTurn()` NAO deve ser chamado.**
-- A funcao deve retornar apos a entrega deterministica.
-
-Se o handler recusa (`handled = false`) ou falha antes de assumir ownership:
-- **`streamTurn()` PODE ser chamado.**
-
-**Pseudo-codigo (NAO implementado - somente design):**
-
-`	s
-const result = tryDeterministicRoute(session, event, snapshot, generationId);
-if (result.handled) {
-  await deliverDeterministicResponse(result.responseText, generationId, session, turnId);
-  return;   // EARLY RETURN - streamTurn() nunca alcancado
-}
-await this.streamCoordinator.streamTurn(...);   // fallback OpenAI
-`
-
-### Comprovacao em Testes Futuros
-
-- `FakeVoiceTransport` deve acumular todas as chamadas `speak()`.
-- Verificar que `transport.spokenChunks` contem `generationId` de **exatamente uma** fonte por turno.
-- Verificar que `historyStore` contem exatamente **um** `appendTurn` com `role: assistant` por turno.
+- Se o caminho determinístico atingir `RESPONSE_OWNERSHIP_COMMIT` e despachar a resposta: `streamTurn()` **NUNCA** pode ser executado.
+- Se o orquestrador invocar `streamTurn()`: o caminho determinístico **NÃO PODE** ser despachado.
 
 ---
 
-## 9. Ownership de Geracao - Modelo de Lifecycle (Generation Lifecycle)
+## 10. Auditoria de Capacidade de Interrupção do Transport (Transport Interruption Source Audit)
 
-### Auditoria Factual
+### Auditoria Factual de `packages/integrations/src/twilio/**`
 
-O `ConversationOrchestrator` mantem `activeGenerations: Map<callId, generationId>`. Este mapa e o **marcador autoritativo** de qual geracao esta ativa.
+A auditoria no código versionado do adapter Twilio Conversation Relay (`TwilioVoiceTransportAdapter`, `twilio-command-translator.ts`, `twilio-conversation-relay-types.ts`, `twilio-event-translator.ts`) estabeleceu os seguintes fatos:
 
-- `handleUserInterruption()` substitui o generationId por `stale_`, invalidando o stream ativo.
-- `processModelStream()` verifica `isGenerationActive(callId, genId)` a cada chunk.
-
-### Pergunta: O handler pode chamar `VoiceTransportPort.speak` diretamente?
-
-`
-DIRECT_VOICETRANSPORT_SPEAK_SAFE = NOT VERIFIED (condicionalmente YES)
-`
-
-**Raciocinio**: Se o handler chama `speak()` com o mesmo `generationId` do turno atual, o comportamento de interrupcao continuara funcionando. Porem o handler **nao deve** chamar `speak()` diretamente sem passar pelo staleness check.
-
-**Preferencia arquitetural**: Reutilizar o ownership model do `AssistantStreamCoordinator`. Uma funcao `deliverDeterministicResponse()` deve:
-
-1. Verificar `isGenerationActive` antes de falar.
-2. Chamar `transport.speak(callId, { text: responseText, generationId, isFinal: true })`.
-3. Retornar sem entrar no loop de stream.
-
----
-
-## 10. Semantica de Barge-In / Interrupcao (Barge-In Model)
-
-`
-DETERMINISTIC_BARGE_IN_MODEL =
-  Check isGenerationActive immediately before transport.speak().
-  If stale: discard, log, return.
-  If active: speak with isFinal=true.
-  No partial/resume semantics - text is complete or not delivered at all.
-`
-
-**Invariante**: Uma resposta deterministica que comeca a ser entregue mas e interrompida deve ser silenciada da mesma forma que um chunk de stream stale. O `isGenerationActive` check garante isso se aplicado **antes** de cada `speak()`.
+1. **Comando explícito de cancelamento outbound**:
+   - `translateVoiceOutputCommand` implementa `case 'interrupt_speech': return null;`.
+   - `TwilioOutboundMessage` suporta exclusivamente `{ type: 'text' }` e `{ type: 'end' }`.
+   - Não existe mensagem de cancelamento/limpeza de buffer de fala enviada ao WebSocket da Twilio.
+   - `TwilioVoiceTransportAdapter.interruptSpeech()` apenas atualiza conjuntos e mapas em memória local; zero mensagens enviadas ao socket.
+   - Resultado: `TRANSPORT_POST_DISPATCH_CANCEL_SUPPORTED = NO`.
+2. **Sinal de conclusão de reprodução (Playback Completion Signal)**:
+   - `TwilioInboundMessage` recebe `{ type: 'setup' }`, `{ type: 'prompt' }`, `{ type: 'interrupt' }`, `{ type: 'error' }`, `{ type: 'disconnect' }`.
+   - Não existe nenhum sinal de "playback complete", "audio drained" ou confirmação acústica enviado pela Twilio ao término da fala do bot.
+   - Resultado: `TRANSPORT_PLAYBACK_COMPLETION_SIGNAL = NO`.
+3. **Uso de `generationId` no Provedor**:
+   - `generationId` é um token puramente interno da aplicação (`ConversationOrchestrator`).
+   - O comando enviado à Twilio (`TwilioTextTokenMessage`) recebe apenas `token: command.text` e `last: command.isFinal`.
+   - A Twilio **não tem conhecimento** de `generationId` e não o utiliza para cancelar áudio em reprodução.
+4. **Comportamento em `user.interruption`**:
+   - Quando o usuário interrompe falando, a Twilio detecta barge-in internamente e envia inbound `{ type: 'interrupt' }`.
+   - O orquestrador recebe `user.interruption` e chama `transport.interruptSpeech()`, que apenas invalida futuras chamadas de `speak` locais com o ID antigo.
 
 ---
 
-## 11. Persistencia no Historico Conversacional (Conversation History)
+## 11. Semântica de Barge-In: Pre-Dispatch vs. Post-Dispatch
 
-`
-DETERMINISTIC_RESPONSE_HISTORY_REQUIRED = YES
-`
+A verificação `isGenerationActive(...)` imediatamente antes de `transport.speak()` qualifica-se formalmente da seguinte forma:
 
-**Justificativa**: O contexto conversacional e construido em `prepareTurnContext()` a partir de `historyStore.listForCall()`. Se a resposta do assistant nao for adicionada ao historico, o contexto dos turnos subsequentes ficara incorreto.
+```
+DETERMINISTIC_PRE_DISPATCH_STALE_SUPPRESSION = DESIGNED
+DETERMINISTIC_POST_DISPATCH_BARGE_IN = NOT VERIFIED
+DIRECT_VOICETRANSPORT_SPEAK_SAFE = NOT VERIFIED
+```
 
-`
-DETERMINISTIC_HISTORY_SEAM = AssistantStreamCoordinator.recordTurnCompletion()
-  (ou funcao analoga com a mesma semantica de historyStore.appendTurn + log)
-`
-
-**Regra**: A resposta deterministica deve aparecer **exatamente uma vez** no historico. Nenhum storage paralelo criado.
+- **Pre-Dispatch**: Se o usuário interromper enquanto o handler determinístico estiver executando (antes do despacho para `speak`), a resposta é descartada com segurança.
+- **Post-Dispatch**: Uma vez que `transport.speak(isFinal=true)` for chamado, o áudio já foi transferido para a infraestrutura da Twilio. Como `TRANSPORT_POST_DISPATCH_CANCEL_SUPPORTED = NO`, o orquestrador não tem controle direto de cancelamento pós-despacho via código da aplicação.
 
 ---
 
-## 12. Semantica Completo vs. Streaming (Complete Response Semantics)
+## 12. Semântica e Seam de Persistência de Histórico (History Completion Semantics & Seam Audit)
 
-**Representacao no transport**: um unico chunk com `isFinal: true`.
+### Regra Arquitetural de Histórico
 
-`	s
-transport.speak(callId, {
+> Uma resposta parcial ou cancelada do assistente **NUNCA DEVE** ser persistida como completa no histórico conversacional.
+
+### Risco Pós-Despacho
+
+- `transport.speak(..., isFinal: true)` significa apenas **"último chunk de texto submetido ao socket"**.
+- Não prova que o áudio foi efetivamente escutado pelo usuário (`DETERMINISTIC_AUDIO_FULLY_DELIVERED = NOT VERIFIED after speak dispatch`).
+- Portanto:
+  ```
+  DETERMINISTIC_HISTORY_COMPLETION_AFTER_SPEAK = NOT AUTOMATICALLY SAFE
+  ```
+- Gravar o turno como completo imediatamente após o retorno de `transport.speak` arrisca registrar fala completa mesmo se o usuário tiver interrompido no primeiro segundo da fala determinística.
+
+### Auditoria Factual do Seam de Histórico
+
+- `AssistantStreamCoordinator.recordTurnCompletion()`:
+  - **Visibilidade**: `private async recordTurnCompletion(...)` em `apps/voice/src/assistant-stream-coordinator.ts`.
+  - **Inputs**: `(session: CallSession, turnId: string, meta: { generationId, fullResponse, startTime })`.
+  - **Responsabilidade**: Invoca `this.historyStore.appendTurn({ role: 'assistant', content: meta.fullResponse })` e emite log estruturado `call.turn.completed`.
+  - **Reutilização externa direta**: **NÃO É POSSÍVEL** sem alterar sua visibilidade ou expor método público.
+  - Resultado:
+    ```
+    DETERMINISTIC_HISTORY_SEAM = private AssistantStreamCoordinator.recordTurnCompletion() — NOT EXTERNALLY ACCESSIBLE
+    ```
+- **Diretriz de Design**: Não propor chamadas privadas reflexivas. O design deve reutilizar o mesmo comportamento semântico (`historyStore.appendTurn(role='assistant')` + log de completude), sem criar nenhum armazenamento paralelo de histórico.
+
+---
+
+## 13. Semântica Completo vs. Streaming (Complete Response Semantics)
+
+Para a resposta determinística, a representação de saída é um bloco completo:
+
+```typescript
+await transport.speak(session.callId, {
   text: responseText,
   generationId,
-  isFinal: true
+  isFinal: true,
 });
-`
+```
 
-Nao ha fake streaming. `VoiceTransportPort.speak` ja aceita chunks com `isFinal: true` - o Twilio WebSocket nao exige fragmentacao artificial.
+Não se aplica fragmentação artificial (fake streaming). O contrato de `VoiceTransportPort` aceita `isFinal: true` diretamente em chamadas atômicas.
 
 ---
 
-## 13. Tenant Binding (Fontes Autoritativas)
+## 14. Tenant Binding (Fontes Autoritativas)
 
-`
+```
 TENANT_BINDING_SOURCES =
-  sessionOrganizationId: session.organizationId  (CallSession)
-  configurationOrganizationId: session.organizationId  (invariante via CallBootstrap)
-`
+  sessionOrganizationId: session.organizationId (CallSession)
+  configurationOrganizationId: snapshot.organizationId (AgentConfigurationSnapshotV1)
+```
 
-**Invariante documentada**: `CallBootstrap.organizationId === CallSession.organizationId` - garantida pelo `CallLifecycleGateway.consumeBootstrapAndInitializeSession()`. O guard `sessionOrg === configOrg` sempre passa para snapshots corretamente associados e permanece como defesa em profundidade.
+- Invariante formal preservada: `CallBootstrap.organizationId === CallSession.organizationId`.
+- O guard `sessionOrg === configOrg` no handler determinístico atua como defesa em profundidade multi-tenant.
 
 ---
 
-## 14. Feature Gating (Mode Gating)
+## 15. Feature Gating (Mode Gating)
 
-### Modos Atuais (Factual)
-
-`
-DISABLED        -> handler path unreachable
-SHADOW          -> Jev consultado para telemetria apenas; zero bypass de handler
-ACTIVE_GUARDED  -> BLOCKED (throw em resolveEffectiveMode + assertValidFeatureMode)
-`
-
-`
+```
 MODE_GATING_MODEL =
-  DISABLED       -> seam never entered; streamTurn() called directly
-  SHADOW         -> seam never entered for deterministic bypass; shadowObserver continues as-is
-  ACTIVE_GUARDED -> BLOCKED / throw (unreachable in current runtime)
-`
+  DISABLED       -> deterministic route unreachable; 0 auxiliary calls; streamTurn() called directly
+  SHADOW         -> deterministic route unreachable; shadowObserver fires advisory-only; streamTurn() called directly
+  ACTIVE_GUARDED -> BLOCKED / unreachable in current runtime
+```
 
 ---
 
-## 15. Topologia de Validacao Staging-Only (Future Staging Validation)
+## 16. Topologia de Validação Staging-Only (Future Staging Validation)
 
-O primeiro slice de integracao de wiring futuro deve usar:
+Qualquer teste de integração futuro de wiring deve empregar exclusivamente:
 
-`
-- Fake AuxiliaryTurnDecisionPort (provider-neutral test double)
-- FakeConversationModel (existente em apps/voice/src/fake-conversation-model.ts)
-- FakeVoiceTransport (existente em apps/voice/src/fake-voice-transport.ts)
-- InMemoryConversationHistoryStore (existente)
-- InMemoryCallSessionStore (existente)
-- No Twilio, No OpenAI real, No TypeSafe real
-- No PSTN, No customer data
-`
-
-Live staging validation com TypeSafe real = prompt separado posterior, sob autorizacao explicita.
+- `FakeAuxiliaryTurnDecisionPort` (test double provider-neutral);
+- `FakeConversationModel` (`apps/voice/src/fake-conversation-model.ts`);
+- `FakeVoiceTransport` (`apps/voice/src/fake-voice-transport.ts`);
+- `InMemoryConversationHistoryStore`;
+- `InMemoryCallSessionStore`;
+- Provedores reais: TypeSafe = 0, OpenAI = 0, Twilio = 0;
+- Tráfego real de clientes: PROIBIDO.
 
 ---
 
-## 16. Matriz de Testes de Integracao Futura (Integration Test Matrix)
+## 17. Matriz de Testes de Integração Futura (Integration Test Matrix)
 
-| Caso | Condicao | Resultado Esperado |
+| Caso | Cenário | Comportamento Esperado |
 |---|---|---|
-| A | `mode=DISABLED` | matcher/handler nao acionados; OpenAI normal; TypeSafe=0 |
-| B | Frase suportada + policy `DETERMINISTIC_CANDIDATE` + tenant/config/state validos | handler owns response; OpenAI stream **nao chamado** |
-| C | Frase suportada + policy `GENERATIVE_REQUIRED` | handler nao executado; OpenAI fallback normal |
-| D | Frase suportada + `SECURITY_ESCALATE` | bypass proibido; comportamento fail-closed |
-| E | Frase nao suportada/ambigua | sem bypass deterministico; OpenAI |
-| F | Tenant mismatch (`sessionOrg != configOrg`) | `handled=false`; OpenAI fallback |
-| G | `operatingHours` ausente | `handled=false`; OpenAI fallback |
-| H | Jev timeout/erro | fallback para OpenAI; log de warning; zero crash |
-| I | Interrupcao apos inicio da resposta deterministica | resposta invalidada/suprimida; `isGenerationActive=false` |
-| J | Verificacao de resposta dupla | exatamente 1 fonte por turno em `transport.speak` |
-| K | Resposta deterministica no historico | exatamente 1 `appendTurn(role=assistant)` por turno |
-| L | Provider/network calls em testes | TypeSafe=0, OpenAI=0, Twilio=0 |
+| A | `mode = DISABLED` | Rota determinística inalcançável; TypeSafe = 0; OpenAI nominal |
+| B | Suportado + `DETERMINISTIC_CANDIDATE` + guards válidos | Handler assume resposta; `streamTurn()` não chamado |
+| C | Suportado + `GENERATIVE_REQUIRED` | Handler não acionado; fallback `streamTurn()` executado |
+| D | Suportado + `SECURITY_ESCALATE` | Bypass proibido; ação de segurança aguarda definição |
+| E | Frase sem correspondência de capability | Matcher retorna false; Jev não chamado; OpenAI nominal |
+| F | Tenant mismatch (`sessionOrg != configOrg`) | Handler recusa (`handled = false`); fallback OpenAI |
+| G | `operatingHours` ausente/inválido | Handler recusa (`handled = false`); fallback OpenAI |
+| H | Jev timeout ou erro de rede | Fallback para OpenAI; zero falhas não tratadas |
+| I | Interrupção pré-despacho (`isGenerationActive = false`) | Resposta determinística suprimida antes de `speak` |
+| J | Interrupção pós-despacho | Documentado como `NOT VERIFIED` em transport atual |
+| K | Resposta única comprovada | Exatamente uma fonte de resposta por turno |
+| L | Persistência no histórico | Exatamente uma entrada `assistant` com semântica qualificada |
+| M | Provider calls em testes automatizados | TypeSafe = 0, OpenAI = 0, Twilio = 0 |
 
 ---
 
-## 17. Analise YAGNI - Coordinator Question
+## 18. Análise YAGNI & Orçamento de Complexidade
 
-`
-CURRENT_REQUIREMENT: Interceptar o fluxo de um unico turno antes de streamTurn(),
-  executar handler deterministico, e reutilizar entrega + historico existentes.
-
-EXISTING_OPTION: ConversationOrchestrator.handleUserSpeechFinal() ja e o ponto
-  exato de coordenacao. Aceita injecao de dependencia via constructor.
-
-MINIMAL_OPTION: Uma funcao auxiliar privada tryDeterministicRoute() dentro do
-  orchestrator (ou uma classe coesa injetada com interface minima).
-
+```
+CURRENT_REQUIREMENT: Desenhar a integração controlada de roteamento do handler agent.operating_hours.
+EXISTING_OPTION: ConversationOrchestrator já é a raiz de coordenação de turnos.
+MINIMAL_OPTION: Manter o orquestrador enxuto, extraindo lógica de roteamento em módulo coeso se o arquivo exceder limites.
 NEW_COORDINATOR_REQUIRED = NO
-`
+```
 
-Se o arquivo `conversation-orchestrator.ts` (177 linhas atualmente) ultrapassar 180 linhas com o wiring, a funcao pode ser extraida para `deterministic-turn-router.ts` (modulo coeso, nao framework generico).
+### Projeção de Complexidade e Arquivos
 
-**Proibicoes anti-overengineering mantidas**: Sem DeterministicTurnCoordinator generico, GuardedRoutingService, RoutingEngine com plugins, DI container novo.
-
----
-
-## 18. Impacto de Tamanho de Arquivo (File Size / Complexity Forecast)
-
-| Arquivo | Linhas Atuais | Delta Esperado | Linhas Previstas | Acao |
+| Arquivo | Linhas Atuais | Delta Previsto | Linhas Finais Estimadas | Ação |
 |---|---|---|---|---|
-| `conversation-orchestrator.ts` | 177 | +15 a +30 | ~190 a ~207 | Extracao parcial se >180 |
-| `assistant-stream-coordinator.ts` | 151 | +10 a +20 | ~160 a ~170 | Dentro do limite |
-| `frozen-policy-interpreter.ts` | 0 (novo) | +40 a +60 | ~40 a ~60 | Modulo novo obrigatorio |
-| `deterministic-turn-router.ts` | 0 (condicional) | +40 a +60 | ~40 a ~60 | Somente se orchestrator >180 |
-
-`
-EXPECTED_ORCHESTRATOR_DELTA_LINES = 15 a 30 (sem extracao) / 5 a 10 (com extracao)
-EXPECTED_NEW_PRODUCTION_FILES = 1 obrigatorio (frozen-policy-interpreter.ts) + 1 condicional
-EXPECTED_NEW_TEST_FILES = 2 (frozen-policy-interpreter.test.ts + integration test)
-`
+| `conversation-orchestrator.ts` | 177 | +15 a +30 | ~190 a ~207 | Extrair se ultrapassar 180 |
+| `assistant-stream-coordinator.ts` | 151 | 0 a +10 | ~151 a ~161 | Dentro do limite de 180 |
+| `frozen-policy-interpreter.ts` | 0 (novo) | +40 a +60 | ~40 a ~60 | Próximo slice isolado |
 
 ---
 
-## 19. Pre-Requisitos para ACTIVE_GUARDED (Implementation Prerequisites)
+## 19. Pré-Requisitos para ACTIVE_GUARDED (Implementation Prerequisites)
 
-| Pre-Requisito | Status | Observacao |
+| Pré-Requisito | Status Atual | Classificação |
 |---|---|---|
-| `KNOWN_DETERMINISTIC_HANDLERS >= 1` | **MET** - handler `agent.operating_hours` IMPLEMENTED/TESTED LOCALLY | PR #50 |
-| `CAPABILITY_RESOLUTION` | **MET** - matcher local estreito IMPLEMENTED/TESTED LOCALLY | PR #50 |
-| `RUNTIME_FROZEN_POLICY_INTERPRETER` | **NOT IMPLEMENTED** | Pre-requisito bloqueante |
-| `SECURITY_RUNTIME_ACTION` | **NOT IMPLEMENTED** | Pre-requisito bloqueante |
-| `DETERMINISTIC_RESPONSE_DELIVERY` (wiring) | **NOT WIRED** | Proximo implementation slice |
-| `DETERMINISTIC_HISTORY_PERSISTENCE` (wiring) | **NOT WIRED** | Junto com delivery |
-| `INTEGRATION_TESTS_PASS` (casos A-L) | **NOT IMPLEMENTED** | Necessario antes de ACTIVE_GUARDED |
-| `PRODUCTION_RUNTIME_WIRING` | `NO` | Proibido ate testes de integracao passarem |
-| `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE` | `NOT CLEARED` | Gate externo |
+| `KNOWN_DETERMINISTIC_HANDLERS >= 1` | **MET** | Handler `agent.operating_hours` implementado/testado (PR #50) |
+| `CAPABILITY_RESOLUTION` | **MET** | Matcher local puro implementado/testado (PR #50) |
+| `RUNTIME_FROZEN_POLICY_INTERPRETER` | **NOT IMPLEMENTED** | Bloqueador (implementável offline no próximo slice) |
+| `SECURITY_RUNTIME_ACTION` | **NOT IMPLEMENTED** | Bloqueador de runtime |
+| `SECURITY_RUNTIME_SEMANTICS` | **UNDECIDED** | Bloqueador formal |
+| `SECURITY_RUNTIME_ACTION_DECISION_REQUIRED` | **YES** | Bloqueador obrigatório antes de ACTIVE_GUARDED |
+| `DETERMINISTIC_POST_DISPATCH_BARGE_IN` | **NOT VERIFIED** | Bloqueador de fidelidade conversacional |
+| `TRANSPORT_POST_DISPATCH_CANCEL_SUPPORTED` | **NO** | Limitação do adapter Twilio atual |
+| `TRANSPORT_PLAYBACK_COMPLETION_SIGNAL` | **NO** | Limitação do protocolo Twilio Conversation Relay |
+| `DETERMINISTIC_AUDIO_FULLY_DELIVERED` | **NOT VERIFIED** | Incerteza pós-despacho |
+| `DETERMINISTIC_HISTORY_COMPLETION_AFTER_SPEAK` | **NOT AUTOMATICALLY SAFE** | Risco de histórico inconsistente sob interrupção |
+| `ACTIVE_GUARDED_PROVIDER_CALL_OWNERSHIP` | **BLOCKED / NOT IMPLEMENTED** | Risco de chamadas concorrentes/duplicadas ao Jev |
+| `DETERMINISTIC_RESPONSE_DELIVERY` (wiring) | **NOT WIRED** | Pendente de resolução de bloqueadores |
+| `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE` | **NOT CLEARED** | Gate de privacidade |
+| `PRODUCTION_RUNTIME_WIRING` | **NO** | Desautorizado |
 
 ---
 
-## 20. Nao-Objetivos Explícitos (Explicit Non-Goals)
+## 20. Redução do Próximo Passo de Implementação (Next Allowed Step Reduction)
 
-1. Nenhuma alteracao funcional a `ConversationOrchestrator`, `AssistantStreamCoordinator` ou qualquer modulo de runtime neste prompt.
-2. Nenhum segundo handler deterministico criado ou projetado.
-3. Nenhuma ativacao de `ACTIVE_GUARDED` em qualquer ambiente.
-4. Nenhuma chamada a TypeSafe, OpenAI ou Twilio neste prompt (TypeSafe=0, OpenAI=0, Twilio=0).
-5. Nenhum carregamento de `.env` ou conexao a banco de dados.
-6. Nenhuma alteracao nos thresholds ou arquivos da Frozen Policy.
-7. Nenhuma reutilizacao do locked holdout de pesquisa.
-8. Nenhum trafego de clientes - CUSTOMER_TRAFFIC = PROHIBITED.
+Devido aos múltiplos bloqueadores não resolvidos de runtime (`SECURITY_RUNTIME_ACTION`, `POST_DISPATCH_BARGE_IN`, `AUXILIARY_CALL_OWNERSHIP`), **NÃO É AUTORIZADA** a fiação simultânea do orquestrador com o interpretador.
+
+```
+NEXT_ALLOWED_STEP:
+Implementar offline a funcao pura frozen-policy-interpreter.ts acompanhada
+exclusivamente de testes unitarios focados e isolados (sem wiring no orquestrador).
+```
+
+### Motivos da Redução de Escopo
+
+1. `SECURITY_RUNTIME_ACTION` permanece `UNDECIDED` e requer desenho/testes próprios.
+2. `POST_DISPATCH_BARGE_IN` não possui suporte de cancelamento no transport versionado.
+3. A semântica de completude de histórico após `speak` não é comprovadamente segura.
+4. O ownership de chamadas auxiliares não impede dupla consulta se o shadow observer coexistir.
+
+---
+
+## 21. Não-Objetivos Explícitos (Explicit Non-Goals)
+
+1. Nenhuma alteração funcional em `ConversationOrchestrator`, `AssistantStreamCoordinator` ou qualquer módulo de runtime neste prompt.
+2. Nenhum interpretador de política congelada implementado neste prompt.
+3. Nenhuma ativação de `ACTIVE_GUARDED` em qualquer ambiente.
+4. Nenhuma chamada externa a provedores (TypeSafe = 0, OpenAI = 0, Twilio = 0).
+5. Nenhum carregamento de variáveis de ambiente (`.env`) ou conexão a banco de dados.
+6. Nenhuma alteração nos thresholds da Frozen Policy ou reutilização do holdout consumido.
+7. Nenhum tráfego de clientes (`CUSTOMER_TRAFFIC = PROHIBITED`).

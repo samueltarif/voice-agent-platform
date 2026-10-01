@@ -10307,3 +10307,91 @@ NEW_COORDINATOR_REQUIRED = NO
 ### 12. Proximo Passo Permitido
 
 - `NEXT_ALLOWED_STEP`: Derivar proximo slice minimo de implementacao offline (`frozen-policy-interpreter.ts` + wiring de integracao no orchestrator), usando fakes provider-neutral, sem ativar producao ou trafego de clientes. Requer autorizacao formal em novo prompt.
+
+---
+
+## PROMPT-006X-PR51-WIRING-DESIGN-HARDENING-AND-MERGE-001
+
+- **Data**: 2026-10-01
+- **Tipo**: AUDIT / DOCS ONLY (Hardening de Design e Merge Gate PR #51)
+- **Branch**: `research/006x-deterministic-runtime-wiring-design`
+- **Base main SHA**: `b0124ac3d0b060a03aace4a83b954054d70d85a5`
+- **PR**: #51
+
+### 1. Objetivo da Tarefa
+
+Endurecer o design de runtime wiring do PR #51 em `docs/research/PHASE_6_DETERMINISTIC_RUNTIME_WIRING_DESIGN.md`, eliminando sobreafirmações e separando formalmente:
+1. Frozen policy interpretation;
+2. Security runtime semantics;
+3. Provider-call ownership;
+4. Response ownership;
+5. Barge-in pré-dispatch vs. pós-dispatch;
+6. History completion semantics.
+
+### 2. Endurecimentos e Correções Aplicadas
+
+- **Remoção de afirmações não comprovadas de tráfego**:
+  - `unsupported 80% traffic claim removed = YES`
+  - `REAL_TRAFFIC_CAPABILITY_MATCH_RATE = NOT VERIFIED`
+  - `REAL_TRAFFIC_GENERATIVE_ROUTE_RATE = NOT VERIFIED`
+  - Afirmação permitida restrita a: "matcher-first evita chamadas TypeSafe para turnos sem capability local conhecida" (sem quantificação percentual).
+- **Qualificação de Latência**:
+  - `production Jev overhead = NOT VERIFIED`
+  - `PRODUCTION_SERIAL_JEV_OVERHEAD = NOT VERIFIED`
+  - Separada a evidência sintética de holdout (mediana 255ms em benchmark offline) de previsões de overhead em tráfego real.
+- **SECURITY_ESCALATE Semantics & Fallback**:
+  - `SECURITY_ESCALATE OpenAI fallback removed = YES`
+  - `SECURITY_RUNTIME_ACTION = NOT IMPLEMENTED`
+  - `SECURITY_RUNTIME_SEMANTICS = UNDECIDED`
+  - `SECURITY_ESCALATE_DETERMINISTIC_BYPASS = PROHIBITED`
+  - `SECURITY_ESCALATE_OPENAI_FALLBACK = NOT AUTHORIZED / NOT DESIGNED`
+  - `SECURITY_RUNTIME_ACTION_DECISION_REQUIRED = YES` (ACTIVE_GUARDED não pode ser implementado antes de definir e testar essa semântica).
+- **Semântica de Modo DISABLED em Testes**:
+  - `OFFLINE_COMPONENT_TESTING_WITHOUT_JEV = ALLOWED` (testes unitários isolados com fakes)
+  - `DISABLED_RUNTIME_BYPASS = PROHIBITED` (em runtime, modo DISABLED mantém a rota determinística inalcançável).
+- **Ownership de Chamadas Auxiliares (Auxiliary Provider Call Ownership)**:
+  - `AUXILIARY_DECISION_CALL_OWNERSHIP = SINGLE_OWNER_REQUIRED` (invariante: no máximo 1 avaliação Jev por turno para o mesmo propósito de roteamento).
+  - Em `ACTIVE_GUARDED`, o shadowObserver não pode disparar consulta redundante ao Jev.
+  - `ACTIVE_GUARDED_PROVIDER_CALL_OWNERSHIP = BLOCKED / NOT IMPLEMENTED`.
+- **Response Ownership Commit e Prevenção de Resposta Duplicada**:
+  - `RESPONSE_OWNERSHIP_COMMIT = point after which OpenAI fallback must never start for that turn`
+  - `OPENAI_FALLBACK_AFTER_DETERMINISTIC_SPEAK_DISPATCH = PROHIBITED` (evita resposta dupla ao usuário se falhas ocorrerem em logs/histórico pós-fala).
+- **Barge-in: Pré-Dispatch vs. Pós-Dispatch**:
+  - `DETERMINISTIC_PRE_DISPATCH_STALE_SUPPRESSION = DESIGNED`
+  - `DETERMINISTIC_POST_DISPATCH_BARGE_IN = NOT VERIFIED`
+  - `DIRECT_VOICETRANSPORT_SPEAK_SAFE = NOT VERIFIED`
+- **Auditoria de Capacidade de Interrupção do Transport (`packages/integrations/src/twilio/**`)**:
+  - Cancelamento outbound explícito pós-despacho: `TRANSPORT_POST_DISPATCH_CANCEL_SUPPORTED = NO` (`translateVoiceOutputCommand` retorna `null` para `interrupt_speech`).
+  - Sinal de conclusão acústica de reprodução: `TRANSPORT_PLAYBACK_COMPLETION_SIGNAL = NO` (Twilio Conversation Relay não emite sinal de término de playback).
+  - Uso de generationId no provedor: não enviado à Twilio (token puramente interno).
+  - Outbound em `user.interruption`: zero mensagens enviadas ao WebSocket.
+- **Semântica de Conclusão de Histórico e Auditoria de Seam**:
+  - `DETERMINISTIC_AUDIO_FULLY_DELIVERED = NOT VERIFIED after speak dispatch`
+  - `DETERMINISTIC_HISTORY_COMPLETION_AFTER_SPEAK = NOT AUTOMATICALLY SAFE`
+  - Auditoria de `AssistantStreamCoordinator.recordTurnCompletion()`: visibilidade `private`, responsabilidade de persistência e log, não acessível externamente (`DETERMINISTIC_HISTORY_SEAM = private AssistantStreamCoordinator.recordTurnCompletion() — NOT EXTERNALLY ACCESSIBLE`).
+  - Proibida invocação privada reflexiva; requer reutilização semântica de `historyStore.appendTurn(role='assistant')`.
+- **Escopo do Interpretador de Política Congelada**:
+  - `RUNTIME_FROZEN_POLICY_INTERPRETER = NOT IMPLEMENTED`
+  - Função pura determinística isolável offline; não altera estado, não chama provedor nem transport.
+  - `FROZEN_POLICY_INTERPRETER_CAN_BE_IMPLEMENTED_OFFLINE_INDEPENDENTLY = YES`.
+- **Redução do Próximo Passo de Implementação**:
+  - `NEXT_ALLOWED_STEP: implement frozen-policy-interpreter.ts offline with focused unit tests only`
+  - Fiação no orquestrador postergada devido aos múltiplos bloqueadores identificados (`SECURITY_RUNTIME_ACTION`, `POST_DISPATCH_BARGE_IN`, `AUXILIARY_CALL_OWNERSHIP`).
+
+### 3. Status Consolidado do Design
+
+- `DETERMINISTIC_RUNTIME_WIRING_DESIGN = DESIGNED_WITH_BLOCKERS`
+- `SELECTED_ROUTING_TOPOLOGY = Application-Eligibility Filtered Serial Gate (DESIGNED / NOT WIRED)`
+- `ACTIVE_DETERMINISTIC_BYPASS_READINESS = BLOCKED`
+- `ACTIVE_GUARDED = BLOCKED`
+- `PRODUCTION_RUNTIME_WIRING = NO`
+- `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`
+- `CUSTOMER_TRAFFIC = PROHIBITED`
+
+### 4. Evidências de Governança
+
+- Provedores externos: TypeSafe `0`, OpenAI `0`, Twilio `0`.
+- `ENV_LOADED = NO` | `DB_CONNECTION = NO` | `CUSTOMER_DATA = NO`
+- `LOCKED_HOLDOUT_TOUCHED = NO` | `FROZEN_POLICY_TOUCHED = NO`
+- Alterações em código/testes/configs funcionais: `0` (estritamente AUDIT / DOCS ONLY).
+- Desvios operacionais de segurança: `NONE`.

@@ -64,12 +64,18 @@ AI_CONTEXT_HEADER_END
 - **HANDLER_IMPLEMENTATION**: `IMPLEMENTED / TESTED LOCALLY`.
 - **CAPABILITY_RESOLUTION**: `IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/operating-hours-capability-matcher.ts`).
 - **KNOWN_DETERMINISTIC_HANDLERS**: `1` (handler e matcher implementados e aprovados em 73 testes unitarios e no pnpm check global).
-- **DETERMINISTIC_RUNTIME_WIRING_DESIGN**: `IN PROGRESS` (`docs/research/PHASE_6_DETERMINISTIC_RUNTIME_WIRING_DESIGN.md`).
+- **DETERMINISTIC_RUNTIME_WIRING_DESIGN**: `DESIGNED_WITH_BLOCKERS` (`docs/research/PHASE_6_DETERMINISTIC_RUNTIME_WIRING_DESIGN.md`).
 - **DETERMINISTIC_INTERCEPTION_SEAM**: `ConversationOrchestrator.handleUserSpeechFinal() — apos save(generationId), antes de streamTurn()`.
-- **SELECTED_ROUTING_TOPOLOGY**: `OPTION_A (Application-Eligibility Filtered Serial Gate)` — confirma Opcao C do ADR-019.
-- **RUNTIME_FROZEN_POLICY_INTERPRETER**: `NOT IMPLEMENTED` (pre-requisito bloqueante).
-- **SECURITY_RUNTIME_ACTION**: `NOT IMPLEMENTED` (pre-requisito bloqueante).
-- **ACTIVE_DETERMINISTIC_BYPASS_READINESS**: `BLOCKED` (fail-closed, sem fiacao de runtime para bypass).
+- **SELECTED_ROUTING_TOPOLOGY**: `DESIGNED / NOT WIRED` (Application-Eligibility Filtered Serial Gate — confirma Opcao C do ADR-019).
+- **RUNTIME_FROZEN_POLICY_INTERPRETER**: `NOT IMPLEMENTED`.
+- **SECURITY_RUNTIME_ACTION**: `NOT IMPLEMENTED`.
+- **SECURITY_RUNTIME_SEMANTICS**: `UNDECIDED`.
+- **SECURITY_RUNTIME_ACTION_DECISION_REQUIRED**: `YES`.
+- **DETERMINISTIC_POST_DISPATCH_BARGE_IN**: `NOT VERIFIED`.
+- **RUNTIME_DETERMINISTIC_BYPASS**: `NOT WIRED`.
+- **ACTIVE_DETERMINISTIC_BYPASS_READINESS**: `BLOCKED`.
+- **ACTIVE_GUARDED**: `BLOCKED`.
+- **PRODUCTION_RUNTIME_WIRING**: `NO`.
 - **CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE**: `NOT CLEARED`.
 - **CUSTOMER_TRAFFIC**: `PROHIBITED`.
 - **PRODUCTION_SHADOW_MAX_CONCURRENCY**: `NOT SELECTED`.
@@ -144,7 +150,7 @@ AI_CONTEXT_HEADER_END
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- Derivar o proximo slice minimo de implementacao offline: frozen policy interpreter + wiring de integracao controlado no orchestrator, sem ativar producao ou trafego de clientes. Condicionado ao design nao apresentar blockers nao resolvidos.
+- Implementar offline a funcao pura `frozen-policy-interpreter.ts` acompanhada exclusivamente de testes unitarios focados e isolados (sem wiring no orquestrador).
 
 ### `NOT_YET_ALLOWED`:
 - Transmissão de dados reais de clientes para provedores externos.
