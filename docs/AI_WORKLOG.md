@@ -10631,3 +10631,49 @@ Auditadas 10 categorias factuais no split de calibração:
 
 ### 8. Próximo Passo Permitido
 - `NEXT_ALLOWED_STEP`: Minimal offline security action implementation with focused tests only (without orchestrator wiring).
+
+---
+
+## 2026-10-01 - PROMPT-006Z-PR53-SECURITY-SEMANTICS-HARDENING-AND-MERGE-001
+
+- **Data**: 2026-10-01
+- **Tipo**: DOCS / AUDIT ONLY (Security Semantics Hardening & PR #53 Merge Gate)
+- **Branch**: `research/006z-security-escalate-runtime-semantics`
+- **Base main SHA**: `2ae6dea8ede8efaac94590925f71821cb118b8ea`
+- **PR**: #53 (`OPEN`)
+
+### 1. Reconciliação de Proveniência de Dados e Evidências
+- `COMBINED_CALIBRATION_HOLDOUT_DATASET_OPENED_IN_006Z` = `YES`
+- `LOCKED_HOLDOUT_CONTENT_READ` = `NO EVIDENCE OF ACCESS` (linhas de holdout apareceram na saída visual do view_file, mas sem análise de texto ou derivação de regras a partir do holdout)
+- `HOLDOUT_CONTENT_CONTAMINATION` = `NO`
+- `SECURITY_TAXONOMY_PROVENANCE` = `NOT FULLY VERIFIED` (categorias mantidas como inputs conceituais de design observados, sem pretensão de ser ground truth absoluto do dataset).
+
+### 2. Separação de Camadas Semânticas de Segurança
+- `SECURITY_DECISION_RESULT` = `SECURITY_BLOCKED` (Option F: selecionado para implementação offline)
+- `SECURITY_USER_RESPONSE_TEMPLATE` = `PROPOSED` (Option B: template estático de recusa neutra conceituado)
+- `SECURITY_USER_RESPONSE_DELIVERY` = `NOT IMPLEMENTED` (`SECURITY_RESPONSE_DELIVERY_READY = NO`)
+- `SECURITY_HISTORY_PERSISTENCE_READY` = `NO` (histórico não persiste até haver semântica comprovada de completude)
+- `SECURITY_OFFLINE_ACTION` = `RETURN_SECURITY_BLOCKED_RESULT` (não executa transport, history, OpenAI, TypeSafe, ferramentas ou mutações).
+
+### 3. Justificativas e Fronteiras Factuais
+- `CURRENT_VOICE_RUNTIME_TOOL_EXECUTION` = `NO` (auditado em `apps/voice/src/conversation-orchestrator.ts`). `SECURITY_TOOL_EXECUTION = PROHIBITED` mantido como regra de fronteira arquitetural.
+- `SECURITY_OPENAI_FALLBACK` = `NOT AUTHORIZED` (para classificações `SECURITY_ESCALATE` confirmadas; falha de rede/timeout do provedor Jev mantém fallback generativo).
+- `SILENCE_REASON` = Não selecionado porque não oferece feedback útil ao usuário no nível do turno.
+- `SECURITY_DESIGN_INTENT_CALL_REMAINS_ACTIVE` = `YES` | `RUNTIME_OBSERVED = NO`.
+
+### 4. Reconciliação do Wiring Design e AI_CONTEXT
+- `SECURITY_RUNTIME_SEMANTICS` = `DESIGNED`
+- `SECURITY_RUNTIME_ACTION_DECISION_REQUIRED` = `NO`
+- `SECURITY_RUNTIME_ACTION_IMPLEMENTATION_REQUIRED` = `YES`
+- `SECURITY_RUNTIME_ACTION_IMPLEMENTED` = `NO`
+- `SECURITY_RESPONSE_DELIVERY_READY` = `NO`
+- `DETERMINISTIC_POST_DISPATCH_BARGE_IN` = `NOT VERIFIED`
+- `ACTIVE_GUARDED` = `BLOCKED`
+
+### 5. Governança e Alterações no Repositório
+- Provedores externos: TypeSafe `0`, OpenAI `0`, Twilio `0`
+- `ENV_LOADED` = `NO` | `DB_CONNECTION` = `NO` | `CUSTOMER_DATA` = `NO` | `FROZEN_POLICY_CHANGED` = `NO`
+- Alterações em código/testes/configs funcionais: `0` (estritamente DOCS / AUDIT ONLY).
+
+### 6. Próximo Passo
+- `NEXT_ALLOWED_STEP`: Minimal offline SECURITY_BLOCKED action implementation with focused tests only, without transport/history/orchestrator wiring.

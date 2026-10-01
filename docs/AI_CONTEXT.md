@@ -69,9 +69,11 @@ AI_CONTEXT_HEADER_END
 - **SELECTED_ROUTING_TOPOLOGY**: `DESIGNED / NOT WIRED` (Application-Eligibility Filtered Serial Gate — confirma Opcao C do ADR-019).
 - **RUNTIME_FROZEN_POLICY_INTERPRETER**: `IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/frozen-policy-interpreter.ts`; 20 testes unitários).
 - **FROZEN_POLICY_CHANGED**: `NO`.
-- **SECURITY_RUNTIME_ACTION**: `NOT IMPLEMENTED`.
+- **SECURITY_OFFLINE_ACTION**: `NOT IMPLEMENTED`.
 - **SECURITY_RUNTIME_SEMANTICS**: `DESIGNED` (`docs/research/PHASE_6_SECURITY_ESCALATE_RUNTIME_SEMANTICS.md`).
 - **SECURITY_RUNTIME_ACTION_IMPLEMENTATION_REQUIRED**: `YES`.
+- **SECURITY_RESPONSE_DELIVERY_READY**: `NO`.
+- **SECURITY_HISTORY_PERSISTENCE_READY**: `NO`.
 - **DETERMINISTIC_POST_DISPATCH_BARGE_IN**: `NOT VERIFIED`.
 - **RUNTIME_DETERMINISTIC_BYPASS**: `NOT WIRED`.
 - **ACTIVE_DETERMINISTIC_BYPASS_READINESS**: `BLOCKED`.
@@ -151,7 +153,7 @@ AI_CONTEXT_HEADER_END
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- Minimal offline security action implementation with focused tests only (without orchestrator wiring).
+- Minimal offline SECURITY_BLOCKED action implementation with focused tests only, without transport/history/orchestrator wiring.
 
 ### `NOT_YET_ALLOWED`:
 - Transmissão de dados reais de clientes para provedores externos.
