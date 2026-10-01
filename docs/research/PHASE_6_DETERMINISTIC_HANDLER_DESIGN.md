@@ -1,11 +1,13 @@
-# Phase 6 — Primeiro Candidato a Handler Determinístico: Documento de Design (PHASE_6_DETERMINISTIC_HANDLER_DESIGN.md)
+# Phase 6 — Primeiro Handler Determinístico: Documento de Design e Implementação (PHASE_6_DETERMINISTIC_HANDLER_DESIGN.md)
 
-> **Status**: DESIGN / AUDIT ONLY (Aprovado para Especificação — Implementação: NOT STARTED)  
-> **Data**: 2026-10-01  
-> **Fase**: Phase 6 (Voice Model Routing & Jev Evaluation)  
-> **Prompt de Origem**: `PROMPT-006V-DETERMINISTIC-HANDLER-CANDIDATE-DESIGN-001`  
-> **Revisão e Endurecimento**: `PROMPT-006V-PR49-CAPABILITY-RESOLUTION-HARDENING-AND-MERGE-001`
-> **Invariante Formal**: `NO_KNOWN_DETERMINISTIC_HANDLER -> NO_DETERMINISTIC_BYPASS`  
+> **Status**: DESIGN COMPLETE / IMPLEMENTED / TESTED LOCALLY
+> **Data**: 2026-10-01
+> **Fase**: Phase 6 (Voice Model Routing & Jev Evaluation)
+> **Prompt de Origem**: `PROMPT-006V-DETERMINISTIC-HANDLER-CANDIDATE-DESIGN-001`
+> **Endurecimento de Capability Resolution**: `PROMPT-006V-PR49-CAPABILITY-RESOLUTION-HARDENING-AND-MERGE-001`
+> **Implementação**: `PROMPT-006W-OPERATING-HOURS-DETERMINISTIC-HANDLER-IMPLEMENTATION-001`
+> **Reconciliação & Merge**: `PROMPT-006W-PR50-DOC-RECONCILIATION-QUALITY-AND-MERGE-001`
+> **Invariante Formal**: `NO_KNOWN_DETERMINISTIC_HANDLER -> NO_DETERMINISTIC_BYPASS`
 
 ---
 
@@ -13,14 +15,15 @@
 
 No estado atual da plataforma, o roteamento probabilístico pelo classificador auxiliar TypeSafe Jev foi validado em ambiente sintético de staging (PR #46, PR #47 e PR #48), comprovando telemetria non-blocking e latência dentro da janela operacional nominal (`STAGING_SHADOW_TIMEOUT_MS = 1500ms`, mediana observada de 275ms, 0 timeouts).
 
-Contudo, a ativação de qualquer bypass determinístico no runtime (`ACTIVE_GUARDED`) permanece estritamente bloqueada por design. Os seguintes bloqueios são factuais e permanecem vigentes:
+O primeiro handler determinístico da plataforma (`agent.operating_hours`) foi desenhado (PR #49) e implementado com capability resolution local estreita e testes unitários completos (PR #50). Contudo, a ativação de qualquer bypass determinístico no runtime (`ACTIVE_GUARDED`) permanece estritamente bloqueada por design, pois o handler ainda não está conectado ao orquestrador de chamadas (`apps/voice/src/conversation-orchestrator.ts`). Os seguintes bloqueios são factuais e permanecem vigentes:
 
-- `FIRST_DETERMINISTIC_HANDLER_CANDIDATE`: `agent.operating_hours`
-- `HANDLER_IMPLEMENTATION`: `NOT IMPLEMENTED`
-- `CAPABILITY_RESOLUTION`: `DESIGNED / NOT IMPLEMENTED`
-- `KNOWN_DETERMINISTIC_HANDLERS`: `0`
+- `FIRST_DETERMINISTIC_HANDLER`: `agent.operating_hours`
+- `HANDLER_IMPLEMENTATION`: `IMPLEMENTED / TESTED LOCALLY`
+- `CAPABILITY_RESOLUTION`: `IMPLEMENTED / TESTED LOCALLY`
+- `KNOWN_DETERMINISTIC_HANDLERS`: `1`
+- `RUNTIME_DETERMINISTIC_BYPASS`: `NOT WIRED`
 - `ACTIVE_DETERMINISTIC_BYPASS_READINESS`: `BLOCKED` (fail-closed)
-- `ACTIVE_GUARDED`: `BLOCKED` (inalcançável no runtime)
+- `ACTIVE_GUARDED`: `BLOCKED` (inalcançável no runtime de produção)
 - `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE`: `NOT CLEARED`
 - `CUSTOMER_TRAFFIC`: `PROHIBITED`
 - `PRODUCTION_RUNTIME_WIRING`: `NO`
@@ -149,10 +152,11 @@ Para evitar sobreafirmações e ambiguidades de evidência:
    - `GENERATIVE_HALLUCINATION_SURFACE_ON_HANDLER_RESPONSE`: `REMOVED` (o LLM principal não participa da geração da resposta)
    - `FACTUAL_CORRECTNESS_DEPENDS_ON_PUBLISHED_CONFIGURATION`: `YES` (a veracidade da resposta depende estritamente do valor configurado no snapshot publicado pela empresa).
 2. **Segurança de Tenant**:
-   - `TENANT_SCOPED_SOURCE_AVAILABLE`: `YES` (`organizationId` explícito no snapshot e na sessão)
-   - `TENANT_MATCH_GUARD_REQUIRED`: `YES` (o guardião deve validar `session.organizationId === snapshot.organizationId`)
-   - `TENANT_GUARD_IMPLEMENTED_IN_HANDLER`: `NO` (código de handler ainda não implementado)
-   - `HANDLER_TENANT_SAFETY`: `NOT YET TESTED`.
+   - `TENANT_SCOPED_SOURCE_AVAILABLE`: `YES`
+   - `TENANT_BINDING_SOURCE`: `CallSession.organizationId` e `CallBootstrap.organizationId` (enviados ao handler via input local como `sessionOrganizationId` e `configurationOrganizationId`; `AgentConfigurationSnapshotV1` não possui `organizationId` interno)
+   - `TENANT_MATCH_GUARD_REQUIRED`: `YES` (validação estrita `sessionOrganizationId === configurationOrganizationId`)
+   - `TENANT_GUARD_IMPLEMENTED_IN_HANDLER`: `YES` (implementado e comprovado fail-closed em `apps/voice/src/operating-hours-turn-handler.ts`)
+   - `HANDLER_TENANT_SAFETY`: `IMPLEMENTED / TESTED LOCALLY`.
 3. **Suporte a Resposta Direta de Áudio/Texto**:
    - `VOICE_TRANSPORT_DIRECT_SPEAK_CAPABILITY_EXISTS`: `YES` (`VoiceTransportPort.speak(callId, command)` já está implementado na interface de transporte)
    - `DIRECT_DETERMINISTIC_HANDLER_RESPONSE_IMPLEMENTED`: `NO`
@@ -173,9 +177,13 @@ Para evitar sobreafirmações e ambiguidades de evidência:
 - **REGISTRY_REQUIRED_FOR_FIRST_HANDLER**: `NO`.
   - A criação de uma classe `DeterministicHandlerRegistry` com mapas genéricos e métodos de lookup é **desnecessária** para um único handler. O registry completo fica formalmente postergado para quando houver múltiplos handlers reais no produto.
 
-### 7.2. Contrato Necessário
-- **NEW_CONTRACT_REQUIRED**: `YES`.
-  - É necessária uma interface mínima tipada provider-neutral em `packages/contracts/src/voice/` definindo o contrato de avaliação determinística do turno, garantindo tipagem forte entre `apps/voice` e o domínio, sem recorrer a `any` ou acoplamento direto.
+### 7.2. Reavaliação YAGNI de Contrato Compartilhado
+- **Status da Decisão Anterior**: `DESIGN_DECISION_SUPERSEDED_BY_IMPLEMENTATION_YAGNI_REVALIDATION`.
+  - No design preliminar do PR #49, havia sido previsto `NEW_CONTRACT_REQUIRED = YES`.
+  - Durante a implementação do PR #50 (006W), a necessidade foi reavaliada sob YAGNI estrito: o handler e seus tipos residem integralmente em `apps/voice`, portanto inexiste atualmente fronteira real entre pacotes (`packages/**` ou outras aplicações) que justifique a criação de contratos genéricos em `@voice-agent/contracts`.
+- **SHARED_HANDLER_CONTRACT_REQUIRED**: `NO`.
+- **NEW_SHARED_CONTRACT_CREATED**: `NO`.
+- **Tipagem Local Estrita**: Definida em `apps/voice/src/operating-hours-turn-handler.ts` (`OperatingHoursTurnHandlerInput`, `OperatingHoursHandlerResult`) sem recorrer a `any`.
 
 ### 7.3. Proibições Anti-Overengineering (No Generic Framework)
 É expressamente **PROIBIDO** implementar no próximo slice:
@@ -187,39 +195,79 @@ Para evitar sobreafirmações e ambiguidades de evidência:
 
 ---
 
-## 8. Matriz de Testes para Futura Implementação
+## 8. Plano Original de Testes & Cobertura Implementada (Original Test Plan & Implemented Coverage)
 
-Quando a implementação for autorizada, os seguintes testes automatizados unitários deverão ser implementados:
+A matriz planejada durante o design foi integralmente executada e comprovada em `apps/voice/src/operating-hours-capability-matcher.test.ts` (55 testes) e `apps/voice/src/operating-hours-turn-handler.test.ts` (18 testes):
 
-### 8.1. Fixtures Positivas (Bypass Determinístico Autorizado):
-- `"Qual é o horário de atendimento?"` -> `bypass: true`, fala horário configurado;
-- `"Qual o horário de atendimento?"` -> `bypass: true`;
-- `"Qual é o horário de funcionamento?"` -> `bypass: true`;
-- `"Até que horas vocês atendem?"` -> `bypass: true`;
-- `"Que horas vocês abrem?"` -> `bypass: true`;
-- `"Que horas vocês fecham?"` -> `bypass: true`.
+### 8.1. Fixtures Positivas (Bypass Determinístico Autorizado — IMPLEMENTED / TESTED LOCALLY):
+- `"Qual é o horário de atendimento?"` -> `handled: true`, fala horário configurado;
+- `"Qual o horário de atendimento?"` -> `handled: true`;
+- `"Qual é o horário de funcionamento?"` -> `handled: true`;
+- `"Até que horas vocês atendem?"` -> `handled: true`;
+- `"Que horas vocês abrem?"` -> `handled: true`;
+- `"Que horas vocês fecham?"` -> `handled: true`.
 
-### 8.2. Fixtures Negativas Obrigatórias (Fail-Closed to Main Model):
-- `"Qual é o horário da minha consulta?"` -> `bypass: false` (consulta médica/agendamento);
-- `"Que horas meu pedido chega?"` -> `bypass: false` (entrega/logística);
-- `"Qual horário o vendedor vai me ligar?"` -> `bypass: false` (retorno comercial);
-- `"Qual o horário amanhã?"` -> `bypass: false` (específico de dia não suportado);
-- `"Vocês abrem no feriado?"` -> `bypass: false` (exceção de feriado não suportada);
-- `"Qual horário em Brasília?"` -> `bypass: false` (fuso horário não suportado);
-- `"Pode me ligar em outro horário?"` -> `bypass: false`.
+### 8.2. Fixtures Negativas Obrigatórias (Fail-Closed — IMPLEMENTED / TESTED LOCALLY):
+- `"Qual é o horário da minha consulta?"` -> `handled: false` (consulta médica/agendamento);
+- `"Que horas meu pedido chega?"` -> `handled: false` (entrega/logística);
+- `"Qual horário o vendedor vai me ligar?"` -> `handled: false` (retorno comercial);
+- `"Qual o horário amanhã?"` -> `handled: false` (específico de dia não suportado);
+- `"Vocês abrem no feriado?"` -> `handled: false` (exceção de feriado não suportada);
+- `"Qual horário em Brasília?"` -> `handled: false` (fuso horário não suportado);
+- `"Pode me ligar em outro horário?"` -> `handled: false`;
+- `"Qual é o horário?"` -> `handled: false` (deliberadamente ambíguo, fail-closed).
 
-### 8.3. Casos de Invariante e Borda (Fail-Closed):
-- `operatingHours` indefinido ou string vazia no snapshot -> `bypass: false`;
-- `session.organizationId !== snapshot.organizationId` -> `bypass: false`;
-- `session.runtimeState !== 'ACTIVE'` -> `bypass: false`;
-- Jev retorna `GENERATIVE_REQUIRED` -> `bypass: false`;
-- Jev retorna `SECURITY_ESCALATE` -> `bypass: false`;
-- Handler lança erro interno inesperado -> `bypass: false`, chamada prossegue sem interrupção de áudio.
+### 8.3. Casos de Invariante e Borda (Fail-Closed — IMPLEMENTED / TESTED LOCALLY):
+- `operatingHours` indefinido ou string vazia no snapshot -> `handled: false`;
+- `sessionOrganizationId !== configurationOrganizationId` -> `handled: false`;
+- `runtimeState !== 'ACTIVE'` (e.g. `'CONNECTING'`, `'CREATED'`, `'ENDING'`, `'ENDED'`, `'FAILED'`) -> `handled: false`;
+- Ausência de mutações ou efeitos colaterais -> comprovado por teste de pureza;
+- Zero chamadas a provedores externos (OpenAI, TypeSafe, Twilio) -> garantido pela arquitetura pura da função.
 
 ---
 
-## 9. Conclusão & Próximo Passo Permitido
+## 9. Conclusão da Fase de Design e Implementação
 
-O design do primeiro handler determinístico (`agent.operating_hours`) está agora formalmente endurecido, com o gap de capability resolution resolvido através de um matcher determinístico local estreito (Opção A), preservando 100% a Frozen Policy e eliminando sobreafirmações causais e frameworks genéricos prematuros.
+O primeiro handler determinístico (`agent.operating_hours`) foi desenhado (PR #49) e implementado com capability resolution local estreita e testes unitários completos (PR #50).
+O runtime bypass determinístico permanece desconectado (`RUNTIME_DETERMINISTIC_BYPASS = NOT WIRED`, `ACTIVE_DETERMINISTIC_BYPASS_READINESS = BLOCKED`, `ACTIVE_GUARDED = BLOCKED`) até que haja fiação de runtime controlada e testes de integração de fluxo no orquestrador de voz.
 
-- **NEXT_ALLOWED_STEP**: Slice mínimo de contrato e implementação para exatamente uma capacidade (`agent.operating_hours`), contendo a interface em `packages/contracts/src/voice/`, a função de matching estreita e o handler em `apps/voice`, com cobertura completa de testes positivos e negativos, sem fiação em produção, sem tráfego de clientes e sem ativar `ACTIVE_GUARDED`.
+---
+
+## 10. Evidência de Implementação & Testes Locais (Implementation Evidence)
+
+> **Prompt de Execução**: `PROMPT-006W-OPERATING-HOURS-DETERMINISTIC-HANDLER-IMPLEMENTATION-001`
+> **Branch**: `feat/006w-operating-hours-deterministic-handler`
+> **TESTED_CODE_SHA**: `2bb0b00bdf861808500544e698d087ea134500e0`
+
+### 10.1. Revalidação YAGNI
+- **Contrato Compartilhado**: `SHARED_HANDLER_CONTRACT_REQUIRED = NO`.
+  - Inexiste fronteira entre pacotes exigindo exportação de interface genérica por `@voice-agent/contracts`. O consumo e a execução do handler ocorrem estritamente dentro de `apps/voice`, com tipagem TypeScript local rigorosa (`OperatingHoursTurnHandlerInput`, `OperatingHoursHandlerResult`).
+- **Registry**: `REGISTRY_REQUIRED_FOR_FIRST_HANDLER = NO`.
+  - Zero frameworks de plugins, zero reflection, zero auto-discovery e zero DI containers.
+
+### 10.2. Módulos Implementados
+1. **Matcher Determinístico de Capacidade**:
+   - Arquivo: [`apps/voice/src/operating-hours-capability-matcher.ts`](file:///d:/voice-agent-platform/apps/voice/src/operating-hours-capability-matcher.ts) (66 linhas).
+   - Testes: [`apps/voice/src/operating-hours-capability-matcher.test.ts`](file:///d:/voice-agent-platform/apps/voice/src/operating-hours-capability-matcher.test.ts) (55 testes unitários passando).
+   - Normalização: remoção de diacríticos, pontuação e espaços múltiplos.
+   - Correspondência: allowlist exata de 23 formulações canônicas de horário de atendimento do negócio.
+   - Fail-closed: rejeição comprovada de perguntas sobre consultas, pedidos, entregas, callbacks de vendedores, dias específicos, feriados, fusos e perguntas ambíguas (`"qual é o horário?"`).
+2. **Handler Determinístico de Turno**:
+   - Arquivo: [`apps/voice/src/operating-hours-turn-handler.ts`](file:///d:/voice-agent-platform/apps/voice/src/operating-hours-turn-handler.ts) (104 linhas, complexidade ciclomatica <= 5 por função).
+   - Testes: [`apps/voice/src/operating-hours-turn-handler.test.ts`](file:///d:/voice-agent-platform/apps/voice/src/operating-hours-turn-handler.test.ts) (18 testes unitários passando).
+   - Guards: Tenant Match Guard (`sessionOrganizationId === configurationOrganizationId`), Runtime State Guard (`runtimeState === 'ACTIVE'`), Configuration Guard (`operatingHours` não-vazio) e Capability Matcher Guard.
+   - Resposta: wrapper literal puro `"Nosso horário de atendimento é: ${operatingHours}."` sem chamadas generativas.
+
+### 10.3. Status Factual das Capacidades
+- `HANDLER_IMPLEMENTATION`: `IMPLEMENTED / TESTED LOCALLY`
+- `CAPABILITY_RESOLUTION`: `IMPLEMENTED / TESTED LOCALLY`
+- `FIRST_DETERMINISTIC_HANDLER`: `agent.operating_hours`
+- `KNOWN_DETERMINISTIC_HANDLERS`: `1` (após gates completos válidos)
+- `ACTIVE_DETERMINISTIC_BYPASS_READINESS`: `BLOCKED` (sem fiação de runtime para bypass)
+- `ACTIVE_GUARDED`: `BLOCKED` (inalcançável no runtime de produção)
+- `DIRECT_VOICE_SPEAK_CAPABILITY_EXISTS`: `YES`
+- `DIRECT_HANDLER_TO_TRANSPORT_WIRING`: `NO`
+- `PRODUCTION_RUNTIME_WIRING`: `NO`
+- `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE`: `NOT CLEARED`
+- `CUSTOMER_TRAFFIC`: `PROHIBITED`
+- `QUALITY_GATE`: `PASS` (pnpm check: 105 test files passed, 659 tests passed, 45 historical skips, 0 new skips, 0 failures)

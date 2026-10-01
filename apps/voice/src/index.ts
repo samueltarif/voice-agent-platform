@@ -27,3 +27,5 @@ export * from './call-lifecycle-gateway.js';
 export * from './in-memory-conversation-history-store.js';
 export * from './conversation-context-composer.js';
 export * from './auxiliary-turn-shadow-observer.js';
+export * from './operating-hours-capability-matcher.js';
+export * from './operating-hours-turn-handler.js';
