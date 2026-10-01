@@ -9410,3 +9410,55 @@ Este fechamento retifica a formulação epistemológica da base de evidência da
 ### 5. Decisão de PR & Próximo Passo
 - **Decisão**: PR #44 permanece `OPEN / NOT MERGED` aguardando revisão humana.
 - `NEXT_ALLOWED_STEP`: Design e implementação de fiação de composição controlada para modo SHADOW exclusiva de Staging com limites operacionais explícitos de segurança, tráfego sintético apenas, sem tráfego de cliente, sem OpenAI, sem Twilio, sem fiação em produção e sem `ACTIVE_GUARDED`.
+
+## [2026-10-01] PROMPT-006R-TYPESAFE-STAGING-SHADOW-COMPOSITION-001: Phase 6 — Controlled Staging-Only TypeSafe SHADOW Composition
+
+### 1. Context Bootstrap & Preflight
+- **CONTEXT_BOOTSTRAP_STATUS**: `CURRENT_AFTER_SELF_MERGE` (PR #44 merge commit `01ced69224cec652942174e45017124911066686` verificado idêntico ao `origin/main` e local `main`).
+- **Main SHA de Base**: `01ced69224cec652942174e45017124911066686`.
+- **Branch de Trabalho**: `feat/006r-typesafe-staging-shadow-composition`.
+- **Regra Operacional Reforçada**: Auditorias de segredos devem permanecer estritamente cegas a valores (`SECRET_AUDIT_PASS` / `SECRET_AUDIT_FAIL`); é proibido imprimir nomes de padrões ou categorias coincidentes durante depuração.
+
+### 2. Portão YAGNI & Padrão Arquitetural Existente
+- **CURRENT_REQUIREMENT**: Composição mínima necessária para que o futuro runner sintético de staging possa instanciar `TypeSafeJevTurnDecisionAdapter` e `AuxiliaryTurnShadowObserver` com limites operacionais controlados (`concurrency = 1`, `timeout = 1500ms`), garantindo indisponibilidade estrita em produção e isolamento do tráfego nominal de clientes.
+- **EXISTING_OPTION**: `AuxiliaryTurnShadowObserver` (`apps/voice`) suporta portas desacopladas `AuxiliaryTurnDecisionPort`, com concorrência delimitada e abort handling. `TypeSafeJevTurnDecisionAdapter` (`packages/integrations`) implementa a porta provider-neutral. `scripts/check-architecture.mjs` permite import de integrações exclusivamente em arquivos que satisfazem `isCompositionRoot` (`bootstrap.*`, `composition-root.*`, `main.*`).
+- **MINIMAL_OPTION**: Implementado composition root dedicado em `apps/voice/src/composition-root.staging-shadow.ts` com wrapper de timeout e guarda de ambiente.
+  - Zero novas dependências externas de terceiros;
+  - Zero criação de filas (queues), caches, schedulers, barramentos de evento (event bus) ou middlewares genéricos.
+
+### 3. Decisões de Configuração & Limites de Segurança
+- **Ambiente Staging Estrito**: Permite exclusivamente `environment === 'staging' || environment === 'test'`. Execuções com `environment === 'production'` lançam exceção fail-closed (`TypeSafe SHADOW composition is strictly unavailable in production`).
+- **DEFAULT_AUXILIARY_FEATURE_MODE**: `DISABLED`.
+- **ACTIVE_GUARDED**: Permanece expressamente bloqueado (`BLOCKED`).
+- **STAGING_SHADOW_MAX_CONCURRENCY**: `1` (temporário para staging sintético). Turnos concorrentes retornam imediatamente `DROPPED_CAPACITY` sem enfileiramento ou backlog.
+- **STAGING_SHADOW_TIMEOUT_MS**: `1500` (temporário para staging sintético). Disparo de timeout aborta a requisição auxiliar via `AbortController` sem bloquear ou abortar o fluxo nominal da conversa com OpenAI.
+- **Parâmetros de Produção**:
+  - `PRODUCTION_SHADOW_MAX_CONCURRENCY = NOT SELECTED`.
+  - `PRODUCTION_JEV_TIMEOUT_MS = NOT SELECTED`.
+
+### 4. Implementação & Arquivos Alterados
+- **Novo Arquivo**: `apps/voice/src/composition-root.staging-shadow.ts`:
+  - Contém `createStagingSyntheticShadowComposition` e `TimedAuxiliaryTurnDecisionPort`;
+  - Respeita limites de tamanho (135 linhas, conformidade com meta 80-150 linhas);
+  - Cumpre regra de composition root em `scripts/check-architecture.mjs`.
+- **Novo Arquivo de Testes**: `apps/voice/src/composition-root.staging-shadow.test.ts` (12 testes determinísticos cobrindo todos os requisitos mandatórios).
+- **Documentação Atualizada**:
+  - `docs/architecture/decisions/ADR-019-jev-guarded-runtime-integration.md`: refletindo `STAGING_SYNTHETIC_SHADOW_COMPOSITION = IMPLEMENTED`.
+  - `docs/AI_CONTEXT.md`: snapshot atualizado (Schema 1.1.0) com novos limites de staging e bloqueios ativos.
+- **Resolução de Workspace & Vitest**: Criado `apps/voice/vitest.config.ts` com alias para `packages/integrations/src/index.ts` e preservado `apps/voice/package.json` sem dependência cíclica no Turbo monorepo (`tsconfig.base.json` fornece tipagem e `tsc` compila limpo).
+
+### 5. Governança de Testes & Resultados
+- **Testes Focados (`composition-root.staging-shadow.test.ts`)**: 12/12 PASS (0 failures).
+- **Classificação de Asserções**: Todos os 12 testes são novos testes adicionados.
+  - `ASSERTION_STRONGER`: 12
+  - `ASSERTION_EQUIVALENT`: 0
+  - `ASSERTION_WEAKER`: 0
+  - `Novos Skips`: 0 (`0 new skips`).
+- **Isolamento de Provedores Pagos e Segredos**:
+  - Chamadas reais TypeSafe: 0.
+  - Chamadas reais OpenAI: 0.
+  - Chamadas reais Twilio: 0.
+  - Carga de `.env`: Nenhuma (`ENV_LOADED = NO`).
+
+### 6. Próximo Passo Permitido
+- `NEXT_ALLOWED_STEP`: Uma execução controlada e separadamente autorizada de TypeSafe SHADOW em staging sintético utilizando a nova composição (`apps/voice/src/composition-root.staging-shadow.ts`), com limite explícito de requisições (`TYPESAFE_LIVE_REQUESTS_MAX = 1`), teto orçamentário (`BUDGET_CAP_USD = 0.01`), sem tráfego de clientes, sem Twilio, sem fiação em produção e sem `ACTIVE_GUARDED`.

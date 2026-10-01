@@ -98,15 +98,22 @@ Em 2026-09-30, o operador aprovou formalmente a direção arquitetural deste des
      - Global `SHADOW` -> organização pode selecionar `DISABLED` ou `SHADOW`, nunca `ACTIVE_GUARDED`.
      - `ACTIVE_GUARDED` exige autorização global explícita.
 
-6. **Porta Mínima Provider-Neutral**:
+6. **Porta Mínima Provider-Neutral e Composição Staging-Only**:
    - **DESIGN STATUS**: `ACCEPTED`.
    - **IMPLEMENTATION STATUS**: `PROVIDER-NEUTRAL PORT IMPLEMENTED IN PR #39` (`packages/contracts/src/voice/auxiliary-turn-decision-contracts.ts` e `apps/voice/src/auxiliary-turn-shadow-observer.ts`).
-   - **CONCRETE TYPESAFE ADAPTER**: `IMPLEMENTED OFFLINE` (`packages/integrations/src/typesafe/typesafe-jev-turn-decision-adapter.ts`).
-   - **SHADOW PROVIDER WIRING**: `NOT IMPLEMENTED`.
-   - **STAGING EXECUTION**: `NOT EXECUTED`.
+   - **CONCRETE TYPESAFE ADAPTER**: `IMPLEMENTED` (`packages/integrations/src/typesafe/typesafe-jev-turn-decision-adapter.ts`; live response `OBSERVED`).
+   - **STAGING_SYNTHETIC_SHADOW_COMPOSITION**: `IMPLEMENTED` (`apps/voice/src/composition-root.staging-shadow.ts`).
+     - `STAGING_SHADOW_MAX_CONCURRENCY = 1`
+     - `STAGING_SHADOW_TIMEOUT_MS = 1500`
+     - `PRODUCTION_RUNTIME_WIRING = NO`
+     - `CUSTOMER_TRAFFIC = PROHIBITED`
+     - `SHADOW_LIVE_PROVIDER_EXECUTION = NOT EXECUTED IN THIS SLICE`
+     - `ACTIVE_GUARDED = BLOCKED`
+     - *Nota Crítica de Evidência*: Disponibilidade de composição (`composition available`) NÃO equivale a execução ou homologação contra provedor real (`provider execution validated`).
    - Porta: `AuxiliaryTurnDecisionPort` define a interface mínima provider-neutral: `evaluateTurn(...)` retornando scores brutos (`deterministicScore`, `generativeScore`, `securityScore`) e telemetria de latência/modelo.
    - Separação estrita:
      - Adapter (`packages/integrations`): scores brutos tipados;
+     - Composition Root (`apps/voice/src/composition-root.staging-shadow.ts`): montagem staging-only com limites operacionais seguros;
      - Application Policy (`apps/voice/src/domain/policy`): política congelada e ordenação de regras;
      - Orchestrator (`apps/voice/src/orchestrator`): autoridade final de roteamento.
 
