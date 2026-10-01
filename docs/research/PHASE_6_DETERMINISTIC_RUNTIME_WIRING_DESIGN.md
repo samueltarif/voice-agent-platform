@@ -16,8 +16,8 @@
 
 O design arquitetural da fiação do runtime determinístico foi conceituado, porém **NÃO está pronto para fiação no orquestrador** devido aos seguintes bloqueadores formais identificados na auditoria:
 
-1. `SECURITY_RUNTIME_ACTION`: `NOT IMPLEMENTED` e `SECURITY_RUNTIME_SEMANTICS = UNDECIDED`.
-2. `SECURITY_RUNTIME_ACTION_DECISION_REQUIRED`: `YES` (ACTIVE_GUARDED não pode ser implementado antes de definir e testar essa semântica).
+1. `SECURITY_RUNTIME_ACTION`: `NOT IMPLEMENTED` (`SECURITY_RUNTIME_SEMANTICS = DESIGNED` em `docs/research/PHASE_6_SECURITY_ESCALATE_RUNTIME_SEMANTICS.md`).
+2. `SECURITY_RUNTIME_ACTION_IMPLEMENTATION_REQUIRED`: `YES` (ACTIVE_GUARDED não pode ser ativado no orquestrador antes da implementação offline e testes dessa ação de segurança).
 3. `DETERMINISTIC_POST_DISPATCH_BARGE_IN`: `NOT VERIFIED`.
 4. `CURRENT_ADAPTER_POST_DISPATCH_CANCEL_SUPPORTED`: `NO` (auditado no adapter Twilio versionado em `packages/integrations/src/twilio/**`; `EXTERNAL_PROVIDER_CAPABILITY_BEYOND_CURRENT_ADAPTER = NOT VERIFIED`).
 5. `CURRENT_ADAPTER_PLAYBACK_COMPLETION_SIGNAL`: `NO` (adapter local não emite sinal de conclusão acústica; `EXTERNAL_PROVIDER_CAPABILITY_BEYOND_CURRENT_ADAPTER = NOT VERIFIED`).
@@ -237,14 +237,14 @@ ACTIVE_GUARDED_PROVIDER_CALL_OWNERSHIP = BLOCKED / NOT IMPLEMENTED
 
 ### Auditoria Factual
 
-- `applyFrozenPolicy`, `interpretPolicy`, `frozenPolicy` - **zero ocorrências** em código de runtime funcional (`apps/voice/src/`).
-- `SECURITY_ESCALATE`, `DETERMINISTIC_CANDIDATE`, `GENERATIVE_REQUIRED` - **zero ocorrências** em código de produção.
+- `ROUTING_CLASSIFICATIONS_IMPLEMENTED_IN_INTERPRETER` = `YES` (`apps/voice/src/frozen-policy-interpreter.ts`).
+- `ROUTING_CLASSIFICATIONS_WIRED_IN_ORCHESTRATOR` = `NO`.
 
 ```
 RUNTIME_FROZEN_POLICY_INTERPRETER = IMPLEMENTED / TESTED LOCALLY
 FROZEN_POLICY_CHANGED = NO
 SECURITY_RUNTIME_ACTION = NOT IMPLEMENTED
-SECURITY_RUNTIME_SEMANTICS = UNDECIDED
+SECURITY_RUNTIME_SEMANTICS = DESIGNED (ver docs/research/PHASE_6_SECURITY_ESCALATE_RUNTIME_SEMANTICS.md)
 ```
 
 ### Fronteira Estrita e Isolamento de Responsabilidade
@@ -285,7 +285,7 @@ O design preliminar continha uma contradição documental: declarava `SECURITY_R
 
 ```
 SECURITY_RUNTIME_ACTION = NOT IMPLEMENTED
-SECURITY_RUNTIME_SEMANTICS = UNDECIDED
+SECURITY_RUNTIME_SEMANTICS = DESIGNED (ver docs/research/PHASE_6_SECURITY_ESCALATE_RUNTIME_SEMANTICS.md)
 SECURITY_ESCALATE_DETERMINISTIC_BYPASS = PROHIBITED
 SECURITY_ESCALATE_OPENAI_FALLBACK = NOT AUTHORIZED / NOT DESIGNED
 ```
