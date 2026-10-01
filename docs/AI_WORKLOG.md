@@ -9913,3 +9913,157 @@ Este fechamento retifica a formulação epistemológica da base de evidência da
 
 ### 5. Próximo Passo Permitido
 - `NEXT_ALLOWED_STEP`: Derivar a partir dos bloqueios remanescentes da Fase 6 (design de handlers determinísticos, governança de privacidade de transcrições e parâmetros de produção), sem ativar produção, tráfego de clientes ou ACTIVE_GUARDED.
+
+---
+
+## 2026-10-01 — PROMPT-006V-DETERMINISTIC-HANDLER-CANDIDATE-DESIGN-001
+
+### 1. Context Bootstrap & Preflight
+- **Objetivo**: Identificar, a partir EXCLUSIVAMENTE das capacidades já existentes no repositório, o primeiro candidato seguro e mínimo para `KNOWN_DETERMINISTIC_HANDLERS > 0`.
+- **Base Main SHA**: `9e83f09f058ce9e7de531dff455638c7e44aa6a8` (merge do PR #48).
+- **Branch**: `research/006v-deterministic-handler-design`.
+- **Status do Bootstrap**: `CONTEXT_BOOTSTRAP_STATUS = CURRENT_AFTER_SELF_MERGE` (árvore limpa, origin/main verificado).
+- **Escopo**: `DESIGN / AUDIT ONLY`.
+
+### 2. Inventário de Capacidades Auditadas
+Auditado o código versionado em `packages/contracts`, `packages/database`, `apps/api`, `apps/voice`, `packages/integrations` e `apps/worker`:
+1. `agent.operating_hours`: `AgentConfigurationSnapshotV1.rules.deterministic.operatingHours` (presente em schema Zod e PostgreSQL, entregue ao runtime no snapshot).
+2. `agent.company_identity`: `AgentConfigurationSnapshotV1.persona.companyName` e `persona.role`.
+3. `agent.closing_phrase`: `AgentConfigurationSnapshotV1.persona.closingPhrase`.
+4. `agent.static_fallback`: `AgentConfigurationSnapshotV1.persona.fallbackPhrase`.
+5. `agent.max_discount`: `AgentConfigurationSnapshotV1.rules.deterministic.maxDiscountPercent`.
+6. `catalog.product_price`: Inexistente no código (`ProductPricingService` é apenas exemplo conceitual em docs).
+7. `calendar.get_slots`: Inexistente no código (`CalendarProvider` é interface pendente).
+8. `crm.find_contact`: Inexistente no código (`CRMProvider` é interface pendente).
+9. `commercial.quota_check`: `CommercialEntitlementResolver` (pertence exclusivamente ao control plane / API).
+
+### 3. Matriz de Candidatos e Aplicação das 14 Regras de Elegibilidade
+- **Desqualificados**:
+  - `agent.closing_phrase`: Risco de sobreposição com ciclo de vida da chamada (desconexão esperada pelo usuário).
+  - `agent.static_fallback`: Mecanismo de recuperação de erro, não resposta de negócio.
+  - `agent.max_discount`: Desqualificado por regra mandatória de exclusão (decisão de precificação/financeira).
+  - `catalog.product_price`, `calendar.get_slots`, `crm.find_contact`: Desqualificados por regras de exclusão de alto risco e ausência de implementação no repositório.
+  - `commercial.quota_check`: Desqualificado por pertencer ao painel administrativo, não ao fluxo de voz.
+- **Elegíveis**:
+  - `agent.company_identity`: Elegível (14/14 regras), porém secundário em valor operacional de turno.
+  - `agent.operating_hours`: Elegível (14/14 regras satisfeitas integralmente). Corresponde ao `case-lat-004` da bateria sintética ("Qual é o horário de atendimento?").
+
+### 4. Seleção do Primeiro Candidato
+- **Candidato Selecionado**: `FIRST_DETERMINISTIC_HANDLER_CANDIDATE = agent.operating_hours`.
+- **Fonte da Verdade Autoritativa**: `AgentConfigurationSnapshotV1.rules.deterministic.operatingHours` (persistido em `agent_versions.configuration` no PostgreSQL via schema Drizzle).
+- **Tenant Safety**: `YES` (escopo explícito de `organizationId` validado no agente, versão e sessão).
+- **Classificação de Leitura**: `READ_ONLY = YES` (leitura pura de snapshot imutável em memória, zero mutações de banco ou transporte).
+- **Sem Efeitos Colaterais**: `SIDE_EFFECT_FREE = YES`.
+- **Suporte a Resposta Direta**: `DIRECT_DETERMINISTIC_RESPONSE_SUPPORTED = YES` (template canônico determinístico `"Nosso horário de atendimento é ${operatingHours}."` enviado diretamente ao TTS via `VoiceTransportPort.speak`, eliminando latência e custos de tokens da OpenAI).
+- **Independência de LLM**: `LLM_REQUIRED_FOR_CORRECTNESS = NO`.
+- **Dados do Cliente**: `CUSTOMER_DATA_REQUIRED = NO` (testável 100% com fixtures sintéticas).
+
+### 5. Auditoria de Contratos e Registry (YAGNI)
+- **Novo Contrato Necessário**: `NEW_CONTRACT_REQUIRED = YES` (ausência de interface tipada para handlers determinísticos em `packages/contracts/src/voice/`).
+- **Registry Existente**: `EXISTING_HANDLER_REGISTRY = NO`.
+- **Resultado YAGNI**: Proibido framework genérico de plugins ou reflexão dinâmica. O slice futuro deve implementar apenas:
+  1. Interface mínima provider-neutral `DeterministicTurnHandler` em `packages/contracts/src/voice/`;
+  2. Implementação concreta `OperatingHoursHandler` em `apps/voice`;
+  3. Registry mínimo em memória baseado em `Map<string, DeterministicTurnHandler>`.
+
+### 6. Governança, Fronteiras e Bloqueios Mantidos
+- **Chamadas Reais a Provedores**: TypeSafe `0`, OpenAI `0`, Twilio `0`.
+- **Carga de `.env`**: `NO` (`ENV_LOADED = NO`).
+- **Conexão a Banco Remoto**: `NO` (`DB_CONNECTION = NO`).
+- **Holdout de Pesquisa**: `TOUCHED = NO`.
+- **Dados de Clientes**: `NO` (`CUSTOMER_TRAFFIC = PROHIBITED`).
+- **Alterações de Código / Teste / Config**: `0` (estritamente documental).
+- **Desvios de Processo**: `NONE`.
+- **Bloqueios Vigentes**:
+  - `KNOWN_DETERMINISTIC_HANDLERS`: `0` (candidato desenhado NÃO conta como conhecido/implementado).
+  - `ACTIVE_DETERMINISTIC_BYPASS_READINESS`: `BLOCKED`.
+  - `ACTIVE_GUARDED`: `BLOCKED`.
+  - `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE`: `NOT CLEARED`.
+  - `PRODUCTION_RUNTIME_WIRING`: `NO`.
+
+### 7. Próximo Passo Permitido
+- `NEXT_ALLOWED_STEP`: Slice mínimo de contrato e implementação do handler determinístico único `agent.operating_hours`, sem habilitar fiação em produção, tráfego de clientes ou `ACTIVE_GUARDED`.
+
+---
+
+## 2026-10-01 — PROMPT-006V-PR49-CAPABILITY-RESOLUTION-HARDENING-AND-MERGE-001
+
+### 1. Preflight & Auditoria de Capability Resolution
+- **Objetivo**: Corrigir a lacuna arquitetural de capability resolution no design do primeiro handler determinístico antes de mergear o PR #49.
+- **Natureza**: `DESIGN / AUDIT ONLY` (Docs-only).
+- **Base Main**: `9e83f09f058ce9e7de531dff455638c7e44aa6a8`.
+- **Branch**: `research/006v-deterministic-handler-design`.
+- **PR**: #49 (`OPEN`).
+- **Jev Output Contract Audit**:
+  - `JEV_CAPABILITY_ID_OUTPUT`: `NO` (`AuxiliaryTurnDecisionOutput` retorna estritamente scores probabilísticos, modelo e latência).
+  - `JEV_INTENT_ID_OUTPUT`: `NO`.
+  - `CURRENT_JEV_OUTPUT_CAN_SELECT_SPECIFIC_HANDLER`: `NO`.
+- **Lacuna Arquitetural Identificada**:
+  - `CAPABILITY_RESOLUTION`: `NOT IMPLEMENTED` -> `DESIGNED / NOT IMPLEMENTED`.
+  - `CAPABILITY_RESOLUTION_REQUIRED_BEFORE_ACTIVE_BYPASS`: `YES`.
+  - O Jev/Frozen Policy deriva a classe `DETERMINISTIC_CANDIDATE`, mas não identifica qual capacidade do negócio foi solicitada.
+
+### 2. Avaliação de Opções & Resolução Mínima Selecionada
+- **Opções Avaliadas**:
+  - Opção A: Matcher determinístico local estreito por capacidade antes do handler (`SELECTED`).
+  - Opção B: Capability resolver NLU provider-neutral separado (`REJECTED`: latência, custos e novo provider).
+  - Opção C: Estender Jev para retornar capability/intent (`REJECTED`: quebraria Frozen Policy, thresholds e holdout).
+  - Opção D: Outras opções no repo (inexistentes).
+- **Proteção da Frozen Policy**:
+  - Opção C classificada como `NOT ELIGIBLE FOR MINIMAL FIRST-HANDLER SLICE`.
+  - Atomic V1 three-Noul question set, thresholds congelados e locked holdout preservados 100% intocados.
+- **Estratégia Mínima Selecionada (Opção A)**:
+  - Matcher determinístico local puro, estrito, read-only, fail-closed, sem rede, sem LLM, baseado em normalização e lista canônica permitida.
+  - Proibição de substrings amplas como `transcript.includes("horário")`.
+  - Rejeição obrigatória (fail-closed) de ambiguidades (consultas, pedidos, retorno de vendedores, feriados, fusos).
+
+### 3. Escopo de Dados de Horário de Atendimento (`operatingHours`)
+- **Auditoria de Schema** (`packages/contracts/src/agents/agent-configuration-v1.ts` linha 26):
+  - `OPERATING_HOURS_DATA_SHAPE`: `string (min 1, optional)`.
+  - `TIMEZONE_SUPPORTED`: `NO`.
+  - `DAY_SPECIFIC_HOURS_SUPPORTED`: `NO`.
+  - `HOLIDAY_EXCEPTIONS_SUPPORTED`: `NO`.
+- **Restrição de Escopo de Perguntas**:
+  - Suportadas: Perguntas genéricas de horário de atendimento do negócio.
+  - Não Suportadas: Data/dia específico, feriado, fuso horário, consulta, entrega/pedido, retorno de vendedor.
+
+### 4. Qualificação Factual de Propriedades Técnicas & YAGNI
+- **Risco de Alucinação Generativa**:
+  - `OPENAI_GENERATIVE_STEP_REQUIRED_ON_SUCCESSFUL_HANDLER`: `NO`.
+  - `GENERATIVE_HALLUCINATION_SURFACE_ON_HANDLER_RESPONSE`: `REMOVED`.
+  - `FACTUAL_CORRECTNESS_DEPENDS_ON_PUBLISHED_CONFIGURATION`: `YES`.
+- **Segurança de Tenant**:
+  - `TENANT_SCOPED_SOURCE_AVAILABLE`: `YES`.
+  - `TENANT_MATCH_GUARD_REQUIRED`: `YES`.
+  - `TENANT_GUARD_IMPLEMENTED_IN_HANDLER`: `NO`.
+  - `HANDLER_TENANT_SAFETY`: `NOT YET TESTED`.
+- **Resposta Direta**:
+  - `VOICE_TRANSPORT_DIRECT_SPEAK_CAPABILITY_EXISTS`: `YES`.
+  - `DIRECT_DETERMINISTIC_HANDLER_RESPONSE_IMPLEMENTED`: `NO`.
+  - `DIRECT_DETERMINISTIC_HANDLER_RESPONSE_TESTED`: `NO`.
+- **Reavaliação YAGNI de Contratos e Registry**:
+  - `REGISTRY_REQUIRED_FOR_FIRST_HANDLER`: `NO` (dispensa classe de registry dinâmico para N=1 handler; abstração genérica postergada).
+  - `NEW_CONTRACT_REQUIRED`: `YES` (interface mínima enxuta tipada provider-neutral em `packages/contracts/src/voice/`).
+  - Proibição estrita de frameworks de plugins genéricos ou auto-discovery.
+
+### 5. Governança e Fronteiras
+- **Chamadas Reais a Provedores**: TypeSafe `0`, OpenAI `0`, Twilio `0`.
+- **Carga de `.env`**: `NO` (`ENV_LOADED = NO`).
+- **Conexão a Banco de Dados**: `NO` (`DB_CONNECTION = NO`).
+- **Dados de Clientes**: `NO` (`CUSTOMER_TRAFFIC = PROHIBITED`).
+- **Holdout de Pesquisa**: `TOUCHED = NO`.
+- **Alterações de Código / Teste / Config**: `0` (estritamente documental).
+- **Desvios de Processo**: `NONE`.
+- **Auditoria de Duplicação de Worklog**: `WORKLOG_DUPLICATION_OBSERVED = NO`.
+- **Bloqueios Vigentes**:
+  - `FIRST_DETERMINISTIC_HANDLER_CANDIDATE`: `agent.operating_hours`.
+  - `HANDLER_IMPLEMENTATION`: `NOT IMPLEMENTED`.
+  - `CAPABILITY_RESOLUTION`: `DESIGNED / NOT IMPLEMENTED`.
+  - `KNOWN_DETERMINISTIC_HANDLERS`: `0`.
+  - `ACTIVE_DETERMINISTIC_BYPASS_READINESS`: `BLOCKED`.
+  - `ACTIVE_GUARDED`: `BLOCKED`.
+  - `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE`: `NOT CLEARED`.
+  - `PRODUCTION_RUNTIME_WIRING`: `NO`.
+
+### 6. Próximo Passo Permitido
+- `NEXT_ALLOWED_STEP`: Slice mínimo de contrato e implementação para exatamente uma capacidade (`agent.operating_hours`), contendo a interface em `packages/contracts/src/voice/`, a função de matching estreita e o handler em `apps/voice`, com cobertura completa de testes positivos e negativos, sem fiação em produção, sem tráfego de clientes e sem ativar `ACTIVE_GUARDED`.
