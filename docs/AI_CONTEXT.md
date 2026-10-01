@@ -2,24 +2,25 @@
 
 <!--
 AI_CONTEXT_HEADER_START
-CONTEXT_SCHEMA_VERSION: 1.0.0
+CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-01
-CONTEXT_MAIN_SHA: 9133a72b95fbc2776a7bf181d219efb5b28392ee
+CONTEXT_BASE_MAIN_SHA: 40caab446ce2e8436e7efc9f73183d9373e2c75a
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
-CURRENT_SLICE: AI Context Continuity Foundation (Post-PR #41)
-ACTIVE_BRANCH: docs/ai-context-continuity-foundation
-ACTIVE_PR: 42
-LAST_MERGED_PR: 41
-LAST_MERGE_SHA: 9133a72b95fbc2776a7bf181d219efb5b28392ee
+CURRENT_SLICE: AI Context Continuity Hardening
+CONTEXT_UPDATE_BRANCH: docs/ai-context-factual-reconciliation
+CONTEXT_UPDATE_PR: 43
+LAST_MERGED_PR_AT_REFRESH: 42
+LAST_MERGE_SHA_AT_REFRESH: 40caab446ce2e8436e7efc9f73183d9373e2c75a
 LAST_TESTED_CODE_SHA: 253cf92db2421e02b8cdee7002acd9c78e2f5897
-CONTEXT_STATUS: CURRENT
+CONTEXT_STATUS_AT_REFRESH: CURRENT
+CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
 AI_CONTEXT_HEADER_END
 -->
 
-> **Documento Canônico de Estado Operacional Atual**
-> O repositório Git e o código-fonte são as únicas fontes duráveis da verdade.
-> Memória de conversação, histórico de chat e suposições NÃO constituem evidência.
-> Este arquivo é mutável e reflete estritamente o snapshot do estado atual verificado.
+> **Documento Canônico de Estado Operacional Atual (Navigation Snapshot)**
+> Este arquivo é um snapshot mutável de navegação e NÃO constitui evidência primária.
+> Em caso de divergência com Git, código-fonte, ADRs aceitos, testes observados ou artefatos congelados: o AI_CONTEXT está defasado (stale).
+> O repositório Git, o código e as saídas de ferramentas são as únicas fontes duráveis da verdade.
 
 ---
 
@@ -27,15 +28,15 @@ AI_CONTEXT_HEADER_END
 
 | Subsistema | Status | Evidência / Localização |
 | :--- | :--- | :--- |
-| **Web** | `IMPLEMENTED` | `apps/web` (Next.js 15.5, Dashboard, Agent Studio UI, preferences) |
-| **API** | `IMPLEMENTED` | `apps/api` (Fastify/Node, rotas de drafts, lifecycle, auth interna) |
-| **Voice** | `PARTIAL` | `apps/voice` (Orquestrador, streaming OpenAI, Shadow Observer wired; live shadow disabled) |
-| **Worker** | `IMPLEMENTED` | `apps/worker` (Fundação de background tasks, processamento de filas) |
-| **Database** | `IMPLEMENTED` | `packages/database` (PostgreSQL 16, Drizzle ORM, multi-tenancy, schemas comerciais) |
-| **Agent Studio** | `IMPLEMENTED` | Editor de rascunhos, ciclo de vida de versões, publicação com invariante de versão única |
+| **Web** | `PARTIAL` | `apps/web` (Next.js 15.5; Dashboard, Settings, Agent Studio Draft Editor; UI 005D incompleta) |
+| **API** | `IMPLEMENTED` | `apps/api` (Fastify/Node, rotas de drafts, lifecycle, auth interna com service token) |
+| **Voice** | `PARTIAL` | `apps/voice` (Orquestrador, streaming OpenAI; AuxiliaryTurnShadowObserver integrado non-blocking; fiação em runtime: NÃO; chamadas shadow live: NÃO) |
+| **Worker** | `IMPLEMENTED` | `apps/worker` (Fundação de background tasks, processamento de filas assíncronas) |
+| **Database** | `IMPLEMENTED` | `packages/database` (PostgreSQL 16, Drizzle ORM, multi-tenancy, schemas comerciais e de auditoria) |
+| **Agent Studio** | `PARTIAL` | 005B (DB/contracts): `IMPLEMENTED / STAGING VALIDATED`; 005C (API): `IMPLEMENTED / NEON STAGING VALIDATED`; 005D (Web UI): `PARTIAL` (rascunhos existem em `apps/web/src/features/agents/`, fluxo completo não concluído) |
 | **OpenAI** | `IMPLEMENTED` | `packages/integrations/src/openai` (Adapter de modelo de conversa, baselines sintéticos) |
-| **Twilio** | `PARTIAL` | `packages/integrations/src/twilio` (ConversationRelay adapter; tráfego real `PROVIDER-UNVERIFIED`) |
-| **TypeSafe / Jev** | `PARTIAL` | `packages/integrations/src/typesafe` (Adapter offline implementado no PR #40; não fiação em runtime) |
+| **Twilio** | `PARTIAL` | `packages/integrations/src/twilio` (ConversationRelay adapter; tráfego telefônico real `PROVIDER-UNVERIFIED`) |
+| **TypeSafe / Jev** | `PARTIAL` | `packages/integrations/src/typesafe` (Adapter offline implementado no PR #40; fiação em runtime: NÃO; live shadow: NÃO) |
 | **Human Handoff** | `DESIGN ONLY` | Especificado em `docs/ROADMAP.md` e `docs/VOICE_ARCHITECTURE.md` |
 | **Knowledge Base** | `DESIGN ONLY` | Arquitetura preliminar; implementação de retrieval postergada para fase posterior |
 | **Billing** | `PARTIAL` | Schemas de quotas, planos e entitlements em banco; adapter Stripe não iniciado |
@@ -47,98 +48,125 @@ AI_CONTEXT_HEADER_END
 
 - **AuxiliaryTurnDecisionPort**: `IMPLEMENTED` (`packages/contracts/src/voice/auxiliary-turn-decision-contracts.ts`).
 - **AuxiliaryTurnShadowObserver**: `IMPLEMENTED` (`apps/voice/src/auxiliary-turn-shadow-observer.ts`).
-- **TypeSafeJevTurnDecisionAdapter**: `IMPLEMENTED` (`packages/integrations/src/typesafe/typesafe-jev-turn-decision-adapter.ts`).
-- **Runtime Wiring**: `NOT WIRED` (`ADAPTER_RUNTIME_WIRED = NO`, zero injeções em composition roots).
-- **Shadow Mode no Runtime**: `DISABLED` (`DEFAULT_AUXILIARY_FEATURE_MODE = 'DISABLED'`).
+- **TypeSafeJevTurnDecisionAdapter**: `IMPLEMENTED OFFLINE` (`packages/integrations/src/typesafe/typesafe-jev-turn-decision-adapter.ts`).
+- **ADAPTER_RUNTIME_WIRED**: `NO` (zero injeções em composition roots de produção).
+- **SHADOW_LIVE_ENABLED**: `NO` (zero chamadas a provedor externo em runtime).
+- **DEFAULT_AUXILIARY_FEATURE_MODE**: `DISABLED`.
 - **ACTIVE_GUARDED**: `BLOCKED` (fail-closed, inalcançável no runtime por design).
-- **Handlers Determinísticos**: `0` conhecidos (`ACTIVE_DETERMINISTIC_BYPASS_READINESS = BLOCKED`).
-- **Invariante de Bypass**: `NO_KNOWN_DETERMINISTIC_HANDLER -> NO_DETERMINISTIC_BYPASS`.
-- **Privacy Gate**: `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`.
-- **Customer Traffic**: `CUSTOMER_TRAFFIC = PROHIBITED`.
-- **Limites Operacionais**: Concorrência operacional e timeout `NOT SELECTED`.
+- **KNOWN_DETERMINISTIC_HANDLERS**: `0`.
+- **ACTIVE_DETERMINISTIC_BYPASS_READINESS**: `BLOCKED` (invariante: `NO_KNOWN_DETERMINISTIC_HANDLER -> NO_DETERMINISTIC_BYPASS`).
+- **CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE**: `NOT CLEARED`.
+- **CUSTOMER_TRAFFIC**: `PROHIBITED`.
+- **SHADOW_MAX_CONCURRENCY_OPERATIONAL**: `NOT SELECTED`.
+- **JEV_TIMEOUT_MS**: `NOT SELECTED`.
 
 ---
 
 ## 3. Artefatos Congelados de Pesquisa (Frozen Research Artifacts)
 
-- **OpenAI Baseline**: `docs/research/results/phase-6-openai-conversation-baseline.json` (80 amostras).
-- **Jev Calibration**: `docs/research/results/phase-6-jev-calibration-phase-a-run1.json` (60 amostras).
-- **Atomic V1 SHA-256**: `3fecf9ce82ad600a74549d3459fe2b2b516fc3bd7b5fff33bf5b850cd48e8725`.
-- **Frozen Policy SHA-256**: `3f3b92f75beff5e82aeb387431e67e37a2846430349f43058a9463b78cfc596e`.
-- **Frozen Thresholds**: Determinístico `0.56`, Generativo `0.35`, Segurança `0.47`.
-- **Locked Holdout**: `docs/research/results/phase-6-jev-locked-holdout-v2-run1.json`.
-  - Invariante: `LOCKED_HOLDOUT = CONSUMED` | `DO_NOT_REUSE_FOR_TUNING = YES`.
+- **OpenAI Baseline**:
+  - Dataset: `scripts/benchmarks/voice/openai-baseline-v1-cases.json` (12 casos).
+  - Dataset SHA-256: `9ab7cbd2fbfcf508673a700d4a484e0c674d0124766c7b7fa0eee05a573e0d50`.
+  - Resultado: `docs/research/results/phase-6-openai-conversation-baseline.json`.
+- **Jev Calibration V2**:
+  - Dataset: `scripts/benchmarks/voice/jev-calibration-v2-cases.json` (120 casos totais: 80 calibração, 40 holdout).
+  - Dataset SHA-256: `3e7e0a20ecd3341c99b84d40162b10eff17ba0600d191dd143bc99f00aec3047`.
+  - Execução: `docs/research/results/phase-6-jev-calibration-v2-phase-a-run1.json`.
+- **Atomic V1 Question-Set**:
+  - SHA-256: `3fecf9ce82ad600a74549d3459fe2b2b516fc3bd7b5fff33bf5b850cd48e8725`.
+- **Frozen Policy**:
+  - Arquivo: `docs/research/results/phase-6-jev-candidate-policy-frozen-v1.json`.
+  - Policy SHA-256: `1ac0f2919ca73d22a39fb1d964b558ba2f7e395f336b2c3f687ced9ed4d53c93`.
+  - **Thresholds Canônicos (FROZEN_POLICY)**:
+    - `T_SECURITY = 0.56` (Regra 1: IF securityNoul >= 0.56 THEN SECURITY_ESCALATE)
+    - `T_DETERMINISTIC = 0.35` (Regra 2: ELSE IF deterministicNoul >= 0.35 AND generativeNoul <= 0.47 THEN DETERMINISTIC_CANDIDATE)
+    - `T_GENERATIVE = 0.47` (Regra 3: ELSE GENERATIVE_REQUIRED)
+- **Locked Holdout**:
+  - Resultado: `docs/research/results/phase-6-jev-locked-holdout-v2-run1.json`.
+  - Result SHA-256: `21bd34ad26e0aa745a69d082a2c16d6d38dd3e685685f77cf027b9e1a3353850`.
+  - Status: `LOCKED_HOLDOUT = CONSUMED` | `DO_NOT_REUSE_FOR_TUNING = YES`.
 
 ---
 
 ## 4. Invariantes Arquiteturais e de Governança
 
-1. **Autoridade de Dados**: Provedores de IA (OpenAI, TypeSafe) NUNCA decidem autorizações, precificação, multi-tenancy ou mutações duráveis. O Banco de Dados e as máquinas de estado determinísticas são a fonte durável.
-2. **Autoridade do Jev**: Caráter estritamente consultivo (`AuxiliaryTurnDecisionPort` retorna apenas probabilidades em `[0, 1]` e telemetria de latência). O adapter não possui métodos de execução de ferramentas, handoff ou mutação.
+1. **Autoridade de Dados**: Provedores de IA (OpenAI, TypeSafe) NUNCA decidem autorizações, precificação, multi-tenancy ou mutações duráveis. O Banco de Dados e as máquinas de estado determinísticas são a autoridade durável.
+2. **Autoridade do Jev**: Caráter estritamente consultivo (`AuxiliaryTurnDecisionPort` retorna apenas probabilidades em `[0, 1]` e telemetria de latência). O adapter não executa ferramentas nem transições de chamada.
 3. **Isolamento de Tenant**: Toda entidade de organização exige `organizationId` explícito em consultas.
-4. **Política de Isolamento de Custos em Testes**: Zero chamadas a APIs pagas reais na suíte de testes automatizados (`packages/test-utils` e mocks de injeção utilizados universalmente).
-5. **Privacidade de Transcrições**: Proibido registrar `callerTranscript` em logs estruturados rotineiros.
+4. **Isolamento de Custos em Testes**: Zero chamadas a APIs pagas reais na suíte automatizada (`packages/test-utils` e mocks universais).
+5. **Privacidade de Transcrições**: Proibido registrar `callerTranscript` em logs estruturados de rotina.
 
 ---
 
 ## 5. Invariantes de Segurança Operacional
 
 1. **Zero Segredos**: Proibido exibir, ecoar, logar ou comitar chaves de API, tokens JWT/GitHub, credenciais PostgreSQL ou chaves privadas. Auditoria via `git diff` estritamente booleana (`SECRET_AUDIT_PASS`).
-2. **Proteção de Arquivos `.env`**: Proibido ler, abrir, inspecionar (`cat`, `type`, `Get-Content`) ou pesquisar arquivos `.env`. Carga em runtime permitida apenas quando formalmente autorizada no prompt.
-3. **Isolamento de Armazenamento da IDE**: Proibido ler ou usar diretórios internos da IDE (`.system_generated/`, `.gemini/`, `brain/`, logs de tarefas).
+2. **Proteção de Arquivos `.env`**: Proibido inspecionar (`cat`, `type`, `Get-Content`) ou pesquisar arquivos `.env`.
+3. **Isolamento de Storage da IDE**: Proibido acessar ou utilizar como scratch diretórios internos (`.system_generated/`, `.gemini/`, `brain/`, task logs).
 
 ---
 
 ## 6. Estado Atual da Evidência de Qualidade (Quality Gate Snapshot)
 
-> *Nota: Este registro é um snapshot. Se houver alterações posteriores em código, testes ou configurações, a evidência torna-se obsoleta (stale) até reexecução e observação direta dos gates.*
-
 - **Último `pnpm check` Global**: `PASS` (executado e observado em `253cf92db2421e02b8cdee7002acd9c78e2f5897`).
 - **Status das Asserções**: `574 passed`, `45 historical skips`, `0 new skips`, `0 failures`.
 - **Regressão de Asserções**: `ASSERTION_WEAKER = 0`.
-- **Evidência Atual**: `VALID` (os commits subsequentes foram exclusivamente documentais em `docs/`).
+- **QUALITY_EVIDENCE_STALE**: `NO` (commits subsequentes estritamente documentais em `docs/` e `AGENTS.md`).
 
 ---
 
 ## 7. Bloqueios Atuais (Current Blockers)
 
 1. `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`: Transmissão de transcrições de clientes para provedores externos proibida.
-2. `ACTIVE_DETERMINISTIC_BYPASS_READINESS = BLOCKED`: Zero handlers determinísticos implementados (`KNOWN_DETERMINISTIC_HANDLERS = 0`).
-3. `SHADOW_OPERATIONAL_LIMITS = NOT SELECTED`: Limites de concorrência e timeout de runtime não calibrados.
-4. `LIVE_STAGING_SMOKE = NOT EXECUTED`: Teste sintético do adapter TypeSafe em staging controlado ainda não homologado com chamada real.
+2. `KNOWN_DETERMINISTIC_HANDLERS = 0` (`ACTIVE_DETERMINISTIC_BYPASS_READINESS = BLOCKED`).
+3. `SHADOW_MAX_CONCURRENCY_OPERATIONAL = NOT SELECTED`: Limite de concorrência operacional não definido.
+4. `JEV_TIMEOUT_MS = NOT SELECTED`: Timeout de chamada operacional não definido.
+5. `LIVE_TYPESAFE_SYNTHETIC_SMOKE = NOT EXECUTED`: Teste sintético do adapter TypeSafe em staging controlado ainda não homologado com chamada real.
 
 ---
 
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- Preparação de 1 teste smoke sintético controlado da TypeSafe em Staging com orçamento monetário explícito (`BUDGET_CAP_USD`), payload não-sensível e sem tráfego de cliente.
+- 1 teste smoke sintético controlado da TypeSafe em Staging autorizado separadamente, com payload não-sensível sintético, orçamento monetário explícito (`BUDGET_CAP_USD`), sem OpenAI, sem Twilio, sem bypass ativo, sem tráfego de cliente e sem fiação em produção.
 
 ### `NOT_YET_ALLOWED`:
-- Transmissão de áudio ou transcrição real de clientes para a TypeSafe.
-- Ativação do modo `ACTIVE_GUARDED` no runtime.
+- Transmissão de dados reais de clientes para provedores externos.
+- Ativação de `ACTIVE_GUARDED` no runtime.
 - Implementação de bypass determinístico sem handlers validados.
 - Modificação de políticas congeladas ou reutilização do holdout de pesquisa.
-- Fiação em runtime de produção (`apps/voice`) sem autorização humana formal prévia.
+- Fiação em runtime de produção (`apps/voice`).
 
 ---
 
 ## 9. Referências Canônicas Autoritativas
 
-- [AGENTS.md](file:///D:/voice-agent-platform/AGENTS.md): Regras operacionais obrigatórias para agentes de IA.
-- [docs/AI_EXECUTION_RULES.md](file:///D:/voice-agent-platform/docs/AI_EXECUTION_RULES.md): Execução detalhada, integridade e classificação de evidências.
-- [docs/AI_WORKLOG.md](file:///D:/voice-agent-platform/docs/AI_WORKLOG.md): Registro histórico cronológico append-only (imutável).
-- [docs/architecture/decisions/ADR-019-jev-guarded-runtime-integration.md](file:///D:/voice-agent-platform/docs/architecture/decisions/ADR-019-jev-guarded-runtime-integration.md): Design de integração do Jev.
-- [docs/research/PHASE_6_TYPESAFE_JEV_SHADOW_ADAPTER.md](file:///D:/voice-agent-platform/docs/research/PHASE_6_TYPESAFE_JEV_SHADOW_ADAPTER.md): Especificação e contrato do adapter offline.
+- [AGENTS.md](../AGENTS.md): Regras operacionais obrigatórias para agentes de IA.
+- [AI_EXECUTION_RULES.md](AI_EXECUTION_RULES.md): Execução detalhada, integridade e classificação de evidências.
+- [AI_WORKLOG.md](AI_WORKLOG.md): Registro histórico cronológico append-only (com exceção de remoção emergencial de segredo conforme governança aplicável).
+- [architecture/decisions/ADR-019-jev-guarded-runtime-integration.md](architecture/decisions/ADR-019-jev-guarded-runtime-integration.md): Design de integração do Jev.
+- [research/PHASE_6_TYPESAFE_JEV_SHADOW_ADAPTER.md](research/PHASE_6_TYPESAFE_JEV_SHADOW_ADAPTER.md): Especificação e contrato do adapter offline.
+- [AGENT_STUDIO.md](AGENT_STUDIO.md): Especificação e matriz de entrega do Agent Studio (005B, 005C, 005D).
 
 ---
 
-## 10. Resolução de Conflitos e Protocolo de Desatualização (Staleness Gate)
+## 10. Resolução de Conflitos e Protocolo de Bootstrap (Bootstrap & Staleness Protocol)
 
-1. **Regra de Conflito**: Se `AI_CONTEXT.md` divergir do código-fonte, do estado do Git, de ADRs aceitos ou de testes observados, o `AI_CONTEXT.md` deve ser considerado **OBSOLETO (STALE)**. O agente DEVE seguir a evidência factual verificável do repositório.
-2. **Protocolo no Início de Cada Tarefa**:
-   - Executar `git fetch origin`;
-   - Comparar `CONTEXT_MAIN_SHA` do cabeçalho deste arquivo com `git rev-parse origin/main`;
-   - Se idênticos: `CONTEXT_STATUS = CURRENT`;
-   - Se divergentes: `CONTEXT_STATUS = STALE` — o agente deve revalidar o estado no código antes de iniciar alterações.
-3. **Regra de Atualização**: `AI_CONTEXT.md` é atualizado apenas quando a tarefa altera estado arquitetural, integrações de provedor, prontidão de features, bloqueadores ativos ou última evidência de teste válida. Nunca usá-lo para reescrever histórico.
+1. **Prevalência Factual**: Se `AI_CONTEXT.md` divergir do código-fonte, do Git, de ADRs aceitos ou de testes observados, este arquivo está **STALE**. A evidência factual do repositório prevalece obrigatoriamente.
+2. **Separação de Papéis**:
+   - `AI_CONTEXT.md`: Snapshot mutável de navegação do estado verificado (alvo <= 250 linhas).
+   - `AI_WORKLOG.md`: Registro histórico cronológico append-only.
+   - `ADRs`: Registros formais de decisões arquiteturais.
+   - Código / Git / Testes: Evidência factual primária.
+3. **Algoritmo de Bootstrap de Contexto (Bootstrap Context Status)**:
+   Ao iniciar qualquer tarefa substancial:
+   - A. Executar `git fetch origin`.
+   - B. Ler `CONTEXT_BASE_MAIN_SHA` e `CONTEXT_UPDATE_PR` do cabeçalho deste arquivo.
+   - C. Observar o SHA atual de `origin/main`.
+   - **Caso 1 (`CURRENT_EXACT`)**: Se `origin/main == CONTEXT_BASE_MAIN_SHA`, `CONTEXT_BOOTSTRAP_STATUS = CURRENT_EXACT`. O PR de contexto ainda não foi mergeado e nenhuma alteração posterior ocorreu na main.
+   - **Caso 2 (`CURRENT_AFTER_SELF_MERGE`)**: Se `origin/main != CONTEXT_BASE_MAIN_SHA`, inspecionar `CONTEXT_UPDATE_PR`. Se o PR estiver mergeado E seu commit de merge for idêntico ao `origin/main` atual, `CONTEXT_BOOTSTRAP_STATUS = CURRENT_AFTER_SELF_MERGE`. Nenhuma reconciliação é necessária meramente pelo fato de o PR de contexto ter atualizado o SHA da main.
+   - **Caso 3 (`REVALIDATION_REQUIRED`)**: Se o PR de contexto foi mergeado, mas `origin/main` contém commits posteriores ao seu merge: `CONTEXT_BOOTSTRAP_STATUS = REVALIDATION_REQUIRED`. O agente deve classificar as alterações posteriores (se afetarem arquitetura, runtime, provedores, prontidão de features, bloqueadores ou quality gate: `AI_CONTEXT_REFRESH_REQUIRED = YES`; se forem estritamente cosméticas/docs não relacionados: `AI_CONTEXT_REFRESH_REQUIRED = NO`, registrando a revalidação no worklog).
+   - **Caso 4 (`NOT VERIFIED`)**: Se o estado do PR ou a linhagem não puder ser confirmada: `CONTEXT_BOOTSTRAP_STATUS = NOT VERIFIED`. **STOP** implementação substancial até reconciliação.
+4. **Semântica de Status**:
+   - `CONTEXT_STATUS_AT_REFRESH` descreve exclusivamente o estado no momento em que o snapshot foi gerado.
+   - O status em tempo de execução (`CONTEXT_BOOTSTRAP_STATUS`) é dinamicamente derivado pelo algoritmo acima, eliminando o defeito de auto-obsolescência imediata pós-merge.

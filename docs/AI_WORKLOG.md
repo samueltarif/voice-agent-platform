@@ -9184,3 +9184,138 @@ Este fechamento retifica a formulação epistemológica da base de evidência da
 
 ### 5. Próximo Passo
 - O próximo passo técnico principal permanece: Preparação de 1 teste smoke sintético controlado da TypeSafe em Staging com autorização humana prévia e orçamento explícito.
+
+## [2026-10-01] PROMPT-AI-CONTEXT-FACTUAL-RECONCILIATION-001: AI_CONTEXT — Independent Factual Reconstruction and Continuity Repair
+
+### 1. Auditoria de Staleness Inicial do AI_CONTEXT
+- **Status Inicial do AI_CONTEXT**: `CURRENT_FILE_WAS_STALE = YES`.
+- **CONTEXT_MAIN_SHA Inicial**: `9133a72b95fbc2776a7bf181d219efb5b28392ee` (PR #41).
+- **Observed origin/main**: `40caab446ce2e8436e7efc9f73183d9373e2c75a` (PR #42 merge commit).
+- **Campos de Cabeçalho Incorretos/Defasados**:
+  - `CONTEXT_MAIN_SHA`: defasado (`9133a72b...` vs `40caab44...`).
+  - `ACTIVE_PR`: indicava `42`, que já havia sido mergeado. Corrigido para `NONE`.
+  - `LAST_MERGED_PR`: indicava `41`. Corrigido para `42`.
+  - `LAST_MERGE_SHA`: indicava `9133a72b...`. Corrigido para `40caab44...`.
+  - `CURRENT_SLICE`: atualizado para `AI Context Factual Reconciliation`.
+  - `ACTIVE_BRANCH`: atualizado para `docs/ai-context-factual-reconciliation`.
+  - `CONTEXT_STATUS`: `CURRENT` (pois `CONTEXT_MAIN_SHA` agora coincide exatamente com o `origin/main` observado na reconciliação).
+  - `CONTEXT_RECONSTRUCTED_FROM_EVIDENCE`: `YES`.
+
+### 2. Correções de Valores de Pesquisa e Prevenção de Transposição de Thresholds
+- **Divergências Encontradas no AI_CONTEXT Inicial**:
+  - *OpenAI Baseline*: apontava resultado de 80 amostras em vez do dataset congelado canônico de 12 casos.
+  - *Jev Calibration*: apontava 60 amostras da Fase A Run 1 em vez do dataset V2 com 120 casos totais.
+  - *Frozen Policy SHA*: apontava SHA do fit (`3f3b92f7...`) em vez do SHA da política congelada.
+  - *Transposição de Thresholds*: o arquivo inicial havia transposto os thresholds, atribuindo `0.56` ao Determinístico, `0.35` ao Generativo e `0.47` à Segurança.
+- **Valores Reconciliados e Fontes Canônicas**:
+  - *OpenAI Baseline Dataset*: `scripts/benchmarks/voice/openai-baseline-v1-cases.json` (12 casos, SHA-256: `9ab7cbd2fbfcf508673a700d4a484e0c674d0124766c7b7fa0eee05a573e0d50`).
+  - *OpenAI Baseline Result*: `docs/research/results/phase-6-openai-conversation-baseline.json`.
+  - *Jev Calibration V2 Dataset*: `scripts/benchmarks/voice/jev-calibration-v2-cases.json` (120 casos totais: 80 calibração, 40 holdout, SHA-256: `3e7e0a20ecd3341c99b84d40162b10eff17ba0600d191dd143bc99f00aec3047`).
+  - *Atomic V1 Question-Set*: SHA-256 `3fecf9ce82ad600a74549d3459fe2b2b516fc3bd7b5fff33bf5b850cd48e8725` (verificado e preservado).
+  - *Frozen Policy*: `docs/research/results/phase-6-jev-candidate-policy-frozen-v1.json`, Policy SHA-256: `1ac0f2919ca73d22a39fb1d964b558ba2f7e395f336b2c3f687ced9ed4d53c93`.
+  - *Frozen Policy Thresholds Canônicos (FROZEN_POLICY)*:
+    - `T_SECURITY = 0.56` (Regra 1: IF securityNoul >= 0.56 THEN SECURITY_ESCALATE)
+    - `T_DETERMINISTIC = 0.35` (Regra 2: ELSE IF deterministicNoul >= 0.35 AND generativeNoul <= 0.47 THEN DETERMINISTIC_CANDIDATE)
+    - `T_GENERATIVE = 0.47` (Regra 3: ELSE GENERATIVE_REQUIRED)
+  - *Locked Holdout Result*: `docs/research/results/phase-6-jev-locked-holdout-v2-run1.json`, Result SHA-256: `21bd34ad26e0aa745a69d082a2c16d6d38dd3e685685f77cf027b9e1a3353850`.
+  - *Locked Holdout Invariante*: `LOCKED_HOLDOUT = CONSUMED` | `DO_NOT_REUSE_FOR_TUNING = YES`.
+
+### 3. Correções de Status de Subsistemas & Precisão do Runtime de Voz
+- **Agent Studio**: Corrigido de `IMPLEMENTED` para `PARTIAL`. Conforme `docs/AGENT_STUDIO.md` e inspeção de código:
+  - 005B (`packages/database`, `packages/contracts`): `IMPLEMENTED / STAGING VALIDATED`.
+  - 005C (`apps/api`, internal service token auth): `IMPLEMENTED / NEON STAGING VALIDATED`.
+  - 005D (`apps/web` UI): `PARTIAL` (componentes e editor de rascunhos existem em `apps/web/src/features/agents/`, mas o fluxo completo de estúdio no navegador não foi homologado como fechado).
+- **Outros Subsistemas Qualificados**:
+  - `Web`: `PARTIAL` (Next.js 15.5, Dashboard, Settings, rascunhos de Agent Studio; UI 005D não fechada).
+  - `Voice`: `PARTIAL` (Orquestrador, streaming OpenAI; AuxiliaryTurnShadowObserver integrado non-blocking; fiação em runtime: NÃO; chamadas shadow live: NÃO).
+  - `Twilio`: `PARTIAL` (`packages/integrations/src/twilio` ConversationRelay adapter; tráfego telefônico real `PROVIDER-UNVERIFIED`).
+  - `TypeSafe / Jev`: `PARTIAL` (`packages/integrations/src/typesafe` adapter offline implementado; fiação em runtime: NÃO; live shadow: NÃO).
+  - `Billing`: `PARTIAL` (Schemas de quotas, planos e entitlements em banco; adapter Stripe não iniciado).
+  - `Human Handoff`: `DESIGN ONLY`.
+  - `Knowledge Base`: `DESIGN ONLY`.
+- **Precisão de Voice / TypeSafe**:
+  - Distinção explícita entre a integração estrutural não-bloqueante do observador (`AuxiliaryTurnShadowObserver integration: IMPLEMENTED`) e a inexistência de fiação ou chamadas ativas (`ADAPTER_RUNTIME_WIRED: NO`, `SHADOW_LIVE_ENABLED: NO`).
+  - `ACTIVE_GUARDED = BLOCKED`.
+  - `KNOWN_DETERMINISTIC_HANDLERS = 0` (`ACTIVE_DETERMINISTIC_BYPASS_READINESS = BLOCKED`).
+  - `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`, `CUSTOMER_TRAFFIC = PROHIBITED`.
+  - Limites operacionais: `SHADOW_MAX_CONCURRENCY_OPERATIONAL = NOT SELECTED`, `JEV_TIMEOUT_MS = NOT SELECTED`.
+
+### 4. Portabilidade de Referências & Auditoria de Protocolos no AGENTS.md
+- **Remoção de Caminhos Absolutos**: Todos os links contendo prefixos de máquina local (`file:///D:/voice-agent-platform/...`) foram removidos de `docs/AI_CONTEXT.md` e de `AGENTS.md` (linha 5), sendo substituídos por caminhos repo-relative (`AGENTS.md`, `docs/...`).
+- **Definição de AI_WORKLOG**: Ajustada a redação para "append-only historical execution record (com exceção de remoção emergencial de segredo conforme governança aplicável)", harmonizando `docs/AI_CONTEXT.md` e `AGENTS.md` (Seção 15.4).
+- **Auditoria do Protocolo de Continuidade (AGENTS.md Seção 15)**:
+  - `AI Context Continuity Protocol`: `PRESENT`.
+  - Obrigatoriedade de leitura prévia (`AGENTS.md`, `docs/AI_EXECUTION_RULES.md`, `docs/AI_CONTEXT.md`, ADRs relevantes): `CONFIRMED`.
+  - Verificação de staleness gate contra `git rev-parse origin/main`: `CONFIRMED`.
+  - Padrão de `CONTEXT HANDOFF` ao final de cada tarefa: `CONFIRMED`.
+
+### 5. Evidência de Qualidade e Isolamento de Provedores
+- **HEAD Testado de Código**: `253cf92db2421e02b8cdee7002acd9c78e2f5897`.
+- **Linhagem até Current origin/main (`40caab446ce2e8436e7efc9f73183d9373e2c75a`)**:
+  - Apenas arquivos documentais e governança foram alterados (`AGENTS.md`, `docs/AI_CONTEXT.md`, `docs/AI_WORKLOG.md`).
+  - `QUALITY_EVIDENCE_STALE = NO`.
+  - `FULL_GATE_EVIDENCE_REMAINS_VALID = YES`: 574 passed, 45 historical skips, 0 new skips, 0 failures, `ASSERTION_WEAKER = 0`.
+- **Alterações de Runtime**: Zero (`apps/**`, `packages/**` de lógica inalterados).
+- **Alterações de Testes**: Zero.
+- **Alterações de Banco / Schema**: Zero.
+- **Chamadas a Provedores neste Prompt**: TypeSafe `0`, OpenAI `0`, Twilio `0`.
+- **Carga de `.env`**: Nenhuma (`ENV_LOADED = NO`).
+- **Tamanho Final de `docs/AI_CONTEXT.md`**: 164 linhas (em estrita conformidade com o teto de 250 linhas).
+
+### 6. Próximo Passo Permitido
+- `NEXT_ALLOWED_STEP`: 1 teste smoke sintético controlado da TypeSafe em Staging com autorização humana prévia, orçamento monetário explícito (`BUDGET_CAP_USD`), payload não-sensível sintético, sem OpenAI, sem Twilio, sem bypass ativo, sem tráfego de cliente e sem fiação em produção.
+
+## [2026-10-01] PROMPT-AI-CONTEXT-V1-FINAL-HARDENING-001: AI Context Continuity — Final Self-Staleness & Reference Hardening
+
+### 1. Auditoria e Correção de Referências e Artefatos do PR #43
+- **PR #43 Aberto**: `docs: reconcile persistent AI context with repository evidence` (branch: `docs/ai-context-factual-reconciliation`, base: `main`).
+- **Correção da Referência do Artefato Fase A**:
+  - Caminho anterior incorreto: `docs/research/results/phase-6-jev-calibration-phase-a-run1.json`.
+  - Caminho canônico verificado e corrigido: `docs/research/results/phase-6-jev-calibration-v2-phase-a-run1.json`.
+  - `PHASE_A_ARTIFACT_REFERENCE_FIXED = YES`.
+- **Correção da Resolução de Links Markdown**:
+  - Como `docs/AI_CONTEXT.md` reside em `docs/`, referências a arquivos no repositório foram tornadas estritamente relativas ao diretório `docs/`:
+    - `[AGENTS.md](../AGENTS.md)`
+    - `[AI_EXECUTION_RULES.md](AI_EXECUTION_RULES.md)`
+    - `[AI_WORKLOG.md](AI_WORKLOG.md)`
+    - `[architecture/decisions/ADR-019-jev-guarded-runtime-integration.md](architecture/decisions/ADR-019-jev-guarded-runtime-integration.md)`
+    - `[research/PHASE_6_TYPESAFE_JEV_SHADOW_ADAPTER.md](research/PHASE_6_TYPESAFE_JEV_SHADOW_ADAPTER.md)`
+    - `[AGENT_STUDIO.md](AGENT_STUDIO.md)`
+  - Todos os arquivos locais apontados foram validados quanto à existência factual no disco (`PORTABLE_LINKS_VALIDATED = YES`).
+
+### 2. Superação da Auto-Obsolescência Imediata (Self-Staleness Flaw) & Schema 1.1.0
+- **Defeito Identificado**: A semântica anterior baseada exclusivamente em igualdade exata de SHA (`CONTEXT_MAIN_SHA == origin/main`) tornava o `AI_CONTEXT.md` instantaneamente `STALE` logo após o merge do seu próprio PR, pois o merge commit alterava o `origin/main`.
+- **Evolução do Cabeçalho para Schema 1.1.0**:
+  - `CONTEXT_SCHEMA_VERSION`: `1.1.0`.
+  - `CONTEXT_BASE_MAIN_SHA`: `40caab446ce2e8436e7efc9f73183d9373e2c75a` (base de origin/main sobre a qual o PR foi formulado).
+  - `CONTEXT_UPDATE_BRANCH`: `docs/ai-context-factual-reconciliation`.
+  - `CONTEXT_UPDATE_PR`: `43`.
+  - `LAST_MERGED_PR_AT_REFRESH`: `42`.
+  - `LAST_MERGE_SHA_AT_REFRESH`: `40caab446ce2e8436e7efc9f73183d9373e2c75a`.
+  - `CONTEXT_STATUS_AT_REFRESH`: `CURRENT`.
+  - Removido o campo estático `ACTIVE_PR` e o status armazenado `CONTEXT_STATUS: CURRENT`.
+- **Novos Estados de Bootstrap e Algoritmo Operacional**:
+  - `CURRENT_EXACT`: `origin/main == CONTEXT_BASE_MAIN_SHA`. O PR de contexto ainda não foi mergeado.
+  - `CURRENT_AFTER_SELF_MERGE`: `origin/main != CONTEXT_BASE_MAIN_SHA`, mas `CONTEXT_UPDATE_PR` foi mergeado e seu commit de merge é o `origin/main` atual. O contexto é formalmente válido sem necessidade de re-edição.
+  - `REVALIDATION_REQUIRED`: `origin/main` avançou com commits posteriores ao merge do PR de contexto. O agente deve classificar o diff posterior (se impactar arquitetura/runtime/provedores: refresh requerido; se puramente cosmético/docs: refresh não requerido).
+  - `NOT VERIFIED`: Linhagem ou PR não verificáveis. Bloqueio mandatório de implementação até reconciliação.
+- **Formalização em Governança**:
+  - `AGENTS.md` (Seção 15.3) e `docs/AI_CONTEXT.md` (Seção 10) atualizados com o algoritmo de bootstrap e estados derivados.
+  - Padrão de handoff atualizado para incluir `CONTEXT_UPDATE_PR`.
+
+### 3. Integridade e Isolamento Operacional
+- **Valores de Pesquisa Preservados**:
+  - OpenAI baseline: 12 casos, dataset SHA `9ab7cbd2fbfcf508673a700d4a484e0c674d0124766c7b7fa0eee05a573e0d50`.
+  - Jev V2: 120 casos totais (80 calibração, 40 holdout), Atomic V1 SHA `3fecf9ce82ad600a74549d3459fe2b2b516fc3bd7b5fff33bf5b850cd48e8725`.
+  - Frozen policy SHA: `1ac0f2919ca73d22a39fb1d964b558ba2f7e395f336b2c3f687ced9ed4d53c93`.
+  - Thresholds: `T_SECURITY = 0.56`, `T_DETERMINISTIC = 0.35`, `T_GENERATIVE = 0.47`.
+  - Locked holdout SHA: `21bd34ad26e0aa745a69d082a2c16d6d38dd3e685685f77cf027b9e1a3353850` (`CONSUMED` | `DO_NOT_REUSE_FOR_TUNING = YES`).
+- **Alterações de Código de Produção / Runtime**: Zero.
+- **Alterações de Testes**: Zero.
+- **Alterações de Banco / Migrações**: Zero.
+- **Chamadas a Provedores neste Prompt**: TypeSafe `0`, OpenAI `0`, Twilio `0`.
+- **Carga de `.env`**: Nenhuma (`ENV_LOADED = NO`).
+- **Validação Local**:
+  - `git diff --check`: PASS.
+  - `pnpm format:check`: PASS.
+  - `SECRET_AUDIT`: `SECRET_AUDIT_PASS` (boolean-only check sobre `git diff origin/main...HEAD`).
