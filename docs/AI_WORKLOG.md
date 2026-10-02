@@ -11863,4 +11863,201 @@ Auditadas 10 categorias factuais no split de calibração:
 - `STALE_JEV_FAILURE_TEST` = `PASS` (teste 9c aprovado)
 - `ARCHITECTURE_CHECK` = `PASS` (0 violações)
 - `FILE_SIZE_CHECK` = `PASS` (18 avisos, 0 violações > 180 linhas; `conversation-orchestrator.ts: 177 linhas`, `guarded-turn-routing-coordinator.ts: 138 linhas`)
-- `PR61_FINAL_MERGE_SECRET_AUDIT` = `PENDING` (será executada de forma estrita e booleana após o commit de documentação).
+- `PR61_FINAL_MERGE_SECRET_AUDIT` = `PASS` (executada em PowerShell nativo direto com 1 invocação; resultado `SECRET_AUDIT_PASS`; zero segredos expostos).
+- `PR61_MERGE_SHA` = `8f6382c473ae10f9a38b3bb018e89dc51ef40b61`
+- `PR61_STATUS` = `MERGED`
+
+---
+
+## 2026-10-02 - PROMPT-006AH-ACTIVE-GUARDED-PRODUCTION-READINESS-GATE-DESIGN-001 (Slice E)
+
+### 1. Resumo Executivo da Tarefa e Bootstrap
+- **Prompt**: `PROMPT-006AH-ACTIVE-GUARDED-PRODUCTION-READINESS-GATE-DESIGN-001`
+- **Slice**: Slice E — ACTIVE_GUARDED Production Readiness Gate Design
+- **Branch**: `research/006ah-active-guarded-production-readiness-gate`
+- **Base Main Commit**: `8f6382c473ae10f9a38b3bb018e89dc51ef40b61` (Merge PR #61)
+- **Status do Bootstrap**: `CURRENT_AFTER_SELF_MERGE` (`HEAD == origin/main == 8f6382c473ae10f9a38b3bb018e89dc51ef40b61`, working tree clean).
+- **Nuance de Observabilidade do Gate Anterior**:
+  - `REVIEWER_RAW_FINAL_SENTINEL_VISIBILITY` = `NOT INDEPENDENTLY OBSERVED IN PROVIDED REVIEW TRACE`
+  - `AI_WORKLOG_FINAL_GATE_RECORD` = `PASS / PNPM_CHECK_FINAL_PASS` (exit 0)
+- **Natureza do Slice**: Estritamente documental e arquitetural (`AUDIT / DESIGN ONLY`).
+- **Alterações de Código/Testes/Contratos**: `0`
+- **Chamadas a Provedores Externos**: `TypeSafe = 0`, `OpenAI = 0`, `Twilio = 0`.
+- **Conexões DB**: `0` | **Carregamento .env**: `0` | **Holdout de Pesquisa**: `NÃO ABERTO` | **Frozen Policy**: `INALTERADA`.
+
+---
+
+### 2. Pesquisa Oficial TypeSafe AI (Privacidade e Versionamento)
+- **Fontes Consultadas (2026-10-02)**:
+  - `https://typesafe.ai/terms` (Master Customer Agreement)
+  - `https://typesafe.ai/data-processing` (Data Processing Addendum - DPA)
+  - `https://trust.typesafe.ai/subprocessors` (Lista e governança de subprocessadores)
+  - `https://typesafe.ai/privacy` (Política de Privacidade e transferência internacional)
+- **Achados Fatuais**:
+  - **No-Training**: A TypeSafe AI estipula contratualmente que **não treina modelos em dados/inputs de clientes** submetidos via API.
+  - **Data Retention**: Retenção vinculada à vigência do contrato e cumprimento de obrigações legais; opção de *Zero Data Retention* (ZDR) documentada para tiers enterprise mediante aditivo específico.
+  - **Subprocessadores**: Notificação prévia de 15 dias para novos subprocessadores com direito a objeção fundamentada.
+  - **Transferência Internacional**: Servidores sediados nos EUA; clientes no Brasil/UE requerem Standard Contractual Clauses (SCCs) incorporadas no DPA.
+  - **Semântica de Versionamento (`jev-latest`)**: `jev-latest` é um moving alias que atualiza automaticamente; a documentação oficial recomenda formalmente o **pinning de versão** (ex.: `jev-1.13.0`) para produção a fim de evitar model drift silencioso em thresholds calibrados.
+
+---
+
+### 3. Deliberação das Dimensões do Gate de Prontidão (Slice E)
+1. **Privacy / Data Processing**:
+   - `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`.
+   - `Data Minimization`: O adapter existente já omite `organizationId`, `callId`, `turnId` do payload JSON de rede (envia apenas `callerInput`, `language`, `channel`, `model`, `questions`).
+   - `Matcher-First`: Transcrições de clientes só alcançam o Jev se a fala casar com capability local conhecida.
+   - `Bloqueador Legal`: Liberação de transcrições reais de clientes exige celebração bilateral de DPA com termos de transferência LGPD/GDPR e aprovação formal jurídica/humana (`PRIVACY_HUMAN_LEGAL_APPROVAL_REQUIRED = YES`).
+2. **Model Identity & Model Drift**:
+   - `MODEL_DRIFT_RUNTIME_GUARD = NOT IMPLEMENTED` (`REQUIRED_BEFORE_ACTIVE_GUARDED = YES`).
+   - Opção arquitetural recomendada: **OPTION_M1 (Strict Equality com Version Pinning)**.
+   - Semântica de falha: drift detectado -> bypass determinístico bloqueado, classificação de segurança do modelo não aprovado bloqueada, fallback para modelo generativo principal se a sessão estiver ativa.
+3. **Timeout Strategy**:
+   - Amostra de staging ($N=12$, mediana 275ms) é insuficiente para SLA de produção.
+   - `PRODUCTION_JEV_TIMEOUT_MS = CANDIDATE_PENDING_VALIDATION` (faixa candidata: 600ms a 800ms).
+   - Requer bateria controlada de latência sintética com $N \ge 100$.
+4. **Concurrency & Backpressure**:
+   - Chamadas de voz não toleram enfileiramento: se a capacidade esgotar, **fail-open imediato para o modelo generativo** sem enfileiramento ilimitado.
+   - `PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY = NOT SELECTED` (candidato canary: 2 a 5 chamadas).
+5. **Failure Matrix & Circuit Breaker**:
+   - Matriz completa de 10 modos de falha desenhada.
+   - Circuit breaker: `NOT APPLICABLE` para testes sintéticos L1/L2; `REQUIRED_BEFORE_PRODUCTION = YES / DESIGNED` (tripolar após 5 falhas consecutivas para proteger latência).
+6. **Production Composition & Feature Modes**:
+   - Composition root de produção mantém isolamento de SDKs de terceiros.
+   - Modos formais: `DISABLED` (padrão), `SHADOW`, `ACTIVE_GUARDED`.
+   - Kill switch: variável `VOICE_GUARDED_ROUTING_FEATURE_MODE=DISABLED` permite corte imediato sem deploy de código ou migration.
+7. **Observability & Cost Controls**:
+   - 9 métricas provider-neutral sanitizadas definidas.
+   - Proibição estrita de gravação de transcrições, respostas ou PII em logs.
+   - Preço por avaliação: `COST_PER_JEV_EVALUATION = NOT VERIFIED` (depende de contrato comercial).
+8. **Controlled Live Validation Ladder**:
+   - L0: Offline fakes (CONCLUÍDO).
+   - L1: Real Jev + Synthetic Transcripts (Próximo candidato).
+   - L2: Real Jev + Real OpenAI + Synthetic (Pendente L1).
+   - L3: Real Jev + Real Twilio Audio (Bloqueado; requer provisionamento de conta Twilio).
+   - L4: Limited Production Canary / Customer Traffic (Bloqueado; requer liberação jurídica de privacidade).
+9. **Twilio Account Decision**:
+   - `TWILIO_ACCOUNT_REQUIRED_FOR_CURRENT_SLICE = NO`.
+   - `TWILIO_ACCOUNT_REQUIRED_FOR_L1 = NO`.
+   - `TWILIO_ACCOUNT_REQUIRED_FOR_L2 = NO`.
+   - `TWILIO_ACCOUNT_REQUIRED_FOR_L3 = YES`.
+
+---
+
+### 4. Próximo Passo Permitido (`NEXT_ALLOWED_STEP`)
+- **Slice Recomendado**: `Slice E.1 — Model Identity Guard & L1 Synthetic Validation Plan (DOCS / IMPLEMENTATION)`.
+- **Escopo**:
+  1. Implementar version pinning no `TypeSafeJevTurnDecisionAdapter`.
+  2. Implementar validação de `providerModel === pinnedModelVersion` em runtime.
+  3. Estruturar plano e dataset sintético fechado ($N=20$) para teste L1 sem tráfego real.
+  4. Manter `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED` e `ACTIVE_GUARDED = BLOCKED`.
+
+---
+
+## 2026-10-02 — PROMPT-006AH-PR62-SOURCE-INTEGRITY-READINESS-HARDENING-AND-MERGE-001
+
+### 1. Preflight e Reconciliação Pós-Merge do PR #61
+- **Ramo Ativo**: `research/006ah-active-guarded-production-readiness-gate`
+- **Base Main**: `8f6382c473ae10f9a38b3bb018e89dc51ef40b61` (Merge PR #61)
+- **PR #62**: `OPEN` (GitHub MCP confirmado; HEAD `1c298675c02213c98da8776160993997fc38adff`, base `8f6382c473ae10f9a38b3bb018e89dc51ef40b61`)
+- **PR61 Reconciliação Temporal**: Reconciliado no `AI_CONTEXT.md` status `PR61_FINAL_MERGE_SECRET_AUDIT = PASS` (no SHA `8f6382c473ae10f9a38b3bb018e89dc51ef40b61`), eliminando marcador provisório `PENDING`.
+- **Reviewer Raw Sentinel Visibility**: Mantido registro factual de que sentinela bruta não foi independentemente observada no trace fornecido de review, com aprovação registrada no `AI_WORKLOG`.
+
+---
+
+### 2. Auditoria e Revalidação de Fontes Oficiais da TypeSafe (Source Integrity)
+`PR62_SOURCE_INTEGRITY_REVIEW = EXECUTED`
+`PR62_PROVIDER_CLAIMS_RECLASSIFIED = YES`
+
+Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente contra fontes oficiais acessadas e observadas em 2026-10-02:
+
+| URL Consultada | Título da Página | Seção / Heading | Data de Acesso | Classificação Factual | Paráfrase Factual / Conteúdo Observado |
+|---|---|---|---|---|---|
+| `https://docs.typesafe.ai/models.md` | Models | `Data handling`, `Aliases`, `Listing models` | 2026-10-02 | `PROVIDER_DOCUMENTED` | "Jev is not trained on customer requests or responses". `jev-latest` aponta para `jev-1.13.0` (moving alias). Response `model` reporta ID versionado. Request aceita IDs versionados (ex. `jev-1.13.0`). Recomenda formalmente pinning de versão para thresholds calibrados. |
+| `https://docs.typesafe.ai/api.md` | API reference | `Evaluation endpoint`, `Request body`, `Response body` | 2026-10-02 | `PROVIDER_DOCUMENTED` | Endpoint `POST /v1/systemone` consome `state`, `model` e `questions`; resposta retorna `model` (string com ID do modelo avaliador), `answers` e `usage`. |
+| `https://docs.typesafe.ai/legal.md` | Legal | `Legal documents` | 2026-10-02 | `PROVIDER_DOCUMENTED` | Lista DPA, MCA e Privacy Policy. Confirma oferta de Zero Data Retention (ZDR) para clientes enterprise via `sales@typesafe.ai`. |
+| `https://typesafe.ai/legal/terms` | Terms of use - TypeSafe AI | N/A | 2026-10-02 | `PROVIDER_DOCUMENTED` | Termos de uso e navegação do site público (`the Site`). |
+| `https://typesafe.ai/legal/mca` | Master customer agreement - TypeSafe AI | `4. Data`, `4.1. Use of Customer Data` | 2026-10-02 | `PROVIDER_DOCUMENTED` | Cláusula 4.1: "The foregoing license does not grant TypeSafe the right to, and TypeSafe will not, include Customer Data in a dataset used to train (i.e., to modify the model weights of) any artificial intelligence or machine learning models without Customer’s prior consent." |
+| `https://typesafe.ai/legal/data-processing` | Data processing addendum - TypeSafe AI | `2. Customer Personal Data`, `3. Subprocessors`, `6. International Data Transfers`, `Schedule I (8)` | 2026-10-02 | `PROVIDER_DOCUMENTED` | Cláusula 2: processamento restrito a instruções documentadas. Cláusula 3: autorização de subprocessadores em `https://trust.typesafe.ai/subprocessors` com aviso prévio e 15 dias para objeção. Cláusula 6: incorpora EU SCCs (Module 2/3) e UK Addendum. Schedule I (8): retenção pelo tempo necessário à finalidade e lei. |
+| `https://typesafe.ai/legal/privacy-policy` | Privacy policy - TypeSafe AI | `International Visitors`, `Retention` | 2026-10-02 | `PROVIDER_DOCUMENTED` | Declara hospedagem nos EUA ("The Services are hosted in the United States ('U.S.')."). Retenção pelo tempo razoavelmente necessário para prestação do serviço ou conformidade legal. |
+| `https://trust.typesafe.ai/subprocessors` | Typesafe.ai Trust Center | N/A | 2026-10-02 | `PROVIDER_DOCUMENTED` | Shell SPA do Vanta Trust Center para TypeSafe, formalmente referenciado pelo DPA. |
+
+**Resultados Individuais de Requisitos de Privacidade**:
+- `NO_TRAINING_ON_API_CUSTOMER_DATA = PROVIDER_DOCUMENTED`
+- `DATA_RETENTION_POLICY = PROVIDER_DOCUMENTED`
+- `ZERO_DATA_RETENTION_AVAILABLE = PROVIDER_DOCUMENTED`
+- `SUBPROCESSOR_NOTICE_PERIOD = PROVIDER_DOCUMENTED` (15 dias)
+- `SERVER_DATA_LOCATION = PROVIDER_DOCUMENTED` (Estados Unidos)
+- `SCC_INTERNATIONAL_TRANSFER_SUPPORT = PROVIDER_DOCUMENTED`
+- `DPA_AVAILABILITY = PROVIDER_DOCUMENTED`
+- `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`
+- `PRIVACY_HUMAN_LEGAL_APPROVAL_REQUIRED = YES`
+- `LEGAL_DPO_REVIEW = REQUIRED`
+
+---
+
+### 3. Reconciliação e Correções de Evidência no PR #62
+1. **Desvio de Threshold Numérico de Circuit Breaker**:
+   - `PR62_CIRCUIT_BREAKER_NUMERIC_THRESHOLD_PROPOSED_WITHOUT_EVIDENCE = YES`
+   - `CATEGORY = DESIGN_EVIDENCE_DEVIATION`
+   - `FUNCTIONAL_IMPACT = NONE (docs-only)`
+   - `SECRET_EXPOSURE = NOT OBSERVED`
+   - Ação Corretiva: Limiar de 5 falhas consecutivas e duração de 60s removidos do design. Classificado formalmente como `CIRCUIT_BREAKER_IMPLEMENTATION = NOT IMPLEMENTED`, `TRIP_THRESHOLD = NOT SELECTED`, `OPEN_DURATION = NOT SELECTED`, `CIRCUIT_BREAKER_REQUIRED_BEFORE_PRODUCTION = UNRESOLVED / DESIGN CANDIDATE`.
+2. **Auditoria e Status de Implementação do Kill Switch**:
+   - `CURRENT_KILL_SWITCH_IMPLEMENTATION = NOT IMPLEMENTED`
+   - `CURRENT_RUNTIME_DYNAMIC_RELOAD = NO`
+   - `RESTART_OR_REDEPLOY_REQUIRED_FOR_ENV_CHANGE = YES`
+   - Ação Corretiva: Corrigida a redação que sugeria corte dinâmico imediato sem deploy/redeploy. O corte sem migration e sem alteração de Frozen Policy permanece como meta de design, mas classificado categoricamente como `KILL_SWITCH = DESIGNED / NOT IMPLEMENTED`.
+3. **Hardening de Model Identity & Drift**:
+   - Revalidação: `jev-latest` aponta para `jev-1.13.0` (`PROVIDER_DOCUMENTED`, revalidado em 2026-10-02).
+   - O suporte do provedor a request com ID versionado e a recomendação formal de pinning foram confirmados (`PROVIDER_DOCUMENTED`).
+   - Imutabilidade criptográfica/contratual de pesos de IDs versionados: `VERSIONED_MODEL_IMMUTABILITY = NOT VERIFIED`.
+   - `OPTION_M1` classificada formalmente como `PROJECT_ARCHITECTURAL_RECOMMENDATION` (prevenção de divergência na fronteira da aplicação).
+   - Autoridade de modelo: `EXPECTED_MODEL_AUTHORITY = UNRESOLVED` (pendente de decisão arquitetural entre runtime config vs snapshot do agente no slice de implementação).
+4. **Hardening de Timeout e Concorrência**:
+   - `PRODUCTION_JEV_TIMEOUT_MS = NOT SELECTED (CANDIDATE_PENDING_VALIDATION)`.
+   - A faixa 600ms-800ms foi reclassificada de candidato com valor fixo para `EXPLORATORY_ENGINEERING_CANDIDATE / NOT SELECTED`.
+   - A notação de pausa humana de 800-1200ms foi reclassificada como `UNSOURCED_HEURISTIC / NOT USED AS GATE EVIDENCE`.
+   - `PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY = NOT SELECTED`. O valor 2-5 foi reclassificado como `EXPLORATORY_PROPOSAL / NOT SELECTED`.
+5. **Divisão Metodológica de L1 (L1A Smoke vs. L1B Latência)**:
+   - `PR62_L1A_L1B_SPLIT = YES`.
+   - `L1A_MODEL_IDENTITY_FUNCTIONAL_SMOKE`: Dataset sintético restrito (candidato proposto N=20, `PROPOSED / NOT FROZEN`) com foco estrito em validar request de modelo versionado, recepção de `providerModel`, semântica fail-open e zero dados de clientes. Não serve para calibrar timeout nem cauda de latência.
+   - `L1B_LATENCY_EVIDENCE`: Estudo empírico planejado com amostra maior ($N \ge 100$ `PLANNED_SAMPLE_SIZE`) para coletar distribuição empírica. `TAIL_LATENCY_CONFIDENCE = NOT ESTABLISHED`.
+6. **Correção de Contagem de Testes**:
+   - `PR62_TEST_COUNT_149_STATUS = CORRECTED`.
+   - A menção não autorizada a "149 testes passing" na matriz Go/No-Go foi corrigida para refletir os números factuais: `16 testes em guarded-turn-routing.test.ts` e `727 passed globalmente` no último `pnpm check`.
+7. **Status de Produção e Fiação**:
+   - `PRODUCTION_COMPOSITION_DESIGN = DESIGNED`
+   - `PRODUCTION_COMPOSITION_IMPLEMENTATION = NO`
+   - `PRODUCTION_RUNTIME_WIRING = NO`
+   - `ACTIVE_GUARDED = BLOCKED`
+   - `READY_FOR_L1A = NO` (pendente slice E.1 de implementação offline de autoridade de modelo)
+   - `READY_FOR_L3 = NO`
+   - `READY_FOR_PRODUCTION = NO / BLOCKED`
+
+---
+
+### 4. Métricas e Limites Operacionais do Slice
+- **Arquivos Funcionais Alterados**: 0
+- **Testes Alterados**: 0
+- **Contratos Alterados**: 0
+- **Configs Alteradas**: 0
+- **Alterações Estritamente Documentais**: `docs/research/PHASE_6_ACTIVE_GUARDED_PRODUCTION_READINESS_GATE.md`, `docs/AI_CONTEXT.md`, `docs/AI_WORKLOG.md`
+- **Chamadas a Provedores Externos**: TypeSafe = 0, OpenAI = 0, Twilio = 0
+- **Arquivos `.env` Carregados**: NÃO
+- **Conexões a Banco de Dados**: NÃO
+- **Dados Reais de Clientes**: NÃO
+- **Holdout de Pesquisa Reaberto**: NÃO
+- **Frozen Policy Alterada**: NÃO
+- **Conta Twilio Exigida Agora**: NÃO
+
+---
+
+### 5. Próximo Passo Permitido (`NEXT_ALLOWED_STEP`)
+- **Slice**: `Slice E.1 — Model Identity Guard & Synthetic Functional Smoke Plan (DOCS / IMPLEMENTATION)`.
+- **Escopo**:
+  1. Definir fronteira de `EXPECTED_MODEL_AUTHORITY` (runtime config vs snapshot);
+  2. Implementar suporte a request com modelo versionado (`model: 'jev-1.13.0'`) e verificação em runtime de resposta (`AuxiliaryTurnDecisionOutput.providerModel === expectedModel`) no adapter;
+  3. Adicionar testes unitários/offline cobrindo o guard de model drift;
+  4. Estruturar plano e dataset sintético fechado (L1A, candidato N=20) para teste funcional ao vivo contra TypeSafe com custo controlado (< $0.10) e zero tráfego real;
+  5. Manter `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`, `PRODUCTION_RUNTIME_WIRING = NO` e `ACTIVE_GUARDED = BLOCKED`.
