@@ -12145,9 +12145,11 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - 2 novos testes adicionados (5b: fail-open do mismatch na geração ativa; 9d: supressão na geração stale).
   - Total no arquivo: 18 testes passando.
 - **Governança de Testes**:
-  - `ASSERTION_WEAKER = 0`.
+  - `NEW_TESTS_ADDED = 11` (9 no adapter, 2 no guarded routing).
+  - `EXISTING_TEST_ASSERTION_STRONGER = 0`.
+  - `EXISTING_TEST_ASSERTION_EQUIVALENT = 0`.
+  - `EXISTING_TEST_ASSERTION_WEAKER = 0`.
   - `NEW_SKIPS = 0`.
-  - `ASSERTION_STRONGER = 27` (9 no adapter, 18 no guarded routing).
 
 ---
 
@@ -12180,3 +12182,70 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **Candidato**: L1A Controlled Live TypeSafe Model Identity Smoke (após revisão e autorização formal humana).
 - `ACTIVE_GUARDED` permanece `BLOCKED`.
 - Proibido executar tráfego real ou telefonia sem as liberações correspondentes.
+
+---
+
+## 2026-10-02 — PROMPT-006AI-PR63-EVIDENCE-HARDENING-AND-MERGE-001
+
+### 1. Preflight e Auditoria do PR #63
+- **PR #63**: `OPEN` (confirmado via GitHub MCP; head `8268002f3da7f0c1c29b2949c9d339c9d2122b0a`, base `4db21b28da7ddc02053e5dce3805f97555fa9eb3`).
+- **Ramo**: `feat/006ai-model-identity-guard-offline`.
+- **Escopo do Diff**: 8 arquivos estritamente correspondentes ao Slice E.1 (`packages/integrations/src/typesafe/typesafe-jev-turn-decision-adapter.ts`, `typesafe-jev-turn-decision-adapter.test.ts`, `apps/voice/src/guarded-turn-routing.test.ts`, `scripts/benchmarks/voice/jev-l1a-model-identity-smoke-v1-cases.json`, `docs/research/PHASE_6_TYPESAFE_L1A_MODEL_IDENTITY_SMOKE_PLAN.md`, `docs/research/PHASE_6_ACTIVE_GUARDED_PRODUCTION_READINESS_GATE.md`, `docs/AI_CONTEXT.md`, `docs/AI_WORKLOG.md`).
+- **Verificação de Stale Code Evidence**: `git diff --name-status cf1336285a18d9359b7b9a5d7a87def70e6595f9...HEAD` confirmou alterações exclusivas em `docs/**`. `QUALITY_EVIDENCE_STALE = NO`.
+
+---
+
+### 2. Reconciliação das Invocações de `pnpm check` no PR #63
+- `PR63_MULTIPLE_PNPM_CHECK_INVOCATIONS = YES`
+- `PR63_PNPM_CHECK_INVOCATIONS_OBSERVED = 3`
+- `FIRST_GATE_AUTHORITATIVE = NO`
+- `FIRST_GATE_STALE = YES`
+- `FIRST_GATE_STALE_REASON = test file formatted / functional commit amended afterward`
+- `SECOND_GATE_AUTHORITATIVE = NO`
+- `SECOND_GATE_STALE = YES`
+- `SECOND_GATE_STALE_REASON = adapter production code changed and commit amended afterward`
+- `THIRD_GATE_WORKLOG_RESULT = PASS / PNPM_CHECK_FINAL_PASS`
+- `THIRD_GATE_TESTED_CODE_SHA = cf1336285a18d9359b7b9a5d7a87def70e6595f9`
+- `THIRD_GATE_RAW_SENTINEL_IN_REVIEW_TRACE = NOT INDEPENDENTLY OBSERVED`
+- `CATEGORY = EXECUTION_EVIDENCE_RECONCILIATION`
+- `FUNCTIONAL_IMPACT = NONE OBSERVED`
+
+---
+
+### 3. Reconciliação do Comando de Teste Focado
+- `PR63_FOCUSED_TEST_COMMAND_RETRY = YES`
+- `FIRST_ATTEMPT_FINAL_RESULT = NOT VERIFIED` (tentativa inicial sem argumentos completos do vitest runner)
+- `SECOND_ATTEMPT = OBSERVED TO PROCEED` (executado com `test -- run ...`)
+- `FUNCTIONAL_IMPACT = NONE OBSERVED`
+
+---
+
+### 4. Auditoria de Classificação de Testes e Asserções
+- `PR63_ASSERTION_CLASSIFICATION_RECONCILED = YES`
+- `NEW_TESTS_ADDED = 11` (9 testes novos em `typesafe-jev-turn-decision-adapter.test.ts`, 2 testes novos em `guarded-turn-routing.test.ts`).
+- `EXISTING_TEST_ASSERTION_STRONGER = 0` (nenhum teste pré-existente foi alterado).
+- `EXISTING_TEST_ASSERTION_EQUIVALENT = 0`.
+- `EXISTING_TEST_ASSERTION_WEAKER = 0`.
+- `NEW_SKIPS = 0`.
+- **Correção Factual**: Corrigida menção prévia que utilizava a soma das suites (27) como `ASSERTION_STRONGER`.
+
+---
+
+### 5. Auditoria de Integridade de Artefatos e Tamanho de Arquivo
+- **Adapter**: `packages/integrations/src/typesafe/typesafe-jev-turn-decision-adapter.ts` (173 linhas).
+  - `HARD_MAX_180 = PASS`
+  - `TARGET_80_150 = ABOVE TARGET / WARNING`
+  - `DO_NOT_GROW_TYPESAFE_ADAPTER_WITH_L1A_HARNESS = YES` (o harness L1A não deve ser implementado dentro do adapter de integração).
+- **Dataset L1A**: `scripts/benchmarks/voice/jev-l1a-model-identity-smoke-v1-cases.json`
+  - `TOTAL_CASES = 20`
+  - `CALCULATED_SHA256 = 12828e990c1c2523c159630511aeb945b26a941c24ecaa38776b4a2769a3b0d0`
+  - `CUSTOMER_DATA = 0`
+  - `HOLDOUT_REUSE = NO`
+  - `PURPOSE = FUNCTIONAL_MODEL_IDENTITY_SMOKE`
+
+---
+
+### 6. Status do Quality Gate e Auditoria de Segredos
+- `PR63_QUALITY_EVIDENCE_FINAL_RECHECK = PENDING` (execução de novo gate final autoritativo agendada neste prompt).
+- `PR63_PREVIOUS_SECRET_AUDIT = PASS` (executado anteriormente, porém não final devido a novos commits documentais).
+- `PR63_FINAL_MERGE_SECRET_AUDIT = PENDING` (agendada para ser executada sobre o commit final antes do merge).

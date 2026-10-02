@@ -155,7 +155,7 @@ AI_CONTEXT_HEADER_END
 
 - **Último `pnpm check` Global**: `PASS` (executado e observado no commit `cf1336285a18d9359b7b9a5d7a87def70e6595f9` com sentinela `PNPM_CHECK_FINAL_PASS`).
 - **Status das Asserções**: `738 passed`, `45 historical skips`, `0 new skips`, `0 failures` (110 arquivos de teste aprovados, 6 skipped de staging; 783 testes totais).
-- **Regressão de Asserções**: `ASSERTION_WEAKER = 0` (18 testes em `guarded-turn-routing.test.ts`: `ASSERTION_STRONGER: 18`; 23 testes em `typesafe-jev-turn-decision-adapter.test.ts`: `ASSERTION_STRONGER: 9`).
+- **Regressão de Asserções**: `ASSERTION_WEAKER = 0`, `EXISTING_TEST_ASSERTION_STRONGER = 0`, `EXISTING_TEST_ASSERTION_EQUIVALENT = 0`, `NEW_TESTS_ADDED = 11` (9 em `typesafe-jev-turn-decision-adapter.test.ts`, 2 em `guarded-turn-routing.test.ts`).
 - **Verificação Arquitetural**: `SUCESSO: Todas as fronteiras e regras arquiteturais respeitadas.`
 - **Verificação de Tamanho de Arquivos**: `HARD_MAX_180 = PASS; TARGET_80_150 = ABOVE TARGET / WARNING (typesafe-jev-turn-decision-adapter.ts: 173 linhas; conversation-orchestrator.ts: 177 linhas; guarded-turn-routing-coordinator.ts: 138 linhas; 0 violações > 180 linhas; check:file-size = PASS).`
 - **Auditoria de Segredos**: `PR60_FINAL_MERGE_SECRET_AUDIT = PASS` | `PR61_FINAL_MERGE_SECRET_AUDIT = PASS` | `PR62_FINAL_MERGE_SECRET_AUDIT = PASS` (reconciliado pós-merge do PR #62 no SHA `4db21b28da7ddc02053e5dce3805f97555fa9eb3`).
