@@ -4,14 +4,14 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-02
-CONTEXT_BASE_MAIN_SHA: 950e2a3c6abd4eb5fc0acf48d2ff662bf8913a76
+CONTEXT_BASE_MAIN_SHA: a102ae6eaebb1e7f8c7824477a0f28e01b9b7d4e
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
-CURRENT_SLICE: Interruption Context Continuity Offline
-CONTEXT_UPDATE_BRANCH: feat/006ad-interruption-context-continuity
-CONTEXT_UPDATE_PR: 58
-LAST_MERGED_PR_AT_REFRESH: 57
-LAST_MERGE_SHA_AT_REFRESH: 950e2a3c6abd4eb5fc0acf48d2ff662bf8913a76
-LAST_TESTED_CODE_SHA: 754dd7ce7c6226470ea8925829763526df273f1a
+CURRENT_SLICE: Deterministic Response Delivery & Ownership Offline (Slice B)
+CONTEXT_UPDATE_BRANCH: feat/006ae-deterministic-response-delivery-ownership
+CONTEXT_UPDATE_PR: 59
+LAST_MERGED_PR_AT_REFRESH: 58
+LAST_MERGE_SHA_AT_REFRESH: a102ae6eaebb1e7f8c7824477a0f28e01b9b7d4e
+LAST_TESTED_CODE_SHA: 713ec24c47338a096845f7f320287fd1fcec1078
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
 AI_CONTEXT_HEADER_END
@@ -30,7 +30,7 @@ AI_CONTEXT_HEADER_END
 | :--- | :--- | :--- |
 | **Web** | `PARTIAL` | `apps/web` (Next.js 15.5; Dashboard, Settings, Agent Studio Draft Editor; UI 005D incompleta) |
 | **API** | `IMPLEMENTED` | `apps/api` (Fastify/Node, rotas de drafts, lifecycle, auth interna com service token) |
-| **Voice** | `PARTIAL` | `apps/voice` (Orquestrador, streaming OpenAI; AuxiliaryTurnShadowObserver integrado non-blocking; primeiro handler determinístico `agent.operating_hours` implementado/testado localmente; fiação em runtime de produção: NÃO; chamadas shadow live: NÃO) |
+| **Voice** | `PARTIAL` | `apps/voice` (Orquestrador com despacho determinístico, ownership OPTION_B, blindagem DISPATCH_ATTEMPTED -> NO_OPENAI_FALLBACK e tratamento qualificado de interrupção implementados/testados offline; streaming OpenAI; AuxiliaryTurnShadowObserver integrado non-blocking; primeiro handler determinístico `agent.operating_hours` implementado/testado localmente; fiação em runtime de produção: NÃO; chamadas shadow live: NÃO) |
 | **Worker** | `IMPLEMENTED` | `apps/worker` (Fundação de background tasks, processamento de filas assíncronas) |
 | **Database** | `IMPLEMENTED` | `packages/database` (PostgreSQL 16, Drizzle ORM, multi-tenancy, schemas comerciais e de auditoria) |
 | **Agent Studio** | `PARTIAL` | 005B (DB/contracts): `IMPLEMENTED / STAGING VALIDATED`; 005C (API): `IMPLEMENTED / NEON STAGING VALIDATED`; 005D (Web UI): `PARTIAL` (rascunhos existem em `apps/web/src/features/agents/`, fluxo completo não concluído) |
@@ -78,7 +78,13 @@ AI_CONTEXT_HEADER_END
 - **SECURITY_RUNTIME_ACTION_IMPLEMENTATION_REQUIRED**: `NO (Ação offline implementada; fiação de routing permanece pendente)`.
 - **SECURITY_RESPONSE_DELIVERY_READY**: `NO`.
 - **SECURITY_HISTORY_PERSISTENCE_READY**: `NO`.
-- **DETERMINISTIC_POST_DISPATCH_BARGE_IN**: `NOT VERIFIED`.
+- **DETERMINISTIC_RESPONSE_DELIVERY**: `IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/deterministic-response-delivery.ts`, `apps/voice/src/deterministic-response-delivery-coordinator.ts`, `apps/voice/src/call-session-lifecycle-coordinator.ts`, `apps/voice/src/conversation-orchestrator.ts`; 13 testes unitários e de integração offline).
+- **DETERMINISTIC_OWNERSHIP_COMMIT**: `OPTION_B (committed immediately before transport.speak())`.
+- **DISPATCH_ATTEMPTED_BLINDING**: `ENFORCED (DISPATCH_ATTEMPTED -> NO_OPENAI_FALLBACK)`.
+- **DETERMINISTIC_INTERRUPTION_RESOLUTION**: `IMPLEMENTED / TESTED LOCALLY (Option H4 with reported utterance/duration; fallback Option H5)`.
+- **DETERMINISTIC_POST_DISPATCH_BARGE_IN**: `IMPLEMENTED / TESTED LOCALLY (offline fakes) | PROVIDER-UNVERIFIED (real telephony)`.
+- **INTERRUPTED_CONTEXT_CONTINUITY_RUNTIME**: `IMPLEMENTED / TESTED LOCALLY (offline delivery & qualified history)`.
+- **HISTORY_COMPLETION_RUNTIME**: `IMPLEMENTED / TESTED LOCALLY (offline orchestrator history resolution)`.
 - **RUNTIME_DETERMINISTIC_BYPASS**: `NOT WIRED`.
 - **ACTIVE_DETERMINISTIC_BYPASS_READINESS**: `BLOCKED`.
 - **ACTIVE_GUARDED**: `BLOCKED`.
@@ -136,9 +142,12 @@ AI_CONTEXT_HEADER_END
 
 ## 6. Estado Atual da Evidência de Qualidade (Quality Gate Snapshot)
 
-- **Último `pnpm check` Global**: `PASS` (executado e observado no commit `754dd7ce7c6226470ea8925829763526df273f1a`).
-- **Status das Asserções**: `687 passed`, `45 historical skips`, `0 new skips`, `0 failures` (107 arquivos de teste aprovados, 6 skipped de staging; 732 testes totais).
-- **Regressão de Asserções**: `ASSERTION_WEAKER = 0` (3 testes adicionados/reforçados em PR #58 / Slice A: `ASSERTION_STRONGER: 3`).
+- **Último `pnpm check` Global**: `PASS` (executado e observado no commit `713ec24c47338a096845f7f320287fd1fcec1078`).
+- **Status das Asserções**: `700 passed`, `45 historical skips`, `0 new skips`, `0 failures` (108 arquivos de teste aprovados, 6 skipped de staging; 745 testes totais).
+- **Regressão de Asserções**: `ASSERTION_WEAKER = 0` (13 novos testes adicionados em PR #59 / Slice B: `ASSERTION_STRONGER: 13`).
+- **Verificação Arquitetural**: `SUCESSO: Todas as fronteiras e regras arquiteturais respeitadas.`
+- **Verificação de Tamanho de Arquivos**: `SUCESSO: Todos os arquivos de logica estao em conformidade (17 avisos, 0 violacoes > 180 linhas).`
+- **Auditoria de Segredos**: `SECRET_AUDIT_PASS` (execução única em tracked diff `origin/main...HEAD`, value-blind, booleana).
 - **QUALITY_EVIDENCE_STALE**: `NO` (commits subsequentes estritamente documentais em `docs/`).
 
 ---
@@ -147,10 +156,10 @@ AI_CONTEXT_HEADER_END
 
 1. `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`: Transmissão de transcrições de clientes para provedores externos proibida.
 2. `KNOWN_DETERMINISTIC_HANDLERS = 1` (`ACTIVE_DETERMINISTIC_BYPASS_READINESS = BLOCKED` até implementação de fiação controlada e testes de integração de runtime).
-3. `POST_DISPATCH_BARGE_IN_DESIGN = DESIGNED` | `POST_DISPATCH_BARGE_IN_RUNTIME = NOT IMPLEMENTED` | `LIVE_PROVIDER_BARGE_IN_VERIFICATION = PROVIDER-UNVERIFIED`
-4. `INTERRUPTED_CONTEXT_CONTINUITY_DESIGN = DESIGNED` | `INTERRUPTED_CONTEXT_METADATA_PROPAGATION = IMPLEMENTED / TESTED LOCALLY` | `INTERRUPTED_CONTEXT_CONTINUITY_RUNTIME = NOT IMPLEMENTED`
-5. `HISTORY_COMPLETION_DESIGN = DESIGNED` | `HISTORY_COMPLETION_RUNTIME = NOT IMPLEMENTED`
-6. `SECURITY_RESPONSE_DELIVERY_DESIGN = DESIGNED` | `SECURITY_USER_RESPONSE_DELIVERY = NOT IMPLEMENTED`
+3. `POST_DISPATCH_BARGE_IN_DESIGN = DESIGNED` | `POST_DISPATCH_BARGE_IN_RUNTIME = IMPLEMENTED / TESTED LOCALLY (offline)` | `LIVE_PROVIDER_BARGE_IN_VERIFICATION = PROVIDER-UNVERIFIED`
+4. `INTERRUPTED_CONTEXT_CONTINUITY_DESIGN = DESIGNED` | `INTERRUPTED_CONTEXT_METADATA_PROPAGATION = IMPLEMENTED / TESTED LOCALLY` | `INTERRUPTED_CONTEXT_CONTINUITY_RUNTIME = IMPLEMENTED / TESTED LOCALLY (offline delivery & qualified history)`
+5. `HISTORY_COMPLETION_DESIGN = DESIGNED` | `HISTORY_COMPLETION_RUNTIME = IMPLEMENTED / TESTED LOCALLY (offline orchestrator history resolution)`
+6. `SECURITY_RESPONSE_DELIVERY_DESIGN = DESIGNED` | `SECURITY_USER_RESPONSE_DELIVERY = NOT IMPLEMENTED` (Slice C)
 7. `ACTIVE_GUARDED = BLOCKED`
 8. `PRODUCTION_SHADOW_MAX_CONCURRENCY = NOT SELECTED`: Limite de concorrência operacional de produção não definido.
 9. `PRODUCTION_JEV_TIMEOUT_MS = NOT SELECTED`: Timeout operacional de produção não definido.
@@ -162,9 +171,10 @@ AI_CONTEXT_HEADER_END
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- Slice B: Deterministic Response Delivery & Ownership in Orchestrator Offline.
-- Implementar despacho determinístico no orquestrador com ownership commit `OPTION_B`, blindagem `DISPATCH_ATTEMPTED -> NO_OPENAI_FALLBACK` e tratamento de interrupção com gravação de histórico qualificado (`Option H4`: `isInterrupted: true`). Coberto por testes unitários e de integração no orquestrador usando fakes.
+- Slice C: Security Response Delivery Integration Offline.
+- Implementar fiação de entrega de resposta de segurança (`SECURITY_BLOCKED` action) no orquestrador com encerramento seguro de chamada, gravação de auditoria/histórico offline e proteção contra fallback. Coberto por testes unitários e de integração no orquestrador usando fakes.
 - Do NOT wire full ACTIVE_GUARDED runtime yet.
+- Do NOT enable live customer traffic.
 
 ### `NOT_YET_ALLOWED`:
 - Transmissão de dados reais de clientes para provedores externos.
