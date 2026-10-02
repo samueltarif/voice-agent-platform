@@ -137,7 +137,7 @@ A tabela abaixo separa estritamente a capacidade nativa do provedor, o suporte n
 | **Provider-native playback stop** | `YES` (media server edge stop) | `N/A` (executado pelo media server) | `N/A` (sem controle direto do media server) | `PROVIDER-UNVERIFIED` |
 | **Runtime future-token suppression** | `N/A` (responsabilidade da aplicação) | `YES` (rastreio de geração em memória) | `YES` (`stale_turnId` invalida chunks no stream) | `TESTED LOCALLY` (generativo) |
 | **Explicit outbound cancel command** | `NOT_DOCUMENTED` | `NO` (`interruptSpeech` retorna `null`) | `N/A` (método de porta sem mensagem física) | `N/A` |
-| **Interruption metadata preservation** | `YES` (`utteranceUntilInterrupt`) | `NO` (parseado em `parseInterrupt`, mas descartado em `translateTwilioInboundEvent`) | `NO` (`UserInterruptionEvent` não possui campos) | `PROVIDER-UNVERIFIED` |
+| **Interruption metadata preservation** | `YES` (`utteranceUntilInterrupt`) | `YES` (`IMPLEMENTED / TESTED LOCALLY`) | `NO` (consumo no orchestrator pendente no Slice B) | `PROVIDER-UNVERIFIED` |
 | **Playback completion ack** | `NOT_DOCUMENTED` | `NO` | `NO` | `N/A` |
 | **Text final marker (`last: true`)** | `YES` | `YES` (`isFinal -> last: true`) | `YES` (ao fim de stream ou single-shot) | `PROVIDER-UNVERIFIED` |
 | **Next-user-turn delivery (`prompt`)** | `YES` | `YES` (mapeia para `user.speech.final`) | `YES` (inicia novo ciclo de turno) | `PROVIDER-UNVERIFIED` |
@@ -247,26 +247,25 @@ Aplicando YAGNI (`CURRENT_REQUIREMENT`, `EXISTING_OPTION`, `MINIMAL_OPTION`), o 
 
 ## 8. Interrupted Utterance Context & Seam de Preservação
 
-### 8.1 Gap Atual Auditado
-Na auditoria de `packages/integrations/src/twilio/twilio-event-translator.ts`:
-- A função `parseInterrupt` extrai com sucesso `utteranceUntilInterrupt` e `durationUntilInterruptMs`.
-- No entanto, a função `translateTwilioInboundEvent` mapeia a mensagem para `UserInterruptionEvent`, que possui apenas `{ callId, organizationId, turnId, timestamp }`.
-- **Fato**: `INTERRUPTED_UTTERANCE_METADATA_DROPPED = YES`.
+### 8.1 Gap Auditado e Resolução no Slice A
+Na auditoria inicial de `packages/integrations/src/twilio/twilio-event-translator.ts`:
+- A função `parseInterrupt` extraía com sucesso `utteranceUntilInterrupt` e `durationUntilInterruptMs`.
+- No entanto, a função `translateTwilioInboundEvent` mapeava a mensagem para `UserInterruptionEvent` descartando esses campos.
+- **Resolução no Slice A**: `INTERRUPTED_UTTERANCE_METADATA_DROPPED = NO` (`TWILIO_INTERRUPTION_METADATA_PROPAGATION = IMPLEMENTED / TESTED LOCALLY`; campos propagados para o evento provider-neutral).
 
-### 8.2 Seam Mínimo para o Slice A (Contratos Provider-Neutral)
-Para viabilizar a continuidade contextual sem acoplamento a fornecedores específicos:
-1. Em `packages/contracts/src/voice/voice-events.ts`:
-   Estender `UserInterruptionEvent` com campos opcionais provider-neutral:
+### 8.2 Seam Implementado no Slice A (Contratos Provider-Neutral)
+1. Em `packages/contracts/src/voice/voice-events-contracts.ts`:
+   Estendido `UserInterruptionEvent` com campos opcionais provider-neutral:
    ```typescript
-   export interface UserInterruptionEvent extends BaseVoiceEvent {
+   export interface UserInterruptionEvent extends BaseVoiceInputEvent {
      readonly type: 'user.interruption';
      readonly turnId: string;
      readonly interruptedUtterance?: string;
      readonly interruptedDurationMs?: number;
    }
    ```
-2. No adapter Twilio (`twilio-event-translator.ts`), repassar esses campos ao construir o evento.
-3. No orquestrador, reter efemeramente esse contexto para o próximo turno.
+2. No adapter Twilio (`twilio-event-translator.ts`), função pura `translateInterruptEvent` repassa esses campos ao construir o evento (`!== undefined` preserva duration zero e omite propriedades ausentes).
+3. No orquestrador, o consumo desse contexto será integrado no Slice B (`INTERRUPTED_CONTEXT_CONTINUITY_RUNTIME = NOT IMPLEMENTED`).
 
 ---
 
@@ -405,10 +404,10 @@ O ciclo de vida de entrega é unificado, separando a **fonte do conteúdo** do *
 |---|---|---|---|---|
 | `VoiceTransportPort` | Nenhuma | `NO CHANGE` | `NO CHANGE` | Métodos `speak` e `interruptSpeech` existentes são suficientes |
 | `VoiceOutputCommand` | Nenhuma | `NO CHANGE` | `NO CHANGE` | Já suporta `{ text, generationId, isFinal }` |
-| `VoiceInputEvent` (`UserInterruptionEvent`) | Adicionar campos opcionais `interruptedUtterance?: string` e `interruptedDurationMs?: number` | `NO CHANGE` | **REQUIRED** | Propagar metadados reportados pelo provider sem quebrar contratos existentes |
+| `VoiceInputEvent` (`UserInterruptionEvent`) | Adicionar campos opcionais `interruptedUtterance?: string` e `interruptedDurationMs?: number` | `NO CHANGE` | `IMPLEMENTED / TESTED LOCALLY` | Propagar metadados reportados pelo provider sem quebrar contratos existentes |
 
 - `CONTRACT_CHANGES_IN_PR57` = `NO`
-- `CONTRACT_CHANGES_REQUIRED_FOR_SLICE_A` = `YES`
+- `CONTRACT_CHANGES_IN_SLICE_A` = `IMPLEMENTED / TESTED LOCALLY`
 
 ---
 
@@ -417,19 +416,19 @@ O ciclo de vida de entrega é unificado, separando a **fonte do conteúdo** do *
 A implementação deve seguir estritamente a ordem de dependências arquiteturais:
 
 ```
-Slice A (Contratos & Adapter Offline)
-   -> Slice B (Orchestrator Delivery & Ownership Offline)
+Slice A (Contratos & Adapter Offline) [IMPLEMENTED / TESTED LOCALLY]
+   -> Slice B (Orchestrator Delivery & Ownership Offline) [NEXT]
    -> Slice C (Security Integration Offline)
    -> Slice D (Controlled Live Provider Verification)
 ```
 
-### Slice A: Interruption Context Continuity & Domain Contracts (Offline) — [PRÓXIMO PASSO SELECIONADO]
-- Estender `UserInterruptionEvent` em `packages/contracts/src/voice/voice-events.ts` com campos opcionais provider-neutral (`interruptedUtterance?: string`, `interruptedDurationMs?: number`).
-- Atualizar `TwilioVoiceTransportAdapter` para repassar esses campos ao emitir `UserInterruptionEvent`.
-- 100% offline, coberto por testes unitários de contrato e adapter.
+### Slice A: Interruption Context Continuity & Domain Contracts (Offline) — [IMPLEMENTED / TESTED LOCALLY]
+- Estendido `UserInterruptionEvent` em `packages/contracts/src/voice/voice-events-contracts.ts` com campos opcionais provider-neutral (`interruptedUtterance?: string`, `interruptedDurationMs?: number`).
+- Atualizado `twilio-event-translator.ts` para repassar esses campos ao emitir `UserInterruptionEvent`.
+- 100% offline, coberto por testes unitários de contrato e adapter (27 testes focados, typecheck aprovado).
 - `TWILIO_ACCOUNT_REQUIRED = NO`.
 
-### Slice B: Deterministic Response Delivery & Ownership in Orchestrator (Offline)
+### Slice B: Deterministic Response Delivery & Ownership in Orchestrator (Offline) — [PRÓXIMO PASSO SELECIONADO]
 - Implementar despacho determinístico no orquestrador com ownership commit `OPTION_B`.
 - Invariante formal: `DISPATCH_ATTEMPTED -> NO_OPENAI_FALLBACK`.
 - Tratamento de interrupção com gravação de histórico qualificado (`Option H4`: `isInterrupted: true`).
@@ -452,7 +451,7 @@ Slice A (Contratos & Adapter Offline)
 ## 16. Twilio Account Decision
 
 - `TWILIO_ACCOUNT_REQUIRED_FOR_CURRENT_DESIGN_SLICE = NO`.
-- `TWILIO_ACCOUNT_REQUIRED_FOR_NEXT_IMPLEMENTATION_SLICE = NO` (Slice A é estritamente offline em contratos e adapter local).
+- `TWILIO_ACCOUNT_REQUIRED_FOR_NEXT_IMPLEMENTATION_SLICE = NO` (Slice B é estritamente offline em orquestrador local com mocks).
 - Conta Twilio será exigida exclusivamente no **Slice D** (verificação live do provider).
 
 ---
@@ -463,7 +462,7 @@ Antes de ativar `ACTIVE_GUARDED` ou plugar o roteamento em produção:
 1. `SECURITY_RUNTIME_ROUTING_INTEGRATION` permanece `NOT IMPLEMENTED`.
 2. `SECURITY_USER_RESPONSE_DELIVERY` permanece `NOT IMPLEMENTED`.
 3. `POST_DISPATCH_BARGE_IN_RUNTIME` permanece `NOT IMPLEMENTED`.
-4. `INTERRUPTED_UTTERANCE_METADATA_DROPPED` precisa ser corrigido via Slice A.
+4. `INTERRUPTED_UTTERANCE_METADATA_DROPPED`: RESOLVIDO no Slice A (`INTERRUPTION_METADATA_PROPAGATION = IMPLEMENTED / TESTED LOCALLY`; consumo no orchestrator pendente no Slice B).
 5. `ACTIVE_GUARDED_PROVIDER_CALL_OWNERSHIP` permanece `BLOCKED / NOT IMPLEMENTED`.
 6. `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE` não liberado.
 7. `PRODUCTION_RUNTIME_WIRING = NO`.

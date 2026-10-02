@@ -570,12 +570,12 @@ NEW_COORDINATOR_REQUIRED = NO
 
 Devido aos múltiplos bloqueadores não resolvidos de runtime (`SECURITY_RUNTIME_ROUTING_INTEGRATION`, `POST_DISPATCH_BARGE_IN_RUNTIME`, `AUXILIARY_CALL_OWNERSHIP`), **NÃO É AUTORIZADA** a fiação simultânea do orquestrador com o interpretador ou ativação em produção.
 
-O roadmap decomposto em `docs/research/PHASE_6_RESPONSE_DELIVERY_LIFECYCLE_DESIGN.md` define a sequência estrita de implementação mínima: Slice A -> Slice B -> Slice C -> Slice D.
+O roadmap decomposto em `docs/research/PHASE_6_RESPONSE_DELIVERY_LIFECYCLE_DESIGN.md` define a sequência estrita de implementação mínima: Slice A (concluído) -> Slice B (próximo) -> Slice C -> Slice D.
 
 ```
 NEXT_ALLOWED_STEP:
-Slice A: Interruption Context Continuity & Domain Contracts Offline.
-Estender UserInterruptionEvent em packages/contracts com campos opcionais provider-neutral (interruptedUtterance e interruptedDurationMs) e atualizar o adapter Twilio offline com testes unitarios, sem fiação de runtime no orquestrador.
+Slice B: Deterministic Response Delivery & Ownership in Orchestrator Offline.
+Implementar helper coeso de despacho determinístico com OPTION_B (ownership commit imediatamente antes de speak()), blindagem DISPATCH_ATTEMPTED -> NO_OPENAI_FALLBACK, e tratamento de interrupção com gravação de histórico qualificado (Option H4: isInterrupted: true). Coberto por testes unitários e de integração no orquestrador usando fakes, sem chamadas externas a provedores.
 ```
 
 ### Motivos da Redução de Escopo
