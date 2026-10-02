@@ -31,6 +31,7 @@ class FakeDeterministicAuxiliaryPort implements AuxiliaryTurnDecisionPort {
   public shouldThrow = false;
   public throwError: Error = new Error('Auxiliary evaluation failed');
   public delayMs = 0;
+  public deferredPromise?: Promise<AuxiliaryTurnDecisionOutput> | undefined;
 
   private startedResolver?: () => void;
   public evaluationStarted = new Promise<void>((resolve) => {
@@ -50,6 +51,9 @@ class FakeDeterministicAuxiliaryPort implements AuxiliaryTurnDecisionPort {
     this.callCount++;
     this.evaluatedInputs.push(input);
     this.startedResolver?.();
+    if (this.deferredPromise) {
+      return await this.deferredPromise;
+    }
     if (this.delayMs > 0) {
       await new Promise<void>((resolve, reject) => {
         const timer = setTimeout(resolve, this.delayMs);
@@ -488,6 +492,104 @@ describe('Guarded Runtime Routing Integration — OFFLINE', () => {
     // Stale generation must NOT speak deterministic, NOT speak security, NOT stream OpenAI
     expect(transport.speakCalls.length).toBe(0);
     expect(model.recordedInputs.length).toBe(0);
+  });
+
+  // 9b. matcher true -> deferred Jev promise -> interrupt old generation -> resolve Jev as GENERATIVE_REQUIRED -> model stream calls = 0
+  it('9b. matcher true -> deferred Jev promise -> interrupt old generation -> resolve Jev as GENERATIVE_REQUIRED -> model stream calls = 0', async () => {
+    let resolveJev!: (value: AuxiliaryTurnDecisionOutput) => void;
+    const jevPromise = new Promise<AuxiliaryTurnDecisionOutput>((resolve) => {
+      resolveJev = resolve;
+    });
+
+    const auxiliaryPort = new FakeDeterministicAuxiliaryPort();
+    auxiliaryPort.deferredPromise = jevPromise;
+
+    const { sessionStore, transport, model, orchestrator } = setupOrchestrator({ auxiliaryPort });
+    await createActiveCall(sessionStore);
+
+    const turn1Promise = orchestrator.handleEvent(
+      {
+        type: 'user.speech.final',
+        callId,
+        organizationId,
+        turnId: 'turn-stale-gen-1',
+        transcript: 'Qual o horário de atendimento?',
+        timestamp: new Date(),
+      },
+      baseSnapshot,
+    );
+
+    await auxiliaryPort.evaluationStarted;
+
+    // Interrupt old generation while Jev is pending
+    await orchestrator.handleEvent({
+      type: 'user.interruption',
+      callId,
+      organizationId,
+      turnId: 'turn-stale-gen-1-interrupt',
+      timestamp: new Date(),
+    });
+
+    // Resolve deferred Jev as GENERATIVE_REQUIRED
+    resolveJev({
+      deterministicScore: 0.1,
+      generativeScore: 0.9,
+      securityScore: 0.01,
+      providerModel: 'fake-jev-v1',
+      latencyMs: 20,
+    });
+
+    await turn1Promise;
+
+    // Model stream calls = 0, deterministic speak = 0, security speak = 0
+    expect(model.recordedInputs.length).toBe(0);
+    expect(transport.speakCalls.length).toBe(0);
+  });
+
+  // 9c. matcher true -> deferred Jev promise -> interrupt old generation -> reject Jev -> model stream calls = 0
+  it('9c. matcher true -> deferred Jev promise -> interrupt old generation -> reject Jev -> model stream calls = 0', async () => {
+    let rejectJev!: (reason: Error) => void;
+    const jevPromise = new Promise<AuxiliaryTurnDecisionOutput>((_, reject) => {
+      rejectJev = reject;
+    });
+
+    const auxiliaryPort = new FakeDeterministicAuxiliaryPort();
+    auxiliaryPort.deferredPromise = jevPromise;
+
+    const { sessionStore, transport, model, orchestrator } = setupOrchestrator({ auxiliaryPort });
+    await createActiveCall(sessionStore);
+
+    const turn1Promise = orchestrator.handleEvent(
+      {
+        type: 'user.speech.final',
+        callId,
+        organizationId,
+        turnId: 'turn-stale-err-1',
+        transcript: 'Qual o horário de atendimento?',
+        timestamp: new Date(),
+      },
+      baseSnapshot,
+    );
+
+    await auxiliaryPort.evaluationStarted;
+
+    // Interrupt old generation while Jev is pending
+    await orchestrator.handleEvent({
+      type: 'user.interruption',
+      callId,
+      organizationId,
+      turnId: 'turn-stale-err-1-interrupt',
+      timestamp: new Date(),
+    });
+
+    // Reject deferred Jev
+    rejectJev(new Error('Jev backend connection timeout'));
+
+    await turn1Promise;
+
+    // Model stream calls = 0, deterministic speak = 0, security speak = 0
+    expect(model.recordedInputs.length).toBe(0);
+    expect(transport.speakCalls.length).toBe(0);
   });
 
   // 10. guarded + shadow configured -> exactly one auxiliary evaluation total

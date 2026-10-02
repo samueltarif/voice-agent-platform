@@ -96,10 +96,10 @@ export class GuardedTurnRoutingCoordinator {
       snapshot: input.snapshot,
     });
 
-    if (!handlerResult.handled) return { outcome: 'GENERATIVE' };
     if (!this.deps.isGenerationActive(input.session.callId, input.generationId)) {
       return { outcome: 'STALE' };
     }
+    if (!handlerResult.handled) return { outcome: 'GENERATIVE' };
 
     const delivery = await this.deps.deliveryCoordinator.deliver({
       organizationId: input.session.organizationId,
@@ -122,9 +122,8 @@ export class GuardedTurnRoutingCoordinator {
     if (!this.deps.isGenerationActive(session.callId, generationId)) return { outcome: 'STALE' };
 
     const auxiliaryOutput = await this.evaluateAuxiliary(input);
-    if (!auxiliaryOutput) return { outcome: 'GENERATIVE' };
-
     if (!this.deps.isGenerationActive(session.callId, generationId)) return { outcome: 'STALE' };
+    if (!auxiliaryOutput) return { outcome: 'GENERATIVE' };
 
     const classification = interpretFrozenTurnPolicy({
       securityScore: auxiliaryOutput.securityScore,

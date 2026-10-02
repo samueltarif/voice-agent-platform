@@ -140,6 +140,8 @@ export class ConversationOrchestrator {
       if (routed.outcome !== 'GENERATIVE') return;
     }
 
+    if (this.activeGenerations.get(session.callId) !== generationId) return;
+
     await this.ctx.streamCoordinator.streamTurn({
       session,
       turnId,
