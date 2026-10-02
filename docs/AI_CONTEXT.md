@@ -4,13 +4,13 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-02
-CONTEXT_BASE_MAIN_SHA: e86d26bb7b15643440d8838198373145be9f34f2
+CONTEXT_BASE_MAIN_SHA: 8f6382c473ae10f9a38b3bb018e89dc51ef40b61
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
-CURRENT_SLICE: Guarded Runtime Routing Integration Offline (Slice D)
-CONTEXT_UPDATE_BRANCH: feat/006ag-guarded-runtime-routing-offline
-CONTEXT_UPDATE_PR: 61
-LAST_MERGED_PR_AT_REFRESH: 60
-LAST_MERGE_SHA_AT_REFRESH: e86d26bb7b15643440d8838198373145be9f34f2
+CURRENT_SLICE: ACTIVE_GUARDED Production Readiness Gate Design
+CONTEXT_UPDATE_BRANCH: research/006ah-active-guarded-production-readiness-gate
+CONTEXT_UPDATE_PR: PENDING
+LAST_MERGED_PR_AT_REFRESH: 61
+LAST_MERGE_SHA_AT_REFRESH: 8f6382c473ae10f9a38b3bb018e89dc51ef40b61
 LAST_TESTED_CODE_SHA: 322453c23f526a00ca1f2f33b3797416d0b97cb3
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
@@ -66,7 +66,7 @@ AI_CONTEXT_HEADER_END
 - **KNOWN_DETERMINISTIC_HANDLERS**: `1` (handler e matcher implementados e aprovados em 73 testes unitarios e no pnpm check global).
 - **DETERMINISTIC_RUNTIME_WIRING_DESIGN**: `DESIGNED_WITH_BLOCKERS` (`docs/research/PHASE_6_DETERMINISTIC_RUNTIME_WIRING_DESIGN.md`).
 - **DETERMINISTIC_INTERCEPTION_SEAM**: `ConversationOrchestrator.handleUserSpeechFinal() — apos save(generationId), antes de streamTurn()`.
-- **SELECTED_ROUTING_TOPOLOGY**: `DESIGNED / NOT WIRED` (Application-Eligibility Filtered Serial Gate — confirma Opcao C do ADR-019).
+- **SELECTED_ROUTING_TOPOLOGY**: `IMPLEMENTED / TESTED LOCALLY OFFLINE` (Application-Eligibility Filtered Serial Gate; PRODUCTION_RUNTIME_WIRING = NO).
 - **RUNTIME_FROZEN_POLICY_INTERPRETER**: `IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/frozen-policy-interpreter.ts`; 20 testes unitários).
 - **FROZEN_POLICY_CHANGED**: `NO`.
 - **SECURITY_OFFLINE_ACTION**: `IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/security-blocked-action.ts`; 5 testes unitários).
@@ -173,18 +173,21 @@ AI_CONTEXT_HEADER_END
 8. `GUARDED_RUNTIME_ROUTING_OFFLINE = IMPLEMENTED / TESTED LOCALLY`
 9. `ACTIVE_GUARDED = BLOCKED`
 10. `PRODUCTION_SHADOW_MAX_CONCURRENCY = NOT SELECTED`: Limite de concorrência operacional de produção não definido.
-11. `PRODUCTION_JEV_TIMEOUT_MS = NOT SELECTED`: Timeout operacional de produção não definido.
-12. `MODEL_DRIFT_RUNTIME_GUARD = NOT IMPLEMENTED`: Sem autoridade de providerModel em runtime (`MODEL_DRIFT_GUARD_REQUIRED_BEFORE_ACTIVE_GUARDED = YES`).
-13. `PRODUCTION_RUNTIME_WIRING = NO`: Fiação de runtime em produção desautorizada.
-14. `CUSTOMER_TRAFFIC = PROHIBITED`
+11. `PRODUCTION_JEV_TIMEOUT_MS = CANDIDATE_PENDING_VALIDATION`: Faixa candidata 600ms-800ms; requer bateria sintética N>=100.
+12. `PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY = NOT SELECTED`: Candidato canary 2 a 5 chamadas simultâneas.
+13. `MODEL_DRIFT_RUNTIME_GUARD = NOT IMPLEMENTED`: Sem autoridade de providerModel em runtime (`MODEL_DRIFT_GUARD_REQUIRED_BEFORE_ACTIVE_GUARDED = YES`).
+14. `PRODUCTION_RUNTIME_WIRING = NO`: Fiação de runtime em produção desautorizada.
+15. `LIVE_PROVIDER_GUARDED_ROUTING_VALIDATION = NOT EXECUTED`: Validação contra TypeSafe real pendente L1.
+16. `LIVE_TWILIO_GUARDED_ROUTING = NOT EXECUTED`: Validação em telefonia real pendente L3.
+17. `CUSTOMER_TRAFFIC = PROHIBITED`
 
 ---
 
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- Candidate: Slice D PR review & follow-up evaluation planning.
-- `ACTIVE_GUARDED` permanece `BLOCKED` até homologação formal.
+- Candidate: Slice E.1 — Model Identity Guard & L1 Synthetic Validation Plan (DOCS / IMPLEMENTATION).
+- `ACTIVE_GUARDED` permanece `BLOCKED` até conclusão da escada de validação (L1-L4).
 - Do NOT enable live customer traffic.
 - Do NOT use real telephony / live Twilio.
 
