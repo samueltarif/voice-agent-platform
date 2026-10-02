@@ -10967,3 +10967,50 @@ Auditadas 10 categorias factuais no split de calibração:
 
 ### 4. Próximo Passo Permitido
 - `NEXT_ALLOWED_STEP`: Design deterministic/security response delivery lifecycle, focused on post-dispatch interruption, outbound cancellation semantics, playback completion semantics, history completion safety, and response ownership after dispatch. Do NOT wire orchestrator yet.
+
+---
+
+## 2026-10-02 - PROMPT-006AB-PR56-FINAL-NOMENCLATURE-QUALITY-AND-MERGE-001
+
+- **Data**: 2026-10-02
+- **Tipo**: DOCS / NOMENCLATURE RECONCILIATION / QUALITY GATE / MERGE GATE (PR #56 Final Close)
+- **Branch**: `docs/006ab-post-pr55-quality-context-refresh`
+- **PR #56 Status**: `OPEN`
+- **Base main SHA**: `6b984f90efc6a0462224fc579c257a0f99437487`
+- **PR #56 Docs-Only**: `YES` (`git diff --name-status origin/main...HEAD` confirms changes strictly in `docs/**`)
+
+### 1. Reconciliação de Nomenclatura Runtime Score vs. Research Noul
+- `Runtime Contract Score Names`: `securityScore`, `deterministicScore`, `generativeScore` (confirmados no contrato canônico `packages/contracts/src/voice/auxiliary-turn-decision-contracts.ts` e consumidos por `FrozenTurnPolicyInput` em `apps/voice/src/frozen-policy-interpreter.ts`)
+- `Research Artifact Names`: `securityNoul`, `deterministicNoul`, `generativeNoul` (definidos nos artefatos congelados de calibração)
+- `Score/Noul Mapping Reconciled`: `YES` (`docs/research/PHASE_6_DETERMINISTIC_RUNTIME_WIRING_DESIGN.md` Seção 6 atualizada com distinção explícita e mapeamento 1:1)
+  - `securityScore` corresponde ao `securityNoul` congelado
+  - `deterministicScore` corresponde ao `deterministicNoul` congelado
+  - `generativeScore` corresponde ao `generativeNoul` congelado
+- `Frozen Policy Changed`: `NO` (thresholds congelados inalterados: 0.56, 0.35, 0.47)
+- `New Abstraction Created`: `NO` (correção puramente documental; zero helpers, adapters ou aliases de código)
+
+### 2. Execução do Quality Gate com Marcador Sentinela
+- Comando: `pnpm check; $code = $LASTEXITCODE; if ($code -eq 0) { Write-Output "PNPM_CHECK_FINAL_PASS" } else { Write-Output "PNPM_CHECK_FINAL_FAIL" }; exit $code`
+- Marcador final observado: `PNPM_CHECK_FINAL_PASS`
+- Exit code: `0`
+- Contagem factual de testes observada:
+  - Test files: 107 passed | 6 skipped (113 total)
+  - Tests: 684 passed | 45 skipped (729 total)
+  - Failures: 0
+- `FINAL_TESTED_HEAD`: `2ac0ba3f6c29a7a7bf4fa5612e1cbda73989937a`
+- `ASSERTION_WEAKER`: `0`
+- `NEW_SKIPS`: `0`
+
+### 3. Governança e Limites Operacionais
+- Alterações de código funcional: `0`
+- Alterações de testes: `0`
+- Alterações de configurações: `0`
+- Provedores externos: TypeSafe `0`, OpenAI `0`, Twilio `0`
+- `ENV_LOADED` = `NO` | `DB_CONNECTION` = `NO` | `CUSTOMER_DATA` = `NO` | `FROZEN_POLICY_CHANGED` = `NO`
+- `HOLDOUT_OPENED` = `NO`
+- `ACTIVE_GUARDED` = `BLOCKED`
+- `PRODUCTION_RUNTIME_WIRING` = `NO`
+- `CUSTOMER_TRAFFIC` = `PROHIBITED`
+
+### 4. Próximo Passo Permitido
+- `NEXT_ALLOWED_STEP`: Design deterministic/security response delivery lifecycle, focused on post-dispatch interruption, outbound cancellation semantics, playback completion semantics, history completion safety, and response ownership after dispatch. Do NOT wire orchestrator yet.
