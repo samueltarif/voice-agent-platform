@@ -19,13 +19,14 @@ import type { AuxiliaryTurnShadowObserver } from './auxiliary-turn-shadow-observ
 import { CallSessionLifecycleCoordinator } from './call-session-lifecycle-coordinator.js';
 import {
   type ConversationOrchestratorDependencies,
-  type OrchestratorOptions,
   resolveOrchestratorContext,
 } from './conversation-orchestrator-types.js';
 import { DeterministicResponseDeliveryCoordinator } from './deterministic-response-delivery-coordinator.js';
 import type { DispatchDeterministicResponseInput } from './deterministic-response-delivery.js';
-
-export type { ConversationOrchestratorDependencies, OrchestratorOptions };
+import {
+  type DeliverSecurityBlockedResponseInput,
+  resolveSecurityBlockedDeliveryInput,
+} from './security-blocked-response.js';
 
 export class ConversationOrchestrator {
   private readonly sessionStore: CallSessionStorePort;
@@ -85,15 +86,23 @@ export class ConversationOrchestrator {
   private async interruptTransport(callId: string, generationId?: string): Promise<void> {
     const opt = generationId !== undefined ? { generationId } : undefined;
     await this.transport.interruptSpeech(callId, opt).catch((err) => {
-      throw new VoiceTransportError(
-        err instanceof Error ? err.message : 'Transport interrupt error',
-      );
+      const msg = err instanceof Error ? err.message : 'Transport interrupt error';
+      throw new VoiceTransportError(msg);
     });
   }
 
   /** Offline delivery seam: OPTION_B ownership commit before speak(). NO routing wired. */
   async deliverDeterministicResponse(input: DispatchDeterministicResponseInput): Promise<void> {
     await this.deterministicDeliveryCoordinator.deliver(input);
+  }
+
+  /** Offline security delivery seam: OPTION_B ownership with canonical safe response. NO routing wired. */
+  async deliverSecurityBlockedResponse(input: DeliverSecurityBlockedResponseInput): Promise<void> {
+    await this.deterministicDeliveryCoordinator.deliver(resolveSecurityBlockedDeliveryInput(input));
+  }
+
+  setActiveGenerationForTest(callId: string, generationId: string): void {
+    this.activeGenerations.set(callId, generationId);
   }
 
   async handleEvent(
@@ -109,13 +118,9 @@ export class ConversationOrchestrator {
     });
 
     if (await this.lifecycleCoordinator.handleLifecycleEvent(session, event)) return;
-
-    if (event.type === 'user.speech.final') {
+    if (event.type === 'user.speech.final')
       return this.handleUserSpeechFinal(session, event, snapshot);
-    }
-    if (event.type === 'user.interruption') {
-      return this.handleUserInterruption(session, event);
-    }
+    if (event.type === 'user.interruption') return this.handleUserInterruption(session, event);
   }
 
   private async handleUserSpeechFinal(
@@ -135,7 +140,6 @@ export class ConversationOrchestrator {
     this.activeGenerations.set(session.callId, generationId);
 
     this.observeShadowTurn(session, turnId, transcript);
-
     await this.streamCoordinator.appendUserUtterance(session, turnId, transcript);
     await this.sessionStore.save({ ...session, currentTurnId: turnId, generationId });
 

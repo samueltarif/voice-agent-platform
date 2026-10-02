@@ -33,3 +33,5 @@ export * from './operating-hours-capability-matcher.js';
 export * from './operating-hours-turn-handler.js';
 export * from './frozen-policy-interpreter.js';
 export * from './deterministic-response-delivery.js';
+export * from './security-blocked-action.js';
+export * from './security-blocked-response.js';
