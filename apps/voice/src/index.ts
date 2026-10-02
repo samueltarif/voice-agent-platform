@@ -35,3 +35,4 @@ export * from './frozen-policy-interpreter.js';
 export * from './deterministic-response-delivery.js';
 export * from './security-blocked-action.js';
 export * from './security-blocked-response.js';
+export * from './guarded-turn-routing-coordinator.js';
