@@ -12360,3 +12360,34 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **FROZEN_POLICY_CHANGED**: `NO`
 - **ACTIVE_GUARDED**: `BLOCKED`
 - **L1A_PROVIDER_EXECUTION**: `AWAITING_OPERATOR_AUTHORIZATION`
+
+---
+
+## 2026-10-02 — PROMPT-006AJ-L1A-PREAUTH-FINAL-CONSISTENCY-001
+
+### 1. Final Hardening e Consistência Pré-Autorização L1A
+- **Branch**: `research/006aj-l1a-live-typesafe-model-identity-smoke`
+- **L1A_PROVIDER_CALLS**: `0` (zero chamadas externas realizadas)
+- **OPERATOR_AUTHORIZATION**: `NOT YET OBSERVED` (status de aprovação monetária corrigido de prematuro para pendente de autorização humana formal)
+- **MONETARY_COST_CEILING**: `PROPOSED_PENDING_OPERATOR_APPROVAL` (teto proposto de $0.10 USD)
+- **MAX_REQUEST_CAP**: `20 / HARD_ENFORCED` (parada estrita no 20º request)
+- **PROJECTED_COST_GUARD**: `IMPLEMENTED / TESTED OFFLINE` (interrupção garantida antes do request se projectedCostNext > teto)
+- **ACTUAL_PROVIDER_BILLING_HARD_CAP**: `NOT VERIFIED / NOT PROVIDER-ENFORCED` (a API remota não possui quota invoice-level enforceada pelo runner; distinção formal documentada)
+- **GENERIC_TYPEERROR_CLASSIFICATION**: `PROVIDER_ERROR` (`INVALID_RESPONSE_SEPARATE_CLASSIFICATION = NOT AVAILABLE FROM CURRENT ADAPTER ERROR SURFACE`, generic TypeError não é assumido como invalid response pois fetch nativo também lança TypeError em falhas de rede)
+- **INTENTIONAL_LIVE_MISMATCH_REQUEST**: `NO` (nenhuma chamada extra ou alteração de modelo esperado será fabricada no teste live; mismatch natural será observado e rejeitado pelo guard)
+- **OFFLINE_MISMATCH_FAIL_SAFE**: `TESTED LOCALLY` (comprovado nos testes unitários e de integração existentes)
+- **DATASET_SHA**: `12828e990c1c2523c159630511aeb945b26a941c24ecaa38776b4a2769a3b0d0` (20 casos verificados)
+- **DRY_RUN_RESULTS**:
+  - `dry-run 1 (missing ceiling)`: `STOP` com código 1 antes de qualquer chamada (`PASS`)
+  - `dry-run 2 (insufficient ceiling 0.0001)`: `STOP` com código 1 antes de qualquer chamada (`PASS`)
+  - `dry-run 3 (missing API key sem --env-file)`: `STOP` com código 1 antes de qualquer chamada (`PASS`)
+  - `provider calls em todos os dry-runs`: `0`
+- **CUSTOMER_DATA**: `0`
+- **OPENAI**: `0`
+- **TWILIO**: `0`
+- **ENV_LOADED_THIS_PROMPT**: `NO`
+- **DB**: `NO`
+- **HOLDOUT**: `NO`
+- **FROZEN_POLICY_CHANGED**: `NO`
+- **ACTIVE_GUARDED**: `BLOCKED`
+- **L1A_PROVIDER_EXECUTION**: `AWAITING_OPERATOR_AUTHORIZATION`

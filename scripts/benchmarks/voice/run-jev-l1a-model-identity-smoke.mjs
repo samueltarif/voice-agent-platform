@@ -62,9 +62,9 @@ function classifyError(err) {
   if (safeName === 'AbortError' || safeName === 'TimeoutError') {
     return { status: 'TIMEOUT', errorCategory: safeName };
   }
-  if (err instanceof TypeError) {
-    return { status: 'INVALID_RESPONSE', errorCategory: safeName };
-  }
+  // Generic TypeError is not mapped to INVALID_RESPONSE because network/fetch failures
+  // in Node can also raise TypeError. The adapter does not export a separate custom
+  // InvalidResponseError. Both map safely to PROVIDER_ERROR.
   return { status: 'PROVIDER_ERROR', errorCategory: safeName };
 }
 
@@ -253,14 +253,16 @@ async function main() {
       datasetSha256: computedHash,
       datasetCaseCount: cases.length,
       maxRequestsCeiling: MAX_PROVIDER_REQUESTS,
-      approvedCostCeilingUsd,
+      projectedCostCeilingUsd: approvedCostCeilingUsd,
+      projectedCostCeilingGuard: 'ENFORCED',
+      actualBilledCostUsd: 'NOT_VERIFIED',
+      invalidResponseSeparateClassification: 'NOT_AVAILABLE_FROM_CURRENT_ADAPTER_ERROR_SURFACE',
       retries: 0,
       concurrency: 1,
       customerData: 0,
       openAiCalls: 0,
       twilioCalls: 0,
       pricePerBtok: PRICE_PER_BTOK,
-      actualBilledCostUsd: 'NOT_VERIFIED',
     },
     aggregates: {
       requestsAttempted,

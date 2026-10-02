@@ -68,7 +68,10 @@ A futura execução controlada do L1A deve operar sob as seguintes travas operac
 - `CUSTOMER_DATA_EXPOSURE`: 0 (absolutamente zero transcrições de clientes)
 - `OPENAI_CALLS`: 0 (L1A avalia apenas o adapter TypeSafe; OpenAI não é invocado)
 - `TWILIO_CALLS`: 0 (nenhuma chamada telefônica)
-- `MONETARY_COST_CEILING`: `APPROVED_BY_OPERATOR / HARD_ENFORCED_IN_RUNNER` (teto rígido de $0.10 USD; projeção conservadora: 20.000 input tokens = $0.00084 USD)
+- `MONETARY_COST_CEILING`: `PROPOSED_PENDING_OPERATOR_APPROVAL` (teto proposto de $0.10 USD; projeção conservadora: 20.000 input tokens = $0.00084 USD)
+- `PROJECTED_COST_CEILING_GUARD`: `IMPLEMENTED / TESTED OFFLINE` (interrompe execução se projectedCostNext ultrapassar o teto fornecido)
+- `MAX_PROVIDER_REQUEST_CAP`: `HARD_ENFORCED` (máximo de 20 requisições strictly enforced)
+- `ACTUAL_BILLED_COST_HARD_CAP`: `NOT VERIFIED / NOT PROVIDER-ENFORCED` (a API remota não possui quota hard enforceada no runner)
 - `INTEGRATIONS_DIST_REFRESH_REQUIRED_BEFORE_L1A`: `YES` (`pnpm --filter @voice-agent/integrations build` obrigatório antes de carregar o runtime com `.env`)
 - `L1A_RESULT_NOT_FOR_TUNING`: `YES` (scores de roteamento omitidos do artefato de resultado; apenas telemetria de identidade e latência descriptiva são persistidas)
 - `SECRET_LEAK_GUARD`: Zero exibição de `TYPESAFE_API_KEY` em logs, stdout ou arquivos de resultado
@@ -85,7 +88,7 @@ A futura execução do L1A só poderá ser considerada `PASS` se satisfizer cumu
 4. **D. Isolamento Estrito de Dados**: Zero dados reais de clientes transmitidos no payload HTTP ou gravados em artefatos.
 5. **E. Zero Retries**: Nenhuma chamada repetida em caso de lentidão ou falha de rede.
 6. **F. Blindagem de Segredos**: Nenhuma chave de API ou token refletido nos logs ou artefatos gerados (`SECRET_AUDIT_PASS`).
-7. **G. Semântica Fail-Safe Comprovada**: Em caso de mismatch sintético intencional de controle, o runtime deve acionar fail-open para geração principal, sem qualquer bypass determinístico ou encerramento indevido de chamada.
+7. **G. Semântica Fail-Safe de Mismatch**: A semântica de fail-open diante de mismatch é pré-requisito comprovado offline (`OFFLINE_MISMATCH_FAIL_SAFE_PREREQUISITE = PASS / TESTED LOCALLY`). No L1A live, nenhuma chamada extra ou alteração de modelo esperado será fabricada para forçar mismatch (`INTENTIONAL_LIVE_MISMATCH_REQUEST = NO`). Caso um mismatch ocorra naturalmente da resposta do provedor (`LIVE_NATURAL_MISMATCH_BEHAVIOR`), o guard deve rejeitá-la e registrar o mismatch sem desvios.
 8. **H. Invariante da Frozen Policy**: Nenhum threshold da Frozen Policy V1 é alterado.
 
 ---
