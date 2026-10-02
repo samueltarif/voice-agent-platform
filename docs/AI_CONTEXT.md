@@ -4,14 +4,14 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-02
-CONTEXT_BASE_MAIN_SHA: 2a09d323a27f9d4f527bb1da7f0fe85fe3eada84
+CONTEXT_BASE_MAIN_SHA: 950e2a3c6abd4eb5fc0acf48d2ff662bf8913a76
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
-CURRENT_SLICE: Response Delivery Lifecycle Design
-CONTEXT_UPDATE_BRANCH: research/006ac-response-delivery-lifecycle-design
-CONTEXT_UPDATE_PR: 57
-LAST_MERGED_PR_AT_REFRESH: 56
-LAST_MERGE_SHA_AT_REFRESH: 2a09d323a27f9d4f527bb1da7f0fe85fe3eada84
-LAST_TESTED_CODE_SHA: 6b984f90efc6a0462224fc579c257a0f99437487
+CURRENT_SLICE: Interruption Context Continuity Offline
+CONTEXT_UPDATE_BRANCH: feat/006ad-interruption-context-continuity
+CONTEXT_UPDATE_PR: 58
+LAST_MERGED_PR_AT_REFRESH: 57
+LAST_MERGE_SHA_AT_REFRESH: 950e2a3c6abd4eb5fc0acf48d2ff662bf8913a76
+LAST_TESTED_CODE_SHA: 754dd7ce7c6226470ea8925829763526df273f1a
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
 AI_CONTEXT_HEADER_END
@@ -136,9 +136,9 @@ AI_CONTEXT_HEADER_END
 
 ## 6. Estado Atual da Evidência de Qualidade (Quality Gate Snapshot)
 
-- **Último `pnpm check` Global**: `PASS` (executado e observado no commit `6b984f90efc6a0462224fc579c257a0f99437487`).
-- **Status das Asserções**: `684 passed`, `45 historical skips`, `0 new skips`, `0 failures` (107 arquivos de teste aprovados, 6 skipped de staging; 729 testes totais).
-- **Regressão de Asserções**: `ASSERTION_WEAKER = 0` (5 novos testes adicionados em PR #55: `ASSERTION_STRONGER: 5`).
+- **Último `pnpm check` Global**: `PASS` (executado e observado no commit `754dd7ce7c6226470ea8925829763526df273f1a`).
+- **Status das Asserções**: `687 passed`, `45 historical skips`, `0 new skips`, `0 failures` (107 arquivos de teste aprovados, 6 skipped de staging; 732 testes totais).
+- **Regressão de Asserções**: `ASSERTION_WEAKER = 0` (3 testes adicionados/reforçados em PR #58 / Slice A: `ASSERTION_STRONGER: 3`).
 - **QUALITY_EVIDENCE_STALE**: `NO` (commits subsequentes estritamente documentais em `docs/`).
 
 ---
@@ -148,7 +148,7 @@ AI_CONTEXT_HEADER_END
 1. `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`: Transmissão de transcrições de clientes para provedores externos proibida.
 2. `KNOWN_DETERMINISTIC_HANDLERS = 1` (`ACTIVE_DETERMINISTIC_BYPASS_READINESS = BLOCKED` até implementação de fiação controlada e testes de integração de runtime).
 3. `POST_DISPATCH_BARGE_IN_DESIGN = DESIGNED` | `POST_DISPATCH_BARGE_IN_RUNTIME = NOT IMPLEMENTED` | `LIVE_PROVIDER_BARGE_IN_VERIFICATION = PROVIDER-UNVERIFIED`
-4. `INTERRUPTED_CONTEXT_CONTINUITY_DESIGN = DESIGNED` | `INTERRUPTED_CONTEXT_CONTINUITY_RUNTIME = NOT IMPLEMENTED`
+4. `INTERRUPTED_CONTEXT_CONTINUITY_DESIGN = DESIGNED` | `INTERRUPTED_CONTEXT_METADATA_PROPAGATION = IMPLEMENTED / TESTED LOCALLY` | `INTERRUPTED_CONTEXT_CONTINUITY_RUNTIME = NOT IMPLEMENTED`
 5. `HISTORY_COMPLETION_DESIGN = DESIGNED` | `HISTORY_COMPLETION_RUNTIME = NOT IMPLEMENTED`
 6. `SECURITY_RESPONSE_DELIVERY_DESIGN = DESIGNED` | `SECURITY_USER_RESPONSE_DELIVERY = NOT IMPLEMENTED`
 7. `ACTIVE_GUARDED = BLOCKED`
@@ -162,9 +162,9 @@ AI_CONTEXT_HEADER_END
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- Slice A: Interruption Context Continuity & Domain Contracts Offline.
-- Estender `UserInterruptionEvent` em `packages/contracts/src/voice/voice-events.ts` com campos opcionais provider-neutral (`interruptedUtterance?: string`, `interruptedDurationMs?: number`) e atualizar `TwilioVoiceTransportAdapter` offline com testes unitários focados.
-- Do NOT wire orchestrator or active runtime yet.
+- Slice B: Deterministic Response Delivery & Ownership in Orchestrator Offline.
+- Implementar despacho determinístico no orquestrador com ownership commit `OPTION_B`, blindagem `DISPATCH_ATTEMPTED -> NO_OPENAI_FALLBACK` e tratamento de interrupção com gravação de histórico qualificado (`Option H4`: `isInterrupted: true`). Coberto por testes unitários e de integração no orquestrador usando fakes.
+- Do NOT wire full ACTIVE_GUARDED runtime yet.
 
 ### `NOT_YET_ALLOWED`:
 - Transmissão de dados reais de clientes para provedores externos.

@@ -9,6 +9,7 @@ import type {
 import type {
   TwilioErrorMessage,
   TwilioInboundMessage,
+  TwilioInterruptMessage,
   TwilioPromptMessage,
 } from './twilio-conversation-relay-types.js';
 
@@ -60,6 +61,26 @@ function translateErrorEvent(
   };
 }
 
+function translateInterruptEvent(
+  message: TwilioInterruptMessage,
+  context: TwilioEventTranslationContext,
+  meta: EventMeta,
+): UserInterruptionEvent {
+  return {
+    type: 'user.interruption',
+    callId: context.callId,
+    organizationId: context.organizationId,
+    turnId: meta.turnId,
+    timestamp: meta.timestamp,
+    ...(message.utteranceUntilInterrupt !== undefined
+      ? { interruptedUtterance: message.utteranceUntilInterrupt }
+      : {}),
+    ...(message.durationUntilInterruptMs !== undefined
+      ? { interruptedDurationMs: message.durationUntilInterruptMs }
+      : {}),
+  };
+}
+
 export function translateTwilioInboundEvent(
   message: TwilioInboundMessage,
   context: TwilioEventTranslationContext,
@@ -77,13 +98,7 @@ export function translateTwilioInboundEvent(
     case 'prompt':
       return translatePromptEvent(message, context, meta);
     case 'interrupt':
-      return {
-        type: 'user.interruption',
-        callId: context.callId,
-        organizationId: context.organizationId,
-        turnId: meta.turnId,
-        timestamp: meta.timestamp,
-      } as UserInterruptionEvent;
+      return translateInterruptEvent(message, context, meta);
     case 'disconnect':
       return {
         type: 'transport.disconnected',

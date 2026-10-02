@@ -269,5 +269,5 @@ RUNTIME_DETERMINISTIC_BYPASS = NOT WIRED
 ## 12. Next-Slice Recommendation
 
 ```
-NEXT_ALLOWED_STEP = Slice A: Interruption Context Continuity & Domain Contracts Offline. Extend UserInterruptionEvent in packages/contracts with optional provider-neutral fields (interruptedUtterance, interruptedDurationMs) and update Twilio adapter offline. Do NOT wire full ACTIVE_GUARDED runtime yet.
+NEXT_ALLOWED_STEP = Slice B: Deterministic Response Delivery & Ownership in Orchestrator Offline. Implement deterministic response delivery with Option B ownership commit and Option H4 qualified history recording. Do NOT wire full ACTIVE_GUARDED runtime yet.
 ```

@@ -25,6 +25,8 @@ export interface UserSpeechFinalEvent extends BaseVoiceInputEvent {
 export interface UserInterruptionEvent extends BaseVoiceInputEvent {
   readonly type: 'user.interruption';
   readonly turnId: string;
+  readonly interruptedUtterance?: string;
+  readonly interruptedDurationMs?: number;
 }
 
 export interface TransportDisconnectedEvent extends BaseVoiceInputEvent {
