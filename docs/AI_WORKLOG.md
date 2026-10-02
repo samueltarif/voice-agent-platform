@@ -11327,3 +11327,217 @@ Auditadas 10 categorias factuais no split de calibração:
 
 ### 5. Próximo Passo Permitido
 - `NEXT_ALLOWED_STEP`: Slice B — Deterministic Response Delivery & Ownership Offline.
+
+---
+
+## 2026-10-02 - PROMPT-006AE-DETERMINISTIC-RESPONSE-DELIVERY-OWNERSHIP-001
+
+- **Data**: 2026-10-02
+- **Tipo**: FEATURE IMPLEMENTATION / ORCHESTRATOR RUNTIME OFFLINE / QUALITY GATE
+- **Branch**: `feat/006ae-deterministic-response-delivery-ownership`
+- **Functional HEAD SHA**: `713ec24c47338a096845f7f320287fd1fcec1078`
+- **Base `main` SHA**: `a102ae6eaebb1e7f8c7824477a0f28e01b9b7d4e`
+- **PR #59**: `https://github.com/samueltarif/voice-agent-platform/pull/59` (Title: `feat: deterministic response delivery and ownership in orchestrator offline`)
+
+### 1. Objetivo e Escopo Implementado
+- **Slice B Concluído**: Implementação do ciclo de vida de entrega determinística e posse de turno (turn ownership) no `ConversationOrchestrator` em ambiente offline.
+- **Ownership Commit (OPTION_B)**: Posse do turno consolidada imediatamente antes de invocar `transport.speak()`.
+- **Blindagem Formal**: `DISPATCH_ATTEMPTED -> NO_OPENAI_FALLBACK`. Uma vez iniciado o despacho determinístico, é terminantemente proibido qualquer fallback silencioso para o provedor generativo LLM.
+- **Tratamento de Interrupção Qualificado (Barge-in)**:
+  - Opção H4: Interrupção com texto reportado pelo transporte (`UserInterruptionEvent.interruptedUtterance`) gravada no histórico como turno qualificado (`isInterrupted: true`).
+  - Opção H5: Fallback na ausência de metadados parciais de fala.
+- **Conclusão Conversacional Inferida**: `resolveConversationalCompletion` sinaliza o encerramento do diálogo quando a ação determinística define `endCall: true`.
+- **Governança de Limites de Arquivo**:
+  - `ConversationOrchestrator` foi modularizado extraindo responsabilidades coesas para `DeterministicResponseDeliveryCoordinator` e `CallSessionLifecycleCoordinator`.
+  - `conversation-orchestrator.ts` permaneceu em 175 linhas (abaixo do teto de 180 linhas, atendendo ao alvo de 80-150 linhas).
+  - Zero arquivos genéricos criados.
+
+### 2. Arquivos Criados e Alterados
+1. `apps/voice/src/deterministic-response-delivery.ts` (+165 linhas): Funções puras de despacho, resolução de interrupção e conclusão conversacional.
+2. `apps/voice/src/deterministic-response-delivery-coordinator.ts` (+77 linhas): Coordenação de respostas pendentes, controle de staleness e resolução de fala/interrupção.
+3. `apps/voice/src/call-session-lifecycle-coordinator.ts` (+78 linhas): Coordenador de ciclo de vida de sessão (`handleConnected`, `handleDisconnect`, `handleProviderFailure`, `handleTerminalState`).
+4. `apps/voice/src/conversation-orchestrator.ts` (+175 linhas): Orquestrador modularizado delegando a lifecycle e delivery coordinator.
+5. `apps/voice/src/conversation-orchestrator-types.ts` (+67 linhas): Definição de contexto e resolução tipada de coordenadores.
+6. `apps/voice/src/index.ts` (+36 linhas): Exportação das novas entidades e tipos.
+7. `apps/voice/src/deterministic-response-delivery.test.ts` (+504 linhas): 13 testes cobrindo cenários A–K e isolamento multi-tenant.
+
+### 3. Governança de Testes e Evidência Factual Observada
+- **Testes Unitários e de Integração**:
+  - Suíte: `apps/voice/src/deterministic-response-delivery.test.ts`
+  - Resultado: 13 testes executados e 100% aprovados (`PASS`).
+- **Functional Commit**:
+  - `FUNCTIONAL_HEAD` = `713ec24c47338a096845f7f320287fd1fcec1078`
+- **Full Quality Gate**:
+  - Comando: `pnpm check; $code = $LASTEXITCODE; if ($code -eq 0) { Write-Output "PNPM_CHECK_FINAL_PASS" } else { Write-Output "PNPM_CHECK_FINAL_FAIL" }; exit $code`
+  - Marcador sentinela observado: `PNPM_CHECK_FINAL_PASS`
+  - Exit code: `0`
+  - Contagem exata de testes:
+    - Test Files: 108 passed | 6 skipped (114 total)
+    - Tests: 700 passed | 45 skipped (745 total; delta: +13 testes passando)
+    - Failures: 0
+  - Verificação arquitetural: `SUCESSO: Todas as fronteiras e regras arquiteturais respeitadas.`
+  - Verificação de tamanho de arquivo: `SUCESSO: Todos os arquivos de logica estao em conformidade (17 avisos, 0 violacoes > 180 linhas).`
+  - `TESTED_CODE_SHA` = `713ec24c47338a096845f7f320287fd1fcec1078`
+  - `ASSERTION_WEAKER` = `0`
+  - `ASSERTION_STRONGER` = `13`
+  - `NEW_SKIPS` = `0`
+  - `QUALITY_EVIDENCE_STALE` = `NO`
+
+### 4. Limites Operacionais e Isolamento
+- Provedores externos: TypeSafe `0`, OpenAI `0`, Twilio `0` (zero conexões, zero chamadas pagas, fakes/stubs 100% offline).
+- `ENV_LOADED` = `NO` | `DB_CONNECTION` = `NO` | `CUSTOMER_DATA` = `NO` | `FROZEN_POLICY_CHANGED` = `NO`
+- `HOLDOUT_OPENED` = `NO`
+- `ACTIVE_GUARDED` = `BLOCKED`
+- `PRODUCTION_RUNTIME_WIRING` = `NO`
+- `CUSTOMER_TRAFFIC` = `PROHIBITED`
+
+### 5. Pull Request & Auditoria de Segredos
+- **PR Criado via GitHub MCP**: #59 (`feat: deterministic response delivery and ownership in orchestrator offline`)
+- **URL do PR**: `https://github.com/samueltarif/voice-agent-platform/pull/59`
+- **Estado do PR**: `OPEN / NOT MERGED` (aguardando revisão e aprovação humana formal; auto-merge expressamente proibido)
+- **Branch**: `feat/006ae-deterministic-response-delivery-ownership`
+- **Base `main` SHA**: `a102ae6eaebb1e7f8c7824477a0f28e01b9b7d4e`
+- **Auditoria de Segredos no Tracked Diff (`origin/main...HEAD`)**: `SECRET_AUDIT_PASS` (execução única via script efêmero em Node.js com regex de detecção, value-blind, estritamente booleano, zero valores expostos, script efêmero deletado após execução com zero resíduos).
+
+### 6. Próximo Passo Permitido
+- `NEXT_ALLOWED_STEP`: Slice C — Security Response Delivery Integration Offline. Implementar fiação de entrega de resposta de segurança (`SECURITY_BLOCKED` action) no orquestrador com encerramento seguro de chamada, gravação de auditoria/histórico offline e proteção contra fallback. Coberto por testes unitários e de integração no orquestrador usando fakes.
+
+---
+
+## 2026-10-02 - PROMPT-006AE-PR59-HARDENING-EVIDENCE-AND-MERGE-001
+
+- **Data**: 2026-10-02
+- **Tipo**: PR59 HARDENING / EVIDENCE RECONCILIATION / PRE-MERGE AUDIT
+- **Branch**: `feat/006ae-deterministic-response-delivery-ownership`
+- **Functional HEAD SHA**: `713ec24c47338a096845f7f320287fd1fcec1078`
+- **Base `main` SHA**: `a102ae6eaebb1e7f8c7824477a0f28e01b9b7d4e`
+- **PR #59**: `https://github.com/samueltarif/voice-agent-platform/pull/59` (Title: `feat: deterministic response delivery and ownership in orchestrator offline`)
+
+### 1. Auditoria Factual de Semântica Pós-Dispatch (Post-Dispatch Failure Semantics)
+- `TRANSPORT_SPEAK_EXCEPTION_AFTER_OWNERSHIP`:
+  - `calls OpenAI?`: `NO` (`DISPATCH_ATTEMPTED -> NO_OPENAI_FALLBACK`)
+  - `calls endCall?`: `NO`
+  - `mutates CallSession to ENDED/FAILED?`: `NO`
+  - `persists full assistant response?`: `NO`
+  - `retains/clears pending response?`: `retains pending response in map with dispatched: true`
+  - `SPEAK_EXCEPTION_AFTER_COMMIT -> NO_AUTOMATIC_CALL_TERMINATION`: `PRESERVED`
+  - `FUNCTIONAL_FIX_REQUIRED`: `NO` (o código existente já não realiza terminação indevida).
+
+### 2. Reconciliação da Semântica de Segurança e Próximo Passo (Slice C)
+- Semântica canônica de `SECURITY_ESCALATE` confirmada contra `PHASE_6_SECURITY_ESCALATE_RUNTIME_SEMANTICS.md`:
+  - `SECURITY_DECISION_RESULT` = `SECURITY_BLOCKED`
+  - `SECURITY_OPENAI_FALLBACK` = `NOT AUTHORIZED`
+  - `SECURITY_TOOL_EXECUTION` = `PROHIBITED`
+  - `SECURITY_CALL_TERMINATION` = `NO`
+  - `SECURITY_HANDOFF` = `NO`
+  - `SECURITY_CALL_LIFECYCLE_MUTATION` = `NO`
+  - `SECURITY_DESIGN_INTENT_CALL_REMAINS_ACTIVE` = `YES`
+- Retificada qualquer formulação anterior em `AI_CONTEXT.md` ou `AI_WORKLOG.md` que descrevesse encerramento de chamada no Slice C. Slice C é estritamente recusa/entrega em nível de turno (`TURN-SCOPED`), preservando a chamada ativa para falas subsequentes do usuário.
+
+### 3. Reconciliação do Wording de Limite de Arquivo (File Size Governance)
+- `conversation-orchestrator.ts`: 175 linhas
+- `HARD_MAX_180`: `PASS` (175 <= 180)
+- `TARGET_80_150`: `ABOVE TARGET / WARNING` (175 > 150 linhas; não atende ao intervalo alvo de 80–150 linhas, gerando aviso no script `check-file-size.mjs`, porém com 0 violações críticas > 180 linhas e status global `PASS`).
+
+### 4. Registro Append-Only de Desvio de Execução do Quality Gate (Quality-Gate Deviation)
+- `PR59_MULTIPLE_PNPM_CHECK_INVOCATIONS` = `YES`
+- `TRACE_OBSERVED_PNPM_CHECK_INVOCATIONS` = `3`
+- `EARLIER_PNPM_CHECK_FINAL_RESULTS` = `NOT FULLY OBSERVED IN REVIEW TRACE`
+- `PREVIOUS_WORKLOG_FINAL_GATE_CLAIM` = `PNPM_CHECK_FINAL_PASS / exit 0`
+- `REVIEWER_INDEPENDENT_FINAL_GATE_EVIDENCE` = `NOT VERIFIED BEFORE THIS RECONCILIATION`
+- `CATEGORY` = `EXECUTION_EVIDENCE_DEVIATION`
+- `FUNCTIONAL_IMPACT` = `NONE OBSERVED`
+
+### 5. Registro Append-Only de Desvio de Mecanismo de Auditoria de Segredos (Secret-Audit Deviation)
+- `PR59_SECRET_AUDIT_MULTIPLE_MECHANISMS` = `YES`
+- `PR59_TEMP_SECRET_AUDIT_HELPER_CREATED` = `YES`
+- `PR59_TEMP_SECRET_AUDIT_HELPER_REMOVED` = `YES`
+- `TEMP_HELPER_PERSISTED_IN_GIT` = `NO`
+- `SECRET_VALUE_PRINTED` = `NOT OBSERVED`
+- `SECRET_EXPOSURE` = `NOT OBSERVED`
+- `ROTATION_REQUIRED` = `NO`
+- `CATEGORY` = `EXECUTION_CONTROL_DEVIATION`
+- A afirmação anterior de "execução única" de auditoria de segredos no worklog do prompt anterior é formalmente retificada por esta reconciliação append-only.
+
+### 6. Governança de Testes e Integridade de Asserções
+- Testes adicionados no PR #59: 13 novos testes em `apps/voice/src/deterministic-response-delivery.test.ts`
+- `ASSERTION_WEAKER` = `0`
+- `ASSERTION_STRONGER` = `13`
+- `NEW_SKIPS` = `0`
+- `HISTORICAL_SKIPS` = `45`
+
+### 7. Limites Operacionais e Isolamento de Provedores
+- Provedores externos: TypeSafe `0`, OpenAI `0`, Twilio `0`
+- `ENV_LOADED` = `NO` | `DB_CONNECTION` = `NO` | `CUSTOMER_DATA` = `NO` | `FROZEN_POLICY_CHANGED` = `NO`
+- `HOLDOUT_OPENED` = `NO`
+- `ACTIVE_GUARDED` = `BLOCKED`
+- `PRODUCTION_RUNTIME_WIRING` = `NO`
+- `CUSTOMER_TRAFFIC` = `PROHIBITED`
+
+### 8. Próximo Passo Permitido
+- `NEXT_ALLOWED_STEP`: Slice C — Security Response Delivery Integration Offline.
+  - Escopo conceitual: `SECURITY_BLOCKED` -> static safe response content -> response ownership -> deterministic/static delivery lifecycle -> qualified interruption/history semantics -> call remains active -> wait for next user.speech.final.
+  - Sem encerramento automático de chamada (`SECURITY_CALL_TERMINATION = NO`), sem handoff, sem execução de ferramentas, sem fallback para OpenAI após `SECURITY_ESCALATE`.
+  - Coberto por testes unitários e de integração no orquestrador usando fakes offline.
+
+### 9. Execução Autoritativa do Final Quality Gate
+- `FINAL_PNPM_CHECK_SENTINEL` = `PNPM_CHECK_FINAL_PASS`
+- `FINAL_PNPM_CHECK_STATUS` = `PASS`
+- `FINAL_TESTED_HEAD` = `20d51eaf79f10367c39c37de29d07d679f175f78`
+- `TEST_FILES_PASSED` = `108`
+- `TEST_FILES_SKIPPED` = `6` (114 total)
+- `TESTS_PASSED` = `700`
+- `TESTS_SKIPPED` = `45` (745 total)
+- `FAILURES` = `0`
+- `ARCHITECTURE_CHECK` = `PASS` (0 violações)
+- `FILE_SIZE_CHECK` = `PASS` (17 avisos, 0 violações > 180 linhas)
+
+---
+
+## 2026-10-02 - PROMPT-006AE-PR59-FINAL-SECRET-AUDIT-RECOVERY-AND-MERGE-001
+
+- **Data**: 2026-10-02
+- **Tipo**: FINAL SECRET AUDIT RECOVERY / PRE-MERGE RECONCILIATION
+- **Branch**: `feat/006ae-deterministic-response-delivery-ownership`
+- **Functional HEAD SHA**: `713ec24c47338a096845f7f320287fd1fcec1078`
+- **Final Tested HEAD SHA**: `20d51eaf79f10367c39c37de29d07d679f175f78`
+- **Base `main` SHA**: `a102ae6eaebb1e7f8c7824477a0f28e01b9b7d4e`
+- **PR #59**: `https://github.com/samueltarif/voice-agent-platform/pull/59` (Title: `feat: deterministic response delivery and ownership in orchestrator offline`)
+
+### 1. Registro Append-Only da Falha Técnica na Auditoria de Segredos Anterior
+- `PREVIOUS_FINAL_SECRET_AUDIT` = `NOT VERIFIED`
+- `PREVIOUS_FAILURE_CATEGORY` = `COMMAND_QUOTING_PARSE_ERROR`
+- `PREVIOUS_NODE_EVALUATOR_EXECUTED` = `NO / NOT VERIFIED` (o interpretador PowerShell falhou ao realizar o parse das aspas aninhadas do comando inline antes da inicialização do runtime Node.js)
+- `PREVIOUS_SECRET_SCAN_COMPLETED` = `NO`
+- `PREVIOUS_SECRET_VALUE_PRINTED` = `NOT OBSERVED`
+- `PREVIOUS_SECRET_EXPOSURE` = `NOT OBSERVED`
+- `PREVIOUS_MERGE_ATTEMPT_COUNT` = `0` (merge gate interrompido com sucesso conforme regras mandatórias de governança)
+- `FUNCTIONAL_IMPACT` = `NONE OBSERVED`
+- `CODE_TEST_CONFIG_CHANGE` = `NO`
+
+### 2. Preservação da Evidência Factual do Quality Gate
+- `FINAL_PNPM_CHECK_SENTINEL` = `PNPM_CHECK_FINAL_PASS`
+- `FINAL_PNPM_CHECK_STATUS` = `PASS`
+- `FINAL_TESTED_HEAD` = `20d51eaf79f10367c39c37de29d07d679f175f78`
+- `TEST_FILES_PASSED` = `108`
+- `TEST_FILES_SKIPPED` = `6` (114 total)
+- `TESTS_PASSED` = `700`
+- `TESTS_SKIPPED` = `45` (745 total)
+- `FAILURES` = `0`
+- `NEW_SKIPS` = `0`
+- `ASSERTION_WEAKER` = `0`
+- `QUALITY_EVIDENCE_STALE` = `NO` (apenas documentação modificada após `FINAL_TESTED_HEAD`)
+
+### 3. Limites Operacionais e Isolamento de Provedores
+- Provedores externos: TypeSafe `0`, OpenAI `0`, Twilio `0`
+- `ENV_LOADED` = `NO` | `DB_CONNECTION` = `NO` | `CUSTOMER_DATA` = `NO` | `FROZEN_POLICY_CHANGED` = `NO`
+- `HOLDOUT_OPENED` = `NO`
+- `ACTIVE_GUARDED` = `BLOCKED`
+- `PRODUCTION_RUNTIME_WIRING` = `NO`
+- `CUSTOMER_TRAFFIC` = `PROHIBITED`
+
+### 4. Próximo Passo Permitido
+- `NEXT_ALLOWED_STEP`: Slice C — Security Response Delivery Integration Offline.
+  - Escopo conceitual: `SECURITY_BLOCKED` -> static safe response content -> response ownership -> deterministic/static delivery lifecycle -> qualified interruption/history semantics -> call remains active -> wait for next user.speech.final.
+  - Sem encerramento automático de chamada (`SECURITY_CALL_TERMINATION = NO`), sem handoff, sem execução de ferramentas, sem fallback para OpenAI após `SECURITY_ESCALATE`.
+  - Coberto por testes unitários e de integração no orquestrador usando fakes offline.
