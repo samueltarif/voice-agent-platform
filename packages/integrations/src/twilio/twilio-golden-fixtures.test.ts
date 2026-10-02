@@ -69,6 +69,10 @@ describe('Twilio ConversationRelay Golden Fixtures & Protocol Fidelity', () => {
     expect(parsed.type).toBe('interrupt');
     const event = translateTwilioInboundEvent(parsed, context);
     expect(event?.type).toBe('user.interruption');
+    if (event?.type === 'user.interruption') {
+      expect(event.interruptedUtterance).toBe('Não, prefiro falar sobre cancelamento');
+      expect(event.interruptedDurationMs).toBe(1450);
+    }
   });
 
   it('produces official Twilio text token outbound message shape', () => {

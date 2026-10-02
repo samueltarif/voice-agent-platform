@@ -58,6 +58,55 @@ describe('Twilio Event & Command Translators', () => {
       expect(event?.type).toBe('user.interruption');
       if (event?.type === 'user.interruption') {
         expect(event.turnId).toBe('test_turn_1');
+        expect(event.interruptedUtterance).toBe('Espere um pouco...');
+        expect(event.interruptedDurationMs).toBeUndefined();
+      }
+    });
+
+    it('translates interrupt message with both utterance and duration metadata', () => {
+      const parsed = parseTwilioInboundMessage({
+        type: 'interrupt',
+        utteranceUntilInterrupt: 'Nosso horário é de segunda a sexta',
+        durationUntilInterruptMs: 1250,
+      });
+      const event = translateTwilioInboundEvent(parsed, context);
+
+      expect(event).not.toBeNull();
+      expect(event?.type).toBe('user.interruption');
+      if (event?.type === 'user.interruption') {
+        expect(event.interruptedUtterance).toBe('Nosso horário é de segunda a sexta');
+        expect(event.interruptedDurationMs).toBe(1250);
+      }
+    });
+
+    it('preserves durationUntilInterruptMs when value is zero', () => {
+      const parsed = parseTwilioInboundMessage({
+        type: 'interrupt',
+        utteranceUntilInterrupt: 'Olá',
+        durationUntilInterruptMs: 0,
+      });
+      const event = translateTwilioInboundEvent(parsed, context);
+
+      expect(event).not.toBeNull();
+      expect(event?.type).toBe('user.interruption');
+      if (event?.type === 'user.interruption') {
+        expect(event.interruptedDurationMs).toBe(0);
+        expect(event.interruptedUtterance).toBe('Olá');
+      }
+    });
+
+    it('translates interrupt message without optional metadata with properties omitted', () => {
+      const parsed = parseTwilioInboundMessage({
+        type: 'interrupt',
+      });
+      const event = translateTwilioInboundEvent(parsed, context);
+
+      expect(event).not.toBeNull();
+      expect(event?.type).toBe('user.interruption');
+      if (event?.type === 'user.interruption') {
+        expect(event.turnId).toBe('test_turn_1');
+        expect('interruptedUtterance' in event).toBe(false);
+        expect('interruptedDurationMs' in event).toBe(false);
       }
     });
 
