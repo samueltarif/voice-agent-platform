@@ -4,13 +4,13 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-02
-CONTEXT_BASE_MAIN_SHA: 6b984f90efc6a0462224fc579c257a0f99437487
+CONTEXT_BASE_MAIN_SHA: 2a09d323a27f9d4f527bb1da7f0fe85fe3eada84
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
-CURRENT_SLICE: Post-PR55 Main Quality Revalidation
-CONTEXT_UPDATE_BRANCH: docs/006ab-post-pr55-quality-context-refresh
-CONTEXT_UPDATE_PR: 56
-LAST_MERGED_PR_AT_REFRESH: 55
-LAST_MERGE_SHA_AT_REFRESH: 6b984f90efc6a0462224fc579c257a0f99437487
+CURRENT_SLICE: Response Delivery Lifecycle Design
+CONTEXT_UPDATE_BRANCH: research/006ac-response-delivery-lifecycle-design
+CONTEXT_UPDATE_PR: PENDING
+LAST_MERGED_PR_AT_REFRESH: 56
+LAST_MERGE_SHA_AT_REFRESH: 2a09d323a27f9d4f527bb1da7f0fe85fe3eada84
 LAST_TESTED_CODE_SHA: 6b984f90efc6a0462224fc579c257a0f99437487
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
@@ -156,13 +156,8 @@ AI_CONTEXT_HEADER_END
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- Design deterministic/security response delivery lifecycle, focused on:
-  - post-dispatch interruption;
-  - outbound cancellation semantics;
-  - playback completion semantics;
-  - history completion safety;
-  - response ownership after dispatch.
-- Do NOT wire orchestrator yet.
+- Implement minimal offline delivery slice (Slice A: Interruption context continuity & domain contracts offline, or Slice B: Deterministic response delivery & ownership in orchestrator offline).
+- Do NOT wire full ACTIVE_GUARDED runtime yet.
 
 ### `NOT_YET_ALLOWED`:
 - Transmissão de dados reais de clientes para provedores externos.
@@ -186,6 +181,8 @@ AI_CONTEXT_HEADER_END
 - [research/PHASE_6_TYPESAFE_STAGING_LATENCY_RESULT.md](research/PHASE_6_TYPESAFE_STAGING_LATENCY_RESULT.md): Relatório de evidência da bateria controlada de latência em staging sintético.
 - [research/results/phase-6-staging-shadow-latency-evidence.json](research/results/phase-6-staging-shadow-latency-evidence.json): Artefato estruturado de evidência de latência (N=12).
 - [research/PHASE_6_DETERMINISTIC_HANDLER_DESIGN.md](research/PHASE_6_DETERMINISTIC_HANDLER_DESIGN.md): Documento de design do primeiro candidato a handler determinístico (`agent.operating_hours`).
+- [research/PHASE_6_DETERMINISTIC_RUNTIME_WIRING_DESIGN.md](research/PHASE_6_DETERMINISTIC_RUNTIME_WIRING_DESIGN.md): Documento de design da fiação de runtime determinístico e pré-requisitos de ACTIVE_GUARDED.
+- [research/PHASE_6_RESPONSE_DELIVERY_LIFECYCLE_DESIGN.md](research/PHASE_6_RESPONSE_DELIVERY_LIFECYCLE_DESIGN.md): Design do ciclo de vida de entrega de respostas determinísticas e de segurança sob barge-in.
 - [AGENT_STUDIO.md](AGENT_STUDIO.md): Especificação e matriz de entrega do Agent Studio (005B, 005C, 005D).
 
 ---

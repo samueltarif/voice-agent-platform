@@ -17,12 +17,12 @@
 O design arquitetural da fiação do runtime determinístico foi conceituado, porém **NÃO está pronto para fiação no orquestrador** devido aos seguintes bloqueadores formais identificados na auditoria:
 
 1. `SECURITY_OFFLINE_ACTION`: `IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/security-blocked-action.ts`; `SECURITY_RUNTIME_SEMANTICS = DESIGNED`).
-2. `SECURITY_RUNTIME_ROUTING_INTEGRATION`: `NOT IMPLEMENTED` (`SECURITY_RESPONSE_DELIVERY_READY = NO`; entrega e fiação no orquestrador permanecem bloqueadas).
-3. `DETERMINISTIC_POST_DISPATCH_BARGE_IN`: `NOT VERIFIED`.
-4. `CURRENT_ADAPTER_POST_DISPATCH_CANCEL_SUPPORTED`: `NO` (auditado no adapter Twilio versionado em `packages/integrations/src/twilio/**`; `EXTERNAL_PROVIDER_CAPABILITY_BEYOND_CURRENT_ADAPTER = NOT VERIFIED`).
-5. `CURRENT_ADAPTER_PLAYBACK_COMPLETION_SIGNAL`: `NO` (adapter local não emite sinal de conclusão acústica; `EXTERNAL_PROVIDER_CAPABILITY_BEYOND_CURRENT_ADAPTER = NOT VERIFIED`).
-6. `DETERMINISTIC_AUDIO_FULLY_DELIVERED`: `NOT VERIFIED` após speak dispatch.
-7. `DETERMINISTIC_HISTORY_COMPLETION_AFTER_SPEAK`: `NOT AUTOMATICALLY SAFE` (risco de persistir resposta cancelada como completa).
+2. `SECURITY_RUNTIME_ROUTING_INTEGRATION`: `NOT IMPLEMENTED` (`SECURITY_RESPONSE_DELIVERY_DESIGN = DESIGNED`; fiação e execução no orquestrador permanecem `NOT IMPLEMENTED`).
+3. `POST_DISPATCH_BARGE_IN_DESIGN`: `DESIGNED` (`docs/research/PHASE_6_RESPONSE_DELIVERY_LIFECYCLE_DESIGN.md`; `POST_DISPATCH_BARGE_IN_RUNTIME = NOT IMPLEMENTED`).
+4. `CURRENT_ADAPTER_POST_DISPATCH_CANCEL_SUPPORTED`: `NO` (confirmado na documentação oficial da Twilio: protocolo ConversationRelay não possui comando outbound de cancel; auto-interrupção ocorre na borda do provider).
+5. `CURRENT_ADAPTER_PLAYBACK_COMPLETION_SIGNAL`: `NO` (confirmado na documentação oficial da Twilio: protocolo ConversationRelay não emite ack de playback acústico).
+6. `DETERMINISTIC_AUDIO_FULLY_DELIVERED`: `NOT VERIFIED` após speak dispatch (inobservável acusticamente no provider).
+7. `DETERMINISTIC_HISTORY_COMPLETION_AFTER_SPEAK`: `DESIGNED` (Option H4 com `isInterrupted: true`; `RUNTIME_IMPLEMENTATION = NOT IMPLEMENTED`).
 8. `ACTIVE_GUARDED_PROVIDER_CALL_OWNERSHIP`: `BLOCKED / NOT IMPLEMENTED` (risco de dupla consulta Jev se shadowObserver coexistir).
 9. `RUNTIME_FROZEN_POLICY_INTERPRETER`: `IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/frozen-policy-interpreter.ts`; 20 testes unitários; `FROZEN_POLICY_CHANGED = NO`).
 
@@ -550,13 +550,14 @@ NEW_COORDINATOR_REQUIRED = NO
 | `SECURITY_RUNTIME_SEMANTICS` | **DESIGNED** | Definido em `docs/research/PHASE_6_SECURITY_ESCALATE_RUNTIME_SEMANTICS.md` |
 | `SECURITY_OFFLINE_ACTION` | **IMPLEMENTED / TESTED LOCALLY** | Implementado em `security-blocked-action.ts` (5 testes unitários) |
 | `SECURITY_RUNTIME_ROUTING_INTEGRATION` | **NOT IMPLEMENTED** | Bloqueador de fiação |
-| `SECURITY_USER_RESPONSE_DELIVERY` | **NOT IMPLEMENTED** | Entrega não implementada |
-| `SECURITY_RESPONSE_DELIVERY_READY` | **NO** | Bloqueador formal de entrega |
-| `DETERMINISTIC_POST_DISPATCH_BARGE_IN` | **NOT VERIFIED** | Bloqueador de fidelidade conversacional |
-| `CURRENT_ADAPTER_POST_DISPATCH_CANCEL_SUPPORTED` | **NO** | Limitação do adapter Twilio versionado no repositório (`EXTERNAL_PROVIDER_CAPABILITY_BEYOND_CURRENT_ADAPTER = NOT VERIFIED`) |
-| `CURRENT_ADAPTER_PLAYBACK_COMPLETION_SIGNAL` | **NO** | Limitação do adapter Twilio Conversation Relay versionado no repositório (`EXTERNAL_PROVIDER_CAPABILITY_BEYOND_CURRENT_ADAPTER = NOT VERIFIED`) |
-| `DETERMINISTIC_AUDIO_FULLY_DELIVERED` | **NOT VERIFIED** | Incerteza pós-despacho |
-| `DETERMINISTIC_HISTORY_COMPLETION_AFTER_SPEAK` | **NOT AUTOMATICALLY SAFE** | Risco de histórico inconsistente sob interrupção |
+| `SECURITY_USER_RESPONSE_DELIVERY` | **NOT IMPLEMENTED** | Entrega não implementada (`SECURITY_RESPONSE_DELIVERY_DESIGN = DESIGNED`) |
+| `SECURITY_RESPONSE_DELIVERY_READY` | **NO** | Entrega não faturada/testada no runtime (`DESIGNED`, mas `RUNTIME = NOT IMPLEMENTED`) |
+| `POST_DISPATCH_BARGE_IN_DESIGN` | **DESIGNED** | Definido em `docs/research/PHASE_6_RESPONSE_DELIVERY_LIFECYCLE_DESIGN.md` |
+| `POST_DISPATCH_BARGE_IN_RUNTIME` | **NOT IMPLEMENTED** | Implementação de runtime de barge-in ainda não executada |
+| `CURRENT_ADAPTER_POST_DISPATCH_CANCEL_SUPPORTED` | **NO** | Protocolo Twilio CR não possui cancel outbound; interrupção ocorre na borda |
+| `CURRENT_ADAPTER_PLAYBACK_COMPLETION_SIGNAL` | **NO** | Protocolo Twilio CR não emite ack de playback acústico |
+| `DETERMINISTIC_AUDIO_FULLY_DELIVERED` | **NOT VERIFIED** | Inobservável no provider; tratado via semântica de interrupção |
+| `DETERMINISTIC_HISTORY_COMPLETION_AFTER_SPEAK` | **DESIGNED** | Option H4 (`isInterrupted: true`); `RUNTIME = NOT IMPLEMENTED` |
 | `ACTIVE_GUARDED_PROVIDER_CALL_OWNERSHIP` | **BLOCKED / NOT IMPLEMENTED** | Risco de chamadas concorrentes/duplicadas ao Jev |
 | `DETERMINISTIC_RESPONSE_DELIVERY` (wiring) | **NOT WIRED** | Pendente de resolução de bloqueadores |
 | `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE` | **NOT CLEARED** | Gate de privacidade |
