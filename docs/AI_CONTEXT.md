@@ -4,14 +4,14 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-02
-CONTEXT_BASE_MAIN_SHA: 8f6382c473ae10f9a38b3bb018e89dc51ef40b61
+CONTEXT_BASE_MAIN_SHA: 4db21b28da7ddc02053e5dce3805f97555fa9eb3
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
-CURRENT_SLICE: ACTIVE_GUARDED Production Readiness Gate Design
-CONTEXT_UPDATE_BRANCH: research/006ah-active-guarded-production-readiness-gate
-CONTEXT_UPDATE_PR: 62
-LAST_MERGED_PR_AT_REFRESH: 61
-LAST_MERGE_SHA_AT_REFRESH: 8f6382c473ae10f9a38b3bb018e89dc51ef40b61
-LAST_TESTED_CODE_SHA: 322453c23f526a00ca1f2f33b3797416d0b97cb3
+CURRENT_SLICE: Model Identity Guard & L1A Synthetic Functional Smoke Plan
+CONTEXT_UPDATE_BRANCH: feat/006ai-model-identity-guard-offline
+CONTEXT_UPDATE_PR: 63
+LAST_MERGED_PR_AT_REFRESH: 62
+LAST_MERGE_SHA_AT_REFRESH: 4db21b28da7ddc02053e5dce3805f97555fa9eb3
+LAST_TESTED_CODE_SHA: cf1336285a18d9359b7b9a5d7a87def70e6595f9
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
 AI_CONTEXT_HEADER_END
@@ -79,11 +79,13 @@ AI_CONTEXT_HEADER_END
 - **SECURITY_CALL_REMAINS_ACTIVE**: `YES`.
 - **SECURITY_OPENAI_FALLBACK**: `NOT AUTHORIZED / ZERO CALLS IN TESTED PATH`.
 - **SECURITY_RUNTIME_ROUTING_INTEGRATION**: `IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/guarded-turn-routing-coordinator.ts`).
-- **GUARDED_RUNTIME_ROUTING_OFFLINE**: `IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/guarded-turn-routing-coordinator.ts`, `apps/voice/src/conversation-orchestrator.ts`; 16 testes em `apps/voice/src/guarded-turn-routing.test.ts`).
+- **GUARDED_RUNTIME_ROUTING_OFFLINE**: `IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/guarded-turn-routing-coordinator.ts`, `apps/voice/src/conversation-orchestrator.ts`; 18 testes em `apps/voice/src/guarded-turn-routing.test.ts`).
 - **AUXILIARY_DECISION_CALL_OWNERSHIP**: `SINGLE_OWNER` (enforced no orchestrator; shadowObserver suprimido quando guardedRoutingPort configurado).
 - **FAIL_CLOSED_TO_DETERMINISTIC_BYPASS**: `YES` (falha no Jev aciona fallback generativo streamTurn, nunca bypass).
 - **FAIL_OPEN_TO_GENERATIVE_MODEL**: `YES`.
-- **MODEL_DRIFT_RUNTIME_GUARD**: `NOT IMPLEMENTED` (`MODEL_DRIFT_GUARD_REQUIRED_BEFORE_ACTIVE_GUARDED = YES`).
+- **MODEL_DRIFT_RUNTIME_GUARD**: `IMPLEMENTED / TESTED LOCALLY` (`packages/integrations/src/typesafe/typesafe-jev-turn-decision-adapter.ts`; 23 testes; exact match via `expectedProviderModel`).
+- **EXPECTED_MODEL_AUTHORITY**: `OPTION_B` (TypeSafe adapter integration config: options.expectedProviderModel).
+- **L1A_MODEL_IDENTITY_SMOKE_PLAN**: `DESIGNED / NOT EXECUTED` (`docs/research/PHASE_6_TYPESAFE_L1A_MODEL_IDENTITY_SMOKE_PLAN.md`; dataset sintético N=20).
 - **SECURITY_RUNTIME_SEMANTICS**: `DESIGNED` (`docs/research/PHASE_6_SECURITY_ESCALATE_RUNTIME_SEMANTICS.md`).
 - **SECURITY_RESPONSE_DELIVERY_READY**: `IMPLEMENTED LOCALLY / ROUTING INTEGRATED`.
 - **SECURITY_HISTORY_PERSISTENCE_READY**: `IMPLEMENTED LOCALLY (Turn-scoped qualified H4/H5 history resolution)`.
@@ -151,12 +153,12 @@ AI_CONTEXT_HEADER_END
 
 ## 6. Estado Atual da Evidência de Qualidade (Quality Gate Snapshot)
 
-- **Último `pnpm check` Global**: `PASS` (executado e observado no commit `322453c23f526a00ca1f2f33b3797416d0b97cb3` com sentinela `PNPM_CHECK_FINAL_PASS`).
-- **Status das Asserções**: `727 passed`, `45 historical skips`, `0 new skips`, `0 failures` (110 arquivos de teste aprovados, 6 skipped de staging; 772 testes totais).
-- **Regressão de Asserções**: `ASSERTION_WEAKER = 0` (16 testes em `guarded-turn-routing.test.ts`: `ASSERTION_STRONGER: 16`).
+- **Último `pnpm check` Global**: `PASS` (executado e observado no commit `b99f15583ae350bcd01d37759fcc4016e63eac34` com sentinela `PNPM_CHECK_FINAL_PASS`).
+- **Status das Asserções**: `738 passed`, `45 historical skips`, `0 new skips`, `0 failures` (110 arquivos de teste aprovados, 6 skipped de staging; 783 testes totais).
+- **Regressão de Asserções**: `ASSERTION_WEAKER = 0`, `EXISTING_TEST_ASSERTION_STRONGER = 0`, `EXISTING_TEST_ASSERTION_EQUIVALENT = 0`, `NEW_TESTS_ADDED = 11` (9 em `typesafe-jev-turn-decision-adapter.test.ts`, 2 em `guarded-turn-routing.test.ts`).
 - **Verificação Arquitetural**: `SUCESSO: Todas as fronteiras e regras arquiteturais respeitadas.`
-- **Verificação de Tamanho de Arquivos**: `HARD_MAX_180 = PASS; TARGET_80_150 = ABOVE TARGET / WARNING (conversation-orchestrator.ts: 177 linhas; guarded-turn-routing-coordinator.ts: 138 linhas; 18 avisos, 0 violações > 180 linhas; check:file-size = PASS).`
-- **Auditoria de Segredos**: `PR60_FINAL_MERGE_SECRET_AUDIT = PASS` | `PR61_FINAL_MERGE_SECRET_AUDIT = PASS` (reconciliado pós-merge do PR #61 no SHA `8f6382c473ae10f9a38b3bb018e89dc51ef40b61`).
+- **Verificação de Tamanho de Arquivos**: `HARD_MAX_180 = PASS; TARGET_80_150 = ABOVE TARGET / WARNING (typesafe-jev-turn-decision-adapter.ts: 173 linhas; conversation-orchestrator.ts: 177 linhas; guarded-turn-routing-coordinator.ts: 138 linhas; 0 violações > 180 linhas; check:file-size = PASS).`
+- **Auditoria de Segredos**: `PR60_FINAL_MERGE_SECRET_AUDIT = PASS` | `PR61_FINAL_MERGE_SECRET_AUDIT = PASS` | `PR62_FINAL_MERGE_SECRET_AUDIT = PASS` (reconciliado pós-merge do PR #62 no SHA `4db21b28da7ddc02053e5dce3805f97555fa9eb3`).
 - **QUALITY_EVIDENCE_STALE**: `NO` (commits subsequentes estritamente documentais em `docs/`).
 
 ---
@@ -175,9 +177,9 @@ AI_CONTEXT_HEADER_END
 10. `PRODUCTION_SHADOW_MAX_CONCURRENCY = NOT SELECTED`: Limite de concorrência operacional de produção não definido.
 11. `PRODUCTION_JEV_TIMEOUT_MS = NOT SELECTED`: Candidato exploratório 600ms-800ms pendente de validação empírica L1B (N>=100).
 12. `PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY = NOT SELECTED`: Candidato canary 2 a 5 chamadas é proposta exploratória sem dados operacionais.
-13. `MODEL_DRIFT_RUNTIME_GUARD = NOT IMPLEMENTED`: Sem autoridade de providerModel em runtime (`EXPECTED_MODEL_AUTHORITY = UNRESOLVED`; `MODEL_DRIFT_GUARD_REQUIRED_BEFORE_ACTIVE_GUARDED = YES`).
+13. `MODEL_DRIFT_RUNTIME_GUARD = IMPLEMENTED / TESTED LOCALLY` (`EXPECTED_MODEL_AUTHORITY = OPTION_B`; exact match via `expectedProviderModel`).
 14. `PRODUCTION_RUNTIME_WIRING = NO`: Fiação de runtime em produção desautorizada.
-15. `LIVE_PROVIDER_GUARDED_ROUTING_VALIDATION = NOT EXECUTED`: Validação contra TypeSafe real pendente L1A/L1B.
+15. `LIVE_PROVIDER_GUARDED_ROUTING_VALIDATION = NOT EXECUTED`: Validação contra TypeSafe real pendente L1A/L1B (`L1A_PLAN = DESIGNED`).
 16. `LIVE_TWILIO_GUARDED_ROUTING = NOT EXECUTED`: Validação em telefonia real pendente L3.
 17. `CUSTOMER_TRAFFIC = PROHIBITED`
 
@@ -186,7 +188,7 @@ AI_CONTEXT_HEADER_END
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- Candidate: Slice E.1 — Model Identity Guard & Synthetic Functional Smoke Plan (DOCS / IMPLEMENTATION).
+- Candidate: L1A Controlled Live TypeSafe Model Identity Smoke (após revisão e autorização).
 - `ACTIVE_GUARDED` permanece `BLOCKED` até conclusão da escada de validação (L1-L4).
 - Do NOT enable live customer traffic.
 - Do NOT use real telephony / live Twilio.
@@ -206,6 +208,8 @@ AI_CONTEXT_HEADER_END
 - [AI_WORKLOG.md](AI_WORKLOG.md): Registro histórico cronológico append-only (com exceção de remoção emergencial de segredo conforme governança aplicável).
 - [architecture/decisions/ADR-019-jev-guarded-runtime-integration.md](architecture/decisions/ADR-019-jev-guarded-runtime-integration.md): Design de integração do Jev.
 - [research/PHASE_6_TYPESAFE_JEV_SHADOW_ADAPTER.md](research/PHASE_6_TYPESAFE_JEV_SHADOW_ADAPTER.md): Especificação e contrato do adapter offline.
+- [research/PHASE_6_ACTIVE_GUARDED_PRODUCTION_READINESS_GATE.md](research/PHASE_6_ACTIVE_GUARDED_PRODUCTION_READINESS_GATE.md): Gate de prontidão e dimensionamento para ativação de ACTIVE_GUARDED.
+- [research/PHASE_6_TYPESAFE_L1A_MODEL_IDENTITY_SMOKE_PLAN.md](research/PHASE_6_TYPESAFE_L1A_MODEL_IDENTITY_SMOKE_PLAN.md): Plano metodológico de validação funcional sintética de identidade de modelo L1A.
 - [research/PHASE_6_TYPESAFE_LIVE_SYNTHETIC_SMOKE.md](research/PHASE_6_TYPESAFE_LIVE_SYNTHETIC_SMOKE.md): Registro factual do teste smoke sintético ao vivo do provedor.
 - [research/PHASE_6_TYPESAFE_STAGING_SHADOW_LIVE_SYNTHETIC.md](research/PHASE_6_TYPESAFE_STAGING_SHADOW_LIVE_SYNTHETIC.md): Registro factual da execução live de staging sintético em modo SHADOW.
 - [research/PHASE_6_TYPESAFE_STAGING_LATENCY_PLAN.md](research/PHASE_6_TYPESAFE_STAGING_LATENCY_PLAN.md): Plano metodológico de medição controlada de latência em staging sintético.

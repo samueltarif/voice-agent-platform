@@ -1,0 +1,111 @@
+# Phase 6: TypeSafe L1A Model Identity Smoke Plan
+
+> **Documento**: `docs/research/PHASE_6_TYPESAFE_L1A_MODEL_IDENTITY_SMOKE_PLAN.md`<br />
+> **Status**: `DESIGNED / NOT EXECUTED`<br />
+> **Data**: 2026-10-02<br />
+> **Prompt de Origem**: `PROMPT-006AI-MODEL-IDENTITY-GUARD-AND-L1A-SYNTHETIC-SMOKE-PLAN-001`<br />
+> **Fase**: Phase 6 (Voice Model Routing & Jev Evaluation)<br />
+> **Classificação**: `SYNTHETIC_SMOKE_PLAN`<br />
+> **Invariante Formal**: ZERO chamadas reais a provedores neste slice (TypeSafe = 0, OpenAI = 0, Twilio = 0). ZERO dados de clientes. ZERO execução de tráfego real. `ACTIVE_GUARDED = BLOCKED`.
+
+---
+
+## 1. Executive Summary & Purpose
+
+Este documento define formalmente o plano metodológico para a futura execução do teste de fumaça funcional controlado **L1A (TypeSafe Model Identity Smoke)**.
+
+O objetivo do L1A é estritamente **funcional e de integração de identidade de modelo**:
+1. Comprovar que o adapter `TypeSafeJevTurnDecisionAdapter` envia o modelo solicitado com ID versionado (`model: "jev-1.13.0"`) no payload HTTP;
+2. Observar factualmente o campo `providerModel` retornado pela API real da TypeSafe em resposta ao request versionado;
+3. Validar a execução em runtime do `TypeSafeModelIdentityMismatchError` quando configurado `expectedProviderModel`;
+4. Comprovar o parsing e validação da resposta atômica do provedor em condições de rede real sob prompts sintéticos controlados;
+5. Validar a semântica de fail-open imediato para o modelo generativo principal quando uma falha ou mismatch ocorre sob geração ativa;
+6. Garantir **zero exposição de dados de clientes** (`CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`).
+
+---
+
+## 2. Non-Goals Explícitos (O que o L1A NÃO é)
+
+1. **NÃO seleciona timeout de produção**: A latência observada no L1A (amostra $N=20$) é telemetria puramente descritiva secundária, sem significância estatística para cauda de produção ($p99/p99.9$).
+2. **NÃO seleciona teto de concorrência de produção**: As requisições serão executadas em série controlada ($concurrency = 1$).
+3. **NÃO seleciona limiares de circuit breaker**: Sem dados de tráfego volumétrico, nenhum limiar numérico será congelado.
+4. **NÃO afere acurácia de pontuação ou calibração**: O teste avalia conformidade de contrato e identidade de modelo, não calibração estatística.
+5. **NÃO altera a Frozen Policy**: Os limiares congelados da Frozen Policy V1 (`T_SECURITY = 0.56`, `T_DETERMINISTIC = 0.35`, `T_GENERATIVE = 0.47`) permanecem intactos.
+6. **NÃO autoriza nem executa ativação de `ACTIVE_GUARDED` em produção**: `PRODUCTION_RUNTIME_WIRING = NO`.
+7. **NÃO utiliza telefonia real nem Twilio**: `TWILIO_ACCOUNT_REQUIRED = NO`.
+
+---
+
+## 3. Dataset Sintético Congelado (L1A Dataset)
+
+Para evitar qualquer contaminação com dados de calibração ou holdouts de pesquisa anteriores, foi gerado um dataset sintético fechado exclusivo para o L1A:
+
+- **Arquivo**: `scripts/benchmarks/voice/jev-l1a-model-identity-smoke-v1-cases.json`
+- **Tamanho**: $N = 20$ casos sintéticos
+- **Dataset SHA-256**: `12828e990c1c2523c159630511aeb945b26a941c24ecaa38776b4a2769a3b0d0`
+- **Classificação**: `SYNTHETIC / FUNCTIONAL ONLY`
+- **Aviso Legal**: `NOT A HOLDOUT. NOT FOR TUNING. NOT FOR PRODUCTION ACCURACY CLAIMS.`
+
+### Distribuição dos Casos por Cobertura Funcional:
+
+| Categoria | Quantidade | Finalidade de Teste |
+|---|---|---|
+| `OPERATING_HOURS_DIRECT` | 5 | Perguntas canônicas diretas sobre horários e dias de atendimento |
+| `OPERATING_HOURS_PARAPHRASE` | 5 | Variações coloquiais, limites de horário e intervalos de expediente |
+| `GENERATIVE_REQUIRED` | 4 | Consultas abertas de produtos e negociações comerciais |
+| `SECURITY_SENSITIVE` | 3 | Testes de injeção de prompt e tentativa de extração de credenciais |
+| `CONTROL_NON_MATCHING` | 3 | Saudações e ruídos conversacionais para controle do capability matcher |
+
+---
+
+## 4. Orçamento Operacional e Limites Rígidos (Call Budget)
+
+A futura execução controlada do L1A deve operar sob as seguintes travas operacionais obrigatórias:
+
+- `MAX_PROVIDER_REQUESTS`: 20 requisições (limitado estritamente ao tamanho do dataset sintético)
+- `RETRIES`: 0 (nenhum retry automático permitido)
+- `CONCURRENCY`: 1 (execução estritamente sequencial)
+- `CUSTOMER_DATA_EXPOSURE`: 0 (absolutamente zero transcrições de clientes)
+- `OPENAI_CALLS`: 0 (L1A avalia apenas o adapter TypeSafe; OpenAI não é invocado)
+- `TWILIO_CALLS`: 0 (nenhuma chamada telefônica)
+- `MONETARY_COST_CEILING`: `PENDING_HUMAN / COMMERCIAL VERIFICATION` (orçamento total estimado $< \$0.10$ baseado em preço documentado por token, com teto rígido pré-aprovado)
+- `SECRET_LEAK_GUARD`: Zero exibição de `TYPESAFE_API_KEY` em logs, stdout ou arquivos de resultado
+
+---
+
+## 5. Critérios de Aceitação Obrigatórios (Acceptance Criteria)
+
+A futura execução do L1A só poderá ser considerada `PASS` se satisfizer cumulativamente todos os 8 critérios formais:
+
+1. **A. Conclusão Técnica Total**: 100% das 20 requisições chegam a um desfecho observável (sucesso com resposta válida ou erro técnico registrado estruturadamente).
+2. **B. Observabilidade de `providerModel`**: O campo `providerModel` deve ser capturado e registrado para cada resposta remota bem-sucedida.
+3. **C. Exact Match no Guard**: O modelo retornado deve ser idêntico ao modelo versionado esperado (`providerModel === 'jev-1.13.0'`) para todas as decisões aceitas pelo guard.
+4. **D. Isolamento Estrito de Dados**: Zero dados reais de clientes transmitidos no payload HTTP ou gravados em artefatos.
+5. **E. Zero Retries**: Nenhuma chamada repetida em caso de lentidão ou falha de rede.
+6. **F. Blindagem de Segredos**: Nenhuma chave de API ou token refletido nos logs ou artefatos gerados (`SECRET_AUDIT_PASS`).
+7. **G. Semântica Fail-Safe Comprovada**: Em caso de mismatch sintético intencional de controle, o runtime deve acionar fail-open para geração principal, sem qualquer bypass determinístico ou encerramento indevido de chamada.
+8. **H. Invariante da Frozen Policy**: Nenhum threshold da Frozen Policy V1 é alterado.
+
+---
+
+## 6. Distinção Metodológica entre L1A e L1B
+
+| Dimensão | L1A (Model Identity Functional Smoke) | L1B (Synthetic Latency Study) |
+|---|---|---|
+| **Foco Primário** | Identidade de modelo, pinning, resposta HTTP e fail-open | Distribuição empírica de latência sob carga sintética |
+| **Amostra** | $N = 20$ (cobertura funcional mínima fechada) | $N \ge 100$ (`PLANNED_SAMPLE_SIZE`) |
+| **Poder Estatístico** | Zero pretensão estatística para cauda de latência | Amostra preliminar para subsidiar candidato de timeout |
+| **Concorrência** | Sequencial ($concurrency = 1$) | Controlada em lote ($concurrency \le 2$) |
+| **Status Atual** | `DESIGNED / NOT EXECUTED` | `PLANNED / NOT EXECUTED` |
+| **Confiança de Cauda** | `NOT ESTABLISHED` | `TAIL_LATENCY_CONFIDENCE = NOT ESTABLISHED` |
+
+---
+
+## 7. Pré-requisitos para Execução Futura do L1A
+
+Antes que o operador autorize a execução do L1A em um próximo slice:
+- [x] Model Identity Guard implementado e testado offline (`TypeSafeJevTurnDecisionAdapter`).
+- [x] Testes offline de regressão comprovando fail-open em caso de mismatch.
+- [x] Dataset sintético congelado com hash registrado (`12828e990c1c...`).
+- [ ] Autorização humana explícita para invocação remota do script runner com `TYPESAFE_API_KEY` em memória.
+- [ ] Definição do teto monetário autorizado pelo operador.

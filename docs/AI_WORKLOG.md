@@ -12061,3 +12061,206 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   3. Adicionar testes unitários/offline cobrindo o guard de model drift;
   4. Estruturar plano e dataset sintético fechado (L1A, candidato N=20) para teste funcional ao vivo contra TypeSafe com custo controlado (< $0.10) e zero tráfego real;
   5. Manter `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`, `PRODUCTION_RUNTIME_WIRING = NO` e `ACTIVE_GUARDED = BLOCKED`.
+
+---
+
+## 2026-10-02 — PROMPT-006AI-MODEL-IDENTITY-GUARD-AND-L1A-SYNTHETIC-SMOKE-PLAN-001
+
+### 1. Preflight e Reconciliação Pós-Merge do PR #62
+- **PR #62 Status**: `MERGED` (confirmado via GitHub MCP).
+- **PR #62 Merge SHA**: `4db21b28da7ddc02053e5dce3805f97555fa9eb3`.
+- **PR #62 Final PR HEAD**: `a1f4e866d39269e14ddcdce23e2c17c5179e756a`.
+- **PR62_FINAL_SECRET_AUDIT**: `PASS`.
+- **PR62_SECRET_AUDIT_INVOCATIONS**: 1.
+- **PR62_SOURCE_INTEGRITY_REVIEW**: `EXECUTED`.
+- **PR62_CODE_CHANGES**: 0.
+- **PR62_TEST_CHANGES**: 0.
+- **PR62_PROVIDER_CALLS**: 0.
+- **CONTEXT_BOOTSTRAP_STATUS**: `CURRENT_AFTER_SELF_MERGE`.
+- **Branch Criada**: `feat/006ai-model-identity-guard-offline`.
+
+---
+
+### 2. Auditoria do Adapter Existente e Decisão de Autoridade de Configuração (YAGNI)
+- **CURRENT_REQUESTED_MODEL_SOURCE**: `DEFAULT_TYPESAFE_MODEL = 'jev-latest'` (fallback constante no adapter).
+- **CURRENT_DEFAULT_MODEL**: `jev-latest`.
+- **CURRENT_PROVIDER_MODEL_RESPONSE_MAPPING**: `response.model` -> `AuxiliaryTurnDecisionOutput.providerModel`.
+- **CURRENT_CONSTRUCTOR_INPUT**: `TypeSafeJevAdapterOptions` (`apiKey`, `model?`, `baseUrl?`, `fetch?`).
+- **CURRENT_ERROR_TYPE**: `TypeSafePayloadValidationError`.
+- **CURRENT_SHADOW_COMPOSITION_MODEL_CONFIG**: Default `jev-latest` em `composition-root.staging-shadow.ts`.
+- **CURRENT_LIVE_SYNTHETIC_MODEL_CONFIG**: Default `jev-latest` em `typesafe-live-synthetic-smoke.ts`.
+- **Avaliação de Opções de Autoridade de Configuração**:
+  - `CURRENT_REQUIREMENT`: Validar se o modelo que respondeu é exatamente o esperado antes de confiar no output auxiliar para roteamento.
+  - `EXISTING_OPTION`: Nenhuma autoridade de validação em runtime (campo apenas gravado no output).
+  - `MINIMAL_OPTION`: Adicionar `expectedProviderModel?: string | undefined` nas opções de integração do adapter (`OPTION_B`).
+  - `SELECTED_EXPECTED_MODEL_AUTHORITY`: `OPTION_B` (TypeSafe adapter integration config).
+  - **Justificativa YAGNI**: Frozen Policy e calibração são globais ao runtime Jev atual; provider model ID é detalhe de integração de baixo nível; Agent Studio não deve receber campos operacionais prematuros; clientes de tenant não devem escolher livremente o modelo auxiliar; zero alteração em banco de dados ou schemas (`DB_SCHEMA_CHANGE = NO`).
+
+---
+
+### 3. Implementação do Model Identity Guard
+- **Arquivo**: `packages/integrations/src/typesafe/typesafe-jev-turn-decision-adapter.ts` (173 linhas, dentro do limite de 180).
+- **Erro Tipado Exportado**: `TypeSafeModelIdentityMismatchError`.
+- **Configuração no Construtor**: Opção `expectedProviderModel?: string | undefined` adicionada a `TypeSafeJevAdapterOptions`.
+- **Helpers de Normalização**: `normalizeApiKey` e `normalizeExpectedProviderModel` extraídos para manter complexidade ciclomática do construtor $\le 8$.
+- **Semântica de Validação**:
+  - Quando `expectedProviderModel` não é configurado: comportamento 100% retrocompatível com SHADOW/staging nominal (`jev-latest`), nenhuma checagem de igualdade estrita é disparada.
+  - Quando `expectedProviderModel` é configurado: checagem estrita `response.model === expectedProviderModel`.
+  - Em caso de divergência: lança `TypeSafeModelIdentityMismatchError`. Zero scores retornados. Zero vazamento de transcrição do chamador ou raw payload em logs.
+- **Semântica Operacional de Falha**:
+  - `ACTIVE` generation + model identity mismatch $\rightarrow$ fail-open para o modelo generativo principal (`streamTurn` chamado 1 vez, rotas determinística e de segurança = 0).
+  - `STALE` generation + model identity mismatch $\rightarrow$ todas as rotas suprimidas (`streamTurn = 0`, deterministic = 0, security = 0).
+  - Mismatch NUNCA autoriza bypass determinístico, escalação de segurança, ferramentas ou término de chamada.
+- **Afirmações de Imutabilidade**:
+  - `MODEL_IDENTITY_BOUNDARY_CHECK = IMPLEMENTED`.
+  - `MODEL_WEIGHT_IMMUTABILITY = NOT VERIFIED` (a checagem estrita prova apenas identidade de string reportada pelo provedor, não imutabilidade criptográfica de pesos).
+
+---
+
+### 4. Plano L1A e Congelamento de Dataset Sintético
+- **Plano Metodológico**: Criado `docs/research/PHASE_6_TYPESAFE_L1A_MODEL_IDENTITY_SMOKE_PLAN.md`.
+  - Objetivo exclusivo: comprovar request com ID versionado, recepção de `providerModel`, guarda de exatidão e fail-open em tráfego real com dados sintéticos.
+  - Não serve para: calibrar timeout, calibrar concorrência, dimensionar circuit breaker ou declarar prontidão de produção.
+- **Dataset Sintético Fechado**: Criado `scripts/benchmarks/voice/jev-l1a-model-identity-smoke-v1-cases.json` com $N=20$ casos novos.
+  - **Dataset SHA-256**: `12828e990c1c2523c159630511aeb945b26a941c24ecaa38776b4a2769a3b0d0`.
+  - Classificação: `L1A_DATASET = SYNTHETIC / FUNCTIONAL ONLY`, `NOT A HOLDOUT`, `NOT FOR TUNING`, `NOT FOR PRODUCTION ACCURACY CLAIMS`.
+  - Reutilização de holdout: `NO`.
+- **Orçamento de Chamadas L1A**:
+  - `MAX_PROVIDER_REQUESTS = 20` (limitado ao dataset).
+  - `RETRIES = 0`.
+  - `CUSTOMER_DATA = 0`.
+  - `OPENAI_CALLS = 0`.
+  - `TWILIO_CALLS = 0`.
+  - `MONETARY_COST_CEILING = PENDING_HUMAN / COMMERCIAL VERIFICATION` (custo indicativo histórico registrado separadamente, não como preço garantido).
+- **Critérios de Aceite A-H**: Definidos formalmente no plano.
+- **Separação L1A vs. L1B**: L1A é smoke funcional de modelo ($N=20$); L1B é estudo empírico de latência ($N \ge 100$ planejado).
+
+---
+
+### 5. Cobertura de Testes Automatizados e Governança
+- **Testes Unitários do Adapter**: `packages/integrations/src/typesafe/typesafe-jev-turn-decision-adapter.test.ts`.
+  - 9 novos testes cobrindo os critérios A-H (comportamento com/sem expectedProviderModel, exact match, mismatch, payload sem model, model versionado no body do request, minimização de tenant no fio, ausência de callerTranscript em logs).
+  - Total no arquivo: 23 testes passando.
+- **Testes de Integração de Voz**: `apps/voice/src/guarded-turn-routing.test.ts`.
+  - 2 novos testes adicionados (5b: fail-open do mismatch na geração ativa; 9d: supressão na geração stale).
+  - Total no arquivo: 18 testes passando.
+- **Governança de Testes**:
+  - `NEW_TESTS_ADDED = 11` (9 no adapter, 2 no guarded routing).
+  - `EXISTING_TEST_ASSERTION_STRONGER = 0`.
+  - `EXISTING_TEST_ASSERTION_EQUIVALENT = 0`.
+  - `EXISTING_TEST_ASSERTION_WEAKER = 0`.
+  - `NEW_SKIPS = 0`.
+
+---
+
+### 6. Execução do Quality Gate Global
+- **Comando**: `pnpm check` com sentinela autoritativa `PNPM_CHECK_FINAL_PASS`.
+- **Status**: `PASS` (código de saída 0).
+- **Asserções Observadas**: `738 passed`, `45 historical skips`, `0 new skips`, `0 failures` em 110 arquivos de teste.
+- **Verificação Arquitetural**: `SUCESSO: Todas as fronteiras e regras arquiteturais respeitadas.`
+- **Verificação de Tamanho de Arquivo**: `SUCESSO: 0 violações acima de 180 linhas` (`typesafe-jev-turn-decision-adapter.ts`: 173 linhas).
+- **TESTED_CODE_SHA**: `cf1336285a18d9359b7b9a5d7a87def70e6595f9`.
+
+---
+
+### 7. Limites Operacionais e Isolamento de Recursos
+- **Chamadas a Provedores Externos**: TypeSafe = 0, OpenAI real = 0, Twilio = 0.
+- **Variáveis de Ambiente Carregadas (`.env`)**: NÃO.
+- **Conexões com Banco de Dados**: NÃO.
+- **Dados Reais de Clientes**: NÃO.
+- **Holdout de Pesquisa Consumido**: NÃO.
+- **Frozen Policy Alterada**: NÃO.
+- **Alteração de Schemas de Banco**: NÃO.
+- **Conta Twilio Necessária**: NÃO.
+- **Fiação em Produção**: `NO`.
+- **ACTIVE_GUARDED**: `BLOCKED`.
+- **CUSTOMER_TRANSCRIPT_GATE**: `NOT CLEARED`.
+
+---
+
+### 8. Próximo Passo Permitido (`NEXT_ALLOWED_STEP`)
+- **Candidato**: L1A Controlled Live TypeSafe Model Identity Smoke (após revisão e autorização formal humana).
+- `ACTIVE_GUARDED` permanece `BLOCKED`.
+- Proibido executar tráfego real ou telefonia sem as liberações correspondentes.
+
+---
+
+## 2026-10-02 — PROMPT-006AI-PR63-EVIDENCE-HARDENING-AND-MERGE-001
+
+### 1. Preflight e Auditoria do PR #63
+- **PR #63**: `OPEN` (confirmado via GitHub MCP; head `8268002f3da7f0c1c29b2949c9d339c9d2122b0a`, base `4db21b28da7ddc02053e5dce3805f97555fa9eb3`).
+- **Ramo**: `feat/006ai-model-identity-guard-offline`.
+- **Escopo do Diff**: 8 arquivos estritamente correspondentes ao Slice E.1 (`packages/integrations/src/typesafe/typesafe-jev-turn-decision-adapter.ts`, `typesafe-jev-turn-decision-adapter.test.ts`, `apps/voice/src/guarded-turn-routing.test.ts`, `scripts/benchmarks/voice/jev-l1a-model-identity-smoke-v1-cases.json`, `docs/research/PHASE_6_TYPESAFE_L1A_MODEL_IDENTITY_SMOKE_PLAN.md`, `docs/research/PHASE_6_ACTIVE_GUARDED_PRODUCTION_READINESS_GATE.md`, `docs/AI_CONTEXT.md`, `docs/AI_WORKLOG.md`).
+- **Verificação de Stale Code Evidence**: `git diff --name-status cf1336285a18d9359b7b9a5d7a87def70e6595f9...HEAD` confirmou alterações exclusivas em `docs/**`. `QUALITY_EVIDENCE_STALE = NO`.
+
+---
+
+### 2. Reconciliação das Invocações de `pnpm check` no PR #63
+- `PR63_MULTIPLE_PNPM_CHECK_INVOCATIONS = YES`
+- `PR63_PNPM_CHECK_INVOCATIONS_OBSERVED = 3`
+- `FIRST_GATE_AUTHORITATIVE = NO`
+- `FIRST_GATE_STALE = YES`
+- `FIRST_GATE_STALE_REASON = test file formatted / functional commit amended afterward`
+- `SECOND_GATE_AUTHORITATIVE = NO`
+- `SECOND_GATE_STALE = YES`
+- `SECOND_GATE_STALE_REASON = adapter production code changed and commit amended afterward`
+- `THIRD_GATE_WORKLOG_RESULT = PASS / PNPM_CHECK_FINAL_PASS`
+- `THIRD_GATE_TESTED_CODE_SHA = cf1336285a18d9359b7b9a5d7a87def70e6595f9`
+- `THIRD_GATE_RAW_SENTINEL_IN_REVIEW_TRACE = NOT INDEPENDENTLY OBSERVED`
+- `CATEGORY = EXECUTION_EVIDENCE_RECONCILIATION`
+- `FUNCTIONAL_IMPACT = NONE OBSERVED`
+
+---
+
+### 3. Reconciliação do Comando de Teste Focado
+- `PR63_FOCUSED_TEST_COMMAND_RETRY = YES`
+- `FIRST_ATTEMPT_FINAL_RESULT = NOT VERIFIED` (tentativa inicial sem argumentos completos do vitest runner)
+- `SECOND_ATTEMPT = OBSERVED TO PROCEED` (executado com `test -- run ...`)
+- `FUNCTIONAL_IMPACT = NONE OBSERVED`
+
+---
+
+### 4. Auditoria de Classificação de Testes e Asserções
+- `PR63_ASSERTION_CLASSIFICATION_RECONCILED = YES`
+- `NEW_TESTS_ADDED = 11` (9 testes novos em `typesafe-jev-turn-decision-adapter.test.ts`, 2 testes novos em `guarded-turn-routing.test.ts`).
+- `EXISTING_TEST_ASSERTION_STRONGER = 0` (nenhum teste pré-existente foi alterado).
+- `EXISTING_TEST_ASSERTION_EQUIVALENT = 0`.
+- `EXISTING_TEST_ASSERTION_WEAKER = 0`.
+- `NEW_SKIPS = 0`.
+- **Correção Factual**: Corrigida menção prévia que utilizava a soma das suites (27) como `ASSERTION_STRONGER`.
+
+---
+
+### 5. Auditoria de Integridade de Artefatos e Tamanho de Arquivo
+- **Adapter**: `packages/integrations/src/typesafe/typesafe-jev-turn-decision-adapter.ts` (173 linhas).
+  - `HARD_MAX_180 = PASS`
+  - `TARGET_80_150 = ABOVE TARGET / WARNING`
+  - `DO_NOT_GROW_TYPESAFE_ADAPTER_WITH_L1A_HARNESS = YES` (o harness L1A não deve ser implementado dentro do adapter de integração).
+- **Dataset L1A**: `scripts/benchmarks/voice/jev-l1a-model-identity-smoke-v1-cases.json`
+  - `TOTAL_CASES = 20`
+  - `CALCULATED_SHA256 = 12828e990c1c2523c159630511aeb945b26a941c24ecaa38776b4a2769a3b0d0`
+  - `CUSTOMER_DATA = 0`
+  - `HOLDOUT_REUSE = NO`
+  - `PURPOSE = FUNCTIONAL_MODEL_IDENTITY_SMOKE`
+
+---
+
+### 6. Execução Autoritativa do Final Quality Gate (PR #63)
+- `FINAL_PNPM_CHECK_COMMAND`: `pnpm check; $code = $LASTEXITCODE; if ($code -eq 0) { Write-Output "PNPM_CHECK_FINAL_PASS" } else { Write-Output "PNPM_CHECK_FINAL_FAIL" }; exit $code`
+- `FINAL_PNPM_CHECK_SENTINEL`: `PNPM_CHECK_FINAL_PASS` (observada diretamente no trace de execução deste prompt)
+- `FINAL_PNPM_CHECK_STATUS`: `PASS` (código de saída 0)
+- `FINAL_QUALITY_HEAD`: `b99f15583ae350bcd01d37759fcc4016e63eac34`
+- `LAST_TESTED_CODE_SHA`: `cf1336285a18d9359b7b9a5d7a87def70e6595f9` (zero alterações em código de produção, testes ou dataset)
+- `TEST_FILES_PASSED`: 110 passed (6 skipped de staging; 116 total)
+- `TESTS_PASSED`: 738 passed (45 skipped; 783 total)
+- `FAILURES`: 0
+- `NEW_SKIPS`: 0
+- `NEW_TESTS_ADDED`: 11 (9 no adapter, 2 no guarded routing)
+- `EXISTING_TEST_ASSERTION_STRONGER`: 0
+- `EXISTING_TEST_ASSERTION_EQUIVALENT`: 0
+- `EXISTING_TEST_ASSERTION_WEAKER`: 0
+- `ARCHITECTURE_CHECK`: `PASS` (0 violações)
+- `FILE_SIZE_CHECK`: `PASS` (0 violações > 180 linhas, 19 avisos)
+- `QUALITY_EVIDENCE_STALE`: `NO`
+- `PR63_PREVIOUS_SECRET_AUDIT`: `PASS` (executado no prompt anterior, histórico)
+- `PR63_FINAL_MERGE_SECRET_AUDIT`: `PENDING` (agendada para ser executada sobre o commit final antes do merge)

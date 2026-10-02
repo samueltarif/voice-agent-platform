@@ -9,9 +9,24 @@ import { JEV_ROUTING_ATOMIC_DEFINITION } from './typesafe-jev-atomic-definition.
 export const DEFAULT_TYPESAFE_ENDPOINT = 'https://api.typesafe.ai/v1/systemone' as const;
 export const DEFAULT_TYPESAFE_MODEL = 'jev-latest' as const;
 
+export class TypeSafeModelIdentityMismatchError extends Error {
+  readonly expectedModel: string;
+  readonly observedModel: string;
+
+  constructor(expectedModel: string, observedModel: string) {
+    super(
+      `TypeSafe model identity mismatch: expected '${expectedModel}', received '${observedModel}'`,
+    );
+    this.name = 'TypeSafeModelIdentityMismatchError';
+    this.expectedModel = expectedModel;
+    this.observedModel = observedModel;
+  }
+}
+
 export interface TypeSafeJevAdapterOptions {
   readonly apiKey: string;
   readonly model?: string | undefined;
+  readonly expectedProviderModel?: string | undefined;
   readonly endpointUrl?: string | undefined;
   readonly fetchFn?: typeof fetch | undefined;
 }
@@ -69,19 +84,33 @@ function parseTypeSafeResponse(raw: unknown): {
   };
 }
 
+function normalizeApiKey(apiKey: string): string {
+  if (!apiKey || apiKey.trim().length === 0) {
+    throw new TypeError('TypeSafe API key must be a non-empty string');
+  }
+  return apiKey.trim();
+}
+
+function normalizeExpectedProviderModel(model?: string): string | undefined {
+  if (model === undefined) return undefined;
+  if (typeof model !== 'string' || model.trim().length === 0) {
+    throw new TypeError('expectedProviderModel must be a non-empty string when provided');
+  }
+  return model.trim();
+}
+
 export class TypeSafeJevTurnDecisionAdapter implements AuxiliaryTurnDecisionPort {
   readonly providerName = 'typesafe-jev';
   private readonly apiKey: string;
   private readonly model: string;
+  private readonly expectedProviderModel?: string | undefined;
   private readonly endpointUrl: string;
   private readonly fetchFn: typeof fetch;
 
   constructor(options: TypeSafeJevAdapterOptions) {
-    if (!options.apiKey || options.apiKey.trim().length === 0) {
-      throw new TypeError('TypeSafe API key must be a non-empty string');
-    }
-    this.apiKey = options.apiKey.trim();
+    this.apiKey = normalizeApiKey(options.apiKey);
     this.model = options.model ?? DEFAULT_TYPESAFE_MODEL;
+    this.expectedProviderModel = normalizeExpectedProviderModel(options.expectedProviderModel);
     this.endpointUrl = options.endpointUrl ?? DEFAULT_TYPESAFE_ENDPOINT;
     this.fetchFn = options.fetchFn ?? globalThis.fetch;
   }
@@ -121,6 +150,16 @@ export class TypeSafeJevTurnDecisionAdapter implements AuxiliaryTurnDecisionPort
     const rawJson = (await response.json()) as unknown;
     const latencyMs = Math.max(0, Date.now() - startMs);
     const parsed = parseTypeSafeResponse(rawJson);
+
+    if (
+      this.expectedProviderModel !== undefined &&
+      parsed.providerModel !== this.expectedProviderModel
+    ) {
+      throw new TypeSafeModelIdentityMismatchError(
+        this.expectedProviderModel,
+        parsed.providerModel,
+      );
+    }
 
     return {
       deterministicScore: parsed.deterministicScore,
