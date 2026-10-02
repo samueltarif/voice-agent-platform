@@ -12245,7 +12245,22 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 
 ---
 
-### 6. Status do Quality Gate e Auditoria de Segredos
-- `PR63_QUALITY_EVIDENCE_FINAL_RECHECK = PENDING` (execução de novo gate final autoritativo agendada neste prompt).
-- `PR63_PREVIOUS_SECRET_AUDIT = PASS` (executado anteriormente, porém não final devido a novos commits documentais).
-- `PR63_FINAL_MERGE_SECRET_AUDIT = PENDING` (agendada para ser executada sobre o commit final antes do merge).
+### 6. Execução Autoritativa do Final Quality Gate (PR #63)
+- `FINAL_PNPM_CHECK_COMMAND`: `pnpm check; $code = $LASTEXITCODE; if ($code -eq 0) { Write-Output "PNPM_CHECK_FINAL_PASS" } else { Write-Output "PNPM_CHECK_FINAL_FAIL" }; exit $code`
+- `FINAL_PNPM_CHECK_SENTINEL`: `PNPM_CHECK_FINAL_PASS` (observada diretamente no trace de execução deste prompt)
+- `FINAL_PNPM_CHECK_STATUS`: `PASS` (código de saída 0)
+- `FINAL_QUALITY_HEAD`: `b99f15583ae350bcd01d37759fcc4016e63eac34`
+- `LAST_TESTED_CODE_SHA`: `cf1336285a18d9359b7b9a5d7a87def70e6595f9` (zero alterações em código de produção, testes ou dataset)
+- `TEST_FILES_PASSED`: 110 passed (6 skipped de staging; 116 total)
+- `TESTS_PASSED`: 738 passed (45 skipped; 783 total)
+- `FAILURES`: 0
+- `NEW_SKIPS`: 0
+- `NEW_TESTS_ADDED`: 11 (9 no adapter, 2 no guarded routing)
+- `EXISTING_TEST_ASSERTION_STRONGER`: 0
+- `EXISTING_TEST_ASSERTION_EQUIVALENT`: 0
+- `EXISTING_TEST_ASSERTION_WEAKER`: 0
+- `ARCHITECTURE_CHECK`: `PASS` (0 violações)
+- `FILE_SIZE_CHECK`: `PASS` (0 violações > 180 linhas, 19 avisos)
+- `QUALITY_EVIDENCE_STALE`: `NO`
+- `PR63_PREVIOUS_SECRET_AUDIT`: `PASS` (executado no prompt anterior, histórico)
+- `PR63_FINAL_MERGE_SECRET_AUDIT`: `PENDING` (agendada para ser executada sobre o commit final antes do merge)
