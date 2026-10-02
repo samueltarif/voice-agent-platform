@@ -156,7 +156,7 @@ AI_CONTEXT_HEADER_END
 - **Regressão de Asserções**: `ASSERTION_WEAKER = 0` (16 testes em `guarded-turn-routing.test.ts`: `ASSERTION_STRONGER: 16`).
 - **Verificação Arquitetural**: `SUCESSO: Todas as fronteiras e regras arquiteturais respeitadas.`
 - **Verificação de Tamanho de Arquivos**: `HARD_MAX_180 = PASS; TARGET_80_150 = ABOVE TARGET / WARNING (conversation-orchestrator.ts: 177 linhas; guarded-turn-routing-coordinator.ts: 138 linhas; 18 avisos, 0 violações > 180 linhas; check:file-size = PASS).`
-- **Auditoria de Segredos**: `PR60_FINAL_MERGE_SECRET_AUDIT = PASS` | `PR61_FINAL_MERGE_SECRET_AUDIT = PENDING`.
+- **Auditoria de Segredos**: `PR60_FINAL_MERGE_SECRET_AUDIT = PASS` | `PR61_FINAL_MERGE_SECRET_AUDIT = PASS` (reconciliado pós-merge do PR #61 no SHA `8f6382c473ae10f9a38b3bb018e89dc51ef40b61`).
 - **QUALITY_EVIDENCE_STALE**: `NO` (commits subsequentes estritamente documentais em `docs/`).
 
 ---
@@ -173,11 +173,11 @@ AI_CONTEXT_HEADER_END
 8. `GUARDED_RUNTIME_ROUTING_OFFLINE = IMPLEMENTED / TESTED LOCALLY`
 9. `ACTIVE_GUARDED = BLOCKED`
 10. `PRODUCTION_SHADOW_MAX_CONCURRENCY = NOT SELECTED`: Limite de concorrência operacional de produção não definido.
-11. `PRODUCTION_JEV_TIMEOUT_MS = CANDIDATE_PENDING_VALIDATION`: Faixa candidata 600ms-800ms; requer bateria sintética N>=100.
-12. `PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY = NOT SELECTED`: Candidato canary 2 a 5 chamadas simultâneas.
-13. `MODEL_DRIFT_RUNTIME_GUARD = NOT IMPLEMENTED`: Sem autoridade de providerModel em runtime (`MODEL_DRIFT_GUARD_REQUIRED_BEFORE_ACTIVE_GUARDED = YES`).
+11. `PRODUCTION_JEV_TIMEOUT_MS = NOT SELECTED`: Candidato exploratório 600ms-800ms pendente de validação empírica L1B (N>=100).
+12. `PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY = NOT SELECTED`: Candidato canary 2 a 5 chamadas é proposta exploratória sem dados operacionais.
+13. `MODEL_DRIFT_RUNTIME_GUARD = NOT IMPLEMENTED`: Sem autoridade de providerModel em runtime (`EXPECTED_MODEL_AUTHORITY = UNRESOLVED`; `MODEL_DRIFT_GUARD_REQUIRED_BEFORE_ACTIVE_GUARDED = YES`).
 14. `PRODUCTION_RUNTIME_WIRING = NO`: Fiação de runtime em produção desautorizada.
-15. `LIVE_PROVIDER_GUARDED_ROUTING_VALIDATION = NOT EXECUTED`: Validação contra TypeSafe real pendente L1.
+15. `LIVE_PROVIDER_GUARDED_ROUTING_VALIDATION = NOT EXECUTED`: Validação contra TypeSafe real pendente L1A/L1B.
 16. `LIVE_TWILIO_GUARDED_ROUTING = NOT EXECUTED`: Validação em telefonia real pendente L3.
 17. `CUSTOMER_TRAFFIC = PROHIBITED`
 
@@ -186,7 +186,7 @@ AI_CONTEXT_HEADER_END
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- Candidate: Slice E.1 — Model Identity Guard & L1 Synthetic Validation Plan (DOCS / IMPLEMENTATION).
+- Candidate: Slice E.1 — Model Identity Guard & Synthetic Functional Smoke Plan (DOCS / IMPLEMENTATION).
 - `ACTIVE_GUARDED` permanece `BLOCKED` até conclusão da escada de validação (L1-L4).
 - Do NOT enable live customer traffic.
 - Do NOT use real telephony / live Twilio.

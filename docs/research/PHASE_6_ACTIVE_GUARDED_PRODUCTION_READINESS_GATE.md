@@ -1,11 +1,12 @@
 # Phase 6: ACTIVE_GUARDED Production Readiness Gate Design
 
-> **Documento**: `docs/research/PHASE_6_ACTIVE_GUARDED_PRODUCTION_READINESS_GATE.md`  
-> **Status**: `DESIGNED / AUDIT ONLY`  
-> **Data**: 2026-10-02  
-> **Prompt de Origem**: `PROMPT-006AH-ACTIVE-GUARDED-PRODUCTION-READINESS-GATE-DESIGN-001`  
-> **Branch**: `research/006ah-active-guarded-production-readiness-gate`  
-> **Base Main Commit**: `8f6382c473ae10f9a38b3bb018e89dc51ef40b61` (Merge PR #61)  
+> **Documento**: `docs/research/PHASE_6_ACTIVE_GUARDED_PRODUCTION_READINESS_GATE.md`<br />
+> **Status**: `DESIGNED / AUDIT ONLY`<br />
+> **Data**: 2026-10-02<br />
+> **Prompt de Origem**: `PROMPT-006AH-ACTIVE-GUARDED-PRODUCTION-READINESS-GATE-DESIGN-001`<br />
+> **Prompt de Hardening**: `PROMPT-006AH-PR62-SOURCE-INTEGRITY-READINESS-HARDENING-AND-MERGE-001`<br />
+> **Branch**: `research/006ah-active-guarded-production-readiness-gate`<br />
+> **Base Main Commit**: `8f6382c473ae10f9a38b3bb018e89dc51ef40b61` (Merge PR #61)<br />
 > **Fronteira Estrita**: AUDIT / DESIGN ONLY. Zero código funcional alterado. Zero testes alterados. Zero contratos alterados. Zero chamadas a provedores externos (TypeSafe = 0, OpenAI = 0, Twilio = 0). Zero carregamento de `.env`. Zero conexões a DB. Zero acesso a holdout. `ACTIVE_GUARDED` permanece categoricamente `BLOCKED`.
 
 ---
@@ -14,13 +15,13 @@
 
 Este documento define formalmente os critérios técnicos, operacionais, de privacidade, de governança de modelo e de evidência empírica necessários **ANTES** de qualquer ativação de `ACTIVE_GUARDED` (roteamento supervisionado pelo modelo auxiliar TypeSafe Jev e pela Frozen Policy) no runtime de produção da plataforma.
 
-A implementação offline do Slice D (PR #61) comprovou com sucesso a coordenação determinística em memória, blindagem de interrupção, supressão de stale generation e fail-open com fakes locais. No entanto, conectar provedores reais e tráfego telefônico em produção introduz riscos críticos de privacidade (transmissão de transcrições de clientes), deriva silenciosa de modelo (*model drift*), orçamento de latência acústica, contenção de concorrência e custos.
+A implementação offline do Slice D (PR #61) comprovou com sucesso a coordenação determinística em memória, blindagem de interrupção, supressão de stale generation e fail-open com fakes locais. No entanto, conectar provedores reais e tráfego telefônico em produção introduz riscos críticos de privacidade (transmissão de transcrições de clientes), integridade de modelo (*model drift*), orçamento de latência acústica, contenção de concorrência e custos.
 
 Este gate estabelece que:
 1. `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE` permanece **`NOT CLEARED`** até celebração de DPA formal, auditoria de subprocessores e autorização jurídica humana.
-2. `MODEL_DRIFT_RUNTIME_GUARD` é **`REQUIRED_BEFORE_ACTIVE_GUARDED`** (estratégia de version pinning obrigatória).
-3. A latência de staging (N=12, mediana 275ms) **não é** autoritativa para timeout de produção (`PRODUCTION_JEV_TIMEOUT_MS = CANDIDATE_PENDING_VALIDATION`).
-4. A validação deve seguir estritamente uma escada controlada de 5 níveis (L0 a L4), garantindo isolamento total de dados reais de clientes até aprovação explícita.
+2. `MODEL_DRIFT_RUNTIME_GUARD` é **`REQUIRED_BEFORE_ACTIVE_GUARDED`** (estratégia de version pinning desenhada como recomendação arquitetural; autoridade de modelo em runtime `NOT IMPLEMENTED`).
+3. A latência de staging (N=12, mediana 275ms) é evidência histórica de staging e **não é** autoritativa para timeout de produção (`PRODUCTION_JEV_TIMEOUT_MS = NOT SELECTED (CANDIDATE_PENDING_VALIDATION)`).
+4. A validação deve seguir estritamente uma escada controlada (L0 a L4), separando smoke funcional sintético com validação de modelo (L1A) de estudo empírico de latência (L1B), garantindo isolamento total de dados reais de clientes até aprovação explícita.
 
 ---
 
@@ -51,16 +52,16 @@ Para avaliar a prontidão antes de ligar o roteamento supervisionado em produç�
 
 | Dimensão | Classificação | Justificativa Factual |
 |---|---|---|
-| **A. Privacy / Data Processing** | `NEEDS_HUMAN_APPROVAL` | DPA contratual e autorização de envio de dados de clientes pendentes |
-| **B. Model Identity / Model Drift** | `DESIGNED / NEEDS_IMPLEMENTATION` | Estratégia de version pinning desenhada; autoridade runtime não implementada |
-| **C. Timeout** | `DESIGNED / NEEDS_PROVIDER_EVIDENCE` | Amostra staging N=12 insuficiente; timeout de produção requer validação controlada |
-| **D. Concurrency / Backpressure** | `DESIGNED` | Política de non-queuing fail-open desenhada; teto de produção não selecionado |
-| **E. Provider Failure** | `READY` | Fail-closed para bypass determinístico e fail-open para modelo generativo testados |
-| **F. Production Composition** | `DESIGNED` | Ponto de injeção desacoplado no composition root especificado sem dependência direta de SDK |
-| **G. Observability** | `DESIGNED` | Mapeamento de métricas provider-neutral sanitizadas de transcrições e segredos |
-| **H. Cost Control** | `DESIGNED / NEEDS_HUMAN_APPROVAL` | Preço por avaliação depende de contrato comercial; teto orçamentário diário exigido |
-| **I. Controlled Live Validation** | `DESIGNED` | Escada L0-L4 desenhada; L0 concluído, L1 a L4 não executados |
-| **J. Rollback / Kill Switch** | `DESIGNED` | Flag de configuração de feature-mode permite corte imediato para DISABLED sem migration |
+| **A. Privacy / Data Processing** | `BLOCKED / HUMAN_LEGAL_APPROVAL_REQUIRED` | `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`. DPA e autorização jurídica humana pendentes |
+| **B. Model Identity / Model Drift** | `DESIGNED` | Suporte a modelo versionado verificado no provedor; autoridade e guarda de runtime `NOT IMPLEMENTED`; expectativa `UNRESOLVED` |
+| **C. Timeout** | `NOT SELECTED / VALIDATION REQUIRED` | Amostra staging N=12 insuficiente; timeout de produção requer validação controlada L1B; 600-800ms é candidato exploratório |
+| **D. Concurrency / Backpressure** | `NOT SELECTED` | Política de non-queuing fail-open desenhada; teto de produção não selecionado; 2-5 canary é proposta exploratória |
+| **E. Provider Failure** | `READY` | Fail-closed para bypass determinístico e fail-open para modelo generativo testados offline |
+| **F. Production Composition** | `DESIGNED / NOT IMPLEMENTED` | Ponto de injeção desacoplado especificado; `PRODUCTION_RUNTIME_WIRING = NO` |
+| **G. Observability** | `DESIGNED / NOT IMPLEMENTED` | Mapeamento de métricas provider-neutral sanitizadas de transcrições e segredos desenhado |
+| **H. Cost Control** | `DESIGNED / NEEDS_HUMAN_APPROVAL` | `COST_PER_JEV_EVALUATION = NOT VERIFIED` (depende de tier comercial acordado); teto orçamentário diário exigido |
+| **I. Controlled Live Validation** | `DESIGNED` | Escada L0-L4 desenhada; L0 concluído, L1A/L1B a L4 não executados |
+| **J. Rollback / Kill Switch** | `DESIGNED / NOT IMPLEMENTED` | Sem reload dinâmico em runtime; alteração de flag exige restart/redeploy; implementação `NOT IMPLEMENTED` |
 | **K. Real Telephony Validation** | `BLOCKED` | Requer conta Twilio e testes L3; postergado para fase apropriada |
 
 ---
@@ -109,41 +110,69 @@ Turnos conversacionais gerais, saudações ou dados sensíveis fora de escopo s�
 
 ## 5. Official TypeSafe Data-Processing Research
 
-Pesquisa realizada exclusivamente em fontes e documentações oficiais da TypeSafe AI (acesso em 2026-10-02):
+Pesquisa realizada em fontes e documentações oficiais da TypeSafe AI (revalidada em 2026-10-02):
 
-### 5.1 Evidências Documentadas
-1. **Termos de Uso e DPA**:
-   - **Fonte**: `https://typesafe.ai/data-processing` (incorporado por referência no Master Customer Agreement em `https://typesafe.ai/terms`).
-   - **Fato**: O DPA estabelece termos de tratamento de dados pessoais conforme regulamentações globais (GDPR / LGPD equivalentes), estipulando obrigações contratuais de proteção.
-2. **Subprocessadores**:
-   - **Fonte**: `https://trust.typesafe.ai/subprocessors`.
-   - **Fato**: A TypeSafe mantém lista pública de subprocessadores de infraestrutura e compromete-se a notificar clientes com 15 dias de antecedência para objeção fundamentada.
-3. **Treinamento em Dados de Clientes (*No Training*)**:
-   - **Fonte**: Documentação oficial e DPA da TypeSafe AI (`https://typesafe.ai/terms`).
-   - **Fato**: A TypeSafe AI estipula que **não treina seus modelos fundamentais nos dados ou inputs fornecidos por clientes** via API.
-4. **Retenção de Dados**:
-   - **Fonte**: Seção de Retenção do DPA e Master Agreement (`https://typesafe.ai/data-processing`).
-   - **Fato**: Dados de clientes são mantidos pelo período necessário para execução do serviço e cumprimento legal. Opção de *Zero Data Retention* (ZDR) é documentada para planos empresariais sob termos aditivos específicos.
-5. **Transferência Internacional e Hospedagem**:
-   - **Fonte**: TypeSafe Privacy Policy (`https://typesafe.ai/privacy`).
-   - **Fato**: Os servidores da TypeSafe estão sediados nos Estados Unidos. A transferência de dados originados no Brasil ou UE requer Cláusulas Contratuais Padrão (SCCs) ou salvaguarda legal válida no DPA.
+### 5.1 Fontes Oficiais Observadas
 
-### 5.2 Matriz de Requisitos de Privacidade
+1. **`https://docs.typesafe.ai/models.md`**
+   - **Título**: `Models`
+   - **Seções**: `Data handling`, `Aliases`, `Listing models`
+   - **Data de Acesso**: 2026-10-02
+   - **Fato**: Jev não é treinado em requests ou responses de clientes ("Jev is not trained on customer requests or responses"). Refere formalmente a `/legal` para DPA, Privacy Policy e Zero Data Retention (ZDR) para enterprise.
+2. **`https://docs.typesafe.ai/api.md`**
+   - **Título**: `API reference`
+   - **Seções**: `Evaluation endpoint`, `Request body`, `Response body`
+   - **Data de Acesso**: 2026-10-02
+   - **Fato**: Define formato de request (`state`, `model`, `questions`) e response (`model`, `answers`, `usage`). Confirma que o campo `model` da resposta reporta o ID que executou a avaliação.
+3. **`https://docs.typesafe.ai/legal.md`**
+   - **Título**: `Legal`
+   - **Seções**: `Legal documents`
+   - **Data de Acesso**: 2026-10-02
+   - **Fato**: Lista DPA (`https://typesafe.ai/legal/data-processing`), Master Customer Agreement (`https://typesafe.ai/legal/mca`) e Privacy Policy (`https://typesafe.ai/legal/privacy-policy`). Confirma oferta de Zero Data Retention (ZDR) para enterprise via `sales@typesafe.ai`.
+4. **`https://typesafe.ai/legal/terms`** (redirecionado de `https://typesafe.ai/terms`)
+   - **Título**: `Terms of use - TypeSafe AI`
+   - **Data de Acesso**: 2026-10-02
+   - **Fato**: Termos de navegação do site público (`the Site`).
+5. **`https://typesafe.ai/legal/mca`**
+   - **Título**: `Master customer agreement - TypeSafe AI`
+   - **Seções**: `4. Data`, `4.1. Use of Customer Data`
+   - **Data de Acesso**: 2026-10-02
+   - **Fato**: Cláusula 4.1 estabelece: "The foregoing license does not grant TypeSafe the right to, and TypeSafe will not, include Customer Data in a dataset used to train (i.e., to modify the model weights of) any artificial intelligence or machine learning models without Customer’s prior consent."
+6. **`https://typesafe.ai/legal/data-processing`** (redirecionado de `https://typesafe.ai/data-processing`)
+   - **Título**: `Data processing addendum - TypeSafe AI`
+   - **Seções**: `2. Customer Personal Data`, `3. Subprocessors` (3.1, 3.2), `6. International Data Transfers`, `Schedule I` (8. Duration of Processing)
+   - **Data de Acesso**: 2026-10-02
+   - **Fato**: Cláusula 2: TypeSafe processa dados pessoais de clientes apenas sob instruções documentadas para prestar o serviço. Cláusula 3: autorização geral para subprocessadores em `https://trust.typesafe.ai/subprocessors`, com aviso prévio razoável e prazo de 15 dias para objeção. Cláusula 6: incorporação de EU SCCs (Module 2 e 3) e UK Addendum. Schedule I, Seção 8: dados retidos pelo tempo necessário para execução e cumprimento legal.
+7. **`https://typesafe.ai/legal/privacy-policy`** (redirecionado de `https://typesafe.ai/privacy`)
+   - **Título**: `Privacy policy - TypeSafe AI`
+   - **Seções**: `International Visitors`, `Retention`
+   - **Data de Acesso**: 2026-10-02
+   - **Fato**: "International Visitors" declara que os serviços são hospedados nos Estados Unidos ("The Services are hosted in the United States ('U.S.')."). "Retention" declara retenção pelo tempo razoavelmente necessário para prestação de serviços ou exigência legal.
+8. **`https://trust.typesafe.ai/subprocessors`**
+   - **Título**: `Typesafe.ai Trust Center`
+   - **Data de Acesso**: 2026-10-02
+   - **Fato**: Shell SPA do Vanta Trust Center para TypeSafe, formalmente referenciado na cláusula 3.1 do DPA.
 
-| Requisito | Status Atual | Evidência Factual | Responsável (Owner) | Liberação Obrigatória |
+### 5.2 Matriz de Classificação Factual de Requisitos de Privacidade
+
+| Requisito | Classificação Factual | Fonte / Evidência Observável | Owner | Liberação para Produção |
 |---|---|---|---|---|
-| **Data Minimization (Wire)** | `READY` | Adapter omite `organizationId`, `callId`, `turnId` do payload | Engenharia | Automática (verificada em código) |
-| **Matcher-First Gate** | `READY` | Jev avaliado apenas em turnos de horário de atendimento | Engenharia | Automática (verificada em código) |
-| **No-Training Guarantee** | `VERIFIED IN DOCS` | Termos oficiais da TypeSafe proíbem treinamento em customer input | Segurança / Jurídico | Confirmação formal no contrato |
-| **Zero Data Retention (ZDR)** | `NEEDS_COMMERCIAL_TERMS` | Documentado como opção enterprise; não contratado | Jurídico / Comercial | Execução de aditivo ZDR |
-| **DPA Assinado** | `NEEDS_HUMAN_APPROVAL` | Termo padrão online não substitui assinatura bilateral para produção | Jurídico / Humano | Assinatura formal do DPA |
-| **Transferência Internacional (LGPD)** | `NEEDS_HUMAN_APPROVAL` | Base legal e cláusulas padrão para transferência aos EUA pendentes | Jurídico / DPO | Parecer de conformidade DPO |
-| **Transparência / Disclosure** | `NEEDS_HUMAN_APPROVAL` | Aviso de privacidade e termos para o usuário final da chamada de voz | Jurídico / Produto | Aprovação de script de atendimento |
+| **Data Minimization (Wire)** | `PROVIDER_DOCUMENTED / ARCHITECTURAL_PROPERTY` | Adapter omite `organizationId`, `callId`, `turnId` do payload | Engenharia | Verificada em código |
+| **Matcher-First Gate** | `ARCHITECTURAL_PROPERTY` | Matcher filtra turnos elegíveis antes de invocar Jev | Engenharia | Verificada em código |
+| **No-Training Guarantee** | `PROVIDER_DOCUMENTED` | MCA Cláusula 4.1 e `docs.typesafe.ai/models.md` ("Jev is not trained on customer requests or responses") | Segurança / Jurídico | Confirmação formal no contrato |
+| **Data Retention Policy** | `PROVIDER_DOCUMENTED` | DPA Schedule I (8) e Privacy Policy ("Retention"): retenção durante execução do serviço e obrigações legais | Jurídico / DPO | Avaliação de conformidade DPO |
+| **Zero Data Retention (ZDR)** | `PROVIDER_DOCUMENTED` | `docs.typesafe.ai/legal.md` e `models.md` listam ZDR como opção enterprise sob contratação | Jurídico / Comercial | Aditivo ZDR enterprise se exigido pelo DPO |
+| **Subprocessor Notice Period** | `PROVIDER_DOCUMENTED` | DPA Cláusula 3.2 estipula aviso prévio e prazo de 15 dias para objeção | Segurança / Jurídico | Avaliação de risco de fornecedores |
+| **Server / Data Location** | `PROVIDER_DOCUMENTED` | Privacy Policy ("International Visitors"): hospedado nos Estados Unidos (US) | Jurídico / DPO | Avaliação de transferência internacional |
+| **SCC / Transferência Internacional** | `PROVIDER_DOCUMENTED` | DPA Cláusula 6 incorpora EU SCCs (Module 2/3) e UK Addendum | Jurídico / DPO | Avaliação de enquadramento LGPD (Art. 33) |
+| **DPA Disponibilidade** | `PROVIDER_DOCUMENTED` | `typesafe.ai/legal/data-processing` disponibiliza DPA formal público | Jurídico / Humano | Execução/assinatura formal do DPA se exigido |
+| **Aprovação Jurídica / DPO** | `HUMAN / LEGAL APPROVAL REQUIRED` | Decisão de conformidade legal de transferência e tratamento não é automática por IA | Operador Humano / DPO | **MANDATÓRIA** |
 
 **Veredito de Privacidade**:
 ```
 CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED
 PRIVACY_HUMAN_LEGAL_APPROVAL_REQUIRED = YES
+LEGAL_DPO_REVIEW = REQUIRED
 ```
 
 ---
@@ -151,24 +180,28 @@ PRIVACY_HUMAN_LEGAL_APPROVAL_REQUIRED = YES
 ## 6. Model Identity & Model Drift Authority
 
 ### 6.1 Fatos Atuais do Código
-- `REQUESTED_MODEL_AUTHORITY`: Constate default `DEFAULT_TYPESAFE_MODEL = 'jev-latest'` definida em `typesafe-jev-turn-decision-adapter.ts`.
+- `REQUESTED_MODEL_AUTHORITY`: Constante default `DEFAULT_TYPESAFE_MODEL = 'jev-latest'` definida em `typesafe-jev-turn-decision-adapter.ts`.
 - `OBSERVED_PROVIDER_MODEL`: Campo `model` retornado no corpo da resposta da TypeSafe e mapeado em `AuxiliaryTurnDecisionOutput.providerModel`.
-- `EXPECTED_MODEL_AUTHORITY`: **Ausente**. Nem a snapshot da versão do agente (`AgentConfigurationSnapshotV1`) nem a configuração de runtime definem um modelo esperado para comparação.
+- `EXPECTED_MODEL_AUTHORITY`: **`UNRESOLVED`**. Nem o snapshot da versão do agente nem a configuração de runtime definem atualmente uma autoridade de modelo esperado para comparação.
 - `CURRENT_MODEL_DRIFT_GUARD`: **`NOT IMPLEMENTED`**.
 
-### 6.2 Semântica Oficial de Versionamento da TypeSafe
-- A documentação oficial da TypeSafe esclarece que `jev-latest` é um **alias mutável** (*moving alias*), atualizado automaticamente quando novos checkpoints são promovidos.
-- **Recomendação Oficial**: Para ambientes de produção com calibragem rígida de thresholds, a TypeSafe recomenda formalmente o **pinning de versão** (ex.: `jev-1.13.0` ou identificador estático com semver).
-- Usar `jev-latest` em produção acarreta risco de alteração silenciosa da distribuição de scores (`deterministicScore`, `securityScore`), invalidando as garantias da Frozen Policy V1 (`T_SECURITY = 0.56`, `T_DETERMINISTIC = 0.35`).
+### 6.2 Fatos Documentados do Provedor (TypeSafe)
+1. **Existência do alias `jev-latest`**: `PROVIDER_DOCUMENTED` (`docs.typesafe.ai/models.md`).
+2. **Resolução do alias**: `PROVIDER_DOCUMENTED` (`jev-latest` aponta para `jev-1.13.0` em 2026-10-02, revalidando evidência histórica do projeto de 2026-09-29).
+3. **Comportamento mutável do alias**: `PROVIDER_DOCUMENTED` ("An alias moves when a new release ships, so the answers behind it can change without a change on your side.").
+4. **Campo `model` na resposta**: `PROVIDER_DOCUMENTED` ("The response's `model` field reports the versioned ID that answered").
+5. **Aceitação de modelo versionado no request**: `PROVIDER_DOCUMENTED` ("Versioned IDs such as `jev-1.13.0` are accepted by the `model` field whether or not they appear in the list.").
+6. **Recomendação de pinning pelo provedor**: `PROVIDER_DOCUMENTED` ("If you have tuned confidence thresholds against a specific version, pin that version's ID instead of the alias and move to the new one on your own schedule.").
+7. **Garantia de imutabilidade de IDs versionados**: `NOT VERIFIED` (a documentação estabelece que IDs versionados representam versões específicas, mas não oferece garantia criptográfica ou contratual expressa de imutabilidade de pesos).
 
 ### 6.3 Avaliação das Opções Arquiteturais de Model Drift
 
-| Opção | Descrição | Segurança | Fragilidade Operacional | Suporte do Provedor | Veredito |
+| Opção | Descrição | Classificação | Fragilidade Operacional | Suporte do Provedor | Veredito Arquitetural |
 |---|---|---|---|---|---|
-| **OPTION_M1** | Strict Equality com versão fixada (ex.: `expectedModel === 'jev-1.13.0'`) | **Máxima**: zero drift silencioso | Exige atualização de config para novos modelos | Totalmente suportado via payload `model` | **RECOMENDADA para Produção** |
-| **OPTION_M2** | Approved-Set (ex.: `['jev-1.13.0', 'jev-1.13.1'].includes(model)`) | **Alta**: permite canary / blue-green | Moderada: exige gerenciar allowlist | Suportado | Alternativa para transições graduais |
-| **OPTION_M3** | Comparação com o alias solicitado (`providerModel === 'jev-latest'`) | **Nula**: o alias muda de checkpoint sob o capô | Nenhuma | N/A | **REJEITADA** (falsa proteção) |
-| **OPTION_M4** | Apenas monitoramento e telemetria | **Baixa**: detecção apenas post-mortem | Nenhuma | N/A | Insuficiente para autoridade determinística |
+| **OPTION_M1** | Strict Equality com versão fixada (ex.: runtime assert `expectedModel === response.providerModel`) | `PROJECT_ARCHITECTURAL_RECOMMENDATION` | Exige atualização de config para novos modelos | Totalmente suportado via payload `model` e request de ID versionado | **RECOMENDADA para Produção**: previne divergência de alias/model-ID detectável na fronteira da aplicação, sujeito a garantias do provedor |
+| **OPTION_M2** | Approved-Set (ex.: `['jev-1.13.0', 'jev-1.13.1'].includes(providerModel)`) | `PROJECT_ARCHITECTURAL_RECOMMENDATION` | Moderada: exige gerenciar allowlist | Suportado | Alternativa para transições graduais (canary) |
+| **OPTION_M3** | Comparação com o alias solicitado (`providerModel === 'jev-latest'`) | `INADEQUATE` | Nenhuma | N/A | **REJEITADA**: o alias muda de checkpoint sob o capô; falsa proteção |
+| **OPTION_M4** | Apenas monitoramento e telemetria | `INSUFFICIENT` | Nenhuma | N/A | Insuficiente para autoridade determinística de produção |
 
 ### 6.4 Semântica de Falha em Caso de Drift
 Qualquer divergência detectada no guard de model drift deve agir de forma estritamente fail-safe:
@@ -185,7 +218,8 @@ MODEL_DRIFT_DETECTED:
 ```
 MODEL_DRIFT_RUNTIME_GUARD_DESIGN = DESIGNED (OPTION_M1: Version Pinning)
 MODEL_DRIFT_RUNTIME_GUARD_IMPLEMENTATION = NOT IMPLEMENTED
-EXPECTED_MODEL_AUTHORITY = PENDING_CONFIG_SCHEMA_ADDITION
+EXPECTED_MODEL_AUTHORITY = UNRESOLVED (avaliação de runtime config vs agent snapshot pendente de slice de implementação)
+VERSIONED_MODEL_IMMUTABILITY = NOT VERIFIED
 MODEL_DRIFT_GUARD_REQUIRED_BEFORE_ACTIVE_GUARDED = YES
 ```
 
@@ -193,30 +227,33 @@ MODEL_DRIFT_GUARD_REQUIRED_BEFORE_ACTIVE_GUARDED = YES
 
 ## 7. Production Timeout Strategy & Evidence
 
-### 7.1 Evidência Histórica de Staging (N=12)
+### 7.1 Evidência Histórica Observada (Staging Synthetic, N=12)
 Em `docs/research/PHASE_6_TYPESAFE_STAGING_LATENCY_RESULT.md`:
-- `STAGING_SHADOW_TIMEOUT_MS = 1500`
-- Amostra sintética controlada: $N = 12$
-- Taxa de conclusão sob 1500ms: **100.0%** (12/12)
+- `STAGING_SHADOW_TIMEOUT_MS = 1500` (timeout operacional nominal de staging)
+- Amostra sintética observada: $N = 12$
+- Conclusão sob 1500ms: **100.0%** (12/12)
 - Mediana: **275ms** | p90: **311ms** | p95: **450ms** | Máximo: **450ms**
+- Classificação: `PROJECT_HISTORICAL_EVIDENCE`
 
 ### 7.2 Critérios para Produção vs. Staging
 ```
 STAGING_TIMEOUT != PRODUCTION_TIMEOUT
 ```
-1. **Orçamento Acústico de Voz**: A pausa humana natural na conversação telefônica situa-se entre 800ms e 1200ms. Se o Jev consumir 1500ms antes de um timeout, o fallback generativo posterior causará uma latência total perceptível superior a 2.5 segundos, degradando severamente a experiência do usuário.
-2. **Cauda de Rede (*Tail Latency*)**: Amostra de $N=12$ em staging não oferece confiança estatística para p99 ou p99.9 em produção sob concorrência variável.
-3. **Semântica de Timeout**:
+1. **Orçamento de Latência de Voz**: Em telefonia em tempo real, pausas prolongadas degradam a conversação. Se o Jev consumir um timeout elevado, o fallback generativo posterior soma latência adicional, prejudicando a experiência do usuário.
+2. **Heurística de Pausa Humana**: Notações prévias de pausa conversacional de 800-1200ms são classificadas como `UNSOURCED_HEURISTIC / NOT USED AS GATE EVIDENCE`.
+3. **Cauda de Rede (*Tail Latency*)**: Amostra de $N=12$ em staging não oferece confiança estatística para p99 ou p99.9 em produção (`TAIL_LATENCY_CONFIDENCE = NOT ESTABLISHED`).
+4. **Semântica de Timeout**:
    - `JEV_TIMEOUT` + `generation ativa` -> fallback imediato para o modelo generativo principal (`streamTurn`).
    - `JEV_TIMEOUT` + `generation stale` -> silêncio / supressão total (`streamTurn = 0`).
    - Bypass determinístico ou resposta de segurança são **terminantemente proibidos** em caso de timeout.
-   - Retries automáticos: **Zero** (`retries = 0`). Repetir chamadas em voz viola o orçamento de latência.
+   - Retries automáticos: **Zero** (`retries = 0`). Repetir chamadas em tempo real viola o orçamento de latência acústica.
 
 **Status do Timeout de Produção**:
 ```
-PRODUCTION_JEV_TIMEOUT_MS = CANDIDATE_PENDING_VALIDATION
-CANDIDATE_RANGE = 600ms - 800ms
-REQUIRED_EVIDENCE = Bateria sintética de latência N >= 100 requisições
+PRODUCTION_JEV_TIMEOUT_MS = NOT SELECTED (CANDIDATE_PENDING_VALIDATION)
+CANDIDATE_RANGE = 600ms - 800ms (EXPLORATORY_ENGINEERING_CANDIDATE / NOT SELECTED)
+REQUIRED_EVIDENCE = Estudo empírico de latência L1B com amostra planejada N >= 100
+TAIL_LATENCY_CONFIDENCE = NOT ESTABLISHED
 ```
 
 ---
@@ -224,7 +261,7 @@ REQUIRED_EVIDENCE = Bateria sintética de latência N >= 100 requisições
 ## 8. Concurrency & Backpressure Strategy
 
 ### 8.1 Separação Semântica: Shadow vs. Active Guarded
-- `SHADOW_MAX_CONCURRENCY`: Controla requisições assíncronas fire-and-forget que não afetam o caminho crítico de áudio.
+- `SHADOW_MAX_CONCURRENCY`: Controla requisições assíncronas consultivas que não afetam o caminho crítico de despacho de áudio.
 - `ACTIVE_GUARDED_MAX_CONCURRENCY`: Controla requisições síncronas bloqueantes que precedem o despacho de áudio do turno.
 
 ### 8.2 Semântica de Exaustão de Capacidade (Backpressure)
@@ -239,7 +276,8 @@ CONCURRENCY_CAPACITY_EXHAUSTED:
 
 **Status da Concorrência de Produção**:
 ```
-PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY = NOT SELECTED (Candidato para Canary Inicial: 2 a 5 chamadas simultâneas)
+PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY = NOT SELECTED
+CANARY_CONCURRENCY_2_TO_5 = EXPLORATORY_PROPOSAL / NOT SELECTED
 ```
 
 ---
@@ -269,21 +307,30 @@ O quadro abaixo formaliza o comportamento determinístico em todos os modos de f
 - **`EXISTING_OPTION`**: Fallback individual por turno para o modelo generativo.
 - **`MINIMAL_OPTION`**:
   - Para validação sintética controlada (L1/L2): Circuit breaker é `NOT APPLICABLE` (volume conhecido e supervisionado).
-  - Para canary e produção com tráfego real: `REQUIRED_BEFORE_PRODUCTION = YES / DESIGNED`.
-  - **Critério Mínimo**: Se 5 avaliações consecutivas do Jev falharem (timeout ou 5xx), um circuit breaker simples em memória deve tripolar para `OPEN` por 60 segundos, enviando 100% dos turnos diretamente para o modelo generativo sem incorrer em penalidade de latência de timeout.
+  - Para canary e produção com tráfego real: `REQUIRED_BEFORE_PRODUCTION = UNRESOLVED / DESIGN CANDIDATE`.
+- **Registro de Desvio e Correção**: A proposição preliminar de limiares numéricos arbitrários ("5 falhas consecutivas -> OPEN por 60s") foi classificada como `DESIGN_EVIDENCE_DEVIATION` sem evidência empírica de tráfego, sendo corrigida:
+```
+CIRCUIT_BREAKER_IMPLEMENTATION = NOT IMPLEMENTED
+CIRCUIT_BREAKER_REQUIRED_FOR_L1 = NO
+CIRCUIT_BREAKER_REQUIRED_BEFORE_PRODUCTION = UNRESOLVED / DESIGN CANDIDATE
+TRIP_THRESHOLD = NOT SELECTED
+OPEN_DURATION = NOT SELECTED
+```
 
 ---
 
 ## 11. Production Composition Boundary & Feature Modes
 
 ### 11.1 Fronteira de Injeção
-Em `apps/voice/src/composition-root.ts` (ou equivalente de produção):
+- `PRODUCTION_COMPOSITION_DESIGN = DESIGNED`
+- `PRODUCTION_COMPOSITION_IMPLEMENTATION = NO`
+- `PRODUCTION_RUNTIME_WIRING = NO`
 - A lógica de domínio (`ConversationOrchestrator`) continua recebendo estritamente a porta de domínio `guardedRoutingCoordinator`.
-- O composition root é o **único responsável** por instanciar `TypeSafeJevTurnDecisionAdapter` e injetá-lo no `GuardedTurnRoutingCoordinator`.
+- O composition root de produção será o **único responsável** por instanciar `TypeSafeJevTurnDecisionAdapter` e injetá-lo no `GuardedTurnRoutingCoordinator`.
 - **Zero imports de SDKs externos** ou detalhes de HTTP no núcleo do orquestrador.
 
 ### 11.2 Semântica dos Modos de Feature
-A variável de configuração de runtime `VOICE_GUARDED_ROUTING_FEATURE_MODE` controla os três estados:
+Os três modos conceituais são:
 
 ```
                               [Incoming Speech Final]
@@ -303,12 +350,14 @@ A variável de configuração de runtime `VOICE_GUARDED_ROUTING_FEATURE_MODE` co
 ```
 
 ### 11.3 Kill Switch / Rollback Design
-- **Mecanismo**: Alteração da variável de ambiente `VOICE_GUARDED_ROUTING_FEATURE_MODE=DISABLED`.
-- **Propriedades**:
-  - Sem necessidade de deploy de código.
-  - Sem alteração de schema ou migration de banco.
-  - Sem alteração da Frozen Policy.
-  - Sem quebra de estado de sessões de chamada ativas (sessões existentes continuam no modo generativo nominal).
+Auditoria do código-fonte e runtime atual:
+- `CURRENT_KILL_SWITCH_IMPLEMENTATION = NOT IMPLEMENTED`
+- `CURRENT_RUNTIME_DYNAMIC_RELOAD = NO`
+- `RESTART_OR_REDEPLOY_REQUIRED_FOR_ENV_CHANGE = YES`
+- **Design Futuro**:
+  - `KILL_SWITCH = DESIGNED / NOT IMPLEMENTED`.
+  - O corte de `ACTIVE_GUARDED` para `DISABLED` deve ser realizável sem migration de banco de dados, sem alteração de Frozen Policy e sem corrupção do estado de sessões de chamada ativas (chamadas ativas continuarão no modo generativo nominal).
+  - A comutação imediata sem reinício de processo exige mecanismo explícito de reload dinâmico que atualmente não está implementado.
 
 ---
 
@@ -320,7 +369,7 @@ Todas as métricas geradas devem ser estritamente provider-neutral e sanitizadas
 1. `voice.guarded.turn_eligible_total`: Contador de turnos que atenderam ao capability matcher.
 2. `voice.guarded.evaluations_total`: Contador de chamadas realizadas ao Jev.
 3. `voice.guarded.classification_total`: Contador por classificação (`DETERMINISTIC_CANDIDATE`, `SECURITY_ESCALATE`, `GENERATIVE_REQUIRED`).
-4. `voice.guarded.latency_ms`: Histograma de latência do provedor auxiliar (buckets: 100ms, 250ms, 500ms, 750ms, 1000ms, 1500ms).
+4. `voice.guarded.latency_ms`: Histograma de latência do provedor auxiliar.
 5. `voice.guarded.timeout_total`: Contador de turnos abortados por timeout do Jev.
 6. `voice.guarded.error_total`: Contador de erros (rede, 5xx, JSON inválido).
 7. `voice.guarded.model_drift_total`: Contador de rejeições por divergência de modelo.
@@ -339,10 +388,10 @@ Todas as métricas geradas devem ser estritamente provider-neutral e sanitizadas
 
 ## 13. Cost Control Model
 
-1. **Preço por Avaliação Jev**: `COST_PER_JEV_EVALUATION = NOT VERIFIED` (depende de tier comercial acordado com a TypeSafe; documentação pública lista System One sob modelo por requisição/token).
+1. **Preço por Avaliação Jev**: `COST_PER_JEV_EVALUATION = NOT VERIFIED` (depende de tier comercial acordado com a TypeSafe; documentação pública lista System One a $42/Btok, cobrado por input token).
 2. **Teto Orçamentário Mandatório (*Cost Ceiling*)**:
-   - Para validação sintética: teto rígido de requisições (ex.: max 100 chamadas).
-   - Para canary em produção: teto diário monetário ou de volume de requisições após o qual a feature comuta automaticamente para `DISABLED`.
+   - Para validação sintética: teto rígido de requisições e custo total estritamente limitado (ex.: max 20 a 100 chamadas sintéticas, custo < $0.10).
+   - Para canary em produção: teto diário monetário ou de volume de requisições após o qual a feature comuta para `DISABLED`.
 3. **Política de Retry**: **Zero retries** (`retries = 0`). O custo de retries em tempo real é duplo: financeiro e de latência acústica.
 
 ---
@@ -356,10 +405,16 @@ A promoção para produção deve seguir rigorosamente a escada de validação i
   │  Status: COMPLETE (PR #61 merged)
   │  Harness: Test fakes em memória, zero rede externa
   ▼
-[L1: Real Jev + Synthetic Transcript]
-  │  Status: NEXT CANDIDATE
-  │  Harness: Adapter TypeSafe real, prompts sintéticos conhecidos, transporte fake
-  │  Requisitos: Model Pinning pronto, timeout candidato, teto de custo, ZERO dados de clientes
+[L1A: Real Jev + Synthetic Functional Smoke]
+  │  Status: NEXT DESIGN CANDIDATE
+  │  Harness: Adapter TypeSafe real, prompts sintéticos conhecidos (N=20 PROPOSED / NOT FROZEN), transporte fake
+  │  Objetivo: Verificar request com modelo versionado, resposta com providerModel, semântica fail-open do guard
+  │  Requisitos: Model Pinning implementado offline, teto de custo, ZERO dados de clientes
+  ▼
+[L1B: Real Jev + Synthetic Latency Study]
+  │  Status: PLANNED
+  │  Harness: Bateria sintética de latência (N>=100 PLANNED_SAMPLE_SIZE), transporte fake
+  │  Objetivo: Coletar distribuição empírica de latência para subsidiar seleção de timeout de produção
   ▼
 [L2: Real Jev + Real OpenAI + Synthetic Transcript]
   │  Status: PENDING L1
@@ -372,8 +427,8 @@ A promoção para produção deve seguir rigorosamente a escada de validação i
   ▼
 [L4: Limited Production Canary / Customer Traffic]
      Status: BLOCKED
-     Requisitos: Privacy Gate CLEARED, DPA assinado, Timeout/Concurrency de produção congelados,
-                 Kill Switch validado, autorização formal humana/jurídica
+     Requisitos: Privacy Gate CLEARED, DPA assinado, Parecer DPO, Timeout/Concurrency de produção congelados,
+                 Kill Switch operacional, autorização formal humana/jurídica
 ```
 
 ---
@@ -391,22 +446,23 @@ A promoção para produção deve seguir rigorosamente a escada de validação i
 
 ## 16. ACTIVE_GUARDED Go/No-Go Matrix
 
-| Gate / Critério | Estado Atual | Evidência Disponível | Ação Necessária | Responsável | Exigido para L1? | Exigido para L3? | Exigido para ACTIVE_GUARDED Produção? |
+| Gate / Critério | Estado Atual | Evidência Disponível | Ação Necessária | Responsável | Exigido para L1A? | Exigido para L3? | Exigido para ACTIVE_GUARDED Produção? |
 |---|---|---|---|---|---|---|---|
-| **1. Coordenação Offline** | `READY` | PR #61 merged, 149 testes passing | Nenhuma | Engenharia | SIM | SIM | SIM |
-| **2. Privacy / DPA** | `BLOCKED` | Pesquisa de termos TypeSafe concluída | Assinatura formal DPA + base LGPD | Jurídico / DPO | NÃO | NÃO | **SIM (MANDATÓRIO)** |
-| **3. Model Pinning (Drift)** | `DESIGNED` | Pesquisa oficial confirma versionamento | Implementar version pinning no adapter | Engenharia | **SIM** | SIM | SIM |
-| **4. Timeout Selecionado** | `PENDING` | Mediana 275ms em staging (N=12) | Bateria sintética N>=100 | Engenharia | NÃO (usa default) | SIM | SIM |
-| **5. Concorrência Selecionada** | `PENDING` | Semaphore projetado | Definir teto de canary | Engenharia | NÃO (seq=1) | SIM | SIM |
-| **6. Circuit Breaker** | `DESIGNED` | Análise YAGNI concluída | Implementar se canary exigir | Engenharia | NÃO | NÃO | SIM |
-| **7. Production Composition** | `DESIGNED` | Seam de injeção mapeado | Implementar no composition root | Engenharia | NÃO | NÃO | SIM |
-| **8. Kill Switch** | `DESIGNED` | Feature mode `DISABLED` especificado | Conectar flag de ambiente | Engenharia | NÃO | SIM | SIM |
-| **9. Observabilidade** | `DESIGNED` | Mapeamento de métricas concluído | Configurar métricas Prometheus/Datadog | Infra / Eng | NÃO | SIM | SIM |
-| **10. Conta Twilio** | `BLOCKED` | ConversationRelay adapter existe | Provisionar credenciais e número de teste | Operador Humano | NÃO | **SIM** | SIM |
+| **1. Coordenação Offline** | `READY` | PR #61 merged; 16 testes em `guarded-turn-routing.test.ts`; 727 passed globalmente | Nenhuma | Engenharia | SIM | SIM | SIM |
+| **2. Privacy / DPA** | `BLOCKED` | Pesquisa de fontes oficiais TypeSafe concluída; `CUSTOMER_TRANSCRIPT_GATE = NOT CLEARED` | Assinatura formal DPA + base LGPD / parecer DPO | Jurídico / DPO | NÃO (usa sintético) | NÃO (usa sintético) | **SIM (MANDATÓRIO)** |
+| **3. Model Pinning (Drift)** | `DESIGNED` | Pesquisa oficial confirma suporte a IDs versionados; autoridade de modelo `UNRESOLVED` | Implementar guarda de modelo no adapter | Engenharia | **SIM** | SIM | SIM |
+| **4. Timeout de Produção** | `NOT SELECTED` | Mediana 275ms em staging (N=12); 600-800ms é candidato exploratório | Estudo empírico de latência L1B | Engenharia | NÃO (usa default) | SIM | SIM |
+| **5. Concorrência de Produção** | `NOT SELECTED` | Backpressure fail-open desenhado; canary 2-5 é proposta exploratória | Definir teto formal de canary/produção | Engenharia | NÃO (seq=1) | SIM | SIM |
+| **6. Circuit Breaker** | `NOT SELECTED` | Análise YAGNI concluída; limiares preliminares removidos | Definir se necessário com dados empíricos | Engenharia | NÃO | NÃO | UNRESOLVED |
+| **7. Production Composition** | `DESIGNED` | Seam de injeção mapeado; `PRODUCTION_RUNTIME_WIRING = NO` | Implementar no composition root de produção | Engenharia | NÃO | NÃO | SIM |
+| **8. Kill Switch** | `DESIGNED` | Sem reload dinâmico em runtime; `CURRENT_KILL_SWITCH = NOT IMPLEMENTED` | Implementar mecanismo de corte dinâmico | Engenharia | NÃO | SIM | SIM |
+| **9. Observabilidade** | `DESIGNED` | Mapeamento de métricas provider-neutral concluído | Instrumentar métricas no adapter/coordenador | Infra / Eng | NÃO | SIM | SIM |
+| **10. Conta Twilio** | `BLOCKED` | ConversationRelay adapter existe offline | Provisionar credenciais e número de teste | Operador Humano | NÃO | **SIM** | SIM |
 | **11. Aprovação Humana Formal** | `PENDING` | N/A | Sign-off de segurança, produto e jurídico | Operador Humano | NÃO | NÃO | **SIM (MANDATÓRIO)** |
 
 **Veredito Global**:
-- `READY_FOR_L1_SYNTHETIC_LIVE_JEV`: **`NO`** (Pendente implementação mínima de Model Pinning e plano de validação sintética com teto de custo).
+- `READY_FOR_L1A_SYNTHETIC_FUNCTIONAL_SMOKE`: **`NO`** (Pendente implementação mínima de autoridade de modelo/pinning e plano L1A).
+- `READY_FOR_L1B_LATENCY_STUDY`: **`NO`** (Pendente L1A e desenho formal da bateria de latência).
 - `READY_FOR_L3_REAL_TWILIO`: **`NO`** (Pendente L1, L2 e provisionamento de conta Twilio).
 - `PRODUCTION_READY (ACTIVE_GUARDED)`: **`NO / BLOCKED`**.
 
@@ -416,12 +472,15 @@ A promoção para produção deve seguir rigorosamente a escada de validação i
 
 1. `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`
 2. `MODEL_DRIFT_RUNTIME_GUARD = NOT IMPLEMENTED`
-3. `PRODUCTION_JEV_TIMEOUT_MS = NOT SELECTED`
-4. `PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY = NOT SELECTED`
-5. `PRODUCTION_RUNTIME_WIRING = NO`
-6. `LIVE_PROVIDER_GUARDED_ROUTING_VALIDATION = NOT EXECUTED`
-7. `LIVE_TWILIO_GUARDED_ROUTING = NOT EXECUTED`
-8. `ACTIVE_GUARDED = BLOCKED`
+3. `EXPECTED_MODEL_AUTHORITY = UNRESOLVED`
+4. `PRODUCTION_JEV_TIMEOUT_MS = NOT SELECTED`
+5. `PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY = NOT SELECTED`
+6. `PRODUCTION_COMPOSITION_IMPLEMENTATION = NO`
+7. `PRODUCTION_RUNTIME_WIRING = NO`
+8. `LIVE_PROVIDER_GUARDED_ROUTING_VALIDATION = NOT EXECUTED`
+9. `LIVE_TWILIO_GUARDED_ROUTING = NOT EXECUTED`
+10. `CURRENT_KILL_SWITCH_IMPLEMENTATION = NOT IMPLEMENTED`
+11. `ACTIVE_GUARDED = BLOCKED`
 
 ---
 
@@ -429,15 +488,15 @@ A promoção para produção deve seguir rigorosamente a escada de validação i
 
 Com base nos bloqueadores mapeados na Go/No-Go Matrix:
 
-**Opção Recomendada**:
 ```
-NEXT_ALLOWED_STEP: Slice E.1 — Model Identity Guard & L1 Synthetic Validation Plan (DOCS / IMPLEMENTATION)
+NEXT_ALLOWED_STEP: Slice E.1 — Model Identity Guard & Synthetic Functional Smoke Plan (DOCS / IMPLEMENTATION)
 ```
 - **Escopo**:
-  1. Adicionar parâmetro de version pinning explícito ao `TypeSafeJevTurnDecisionAdapter` (ex.: `pinnedModelVersion: string`);
-  2. Implementar a validação em runtime garantindo que `AuxiliaryTurnDecisionOutput.providerModel === pinnedModelVersion`;
-  3. Estruturar o plano formal e dataset sintético fechado (N=20) para o teste L1 (TypeSafe real com zero dados de clientes, custo < $0.10).
-  4. Manter `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED` e `ACTIVE_GUARDED = BLOCKED`.
+  1. Definir a fronteira de autoridade de modelo (`EXPECTED_MODEL_AUTHORITY`) entre runtime/provider configuration e snapshot do agente;
+  2. Implementar suporte a request com modelo versionado (`model: 'jev-1.13.0'`) e verificação em runtime da resposta (`AuxiliaryTurnDecisionOutput.providerModel === expectedModel`) com fallback fail-open em caso de drift;
+  3. Adicionar testes unitários/offline cobrindo o guard de model drift;
+  4. Estruturar o plano formal e dataset sintético fechado (L1A, candidato N=20) para teste funcional ao vivo contra TypeSafe com zero dados de clientes e custo controlado (< $0.10);
+  5. Manter `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`, `PRODUCTION_RUNTIME_WIRING = NO` e `ACTIVE_GUARDED = BLOCKED`.
 
 ---
 
