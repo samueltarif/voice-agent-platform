@@ -11707,3 +11707,85 @@ Auditadas 10 categorias factuais no split de calibração:
 - `ARCHITECTURE_CHECK` = `PASS` (0 violações)
 - `FILE_SIZE_CHECK` = `PASS` (17 avisos, 0 violações > 180 linhas; `conversation-orchestrator.ts: 178 linhas`)
 - `PR60_FINAL_MERGE_SECRET_AUDIT` = `PENDING`
+
+---
+
+## 2026-10-02 - PROMPT-006AG-GUARDED-RUNTIME-ROUTING-INTEGRATION-OFFLINE-001 (Slice D)
+
+### 1. Resumo Executivo da Tarefa
+- **Prompt**: `PROMPT-006AG-GUARDED-RUNTIME-ROUTING-INTEGRATION-OFFLINE-001`
+- **Slice**: Slice D — Guarded Runtime Routing Integration — OFFLINE
+- **Branch**: `feat/006ag-guarded-runtime-routing-offline`
+- **Base Main Commit**: `e86d26bb7b15643440d8838198373145be9f34f2`
+- **Tested Code SHA**: `9a6a14b4743020719a757035c44e2d16150ac626`
+- **Status**: `IMPLEMENTED / TESTED LOCALLY`
+- **Provider Calls Factual Count**:
+  - `TypeSafe = 0` (exclusivo uso de test fakes offline `FakeDeterministicAuxiliaryPort`)
+  - `OpenAI real = 0` (exclusivo uso de test fakes offline `FakeConversationModel`)
+  - `Twilio = 0` (exclusivo uso de test fakes offline `FakeVoiceTransport`)
+- **Conexões DB**: 0
+- **Carregamento `.env`**: 0
+- **Holdout de Pesquisa Aberto**: NÃO (`LOCKED_HOLDOUT = CONSUMED`, zero reuso)
+- **Produção**: `ACTIVE_GUARDED = BLOCKED` (inalcançável em produção, sem injeção em composition root nominal)
+
+---
+
+### 2. Implementação Funcional e Arquitetural (Slice D)
+1. **GuardedTurnRoutingCoordinator (`apps/voice/src/guarded-turn-routing-coordinator.ts`)**:
+   - Componente coeso dedicado para orquestrar a decisão offline (139 linhas, complexidade ciclomatica <= 6, funções <= 25 linhas).
+   - Fluxo de execução determinística:
+     `callerTranscript` -> `matchesOperatingHoursCapability()`:
+     - `false` -> Retorna `GENERATIVE` (Jev não invocado: zero chamadas auxiliares).
+     - `true` -> Invoca `AuxiliaryTurnDecisionPort.evaluateTurn()` -> interpreta com `interpretFrozenTurnPolicy()`:
+       - `DETERMINISTIC_CANDIDATE`: executa `handleOperatingHoursTurn()`. Se `handled: true`, despacha via `deliverDeterministicResponse()`; se `handled: false`, fallback para modelo generativo `streamTurn()`.
+       - `SECURITY_ESCALATE`: despacha via `deliverSecurityBlockedResponse()` (resposta canônica estática de segurança). Zero fallback para OpenAI, zero tools, zero handoff, chamada permanece `ACTIVE`.
+       - `GENERATIVE_REQUIRED`: fallback para modelo generativo `streamTurn()`.
+2. **Single Provider Call Ownership**:
+   - `AUXILIARY_DECISION_CALL_OWNERSHIP = SINGLE_OWNER`:
+     No `ConversationOrchestrator.handleUserSpeechFinal()`, quando `guardedRoutingPort` está configurado, o `AuxiliaryTurnShadowObserver` tem sua avaliação suprimida para o turno atual (`observeTurn` não é disparado), eliminando qualquer risco de dupla consulta ao Jev.
+     Quando `guardedRoutingPort` está ausente, o comportamento legado do `AuxiliaryTurnShadowObserver` permanece intacto.
+3. **Fail-Closed & Fail-Open**:
+   - Se a chamada ao `AuxiliaryTurnDecisionPort` lançar erro, a falha é tratada de forma segura: fail-closed para bypass determinístico (nunca assume determinismo sem confirmação do modelo auxiliar) e fail-open para o modelo generativo principal (`streamTurn()`).
+4. **Stale Generation Suppression**:
+   - Staleness da geração é verificado antes do despacho de respostas determinísticas e de segurança (`isGenerationActive`). Se o turno foi interrompido antes do despacho, nenhuma fala é emitida.
+5. **Aderência aos Limites de Linhas e Complexidade**:
+   - `apps/voice/src/conversation-orchestrator.ts`: 175 linhas (limite máximo estrito <= 180 linhas; orquestrador desacoplado usando `ResolvedOrchestratorContext`).
+   - `apps/voice/src/guarded-turn-routing-coordinator.ts`: 139 linhas (alvo 80-150 linhas).
+   - `apps/voice/src/conversation-orchestrator-types.ts`: 154 linhas.
+
+---
+
+### 3. Cobertura de Testes Automatizados (Slice D)
+- **Arquivo de Testes Novo**: `apps/voice/src/guarded-turn-routing.test.ts` (14 testes abrangentes cobrindo todos os cenários das Seções 26, 27, 28):
+  1. `matcher false -> Jev 0 -> OpenAI 1`
+  2. `matcher true + DETERMINISTIC_CANDIDATE + handled -> Jev 1 -> OpenAI 0 -> deterministic speak 1`
+  3. `matcher true + SECURITY_ESCALATE -> Jev 1 -> OpenAI 0 -> security speak 1 -> call ACTIVE`
+  4. `matcher true + GENERATIVE_REQUIRED -> Jev 1 -> OpenAI 1 -> deterministic/security speak 0`
+  5. `single Jev owner: shadowObserver does NOT evaluate when guarded coordinator evaluates`
+  6. `shadowObserver evaluates normally when guarded routing is NOT configured`
+  7. `Jev throws -> fail-closed to deterministic bypass, fail-open to OpenAI generative model`
+  8. `unhandled deterministic capability -> fallback to OpenAI generative model`
+  9. `stale generation during Jev pending -> deterministic response suppressed`
+  10. `stale generation during Jev pending -> security response suppressed`
+  11. `frozen policy thresholds preserved (deterministicScore < 0.35 -> GENERATIVE)`
+  12. `frozen policy thresholds preserved (generativeScore > 0.47 -> GENERATIVE)`
+  13. `turn after security block remains ACTIVE and functions normally`
+  14. `direct unit tests for GuardedTurnRoutingCoordinator`
+- **Bateria Focada de 8 Arquivos**: 144 testes executados e aprovados em 2.52s.
+
+---
+
+### 4. Evidência do Quality Gate Global (`pnpm check`)
+- **Comando**: `powershell -Command "pnpm check; $code = $LASTEXITCODE; if ($code -eq 0) { Write-Output 'PNPM_CHECK_FINAL_PASS' } else { Write-Output 'PNPM_CHECK_FINAL_FAIL' }; exit $code"`
+- **Sentinela Observada**: `PNPM_CHECK_FINAL_PASS`
+- **Exit Code**: `0`
+- **Commit HEAD Testado**: `9a6a14b4743020719a757035c44e2d16150ac626`
+- **Resultados de Testes**:
+  - `Test Files`: `110 passed | 6 skipped (116 total)`
+  - `Tests`: `725 passed | 45 skipped (770 total)`
+  - `Regressão de Asserções`: `ASSERTION_WEAKER = 0`, `ASSERTION_STRONGER = 14` (14 novos testes em Slice D)
+  - `Novos Skips`: `0`
+- **Turbo Build**: `12 packages successful, 12 total`
+- **Architecture AST Check (`scripts/check-architecture.mjs`)**: `SUCESSO: Todas as fronteiras e regras arquiteturais respeitadas.`
+- **File Size Check (`scripts/check-file-size.mjs`)**: `SUCESSO: Todos os arquivos de logica estao em conformidade (18 avisos, 0 violações > 180 linhas; conversation-orchestrator.ts: 175 linhas).`
+

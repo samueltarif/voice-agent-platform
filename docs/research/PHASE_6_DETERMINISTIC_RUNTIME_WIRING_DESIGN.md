@@ -595,3 +595,24 @@ Candidate: Slice D — Guarded Runtime Routing Integration Offline (single-owner
 5. Nenhum carregamento de variáveis de ambiente (`.env`) ou conexão a banco de dados.
 6. Nenhuma alteração nos thresholds da Frozen Policy ou reutilização do holdout consumido.
 7. Nenhum tráfego de clientes (`CUSTOMER_TRAFFIC = PROHIBITED`).
+
+---
+
+## 22. Status Reconciliation — Slice D: Guarded Runtime Routing Integration Offline
+
+Com a implementação do Slice D (`PROMPT-006AG-GUARDED-RUNTIME-ROUTING-INTEGRATION-OFFLINE-001`):
+
+1. **Guarded Turn Routing Coordinator**:
+   - `IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/guarded-turn-routing-coordinator.ts`, `apps/voice/src/conversation-orchestrator.ts`).
+   - Conecta: capability matcher -> AuxiliaryTurnDecisionPort -> Frozen Policy interpreter -> classification (`DETERMINISTIC_CANDIDATE`, `SECURITY_ESCALATE`, `GENERATIVE_REQUIRED`).
+2. **Auxiliary Decision Call Ownership**:
+   - `AUXILIARY_DECISION_CALL_OWNERSHIP = SINGLE_OWNER`: quando `guardedRoutingPort` está configurado no orchestrator, o `AuxiliaryTurnShadowObserver` tem sua avaliação suprimida para o turno, garantindo zero chamadas duplicadas ao Jev.
+3. **Fail-Closed & Fail-Open**:
+   - `FAIL_CLOSED_TO_DETERMINISTIC_BYPASS = YES`: falha no Jev aciona fallback transparente para o modelo generativo (`streamTurn`), nunca bypass determinístico.
+   - `FAIL_OPEN_TO_GENERATIVE_MODEL = YES`.
+4. **Stale Generation Suppression**:
+   - Respostas determinísticas e de segurança verificam staleness antes do despacho.
+5. **Invariantes Preservadas**:
+   - `ACTIVE_GUARDED` permanece `BLOCKED` em produção.
+   - Provedores externos reais = 0 (TypeSafe = 0, OpenAI real = 0, Twilio = 0).
+
