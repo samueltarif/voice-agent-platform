@@ -11402,3 +11402,80 @@ Auditadas 10 categorias factuais no split de calibração:
 ### 6. Próximo Passo Permitido
 - `NEXT_ALLOWED_STEP`: Slice C — Security Response Delivery Integration Offline. Implementar fiação de entrega de resposta de segurança (`SECURITY_BLOCKED` action) no orquestrador com encerramento seguro de chamada, gravação de auditoria/histórico offline e proteção contra fallback. Coberto por testes unitários e de integração no orquestrador usando fakes.
 
+---
+
+## 2026-10-02 - PROMPT-006AE-PR59-HARDENING-EVIDENCE-AND-MERGE-001
+
+- **Data**: 2026-10-02
+- **Tipo**: PR59 HARDENING / EVIDENCE RECONCILIATION / PRE-MERGE AUDIT
+- **Branch**: `feat/006ae-deterministic-response-delivery-ownership`
+- **Functional HEAD SHA**: `713ec24c47338a096845f7f320287fd1fcec1078`
+- **Base `main` SHA**: `a102ae6eaebb1e7f8c7824477a0f28e01b9b7d4e`
+- **PR #59**: `https://github.com/samueltarif/voice-agent-platform/pull/59` (Title: `feat: deterministic response delivery and ownership in orchestrator offline`)
+
+### 1. Auditoria Factual de Semântica Pós-Dispatch (Post-Dispatch Failure Semantics)
+- `TRANSPORT_SPEAK_EXCEPTION_AFTER_OWNERSHIP`:
+  - `calls OpenAI?`: `NO` (`DISPATCH_ATTEMPTED -> NO_OPENAI_FALLBACK`)
+  - `calls endCall?`: `NO`
+  - `mutates CallSession to ENDED/FAILED?`: `NO`
+  - `persists full assistant response?`: `NO`
+  - `retains/clears pending response?`: `retains pending response in map with dispatched: true`
+  - `SPEAK_EXCEPTION_AFTER_COMMIT -> NO_AUTOMATIC_CALL_TERMINATION`: `PRESERVED`
+  - `FUNCTIONAL_FIX_REQUIRED`: `NO` (o código existente já não realiza terminação indevida).
+
+### 2. Reconciliação da Semântica de Segurança e Próximo Passo (Slice C)
+- Semântica canônica de `SECURITY_ESCALATE` confirmada contra `PHASE_6_SECURITY_ESCALATE_RUNTIME_SEMANTICS.md`:
+  - `SECURITY_DECISION_RESULT` = `SECURITY_BLOCKED`
+  - `SECURITY_OPENAI_FALLBACK` = `NOT AUTHORIZED`
+  - `SECURITY_TOOL_EXECUTION` = `PROHIBITED`
+  - `SECURITY_CALL_TERMINATION` = `NO`
+  - `SECURITY_HANDOFF` = `NO`
+  - `SECURITY_CALL_LIFECYCLE_MUTATION` = `NO`
+  - `SECURITY_DESIGN_INTENT_CALL_REMAINS_ACTIVE` = `YES`
+- Retificada qualquer formulação anterior em `AI_CONTEXT.md` ou `AI_WORKLOG.md` que descrevesse encerramento de chamada no Slice C. Slice C é estritamente recusa/entrega em nível de turno (`TURN-SCOPED`), preservando a chamada ativa para falas subsequentes do usuário.
+
+### 3. Reconciliação do Wording de Limite de Arquivo (File Size Governance)
+- `conversation-orchestrator.ts`: 175 linhas
+- `HARD_MAX_180`: `PASS` (175 <= 180)
+- `TARGET_80_150`: `ABOVE TARGET / WARNING` (175 > 150 linhas; não atende ao intervalo alvo de 80–150 linhas, gerando aviso no script `check-file-size.mjs`, porém com 0 violações críticas > 180 linhas e status global `PASS`).
+
+### 4. Registro Append-Only de Desvio de Execução do Quality Gate (Quality-Gate Deviation)
+- `PR59_MULTIPLE_PNPM_CHECK_INVOCATIONS` = `YES`
+- `TRACE_OBSERVED_PNPM_CHECK_INVOCATIONS` = `3`
+- `EARLIER_PNPM_CHECK_FINAL_RESULTS` = `NOT FULLY OBSERVED IN REVIEW TRACE`
+- `PREVIOUS_WORKLOG_FINAL_GATE_CLAIM` = `PNPM_CHECK_FINAL_PASS / exit 0`
+- `REVIEWER_INDEPENDENT_FINAL_GATE_EVIDENCE` = `NOT VERIFIED BEFORE THIS RECONCILIATION`
+- `CATEGORY` = `EXECUTION_EVIDENCE_DEVIATION`
+- `FUNCTIONAL_IMPACT` = `NONE OBSERVED`
+
+### 5. Registro Append-Only de Desvio de Mecanismo de Auditoria de Segredos (Secret-Audit Deviation)
+- `PR59_SECRET_AUDIT_MULTIPLE_MECHANISMS` = `YES`
+- `PR59_TEMP_SECRET_AUDIT_HELPER_CREATED` = `YES`
+- `PR59_TEMP_SECRET_AUDIT_HELPER_REMOVED` = `YES`
+- `TEMP_HELPER_PERSISTED_IN_GIT` = `NO`
+- `SECRET_VALUE_PRINTED` = `NOT OBSERVED`
+- `SECRET_EXPOSURE` = `NOT OBSERVED`
+- `ROTATION_REQUIRED` = `NO`
+- `CATEGORY` = `EXECUTION_CONTROL_DEVIATION`
+- A afirmação anterior de "execução única" de auditoria de segredos no worklog do prompt anterior é formalmente retificada por esta reconciliação append-only.
+
+### 6. Governança de Testes e Integridade de Asserções
+- Testes adicionados no PR #59: 13 novos testes em `apps/voice/src/deterministic-response-delivery.test.ts`
+- `ASSERTION_WEAKER` = `0`
+- `ASSERTION_STRONGER` = `13`
+- `NEW_SKIPS` = `0`
+- `HISTORICAL_SKIPS` = `45`
+
+### 7. Limites Operacionais e Isolamento de Provedores
+- Provedores externos: TypeSafe `0`, OpenAI `0`, Twilio `0`
+- `ENV_LOADED` = `NO` | `DB_CONNECTION` = `NO` | `CUSTOMER_DATA` = `NO` | `FROZEN_POLICY_CHANGED` = `NO`
+- `HOLDOUT_OPENED` = `NO`
+- `ACTIVE_GUARDED` = `BLOCKED`
+- `PRODUCTION_RUNTIME_WIRING` = `NO`
+- `CUSTOMER_TRAFFIC` = `PROHIBITED`
+
+### 8. Próximo Passo Permitido
+- `NEXT_ALLOWED_STEP`: Slice C — Security Response Delivery Integration Offline.
+  - Escopo conceitual: `SECURITY_BLOCKED` -> static safe response content -> response ownership -> deterministic/static delivery lifecycle -> qualified interruption/history semantics -> call remains active -> wait for next user.speech.final.
+  - Sem encerramento automático de chamada (`SECURITY_CALL_TERMINATION = NO`), sem handoff, sem execução de ferramentas, sem fallback para OpenAI após `SECURITY_ESCALATE`.
+  - Coberto por testes unitários e de integração no orquestrador usando fakes offline.

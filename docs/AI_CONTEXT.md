@@ -146,8 +146,8 @@ AI_CONTEXT_HEADER_END
 - **Status das Asserções**: `700 passed`, `45 historical skips`, `0 new skips`, `0 failures` (108 arquivos de teste aprovados, 6 skipped de staging; 745 testes totais).
 - **Regressão de Asserções**: `ASSERTION_WEAKER = 0` (13 novos testes adicionados em PR #59 / Slice B: `ASSERTION_STRONGER: 13`).
 - **Verificação Arquitetural**: `SUCESSO: Todas as fronteiras e regras arquiteturais respeitadas.`
-- **Verificação de Tamanho de Arquivos**: `SUCESSO: Todos os arquivos de logica estao em conformidade (17 avisos, 0 violacoes > 180 linhas).`
-- **Auditoria de Segredos**: `SECRET_AUDIT_PASS` (execução única em tracked diff `origin/main...HEAD`, value-blind, booleana).
+- **Verificação de Tamanho de Arquivos**: `HARD_MAX_180 = PASS; TARGET_80_150 = ABOVE TARGET / WARNING (conversation-orchestrator.ts: 175 linhas; 17 avisos, 0 violações > 180 linhas; check:file-size = PASS).`
+- **Auditoria de Segredos**: `SECRET_AUDIT_PASS` (reconciliado via append-only no worklog).
 - **QUALITY_EVIDENCE_STALE**: `NO` (commits subsequentes estritamente documentais em `docs/`).
 
 ---
@@ -159,7 +159,7 @@ AI_CONTEXT_HEADER_END
 3. `POST_DISPATCH_BARGE_IN_DESIGN = DESIGNED` | `POST_DISPATCH_BARGE_IN_RUNTIME = IMPLEMENTED / TESTED LOCALLY (offline)` | `LIVE_PROVIDER_BARGE_IN_VERIFICATION = PROVIDER-UNVERIFIED`
 4. `INTERRUPTED_CONTEXT_CONTINUITY_DESIGN = DESIGNED` | `INTERRUPTED_CONTEXT_METADATA_PROPAGATION = IMPLEMENTED / TESTED LOCALLY` | `INTERRUPTED_CONTEXT_CONTINUITY_RUNTIME = IMPLEMENTED / TESTED LOCALLY (offline delivery & qualified history)`
 5. `HISTORY_COMPLETION_DESIGN = DESIGNED` | `HISTORY_COMPLETION_RUNTIME = IMPLEMENTED / TESTED LOCALLY (offline orchestrator history resolution)`
-6. `SECURITY_RESPONSE_DELIVERY_DESIGN = DESIGNED` | `SECURITY_USER_RESPONSE_DELIVERY = NOT IMPLEMENTED` (Slice C)
+6. `SECURITY_RESPONSE_DELIVERY_DESIGN = DESIGNED` | `SECURITY_USER_RESPONSE_DELIVERY = NOT IMPLEMENTED` (Slice C: turn-scoped refusal/delivery; call remains active; call termination = NO)
 7. `ACTIVE_GUARDED = BLOCKED`
 8. `PRODUCTION_SHADOW_MAX_CONCURRENCY = NOT SELECTED`: Limite de concorrência operacional de produção não definido.
 9. `PRODUCTION_JEV_TIMEOUT_MS = NOT SELECTED`: Timeout operacional de produção não definido.
@@ -172,8 +172,12 @@ AI_CONTEXT_HEADER_END
 
 ### `NEXT_ALLOWED_STEP`:
 - Slice C: Security Response Delivery Integration Offline.
-- Implementar fiação de entrega de resposta de segurança (`SECURITY_BLOCKED` action) no orquestrador com encerramento seguro de chamada, gravação de auditoria/histórico offline e proteção contra fallback. Coberto por testes unitários e de integração no orquestrador usando fakes.
+- Escopo conceitual: TURN-SCOPED refusal/delivery (`SECURITY_BLOCKED` -> static safe response content -> response ownership -> deterministic/static delivery lifecycle -> qualified interruption/history semantics -> call remains active -> wait for next user.speech.final).
+- Sem encerramento automático de chamada (`SECURITY_CALL_TERMINATION = NO`, `SECURITY_HANDOFF = NO`, `SECURITY_CALL_LIFECYCLE_MUTATION = NO`, `SECURITY_DESIGN_INTENT_CALL_REMAINS_ACTIVE = YES`).
+- Coberto por testes unitários e de integração no orquestrador usando fakes offline.
 - Do NOT wire full ACTIVE_GUARDED runtime yet.
+- Do NOT wire Frozen Policy to orchestrator yet.
+- Do NOT wire Jev.
 - Do NOT enable live customer traffic.
 
 ### `NOT_YET_ALLOWED`:
