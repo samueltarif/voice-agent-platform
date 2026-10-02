@@ -549,18 +549,19 @@ NEW_COORDINATOR_REQUIRED = NO
 | `RUNTIME_FROZEN_POLICY_INTERPRETER` | **IMPLEMENTED / TESTED LOCALLY** | Função pura implementada offline em `frozen-policy-interpreter.ts` com 20 testes unitários (`FROZEN_POLICY_CHANGED = NO`) |
 | `SECURITY_RUNTIME_SEMANTICS` | **DESIGNED** | Definido em `docs/research/PHASE_6_SECURITY_ESCALATE_RUNTIME_SEMANTICS.md` |
 | `SECURITY_OFFLINE_ACTION` | **IMPLEMENTED / TESTED LOCALLY** | Implementado em `security-blocked-action.ts` (5 testes unitários) |
-| `SECURITY_RUNTIME_ROUTING_INTEGRATION` | **NOT IMPLEMENTED** | Bloqueador de fiação |
-| `SECURITY_USER_RESPONSE_DELIVERY` | **NOT IMPLEMENTED** | Entrega não implementada (`SECURITY_RESPONSE_DELIVERY_DESIGN = DESIGNED`) |
-| `SECURITY_RESPONSE_DELIVERY_READY` | **NO** | Entrega não faturada/testada no runtime (`DESIGNED`, mas `RUNTIME = NOT IMPLEMENTED`) |
+| `SECURITY_STATIC_RESPONSE_CONTENT` | **IMPLEMENTED / TESTED LOCALLY** | Implementado em `security-blocked-response.ts` |
+| `SECURITY_RESPONSE_DELIVERY_OFFLINE` | **IMPLEMENTED / TESTED LOCALLY** | Seam implementado em `conversation-orchestrator.ts` (11 testes em `security-response-delivery.test.ts`) |
+| `SECURITY_RUNTIME_ROUTING_INTEGRATION` | **NOT IMPLEMENTED** | Bloqueador de fiação nominal |
+| `SECURITY_RESPONSE_DELIVERY_READY` | **IMPLEMENTED LOCALLY / ROUTING PENDING** | Entrega offline implementada; fiação de routing nominal pendente |
 | `POST_DISPATCH_BARGE_IN_DESIGN` | **DESIGNED** | Definido em `docs/research/PHASE_6_RESPONSE_DELIVERY_LIFECYCLE_DESIGN.md` |
-| `POST_DISPATCH_BARGE_IN_RUNTIME` | **NOT IMPLEMENTED** | Implementação de runtime de barge-in ainda não executada |
+| `POST_DISPATCH_BARGE_IN_RUNTIME` | **IMPLEMENTED / TESTED LOCALLY** | Implementação offline de barge-in em `deterministic-response-delivery.ts` e `security-response-delivery.test.ts` |
 | `LIVE_PROVIDER_BARGE_IN_VERIFICATION` | **PROVIDER-UNVERIFIED** | Verificação ao vivo contra gateway real pendente de credenciais e tráfego |
 | `CURRENT_ADAPTER_POST_DISPATCH_CANCEL_SUPPORTED` | **NO** | Fontes oficiais consultadas do protocolo Twilio CR não documentam cancel outbound; interrupção ocorre na borda |
 | `CURRENT_ADAPTER_PLAYBACK_COMPLETION_SIGNAL` | **NO** | Fontes oficiais consultadas do protocolo Twilio CR não documentam ack de playback acústico |
 | `DETERMINISTIC_AUDIO_FULLY_DELIVERED` | **NOT VERIFIED** | Inobservável no provider; tratado via semântica de interrupção |
-| `DETERMINISTIC_HISTORY_COMPLETION_AFTER_SPEAK` | **DESIGNED** | Option H4 (`isInterrupted: true`); `RUNTIME = NOT IMPLEMENTED` |
+| `DETERMINISTIC_HISTORY_COMPLETION_AFTER_SPEAK` | **IMPLEMENTED / TESTED LOCALLY** | Option H4 (`isInterrupted: true`) e fallback Option H5 implementados offline |
 | `ACTIVE_GUARDED_PROVIDER_CALL_OWNERSHIP` | **BLOCKED / NOT IMPLEMENTED** | Risco de chamadas concorrentes/duplicadas ao Jev |
-| `DETERMINISTIC_RESPONSE_DELIVERY` (wiring) | **NOT WIRED** | Pendente de resolução de bloqueadores |
+| `DETERMINISTIC_RESPONSE_DELIVERY` (wiring) | **IMPLEMENTED LOCALLY / NOMINAL ROUTING NOT WIRED** | Delivery coordinator implementado; fiação nominal pendente |
 | `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE` | **NOT CLEARED** | Gate de privacidade |
 | `PRODUCTION_RUNTIME_WIRING` | **NO** | Desautorizado |
 
@@ -568,21 +569,19 @@ NEW_COORDINATOR_REQUIRED = NO
 
 ## 20. Redução do Próximo Passo de Implementação (Next Allowed Step Reduction)
 
-Devido aos múltiplos bloqueadores não resolvidos de runtime (`SECURITY_RUNTIME_ROUTING_INTEGRATION`, `POST_DISPATCH_BARGE_IN_RUNTIME`, `AUXILIARY_CALL_OWNERSHIP`), **NÃO É AUTORIZADA** a fiação simultânea do orquestrador com o interpretador ou ativação em produção.
+Devido aos bloqueadores remanescentes de runtime (`SECURITY_RUNTIME_ROUTING_INTEGRATION`, `AUXILIARY_CALL_OWNERSHIP`), **NÃO É AUTORIZADA** a ativação em produção ou tráfego real.
 
-O roadmap decomposto em `docs/research/PHASE_6_RESPONSE_DELIVERY_LIFECYCLE_DESIGN.md` define a sequência estrita de implementação mínima: Slice A (concluído) -> Slice B (próximo) -> Slice C -> Slice D.
+O roadmap decomposto define a sequência estrita de implementação mínima: Slice A (concluído) -> Slice B (concluído) -> Slice C (concluído) -> Slice D (próximo candidato).
 
 ```
 NEXT_ALLOWED_STEP:
-Slice B: Deterministic Response Delivery & Ownership in Orchestrator Offline.
-Implementar helper coeso de despacho determinístico com OPTION_B (ownership commit imediatamente antes de speak()), blindagem DISPATCH_ATTEMPTED -> NO_OPENAI_FALLBACK, e tratamento de interrupção com gravação de histórico qualificado (Option H4: isInterrupted: true). Coberto por testes unitários e de integração no orquestrador usando fakes, sem chamadas externas a provedores.
+Candidate: Slice D — Guarded Runtime Routing Integration Offline (single-owner Jev evaluation / Frozen Policy / handler-security route wiring). ACTIVE_GUARDED remains BLOCKED.
 ```
 
 ### Motivos da Redução de Escopo
 
-1. `SECURITY_RUNTIME_ROUTING_INTEGRATION` e delivery permanecem `NOT IMPLEMENTED` (ação offline `SECURITY_BLOCKED` está `IMPLEMENTED / TESTED LOCALLY`).
-2. `POST_DISPATCH_BARGE_IN` não possui suporte de cancelamento no transport versionado.
-3. A semântica de completude de histórico após `speak` não é comprovadamente segura.
+1. `SECURITY_RUNTIME_ROUTING_INTEGRATION` permanece `NOT IMPLEMENTED` (ações offline `SECURITY_BLOCKED` e delivery offline estão `IMPLEMENTED / TESTED LOCALLY`).
+2. `ACTIVE_GUARDED` exige coordenação de ownership de chamadas auxiliares (single-owner Jev evaluation).
 4. O ownership de chamadas auxiliares não impede dupla consulta se o shadow observer coexistir.
 
 ---

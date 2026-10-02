@@ -11541,3 +11541,169 @@ Auditadas 10 categorias factuais no split de calibração:
   - Escopo conceitual: `SECURITY_BLOCKED` -> static safe response content -> response ownership -> deterministic/static delivery lifecycle -> qualified interruption/history semantics -> call remains active -> wait for next user.speech.final.
   - Sem encerramento automático de chamada (`SECURITY_CALL_TERMINATION = NO`), sem handoff, sem execução de ferramentas, sem fallback para OpenAI após `SECURITY_ESCALATE`.
   - Coberto por testes unitários e de integração no orquestrador usando fakes offline.
+
+---
+
+## 2026-10-02 - PROMPT-006AF-SECURITY-RESPONSE-DELIVERY-INTEGRATION-OFFLINE-001
+
+- **Data**: 2026-10-02
+- **Tipo**: SLICE C — SECURITY RESPONSE DELIVERY INTEGRATION OFFLINE
+- **Branch**: `feat/006af-security-response-delivery-offline`
+- **Base `main` SHA**: `5d1dab7460e637e1370e81e7940be63c24ec23aa`
+- **Tested Code SHA**: `dbf8e617783ce02d5d4aec75d927be9dcb22bc18`
+
+### 1. Bootstrap e Reconciliação do PR #59
+- `CONTEXT_BOOTSTRAP_STATUS` = `CURRENT_AFTER_SELF_MERGE`
+- `PR59_STATUS` = `MERGED`
+- `PR59_MERGE_SHA` = `5d1dab7460e637e1370e81e7940be63c24ec23aa`
+- `PR59_FINAL_SECRET_AUDIT` = `PASS`
+- `PR59_SECRET_AUDIT_INVOCATIONS_IN_RECOVERY_PROMPT` = `1`
+- `PR59_MERGE_GATE` = `PASSED`
+- `POST_MERGE_MAIN` = `5d1dab7460e637e1370e81e7940be63c24ec23aa`
+- `POST_MERGE_WORKING_TREE` = `CLEAN`
+- O estado `NOT VERIFIED` anterior no `AI_CONTEXT.md` correspondia ao estado pré-auditoria do PR #59 por design, não constituindo erro histórico.
+
+### 2. Análise YAGNI e Decisão de Reutilização de Lifecycle
+- `CURRENT_REQUIREMENT` = entregar resposta estática segura para `SECURITY_BLOCKED` reutilizando o mesmo lifecycle de entrega determinística com ownership OPTION_B, sem fallback OpenAI, e suporte a barge-in H4/H5.
+- `EXISTING_OPTION` = `DeterministicResponseDeliveryCoordinator` e helpers de despacho em `apps/voice/src/deterministic-response-delivery.ts`.
+- `MINIMAL_OPTION` = reutilizar o lifecycle existente através de adaptador de entrada tipado e seam explícito no orquestrador, mantendo o conteúdo da resposta estática separado da decisão pura.
+- `SHARED_LIFECYCLE_DECISION` = reutilização integral do `DeterministicResponseDeliveryCoordinator` sem criação de segundo runtime de playback.
+- `SECURITY_STATIC_CONTENT_LOCATION` = `apps/voice/src/security-blocked-response.ts` (`CANONICAL_SECURITY_BLOCKED_RESPONSE`).
+- `SECURITY_ACTION_MINIMALISM` = preservado (`apps/voice/src/security-blocked-action.ts` inalterado, `{ outcome: 'SECURITY_BLOCKED' }`).
+- `SECURITY_ACTION_UNCHANGED` = `YES`.
+
+### 3. Implementação e Modificações de Arquivos
+- Arquivos modificados/criados:
+  - `apps/voice/src/security-blocked-response.ts` (novo: 43 linhas; texto canônico estático, interface de delivery e resolução de input).
+  - `apps/voice/src/conversation-orchestrator.ts` (modificado: adição de `deliverSecurityBlockedResponse` e `setActiveGenerationForTest`; tamanho: 179 linhas, `HARD_MAX_180 = PASS`).
+  - `apps/voice/src/index.ts` (modificado: exportação de `security-blocked-action.js` e `security-blocked-response.js`).
+  - `apps/voice/src/security-response-delivery.test.ts` (novo: 353 linhas; 11 testes cobrindo requisitos A–O e validação de input).
+
+### 4. Semântica de Entrega, Ownership e Continuidade de Turno
+- `SECURITY_DELIVERY_SEAM` = `orchestrator.deliverSecurityBlockedResponse(input)`
+- `SECURITY_RESPONSE_OWNERSHIP` = `OPTION_B` (ownership commit imediatamente antes de `transport.speak()`).
+- `SECURITY_OPENAI_FALLBACK` = `NOT AUTHORIZED` (0 chamadas a model/OpenAI no caminho de delivery).
+- `SECURITY_CALL_TERMINATION` = `NO` (`transport.endCalls` = 0).
+- `SECURITY_CALL_REMAINS_ACTIVE` = `YES` (`session.runtimeState` permanece `ACTIVE`).
+- `SECURITY_HANDOFF` = `NO`.
+- `SECURITY_TOOLS` = `0`.
+- `H4_RESULT` = `IMPLEMENTED / TESTED LOCALLY` (interrupção com `interruptedUtterance` persiste apenas fala reportada pelo provider com `isInterrupted: true`; texto completo nunca persistido).
+- `H5_RESULT` = `IMPLEMENTED / TESTED LOCALLY` (interrupção sem metadata de fala não fabrica parcial e não persiste resposta completa).
+- `INTERRUPTION_STARTS_NEW_RESPONSE` = `NO`.
+- `NEXT_USER_TURN_CONTINUITY` = `PROVED LOCALLY` (bloqueio de segurança é turn-scoped; após recusa ou interrupção, o próximo `user.speech.final` legítimo é processado normalmente pelo fluxo existente mantendo a chamada ativa).
+
+### 5. Fiação e Limites de Runtime
+- `SECURITY_RUNTIME_ROUTING_INTEGRATION` = `NOT IMPLEMENTED` (chamada exclusiva via seam explícito nos testes).
+- `FROZEN_POLICY_ROUTED_TO_ORCHESTRATOR` = `NO`.
+- `JEV_ROUTED_TO_ORCHESTRATOR` = `NO`.
+- `ACTIVE_GUARDED` = `BLOCKED`.
+- `ROUTING_WIRED` = `NO`.
+
+### 6. Governança de Testes e Integridade de Asserções
+- Testes focados executados:
+  - `apps/voice/src/security-blocked-action.test.ts` (5 testes pass)
+  - `apps/voice/src/barge-in-generation.test.ts` (3 testes pass)
+  - `apps/voice/src/conversation-orchestrator.test.ts` (9 testes pass)
+  - `apps/voice/src/security-response-delivery.test.ts` (11 testes pass)
+  - `apps/voice/src/deterministic-response-delivery.test.ts` (13 testes pass)
+  - Total focado: 5 arquivos, 41 testes passados, 0 falhas.
+- `ASSERTION_WEAKER` = `0`
+- `ASSERTION_STRONGER` = `11` (11 novos testes em `security-response-delivery.test.ts`)
+- `NEW_SKIPS` = `0`
+- `HISTORICAL_SKIPS` = `45`
+
+### 7. Limites Operacionais e Isolamento de Provedores
+- Chamadas a provedores externos: TypeSafe `0`, OpenAI `0`, Twilio `0`.
+- `TWILIO_ACCOUNT_REQUIRED` = `NO`.
+- `ENV_LOADED` = `NO`.
+- `DB_CONNECTION` = `NO`.
+- `CUSTOMER_DATA` = `NO`.
+- `HOLDOUT_OPENED` = `NO`.
+- `FROZEN_POLICY_CHANGED` = `NO`.
+- `CUSTOMER_TRAFFIC` = `PROHIBITED`.
+
+### 8. Execução Autoritativa do Full Quality Gate
+- Comando executado: `pnpm check; $code = $LASTEXITCODE; if ($code -eq 0) { Write-Output "PNPM_CHECK_FINAL_PASS" } else { Write-Output "PNPM_CHECK_FINAL_FAIL" }; exit $code`
+- Sentinela observada: `PNPM_CHECK_FINAL_PASS`
+- Exit code: `0`
+- `TEST_FILES_PASSED` = `109`
+- `TEST_FILES_SKIPPED` = `6` (115 total)
+- `TESTS_PASSED` = `711`
+- `TESTS_SKIPPED` = `45` (756 total)
+- `FAILURES` = `0`
+- `ARCHITECTURE_CHECK` = `PASS` (0 violações)
+- `FILE_SIZE_CHECK` = `PASS` (17 avisos, 0 violações > 180 linhas; `conversation-orchestrator.ts: 179 linhas`)
+- `TESTED_CODE_SHA` = `dbf8e617783ce02d5d4aec75d927be9dcb22bc18`
+
+### 9. Próximo Passo Permitido
+- `NEXT_ALLOWED_STEP`: Candidate: Slice D — Guarded Runtime Routing Integration Offline (single-owner Jev evaluation / Frozen Policy / handler-security route wiring).
+- `ACTIVE_GUARDED` permanece `BLOCKED` até que a fiação de roteamento seja explicitamente implementada e testada offline.
+
+---
+
+## 2026-10-02 - PROMPT-006AF-PR60-EVIDENCE-HARDENING-AND-MERGE-001
+
+- **Data**: 2026-10-02
+- **Tipo**: PR #60 EVIDENCE HARDENING & PRE-MERGE RECONCILIATION
+- **Branch**: `feat/006af-security-response-delivery-offline`
+- **Base `main` SHA**: `5d1dab7460e637e1370e81e7940be63c24ec23aa`
+- **Tested Code SHA**: `dbf8e617783ce02d5d4aec75d927be9dcb22bc18`
+- **PR #60**: `https://github.com/samueltarif/voice-agent-platform/pull/60`
+
+### 1. Reconciliação Append-Only dos Desvios de Execução do Slice C
+- `PR60_PNPM_CHECK_INVOCATIONS_OBSERVED` = `2`
+- `FIRST_PNPM_CHECK_AUTHORITATIVE` = `NO`
+- `FIRST_PNPM_CHECK_EVIDENCE_STALE` = `YES`
+- `REASON` = alteração de código funcional/teste após o primeiro disparo do gate (`prettier` executado em `security-response-delivery.test.ts` seguido de commit amendado)
+- `SECOND_PNPM_CHECK_REPORTED_SENTINEL` = `PNPM_CHECK_FINAL_PASS`
+- `SECOND_PNPM_CHECK_REVIEW_TRACE_RAW_SENTINEL` = `NOT INDEPENDENTLY OBSERVED`
+- `CATEGORY` = `EXECUTION_EVIDENCE_RECONCILIATION`
+- `FUNCTIONAL_IMPACT` = `NONE OBSERVED`
+- `PR60_FUNCTIONAL_COMMIT_COMMAND_RETRY` = `YES`
+- `FIRST_ATTEMPT_FINAL_RESULT` = `NOT VERIFIED` (erro de sintaxe PowerShell com operador `&&`)
+- `SECOND_ATTEMPT` = `OBSERVED TO PROCEED` (execução com `;` no PowerShell)
+- `CODE_CONTENT_IMPACT` = `NONE OBSERVED`
+
+### 2. Hardening Terminológico de Interrupção
+- O conteúdo de `interruptedUtterance` / `utteranceUntilInterrupt` é estritamente classificado como:
+  **texto parcial do assistente reportado pelo provedor no ponto da interrupção** (`provider-reported interrupted assistant text`).
+- Invariantes preservados explicitamente:
+  - `TEXT_DISPATCHED != AUDIO_PLAYED != AUDIO_HEARD_BY_USER`
+  - `INTERRUPTED_UTTERANCE_ACOUSTIC_PROOF = NO` (a presença de metadados reportados pela Twilio indica corte na borda telefônica, não prova acústica de audição pelo usuário).
+
+### 3. Preservação das Invariantes de Segurança
+- `SECURITY_BLOCKED` = turn-scoped
+- `SECURITY_CALL_TERMINATION` = `NO`
+- `SECURITY_CALL_REMAINS_ACTIVE` = `YES`
+- `SECURITY_HANDOFF` = `NO`
+- `SECURITY_TOOLS` = `0`
+- `SECURITY_OPENAI_FALLBACK` = `NOT AUTHORIZED`
+- `SECURITY_RUNTIME_ROUTING_INTEGRATION` = `NOT IMPLEMENTED`
+- `FROZEN_POLICY_ROUTED_TO_ORCHESTRATOR` = `NO`
+- `JEV_ROUTED_TO_ORCHESTRATOR` = `NO`
+- `ACTIVE_GUARDED` = `BLOCKED`
+
+### 4. Status de Tamanho de Arquivo e Diretiva para Slice D
+- `apps/voice/src/conversation-orchestrator.ts`: 178 linhas
+- `HARD_MAX_180` = `PASS`
+- `TARGET_80_150` = `ABOVE TARGET / WARNING`
+- `DO_NOT_GROW_ORCHESTRATOR_FOR_ROUTING` = `YES`: o arquivo está no limite prático de 180 linhas. A fiação de roteamento no Slice D deve preferir coordenador/seam coeso dedicado em vez de empilhar lógica no orquestrador.
+
+### 5. Reconciliação Temporal da Auditoria de Segredos
+- `PR60_PREVIOUS_BRANCH_SECRET_AUDIT` = `REPORTED PASS`
+- `PR60_FINAL_MERGE_SECRET_AUDIT` = `PENDING` (será executado como auditoria autoritativa final sobre o diff completo antes do merge).
+
+### 6. Execução Autoritativa do Final Quality Gate (PR #60)
+- `FINAL_PNPM_CHECK_SENTINEL` = `PNPM_CHECK_FINAL_PASS`
+- `FINAL_PNPM_CHECK_STATUS` = `PASS`
+- `FINAL_TESTED_HEAD` = `8c6f9e88efbcc3b87c585146eb44563a4b5020a5`
+- `TEST_FILES_PASSED` = `109`
+- `TEST_FILES_SKIPPED` = `6` (115 total)
+- `TESTS_PASSED` = `711`
+- `TESTS_SKIPPED` = `45` (756 total)
+- `FAILURES` = `0`
+- `NEW_SKIPS` = `0`
+- `ASSERTION_WEAKER` = `0`
+- `ARCHITECTURE_CHECK` = `PASS` (0 violações)
+- `FILE_SIZE_CHECK` = `PASS` (17 avisos, 0 violações > 180 linhas; `conversation-orchestrator.ts: 178 linhas`)
+- `PR60_FINAL_MERGE_SECRET_AUDIT` = `PENDING`

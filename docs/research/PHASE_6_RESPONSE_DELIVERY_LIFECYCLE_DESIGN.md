@@ -417,9 +417,9 @@ A implementação deve seguir estritamente a ordem de dependências arquiteturai
 
 ```
 Slice A (Contratos & Adapter Offline) [IMPLEMENTED / TESTED LOCALLY]
-   -> Slice B (Orchestrator Delivery & Ownership Offline) [NEXT]
-   -> Slice C (Security Integration Offline)
-   -> Slice D (Controlled Live Provider Verification)
+   -> Slice B (Orchestrator Delivery & Ownership Offline) [IMPLEMENTED / TESTED LOCALLY]
+   -> Slice C (Security Integration Offline) [IMPLEMENTED / TESTED LOCALLY]
+   -> Slice D (Controlled Live Provider Verification / Guarded Runtime Routing Offline) [CANDIDATE NEXT]
 ```
 
 ### Slice A: Interruption Context Continuity & Domain Contracts (Offline) — [IMPLEMENTED / TESTED LOCALLY]
@@ -428,23 +428,23 @@ Slice A (Contratos & Adapter Offline) [IMPLEMENTED / TESTED LOCALLY]
 - 100% offline, coberto por testes unitários de contrato e adapter (27 testes focados, typecheck aprovado).
 - `TWILIO_ACCOUNT_REQUIRED = NO`.
 
-### Slice B: Deterministic Response Delivery & Ownership in Orchestrator (Offline) — [PRÓXIMO PASSO SELECIONADO]
-- Implementar despacho determinístico no orquestrador com ownership commit `OPTION_B`.
+### Slice B: Deterministic Response Delivery & Ownership in Orchestrator (Offline) — [IMPLEMENTED / TESTED LOCALLY]
+- Implementado despacho determinístico no orquestrador com ownership commit `OPTION_B`.
 - Invariante formal: `DISPATCH_ATTEMPTED -> NO_OPENAI_FALLBACK`.
 - Tratamento de interrupção com gravação de histórico qualificado (`Option H4`: `isInterrupted: true`).
-- 100% offline, coberto por testes unitários e de integração em `conversation-orchestrator.test.ts` usando mocks e fakes.
+- 100% offline, coberto por testes unitários e de integração em `deterministic-response-delivery.test.ts` usando mocks e fakes.
 - `TWILIO_ACCOUNT_REQUIRED = NO`.
 
-### Slice C: Security Response Delivery Integration (Offline)
-- Integrar a ação offline `SECURITY_BLOCKED` (`security-blocked-action.ts`) com o lifecycle de entrega de resposta estática.
-- Assegurar `SECURITY_OPENAI_FALLBACK = NOT AUTHORIZED` em todas as bordas.
-- Testes unitários e de integração offline.
+### Slice C: Security Response Delivery Integration (Offline) — [IMPLEMENTED / TESTED LOCALLY]
+- Integrada a ação offline `SECURITY_BLOCKED` (`security-blocked-action.ts`) com o lifecycle de entrega de resposta estática canônica (`apps/voice/src/security-blocked-response.ts`, `apps/voice/src/conversation-orchestrator.ts`).
+- Ownership `OPTION_B` imediatamente antes do speak, blindagem `NO_OPENAI_FALLBACK`, suporte H4/H5 a interrupção, sessão permanece `ACTIVE`, continuidade no próximo turno do usuário.
+- 100% offline, coberto por 11 testes unitários e de integração focados (`apps/voice/src/security-response-delivery.test.ts`).
+- `SECURITY_CALL_TERMINATION = NO`, `SECURITY_HANDOFF = NO`, `SECURITY_OPENAI_FALLBACK = NOT AUTHORIZED`.
 - `TWILIO_ACCOUNT_REQUIRED = NO`.
 
-### Slice D: Controlled Live Provider Verification
-- Validação pontual com linha telefônica real e WebSocket Twilio em ambiente controlado.
-- Exige credenciais reais de sandbox/teste, autorização humana formal e verificação do corte de áudio na chamada real.
-- `TWILIO_ACCOUNT_REQUIRED = YES`.
+### Slice D: Guarded Runtime Routing Integration Offline / Controlled Live Provider Verification
+- Roteamento nominal guardado ou validação pontual de linha telefônica real.
+- `ACTIVE_GUARDED = BLOCKED` até implementação controlada.
 
 ---
 
