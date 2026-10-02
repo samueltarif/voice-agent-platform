@@ -217,8 +217,8 @@ MODEL_DRIFT_DETECTED:
 **Resultado de Model Drift**:
 ```
 MODEL_DRIFT_RUNTIME_GUARD_DESIGN = DESIGNED (OPTION_M1: Version Pinning)
-MODEL_DRIFT_RUNTIME_GUARD_IMPLEMENTATION = NOT IMPLEMENTED
-EXPECTED_MODEL_AUTHORITY = UNRESOLVED (avaliação de runtime config vs agent snapshot pendente de slice de implementação)
+MODEL_DRIFT_RUNTIME_GUARD_IMPLEMENTATION = IMPLEMENTED / TESTED LOCALLY (Slice E.1 offline)
+EXPECTED_MODEL_AUTHORITY = OPTION_B (TypeSafe adapter integration config: options.expectedProviderModel)
 VERSIONED_MODEL_IMMUTABILITY = NOT VERIFIED
 MODEL_DRIFT_GUARD_REQUIRED_BEFORE_ACTIVE_GUARDED = YES
 ```
@@ -406,10 +406,10 @@ A promoção para produção deve seguir rigorosamente a escada de validação i
   │  Harness: Test fakes em memória, zero rede externa
   ▼
 [L1A: Real Jev + Synthetic Functional Smoke]
-  │  Status: NEXT DESIGN CANDIDATE
-  │  Harness: Adapter TypeSafe real, prompts sintéticos conhecidos (N=20 PROPOSED / NOT FROZEN), transporte fake
+  │  Status: PLAN DESIGNED / READY FOR REVIEW (docs/research/PHASE_6_TYPESAFE_L1A_MODEL_IDENTITY_SMOKE_PLAN.md)
+  │  Harness: Adapter TypeSafe real, prompts sintéticos conhecidos (N=20 frozen em scripts/benchmarks/voice/jev-l1a-model-identity-smoke-v1-cases.json), transporte fake
   │  Objetivo: Verificar request com modelo versionado, resposta com providerModel, semântica fail-open do guard
-  │  Requisitos: Model Pinning implementado offline, teto de custo, ZERO dados de clientes
+  │  Requisitos: Model Pinning implementado offline (Slice E.1), teto de custo, ZERO dados de clientes
   ▼
 [L1B: Real Jev + Synthetic Latency Study]
   │  Status: PLANNED
@@ -435,7 +435,7 @@ A promoção para produção deve seguir rigorosamente a escada de validação i
 
 ## 15. Twilio Account Decision
 
-- `TWILIO_ACCOUNT_REQUIRED_FOR_CURRENT_SLICE`: **`NO`** (Slice puramente documental).
+- `TWILIO_ACCOUNT_REQUIRED_FOR_CURRENT_SLICE`: **`NO`** (Slice puramente offline).
 - `TWILIO_ACCOUNT_REQUIRED_FOR_L1`: **`NO`** (Testes sintéticos de Jev não utilizam telefonia).
 - `TWILIO_ACCOUNT_REQUIRED_FOR_L2`: **`NO`** (Testes de integração OpenAI + Jev não utilizam telefonia).
 - `TWILIO_ACCOUNT_REQUIRED_FOR_L3`: **`YES`** (Exige conta Twilio provisionada, número telefônico alocado e SIP/WebSocket configurados para chamadas de teste).
@@ -448,9 +448,9 @@ A promoção para produção deve seguir rigorosamente a escada de validação i
 
 | Gate / Critério | Estado Atual | Evidência Disponível | Ação Necessária | Responsável | Exigido para L1A? | Exigido para L3? | Exigido para ACTIVE_GUARDED Produção? |
 |---|---|---|---|---|---|---|---|
-| **1. Coordenação Offline** | `READY` | PR #61 merged; 16 testes em `guarded-turn-routing.test.ts`; 727 passed globalmente | Nenhuma | Engenharia | SIM | SIM | SIM |
+| **1. Coordenação Offline** | `READY` | PR #61 merged; 18 testes em `guarded-turn-routing.test.ts`; 738 passed globalmente | Nenhuma | Engenharia | SIM | SIM | SIM |
 | **2. Privacy / DPA** | `BLOCKED` | Pesquisa de fontes oficiais TypeSafe concluída; `CUSTOMER_TRANSCRIPT_GATE = NOT CLEARED` | Assinatura formal DPA + base LGPD / parecer DPO | Jurídico / DPO | NÃO (usa sintético) | NÃO (usa sintético) | **SIM (MANDATÓRIO)** |
-| **3. Model Pinning (Drift)** | `DESIGNED` | Pesquisa oficial confirma suporte a IDs versionados; autoridade de modelo `UNRESOLVED` | Implementar guarda de modelo no adapter | Engenharia | **SIM** | SIM | SIM |
+| **3. Model Pinning (Drift)** | `IMPLEMENTED / TESTED LOCALLY` | TypeSafeJevTurnDecisionAdapter, TypeSafeModelIdentityMismatchError, 23 testes em `typesafe-jev-turn-decision-adapter.test.ts`, fail-open em `guarded-turn-routing.test.ts` | Nenhuma para offline | Engenharia | **SIM** | SIM | SIM |
 | **4. Timeout de Produção** | `NOT SELECTED` | Mediana 275ms em staging (N=12); 600-800ms é candidato exploratório | Estudo empírico de latência L1B | Engenharia | NÃO (usa default) | SIM | SIM |
 | **5. Concorrência de Produção** | `NOT SELECTED` | Backpressure fail-open desenhado; canary 2-5 é proposta exploratória | Definir teto formal de canary/produção | Engenharia | NÃO (seq=1) | SIM | SIM |
 | **6. Circuit Breaker** | `NOT SELECTED` | Análise YAGNI concluída; limiares preliminares removidos | Definir se necessário com dados empíricos | Engenharia | NÃO | NÃO | UNRESOLVED |
@@ -461,18 +461,18 @@ A promoção para produção deve seguir rigorosamente a escada de validação i
 | **11. Aprovação Humana Formal** | `PENDING` | N/A | Sign-off de segurança, produto e jurídico | Operador Humano | NÃO | NÃO | **SIM (MANDATÓRIO)** |
 
 **Veredito Global**:
-- `READY_FOR_L1A_SYNTHETIC_FUNCTIONAL_SMOKE`: **`NO`** (Pendente implementação mínima de autoridade de modelo/pinning e plano L1A).
-- `READY_FOR_L1B_LATENCY_STUDY`: **`NO`** (Pendente L1A e desenho formal da bateria de latência).
-- `READY_FOR_L3_REAL_TWILIO`: **`NO`** (Pendente L1, L2 e provisionamento de conta Twilio).
-- `PRODUCTION_READY (ACTIVE_GUARDED)`: **`NO / BLOCKED`**.
+- `READY_FOR_L1A_SYNTHETIC_FUNCTIONAL_SMOKE`: `READY_FOR_HUMAN_REVIEW` (Model Identity Guard implementado offline; plano L1A e dataset sintético N=20 congelados).
+- `READY_FOR_L1B_LATENCY_STUDY`: `NO` (Pendente execução/aprovação de L1A e desenho formal da bateria de latência).
+- `READY_FOR_L3_REAL_TWILIO`: `NO` (Pendente L1, L2 e provisionamento de conta Twilio).
+- `PRODUCTION_READY (ACTIVE_GUARDED)`: `NO / BLOCKED`.
 
 ---
 
 ## 17. Remaining Blockers Before Production Activation
 
 1. `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`
-2. `MODEL_DRIFT_RUNTIME_GUARD = NOT IMPLEMENTED`
-3. `EXPECTED_MODEL_AUTHORITY = UNRESOLVED`
+2. `MODEL_DRIFT_RUNTIME_GUARD = IMPLEMENTED / TESTED LOCALLY (offline)`
+3. `EXPECTED_MODEL_AUTHORITY = OPTION_B (resolvido no adapter options)`
 4. `PRODUCTION_JEV_TIMEOUT_MS = NOT SELECTED`
 5. `PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY = NOT SELECTED`
 6. `PRODUCTION_COMPOSITION_IMPLEMENTATION = NO`
@@ -486,17 +486,16 @@ A promoção para produção deve seguir rigorosamente a escada de validação i
 
 ## 18. Next Minimal Slice Recommendation
 
-Com base nos bloqueadores mapeados na Go/No-Go Matrix:
+Com a conclusão do Slice E.1 (Model Identity Guard implementado offline + Plano/Dataset L1A desenhados):
 
 ```
-NEXT_ALLOWED_STEP: Slice E.1 — Model Identity Guard & Synthetic Functional Smoke Plan (DOCS / IMPLEMENTATION)
+NEXT_ALLOWED_STEP: L1A Controlled Live TypeSafe Model Identity Smoke (após revisão e autorização formal)
 ```
 - **Escopo**:
-  1. Definir a fronteira de autoridade de modelo (`EXPECTED_MODEL_AUTHORITY`) entre runtime/provider configuration e snapshot do agente;
-  2. Implementar suporte a request com modelo versionado (`model: 'jev-1.13.0'`) e verificação em runtime da resposta (`AuxiliaryTurnDecisionOutput.providerModel === expectedModel`) com fallback fail-open em caso de drift;
-  3. Adicionar testes unitários/offline cobrindo o guard de model drift;
-  4. Estruturar o plano formal e dataset sintético fechado (L1A, candidato N=20) para teste funcional ao vivo contra TypeSafe com zero dados de clientes e custo controlado (< $0.10);
-  5. Manter `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`, `PRODUCTION_RUNTIME_WIRING = NO` e `ACTIVE_GUARDED = BLOCKED`.
+  1. Execução controlada e pontual contra o endpoint da TypeSafe usando exclusivamente o dataset sintético de 20 casos (`scripts/benchmarks/voice/jev-l1a-model-identity-smoke-v1-cases.json`);
+  2. Validação factual em tráfego real de que `response.model` corresponde ao ID versionado solicitado;
+  3. Verificação de que o guard aceita o response quando há correspondência e rejeita quando há divergência;
+  4. Manter estritamente: zero dados de clientes, zero chamadas à OpenAI/Twilio, sem ativação de `ACTIVE_GUARDED`.
 
 ---
 
