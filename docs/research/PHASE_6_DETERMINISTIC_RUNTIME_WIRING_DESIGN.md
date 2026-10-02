@@ -141,7 +141,7 @@ transcript
   -> Frozen Policy interpreta scores
   -> se DETERMINISTIC_CANDIDATE: handleOperatingHoursTurn()
   -> se GENERATIVE_REQUIRED: streamTurn() [OpenAI]
-  -> se SECURITY_ESCALATE: handler proibido; semântica interna SECURITY_BLOCKED DESENHADA; implementação offline pendente; entrega user-facing NÃO IMPLEMENTADA
+  -> se SECURITY_ESCALATE: handler proibido; ação offline SECURITY_BLOCKED IMPLEMENTADA / TESTADA LOCALMENTE; integração de roteamento e entrega user-facing NÃO IMPLEMENTADAS
   -> se NAO (no matcher): streamTurn() [OpenAI] sem chamar Jev
 ```
 
