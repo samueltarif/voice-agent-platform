@@ -79,10 +79,11 @@ AI_CONTEXT_HEADER_END
 - **SECURITY_CALL_REMAINS_ACTIVE**: `YES`.
 - **SECURITY_OPENAI_FALLBACK**: `NOT AUTHORIZED / ZERO CALLS IN TESTED PATH`.
 - **SECURITY_RUNTIME_ROUTING_INTEGRATION**: `IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/guarded-turn-routing-coordinator.ts`).
-- **GUARDED_RUNTIME_ROUTING_OFFLINE**: `IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/guarded-turn-routing-coordinator.ts`, `apps/voice/src/conversation-orchestrator.ts`; 14 testes em `apps/voice/src/guarded-turn-routing.test.ts`).
+- **GUARDED_RUNTIME_ROUTING_OFFLINE**: `IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/guarded-turn-routing-coordinator.ts`, `apps/voice/src/conversation-orchestrator.ts`; 16 testes em `apps/voice/src/guarded-turn-routing.test.ts`).
 - **AUXILIARY_DECISION_CALL_OWNERSHIP**: `SINGLE_OWNER` (enforced no orchestrator; shadowObserver suprimido quando guardedRoutingPort configurado).
 - **FAIL_CLOSED_TO_DETERMINISTIC_BYPASS**: `YES` (falha no Jev aciona fallback generativo streamTurn, nunca bypass).
 - **FAIL_OPEN_TO_GENERATIVE_MODEL**: `YES`.
+- **MODEL_DRIFT_RUNTIME_GUARD**: `NOT IMPLEMENTED` (`MODEL_DRIFT_GUARD_REQUIRED_BEFORE_ACTIVE_GUARDED = YES`).
 - **SECURITY_RUNTIME_SEMANTICS**: `DESIGNED` (`docs/research/PHASE_6_SECURITY_ESCALATE_RUNTIME_SEMANTICS.md`).
 - **SECURITY_RESPONSE_DELIVERY_READY**: `IMPLEMENTED LOCALLY / ROUTING INTEGRATED`.
 - **SECURITY_HISTORY_PERSISTENCE_READY**: `IMPLEMENTED LOCALLY (Turn-scoped qualified H4/H5 history resolution)`.
@@ -173,8 +174,9 @@ AI_CONTEXT_HEADER_END
 9. `ACTIVE_GUARDED = BLOCKED`
 10. `PRODUCTION_SHADOW_MAX_CONCURRENCY = NOT SELECTED`: Limite de concorrência operacional de produção não definido.
 11. `PRODUCTION_JEV_TIMEOUT_MS = NOT SELECTED`: Timeout operacional de produção não definido.
-12. `PRODUCTION_RUNTIME_WIRING = NO`: Fiação de runtime em produção desautorizada.
-13. `CUSTOMER_TRAFFIC = PROHIBITED`
+12. `MODEL_DRIFT_RUNTIME_GUARD = NOT IMPLEMENTED`: Sem autoridade de providerModel em runtime (`MODEL_DRIFT_GUARD_REQUIRED_BEFORE_ACTIVE_GUARDED = YES`).
+13. `PRODUCTION_RUNTIME_WIRING = NO`: Fiação de runtime em produção desautorizada.
+14. `CUSTOMER_TRAFFIC = PROHIBITED`
 
 ---
 

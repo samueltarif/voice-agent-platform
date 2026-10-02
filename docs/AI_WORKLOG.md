@@ -11789,3 +11789,58 @@ Auditadas 10 categorias factuais no split de calibração:
 - **Architecture AST Check (`scripts/check-architecture.mjs`)**: `SUCESSO: Todas as fronteiras e regras arquiteturais respeitadas.`
 - **File Size Check (`scripts/check-file-size.mjs`)**: `SUCESSO: Todos os arquivos de logica estao em conformidade (18 avisos, 0 violações > 180 linhas; conversation-orchestrator.ts: 175 linhas).`
 
+---
+
+### 5. Reconciliação Append-Only dos Desvios de Execução do PR #61
+- **Múltiplas Invocações de `pnpm check`**:
+  - `PR61_MULTIPLE_PNPM_CHECK_INVOCATIONS` = `YES`
+  - `TRACE_OBSERVED_PNPM_CHECK_INVOCATIONS` = `4`
+  - `EARLIER_GATE_EVIDENCE_STALE` = `YES`
+  - `REASON` = code/test content changed after earlier gate invocations (ajuste inicial de TS2532 em testes e posterior hardening de stale generation)
+  - `PREVIOUS_WORKLOG_FINAL_GATE_CLAIM` = `PNPM_CHECK_FINAL_PASS / exit 0`
+  - `PREVIOUS_FINAL_GATE_RAW_SENTINEL_IN_REVIEW_TRACE` = `NOT INDEPENDENTLY OBSERVED`
+  - `FUNCTIONAL_IMPACT` = `NONE OBSERVED FROM EXECUTION DEVIATION ITSELF`
+- **Comando de Commit Retry**:
+  - `PR61_FUNCTIONAL_COMMIT_COMMAND_RETRY` = `YES`
+  - `FIRST_ATTEMPT_FINAL_RESULT` = `NOT VERIFIED` (erro de sintaxe PowerShell com operador `&&`)
+  - `SECOND_ATTEMPT` = `OBSERVED TO PROCEED` (execução com `;` no PowerShell)
+  - `FUNCTIONAL_IMPACT` = `NONE OBSERVED`
+- **Auditoria de Segredos Prévia**:
+  - `PR61_SECRET_AUDIT_INVOCATIONS_OBSERVED` = `3`
+  - `PR61_SINGLE_FINAL_AUDIT_RULE_VIOLATED` = `YES`
+  - `PR61_POWERSHELL_COMMAND_WRAPPER_USED` = `YES`
+  - `SECRET_VALUE_PRINTED` = `NOT OBSERVED`
+  - `SECRET_EXPOSURE` = `NOT OBSERVED`
+  - `ROTATION_REQUIRED` = `NO`
+  - `CATEGORY` = `EXECUTION_CONTROL_DEVIATION`
+
+---
+
+### 6. Hardening de Stale-Generation e Auditoria de Fluxos (PROMPT-006AG-PR61)
+- **Auditoria Factual dos Fluxos**:
+  - A. `Jev pending -> user interruption -> generation becomes stale -> Jev resolves DETERMINISTIC_CANDIDATE`: `deterministic speak = 0` (suprimido por `isGenerationActive`).
+  - B. `Jev pending -> user interruption -> generation becomes stale -> Jev resolves SECURITY_ESCALATE`: `security speak = 0` (suprimido por `isGenerationActive` e `staleBefore`).
+  - C. `Jev pending -> user interruption -> generation becomes stale -> Jev resolves GENERATIVE_REQUIRED`: `model stream = 0` (suprimido por `isGenerationActive` antes da classificação e no orchestrator).
+  - D. `Jev pending -> user interruption -> generation becomes stale -> Jev throws/rejects`: corrigido gap onde `!auxiliaryOutput` retornava `GENERATIVE` antes de verificar staleness. Agora `isGenerationActive` é verificado imediatamente após o `await evaluateAuxiliary()`, garantindo `model stream = 0`.
+  - E. `Jev returns DETERMINISTIC_CANDIDATE -> handler returns handled=false enquanto generation fica stale`: `STALE_HANDLER_FALLBACK_WINDOW = NOT APPLICABLE` para concorrência durante a execução do handler, pois `handleOperatingHoursTurn` é 100% síncrono em memória sem I/O ou `await`. Se a geração se tornou stale durante a avaliação do Jev anterior, a checagem prévia em `dispatchDeterministic` e no orquestrador garante `model stream = 0`.
+- **Invariante Formal**:
+  - `AFTER_ASYNC_GUARD_EVALUATION AND GENERATION_IS_STALE -> ALL_RESPONSE_PATHS_FOR_OLD_GENERATION = 0` (deterministic speak = 0, security speak = 0, model streamTurn = 0).
+- **Testes Adicionados**:
+  - `9b. matcher true -> deferred Jev promise -> interrupt old generation -> resolve Jev as GENERATIVE_REQUIRED -> model stream calls = 0` (TESTED).
+  - `9c. matcher true -> deferred Jev promise -> interrupt old generation -> reject Jev -> model stream calls = 0` (TESTED).
+- **Preservação de Fail-Open Ativo**:
+  - Teste 5 preservado: geração ativa + Jev throws -> modelo generativo principal permitido (`streamTurn = 1`).
+
+---
+
+### 7. Auditoria de Model Drift e Governança de Produção
+- `MODEL_DRIFT_RUNTIME_GUARD` = `NOT IMPLEMENTED` (não há autoridade de configuração nem snapshot definindo expected provider model para comparação em runtime).
+- `MODEL_DRIFT_GUARD_REQUIRED_BEFORE_ACTIVE_GUARDED` = `YES` (deve ser resolvido antes de qualquer fiação nominal de produção).
+- `PRODUCTION_JEV_TIMEOUT_MS` = `NOT SELECTED` (não reutilizar 1500ms staging).
+- `PRODUCTION_SHADOW_MAX_CONCURRENCY` = `NOT SELECTED`.
+- `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE` = `NOT CLEARED`.
+- `PRODUCTION_RUNTIME_ROUTING` = `NO`.
+- `ACTIVE_GUARDED` = `BLOCKED`.
+- `CUSTOMER_TRAFFIC` = `PROHIBITED`.
+- `GUARDED_RUNTIME_ROUTING_OFFLINE` = `IMPLEMENTED / TESTED LOCALLY`.
+
