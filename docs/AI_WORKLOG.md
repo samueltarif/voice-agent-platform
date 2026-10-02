@@ -11479,3 +11479,15 @@ Auditadas 10 categorias factuais no split de calibração:
   - Escopo conceitual: `SECURITY_BLOCKED` -> static safe response content -> response ownership -> deterministic/static delivery lifecycle -> qualified interruption/history semantics -> call remains active -> wait for next user.speech.final.
   - Sem encerramento automático de chamada (`SECURITY_CALL_TERMINATION = NO`), sem handoff, sem execução de ferramentas, sem fallback para OpenAI após `SECURITY_ESCALATE`.
   - Coberto por testes unitários e de integração no orquestrador usando fakes offline.
+
+### 9. Execução Autoritativa do Final Quality Gate
+- `FINAL_PNPM_CHECK_SENTINEL` = `PNPM_CHECK_FINAL_PASS`
+- `FINAL_PNPM_CHECK_STATUS` = `PASS`
+- `FINAL_TESTED_HEAD` = `20d51eaf79f10367c39c37de29d07d679f175f78`
+- `TEST_FILES_PASSED` = `108`
+- `TEST_FILES_SKIPPED` = `6` (114 total)
+- `TESTS_PASSED` = `700`
+- `TESTS_SKIPPED` = `45` (745 total)
+- `FAILURES` = `0`
+- `ARCHITECTURE_CHECK` = `PASS` (0 violações)
+- `FILE_SIZE_CHECK` = `PASS` (17 avisos, 0 violações > 180 linhas)
