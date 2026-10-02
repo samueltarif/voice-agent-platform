@@ -4,14 +4,14 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-02
-CONTEXT_BASE_MAIN_SHA: a102ae6eaebb1e7f8c7824477a0f28e01b9b7d4e
+CONTEXT_BASE_MAIN_SHA: 5d1dab7460e637e1370e81e7940be63c24ec23aa
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
-CURRENT_SLICE: Deterministic Response Delivery & Ownership Offline (Slice B)
-CONTEXT_UPDATE_BRANCH: feat/006ae-deterministic-response-delivery-ownership
-CONTEXT_UPDATE_PR: 59
-LAST_MERGED_PR_AT_REFRESH: 58
-LAST_MERGE_SHA_AT_REFRESH: a102ae6eaebb1e7f8c7824477a0f28e01b9b7d4e
-LAST_TESTED_CODE_SHA: 713ec24c47338a096845f7f320287fd1fcec1078
+CURRENT_SLICE: Security Response Delivery Integration Offline
+CONTEXT_UPDATE_BRANCH: feat/006af-security-response-delivery-offline
+CONTEXT_UPDATE_PR: PENDING
+LAST_MERGED_PR_AT_REFRESH: 59
+LAST_MERGE_SHA_AT_REFRESH: 5d1dab7460e637e1370e81e7940be63c24ec23aa
+LAST_TESTED_CODE_SHA: dbf8e617783ce02d5d4aec75d927be9dcb22bc18
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
 AI_CONTEXT_HEADER_END
@@ -30,7 +30,7 @@ AI_CONTEXT_HEADER_END
 | :--- | :--- | :--- |
 | **Web** | `PARTIAL` | `apps/web` (Next.js 15.5; Dashboard, Settings, Agent Studio Draft Editor; UI 005D incompleta) |
 | **API** | `IMPLEMENTED` | `apps/api` (Fastify/Node, rotas de drafts, lifecycle, auth interna com service token) |
-| **Voice** | `PARTIAL` | `apps/voice` (Orquestrador com despacho determinístico, ownership OPTION_B, blindagem DISPATCH_ATTEMPTED -> NO_OPENAI_FALLBACK e tratamento qualificado de interrupção implementados/testados offline; streaming OpenAI; AuxiliaryTurnShadowObserver integrado non-blocking; primeiro handler determinístico `agent.operating_hours` implementado/testado localmente; fiação em runtime de produção: NÃO; chamadas shadow live: NÃO) |
+| **Voice** | `PARTIAL` | `apps/voice` (Orquestrador com despacho determinístico, entrega estática de segurança offline, ownership OPTION_B, blindagem DISPATCH_ATTEMPTED -> NO_OPENAI_FALLBACK e tratamento qualificado de interrupção H4/H5 implementados/testados offline; streaming OpenAI; AuxiliaryTurnShadowObserver integrado non-blocking; primeiro handler determinístico `agent.operating_hours` implementado/testado localmente; fiação em runtime de produção: NÃO; chamadas shadow live: NÃO) |
 | **Worker** | `IMPLEMENTED` | `apps/worker` (Fundação de background tasks, processamento de filas assíncronas) |
 | **Database** | `IMPLEMENTED` | `packages/database` (PostgreSQL 16, Drizzle ORM, multi-tenancy, schemas comerciais e de auditoria) |
 | **Agent Studio** | `PARTIAL` | 005B (DB/contracts): `IMPLEMENTED / STAGING VALIDATED`; 005C (API): `IMPLEMENTED / NEON STAGING VALIDATED`; 005D (Web UI): `PARTIAL` (rascunhos existem em `apps/web/src/features/agents/`, fluxo completo não concluído) |
@@ -70,14 +70,18 @@ AI_CONTEXT_HEADER_END
 - **RUNTIME_FROZEN_POLICY_INTERPRETER**: `IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/frozen-policy-interpreter.ts`; 20 testes unitários).
 - **FROZEN_POLICY_CHANGED**: `NO`.
 - **SECURITY_OFFLINE_ACTION**: `IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/security-blocked-action.ts`; 5 testes unitários).
+- **SECURITY_STATIC_RESPONSE_CONTENT**: `IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/security-blocked-response.ts`).
+- **SECURITY_RESPONSE_DELIVERY_OFFLINE**: `IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/conversation-orchestrator.ts`; 11 testes em `apps/voice/src/security-response-delivery.test.ts`).
+- **SECURITY_RESPONSE_OWNERSHIP**: `OPTION_B / TESTED LOCALLY`.
+- **SECURITY_INTERRUPTION_H4**: `IMPLEMENTED / TESTED LOCALLY`.
+- **SECURITY_INTERRUPTION_H5**: `IMPLEMENTED / TESTED LOCALLY`.
+- **SECURITY_CALL_TERMINATION**: `NO`.
+- **SECURITY_CALL_REMAINS_ACTIVE**: `YES`.
+- **SECURITY_OPENAI_FALLBACK**: `NOT AUTHORIZED / ZERO CALLS IN TESTED PATH`.
 - **SECURITY_RUNTIME_ROUTING_INTEGRATION**: `NOT IMPLEMENTED`.
-- **SECURITY_RUNTIME_DELIVERY**: `NOT IMPLEMENTED`.
-- **SECURITY_USER_RESPONSE_DELIVERY**: `NOT IMPLEMENTED`.
-- **SECURITY_RUNTIME_ACTION**: `NOT IMPLEMENTED (means runtime-integrated action, not the offline SECURITY_BLOCKED constructor)`.
 - **SECURITY_RUNTIME_SEMANTICS**: `DESIGNED` (`docs/research/PHASE_6_SECURITY_ESCALATE_RUNTIME_SEMANTICS.md`).
-- **SECURITY_RUNTIME_ACTION_IMPLEMENTATION_REQUIRED**: `NO (Ação offline implementada; fiação de routing permanece pendente)`.
-- **SECURITY_RESPONSE_DELIVERY_READY**: `NO`.
-- **SECURITY_HISTORY_PERSISTENCE_READY**: `NO`.
+- **SECURITY_RESPONSE_DELIVERY_READY**: `IMPLEMENTED LOCALLY / ROUTING PENDING`.
+- **SECURITY_HISTORY_PERSISTENCE_READY**: `IMPLEMENTED LOCALLY (Turn-scoped qualified H4/H5 history resolution)`.
 - **DETERMINISTIC_RESPONSE_DELIVERY**: `IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/deterministic-response-delivery.ts`, `apps/voice/src/deterministic-response-delivery-coordinator.ts`, `apps/voice/src/call-session-lifecycle-coordinator.ts`, `apps/voice/src/conversation-orchestrator.ts`; 13 testes unitários e de integração offline).
 - **DETERMINISTIC_OWNERSHIP_COMMIT**: `OPTION_B (committed immediately before transport.speak())`.
 - **DISPATCH_ATTEMPTED_BLINDING**: `ENFORCED (DISPATCH_ATTEMPTED -> NO_OPENAI_FALLBACK)`.
@@ -142,12 +146,12 @@ AI_CONTEXT_HEADER_END
 
 ## 6. Estado Atual da Evidência de Qualidade (Quality Gate Snapshot)
 
-- **Último `pnpm check` Global**: `PASS` (executado e observado no commit `20d51eaf79f10367c39c37de29d07d679f175f78` com sentinela `PNPM_CHECK_FINAL_PASS`).
-- **Status das Asserções**: `700 passed`, `45 historical skips`, `0 new skips`, `0 failures` (108 arquivos de teste aprovados, 6 skipped de staging; 745 testes totais).
-- **Regressão de Asserções**: `ASSERTION_WEAKER = 0` (13 novos testes adicionados em PR #59 / Slice B: `ASSERTION_STRONGER: 13`).
+- **Último `pnpm check` Global**: `PASS` (executado e observado no commit `dbf8e617783ce02d5d4aec75d927be9dcb22bc18` com sentinela `PNPM_CHECK_FINAL_PASS`).
+- **Status das Asserções**: `711 passed`, `45 historical skips`, `0 new skips`, `0 failures` (109 arquivos de teste aprovados, 6 skipped de staging; 756 testes totais).
+- **Regressão de Asserções**: `ASSERTION_WEAKER = 0` (11 novos testes adicionados em Slice C: `ASSERTION_STRONGER: 11`).
 - **Verificação Arquitetural**: `SUCESSO: Todas as fronteiras e regras arquiteturais respeitadas.`
-- **Verificação de Tamanho de Arquivos**: `HARD_MAX_180 = PASS; TARGET_80_150 = ABOVE TARGET / WARNING (conversation-orchestrator.ts: 175 linhas; 17 avisos, 0 violações > 180 linhas; check:file-size = PASS).`
-- **Auditoria de Segredos**: `PR59_PREVIOUS_SECRET_AUDIT = PASS historically / reconciled` | `PR59_LATEST_FINAL_SECRET_AUDIT = NOT VERIFIED` | `PR59_MERGE_GATE = BLOCKED_PENDING_FINAL_SECRET_AUDIT`.
+- **Verificação de Tamanho de Arquivos**: `HARD_MAX_180 = PASS; TARGET_80_150 = ABOVE TARGET / WARNING (conversation-orchestrator.ts: 179 linhas; 17 avisos, 0 violações > 180 linhas; check:file-size = PASS).`
+- **Auditoria de Segredos**: `PR59_FINAL_SECRET_AUDIT = PASS reconciled` | `CURRENT_BRANCH_SECRET_AUDIT = PENDING`.
 - **QUALITY_EVIDENCE_STALE**: `NO` (commits subsequentes estritamente documentais em `docs/`).
 
 ---
@@ -159,31 +163,28 @@ AI_CONTEXT_HEADER_END
 3. `POST_DISPATCH_BARGE_IN_DESIGN = DESIGNED` | `POST_DISPATCH_BARGE_IN_RUNTIME = IMPLEMENTED / TESTED LOCALLY (offline)` | `LIVE_PROVIDER_BARGE_IN_VERIFICATION = PROVIDER-UNVERIFIED`
 4. `INTERRUPTED_CONTEXT_CONTINUITY_DESIGN = DESIGNED` | `INTERRUPTED_CONTEXT_METADATA_PROPAGATION = IMPLEMENTED / TESTED LOCALLY` | `INTERRUPTED_CONTEXT_CONTINUITY_RUNTIME = IMPLEMENTED / TESTED LOCALLY (offline delivery & qualified history)`
 5. `HISTORY_COMPLETION_DESIGN = DESIGNED` | `HISTORY_COMPLETION_RUNTIME = IMPLEMENTED / TESTED LOCALLY (offline orchestrator history resolution)`
-6. `SECURITY_RESPONSE_DELIVERY_DESIGN = DESIGNED` | `SECURITY_USER_RESPONSE_DELIVERY = NOT IMPLEMENTED` (Slice C: turn-scoped refusal/delivery; call remains active; call termination = NO)
-7. `ACTIVE_GUARDED = BLOCKED`
-8. `PRODUCTION_SHADOW_MAX_CONCURRENCY = NOT SELECTED`: Limite de concorrência operacional de produção não definido.
-9. `PRODUCTION_JEV_TIMEOUT_MS = NOT SELECTED`: Timeout operacional de produção não definido.
-10. `PRODUCTION_RUNTIME_WIRING = NO`: Fiação de runtime em produção desautorizada.
-11. `CUSTOMER_TRAFFIC = PROHIBITED`
+6. `SECURITY_RESPONSE_DELIVERY_DESIGN = DESIGNED` | `SECURITY_RESPONSE_DELIVERY_OFFLINE = IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/security-blocked-response.ts`, `apps/voice/src/conversation-orchestrator.ts`; turn-scoped refusal/delivery; call remains active; call termination = NO)
+7. `SECURITY_RUNTIME_ROUTING_INTEGRATION = NOT IMPLEMENTED`
+8. `ACTIVE_GUARDED = BLOCKED`
+9. `PRODUCTION_SHADOW_MAX_CONCURRENCY = NOT SELECTED`: Limite de concorrência operacional de produção não definido.
+10. `PRODUCTION_JEV_TIMEOUT_MS = NOT SELECTED`: Timeout operacional de produção não definido.
+11. `PRODUCTION_RUNTIME_WIRING = NO`: Fiação de runtime em produção desautorizada.
+12. `CUSTOMER_TRAFFIC = PROHIBITED`
 
 ---
 
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- Slice C: Security Response Delivery Integration Offline.
-- Escopo conceitual: TURN-SCOPED refusal/delivery (`SECURITY_BLOCKED` -> static safe response content -> response ownership -> deterministic/static delivery lifecycle -> qualified interruption/history semantics -> call remains active -> wait for next user.speech.final).
-- Sem encerramento automático de chamada (`SECURITY_CALL_TERMINATION = NO`, `SECURITY_HANDOFF = NO`, `SECURITY_CALL_LIFECYCLE_MUTATION = NO`, `SECURITY_DESIGN_INTENT_CALL_REMAINS_ACTIVE = YES`).
-- Coberto por testes unitários e de integração no orquestrador usando fakes offline.
-- Do NOT wire full ACTIVE_GUARDED runtime yet.
-- Do NOT wire Frozen Policy to orchestrator yet.
-- Do NOT wire Jev.
+- Candidate: Slice D — Guarded Runtime Routing Integration Offline (single-owner Jev evaluation / Frozen Policy / handler-security route wiring).
+- Escopo conceitual: avaliação consultiva serial do Jev com single ownership, aplicação da Frozen Policy canônica, e despacho para handler determinístico ou security blocked response seam.
+- `ACTIVE_GUARDED` permanece `BLOCKED` até que toda a fiação offline esteja comprovada.
 - Do NOT enable live customer traffic.
+- Do NOT use real telephony / live Twilio.
 
 ### `NOT_YET_ALLOWED`:
 - Transmissão de dados reais de clientes para provedores externos.
 - Ativação de `ACTIVE_GUARDED` no runtime.
-- Implementação de bypass determinístico sem handlers validados.
 - Modificação de políticas congeladas ou reutilização do holdout de pesquisa.
 - Fiação em runtime de produção (`apps/voice`).
 
