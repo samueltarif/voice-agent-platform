@@ -11844,3 +11844,23 @@ Auditadas 10 categorias factuais no split de calibração:
 - `CUSTOMER_TRAFFIC` = `PROHIBITED`.
 - `GUARDED_RUNTIME_ROUTING_OFFLINE` = `IMPLEMENTED / TESTED LOCALLY`.
 
+---
+
+### 8. Execução Autoritativa do Final Quality Gate (PR #61)
+- `FINAL_PNPM_CHECK_COMMAND` = `powershell -Command "pnpm check; $code = $LASTEXITCODE; if ($code -eq 0) { Write-Output 'PNPM_CHECK_FINAL_PASS' } else { Write-Output 'PNPM_CHECK_FINAL_FAIL' }; exit $code"`
+- `FINAL_PNPM_CHECK_SENTINEL` = `PNPM_CHECK_FINAL_PASS`
+- `FINAL_PNPM_CHECK_STATUS` = `PASS`
+- `FINAL_TESTED_HEAD` = `322453c23f526a00ca1f2f33b3797416d0b97cb3`
+- `TEST_FILES_PASSED` = `110`
+- `TEST_FILES_SKIPPED` = `6` (116 total)
+- `TESTS_PASSED` = `727`
+- `TESTS_SKIPPED` = `45` (772 total)
+- `FAILURES` = `0`
+- `NEW_SKIPS` = `0`
+- `ASSERTION_WEAKER` = `0`
+- `ASSERTION_STRONGER` = `2` (testes 9b e 9c adicionados para blindagem de stale generation)
+- `STALE_GENERATIVE_AFTER_JEV_TEST` = `PASS` (teste 9b aprovado)
+- `STALE_JEV_FAILURE_TEST` = `PASS` (teste 9c aprovado)
+- `ARCHITECTURE_CHECK` = `PASS` (0 violações)
+- `FILE_SIZE_CHECK` = `PASS` (18 avisos, 0 violações > 180 linhas; `conversation-orchestrator.ts: 177 linhas`, `guarded-turn-routing-coordinator.ts: 138 linhas`)
+- `PR61_FINAL_MERGE_SECRET_AUDIT` = `PENDING` (será executada de forma estrita e booleana após o commit de documentação).

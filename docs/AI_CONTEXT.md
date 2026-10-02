@@ -11,7 +11,7 @@ CONTEXT_UPDATE_BRANCH: feat/006ag-guarded-runtime-routing-offline
 CONTEXT_UPDATE_PR: 61
 LAST_MERGED_PR_AT_REFRESH: 60
 LAST_MERGE_SHA_AT_REFRESH: e86d26bb7b15643440d8838198373145be9f34f2
-LAST_TESTED_CODE_SHA: 9a6a14b4743020719a757035c44e2d16150ac626
+LAST_TESTED_CODE_SHA: 322453c23f526a00ca1f2f33b3797416d0b97cb3
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
 AI_CONTEXT_HEADER_END
@@ -151,12 +151,12 @@ AI_CONTEXT_HEADER_END
 
 ## 6. Estado Atual da Evidência de Qualidade (Quality Gate Snapshot)
 
-- **Último `pnpm check` Global**: `PASS` (executado e observado no commit `9a6a14b4743020719a757035c44e2d16150ac626` com sentinela `PNPM_CHECK_FINAL_PASS`).
-- **Status das Asserções**: `725 passed`, `45 historical skips`, `0 new skips`, `0 failures` (110 arquivos de teste aprovados, 6 skipped de staging; 770 testes totais).
-- **Regressão de Asserções**: `ASSERTION_WEAKER = 0` (14 novos testes adicionados em Slice D: `ASSERTION_STRONGER: 14`).
+- **Último `pnpm check` Global**: `PASS` (executado e observado no commit `322453c23f526a00ca1f2f33b3797416d0b97cb3` com sentinela `PNPM_CHECK_FINAL_PASS`).
+- **Status das Asserções**: `727 passed`, `45 historical skips`, `0 new skips`, `0 failures` (110 arquivos de teste aprovados, 6 skipped de staging; 772 testes totais).
+- **Regressão de Asserções**: `ASSERTION_WEAKER = 0` (16 testes em `guarded-turn-routing.test.ts`: `ASSERTION_STRONGER: 16`).
 - **Verificação Arquitetural**: `SUCESSO: Todas as fronteiras e regras arquiteturais respeitadas.`
-- **Verificação de Tamanho de Arquivos**: `HARD_MAX_180 = PASS; TARGET_80_150 = ABOVE TARGET / WARNING (conversation-orchestrator.ts: 175 linhas; guarded-turn-routing-coordinator.ts: 139 linhas; 18 avisos, 0 violações > 180 linhas; check:file-size = PASS).`
-- **Auditoria de Segredos**: `PR60_FINAL_MERGE_SECRET_AUDIT = PASS` | `PR61_CURRENT_BRANCH_SECRET_AUDIT = PENDING`.
+- **Verificação de Tamanho de Arquivos**: `HARD_MAX_180 = PASS; TARGET_80_150 = ABOVE TARGET / WARNING (conversation-orchestrator.ts: 177 linhas; guarded-turn-routing-coordinator.ts: 138 linhas; 18 avisos, 0 violações > 180 linhas; check:file-size = PASS).`
+- **Auditoria de Segredos**: `PR60_FINAL_MERGE_SECRET_AUDIT = PASS` | `PR61_FINAL_MERGE_SECRET_AUDIT = PENDING`.
 - **QUALITY_EVIDENCE_STALE**: `NO` (commits subsequentes estritamente documentais em `docs/`).
 
 ---
