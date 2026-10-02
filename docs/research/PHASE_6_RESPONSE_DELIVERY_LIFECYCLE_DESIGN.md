@@ -1,9 +1,10 @@
 # Phase 6 - Deterministic & Security Response Delivery Lifecycle: Documento de Design (PHASE_6_RESPONSE_DELIVERY_LIFECYCLE_DESIGN.md)
 
-> **Status**: DESIGNED
+> **Status**: DESIGNED (Runtime: NOT IMPLEMENTED; Live Verification: PROVIDER-UNVERIFIED)
 > **Data**: 2026-10-02
 > **Fase**: Phase 6 (Voice Model Routing & Jev Evaluation)
 > **Prompt de Origem**: `PROMPT-006AC-DETERMINISTIC-SECURITY-RESPONSE-DELIVERY-LIFECYCLE-DESIGN-001`
+> **Prompt de Hardening**: `PROMPT-006AC-PR57-DELIVERY-DESIGN-HARDENING-AND-MERGE-001`
 > **Branch**: `research/006ac-response-delivery-lifecycle-design`
 > **Base main SHA**: `2a09d323a27f9d4f527bb1da7f0fe85fe3eada84`
 > **Fronteira Estrita**: AUDIT / DESIGN ONLY. Zero linhas de código funcional alteradas. Zero provider calls (TypeSafe = 0, OpenAI = 0, Twilio = 0). Zero conexões a DB, zero `.env` carregado, zero acesso a holdout.
@@ -12,49 +13,49 @@
 
 ## Executive Summary
 
-Este documento define o design arquitetural provider-neutral para o ciclo de vida de entrega (*response delivery lifecycle*) de respostas determinísticas (`agent.operating_hours`) e estáticas de segurança (`SECURITY_BLOCKED`) em voz, com foco rigoroso no tratamento de **barge-in do usuário** e **interrupção de playback**.
+Este documento define o design arquitetural provider-neutral para o ciclo de vida de entrega (*response delivery lifecycle*) de respostas determinísticas (`agent.operating_hours`) e estáticas de segurança (`SECURITY_BLOCKED`) em voz, com foco rigoroso no tratamento de **barge-in do usuário**, **supressão de tokens** e **continuidade contextual**.
 
-O design resolve formalmente o cenário crítico:
+O design aborda conceitualmente o seguinte cenário de turno:
 ```
 assistant falando
   -> usuário começa a falar (barge-in)
-  -> fala anterior deixa de ser válida (invalidated)
-  -> playback anterior é interrompido conforme capacidade factual do provider (Twilio CR auto-stops audio)
-  -> sistema aguarda a nova fala final do usuário (prompt / user.speech.final)
-  -> próxima resposta é construída a partir da nova fala + contexto conversacional válido + informação factual da fala interrompida
+  -> fala anterior deixa de ser válida na aplicação (invalidated)
+  -> playback anterior é interrompido conforme capacidade documentada do provider
+  -> sistema suprime despacho de novos tokens e aguarda a nova fala final do usuário
+  -> próxima resposta é construída a partir da nova fala + contexto conversacional válido + informação reportada da fala interrompida
   -> resposta antiga NÃO continua
   -> OpenAI NÃO dispara resposta paralela em fallback
   -> histórico NÃO inventa que o usuário ouviu texto que não ouviu.
 ```
 
-### Readiness Classifications (Seção 25 do Prompt)
+### Readiness Classifications (Design vs Runtime vs Live Verification)
 
-| Dimensão de Design | Status | Justificativa Factual |
-|---|---|---|
-| `DETERMINISTIC_RESPONSE_DELIVERY_DESIGN` | **DESIGNED** | Lifecycle de despacho single-shot unificado com pre-dispatch check e ownership commit |
-| `SECURITY_RESPONSE_DELIVERY_DESIGN` | **DESIGNED** | Mesmas invariantes de delivery com OpenAI fallback categoricamente desautorizado |
-| `USER_BARGE_IN_POST_DISPATCH_SEMANTICS` | **DESIGNED** | Baseado na capacidade comprovada do Twilio CR de auto-interrupção de áudio e evento inbound `interrupt` |
-| `APPLICATION_INITIATED_CANCEL_SEMANTICS` | **DESIGNED** | Diferenciado de barge-in; provider não possui comando outbound de cancel; supressão in-memory de tokens |
-| `PLAYBACK_COMPLETION_SEMANTICS` | **DESIGNED** | Provider não emite ack de reprodução acústica; `last: true` qualificado estritamente como fim de stream textual |
-| `INTERRUPTED_CONTEXT_CONTINUITY` | **DESIGNED** | Identificado seam para propagar `utteranceUntilInterrupt` ao contexto do próximo turno |
-| `HISTORY_COMPLETION_SEMANTICS` | **DESIGNED** | Separação entre Conversation Context e Delivery Audit; uso de `isInterrupted: true` sem forjar completion |
+| Dimensão | Design Status | Runtime Implementation | Live Provider Verification | Nota Factual |
+|---|---|---|---|---|
+| `DETERMINISTIC_RESPONSE_DELIVERY` | **DESIGNED** | `NOT IMPLEMENTED` | `PROVIDER-UNVERIFIED` | Lifecycle unificado com pre-dispatch guard e ownership commit |
+| `SECURITY_RESPONSE_DELIVERY` | **DESIGNED** | `NOT IMPLEMENTED` | `PROVIDER-UNVERIFIED` | Invariantes de delivery com OpenAI fallback categoricamente desautorizado |
+| `USER_BARGE_IN_POST_DISPATCH` | **DESIGNED** | `NOT IMPLEMENTED` | `PROVIDER-UNVERIFIED` | Baseado na auto-interrupção documentada do Twilio CR e evento inbound `interrupt` |
+| `APPLICATION_INITIATED_CANCEL` | **DESIGNED** | `NOT IMPLEMENTED` | `PROVIDER-UNVERIFIED` | Supressão de tokens em memória; protocolo Twilio CR não documenta cancel outbound |
+| `PLAYBACK_COMPLETION` | **DESIGNED** | `NOT IMPLEMENTED` | `N/A` | Provider não documenta ack acústico; `last: true` qualificado como fim de stream textual |
+| `INTERRUPTED_CONTEXT_CONTINUITY` | **DESIGNED** | `NOT IMPLEMENTED` | `PROVIDER-UNVERIFIED` | Seam identificado em `UserInterruptionEvent` para propagar `utteranceUntilInterrupt` |
+| `HISTORY_COMPLETION_SAFETY` | **DESIGNED** | `NOT IMPLEMENTED` | `NO` | Separação entre Conversation Context e Delivery Audit; uso de `isInterrupted: true` |
 
 ---
 
 ## 1. Current Runtime Facts
 
-A auditoria do código versionado em `apps/voice/src/` e `packages/contracts/src/voice/` estabelece os seguintes fatos arquiteturais:
+A auditoria do código versionado em `apps/voice/src/` e `packages/contracts/src/voice/` estabelece os seguintes fatos:
 
 ### 1.1 Fluxo Atual de Despacho e Interrupção
 1. **Início do Turno**: `ConversationOrchestrator.handleUserSpeechFinal()` gera `generationId = "gen_" + turnId + "_" + counter`, marca `activeGenerations.set(callId, generationId)`, persiste a fala do usuário no `historyStore` e invoca `AssistantStreamCoordinator.streamTurn()`.
 2. **Coordenação Generativa**: `processModelStream()` itera sobre o stream de chunks da OpenAI. Antes de despachar cada chunk via `transport.speak()`, ele valida `isGenerationActive(callId, generationId)`.
 3. **Interrupção de Usuário (`user.interruption`)**:
-   - `handleUserInterruption()` substitui `generationId` no `activeGenerations` por `"stale_" + turnId`, tornando ativa a invalidação de qualquer chunk futuro.
+   - `handleUserInterruption()` substitui `generationId` no `activeGenerations` por `"stale_" + turnId`, tornando stale qualquer chunk futuro.
    - Em seguida, chama `transport.interruptSpeech(callId, { generationId: previousGen })`.
    - Se a interrupção ocorre durante o stream, o loop de chunks é interrompido e `AssistantStreamCoordinator.recordTurnCompletion()` **nunca é chamado**. Consequentemente, a resposta parcial do assistant é totalmente omitida do `historyStore`.
 4. **Despacho Determinístico Atual (`agent.operating_hours`)**:
-   - O handler determinístico emite seu texto em uma única chamada: `transport.speak(callId, { text, generationId, isFinal: true })`.
-   - Como é uma chamada single-shot, o texto inteiro é enviado ao adapter de uma vez. O staleness check pré-despacho impede o envio se a interrupção ocorreu antes de `speak()`, mas não cobre o tempo em que o provider sintetiza e reproduz o áudio na linha telefônica após o retorno de `speak()`.
+   - O handler determinístico emite seu texto em chamada única: `transport.speak(callId, { text, generationId, isFinal: true })`.
+   - Como é uma chamada single-shot, o texto inteiro é enviado ao adapter de uma vez. O staleness check pré-despacho impede o envio se a interrupção ocorreu antes de `speak()`, mas uma vez enviado ao adapter, a aplicação depende do media server para interromper a reprodução de áudio.
 
 ### 1.2 Auditoria de Contratos (`packages/contracts/src/voice/**`)
 - `VoiceTransportPort`:
@@ -73,65 +74,73 @@ A auditoria do código versionado em `apps/voice/src/` e `packages/contracts/src
 
 ## 2. Official Twilio Capability Evidence
 
-Consultando a documentação oficial da Twilio para o **ConversationRelay** (documentação técnica oficial de WebSocket para ConversationRelay / `<Connect><ConversationRelay>`):
+Fontes oficiais consultadas em 2026-10-02:
+- **Fonte 1**: Twilio ConversationRelay Technical Documentation (`https://www.twilio.com/docs/voice/conversation-relay`, seção: *Conversation Relay WebSocket Messages Reference*).
+- **Fonte 2**: Twilio TwiML Reference: `<ConversationRelay>` (`https://www.twilio.com/docs/voice/twiml/conversationrelay`, seção: *ConversationRelay Attributes*).
 
-### Perguntas e Evidências Oficiais
+### Verificação Factual de Claims
 
-#### A. O provider interrompe o playback automaticamente quando o usuário fala durante TTS?
-- **Evidência Oficial**: Na especificação do Twilio ConversationRelay, o atributo `interruptible` do TwiML `<ConversationRelay>` controla o comportamento de barge-in. Quando configurado como `speech`, `any` ou `true` (o modo padrão/nominal), o media server da Twilio detecta a atividade vocal do caller e **interrompe imediatamente a reprodução do áudio (TTS) no gateway de telefonia**.
-- **Status**: `PROVIDER_DOCUMENTED = YES (Automatic playback interruption at edge)`.
+#### A. Automatic Playback Interruption Under Interruptible Mode
+- **Documentação Oficial**: No elemento TwiML `<ConversationRelay>`, o atributo `interruptible` controla se a fala do caller ou dígitos DTMF podem interromper o TTS. Valores documentados incluem `"speech"`, `"any"` e `"true"`. Quando ativo, a fala do caller detectada pela Twilio interrompe a reprodução de áudio na conexão.
+- **Status Factual**: `PROVIDER_DOCUMENTED_IN_SOURCES_CONSULTED`.
+- **Limitação de Evidência**: Trata-se de especificação documental. Comportamento acústico exato em tráfego de produção é classificado como `PROVIDER-UNVERIFIED` até teste live.
 
-#### B. O evento inbound "interrupt" significa que o playback já foi interrompido ou apenas notifica a aplicação?
-- **Evidência Oficial**: O evento inbound `{ type: "interrupt", utteranceUntilInterrupt?: string, durationUntilInterruptMs?: number }` é emitido pela Twilio para a aplicação via WebSocket **após** o media server ter detectado a voz e suspendido o playback. Trata-se de uma notificação de evento de interrupção executada na ponta telefônica.
-- **Status**: `PROVIDER_DOCUMENTED = YES (Notification of provider-executed audio halt)`.
+#### B. Meaning of Inbound `interrupt` Event
+- **Documentação Oficial**: Quando uma interrupção ocorre sob modo `interruptible`, a Twilio envia uma mensagem inbound via WebSocket com `type: "interrupt"`, acompanhada de campos como `utteranceUntilInterrupt` e `durationUntilInterruptMs`. Trata-se de uma notificação de interrupção executada pela infraestrutura do provedor.
+- **Status Factual**: `PROVIDER_DOCUMENTED_IN_SOURCES_CONSULTED`.
 
-#### C & D. Existe comando outbound oficial para cancel / clear / stop playback / interrupt TTS?
-- **Evidência Oficial**: No protocolo WebSocket do Twilio ConversationRelay, os únicos tipos de mensagens outbound documentadas do servidor para a Twilio são:
-  1. `text`: `{ type: "text", token: string, last: boolean }`
-  2. `action`: `{ type: "action", ... }` (ex: handoff / endCall)
-  **Não existe** mensagem outbound como `cancel`, `clear`, `stop` ou `interrupt`. A responsabilidade do servidor de aplicação ao receber `interrupt` é unicamente **parar de enviar novos tokens textuais** para aquele turno.
-- **Status**: `PROVIDER_DOCUMENTED = NO (No outbound cancel/clear message in Twilio CR protocol)`.
+#### C. Documented Outbound Message Types
+- **Documentação Oficial**: Na documentação de mensagens WebSocket de ConversationRelay, as mensagens outbound documentadas do servidor de aplicação para a Twilio são:
+  - `text`: `{ type: "text", token: string, last: boolean }`
+  - `action`: `{ type: "action", ... }` (ex: transfer, endCall)
+- **Status Factual**: `PROVIDER_DOCUMENTED_IN_SOURCES_CONSULTED`.
 
-#### E. Existe evento oficial de playback complete / audio drained / mark / ack de reprodução?
-- **Evidência Oficial**: O protocolo ConversationRelay não emite evento de conclusão de playback acústico (`playback_complete` ou equivalente a WebSocket Media Streams `<Mark>`). A Twilio sintetiza e faz o buffer de reprodução de forma autônoma na borda.
-- **Status**: `PROVIDER_DOCUMENTED = NO (No acoustic playback completion signal in Twilio CR)`.
+#### D. Existence of Explicit Outbound Cancel / Clear / Stop Command
+- **Documentação Oficial**: As fontes oficiais consultadas para o protocolo WebSocket do Twilio ConversationRelay **não documentam** comando outbound do servidor para abortar ou limpar áudio em buffer (como `clear`, `cancel` ou `stop_playback`). A documentação orienta que o servidor, ao receber `interrupt`, cesse o streaming de novos tokens.
+- **Status Factual**: `NOT_DOCUMENTED_IN_SOURCES_CONSULTED`.
+- **Classificação**: `PROVIDER_BEHAVIOR_BEYOND_DOCUMENTATION = NOT VERIFIED`.
 
-#### F. O campo outbound "last: true" significa último token ou playback acústico concluído?
-- **Evidência Oficial**: O campo `last: true` na mensagem `{ type: "text", token: "...", last: true }` instrui o motor de TTS da Twilio de que a transmissão do texto daquele turno foi finalizada (fechamento do stream textual). **Não significa** que o áudio terminou de ser reproduzido ou que o caller o ouviu na íntegra.
-- **Status**: `FACTUAL: last=true SIGNALS END OF TEXT STREAM, NOT PLAYBACK COMPLETION`.
+#### E. Existence of Playback Completion Event
+- **Documentação Oficial**: Não há evento inbound documentado nas fontes consultadas para notificar a conclusão acústica de reprodução de TTS (sem equivalente ao evento de completion ou drain).
+- **Status Factual**: `NOT_DOCUMENTED_IN_SOURCES_CONSULTED`.
+- **Classificação**: `PROVIDER_BEHAVIOR_BEYOND_DOCUMENTATION = NOT VERIFIED`.
 
-#### G & H. Semântica oficial de `utteranceUntilInterrupt` e `durationUntilInterruptMs`
-- **Evidência Oficial**:
-  - `utteranceUntilInterrupt`: Contém a porção do texto da mensagem do assistente que o motor de TTS da Twilio efetivamente sintetizou e reproduziu para o caller até o instante exato em que a voz do usuário foi detectada.
-  - `durationUntilInterruptMs`: Duração em milissegundos do áudio reproduzido antes do corte.
-  - Representa com precisão a fração da fala do assistente que foi audível ao usuário.
-- **Status**: `PROVIDER_DOCUMENTED = YES (Accurate representation of spoken/heard assistant text)`.
+#### F. Meaning of `last=true`
+- **Documentação Oficial**: O campo booleano `last` na mensagem outbound `text` sinaliza à Twilio que o token enviado é o último da resposta atual, encerrando o fluxo textual daquele turno.
+- **Status Factual**: `PROVIDER_DOCUMENTED_IN_SOURCES_CONSULTED`.
+- **Distinção Crítica**: `last=true` representa conclusão da transmissão textual para o gateway; `last=true != acoustic playback completion`.
 
-#### I. Ordem entre `interrupt` e próximo `prompt` (fala final do usuário)
-- **Evidência Oficial**: Quando o caller interrompe o assistente, a Twilio envia primeiro o evento `interrupt`. Em seguida, o STT da Twilio continua transcrevendo a fala do usuário. Quando o usuário para de falar e o endpointing de fala é atingido, a Twilio envia a mensagem `prompt` com o texto final (`voicePrompt`).
-- **Status**: `PROVIDER_DOCUMENTED = YES (interrupt ALWAYS precedes next prompt)`.
+#### G & H. Meaning of `utteranceUntilInterrupt` and `durationUntilInterruptMs`
+- **Documentação Oficial**: A mensagem `interrupt` inclui `utteranceUntilInterrupt` (texto que a síntese/reprodução alcançou até o corte) e `durationUntilInterruptMs` (duração em ms do áudio reproduzido até a interrupção).
+- **Status Factual**: `PROVIDER_DOCUMENTED_IN_SOURCES_CONSULTED`.
+- **Rigor de Evidência**: Trata-se de **dados reportados pelo provedor**, e não de prova pericial acústica absoluta do que o usuário efetivamente escutou e compreendeu.
 
-#### J. Continuidade de escuta pós-barge-in
-- **Evidência Oficial**: O canal de escuta do ConversationRelay permanece ativo após o barge-in, capturando o restante da fala do caller e emitindo o `prompt` subsequente de forma contínua.
-- **Status**: `PROVIDER_DOCUMENTED = YES`.
+#### I. Documented Ordering between `interrupt` and Next `prompt`
+- **Documentação Oficial**: A sequência descrita na documentação de ConversationRelay apresenta o evento `interrupt` sendo emitido quando a fala do usuário é detectada, seguido posteriormente pela mensagem `prompt` quando o usuário finaliza sua fala.
+- **Status Factual**: `DOCUMENTED_EXPECTED_SEQUENCE = interrupt -> subsequent prompt after caller speech finalization`.
+- **Garantia Universal**: `UNIVERSAL_ORDERING_GUARANTEE = NOT VERIFIED`.
+- **Invariante de Design**: Independentemente de ordenações imprevistas de rede, `INTERRUPTION_EVENT_ALONE_STARTS_NEW_RESPONSE = NO` e `NEXT_USER_SPEECH_FINAL_DRIVES_NEW_RESPONSE = YES`.
+
+#### J. Continued Listening After Barge-in
+- **Documentação Oficial**: Após o corte de áudio por interrupção, o canal de reconhecimento de voz permanece ativo, transcrevendo a fala do caller e entregando-a na mensagem `prompt` subsequente.
+- **Status Factual**: `PROVIDER_DOCUMENTED_IN_SOURCES_CONSULTED`.
 
 ---
 
 ## 3. Provider vs Adapter vs Runtime Matrix
 
-A tabela abaixo separa estritamente os quatro estados de comprovação para cada capacidade:
+A tabela abaixo separa estritamente a capacidade nativa do provedor, o suporte no adapter, a integração no runtime e a verificação ao vivo:
 
-| Capacidade | PROVIDER_DOCUMENTED | CURRENT_ADAPTER_IMPLEMENTED | RUNTIME_INTEGRATED | LIVE_PROVIDER_VERIFIED |
+| Capacidade | PROVIDER_DOCUMENTED_IN_SOURCES_CONSULTED | CURRENT_ADAPTER_SUPPORT | RUNTIME_SUPPORT | LIVE_PROVIDER_VERIFIED |
 |---|---|---|---|---|
 | **Barge-in detection** | `YES` (Twilio CR spec) | `YES` (parseia `interrupt`) | `YES` (emite `user.interruption`) | `PROVIDER-UNVERIFIED` |
-| **Automatic playback interruption** | `YES` (media server edge stop) | `N/A` (provider nativo; in-memory drop) | `YES` (`stale_turnId` invalida chunks) | `PROVIDER-UNVERIFIED` |
-| **Explicit outbound cancel** | `NO` (não existe no protocolo CR) | `NO` (`translateVoiceOutputCommand` retorna `null`) | `N/A` (chamada à porta existe, sem efeito sobre socket) | `N/A` |
-| **Interruption metadata (`utteranceUntilInterrupt`)** | `YES` | `NO` (parseado em `parseInterrupt`, mas descartado em `translateTwilioInboundEvent`) | `NO` (`UserInterruptionEvent` não possui campos) | `PROVIDER-UNVERIFIED` |
-| **Playback completion signal** | `NO` (não suportado em CR) | `NO` | `NO` | `N/A` |
-| **Text final marker (`last: true`)** | `YES` | `YES` (`isFinal -> last: true`) | `YES` (gerado ao fim de stream ou single-shot) | `PROVIDER-UNVERIFIED` |
+| **Provider-native playback stop** | `YES` (media server edge stop) | `N/A` (executado pelo media server) | `N/A` (sem controle direto do media server) | `PROVIDER-UNVERIFIED` |
+| **Runtime future-token suppression** | `N/A` (responsabilidade da aplicação) | `YES` (rastreio de geração em memória) | `YES` (`stale_turnId` invalida chunks no stream) | `TESTED LOCALLY` (generativo) |
+| **Explicit outbound cancel command** | `NOT_DOCUMENTED` | `NO` (`interruptSpeech` retorna `null`) | `N/A` (método de porta sem mensagem física) | `N/A` |
+| **Interruption metadata preservation** | `YES` (`utteranceUntilInterrupt`) | `NO` (parseado em `parseInterrupt`, mas descartado em `translateTwilioInboundEvent`) | `NO` (`UserInterruptionEvent` não possui campos) | `PROVIDER-UNVERIFIED` |
+| **Playback completion ack** | `NOT_DOCUMENTED` | `NO` | `NO` | `N/A` |
+| **Text final marker (`last: true`)** | `YES` | `YES` (`isFinal -> last: true`) | `YES` (ao fim de stream ou single-shot) | `PROVIDER-UNVERIFIED` |
 | **Next-user-turn delivery (`prompt`)** | `YES` | `YES` (mapeia para `user.speech.final`) | `YES` (inicia novo ciclo de turno) | `PROVIDER-UNVERIFIED` |
-
-> **Nota Crucial**: O fato de o adapter Twilio retornar `null` em `interruptSpeech` (`case 'interrupt_speech': return null;`) **não é uma deficiência do adapter**, mas sim o reflexo exato da especificação do Twilio ConversationRelay, que não possui mensagem de cancelamento outbound. O cancelamento ocorre na borda da Twilio e via interrupção do envio de novos tokens pelo runtime.
 
 ---
 
@@ -141,29 +150,29 @@ A tabela abaixo separa estritamente os quatro estados de comprovação para cada
 
 | Dimensão | OPTION_A (Após `speak()` retornar) | OPTION_B (Imediatamente antes de `speak()`) | OPTION_C (Após ack do provider) |
 |---|---|---|---|
-| **Ponto de Commit** | Após await de `transport.speak()` | Antes de chamar `transport.speak()` | Após mensagem de confirmação do provider |
-| **Risco de Double-Speech** | **ALTO**: Se `speak()` falhar parcialmente durante o envio pelo socket, o fallback para OpenAI dispararia fala concorrente | **ZERO**: Uma vez iniciado o despacho, a propriedade da resposta é irrevogável; fallback generativo é bloqueado | **INVIÁVEL**: Twilio CR não emite acks de despacho para mensagens `text` |
-| **Unknown Partial Dispatch** | Inseguro: pode enviar parte do texto e ainda assim acionar fallback generativo | Seguro: qualquer tentativa de despacho assume que o provider pode ter reproduzido o texto | Impossível de observar no protocolo |
+| **Ponto de Commit** | Após await de `transport.speak()` | Imediatamente antes de chamar `transport.speak()` | Após mensagem de confirmação do provider |
+| **Risco de Double-Speech** | **ALTO**: Se `speak()` falhar parcialmente durante o envio pelo socket, o fallback para OpenAI dispararia fala concorrente | **MINIMIZADO PELA INVARIANTE DA APLICAÇÃO**: Uma vez iniciado o despacho, a propriedade da resposta é irrevogável; fallback generativo é bloqueado | **INVIÁVEL**: Twilio CR não emite acks de despacho para mensagens `text` |
+| **Unknown Partial Dispatch** | Inseguro: pode enviar parte do texto e ainda assim acionar fallback generativo | Seguro: qualquer tentativa de despacho assume que o provider pode ter recebido e sintetizado o texto | Inobservável documentalmente |
 | **Transport Exception Handling** | Tende a tratar exceção como "nada foi falado", arriscando falar duas vezes | Trata exceção como falha técnica de entrega de turno, sem regredir para modelo generativo | N/A |
-| **Complexidade** | Baixa | Mínima (uma única checagem/guarda determinística) | Alta (exigiria protocolo com ACKs) |
+| **Complexidade** | Baixa | Mínima (uma guarda determinística) | Alta (exigiria protocolo com ACKs) |
 
 ### 4.2 Decisão Arquitetural Formal
-**Selecionado**: `OPTION_B` (Commit no início do despacho).
+**Selecionado**: `OPTION_B` (Commit imediatamente antes da tentativa de despacho).
 
 ```
-INVARIANTE FUNDAMENTAL:
+INVARIANTE DE DESIGN:
 DISPATCH_ATTEMPTED -> NO_OPENAI_FALLBACK
 ```
 
-1. Quando o orquestrador seleciona uma resposta determinística ou de segurança e chama `transport.speak()`, o **Response Ownership é imediatamente comitado**.
-2. A partir desse instante, é estritamente proibido realizar fallback para o modelo generativo (`streamTurn()`), mesmo que o transporte lance exceção ou que o usuário interrompa.
+1. Quando o orquestrador seleciona uma resposta determinística ou de segurança e prepara a chamada a `transport.speak()`, o **Response Ownership é comitado**.
+2. A partir da tentativa de despacho, o fallback para o modelo generativo (`streamTurn()`) é bloqueado pela invariante da aplicação, prevenindo concorrência de fala no mesmo turno.
 3. Para decisões `SECURITY_BLOCKED`, o fallback para OpenAI já é categoricamente `NOT AUTHORIZED` por definição de segurança; o commit em `OPTION_B` estende essa blindagem às respostas determinísticas (`agent.operating_hours`).
 
 ---
 
-## 5. Lifecycle Semantics & State Model
+## 5. Lifecycle Semantics & Conceptual States
 
-Aplicando rigorosamente YAGNI (`CURRENT_REQUIREMENT`, `EXISTING_OPTION`, `MINIMAL_OPTION`), o ciclo de vida não requer uma nova máquina de estados pesada ou persistente em banco. Bastam marcadores conceituais determinísticos na memória do processo:
+Aplicando YAGNI (`CURRENT_REQUIREMENT`, `EXISTING_OPTION`, `MINIMAL_OPTION`), o ciclo de vida não requer persistência pesada de estados em banco, operando via marcadores conceituais determinísticos na memória do processo:
 
 ```
 [TURN START]
@@ -179,17 +188,17 @@ Aplicando rigorosamente YAGNI (`CURRENT_REQUIREMENT`, `EXISTING_OPTION`, `MINIMA
       |
       +-----------------------------------------+
       |                                         |
-      v (Normal: tokens enviados)               v (Barge-in detectado)
+      v (Tokens transmitidos no socket)         v (Barge-in detectado)
   DISPATCH_ACCEPTED                         INTERRUPTED
       |                                         |
       v (last: true enviado)                    v (Áudio cortado na borda)
   COMPLETION_UNKNOWN                        WAIT_FOR_NEXT_SPEECH_FINAL
   (Playback completion acústica             (Aguardando novo prompt)
-   NÃO observável no provider)
+   inobservável no provider)
 ```
 
 ### Definição dos Marcadores Conceituais
-- `PREPARED`: O texto da resposta foi gerado localmente pelo handler ou template de segurança.
+- `PREPARED`: O texto da resposta foi produzido localmente pelo handler ou template de segurança.
 - `OWNERSHIP_COMMITTED`: A resposta foi designada como definitiva para o turno; fallback generativo desautorizado.
 - `DISPATCH_ATTEMPTED`: `transport.speak()` foi invocado com o `generationId` ativo.
 - `DISPATCH_ACCEPTED`: O socket transmitiu os tokens sem erro imediato de I/O.
@@ -203,25 +212,25 @@ Aplicando rigorosamente YAGNI (`CURRENT_REQUIREMENT`, `EXISTING_OPTION`, `MINIMA
 ### 6.1 Pre-Dispatch Interruption
 - **Cenário**: O usuário emite nova fala ou ruído antes que o handler termine de calcular ou antes da chamada a `transport.speak()`.
 - **Comportamento**:
-  - `activeGenerations.get(callId)` foi alterado para `stale_turnId` por `handleUserInterruption()`.
+  - `activeGenerations.get(callId)` é alterado para `stale_turnId` por `handleUserInterruption()`.
   - O pre-dispatch guard verifica `isGenerationActive(callId, generationId)`.
-  - Como é falso, o despacho é **suprimido**.
+  - Sendo falso, o despacho é **suprimido**.
   - `transport.speak()` **NÃO é chamado**.
   - Nenhuma resposta do assistente é gravada no histórico.
   - `PRE_DISPATCH_INTERRUPTION_SEMANTICS = DESIGNED`.
 
-### 6.2 Post-Dispatch Interruption (Barge-in em Reprodução)
-- **Cenário**: `transport.speak()` já foi chamado (ou múltiplos chunks já foram despachados), o áudio está sendo emitido pela Twilio e o caller fala: *"Não, eu queria saber de sábado."*
+### 6.2 Post-Dispatch Interruption (Barge-in Durante Reprodução)
+- **Cenário**: `transport.speak()` já foi chamado, o áudio está sendo emitido pelo provider e o caller fala.
 - **Comportamento**:
-  1. A Twilio corta o áudio imediatamente no gateway de telefonia.
+  1. O media server da Twilio interrompe a reprodução de áudio na conexão telefônica conforme documentado para `interruptible=true`.
   2. A Twilio envia a mensagem WebSocket `interrupt` com `{ utteranceUntilInterrupt, durationUntilInterruptMs }`.
   3. O adapter recebe `interrupt` e aciona o callback de `user.interruption`.
   4. O orquestrador executa `handleUserInterruption()`:
      - Marca a geração atual como `stale_turnId`.
      - Invalida o envio de quaisquer chunks restantes em memória.
-  5. O sistema **NÃO tenta emitir cancel outbound via socket**, pois o provider já interrompeu o áudio e não suporta essa mensagem.
-  6. O sistema **NÃO inicia uma nova resposta de IA imediatamente**.
-  7. O sistema **permanece em espera** até que a Twilio envie a mensagem `prompt` (mapeada para `user.speech.final`).
+  5. A aplicação não envia cancel outbound via socket (comando não documentado no protocolo).
+  6. A aplicação **NÃO inicia uma nova resposta de IA imediatamente** (`INTERRUPTION_EVENT_ALONE_STARTS_NEW_RESPONSE = NO`).
+  7. O sistema **aguarda** a mensagem `prompt` (mapeada para `user.speech.final`).
 
 ---
 
@@ -229,9 +238,9 @@ Aplicando rigorosamente YAGNI (`CURRENT_REQUIREMENT`, `EXISTING_OPTION`, `MINIMA
 
 | Dimensão | `USER_INITIATED_BARGE_IN` | `APPLICATION_INITIATED_CANCEL` |
 |---|---|---|
-| **Origem** | Caller começa a falar no telefone | Timeout interno, erro de lógica ou evento externo da aplicação |
-| **Suporte Twilio CR** | **NATIVO / COMPROVADO**: Gateway detecta fala e corta áudio | **LIMITADO / NÃO SUPORTADO EM ÁUDIO**: Twilio CR não possui comando outbound de cancel |
-| **Ação do Runtime** | Recebe `interrupt`, invalida geração e retém novos tokens | Invalida geração e para de enviar novos tokens; áudio já em trânsito no buffer da Twilio não pode ser abortado via socket |
+| **Origem** | Caller começa a falar no telefone | Decisão interna da aplicação (timeout, erro, lógica de negócio) |
+| **Suporte Twilio CR** | `DOCUMENTED_IN_SOURCES_CONSULTED` (Gateway detecta fala e interrompe áudio) | `NOT_DOCUMENTED_IN_SOURCES_CONSULTED` (Twilio CR não possui comando outbound de cancel) |
+| **Ação do Runtime** | Recebe `interrupt`, invalida geração e retém novos tokens | Invalida geração e cessa envio de novos tokens; áudio já em buffer não pode ser abortado via socket |
 | **Sinalização** | Evento inbound `interrupt` | Ação interna do orquestrador |
 
 ---
@@ -241,22 +250,13 @@ Aplicando rigorosamente YAGNI (`CURRENT_REQUIREMENT`, `EXISTING_OPTION`, `MINIMA
 ### 8.1 Gap Atual Auditado
 Na auditoria de `packages/integrations/src/twilio/twilio-event-translator.ts`:
 - A função `parseInterrupt` extrai com sucesso `utteranceUntilInterrupt` e `durationUntilInterruptMs`.
-- No entanto, a função `translateTwilioInboundEvent` mapeia a mensagem para `UserInterruptionEvent`, que possui apenas:
-  ```typescript
-  return {
-    type: 'user.interruption',
-    callId,
-    organizationId,
-    turnId,
-    timestamp: new Date().toISOString(),
-  };
-  ```
-- **Conclusão Factual**: `INTERRUPTED_UTTERANCE_METADATA_DROPPED = YES`.
+- No entanto, a função `translateTwilioInboundEvent` mapeia a mensagem para `UserInterruptionEvent`, que possui apenas `{ callId, organizationId, turnId, timestamp }`.
+- **Fato**: `INTERRUPTED_UTTERANCE_METADATA_DROPPED = YES`.
 
-### 8.2 Seam Mínimo para Preservação Futura (Sem Breaking Changes)
-Para viabilizar a continuidade contextual sem quebrar contratos existentes:
+### 8.2 Seam Mínimo para o Slice A (Contratos Provider-Neutral)
+Para viabilizar a continuidade contextual sem acoplamento a fornecedores específicos:
 1. Em `packages/contracts/src/voice/voice-events.ts`:
-   Adicionar campos opcionais em `UserInterruptionEvent`:
+   Estender `UserInterruptionEvent` com campos opcionais provider-neutral:
    ```typescript
    export interface UserInterruptionEvent extends BaseVoiceEvent {
      readonly type: 'user.interruption';
@@ -266,34 +266,32 @@ Para viabilizar a continuidade contextual sem quebrar contratos existentes:
    }
    ```
 2. No adapter Twilio (`twilio-event-translator.ts`), repassar esses campos ao construir o evento.
-3. No orquestrador (`ConversationOrchestrator`), armazenar efemeramente o `lastInterruptedContext` associado à chamada até a chegada do próximo `user.speech.final`.
+3. No orquestrador, reter efemeramente esse contexto para o próximo turno.
 
 ---
 
 ## 9. Separação: Conversation Context vs Delivery Audit
 
-É fundamental separar rigorosamente dois conceitos frequentemente confundidos:
-
 ```
 +-------------------------------------------------------------------------+
 | CONVERSATION CONTEXT (Efêmero, Cognitivo)                                |
 | "O que o modelo/assistente precisa saber para formular o próximo turno" |
-| Exemplo: Saber que o assistente chegou a dizer "Nosso horário é..."     |
-| antes de o usuário intervir com "Não, queria saber de sábado".          |
+| Baseado em: texto parcial reportado pelo provider (utteranceUntilInterrupt) |
 +-------------------------------------------------------------------------+
                                     vs
 +-------------------------------------------------------------------------+
 | DELIVERY AUDIT / DURABLE HISTORY (Persistente, Factual)                 |
-| "O que foi comprovadamente reproduzido e registrado para auditoria"     |
-| Invariante: NUNCA gravar que o usuário ouviu a resposta completa        |
-| quando ela foi interrompida no meio.                                    |
+| "O que é registrado de forma durável para auditoria"                    |
+| Invariante: NUNCA atestar entrega completa de resposta interrompida.    |
 +-------------------------------------------------------------------------+
 ```
 
-### Regras Fatuais de Distinção
+### Regras de Distinção
 1. `TEXT_DISPATCHED != AUDIO_PLAYED != AUDIO_HEARD_BY_USER`.
-2. O envio de `last: true` indica apenas que o servidor terminou de mandar texto; não é ack acústico.
-3. O histórico durável não pode conter texto fantasma que o usuário nunca ouviu.
+2. `last: true` sinaliza fim de transmissão textual; não é confirmação acústica.
+3. `INTERRUPTED_ASSISTANT_TEXT_SOURCE = provider-reported utteranceUntilInterrupt`.
+4. `INTERRUPTED_ASSISTANT_TEXT_ACOUSTIC_PROOF = NO`.
+5. `INTERRUPTED_ASSISTANT_TEXT_USE = conversation context + interrupted history metadata`.
 
 ---
 
@@ -301,55 +299,56 @@ Para viabilizar a continuidade contextual sem quebrar contratos existentes:
 
 | Modelo | Descrição | Context Continuity | Factual Accuracy | Schema Impact | Veredito |
 |---|---|---|---|---|---|
-| **OPTION_H1** | Persistir resposta completa imediatamente após `speak()` | Péssima (assume que o usuário ouviu tudo) | **FALSA** (mente sobre o que foi ouvido sob barge-in) | Zero | **REJEITADO** |
-| **OPTION_H2** | Não persistir nada até ack de playback acústico completo | Nula (perde o turno do assistente) | Inaplicável | Zero | **REJEITADO** (Twilio CR não emite ack, nenhum turno seria gravado) |
-| **OPTION_H3** | Persistir estado `DISPATCHED/UNKNOWN` com novas colunas no DB | Alta | Média | **ALTO** (Requer migração de DB e alteração de schema) | **REJEITADO** (Viola YAGNI) |
-| **OPTION_H4** | Em interrupção, gravar resposta com `isInterrupted: true` e `content = utteranceUntilInterrupt` | **EXCELENTE** | **EXATA** (reflete o que o provider reportou como falado) | **ZERO** (`AppendTurnInput` já suporta `isInterrupted?: boolean`) | **SELECIONADO (CANÔNICO)** |
-| **OPTION_H5** | Manter contexto parcial apenas efêmero em memória; omitir do histórico durável | Boa para o turno imediato | Média (histórico durável fica sem fala do assistente) | Zero | **SELEÇÃO SECUNDÁRIA / FALLBACK** se metadata não estiver disponível |
+| **OPTION_H1** | Persistir resposta completa imediatamente após `speak()` | Ruim (assume que usuário ouviu tudo) | Incorreta sob barge-in | Zero | **REJEITADO** |
+| **OPTION_H2** | Não persistir nada até ack de playback acústico completo | Nula (perde o turno do assistente) | Inaplicável (sem ack) | Zero | **REJEITADO** |
+| **OPTION_H3** | Persistir estado `DISPATCHED/UNKNOWN` com novas colunas no DB | Alta | Média | Alto (Requer migração de DB) | **REJEITADO** (YAGNI) |
+| **OPTION_H4** | Gravar resposta com `isInterrupted: true` e `content = utteranceUntilInterrupt` quando disponível | Alta | Provider-Reported / Não-fabricada | Zero (`AppendTurnInput` já suporta `isInterrupted?: boolean`) | **SELECTED DESIGN** (Runtime: `NOT IMPLEMENTED`) |
+| **OPTION_H5** | Contexto parcial efêmero em memória; omitir do histórico durável | Média (turno imediato ok; histórico durável sem fala do assistente) | Conservadora | Zero | **FALLBACK DESIGN** se metadata ausente |
 
-### Estratégia Adotada: OPTION_H4
-- Se o turno completou sem interrupção: grava o texto do assistente com `isInterrupted: false`.
-- Se o turno sofreu interrupção e `utteranceUntilInterrupt` estiver disponível: grava o texto parcial com `isInterrupted: true`.
-- Se o turno sofreu interrupção e o metadata foi descartado (estado atual): omite a gravação do assistente ou grava com marcador explícito de interrupção, sem forjar a conclusão do texto integral.
+### Resumo da Decisão
+- `OPTION_H4 = SELECTED DESIGN`
+- `content = provider-reported interrupted assistant utterance when available`
+- `isInterrupted = true`
+- `HISTORY_RUNTIME_IMPLEMENTATION = NOT IMPLEMENTED`
+- `LIVE_PROVIDER_VERIFICATION = NO`
+- Se o metadata estiver ausente: fallback para H5 (histórico durável não registra fala completa do assistente).
 
 ---
 
 ## 11. Event Ordering for Barge-In
 
-O fluxo temporal rigoroso e ordenado para o tratamento de barge-in:
-
 ```
 [1] ASSISTANT_RESPONSE_DISPATCHED
-    - transport.speak() chamado com generationId = gen_turn_1
-    - Twilio começa síntese e reprodução do áudio
+    - transport.speak() invocado com generationId = gen_turn_1
+    - Twilio inicia síntese e reprodução do áudio
 
 [2] USER_INTERRUPTION_DETECTED
     - Caller fala na linha telefônica
-    - Twilio CR corta o áudio imediatamente no gateway
+    - Media server interrompe áudio (interruptible=true)
     - Twilio envia mensagem inbound { type: "interrupt", utteranceUntilInterrupt: "..." }
 
 [3] OLD_GENERATION_INVALIDATED
     - Orchestrator.handleUserInterruption() executa
     - activeGenerations.set(callId, "stale_turn_1")
-    - Qualquer chunk remanescente em trânsito é descartado
+    - Supressão em memória de chunks subsequentes
 
-[4] OLD_RESPONSE_SUPPRESSED / CANCELLED
-    - Nenhuma mensagem outbound é necessária (Twilio já interrompeu áudio)
-    - Metadata da interrupção é retido em memória para o próximo turno
+[4] OLD_RESPONSE_SUPPRESSED
+    - Aplicação cessa envio de novos tokens
+    - Metadata de interrupção reportado é retido em memória para o próximo turno
 
 [5] WAIT_FOR_NEW_USER_SPEECH_FINAL
     - INTERRUPTION_EVENT_ALONE_STARTS_NEW_MODEL_RESPONSE = NO
-    - O sistema permanece em silêncio e escuta ativa, sem disparar LLM
+    - Aplicação permanece em silêncio e escuta ativa, sem disparar LLM
 
 [6] NEW_TURN_CREATED
     - Caller conclui sua fala
-    - Twilio envia mensagem inbound { type: "prompt", voicePrompt: "Não, eu queria saber de sábado." }
+    - Twilio envia mensagem inbound { type: "prompt", voicePrompt: "..." }
     - Adapter emite evento user.speech.final para o orchestrator
 
 [7] NEW_RESPONSE_ROUTED
     - Novo generationId = gen_turn_2 é registrado
-    - Contexto é montado contendo a fala do usuário anterior + o fragmento que o assistente chegou a falar + a nova fala do usuário
-    - Roteador decide deterministicamente ou via LLM a resposta para a pergunta de sábado
+    - Contexto é montado com a fala anterior + fração reportada do assistente + nova fala do usuário
+    - Roteador decide deterministicamente ou via LLM
 ```
 
 ---
@@ -370,18 +369,18 @@ O ciclo de vida de entrega é unificado, separando a **fonte do conteúdo** do *
 +-------------------------------------------------------+
 | RESPONSE DELIVERY LIFECYCLE (Shared Invariants)       |
 | 1. Pre-dispatch staleness guard check                 |
-| 2. Immediate ownership commit (Option B)              |
+| 2. Ownership commit immediately before dispatch       |
 | 3. Transport single-shot or stream dispatch           |
-| 4. Strict post-dispatch OpenAI fallback prohibition   |
+| 4. Dispatch attempted -> no generative fallback       |
 | 5. Post-dispatch barge-in listener & metadata capture |
 | 6. Interrupted history qualification                  |
 +-------------------------------------------------------+
 ```
 
 ### Particularidades de Segurança (`SECURITY_BLOCKED`)
-- Para decisões `SECURITY_BLOCKED`, a resposta entregue ao usuário é estática, determinística e pré-aprovada.
-- O fallback para OpenAI é categoricamente **PROIBIDO** (`SECURITY_OPENAI_FALLBACK = NOT AUTHORIZED`), independentemente de interrupção, erro de transporte ou desconexão.
-- Se o usuário interromper a mensagem de bloqueio de segurança com uma nova fala, a nova fala gerará um novo evento `user.speech.final`, que passará novamente pelo pipeline de classificação de segurança e roteamento determinístico.
+- A resposta entregue ao usuário é estática, determinística e pré-aprovada.
+- O fallback para OpenAI é categoricamente **PROIBIDO** (`SECURITY_OPENAI_FALLBACK = NOT AUTHORIZED`).
+- Se o usuário interromper a mensagem de bloqueio com nova fala, o novo `user.speech.final` passará novamente pelo pipeline de classificação de segurança e roteamento determinístico.
 
 ---
 
@@ -389,52 +388,58 @@ O ciclo de vida de entrega é unificado, separando a **fonte do conteúdo** do *
 
 | Cenário de Falha | Ponto do Ciclo | Comportamento Determinístico Obrigatório | Fallback OpenAI Permitido? |
 |---|---|---|---|
-| **Erro no Handler determinístico antes do commit** | Antes de `speak()` | Se o handler falha por dados inválidos ou exceção, loga erro estruturado e avalia fallback configurado | SIM (se seguro e autorizado pela política) |
+| **Erro no Handler determinístico antes do commit** | Antes de `speak()` | Loga erro estruturado e avalia fallback configurado | SIM (se seguro e autorizado pela política) |
 | **Interrupção de usuário antes do despacho** | Pre-dispatch | Despacho cancelado; `transport.speak()` não é chamado; sem histórico | NÃO (aguarda novo `speech.final`) |
 | **Erro de transporte durante `speak()`** | Durante despacho | Loga erro de transporte; marca entrega como falha técnica; NÃO retenta com OpenAI | **PROIBIDO** (Risco de double-speech) |
-| **Interrupção de usuário após despacho (`speak()` retornado)** | Post-dispatch | Provider corta áudio; orchestrator invalida geração; grava histórico com `isInterrupted: true` | **PROIBIDO** (Aguardar novo `speech.final`) |
-| **Desconexão do WebSocket durante reprodução** | Post-dispatch | Transição de sessão para `ENDED`/`TERMINATED`; chamada encerrada; sem despacho adicional | **PROIBIDO** |
+| **Interrupção de usuário após despacho (`speak()` retornado)** | Post-dispatch | Provider interrompe áudio; orchestrator invalida geração; grava histórico com `isInterrupted: true` | **PROIBIDO** (Aguardar novo `speech.final`) |
+| **Desconexão do WebSocket durante reprodução** | Post-dispatch | Transição de sessão para `ENDED`/`TERMINATED`; chamada encerrada | **PROIBIDO** |
 | **Erro do provider Twilio após despacho** | Post-dispatch | Log de erro do provider; encerramento controlado da chamada | **PROIBIDO** |
-| **Erro ao gravar histórico após despacho** | Pós-despacho | Log de erro em store; não interrompe a chamada nem regera resposta | **PROIBIDO** |
+| **Erro ao gravar histórico após despacho** | Pós-despacho | Log de erro em store; não interrompe chamada nem regera resposta | **PROIBIDO** |
 | **Conclusão de áudio desconhecida (nominal)** | Pós-despacho | Trata como entregue na íntegra para contexto até que surja interrupção | **PROIBIDO** |
 
 ---
 
 ## 14. Contract Change Analysis
 
-Avaliando a necessidade de alterações nos pacotes de contratos (`packages/contracts/src/voice/**`):
-
-| Contrato | Mudança Proposta | CURRENT_REQUIREMENT | MINIMAL_OPTION | Risco de Vazamento Twilio | Veredito |
+| Contrato | Mudança Proposta | Status no PR #57 | Status no Slice A | Justificativa |
 |---|---|---|---|---|
-| `VoiceTransportPort` | Nenhuma | Manter métodos `speak` e `interruptSpeech` existentes | Manter contratos atuais intactos | Nenhum | **ZERO ALTERAÇÃO** |
-| `VoiceOutputCommand` | Nenhuma | Comandos atuais já suportam `{ text, generationId, isFinal }` | Manter contratos atuais intactos | Nenhum | **ZERO ALTERAÇÃO** |
-| `VoiceInputEvent` (`UserInterruptionEvent`) | Adicionar campos opcionais `interruptedUtterance?: string` e `interruptedDurationMs?: number` | Propagar contexto de interrupção para o domínio sem quebrar listeners | Campos puramente opcionais no evento | Baixo (conceitos universais de telefonia/STT) | **RECOMENDADO PARA SLICE FUTURO (NÃO ALTERAR AGORA)** |
+| `VoiceTransportPort` | Nenhuma | `NO CHANGE` | `NO CHANGE` | Métodos `speak` e `interruptSpeech` existentes são suficientes |
+| `VoiceOutputCommand` | Nenhuma | `NO CHANGE` | `NO CHANGE` | Já suporta `{ text, generationId, isFinal }` |
+| `VoiceInputEvent` (`UserInterruptionEvent`) | Adicionar campos opcionais `interruptedUtterance?: string` e `interruptedDurationMs?: number` | `NO CHANGE` | **REQUIRED** | Propagar metadados reportados pelo provider sem quebrar contratos existentes |
 
-**Conclusão**: Para este slice de design, **zero alterações de contrato são realizadas** (`CONTRACT_CHANGES_REQUIRED_FOR_DESIGN = NO`).
+- `CONTRACT_CHANGES_IN_PR57` = `NO`
+- `CONTRACT_CHANGES_REQUIRED_FOR_SLICE_A` = `YES`
 
 ---
 
-## 15. Implementation Slices Roadmap
+## 15. Implementation Slices Roadmap (Ordem Estrita)
 
-A implementação subsequente do lifecycle de entrega deve ser dividida em slices coesos e progressivos:
+A implementação deve seguir estritamente a ordem de dependências arquiteturais:
 
-### Slice A: Interruption Context Continuity & Domain Contracts (Offline)
-- Adicionar campos opcionais `interruptedUtterance?: string` e `interruptedDurationMs?: number` a `UserInterruptionEvent` em `packages/contracts`.
-- Atualizar `TwilioVoiceTransportAdapter` para propagar esses campos sem descartá-los.
+```
+Slice A (Contratos & Adapter Offline)
+   -> Slice B (Orchestrator Delivery & Ownership Offline)
+   -> Slice C (Security Integration Offline)
+   -> Slice D (Controlled Live Provider Verification)
+```
+
+### Slice A: Interruption Context Continuity & Domain Contracts (Offline) — [PRÓXIMO PASSO SELECIONADO]
+- Estender `UserInterruptionEvent` em `packages/contracts/src/voice/voice-events.ts` com campos opcionais provider-neutral (`interruptedUtterance?: string`, `interruptedDurationMs?: number`).
+- Atualizar `TwilioVoiceTransportAdapter` para repassar esses campos ao emitir `UserInterruptionEvent`.
 - 100% offline, coberto por testes unitários de contrato e adapter.
 - `TWILIO_ACCOUNT_REQUIRED = NO`.
 
 ### Slice B: Deterministic Response Delivery & Ownership in Orchestrator (Offline)
-- Implementar helper coeso de despacho determinístico com `OPTION_B` (ownership commit).
-- Blindagem explícita: `DISPATCH_ATTEMPTED -> NO_OPENAI_FALLBACK`.
-- Tratamento de interrupção com gravação de histórico qualificado (`isInterrupted: true`).
-- 100% offline, coberto por testes em `conversation-orchestrator.test.ts` usando mocks e fakes.
+- Implementar despacho determinístico no orquestrador com ownership commit `OPTION_B`.
+- Invariante formal: `DISPATCH_ATTEMPTED -> NO_OPENAI_FALLBACK`.
+- Tratamento de interrupção com gravação de histórico qualificado (`Option H4`: `isInterrupted: true`).
+- 100% offline, coberto por testes unitários e de integração em `conversation-orchestrator.test.ts` usando mocks e fakes.
 - `TWILIO_ACCOUNT_REQUIRED = NO`.
 
 ### Slice C: Security Response Delivery Integration (Offline)
 - Integrar a ação offline `SECURITY_BLOCKED` (`security-blocked-action.ts`) com o lifecycle de entrega de resposta estática.
-- Garantir `SECURITY_OPENAI_FALLBACK = NOT AUTHORIZED` em todas as bordas.
-- Testes unitários e de integração de runtime offline.
+- Assegurar `SECURITY_OPENAI_FALLBACK = NOT AUTHORIZED` em todas as bordas.
+- Testes unitários e de integração offline.
 - `TWILIO_ACCOUNT_REQUIRED = NO`.
 
 ### Slice D: Controlled Live Provider Verification
@@ -447,8 +452,8 @@ A implementação subsequente do lifecycle de entrega deve ser dividida em slice
 ## 16. Twilio Account Decision
 
 - `TWILIO_ACCOUNT_REQUIRED_FOR_CURRENT_DESIGN_SLICE = NO`.
-- `TWILIO_ACCOUNT_REQUIRED_FOR_NEXT_IMPLEMENTATION_SLICE = NO` (Slices A, B e C são estritamente offline com fakes e stubs tipados).
-- Conta Twilio e configuração serão necessárias exclusivamente no **Slice D** (verificação live do provider).
+- `TWILIO_ACCOUNT_REQUIRED_FOR_NEXT_IMPLEMENTATION_SLICE = NO` (Slice A é estritamente offline em contratos e adapter local).
+- Conta Twilio será exigida exclusivamente no **Slice D** (verificação live do provider).
 
 ---
 
@@ -457,7 +462,7 @@ A implementação subsequente do lifecycle de entrega deve ser dividida em slice
 Antes de ativar `ACTIVE_GUARDED` ou plugar o roteamento em produção:
 1. `SECURITY_RUNTIME_ROUTING_INTEGRATION` permanece `NOT IMPLEMENTED`.
 2. `SECURITY_USER_RESPONSE_DELIVERY` permanece `NOT IMPLEMENTED`.
-3. `POST_DISPATCH_BARGE_IN_RUNTIME` permanece `NOT IMPLEMENTED` (embora `POST_DISPATCH_BARGE_IN_DESIGN = DESIGNED`).
+3. `POST_DISPATCH_BARGE_IN_RUNTIME` permanece `NOT IMPLEMENTED`.
 4. `INTERRUPTED_UTTERANCE_METADATA_DROPPED` precisa ser corrigido via Slice A.
 5. `ACTIVE_GUARDED_PROVIDER_CALL_OWNERSHIP` permanece `BLOCKED / NOT IMPLEMENTED`.
 6. `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE` não liberado.
@@ -468,9 +473,9 @@ Antes de ativar `ACTIVE_GUARDED` ou plugar o roteamento em produção:
 
 ## 18. Non-Goals Explícitos
 
-1. Nenhuma linha de código funcional alterada neste slice.
+1. Nenhuma linha de código funcional alterada neste PR.
 2. Nenhum teste alterado ou adicionado.
-3. Nenhuma alteração em contratos de pacotes.
+3. Nenhuma alteração contratual executada no PR #57 (postergada para o Slice A).
 4. Nenhuma chamada externa a provedores (TypeSafe = 0, OpenAI = 0, Twilio = 0).
 5. Nenhum carregamento de variáveis de ambiente (`.env`).
 6. Nenhuma conexão a banco de dados.

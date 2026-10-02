@@ -11108,3 +11108,58 @@ Auditadas 10 categorias factuais no split de calibração:
 
 ### 6. Próximo Passo Permitido
 - `NEXT_ALLOWED_STEP`: Implement minimal offline delivery slice (Slice A: Interruption context continuity & domain contracts offline, or Slice B: Deterministic response delivery & ownership in orchestrator offline). Do NOT wire full ACTIVE_GUARDED runtime yet.
+
+---
+
+## 2026-10-02 - PROMPT-006AC-PR57-DELIVERY-DESIGN-HARDENING-AND-MERGE-001
+
+- **Data**: 2026-10-02
+- **Tipo**: DOCS / DESIGN HARDENING / QUALITY GATE / MERGE GATE (PR #57 Final Close)
+- **Branch**: `research/006ac-response-delivery-lifecycle-design`
+- **PR #57 Status**: `OPEN`
+- **Base main SHA**: `2a09d323a27f9d4f527bb1da7f0fe85fe3eada84`
+- **PR57 docs-only**: `YES` (`git diff --name-status origin/main...HEAD` confirms changes strictly in `docs/**`)
+
+### 1. Revalidação e Endurecimento de Evidências Oficiais Twilio
+- `official Twilio sources revalidated`: `YES`
+  - Fonte 1: Twilio ConversationRelay Technical Documentation (`https://www.twilio.com/docs/voice/conversation-relay`, seção: *Conversation Relay WebSocket Messages Reference*, acessado em 2026-10-02)
+  - Fonte 2: Twilio TwiML Reference: `<ConversationRelay>` (`https://www.twilio.com/docs/voice/twiml/conversationrelay`, seção: *ConversationRelay Attributes*, acessado em 2026-10-02)
+- `claims softened where evidence insufficient`: `YES`
+  - Rejeitadas formulações absolutistas ("guarantees", "always", "categorically cannot").
+  - Adotada taxonomia normativa rigorosa: `PROVIDER_DOCUMENTED_IN_SOURCES_CONSULTED`, `NOT_DOCUMENTED_IN_SOURCES_CONSULTED`, `PROVIDER_BEHAVIOR_BEYOND_DOCUMENTATION = NOT VERIFIED`.
+  - Ordenação `interrupt -> prompt`: qualificada como `DOCUMENTED_EXPECTED_SEQUENCE = interrupt -> subsequent prompt after caller speech finalization`; `UNIVERSAL_ORDERING_GUARANTEE = NOT VERIFIED`.
+- `provider-native playback stop separated from runtime suppression`: `YES`
+  - `PROVIDER_NATIVE_USER_BARGE_IN_PLAYBACK_STOP` = `DOCUMENTED_IN_SOURCES_CONSULTED` (executado pelo media server telecom quando `interruptible=true`)
+  - `CURRENT_ADAPTER_EXPLICIT_PLAYBACK_STOP_COMMAND` = `NO` (`interruptSpeech` retorna `null`)
+  - `RUNTIME_FUTURE_TOKEN_SUPPRESSION` = `IMPLEMENTED for current generative stale generation behavior` (em `processModelStream`)
+  - `RUNTIME_PROVIDER_PLAYBACK_STOP_CONTROL` = `NONE / N/A` (a aplicação não controla o media server diretamente)
+- `utteranceUntilInterrupt acoustic proof`: `NO`
+  - `INTERRUPTED_ASSISTANT_TEXT_SOURCE` = `provider-reported utteranceUntilInterrupt`
+  - `INTERRUPTED_ASSISTANT_TEXT_ACOUSTIC_PROOF` = `NO`
+  - `INTERRUPTED_ASSISTANT_TEXT_USE` = `conversation context + interrupted history metadata` (não é prova pericial de audição)
+  - Preservado: `TEXT_DISPATCHED != AUDIO_PLAYED != AUDIO_HEARD_BY_USER`.
+
+### 2. Endurecimento de Modelos de Histórico, Ownership e Contratos
+- `H4 status`: `SELECTED DESIGN / NOT IMPLEMENTED`
+  - `content` = provider-reported interrupted assistant utterance when available
+  - `isInterrupted` = `true`
+  - Fallback para H5 (histórico efêmero sem atestar completion no store durável) quando metadata ausente.
+- `response ownership commit`: `OPTION_B` (commit imediatamente antes da tentativa de despacho)
+  - `double-speech risk` = minimizado/prevenido pela invariante da aplicação (`DISPATCH_ATTEMPTED -> NO_OPENAI_FALLBACK`).
+- `contract changes in PR57`: `NO` (zero alterações de contrato no PR #57)
+- `contract changes required in Slice A`: `YES` (`UserInterruptionEvent` receberá campos opcionais provider-neutral: `interruptedUtterance?: string`, `interruptedDurationMs?: number`).
+- `next slice`: `SLICE A` (Interruption Context Continuity & Domain Contracts Offline selecionado de forma inequívoca; ordem estrita: Slice A -> Slice B -> Slice C -> Slice D).
+
+### 3. Governança e Limites Operacionais
+- Alterações de código funcional: `0`
+- Alterações de testes: `0`
+- Alterações de configurações: `0`
+- Provedores externos: TypeSafe `0`, OpenAI `0`, Twilio `0`
+- `ENV_LOADED` = `NO` | `DB_CONNECTION` = `NO` | `CUSTOMER_DATA` = `NO` | `FROZEN_POLICY_CHANGED` = `NO`
+- `HOLDOUT_OPENED` = `NO`
+- `ACTIVE_GUARDED` = `BLOCKED`
+- `PRODUCTION_RUNTIME_WIRING` = `NO`
+- `CUSTOMER_TRAFFIC` = `PROHIBITED`
+
+### 4. Próximo Passo Permitido
+- `NEXT_ALLOWED_STEP`: Slice A — Interruption Context Continuity & Domain Contracts Offline. Estender `UserInterruptionEvent` em `packages/contracts` com campos opcionais provider-neutral (`interruptedUtterance?: string`, `interruptedDurationMs?: number`) e atualizar `TwilioVoiceTransportAdapter` offline com testes unitários focados. Do NOT wire orchestrator or active runtime yet.

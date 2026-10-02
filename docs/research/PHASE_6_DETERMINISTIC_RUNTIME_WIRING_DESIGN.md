@@ -18,9 +18,9 @@ O design arquitetural da fiação do runtime determinístico foi conceituado, po
 
 1. `SECURITY_OFFLINE_ACTION`: `IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/security-blocked-action.ts`; `SECURITY_RUNTIME_SEMANTICS = DESIGNED`).
 2. `SECURITY_RUNTIME_ROUTING_INTEGRATION`: `NOT IMPLEMENTED` (`SECURITY_RESPONSE_DELIVERY_DESIGN = DESIGNED`; fiação e execução no orquestrador permanecem `NOT IMPLEMENTED`).
-3. `POST_DISPATCH_BARGE_IN_DESIGN`: `DESIGNED` (`docs/research/PHASE_6_RESPONSE_DELIVERY_LIFECYCLE_DESIGN.md`; `POST_DISPATCH_BARGE_IN_RUNTIME = NOT IMPLEMENTED`).
-4. `CURRENT_ADAPTER_POST_DISPATCH_CANCEL_SUPPORTED`: `NO` (confirmado na documentação oficial da Twilio: protocolo ConversationRelay não possui comando outbound de cancel; auto-interrupção ocorre na borda do provider).
-5. `CURRENT_ADAPTER_PLAYBACK_COMPLETION_SIGNAL`: `NO` (confirmado na documentação oficial da Twilio: protocolo ConversationRelay não emite ack de playback acústico).
+3. `POST_DISPATCH_BARGE_IN_DESIGN`: `DESIGNED` (`docs/research/PHASE_6_RESPONSE_DELIVERY_LIFECYCLE_DESIGN.md`; `POST_DISPATCH_BARGE_IN_RUNTIME = NOT IMPLEMENTED`; `LIVE_PROVIDER_BARGE_IN_VERIFICATION = PROVIDER-UNVERIFIED`).
+4. `CURRENT_ADAPTER_POST_DISPATCH_CANCEL_SUPPORTED`: `NO` (fontes oficiais consultadas do protocolo ConversationRelay não documentam comando outbound de cancel; auto-interrupção ocorre na borda do provider).
+5. `CURRENT_ADAPTER_PLAYBACK_COMPLETION_SIGNAL`: `NO` (fontes oficiais consultadas do protocolo ConversationRelay não documentam ack de playback acústico).
 6. `DETERMINISTIC_AUDIO_FULLY_DELIVERED`: `NOT VERIFIED` após speak dispatch (inobservável acusticamente no provider).
 7. `DETERMINISTIC_HISTORY_COMPLETION_AFTER_SPEAK`: `DESIGNED` (Option H4 com `isInterrupted: true`; `RUNTIME_IMPLEMENTATION = NOT IMPLEMENTED`).
 8. `ACTIVE_GUARDED_PROVIDER_CALL_OWNERSHIP`: `BLOCKED / NOT IMPLEMENTED` (risco de dupla consulta Jev se shadowObserver coexistir).
@@ -554,8 +554,9 @@ NEW_COORDINATOR_REQUIRED = NO
 | `SECURITY_RESPONSE_DELIVERY_READY` | **NO** | Entrega não faturada/testada no runtime (`DESIGNED`, mas `RUNTIME = NOT IMPLEMENTED`) |
 | `POST_DISPATCH_BARGE_IN_DESIGN` | **DESIGNED** | Definido em `docs/research/PHASE_6_RESPONSE_DELIVERY_LIFECYCLE_DESIGN.md` |
 | `POST_DISPATCH_BARGE_IN_RUNTIME` | **NOT IMPLEMENTED** | Implementação de runtime de barge-in ainda não executada |
-| `CURRENT_ADAPTER_POST_DISPATCH_CANCEL_SUPPORTED` | **NO** | Protocolo Twilio CR não possui cancel outbound; interrupção ocorre na borda |
-| `CURRENT_ADAPTER_PLAYBACK_COMPLETION_SIGNAL` | **NO** | Protocolo Twilio CR não emite ack de playback acústico |
+| `LIVE_PROVIDER_BARGE_IN_VERIFICATION` | **PROVIDER-UNVERIFIED** | Verificação ao vivo contra gateway real pendente de credenciais e tráfego |
+| `CURRENT_ADAPTER_POST_DISPATCH_CANCEL_SUPPORTED` | **NO** | Fontes oficiais consultadas do protocolo Twilio CR não documentam cancel outbound; interrupção ocorre na borda |
+| `CURRENT_ADAPTER_PLAYBACK_COMPLETION_SIGNAL` | **NO** | Fontes oficiais consultadas do protocolo Twilio CR não documentam ack de playback acústico |
 | `DETERMINISTIC_AUDIO_FULLY_DELIVERED` | **NOT VERIFIED** | Inobservável no provider; tratado via semântica de interrupção |
 | `DETERMINISTIC_HISTORY_COMPLETION_AFTER_SPEAK` | **DESIGNED** | Option H4 (`isInterrupted: true`); `RUNTIME = NOT IMPLEMENTED` |
 | `ACTIVE_GUARDED_PROVIDER_CALL_OWNERSHIP` | **BLOCKED / NOT IMPLEMENTED** | Risco de chamadas concorrentes/duplicadas ao Jev |
@@ -567,12 +568,14 @@ NEW_COORDINATOR_REQUIRED = NO
 
 ## 20. Redução do Próximo Passo de Implementação (Next Allowed Step Reduction)
 
-Devido aos múltiplos bloqueadores não resolvidos de runtime (`SECURITY_RUNTIME_ROUTING_INTEGRATION`, `POST_DISPATCH_BARGE_IN`, `AUXILIARY_CALL_OWNERSHIP`), **NÃO É AUTORIZADA** a fiação simultânea do orquestrador com o interpretador.
+Devido aos múltiplos bloqueadores não resolvidos de runtime (`SECURITY_RUNTIME_ROUTING_INTEGRATION`, `POST_DISPATCH_BARGE_IN_RUNTIME`, `AUXILIARY_CALL_OWNERSHIP`), **NÃO É AUTORIZADA** a fiação simultânea do orquestrador com o interpretador ou ativação em produção.
+
+O roadmap decomposto em `docs/research/PHASE_6_RESPONSE_DELIVERY_LIFECYCLE_DESIGN.md` define a sequência estrita de implementação mínima: Slice A -> Slice B -> Slice C -> Slice D.
 
 ```
 NEXT_ALLOWED_STEP:
-Implementar offline a funcao pura frozen-policy-interpreter.ts acompanhada
-exclusivamente de testes unitarios focados e isolados (sem wiring no orquestrador).
+Slice A: Interruption Context Continuity & Domain Contracts Offline.
+Estender UserInterruptionEvent em packages/contracts com campos opcionais provider-neutral (interruptedUtterance e interruptedDurationMs) e atualizar o adapter Twilio offline com testes unitarios, sem fiação de runtime no orquestrador.
 ```
 
 ### Motivos da Redução de Escopo

@@ -143,21 +143,28 @@ AI_CONTEXT_HEADER_END
 
 ---
 
-## 7. Bloqueios Atuais (Current Blockers)
+## 7. Bloqueios Atuais e Status de Prontidão (Current Blockers & Readiness)
 
 1. `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`: Transmissão de transcrições de clientes para provedores externos proibida.
 2. `KNOWN_DETERMINISTIC_HANDLERS = 1` (`ACTIVE_DETERMINISTIC_BYPASS_READINESS = BLOCKED` até implementação de fiação controlada e testes de integração de runtime).
-3. `PRODUCTION_SHADOW_MAX_CONCURRENCY = NOT SELECTED`: Limite de concorrência operacional de produção não definido.
-4. `PRODUCTION_JEV_TIMEOUT_MS = NOT SELECTED`: Timeout operacional de produção não definido.
-5. `PRODUCTION_RUNTIME_WIRING = NO`: Fiação de runtime em produção desautorizada.
+3. `POST_DISPATCH_BARGE_IN_DESIGN = DESIGNED` | `POST_DISPATCH_BARGE_IN_RUNTIME = NOT IMPLEMENTED` | `LIVE_PROVIDER_BARGE_IN_VERIFICATION = PROVIDER-UNVERIFIED`
+4. `INTERRUPTED_CONTEXT_CONTINUITY_DESIGN = DESIGNED` | `INTERRUPTED_CONTEXT_CONTINUITY_RUNTIME = NOT IMPLEMENTED`
+5. `HISTORY_COMPLETION_DESIGN = DESIGNED` | `HISTORY_COMPLETION_RUNTIME = NOT IMPLEMENTED`
+6. `SECURITY_RESPONSE_DELIVERY_DESIGN = DESIGNED` | `SECURITY_USER_RESPONSE_DELIVERY = NOT IMPLEMENTED`
+7. `ACTIVE_GUARDED = BLOCKED`
+8. `PRODUCTION_SHADOW_MAX_CONCURRENCY = NOT SELECTED`: Limite de concorrência operacional de produção não definido.
+9. `PRODUCTION_JEV_TIMEOUT_MS = NOT SELECTED`: Timeout operacional de produção não definido.
+10. `PRODUCTION_RUNTIME_WIRING = NO`: Fiação de runtime em produção desautorizada.
+11. `CUSTOMER_TRAFFIC = PROHIBITED`
 
 ---
 
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- Implement minimal offline delivery slice (Slice A: Interruption context continuity & domain contracts offline, or Slice B: Deterministic response delivery & ownership in orchestrator offline).
-- Do NOT wire full ACTIVE_GUARDED runtime yet.
+- Slice A: Interruption Context Continuity & Domain Contracts Offline.
+- Estender `UserInterruptionEvent` em `packages/contracts/src/voice/voice-events.ts` com campos opcionais provider-neutral (`interruptedUtterance?: string`, `interruptedDurationMs?: number`) e atualizar `TwilioVoiceTransportAdapter` offline com testes unitários focados.
+- Do NOT wire orchestrator or active runtime yet.
 
 ### `NOT_YET_ALLOWED`:
 - Transmissão de dados reais de clientes para provedores externos.
