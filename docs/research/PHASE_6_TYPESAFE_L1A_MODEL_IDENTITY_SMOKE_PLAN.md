@@ -113,5 +113,36 @@ Antes que o operador autorize a execução do L1A em um próximo slice:
 - [x] Testes offline de regressão comprovando fail-open em caso de mismatch.
 - [x] Dataset sintético congelado com hash registrado (`12828e990c1c...`).
 - [x] Script runner dedicado com controle rígido de teto de custo criado e auditado (`run-jev-l1a-model-identity-smoke.mjs`).
-- [ ] Autorização humana explícita para invocação remota do script runner com `TYPESAFE_API_KEY` em memória.
-- [ ] Definição do teto monetário autorizado pelo operador.
+- [x] Autorização humana explícita para invocação remota do script runner (`AUTORIZO_L1A_TYPESAFE_N20 = YES`).
+- [x] Definição do teto monetário autorizado pelo operador (`COST_CEILING_USD = 0.10`).
+
+---
+
+## 8. Resultados da Execução L1A (Run 1 — 2026-10-02)
+
+- **Artefato de Resultado**: `docs/research/results/phase-6-typesafe-l1a-model-identity-smoke-run1.json`
+- **SHA-256 do Resultado**: `698c5e2a3b9177e3ec2692caec2f83cb9d1e67fbea9576197a0fab28770c47c3`
+- **Total de Casos Executados**: 20/20
+- **Sucessos com Match de Modelo**: 20/20 (`providerModel === 'jev-1.13.0'`)
+- **Mismatches Observados**: 0
+- **Erros Técnicos / Timeout**: 0
+- **Retries Realizados**: 0
+- **Concorrência**: 1 (sequencial)
+- **Latência Observada (Descritiva)**:
+  - Mediana: `275ms`
+  - p90: `316ms`
+  - p95: `317ms`
+  - Max: `685ms`
+  - Classificação: `DESCRIPTIVE_ONLY` (não constitui estudo estatístico de cauda / L1B)
+- **Custo Máximo Projetado (Upper Bound)**: `0.00084 USD` (20.000 input tokens projetados)
+- **Teto Autorizado pelo Operador**: `0.10 USD` (enforced via runner guard)
+- **Avaliação Formal de Critérios de Aceitação**:
+  - Critério A (Conclusão Técnica Total): **PASS** (20/20)
+  - Critério B (Observabilidade de `providerModel`): **PASS** (20/20)
+  - Critério C (Exact Match no Guard): **PASS** (20/20 com `jev-1.13.0`)
+  - Critério D (Isolamento de Dados do Cliente): **PASS** (zero customer data, 100% sintético)
+  - Critério E (Zero Retries): **PASS** (0 retries)
+  - Critério F (Blindagem de Segredos): **PASS** (`SECRET_AUDIT_PASS`)
+  - Critério G (Semântica Fail-Safe de Mismatch): **PASS** (comprovado offline; 0 mismatches naturais no run)
+  - Critério H (Invariante da Frozen Policy): **PASS** (zero alterações na policy)
+- **Desfecho Final do L1A**: **PASS TOTAL**

@@ -12391,3 +12391,61 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **FROZEN_POLICY_CHANGED**: `NO`
 - **ACTIVE_GUARDED**: `BLOCKED`
 - **L1A_PROVIDER_EXECUTION**: `AWAITING_OPERATOR_AUTHORIZATION`
+
+---
+
+## 2026-10-02 — L1A Controlled Live TypeSafe Model Identity Smoke Execution
+
+### 1. Autorização do Operador e Execução
+- **Branch**: `research/006aj-l1a-live-typesafe-model-identity-smoke`
+- **OPERATOR_L1A_AUTHORIZATION**: `OBSERVED` (`AUTORIZO_L1A_TYPESAFE_N20 = YES`)
+- **APPROVED_COST_CEILING_USD**: `0.10`
+- **L1A_PROVIDER_EXECUTION**: `EXECUTED / PASS`
+- **L1A_PROVIDER_CALLS**: `20` (exatamente 20 requisições, sem retries)
+- **OPENAI_CALLS**: `0`
+- **TWILIO_CALLS**: `0`
+- **CUSTOMER_DATA**: `0` (100% dados sintéticos de teste)
+- **SECRET_EXPOSURE**: `NONE` (`SECRET_AUDIT_PASS`, zero chaves/tokens em logs ou artefatos)
+
+### 2. Parâmetros e Integridade do Dataset
+- **DATASET_COUNT**: `20`
+- **DATASET_SHA**: `12828e990c1c2523c159630511aeb945b26a941c24ecaa38776b4a2769a3b0d0` (íntegro e inalterado)
+- **REQUESTED_MODEL**: `jev-1.13.0`
+- **EXPECTED_PROVIDER_MODEL**: `jev-1.13.0`
+- **CONCURRENCY**: `1` (sequencial)
+- **RETRIES**: `0`
+
+### 3. Resultados Observados
+- **Artefato Gerado**: `docs/research/results/phase-6-typesafe-l1a-model-identity-smoke-run1.json`
+- **SHA-256 do Artefato**: `698c5e2a3b9177e3ec2692caec2f83cb9d1e67fbea9576197a0fab28770c47c3`
+- **Requests Tentados**: `20`
+- **Sucessos**: `20`
+- **Model Matches (`providerModel === 'jev-1.13.0'`)**: `20` (100%)
+- **Model Mismatches**: `0`
+- **Erros Técnicos / Timeouts**: `0`
+- **Latência Descritiva**:
+  - Mediana: `275ms`
+  - p90: `316ms`
+  - p95: `317ms`
+  - Max: `685ms`
+  - Classificação: `DESCRIPTIVE_ONLY`
+- **Tokens de Entrada Projetados (Upper Bound)**: `20.000`
+- **Custo Projetado (Upper Bound)**: `0.00084 USD` (dentro do teto aprovado de $0.10 USD)
+- **ACTUAL_BILLED_COST_USD**: `NOT_VERIFIED`
+
+### 4. Avaliação de Critérios de Aceitação
+- **Critério A (Conclusão Técnica Total)**: `PASS` (20/20)
+- **Critério B (Observabilidade de providerModel)**: `PASS` (20/20 com jev-1.13.0)
+- **Critério C (Exact Match no Guard)**: `PASS` (20/20)
+- **Critério D (Isolamento de Dados do Cliente)**: `PASS` (zero dados reais)
+- **Critério E (Zero Retries)**: `PASS` (0)
+- **Critério F (Blindagem de Segredos)**: `PASS` (zero segredos expostos)
+- **Critério G (Semântica Fail-Safe de Mismatch)**: `PASS` (comprovado offline; 0 mismatches naturais no run)
+- **Critério H (Invariante da Frozen Policy)**: `PASS` (zero alterações)
+
+### 5. Invariantes Mantidas
+- **HOLDOUT**: `NO`
+- **FROZEN_POLICY_CHANGED**: `NO`
+- **PRODUCTION_RUNTIME_WIRING**: `NO`
+- **ACTIVE_GUARDED**: `BLOCKED`
+- **CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE**: `NOT CLEARED`

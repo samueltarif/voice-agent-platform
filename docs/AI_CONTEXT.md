@@ -6,7 +6,7 @@ CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-02
 CONTEXT_BASE_MAIN_SHA: d2e9fa60f060bd943f6aa6ee492edcd4d7c7adee
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
-CURRENT_SLICE: L1A Controlled Live TypeSafe Model Identity Smoke
+CURRENT_SLICE: L1A Controlled Live TypeSafe Model Identity Smoke Execution
 CONTEXT_UPDATE_BRANCH: research/006aj-l1a-live-typesafe-model-identity-smoke
 CONTEXT_UPDATE_PR: PENDING
 LAST_MERGED_PR_AT_REFRESH: 63
@@ -85,7 +85,7 @@ AI_CONTEXT_HEADER_END
 - **FAIL_OPEN_TO_GENERATIVE_MODEL**: `YES`.
 - **MODEL_DRIFT_RUNTIME_GUARD**: `IMPLEMENTED / TESTED LOCALLY` (`packages/integrations/src/typesafe/typesafe-jev-turn-decision-adapter.ts`; 23 testes; exact match via `expectedProviderModel`).
 - **EXPECTED_MODEL_AUTHORITY**: `OPTION_B` (TypeSafe adapter integration config: options.expectedProviderModel).
-- **L1A_MODEL_IDENTITY_SMOKE_PLAN**: `DESIGNED / NOT EXECUTED` (`docs/research/PHASE_6_TYPESAFE_L1A_MODEL_IDENTITY_SMOKE_PLAN.md`; dataset sintético N=20).
+- **L1A_MODEL_IDENTITY_SMOKE**: `EXECUTED / PASS` (N=20/20 sucessos com exact match `jev-1.13.0`, 0 mismatches, 0 erros técnicos, mediana descritiva 275ms, p90 316ms, max 685ms; SHA-256 `698c5e2a3b91...`; `docs/research/results/phase-6-typesafe-l1a-model-identity-smoke-run1.json`).
 - **SECURITY_RUNTIME_SEMANTICS**: `DESIGNED` (`docs/research/PHASE_6_SECURITY_ESCALATE_RUNTIME_SEMANTICS.md`).
 - **SECURITY_RESPONSE_DELIVERY_READY**: `IMPLEMENTED LOCALLY / ROUTING INTEGRATED`.
 - **SECURITY_HISTORY_PERSISTENCE_READY**: `IMPLEMENTED LOCALLY (Turn-scoped qualified H4/H5 history resolution)`.
@@ -179,7 +179,7 @@ AI_CONTEXT_HEADER_END
 12. `PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY = NOT SELECTED`: Candidato canary 2 a 5 chamadas é proposta exploratória sem dados operacionais.
 13. `MODEL_DRIFT_RUNTIME_GUARD = IMPLEMENTED / TESTED LOCALLY` (`EXPECTED_MODEL_AUTHORITY = OPTION_B`; exact match via `expectedProviderModel`).
 14. `PRODUCTION_RUNTIME_WIRING = NO`: Fiação de runtime em produção desautorizada.
-15. `LIVE_PROVIDER_GUARDED_ROUTING_VALIDATION = NOT EXECUTED`: Validação contra TypeSafe real pendente L1A/L1B (`L1A_PLAN = DESIGNED`).
+15. `LIVE_PROVIDER_GUARDED_ROUTING_VALIDATION = PARTIAL`: L1A executado com sucesso (`L1A_EXECUTION = PASS`); estudo preliminar de latência sob carga sintética pendente (`L1B_PLAN = PLANNED / NOT EXECUTED`).
 16. `LIVE_TWILIO_GUARDED_ROUTING = NOT EXECUTED`: Validação em telefonia real pendente L3.
 17. `CUSTOMER_TRAFFIC = PROHIBITED`
 
@@ -188,7 +188,7 @@ AI_CONTEXT_HEADER_END
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- Candidate: L1A Controlled Live TypeSafe Model Identity Smoke (após revisão e autorização).
+- Candidate: L1B Controlled Synthetic Latency Study ($N \ge 100$) ou Consolidação/PR do Slice L1A.
 - `ACTIVE_GUARDED` permanece `BLOCKED` até conclusão da escada de validação (L1-L4).
 - Do NOT enable live customer traffic.
 - Do NOT use real telephony / live Twilio.
