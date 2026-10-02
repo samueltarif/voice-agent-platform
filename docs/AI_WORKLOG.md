@@ -11236,5 +11236,13 @@ Auditadas 10 categorias factuais no split de calibração:
 - `PRODUCTION_RUNTIME_WIRING` = `NO`
 - `CUSTOMER_TRAFFIC` = `PROHIBITED`
 
-### 5. Próximo Passo Permitido
+### 5. Pull Request & Auditoria de Segredos
+- **PR Criado via GitHub MCP**: #58 (`feat: preserve interruption context metadata`)
+- **Estado do PR**: `OPEN / NOT MERGED` (aguardando revisão humana; auto-merge estritamente proibido)
+- **Branch**: `feat/006ad-interruption-context-continuity`
+- **Head SHA**: `6e1b1420cb59670d12f3bcfc88ecbb78b3fb492b`
+- **Base `main` SHA**: `950e2a3c6abd4eb5fc0acf48d2ff662bf8913a76`
+- **Auditoria de Segredos no Tracked Diff (`origin/main...HEAD`)**: `SECRET_AUDIT_PASS` (execução única, value-blind, estritamente booleana, zero segredos expostos)
+
+### 6. Próximo Passo Permitido
 - `NEXT_ALLOWED_STEP`: Slice B — Deterministic Response Delivery & Ownership in Orchestrator Offline. Implementar despacho determinístico no orquestrador com ownership commit `OPTION_B`, blindagem `DISPATCH_ATTEMPTED -> NO_OPENAI_FALLBACK` e tratamento de interrupção com gravação de histórico qualificado (`Option H4`: `isInterrupted: true`). Coberto por testes unitários e de integração no orquestrador usando fakes.
