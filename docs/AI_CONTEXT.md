@@ -4,13 +4,13 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-02
-CONTEXT_BASE_MAIN_SHA: 6b984f90efc6a0462224fc579c257a0f99437487
+CONTEXT_BASE_MAIN_SHA: 2a09d323a27f9d4f527bb1da7f0fe85fe3eada84
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
-CURRENT_SLICE: Post-PR55 Main Quality Revalidation
-CONTEXT_UPDATE_BRANCH: docs/006ab-post-pr55-quality-context-refresh
-CONTEXT_UPDATE_PR: 56
-LAST_MERGED_PR_AT_REFRESH: 55
-LAST_MERGE_SHA_AT_REFRESH: 6b984f90efc6a0462224fc579c257a0f99437487
+CURRENT_SLICE: Response Delivery Lifecycle Design
+CONTEXT_UPDATE_BRANCH: research/006ac-response-delivery-lifecycle-design
+CONTEXT_UPDATE_PR: 57
+LAST_MERGED_PR_AT_REFRESH: 56
+LAST_MERGE_SHA_AT_REFRESH: 2a09d323a27f9d4f527bb1da7f0fe85fe3eada84
 LAST_TESTED_CODE_SHA: 6b984f90efc6a0462224fc579c257a0f99437487
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
@@ -143,26 +143,28 @@ AI_CONTEXT_HEADER_END
 
 ---
 
-## 7. Bloqueios Atuais (Current Blockers)
+## 7. Bloqueios Atuais e Status de Prontidão (Current Blockers & Readiness)
 
 1. `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`: Transmissão de transcrições de clientes para provedores externos proibida.
 2. `KNOWN_DETERMINISTIC_HANDLERS = 1` (`ACTIVE_DETERMINISTIC_BYPASS_READINESS = BLOCKED` até implementação de fiação controlada e testes de integração de runtime).
-3. `PRODUCTION_SHADOW_MAX_CONCURRENCY = NOT SELECTED`: Limite de concorrência operacional de produção não definido.
-4. `PRODUCTION_JEV_TIMEOUT_MS = NOT SELECTED`: Timeout operacional de produção não definido.
-5. `PRODUCTION_RUNTIME_WIRING = NO`: Fiação de runtime em produção desautorizada.
+3. `POST_DISPATCH_BARGE_IN_DESIGN = DESIGNED` | `POST_DISPATCH_BARGE_IN_RUNTIME = NOT IMPLEMENTED` | `LIVE_PROVIDER_BARGE_IN_VERIFICATION = PROVIDER-UNVERIFIED`
+4. `INTERRUPTED_CONTEXT_CONTINUITY_DESIGN = DESIGNED` | `INTERRUPTED_CONTEXT_CONTINUITY_RUNTIME = NOT IMPLEMENTED`
+5. `HISTORY_COMPLETION_DESIGN = DESIGNED` | `HISTORY_COMPLETION_RUNTIME = NOT IMPLEMENTED`
+6. `SECURITY_RESPONSE_DELIVERY_DESIGN = DESIGNED` | `SECURITY_USER_RESPONSE_DELIVERY = NOT IMPLEMENTED`
+7. `ACTIVE_GUARDED = BLOCKED`
+8. `PRODUCTION_SHADOW_MAX_CONCURRENCY = NOT SELECTED`: Limite de concorrência operacional de produção não definido.
+9. `PRODUCTION_JEV_TIMEOUT_MS = NOT SELECTED`: Timeout operacional de produção não definido.
+10. `PRODUCTION_RUNTIME_WIRING = NO`: Fiação de runtime em produção desautorizada.
+11. `CUSTOMER_TRAFFIC = PROHIBITED`
 
 ---
 
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- Design deterministic/security response delivery lifecycle, focused on:
-  - post-dispatch interruption;
-  - outbound cancellation semantics;
-  - playback completion semantics;
-  - history completion safety;
-  - response ownership after dispatch.
-- Do NOT wire orchestrator yet.
+- Slice A: Interruption Context Continuity & Domain Contracts Offline.
+- Estender `UserInterruptionEvent` em `packages/contracts/src/voice/voice-events.ts` com campos opcionais provider-neutral (`interruptedUtterance?: string`, `interruptedDurationMs?: number`) e atualizar `TwilioVoiceTransportAdapter` offline com testes unitários focados.
+- Do NOT wire orchestrator or active runtime yet.
 
 ### `NOT_YET_ALLOWED`:
 - Transmissão de dados reais de clientes para provedores externos.
@@ -186,6 +188,8 @@ AI_CONTEXT_HEADER_END
 - [research/PHASE_6_TYPESAFE_STAGING_LATENCY_RESULT.md](research/PHASE_6_TYPESAFE_STAGING_LATENCY_RESULT.md): Relatório de evidência da bateria controlada de latência em staging sintético.
 - [research/results/phase-6-staging-shadow-latency-evidence.json](research/results/phase-6-staging-shadow-latency-evidence.json): Artefato estruturado de evidência de latência (N=12).
 - [research/PHASE_6_DETERMINISTIC_HANDLER_DESIGN.md](research/PHASE_6_DETERMINISTIC_HANDLER_DESIGN.md): Documento de design do primeiro candidato a handler determinístico (`agent.operating_hours`).
+- [research/PHASE_6_DETERMINISTIC_RUNTIME_WIRING_DESIGN.md](research/PHASE_6_DETERMINISTIC_RUNTIME_WIRING_DESIGN.md): Documento de design da fiação de runtime determinístico e pré-requisitos de ACTIVE_GUARDED.
+- [research/PHASE_6_RESPONSE_DELIVERY_LIFECYCLE_DESIGN.md](research/PHASE_6_RESPONSE_DELIVERY_LIFECYCLE_DESIGN.md): Design do ciclo de vida de entrega de respostas determinísticas e de segurança sob barge-in.
 - [AGENT_STUDIO.md](AGENT_STUDIO.md): Especificação e matriz de entrega do Agent Studio (005B, 005C, 005D).
 
 ---

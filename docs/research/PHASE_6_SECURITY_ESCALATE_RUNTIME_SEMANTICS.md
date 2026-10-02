@@ -248,8 +248,9 @@ SECURITY_DECISION_RESULT = SECURITY_BLOCKED
 SECURITY_BLOCKED_RESULT_SHAPE = { outcome: 'SECURITY_BLOCKED' }
 SECURITY_BLOCKED_RESULT_RESPONSE_TEXT_INCLUDED = NO
 SECURITY_USER_RESPONSE_TEMPLATE = PROPOSED
+SECURITY_RESPONSE_DELIVERY_DESIGN = DESIGNED (docs/research/PHASE_6_RESPONSE_DELIVERY_LIFECYCLE_DESIGN.md)
 SECURITY_USER_RESPONSE_DELIVERY = NOT IMPLEMENTED
-SECURITY_RESPONSE_DELIVERY_READY = NO
+SECURITY_RESPONSE_DELIVERY_READY = NO (Runtime delivery implementation pending)
 SECURITY_HISTORY_PERSISTENCE_READY = NO
 SECURITY_OPENAI_FALLBACK = NOT AUTHORIZED
 SECURITY_TOOL_EXECUTION = PROHIBITED
@@ -268,5 +269,5 @@ RUNTIME_DETERMINISTIC_BYPASS = NOT WIRED
 ## 12. Next-Slice Recommendation
 
 ```
-NEXT_ALLOWED_STEP = design deterministic/security response delivery lifecycle, focused on post-dispatch interruption, outbound cancellation semantics, playback completion semantics, history completion safety, and response ownership after dispatch. Do NOT wire orchestrator yet.
+NEXT_ALLOWED_STEP = Slice A: Interruption Context Continuity & Domain Contracts Offline. Extend UserInterruptionEvent in packages/contracts with optional provider-neutral fields (interruptedUtterance, interruptedDurationMs) and update Twilio adapter offline. Do NOT wire full ACTIVE_GUARDED runtime yet.
 ```
