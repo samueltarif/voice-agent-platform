@@ -147,7 +147,7 @@ AI_CONTEXT_HEADER_END
 - **Regressão de Asserções**: `ASSERTION_WEAKER = 0` (13 novos testes adicionados em PR #59 / Slice B: `ASSERTION_STRONGER: 13`).
 - **Verificação Arquitetural**: `SUCESSO: Todas as fronteiras e regras arquiteturais respeitadas.`
 - **Verificação de Tamanho de Arquivos**: `HARD_MAX_180 = PASS; TARGET_80_150 = ABOVE TARGET / WARNING (conversation-orchestrator.ts: 175 linhas; 17 avisos, 0 violações > 180 linhas; check:file-size = PASS).`
-- **Auditoria de Segredos**: `SECRET_AUDIT_PASS` (reconciliado via append-only no worklog).
+- **Auditoria de Segredos**: `PR59_PREVIOUS_SECRET_AUDIT = PASS historically / reconciled` | `PR59_LATEST_FINAL_SECRET_AUDIT = NOT VERIFIED` | `PR59_MERGE_GATE = BLOCKED_PENDING_FINAL_SECRET_AUDIT`.
 - **QUALITY_EVIDENCE_STALE**: `NO` (commits subsequentes estritamente documentais em `docs/`).
 
 ---
