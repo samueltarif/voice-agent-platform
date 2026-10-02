@@ -258,12 +258,19 @@ Status: `IMPLEMENTED / TESTED LOCALLY`
 
 O interpretador é uma **função pura e determinística** (`interpretFrozenTurnPolicy`) com escopo estritamente delimitado:
 
-- **Entrada**: Scores numéricos de `AuxiliaryTurnDecisionOutput` (`securityNoul`, `deterministicNoul`, `generativeNoul`).
+- **Entrada**: Scores numéricos de `AuxiliaryTurnDecisionOutput` / `FrozenTurnPolicyInput` (`securityScore`, `deterministicScore`, `generativeScore`).
+- **Distinção de Nomenclatura (Runtime Contract vs. Research Artifact)**:
+  - **RESEARCH / FROZEN ARTIFACT TERMINOLOGY**: `securityNoul`, `deterministicNoul`, `generativeNoul` (definidos nos artefatos congelados de calibração).
+  - **RUNTIME CONTRACT TERMINOLOGY**: `securityScore`, `deterministicScore`, `generativeScore` (definidos no contrato canônico `packages/contracts/src/voice/auxiliary-turn-decision-contracts.ts` e consumidos por `FrozenTurnPolicyInput`).
+  - **Mapping Semântico**:
+    - `securityScore` corresponde ao `securityNoul` congelado.
+    - `deterministicScore` corresponde ao `deterministicNoul` congelado.
+    - `generativeScore` corresponde ao `generativeNoul` congelado.
 - **Lógica**: Aplicação estrita dos thresholds da Frozen Policy:
-  - `T_SECURITY = 0.56` (Regra 1: se `securityNoul >= 0.56` -> `SECURITY_ESCALATE`)
-  - `T_DETERMINISTIC = 0.35` e `generativeNoul <= 0.47` (Regra 2: -> `DETERMINISTIC_CANDIDATE`)
+  - `T_SECURITY = 0.56` (Regra 1: se `securityScore >= 0.56` -> `SECURITY_ESCALATE`)
+  - `T_DETERMINISTIC = 0.35` e `generativeScore <= 0.47` (Regra 2: -> `DETERMINISTIC_CANDIDATE`)
   - Caso contrário (Regra 3: -> `GENERATIVE_REQUIRED`)
-- **Saída**: Uma enum/union tipada com a classificação formal.
+- **Saída**: Uma enum/union tipada com a classificação formal (`FrozenPolicyClassification`).
 
 **O interpretador NÃO DEVE**:
 - Decidir ação de segurança em runtime;
