@@ -12263,4 +12263,100 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - `FILE_SIZE_CHECK`: `PASS` (0 violações > 180 linhas, 19 avisos)
 - `QUALITY_EVIDENCE_STALE`: `NO`
 - `PR63_PREVIOUS_SECRET_AUDIT`: `PASS` (executado no prompt anterior, histórico)
-- `PR63_FINAL_MERGE_SECRET_AUDIT`: `PENDING` (agendada para ser executada sobre o commit final antes do merge)
+- `PR63_FINAL_MERGE_SECRET_AUDIT`: `PASS` (executada e aprovada no commit `1225d5a60b8cd732633d1b2dcb5ac0685ab21799`)
+- `PR63_MERGE_SHA`: `d2e9fa60f060bd943f6aa6ee492edcd4d7c7adee`
+- `PR63_STATUS`: `MERGED`
+
+---
+
+## 2026-10-02 — PROMPT-006AJ-L1A-CONTROLLED-LIVE-TYPESAFE-MODEL-IDENTITY-SMOKE-001 (Phase A: Preflight & Pricing Authorization)
+
+### 1. Preflight e Reconciliação Pós-Merge do PR #63
+- **PR #63 Status**: `MERGED` (confirmado via GitHub MCP).
+- **PR #63 Merge SHA**: `d2e9fa60f060bd943f6aa6ee492edcd4d7c7adee`.
+- **PR #63 Final PR HEAD**: `1225d5a60b8cd732633d1b2dcb5ac0685ab21799`.
+- **PR63_FINAL_SECRET_AUDIT**: `PASS`.
+- **PR63_FINAL_TEST_COUNTS**: `738 passed`, `45 skipped`, `0 failures` (110 arquivos de teste aprovados, 6 skipped de staging; 783 testes totais).
+- **PR63_MODEL_IDENTITY_GUARD**: `IMPLEMENTED / TESTED LOCALLY`.
+- **PR63_L1A_DATASET**: `FROZEN / N=20`.
+- **PR63_DATASET_SHA**: `12828e990c1c2523c159630511aeb945b26a941c24ecaa38776b4a2769a3b0d0`.
+- **CONTEXT_BOOTSTRAP_STATUS**: `CURRENT_AFTER_SELF_MERGE`.
+- **Branch de Trabalho Criada**: `research/006aj-l1a-live-typesafe-model-identity-smoke`.
+
+---
+
+### 2. Registro do Desvio de Execução no Hardening do PR #63 (Append-Only)
+- `PR63_HARDENING_PNPM_CHECK_INVOCATIONS_OBSERVED = 2`
+- `PR63_HARDENING_SINGLE_GATE_RULE_VIOLATED = YES`
+- `FIRST_HARDENING_GATE_RESULT = FAILED` (AssertionError em `agent-api-lifecycle.integration.test.ts:440` devido a contenção transitória de banco durante execução massiva paralela)
+- `FIRST_HARDENING_GATE_FOLLOWED_BY_FAILURE_INVESTIGATION = YES` (investigação factual isolada comprovou 22/22 testes de integração passando isoladamente)
+- `SECOND_HARDENING_GATE_RESULT = PASS / PNPM_CHECK_FINAL_PASS` (executado e observado diretamente com exit code 0)
+- `FUNCTIONAL_CODE_CHANGED_BETWEEN_HARDENING_GATES = NO`
+- `CATEGORY = EXECUTION_CONTROL_DEVIATION`
+- `FUNCTIONAL_IMPACT = NONE OBSERVED`
+- `SECRET_EXPOSURE = NOT OBSERVED`
+
+---
+
+### 3. Verificação do Dataset Sintético L1A Congelado
+- **Arquivo**: `scripts/benchmarks/voice/jev-l1a-model-identity-smoke-v1-cases.json`.
+- **Contagem de Casos**: `20` (auditados individualmente: zero dados de clientes, zero PII, zero segredos, zero reutilização de holdout).
+- **SHA-256 Calculado**: `12828e990c1c2523c159630511aeb945b26a941c24ecaa38776b4a2769a3b0d0` (`HASH_MATCH = YES`).
+- **Classificação**: `SYNTHETIC / FUNCTIONAL ONLY` (escopo exclusivo de validação de request de modelo versionado, resposta de `providerModel` e semântica de exatidão do guard).
+
+---
+
+### 4. Verificação Oficial de Modelo e Precificação TypeSafe AI
+- **Fonte Oficial Consultada**: `https://docs.typesafe.ai/models.md` (acesso direto via HTTP em 2026-10-02).
+- **Disponibilidade do Modelo Versionado**: `jev-1.13.0` (`MODEL_ID_AVAILABILITY = VERIFIED`).
+- **Precificação Oficial**: `$42 por Btok` ($0.042 por Mtok, ou $0.000042 por 1.000 input tokens; cobrança exclusiva por input token, output tokens gratuitos) (`PRICE_STATUS = VERIFIED`).
+- **Rate Limits Oficiais**: 100K tokens/s / 40 requests/s (adequado para execução sequencial unitária N=20).
+- **Modelos Selecionados**:
+  - `REQUESTED_MODEL`: `jev-1.13.0`
+  - `EXPECTED_PROVIDER_MODEL`: `jev-1.13.0`
+
+---
+
+### 5. Auditoria do Runner e Estimativa Orçamentária
+- **Runner L1A Criado**: `scripts/benchmarks/voice/run-jev-l1a-model-identity-smoke.mjs` (coeso, desacoplado, sem alterar o adapter de produção: `DO_NOT_GROW_TYPESAFE_ADAPTER_WITH_L1A_HARNESS = YES`).
+- **Política de Execução**: `MAX_PROVIDER_REQUESTS = 20`, `RETRIES = 0`, `CONCURRENCY = 1`, `CUSTOMER_DATA = 0`, `OPENAI_CALLS = 0`, `TWILIO_CALLS = 0`.
+- **Política de Ambiente**: `.env` carregado exclusivamente em runtime (`node --env-file=.env ...`), proibida qualquer inspeção de arquivo. `TYPESAFE_API_KEY_PRESENT = true` validado via booleano.
+- **Estimativa de Custo Máximo**:
+  - Upper bound por requisição: ~1.000 input tokens (payload base de perguntas + transcrição sintética).
+  - Volume máximo para N=20: 20.000 input tokens.
+  - Custo máximo estimado: `$0.00084 USD` (menos de $0.001 USD).
+  - Teto monetário rígido proposto: `$0.10 USD` (margem >100x de segurança).
+
+---
+
+### 6. Ponto de Parada e Status de Autorização Humana
+- `L1A_PROVIDER_EXECUTION = AWAITING_OPERATOR_AUTHORIZATION`.
+- Zero chamadas externas realizadas até autorização explícita do operador humano (`AUTORIZO_L1A_TYPESAFE_N20 = YES`).
+
+---
+
+## 2026-10-02 — PROMPT-006AJ-L1A-PREAUTH-RUNNER-HARDENING-001
+
+### 1. Endurecimento do Runner L1A Pré-Autorização
+- **Branch**: `research/006aj-l1a-live-typesafe-model-identity-smoke`
+- **L1A_PROVIDER_CALLS**: `0` (zero chamadas externas realizadas)
+- **RUNNER_HARD_COST_CEILING**: `IMPLEMENTED` (enforcement estrito em `run-jev-l1a-model-identity-smoke.mjs` via `L1A_COST_CEILING_USD` ou `--cost-ceiling <number>`; falha imediata antes de qualquer chamada remota se ausente, inválido ou inferior ao teto mínimo necessário)
+- **MAX_ESTIMATED_INPUT_TOKENS_PER_REQUEST**: `1000`
+- **MAX_PROVIDER_REQUESTS**: `20`
+- **MAX_PROJECTED_INPUT_TOKENS**: `20000`
+- **MAX_PROJECTED_COST_USD**: `0.00084` (baseado em $42/Btok para 20.000 input tokens)
+- **PER_REQUEST_COST_GUARD**: `IMPLEMENTED` (antes de cada requisição unitária, o runner projeta os tokens acumulados e valida se `projectedCostNext <= approvedCostCeilingUsd`)
+- **RUNNER_ROUTING_SCORES_PERSISTED**: `NO` (`deterministicScore`, `generativeScore` e `securityScore` removidos do artefato de resultado; `L1A_RESULT_NOT_FOR_TUNING = YES`)
+- **COST_TERMINOLOGY**: `estimatedUpperBoundCostUsd` e `actualBilledCostUsd = 'NOT_VERIFIED'` formalizados
+- **RUNNER_ERROR_OUTPUT_SANITIZED**: `YES` (apenas nome/categoria da exceção é registrado ou logado; proibida impressão de `err.message`, stacks, payloads ou cabeçalhos)
+- **ERROR_CLASSIFICATION**: Mapeados `MODEL_IDENTITY_MISMATCH`, `TIMEOUT` (`AbortError`/`TimeoutError`), `INVALID_RESPONSE` (`TypeError`) e `PROVIDER_ERROR`
+- **INTEGRATIONS_DIST_REFRESH_REQUIRED_BEFORE_LIVE**: `YES` (registrado formalmente como pré-requisito de compilação antes da execução real)
+- **PHASE_A_ENV_RUNTIME_LOADED**: `YES`
+- **PHASE_A_ENV_INSPECTED**: `NO`
+- **CUSTOMER_DATA**: `0`
+- **OPENAI**: `0`
+- **TWILIO**: `0`
+- **HOLDOUT**: `NO`
+- **FROZEN_POLICY_CHANGED**: `NO`
+- **ACTIVE_GUARDED**: `BLOCKED`
+- **L1A_PROVIDER_EXECUTION**: `AWAITING_OPERATOR_AUTHORIZATION`

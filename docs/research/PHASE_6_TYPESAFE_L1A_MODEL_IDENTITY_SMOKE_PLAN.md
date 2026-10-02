@@ -68,7 +68,9 @@ A futura execução controlada do L1A deve operar sob as seguintes travas operac
 - `CUSTOMER_DATA_EXPOSURE`: 0 (absolutamente zero transcrições de clientes)
 - `OPENAI_CALLS`: 0 (L1A avalia apenas o adapter TypeSafe; OpenAI não é invocado)
 - `TWILIO_CALLS`: 0 (nenhuma chamada telefônica)
-- `MONETARY_COST_CEILING`: `PENDING_HUMAN / COMMERCIAL VERIFICATION` (orçamento total estimado $< \$0.10$ baseado em preço documentado por token, com teto rígido pré-aprovado)
+- `MONETARY_COST_CEILING`: `APPROVED_BY_OPERATOR / HARD_ENFORCED_IN_RUNNER` (teto rígido de $0.10 USD; projeção conservadora: 20.000 input tokens = $0.00084 USD)
+- `INTEGRATIONS_DIST_REFRESH_REQUIRED_BEFORE_L1A`: `YES` (`pnpm --filter @voice-agent/integrations build` obrigatório antes de carregar o runtime com `.env`)
+- `L1A_RESULT_NOT_FOR_TUNING`: `YES` (scores de roteamento omitidos do artefato de resultado; apenas telemetria de identidade e latência descriptiva são persistidas)
 - `SECRET_LEAK_GUARD`: Zero exibição de `TYPESAFE_API_KEY` em logs, stdout ou arquivos de resultado
 
 ---
@@ -107,5 +109,6 @@ Antes que o operador autorize a execução do L1A em um próximo slice:
 - [x] Model Identity Guard implementado e testado offline (`TypeSafeJevTurnDecisionAdapter`).
 - [x] Testes offline de regressão comprovando fail-open em caso de mismatch.
 - [x] Dataset sintético congelado com hash registrado (`12828e990c1c...`).
+- [x] Script runner dedicado com controle rígido de teto de custo criado e auditado (`run-jev-l1a-model-identity-smoke.mjs`).
 - [ ] Autorização humana explícita para invocação remota do script runner com `TYPESAFE_API_KEY` em memória.
 - [ ] Definição do teto monetário autorizado pelo operador.

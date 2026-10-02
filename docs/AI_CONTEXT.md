@@ -4,13 +4,13 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-02
-CONTEXT_BASE_MAIN_SHA: 4db21b28da7ddc02053e5dce3805f97555fa9eb3
+CONTEXT_BASE_MAIN_SHA: d2e9fa60f060bd943f6aa6ee492edcd4d7c7adee
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
-CURRENT_SLICE: Model Identity Guard & L1A Synthetic Functional Smoke Plan
-CONTEXT_UPDATE_BRANCH: feat/006ai-model-identity-guard-offline
-CONTEXT_UPDATE_PR: 63
-LAST_MERGED_PR_AT_REFRESH: 62
-LAST_MERGE_SHA_AT_REFRESH: 4db21b28da7ddc02053e5dce3805f97555fa9eb3
+CURRENT_SLICE: L1A Controlled Live TypeSafe Model Identity Smoke
+CONTEXT_UPDATE_BRANCH: research/006aj-l1a-live-typesafe-model-identity-smoke
+CONTEXT_UPDATE_PR: PENDING
+LAST_MERGED_PR_AT_REFRESH: 63
+LAST_MERGE_SHA_AT_REFRESH: d2e9fa60f060bd943f6aa6ee492edcd4d7c7adee
 LAST_TESTED_CODE_SHA: cf1336285a18d9359b7b9a5d7a87def70e6595f9
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
@@ -158,7 +158,7 @@ AI_CONTEXT_HEADER_END
 - **Regressão de Asserções**: `ASSERTION_WEAKER = 0`, `EXISTING_TEST_ASSERTION_STRONGER = 0`, `EXISTING_TEST_ASSERTION_EQUIVALENT = 0`, `NEW_TESTS_ADDED = 11` (9 em `typesafe-jev-turn-decision-adapter.test.ts`, 2 em `guarded-turn-routing.test.ts`).
 - **Verificação Arquitetural**: `SUCESSO: Todas as fronteiras e regras arquiteturais respeitadas.`
 - **Verificação de Tamanho de Arquivos**: `HARD_MAX_180 = PASS; TARGET_80_150 = ABOVE TARGET / WARNING (typesafe-jev-turn-decision-adapter.ts: 173 linhas; conversation-orchestrator.ts: 177 linhas; guarded-turn-routing-coordinator.ts: 138 linhas; 0 violações > 180 linhas; check:file-size = PASS).`
-- **Auditoria de Segredos**: `PR60_FINAL_MERGE_SECRET_AUDIT = PASS` | `PR61_FINAL_MERGE_SECRET_AUDIT = PASS` | `PR62_FINAL_MERGE_SECRET_AUDIT = PASS` (reconciliado pós-merge do PR #62 no SHA `4db21b28da7ddc02053e5dce3805f97555fa9eb3`).
+- **Auditoria de Segredos**: `PR60_FINAL_MERGE_SECRET_AUDIT = PASS` | `PR61_FINAL_MERGE_SECRET_AUDIT = PASS` | `PR62_FINAL_MERGE_SECRET_AUDIT = PASS` | `PR63_FINAL_MERGE_SECRET_AUDIT = PASS` (reconciliado pós-merge do PR #63 no SHA `d2e9fa60f060bd943f6aa6ee492edcd4d7c7adee`).
 - **QUALITY_EVIDENCE_STALE**: `NO` (commits subsequentes estritamente documentais em `docs/`).
 
 ---
