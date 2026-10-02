@@ -150,8 +150,8 @@ AI_CONTEXT_HEADER_END
 - **Status das Asserções**: `711 passed`, `45 historical skips`, `0 new skips`, `0 failures` (109 arquivos de teste aprovados, 6 skipped de staging; 756 testes totais).
 - **Regressão de Asserções**: `ASSERTION_WEAKER = 0` (11 novos testes adicionados em Slice C: `ASSERTION_STRONGER: 11`).
 - **Verificação Arquitetural**: `SUCESSO: Todas as fronteiras e regras arquiteturais respeitadas.`
-- **Verificação de Tamanho de Arquivos**: `HARD_MAX_180 = PASS; TARGET_80_150 = ABOVE TARGET / WARNING (conversation-orchestrator.ts: 179 linhas; 17 avisos, 0 violações > 180 linhas; check:file-size = PASS).`
-- **Auditoria de Segredos**: `PR59_FINAL_SECRET_AUDIT = PASS reconciled` | `CURRENT_BRANCH_SECRET_AUDIT = PENDING`.
+- **Verificação de Tamanho de Arquivos**: `HARD_MAX_180 = PASS; TARGET_80_150 = ABOVE TARGET / WARNING (conversation-orchestrator.ts: 178 linhas; 17 avisos, 0 violações > 180 linhas; check:file-size = PASS).`
+- **Auditoria de Segredos**: `PR60_PREVIOUS_BRANCH_SECRET_AUDIT = REPORTED PASS` | `PR60_FINAL_MERGE_SECRET_AUDIT = PENDING`.
 - **QUALITY_EVIDENCE_STALE**: `NO` (commits subsequentes estritamente documentais em `docs/`).
 
 ---

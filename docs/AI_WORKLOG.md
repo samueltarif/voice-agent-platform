@@ -11638,3 +11638,57 @@ Auditadas 10 categorias factuais no split de calibração:
 ### 9. Próximo Passo Permitido
 - `NEXT_ALLOWED_STEP`: Candidate: Slice D — Guarded Runtime Routing Integration Offline (single-owner Jev evaluation / Frozen Policy / handler-security route wiring).
 - `ACTIVE_GUARDED` permanece `BLOCKED` até que a fiação de roteamento seja explicitamente implementada e testada offline.
+
+---
+
+## 2026-10-02 - PROMPT-006AF-PR60-EVIDENCE-HARDENING-AND-MERGE-001
+
+- **Data**: 2026-10-02
+- **Tipo**: PR #60 EVIDENCE HARDENING & PRE-MERGE RECONCILIATION
+- **Branch**: `feat/006af-security-response-delivery-offline`
+- **Base `main` SHA**: `5d1dab7460e637e1370e81e7940be63c24ec23aa`
+- **Tested Code SHA**: `dbf8e617783ce02d5d4aec75d927be9dcb22bc18`
+- **PR #60**: `https://github.com/samueltarif/voice-agent-platform/pull/60`
+
+### 1. Reconciliação Append-Only dos Desvios de Execução do Slice C
+- `PR60_PNPM_CHECK_INVOCATIONS_OBSERVED` = `2`
+- `FIRST_PNPM_CHECK_AUTHORITATIVE` = `NO`
+- `FIRST_PNPM_CHECK_EVIDENCE_STALE` = `YES`
+- `REASON` = alteração de código funcional/teste após o primeiro disparo do gate (`prettier` executado em `security-response-delivery.test.ts` seguido de commit amendado)
+- `SECOND_PNPM_CHECK_REPORTED_SENTINEL` = `PNPM_CHECK_FINAL_PASS`
+- `SECOND_PNPM_CHECK_REVIEW_TRACE_RAW_SENTINEL` = `NOT INDEPENDENTLY OBSERVED`
+- `CATEGORY` = `EXECUTION_EVIDENCE_RECONCILIATION`
+- `FUNCTIONAL_IMPACT` = `NONE OBSERVED`
+- `PR60_FUNCTIONAL_COMMIT_COMMAND_RETRY` = `YES`
+- `FIRST_ATTEMPT_FINAL_RESULT` = `NOT VERIFIED` (erro de sintaxe PowerShell com operador `&&`)
+- `SECOND_ATTEMPT` = `OBSERVED TO PROCEED` (execução com `;` no PowerShell)
+- `CODE_CONTENT_IMPACT` = `NONE OBSERVED`
+
+### 2. Hardening Terminológico de Interrupção
+- O conteúdo de `interruptedUtterance` / `utteranceUntilInterrupt` é estritamente classificado como:
+  **texto parcial do assistente reportado pelo provedor no ponto da interrupção** (`provider-reported interrupted assistant text`).
+- Invariantes preservados explicitamente:
+  - `TEXT_DISPATCHED != AUDIO_PLAYED != AUDIO_HEARD_BY_USER`
+  - `INTERRUPTED_UTTERANCE_ACOUSTIC_PROOF = NO` (a presença de metadados reportados pela Twilio indica corte na borda telefônica, não prova acústica de audição pelo usuário).
+
+### 3. Preservação das Invariantes de Segurança
+- `SECURITY_BLOCKED` = turn-scoped
+- `SECURITY_CALL_TERMINATION` = `NO`
+- `SECURITY_CALL_REMAINS_ACTIVE` = `YES`
+- `SECURITY_HANDOFF` = `NO`
+- `SECURITY_TOOLS` = `0`
+- `SECURITY_OPENAI_FALLBACK` = `NOT AUTHORIZED`
+- `SECURITY_RUNTIME_ROUTING_INTEGRATION` = `NOT IMPLEMENTED`
+- `FROZEN_POLICY_ROUTED_TO_ORCHESTRATOR` = `NO`
+- `JEV_ROUTED_TO_ORCHESTRATOR` = `NO`
+- `ACTIVE_GUARDED` = `BLOCKED`
+
+### 4. Status de Tamanho de Arquivo e Diretiva para Slice D
+- `apps/voice/src/conversation-orchestrator.ts`: 178 linhas
+- `HARD_MAX_180` = `PASS`
+- `TARGET_80_150` = `ABOVE TARGET / WARNING`
+- `DO_NOT_GROW_ORCHESTRATOR_FOR_ROUTING` = `YES`: o arquivo está no limite prático de 180 linhas. A fiação de roteamento no Slice D deve preferir coordenador/seam coeso dedicado em vez de empilhar lógica no orquestrador.
+
+### 5. Reconciliação Temporal da Auditoria de Segredos
+- `PR60_PREVIOUS_BRANCH_SECRET_AUDIT` = `REPORTED PASS`
+- `PR60_FINAL_MERGE_SECRET_AUDIT` = `PENDING` (será executado como auditoria autoritativa final sobre o diff completo antes do merge).
