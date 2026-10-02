@@ -322,6 +322,43 @@ describe('Guarded Runtime Routing Integration — OFFLINE', () => {
     expect(session?.runtimeState).toBe('ACTIVE');
   });
 
+  // 5b. model identity mismatch failure -> fail-open to main model (OpenAI 1) -> deterministic bypass 0 -> security response 0
+  it('5b. model identity mismatch failure -> fail-open to main model (OpenAI 1) -> deterministic bypass 0 -> security response 0', async () => {
+    const auxiliaryPort = new FakeDeterministicAuxiliaryPort();
+    auxiliaryPort.shouldThrow = true;
+    auxiliaryPort.throwError = new Error(
+      "TypeSafe model identity mismatch: expected 'jev-1.13.0', received 'jev-unapproved-2.0.0'",
+    );
+
+    const { sessionStore, transport, model, orchestrator } = setupOrchestrator({ auxiliaryPort });
+    await createActiveCall(sessionStore);
+
+    await orchestrator.handleEvent(
+      {
+        type: 'user.speech.final',
+        callId,
+        organizationId,
+        turnId,
+        transcript: 'Qual o horário de atendimento?',
+        timestamp: new Date(),
+      },
+      baseSnapshot,
+    );
+
+    expect(auxiliaryPort.callCount).toBe(1);
+    // Fail-open to main model: OpenAI stream called
+    expect(model.recordedInputs.length).toBe(1);
+    // Deterministic bypass = prohibited (0 deterministic sentences)
+    const texts = transport.speakCalls.map((c) => c.command.text);
+    expect(texts.some((t) => t.includes('Segunda a Sexta'))).toBe(false);
+    // Security response = 0
+    expect(texts).not.toContain(CANONICAL_SECURITY_BLOCKED_RESPONSE);
+
+    // Call remains ACTIVE
+    const session = await sessionStore.getById(organizationId, callId);
+    expect(session?.runtimeState).toBe('ACTIVE');
+  });
+
   // 6. handler handled=false -> OpenAI 1 -> deterministic speak 0
   it('6. handler handled=false -> fallback to generative (OpenAI 1) -> deterministic speak 0', async () => {
     const auxiliaryPort = new FakeDeterministicAuxiliaryPort();
@@ -584,6 +621,56 @@ describe('Guarded Runtime Routing Integration — OFFLINE', () => {
 
     // Reject deferred Jev
     rejectJev(new Error('Jev backend connection timeout'));
+
+    await turn1Promise;
+
+    // Model stream calls = 0, deterministic speak = 0, security speak = 0
+    expect(model.recordedInputs.length).toBe(0);
+    expect(transport.speakCalls.length).toBe(0);
+  });
+
+  // 9d. matcher true -> deferred Jev promise -> interrupt old generation -> reject Jev with model identity mismatch -> model stream calls = 0
+  it('9d. matcher true -> deferred Jev promise -> interrupt old generation -> reject Jev with model identity mismatch -> model stream calls = 0', async () => {
+    let rejectJev!: (reason: Error) => void;
+    const jevPromise = new Promise<AuxiliaryTurnDecisionOutput>((_, reject) => {
+      rejectJev = reject;
+    });
+
+    const auxiliaryPort = new FakeDeterministicAuxiliaryPort();
+    auxiliaryPort.deferredPromise = jevPromise;
+
+    const { sessionStore, transport, model, orchestrator } = setupOrchestrator({ auxiliaryPort });
+    await createActiveCall(sessionStore);
+
+    const turn1Promise = orchestrator.handleEvent(
+      {
+        type: 'user.speech.final',
+        callId,
+        organizationId,
+        turnId: 'turn-stale-mismatch-1',
+        transcript: 'Qual o horário de atendimento?',
+        timestamp: new Date(),
+      },
+      baseSnapshot,
+    );
+
+    await auxiliaryPort.evaluationStarted;
+
+    // Interrupt old generation while Jev is pending
+    await orchestrator.handleEvent({
+      type: 'user.interruption',
+      callId,
+      organizationId,
+      turnId: 'turn-stale-mismatch-1-interrupt',
+      timestamp: new Date(),
+    });
+
+    // Reject deferred Jev with model identity mismatch
+    rejectJev(
+      new Error(
+        "TypeSafe model identity mismatch: expected 'jev-1.13.0', received 'jev-unapproved-2.0.0'",
+      ),
+    );
 
     await turn1Promise;
 

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
   TypeSafeJevTurnDecisionAdapter,
+  TypeSafeModelIdentityMismatchError,
   DEFAULT_TYPESAFE_ENDPOINT,
   DEFAULT_TYPESAFE_MODEL,
 } from './typesafe-jev-turn-decision-adapter.js';
@@ -355,6 +356,192 @@ describe('TypeSafeJevTurnDecisionAdapter', () => {
       expect(capturedRequests).toHaveLength(1);
       // The request authorization header has the token, but it must not be logged or exposed anywhere
       expect(capturedRequests[0]?.options.headers).toBeDefined();
+    });
+  });
+
+  describe('Model Identity Guard & Pinned Model Invariants', () => {
+    it('A. no expectedProviderModel -> preserves existing jev-latest behavior without model check', async () => {
+      const { fetchFn } = createMockFetch({ body: validResponseBody });
+      const adapter = new TypeSafeJevTurnDecisionAdapter({ apiKey: 'fake-key', fetchFn });
+
+      const output = await adapter.evaluateTurn(sampleInput);
+      expect(output.providerModel).toBe('jev-1.13.0');
+      expect(output.deterministicScore).toBe(0.15);
+    });
+
+    it('B. expectedProviderModel configured + response model exact match -> valid output returned', async () => {
+      const { fetchFn } = createMockFetch({ body: validResponseBody });
+      const adapter = new TypeSafeJevTurnDecisionAdapter({
+        apiKey: 'fake-key',
+        model: 'jev-1.13.0',
+        expectedProviderModel: 'jev-1.13.0',
+        fetchFn,
+      });
+
+      const output = await adapter.evaluateTurn(sampleInput);
+      expect(output.providerModel).toBe('jev-1.13.0');
+      expect(output.deterministicScore).toBe(0.15);
+      expect(output.generativeScore).toBe(0.85);
+      expect(output.securityScore).toBe(0.02);
+    });
+
+    it('C. expectedProviderModel configured + response model mismatch -> throws TypeSafeModelIdentityMismatchError', async () => {
+      const mismatchedResponse = {
+        ...validResponseBody,
+        model: 'jev-unapproved-2.0.0',
+      };
+      const { fetchFn } = createMockFetch({ body: mismatchedResponse });
+      const adapter = new TypeSafeJevTurnDecisionAdapter({
+        apiKey: 'fake-key',
+        model: 'jev-1.13.0',
+        expectedProviderModel: 'jev-1.13.0',
+        fetchFn,
+      });
+
+      await expect(adapter.evaluateTurn(sampleInput)).rejects.toThrow(
+        TypeSafeModelIdentityMismatchError,
+      );
+
+      try {
+        await adapter.evaluateTurn(sampleInput);
+        expect.unreachable('Should have thrown TypeSafeModelIdentityMismatchError');
+      } catch (err: unknown) {
+        expect(err).toBeInstanceOf(TypeSafeModelIdentityMismatchError);
+        const mismatchErr = err as TypeSafeModelIdentityMismatchError;
+        expect(mismatchErr.expectedModel).toBe('jev-1.13.0');
+        expect(mismatchErr.observedModel).toBe('jev-unapproved-2.0.0');
+        expect(mismatchErr.message).toContain(
+          "expected 'jev-1.13.0', received 'jev-unapproved-2.0.0'",
+        );
+      }
+    });
+
+    it('D. mismatch -> no scores returned to caller (promise rejects)', async () => {
+      const mismatchedResponse = {
+        ...validResponseBody,
+        model: 'jev-1.14.0',
+      };
+      const { fetchFn } = createMockFetch({ body: mismatchedResponse });
+      const adapter = new TypeSafeJevTurnDecisionAdapter({
+        apiKey: 'fake-key',
+        model: 'jev-1.13.0',
+        expectedProviderModel: 'jev-1.13.0',
+        fetchFn,
+      });
+
+      let returnedOutput: unknown = undefined;
+      try {
+        returnedOutput = await adapter.evaluateTurn(sampleInput);
+      } catch {
+        // expected
+      }
+      expect(returnedOutput).toBeUndefined();
+    });
+
+    it('E. provider model absent or empty when strict guard enabled -> throws TypeError', async () => {
+      const { fetchFn: f1 } = createMockFetch({
+        body: { answers: validResponseBody.answers },
+      });
+      const a1 = new TypeSafeJevTurnDecisionAdapter({
+        apiKey: 'fake-key',
+        expectedProviderModel: 'jev-1.13.0',
+        fetchFn: f1,
+      });
+      await expect(a1.evaluateTurn(sampleInput)).rejects.toThrow(
+        /TypeSafe response must contain a non-empty string "model" field/,
+      );
+
+      const { fetchFn: f2 } = createMockFetch({
+        body: { model: '   ', answers: validResponseBody.answers },
+      });
+      const a2 = new TypeSafeJevTurnDecisionAdapter({
+        apiKey: 'fake-key',
+        expectedProviderModel: 'jev-1.13.0',
+        fetchFn: f2,
+      });
+      await expect(a2.evaluateTurn(sampleInput)).rejects.toThrow(
+        /TypeSafe response must contain a non-empty string "model" field/,
+      );
+    });
+
+    it('F. versioned requested model is sent exactly in request payload', async () => {
+      const { fetchFn, capturedRequests } = createMockFetch({ body: validResponseBody });
+      const adapter = new TypeSafeJevTurnDecisionAdapter({
+        apiKey: 'fake-key',
+        model: 'jev-1.13.0',
+        expectedProviderModel: 'jev-1.13.0',
+        fetchFn,
+      });
+
+      await adapter.evaluateTurn(sampleInput);
+
+      expect(capturedRequests).toHaveLength(1);
+      expect(capturedRequests[0]?.bodyJson.model).toBe('jev-1.13.0');
+    });
+
+    it('G. no organizationId/callId/turnId added to provider payload with strict guard', async () => {
+      const { fetchFn, capturedRequests } = createMockFetch({ body: validResponseBody });
+      const adapter = new TypeSafeJevTurnDecisionAdapter({
+        apiKey: 'fake-key',
+        model: 'jev-1.13.0',
+        expectedProviderModel: 'jev-1.13.0',
+        fetchFn,
+      });
+
+      await adapter.evaluateTurn(sampleInput);
+
+      const req = capturedRequests[0]!;
+      expect(req.bodyJson.organizationId).toBeUndefined();
+      expect(req.bodyJson.callId).toBeUndefined();
+      expect(req.bodyJson.turnId).toBeUndefined();
+      const state = req.bodyJson.state as Record<string, unknown>;
+      expect(state.organizationId).toBeUndefined();
+      expect(state.callId).toBeUndefined();
+      expect(state.turnId).toBeUndefined();
+    });
+
+    it('H. caller transcript never appears in error message or error properties on mismatch', async () => {
+      const secretCustomerTranscript = 'meu-cpf-e-12345678900-e-minha-senha-e-secreta';
+      const mismatchedResponse = {
+        ...validResponseBody,
+        model: 'unexpected-model',
+      };
+      const { fetchFn } = createMockFetch({ body: mismatchedResponse });
+      const adapter = new TypeSafeJevTurnDecisionAdapter({
+        apiKey: 'fake-key',
+        model: 'jev-1.13.0',
+        expectedProviderModel: 'jev-1.13.0',
+        fetchFn,
+      });
+
+      try {
+        await adapter.evaluateTurn({
+          ...sampleInput,
+          callerTranscript: secretCustomerTranscript,
+        });
+        expect.unreachable('Should have thrown mismatch error');
+      } catch (err: unknown) {
+        expect(err).toBeInstanceOf(TypeSafeModelIdentityMismatchError);
+        const errMessage = (err as Error).message;
+        expect(errMessage).not.toContain(secretCustomerTranscript);
+      }
+    });
+
+    it('rejects empty or whitespace-only expectedProviderModel in constructor', () => {
+      expect(
+        () =>
+          new TypeSafeJevTurnDecisionAdapter({
+            apiKey: 'fake-key',
+            expectedProviderModel: '',
+          }),
+      ).toThrow(TypeError);
+      expect(
+        () =>
+          new TypeSafeJevTurnDecisionAdapter({
+            apiKey: 'fake-key',
+            expectedProviderModel: '   ',
+          }),
+      ).toThrow(TypeError);
     });
   });
 });
