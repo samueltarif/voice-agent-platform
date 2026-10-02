@@ -146,7 +146,7 @@ AI_CONTEXT_HEADER_END
 
 ## 6. Estado Atual da Evidência de Qualidade (Quality Gate Snapshot)
 
-- **Último `pnpm check` Global**: `PASS` (executado e observado no commit `dbf8e617783ce02d5d4aec75d927be9dcb22bc18` com sentinela `PNPM_CHECK_FINAL_PASS`).
+- **Último `pnpm check` Global**: `PASS` (executado e observado no commit `8c6f9e88efbcc3b87c585146eb44563a4b5020a5` com sentinela `PNPM_CHECK_FINAL_PASS`).
 - **Status das Asserções**: `711 passed`, `45 historical skips`, `0 new skips`, `0 failures` (109 arquivos de teste aprovados, 6 skipped de staging; 756 testes totais).
 - **Regressão de Asserções**: `ASSERTION_WEAKER = 0` (11 novos testes adicionados em Slice C: `ASSERTION_STRONGER: 11`).
 - **Verificação Arquitetural**: `SUCESSO: Todas as fronteiras e regras arquiteturais respeitadas.`
