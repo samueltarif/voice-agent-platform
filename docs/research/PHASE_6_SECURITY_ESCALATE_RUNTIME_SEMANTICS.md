@@ -268,5 +268,5 @@ RUNTIME_DETERMINISTIC_BYPASS = NOT WIRED
 ## 12. Next-Slice Recommendation
 
 ```
-NEXT_ALLOWED_STEP = review PR first. Do NOT wire orchestrator yet. After this implementation, the next architectural blocker to resolve is deterministic/security response delivery lifecycle, especially post-dispatch interruption and completion semantics.
+NEXT_ALLOWED_STEP = design deterministic/security response delivery lifecycle, focused on post-dispatch interruption, outbound cancellation semantics, playback completion semantics, history completion safety, and response ownership after dispatch. Do NOT wire orchestrator yet.
 ```
