@@ -11246,3 +11246,84 @@ Auditadas 10 categorias factuais no split de calibração:
 
 ### 6. Próximo Passo Permitido
 - `NEXT_ALLOWED_STEP`: Slice B — Deterministic Response Delivery & Ownership in Orchestrator Offline. Implementar despacho determinístico no orquestrador com ownership commit `OPTION_B`, blindagem `DISPATCH_ATTEMPTED -> NO_OPENAI_FALLBACK` e tratamento de interrupção com gravação de histórico qualificado (`Option H4`: `isInterrupted: true`). Coberto por testes unitários e de integração no orquestrador usando fakes.
+
+---
+
+## 2026-10-02 - PROMPT-006AD-PR58-EVIDENCE-RECONCILIATION-AND-MERGE-001
+
+- **Data**: 2026-10-02
+- **Tipo**: EVIDENCE RECONCILIATION / POST-GATE SCOPE VERIFICATION / PR MERGE
+- **Branch**: `feat/006ad-interruption-context-continuity`
+- **Current PR HEAD**: `816dc58f9c0017dfee7c99524bcc5b3914114142`
+- **Base `main` SHA**: `950e2a3c6abd4eb5fc0acf48d2ff662bf8913a76`
+- **PR #58**: OPEN (confirmado via GitHub MCP)
+
+### 1. Verificação Factual de Escopo e Código Testado
+- `git diff --name-status origin/main...HEAD`:
+  - `packages/contracts/src/voice/voice-events-contracts.ts`
+  - `packages/integrations/src/twilio/twilio-event-translator.ts`
+  - `packages/integrations/src/twilio/twilio-event-command-translator.test.ts`
+  - `packages/integrations/src/twilio/twilio-golden-fixtures.test.ts`
+  - Documentação estrita em `docs/**`
+  - Zero outros arquivos modificados. Escopo funcional estritamente correto.
+- `TESTED_CODE_SHA`: `754dd7ce7c6226470ea8925829763526df273f1a`
+- `git diff --name-status 754dd7ce7c6226470ea8925829763526df273f1a...HEAD`:
+  - Apenas arquivos em `docs/**`
+  - `apps/**`: inalterado
+  - `packages/**`: inalterado
+  - `tests`: inalterado
+  - `config`, `manifest`, `lockfile`: inalterados
+  - `QUALITY_EVIDENCE_STALE` = `NO`
+
+### 2. Registro Append-Only de Desvios Operacionais
+- **Auditoria de Segredos (Múltiplas Invocações)**:
+  - `PR58_SECRET_AUDIT_MULTIPLE_INVOCATIONS` = `YES`
+  - `CATEGORY` = `EXECUTION_CONTROL_DEVIATION`
+  - `DETAIL` = `multiple secret-audit command invocations were observed despite the instruction requiring a single final audit`
+  - `TRACE_OBSERVED_AUDIT_COMMAND_INVOCATIONS` = `3`
+  - `PR58_PREVIOUS_FINAL_SECRET_AUDIT_RESULT` = `REPORTED PASS`
+  - `RAW_RESULT_OF_EACH_PRIOR_INVOCATION` = `NOT FULLY OBSERVED`
+  - `SECRET_VALUE_PRINTED` = `NOT OBSERVED`
+  - `REMOTE_CREDENTIAL_EXPOSURE` = `NOT OBSERVED`
+  - `TRACKED_CODE_CHANGE` = `NO`
+  - `ROTATION_REQUIRED` = `NO`
+  - `PR58_PREVIOUS_WORKLOG_SINGLE_AUDIT_CLAIM` = `CORRECTED BY APPEND-ONLY RECONCILIATION` (a afirmação anterior de 'execução única' é corrigida por esta reconciliação append-only)
+- **Retry de Comando de Commit do AI_CONTEXT**:
+  - `PR58_AI_CONTEXT_COMMIT_COMMAND_RETRY` = `YES`
+  - `FIRST_ATTEMPT_FINAL_RESULT` = `NOT VERIFIED` (falha na sintaxe '&&' no PowerShell)
+  - `SECOND_ATTEMPT` = `OBSERVED TO PROCEED` (execução com ';' no PowerShell bem-sucedida)
+  - `FUNCTIONAL_IMPACT` = `NONE OBSERVED`
+  - `CODE_TEST_CONFIG_CHANGE` = `NO`
+
+### 3. Preservação dos Fatos Funcionais e Evidência de Qualidade
+- **UserInterruptionEvent Fields**:
+  - `interruptedUtterance?: string` (opcional provider-neutral)
+  - `interruptedDurationMs?: number` (opcional provider-neutral)
+- **Twilio Mapping**:
+  - `utteranceUntilInterrupt` -> `interruptedUtterance`
+  - `durationUntilInterruptMs` -> `interruptedDurationMs`
+  - `duration zero preserved` = `YES`
+  - `optional properties omitted when absent` = `YES`
+- **Isolamento de Runtime**:
+  - `orchestrator consumption` = `NO`
+  - `history persistence` = `NO`
+  - `post-dispatch runtime` = `NOT IMPLEMENTED`
+  - `full context continuity runtime` = `NOT IMPLEMENTED`
+- **Evidência de Qualidade (observada em TESTED_CODE_SHA)**:
+  - `pnpm check sentinel` = `PNPM_CHECK_FINAL_PASS`
+  - `test files` = `107 passed / 6 skipped` (113 total)
+  - `tests` = `687 passed / 45 skipped` (732 total)
+  - `failures` = `0`
+  - `NEW_SKIPS` = `0`
+  - `ASSERTION_WEAKER` = `0`
+
+### 4. Limites Operacionais e Isolamento
+- Provedores externos: TypeSafe `0`, OpenAI `0`, Twilio `0`
+- `ENV_LOADED` = `NO` | `DB_CONNECTION` = `NO` | `CUSTOMER_DATA` = `NO` | `FROZEN_POLICY_CHANGED` = `NO`
+- `HOLDOUT_OPENED` = `NO`
+- `orchestrator changed` = `NO`
+- `history changed` = `NO`
+- `ACTIVE_GUARDED` = `BLOCKED`
+
+### 5. Próximo Passo Permitido
+- `NEXT_ALLOWED_STEP`: Slice B — Deterministic Response Delivery & Ownership Offline.
