@@ -13,15 +13,12 @@ import {
   CallSessionNotFoundError,
   VoiceTransportError,
 } from '@voice-agent/errors';
-import type { Logger } from '@voice-agent/logger';
-import { AssistantStreamCoordinator } from './assistant-stream-coordinator.js';
-import type { AuxiliaryTurnShadowObserver } from './auxiliary-turn-shadow-observer.js';
-import { CallSessionLifecycleCoordinator } from './call-session-lifecycle-coordinator.js';
 import {
   type ConversationOrchestratorDependencies,
+  type ResolvedOrchestratorContext,
+  type SpeechFinalTurnOptions,
   resolveOrchestratorContext,
 } from './conversation-orchestrator-types.js';
-import { DeterministicResponseDeliveryCoordinator } from './deterministic-response-delivery-coordinator.js';
 import type { DispatchDeterministicResponseInput } from './deterministic-response-delivery.js';
 import {
   type DeliverSecurityBlockedResponseInput,
@@ -29,13 +26,7 @@ import {
 } from './security-blocked-response.js';
 
 export class ConversationOrchestrator {
-  private readonly sessionStore: CallSessionStorePort;
-  private readonly transport: VoiceTransportPort;
-  private readonly logger: Logger;
-  private readonly streamCoordinator: AssistantStreamCoordinator;
-  private readonly shadowObserver?: AuxiliaryTurnShadowObserver | undefined;
-  private readonly deterministicDeliveryCoordinator: DeterministicResponseDeliveryCoordinator;
-  private readonly lifecycleCoordinator: CallSessionLifecycleCoordinator;
+  private readonly ctx: ResolvedOrchestratorContext;
   private readonly activeGenerations = new Map<string, string>();
   private generationCounter = 0;
 
@@ -44,61 +35,49 @@ export class ConversationOrchestrator {
     transport?: VoiceTransportPort,
     model?: ConversationModelPort,
   ) {
-    const ctx = resolveOrchestratorContext(deps, transport, model);
-    this.sessionStore = ctx.sessionStore;
-    this.transport = ctx.transport;
-    this.logger = ctx.logger;
-    this.shadowObserver = ctx.shadowObserver;
-    this.streamCoordinator = ctx.streamCoordinator;
-    this.deterministicDeliveryCoordinator = new DeterministicResponseDeliveryCoordinator({
-      transport: this.transport,
-      historyStore: ctx.historyStore,
-      logger: this.logger,
-      isGenerationActive: (cId, gId) => this.activeGenerations.get(cId) === gId,
+    this.ctx = resolveOrchestratorContext({
+      deps,
+      transport,
+      model,
+      options: {
+        isGenerationActive: (cId, gId) => this.activeGenerations.get(cId) === gId,
+        onCallTerminated: (orgId, callId) => {
+          this.activeGenerations.delete(callId);
+          this.ctx.deterministicDeliveryCoordinator?.clearCall(callId);
+          this.ctx.shadowObserver?.abortCall(callId);
+          void this.ctx.streamCoordinator.clearHistory(orgId, callId);
+        },
+      },
     });
-    this.lifecycleCoordinator = new CallSessionLifecycleCoordinator({
-      sessionStore: this.sessionStore,
-      transport: this.transport,
-      onCallTerminated: (orgId, callId) => this.cleanupTerminatedCall(orgId, callId),
-    });
-  }
-
-  private cleanupTerminatedCall(organizationId: string, callId: string): void {
-    this.activeGenerations.delete(callId);
-    this.deterministicDeliveryCoordinator.clearCall(callId);
-    this.shadowObserver?.abortCall(callId);
-    void this.streamCoordinator.clearHistory(organizationId, callId);
   }
 
   private observeShadowTurn(session: CallSession, turnId: string, callerTranscript: string): void {
+    if (this.ctx.guardedRoutingCoordinator) return;
     try {
-      this.shadowObserver?.observeTurn({
-        organizationId: session.organizationId,
-        callId: session.callId,
-        turnId,
-        callerTranscript,
-      });
+      const { organizationId, callId } = session;
+      this.ctx.shadowObserver?.observeTurn({ organizationId, callId, turnId, callerTranscript });
     } catch {
-      // Shadow observer must NEVER throw into authoritative path
+      return;
     }
   }
 
   private async interruptTransport(callId: string, generationId?: string): Promise<void> {
     const opt = generationId !== undefined ? { generationId } : undefined;
-    await this.transport.interruptSpeech(callId, opt).catch((err) => {
-      const msg = err instanceof Error ? err.message : 'Transport interrupt error';
-      throw new VoiceTransportError(msg);
+    await this.ctx.transport.interruptSpeech(callId, opt).catch((err) => {
+      throw new VoiceTransportError(
+        err instanceof Error ? err.message : 'Transport interrupt error',
+      );
     });
   }
 
-  /** Offline delivery seam: OPTION_B ownership commit before speak(). NO routing wired. */
   async deliverDeterministicResponse(input: DispatchDeterministicResponseInput): Promise<void> {
-    await this.deterministicDeliveryCoordinator.deliver(input);
+    await this.ctx.deterministicDeliveryCoordinator!.deliver(input);
   }
 
-  /** Offline security delivery seam: OPTION_B ownership with canonical safe response. NO routing wired. */
   async deliverSecurityBlockedResponse(input: DeliverSecurityBlockedResponseInput): Promise<void> {
-    await this.deterministicDeliveryCoordinator.deliver(resolveSecurityBlockedDeliveryInput(input));
+    await this.ctx.deterministicDeliveryCoordinator!.deliver(
+      resolveSecurityBlockedDeliveryInput(input),
+    );
   }
 
   setActiveGenerationForTest(callId: string, generationId: string): void {
@@ -108,42 +87,62 @@ export class ConversationOrchestrator {
   async handleEvent(
     event: VoiceInputEvent,
     snapshot?: AgentConfigurationSnapshotV1,
+    configurationOrganizationId?: string,
   ): Promise<void> {
-    const session = await this.sessionStore.getById(event.organizationId, event.callId);
+    const session = await this.ctx.sessionStore.getById(event.organizationId, event.callId);
     if (!session) throw new CallSessionNotFoundError(`Call session ${event.callId} not found`);
 
-    this.logger.info(`Handling voice event '${event.type}'`, {
+    this.ctx.logger.info(`Handling voice event '${event.type}'`, {
       callId: event.callId,
       organizationId: event.organizationId,
     });
 
-    if (await this.lifecycleCoordinator.handleLifecycleEvent(session, event)) return;
-    if (event.type === 'user.speech.final')
-      return this.handleUserSpeechFinal(session, event, snapshot);
+    if (await this.ctx.lifecycleCoordinator!.handleLifecycleEvent(session, event)) return;
+    if (event.type === 'user.speech.final') {
+      return this.handleUserSpeechFinal(session, event, {
+        snapshot,
+        configurationOrganizationId,
+      });
+    }
     if (event.type === 'user.interruption') return this.handleUserInterruption(session, event);
   }
 
   private async handleUserSpeechFinal(
     session: CallSession,
     event: UserSpeechFinalEvent,
-    snapshot?: AgentConfigurationSnapshotV1,
+    options: SpeechFinalTurnOptions,
   ): Promise<void> {
+    const { snapshot, configurationOrganizationId } = options;
     if (!snapshot) throw new Error('Agent snapshot is required for speech processing');
     if (session.runtimeState !== 'ACTIVE') {
       throw new CallRuntimeNotActiveError(`Call ${session.callId} is not ACTIVE`);
     }
 
-    await this.deterministicDeliveryCoordinator.resolveOnUserSpeechFinal(session);
+    await this.ctx.deterministicDeliveryCoordinator!.resolveOnUserSpeechFinal(session);
 
     const { turnId, transcript } = event;
     const generationId = `gen_${turnId}_${++this.generationCounter}`;
     this.activeGenerations.set(session.callId, generationId);
 
     this.observeShadowTurn(session, turnId, transcript);
-    await this.streamCoordinator.appendUserUtterance(session, turnId, transcript);
-    await this.sessionStore.save({ ...session, currentTurnId: turnId, generationId });
+    await this.ctx.streamCoordinator.appendUserUtterance(session, turnId, transcript);
+    await this.ctx.sessionStore.save({ ...session, currentTurnId: turnId, generationId });
 
-    await this.streamCoordinator.streamTurn({
+    if (this.ctx.guardedRoutingCoordinator) {
+      const routed = await this.ctx.guardedRoutingCoordinator.routeTurn({
+        session,
+        turnId,
+        generationId,
+        callerTranscript: transcript,
+        snapshot,
+        configurationOrganizationId,
+      });
+      if (routed.outcome !== 'GENERATIVE') return;
+    }
+
+    if (this.activeGenerations.get(session.callId) !== generationId) return;
+
+    await this.ctx.streamCoordinator.streamTurn({
       session,
       turnId,
       generationId,
@@ -164,12 +163,11 @@ export class ConversationOrchestrator {
     this.activeGenerations.set(session.callId, staleGen);
 
     await this.interruptTransport(session.callId, previousGen);
-    await this.deterministicDeliveryCoordinator.resolveOnInterruption(
+    await this.ctx.deterministicDeliveryCoordinator!.resolveOnInterruption(
       session,
       event.interruptedUtterance,
     );
-
-    await this.sessionStore.save({
+    await this.ctx.sessionStore.save({
       ...session,
       currentTurnId: event.turnId,
       generationId: staleGen,

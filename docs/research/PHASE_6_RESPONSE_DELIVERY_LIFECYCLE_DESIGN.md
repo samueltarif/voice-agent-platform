@@ -481,3 +481,17 @@ Antes de ativar `ACTIVE_GUARDED` ou plugar o roteamento em produção:
 7. Nenhum acesso a datasets de calibração ou holdouts de segurança.
 8. Nenhuma alteração de Frozen Policy.
 9. Nenhuma exigência de criação de conta na Twilio neste momento.
+
+---
+
+## 19. Status Reconciliation — Slice D: Guarded Runtime Routing Integration Offline
+
+Com a conclusão do Slice D (`PROMPT-006AG-GUARDED-RUNTIME-ROUTING-INTEGRATION-OFFLINE-001`):
+
+1. `GUARDED_RUNTIME_ROUTING_OFFLINE`: `IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/guarded-turn-routing-coordinator.ts`, `apps/voice/src/conversation-orchestrator.ts`).
+2. `SECURITY_RUNTIME_ROUTING_INTEGRATION`: `IMPLEMENTED / TESTED LOCALLY` (encaminha para `deliverSecurityBlockedResponse` offline, zero OpenAI fallback, chamada permanece `ACTIVE`).
+3. `DETERMINISTIC_RUNTIME_ROUTING_INTEGRATION`: `IMPLEMENTED / TESTED LOCALLY` (encaminha para `deliverDeterministicResponse` offline via `operating-hours-turn-handler`).
+4. `AUXILIARY_DECISION_CALL_OWNERSHIP`: `SINGLE_OWNER` (coordenação garante que `AuxiliaryTurnShadowObserver` não efetua segunda chamada Jev quando guarded routing está ativo).
+5. `ACTIVE_GUARDED`: permanece `BLOCKED` para tráfego e runtime nominal de produção.
+6. `LIVE_PROVIDER_VERIFICATION`: `PROVIDER-UNVERIFIED` (Twilio = 0, TypeSafe = 0, OpenAI real = 0).
+
