@@ -4,6 +4,7 @@ import { resolve, dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 export * from './l2-runner-preconditions.mjs';
+export * from './l2-runner-cost-ceiling.mjs';
 export * from './l2-runner-request-caps.mjs';
 export * from './l2-runner-input-budget.mjs';
 export * from './l2-runner-result-classification.mjs';
@@ -93,9 +94,10 @@ async function executeBenchmarkCases({
 }
 
 export async function runL2Benchmark(options = {}) {
-  const isOffline = Boolean(
-    options.offlineMode || options.fetchFn || options.fakeTypeSafeFetch || options.fakeOpenAiFetch,
-  );
+  const isOffline =
+    options.offlineMode !== undefined
+      ? Boolean(options.offlineMode)
+      : Boolean(options.fetchFn || options.fakeTypeSafeFetch || options.fakeOpenAiFetch);
   const { computedHash, cases, approvedCostCeilingUsd } = validatePreconditions(options, isOffline);
   const deps = options.deps ?? (await loadDependencies());
   const logger = options.logger ?? console;

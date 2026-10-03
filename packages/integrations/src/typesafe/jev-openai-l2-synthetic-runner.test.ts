@@ -11,17 +11,23 @@ import {
   EXPECTED_CASE_COUNT,
   EXPECTED_DATASET_SHA256,
   EXPECTED_TYPESAFE_MODEL,
+  HARD_L2_COST_BOUND_FEASIBLE,
+  L2_PLANNING_TOTAL_PROVIDER_COST_USD,
   MAX_OPENAI_INPUT_CHARS_PER_REQ,
   MAX_OPENAI_REQUESTS,
   MAX_TYPESAFE_INPUT_CHARS_PER_REQ,
   MAX_TYPESAFE_REQUESTS,
   OPENAI_PRICE_STATUS,
   parseCliArgs,
+  resolveCostCeiling,
   runL2Benchmark,
   TOTAL_MAX_PROVIDER_REQUESTS,
+  TYPESAFE_EMPIRICAL_RATE_PER_BTOK,
+  TYPESAFE_PRICING_EVIDENCE,
   TYPESAFE_PRICE_STATUS,
   validateOpenAiInputBudget,
   validateTypeSafeInputBudget,
+  validateTypeSafePreauth,
 } from '../../../../scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs';
 
 interface ScoreSet {
@@ -294,15 +300,211 @@ describe('L2 Synthetic Integration Runner - Offline Matrix Validation', () => {
       }),
     ).rejects.toThrow('FATAL_LIVE_INTENT_DENIED');
 
-    // With --allow-live: still blocked because TypeSafe pricing is NOT_VERIFIED
+    // With --allow-live but no empirical acceptance: still blocked because TypeSafe pricing is NOT_VERIFIED
     await expect(
       runL2Benchmark({
         offlineMode: false,
         allowLiveExecution: true,
+        costCeilingUsd: 0.5,
         dryRunWrite: true,
         logger: { log: () => {}, warn: () => {}, error: () => {} },
       }),
     ).rejects.toThrow('FATAL_LIVE_PREAUTH_BLOCKED: TypeSafe price status is NOT_VERIFIED');
+  });
+
+  // Empirical Preauth Policy Scenarios
+  it('Preauth Policy: verifies empirical TypeSafe pricing acceptance contract and fail-closed gates', async () => {
+    expect(HARD_L2_COST_BOUND_FEASIBLE).toBe('BLOCKED');
+    expect(TYPESAFE_PRICE_STATUS).toBe('NOT_VERIFIED');
+    expect(TYPESAFE_PRICING_EVIDENCE).toBe('ACCOUNT_BILLING_EMPIRICALLY_VERIFIED');
+    expect(TYPESAFE_EMPIRICAL_RATE_PER_BTOK).toBe(42);
+    expect(L2_PLANNING_TOTAL_PROVIDER_COST_USD).toBe(0.480294);
+
+    // Scenario 1: Verified official pricing path still passes without empirical flag
+    expect(() => {
+      validateTypeSafePreauth({
+        priceStatus: 'VERIFIED',
+        acceptTypesafeEmpiricalPricing: false,
+        approvedCostCeilingUsd: 0.5,
+      });
+    }).not.toThrow();
+
+    // Scenario 2: NOT_VERIFIED + no empirical acknowledgment blocks
+    expect(() => {
+      validateTypeSafePreauth({
+        priceStatus: 'NOT_VERIFIED',
+        acceptTypesafeEmpiricalPricing: false,
+        approvedCostCeilingUsd: 0.5,
+      });
+    }).toThrow('FATAL_LIVE_PREAUTH_BLOCKED: TypeSafe price status is NOT_VERIFIED');
+
+    // Scenario 3: Empirical evidence + no acknowledgment blocks
+    expect(() => {
+      validateTypeSafePreauth({
+        priceStatus: 'NOT_VERIFIED',
+        pricingEvidence: 'ACCOUNT_BILLING_EMPIRICALLY_VERIFIED',
+        acceptTypesafeEmpiricalPricing: false,
+        approvedCostCeilingUsd: 0.5,
+      });
+    }).toThrow('FATAL_LIVE_PREAUTH_BLOCKED: TypeSafe price status is NOT_VERIFIED');
+
+    // Scenario 4: Acknowledgment + wrong evidence classification blocks
+    expect(() => {
+      validateTypeSafePreauth({
+        priceStatus: 'NOT_VERIFIED',
+        pricingEvidence: 'UNVERIFIED_THIRD_PARTY_CLAIM',
+        acceptTypesafeEmpiricalPricing: true,
+        approvedCostCeilingUsd: 0.5,
+      });
+    }).toThrow(
+      'FATAL_LIVE_PREAUTH_BLOCKED: Unsupported pricing evidence classification: UNVERIFIED_THIRD_PARTY_CLAIM.',
+    );
+
+    // Scenario 5: Empirical acknowledgment without explicit ceiling and with NO env ceiling blocks
+    await expect(
+      runL2Benchmark({
+        offlineMode: false,
+        allowLiveExecution: true,
+        acceptTypesafeEmpiricalPricing: true,
+        costCeilingUsd: undefined,
+        customArgs: [],
+        customEnv: {},
+        dryRunWrite: true,
+        logger: { log: () => {}, warn: () => {}, error: () => {} },
+      }),
+    ).rejects.toThrow('Explicit per-run cost ceiling required for empirical TypeSafe pricing');
+
+    // Scenario 6: Empirical acknowledgment without explicit ceiling but WITH L2_COST_CEILING_USD present blocks
+    await expect(
+      runL2Benchmark({
+        offlineMode: false,
+        allowLiveExecution: true,
+        acceptTypesafeEmpiricalPricing: true,
+        costCeilingUsd: undefined,
+        customArgs: [],
+        customEnv: { L2_COST_CEILING_USD: '0.96' },
+        dryRunWrite: true,
+        logger: { log: () => {}, warn: () => {}, error: () => {} },
+      }),
+    ).rejects.toThrow('Explicit per-run cost ceiling required for empirical TypeSafe pricing');
+
+    // Legacy official VERIFIED pricing path allows L2_COST_CEILING_USD fallback
+    expect(
+      resolveCostCeiling({
+        acceptTypesafeEmpiricalPricing: false,
+        customArgs: [],
+        customEnv: { L2_COST_CEILING_USD: '0.96' },
+      }),
+    ).toBe(0.96);
+
+    // Unit guard: validateTypeSafePreauth blocks undefined ceiling
+    expect(() => {
+      validateTypeSafePreauth({
+        priceStatus: 'NOT_VERIFIED',
+        pricingEvidence: 'ACCOUNT_BILLING_EMPIRICALLY_VERIFIED',
+        acceptTypesafeEmpiricalPricing: true,
+        approvedCostCeilingUsd: undefined,
+      });
+    }).toThrow('FATAL: Approved cost ceiling must be a positive number.');
+
+    // Scenario 6: Empirical evidence + acknowledgment + malformed ceiling blocks
+    expect(() => {
+      validateTypeSafePreauth({
+        priceStatus: 'NOT_VERIFIED',
+        pricingEvidence: 'ACCOUNT_BILLING_EMPIRICALLY_VERIFIED',
+        acceptTypesafeEmpiricalPricing: true,
+        approvedCostCeilingUsd: Number('invalid'),
+      });
+    }).toThrow('FATAL: Approved cost ceiling must be a positive number.');
+
+    expect(() => {
+      validateTypeSafePreauth({
+        priceStatus: 'NOT_VERIFIED',
+        pricingEvidence: 'ACCOUNT_BILLING_EMPIRICALLY_VERIFIED',
+        acceptTypesafeEmpiricalPricing: true,
+        approvedCostCeilingUsd: -1,
+      });
+    }).toThrow('FATAL: Approved cost ceiling must be a positive number.');
+
+    // Scenario 7: Empirical evidence + acknowledgment + insufficient ceiling blocks
+    expect(() => {
+      validateTypeSafePreauth({
+        priceStatus: 'NOT_VERIFIED',
+        pricingEvidence: 'ACCOUNT_BILLING_EMPIRICALLY_VERIFIED',
+        acceptTypesafeEmpiricalPricing: true,
+        approvedCostCeilingUsd: 0.25,
+      });
+    }).toThrow(
+      'FATAL_LIVE_PREAUTH_BLOCKED: Approved cost ceiling ($0.25) is below minimum planning cost ($0.480294).',
+    );
+
+    // Scenario 8: Valid empirical policy + valid ceiling passes preauth
+    expect(() => {
+      validateTypeSafePreauth({
+        priceStatus: 'NOT_VERIFIED',
+        pricingEvidence: 'ACCOUNT_BILLING_EMPIRICALLY_VERIFIED',
+        empiricalRatePerBtok: 42,
+        acceptTypesafeEmpiricalPricing: true,
+        approvedCostCeilingUsd: 0.480294,
+      });
+    }).not.toThrow();
+
+    expect(() => {
+      validateTypeSafePreauth({
+        priceStatus: 'NOT_VERIFIED',
+        pricingEvidence: 'ACCOUNT_BILLING_EMPIRICALLY_VERIFIED',
+        empiricalRatePerBtok: 42,
+        acceptTypesafeEmpiricalPricing: true,
+        approvedCostCeilingUsd: 0.96,
+      });
+    }).not.toThrow();
+
+    // Scenario 9: Missing --allow-live in live mode blocks even if empirical pricing accepted
+    await expect(
+      runL2Benchmark({
+        offlineMode: false,
+        allowLiveExecution: false,
+        acceptTypesafeEmpiricalPricing: true,
+        costCeilingUsd: 0.96,
+        dryRunWrite: true,
+        logger: { log: () => {}, warn: () => {}, error: () => {} },
+      }),
+    ).rejects.toThrow('FATAL_LIVE_INTENT_DENIED');
+
+    // Scenario 10: Empirical planning rate mismatch blocks
+    expect(() => {
+      validateTypeSafePreauth({
+        priceStatus: 'NOT_VERIFIED',
+        pricingEvidence: 'ACCOUNT_BILLING_EMPIRICALLY_VERIFIED',
+        empiricalRatePerBtok: 10,
+        acceptTypesafeEmpiricalPricing: true,
+        approvedCostCeilingUsd: 0.96,
+      });
+    }).toThrow(
+      'FATAL_LIVE_PREAUTH_BLOCKED: Empirical planning rate mismatch. Expected 42 USD/Btok, got 10.',
+    );
+  });
+
+  // Issue A Regression: Empirical policy must reject L2_COST_CEILING_USD from environment and require explicit per-run ceiling
+  it('Issue A Regression: rejects L2_COST_CEILING_USD from environment and requires explicit per-run ceiling for empirical policy', async () => {
+    const fakeTypeSafe = createFakeTypeSafeFetch();
+    const fakeOpenAi = createFakeOpenAiFetch();
+
+    await expect(
+      runL2Benchmark({
+        offlineMode: false,
+        allowLiveExecution: true,
+        acceptTypesafeEmpiricalPricing: true,
+        fakeTypeSafeFetch: fakeTypeSafe.fetchFn,
+        fakeOpenAiFetch: fakeOpenAi.fetchFn,
+        dryRunWrite: true,
+        customEnv: { L2_COST_CEILING_USD: '0.96' },
+        logger: { log: () => {}, warn: () => {}, error: () => {} },
+      }),
+    ).rejects.toThrow('Explicit per-run cost ceiling required for empirical TypeSafe pricing');
+
+    expect(fakeTypeSafe.getCallCount()).toBe(0);
+    expect(fakeOpenAi.getCallCount()).toBe(0);
   });
 
   // Finding C & D: Model Identity mismatch sets accurate counter and non-pass classification
@@ -387,11 +589,23 @@ describe('L2 Synthetic Integration Runner - Offline Matrix Validation', () => {
   it('Hardening G: verifies CLI args parser sets explicit live-intent flag and options', () => {
     const defaultParsed = parseCliArgs([]);
     expect(defaultParsed.allowLiveExecution).toBe(false);
+    expect(defaultParsed.acceptTypesafeEmpiricalPricing).toBe(false);
     expect(defaultParsed.offlineMode).toBe(false);
 
     const liveParsed = parseCliArgs(['--allow-live', '--cost-ceiling', '0.25']);
     expect(liveParsed.allowLiveExecution).toBe(true);
+    expect(liveParsed.acceptTypesafeEmpiricalPricing).toBe(false);
     expect(liveParsed.costCeilingUsd).toBe(0.25);
+
+    const empiricalParsed = parseCliArgs([
+      '--allow-live',
+      '--accept-typesafe-empirical-pricing',
+      '--cost-ceiling',
+      '0.96',
+    ]);
+    expect(empiricalParsed.allowLiveExecution).toBe(true);
+    expect(empiricalParsed.acceptTypesafeEmpiricalPricing).toBe(true);
+    expect(empiricalParsed.costCeilingUsd).toBe(0.96);
 
     const offlineParsed = parseCliArgs(['--offline', '--dry-run-write']);
     expect(offlineParsed.offlineMode).toBe(true);
@@ -530,12 +744,20 @@ describe('L2 Synthetic Integration Runner - Offline Matrix Validation', () => {
     const exitCodeNoLive = await executeCli(['--cost-ceiling', '0.25'], process.env, silentLogger);
     expect(exitCodeNoLive).toBe(1);
 
-    // With --allow-live but unverified pricing
+    // With --allow-live but unverified pricing and no empirical acceptance
     const exitCodeLiveBlocked = await executeCli(
       ['--allow-live', '--cost-ceiling', '0.25'],
       process.env,
       silentLogger,
     );
     expect(exitCodeLiveBlocked).toBe(1);
+
+    // With --allow-live and --accept-typesafe-empirical-pricing but insufficient cost ceiling (< 0.480294)
+    const exitCodeInsufficientCeiling = await executeCli(
+      ['--allow-live', '--accept-typesafe-empirical-pricing', '--cost-ceiling', '0.25'],
+      process.env,
+      silentLogger,
+    );
+    expect(exitCodeInsufficientCeiling).toBe(1);
   });
 });
