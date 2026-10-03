@@ -158,15 +158,22 @@ AI_CONTEXT_HEADER_END
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- **Revisão Humana do PR de Código (fix/006av-l2-preauth-policy-implementation)**.
-- `L2_EXECUTION` = `NOT_AUTHORIZED` (nenhuma invocação live até merge do PR, rotação/configuração limpa de credenciais e nova autorização humana explícita).
+- **Revisão Humana do PR #75 Corrigido (fix/006av-l2-preauth-policy-implementation)**.
+- `CURRENT_L2_EXECUTION` = `NOT_AUTHORIZED` (nenhuma invocação live autorizada).
+- `LAST_L2_LIVE_ATTEMPT_RESULT` = `BLOCKED_BY_RUNNER_FAIL_CLOSED_PREAUTH` (tentativa histórica bloqueada antes da rede; autorização consumida).
+- `SECOND_LIVE_RUN_AUTHORIZED` = `NO`.
 - `TYPESAFE_PRICE_STATUS` = `NOT_VERIFIED` (sem tarifa contratual observada).
 - `TYPESAFE_PRICING_EVIDENCE` = `ACCOUNT_BILLING_EMPIRICALLY_VERIFIED` (~$41.92/Btok input; hipótese $42.00/Btok).
 - `EMPIRICAL_PRICING_POLICY_SUPPORT` = `IMPLEMENTED` (suporte a `--accept-typesafe-empirical-pricing`).
+- `EMPIRICAL_EXPLICIT_COST_CEILING_REQUIRED` = `YES` (exige `--cost-ceiling <USD>` na invocação).
+- `EMPIRICAL_ENV_COST_CEILING_FALLBACK_ALLOWED` = `NO` (rejeita fallback para `L2_COST_CEILING_USD` do ambiente sob política empírica).
 - `HARD_L2_COST_BOUND_FEASIBLE` = `BLOCKED`.
+- `PREVIOUS_EXECUTABLE_FREEZE_STATUS` = `SUPERSEDED_BY_CODE_CHANGE`.
+- `EXECUTABLE_FREEZE_REPRODUCIBILITY` = `BLOCKED`.
+- `NEW_EXECUTABLE_AGGREGATE_SHA256` = `NOT_REPRODUCIBLE_FROM_TRACKED_METHOD`.
+- `NEXT_REQUIRED_SLICE` = `EXECUTABLE_FREEZE_REPRODUCIBILITY_CLOSURE` (necessário antes de rotação de credenciais ou autorização live).
 - `LIVE_COMMAND_INVOKED` = `NO`.
 - `LIVE_AUTHORIZATION_AVAILABLE` = `NO`.
-- `SECOND_LIVE_RUN_AUTHORIZED` = `NO`.
 - `ACTIVE_GUARDED` permanece `BLOCKED` até conclusão de toda a escada de validação (L1-L4).
 - Do NOT execute L2 live.
 - Do NOT enable live customer traffic.

@@ -32,6 +32,7 @@ declare module '../../../../scripts/benchmarks/voice/run-jev-openai-l2-synthetic
   export function computeSha256(content: string): string;
   export function createDenyNetworkFetch(): (url: string, init?: RequestInit) => Promise<never>;
   export function parseCliArgs(customArgs?: string[]): L2BenchmarkOptions;
+  export function resolveCostCeiling(options: L2BenchmarkOptions): number | string;
   export function parseCostCeiling(
     customArgs?: string[],
     customEnv?: Record<string, string | undefined>,

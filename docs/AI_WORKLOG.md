@@ -14300,3 +14300,47 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **DEPENDENCY_CHANGE**: `NO`
 - **SECRET_AUDIT**: `PASS` (boolean-only sobre tracked diff)
 - **PR_MERGE_PERFORMED**: `NO`
+
+---
+
+## 2026-10-03 — Slice 006AV Preauthorization Closure Corrections (PR #75)
+
+### 1. Contexto e Motivação
+- **Slice**: `006AV-Closure`
+- **Branch**: `fix/006av-l2-preauth-policy-implementation`
+- **PR**: `#75`
+- **Motivação**: Durante a revisão de encerramento do PR #75, identificou-se que a validação de pré-condições sob a política empírica (`--accept-typesafe-empirical-pricing`) herdava silenciosamente o valor de `L2_COST_CEILING_USD` presente no ambiente de execução caso nenhum `--cost-ceiling` explícito fosse fornecido. Como a aceitação empírica é uma decisão per-run humana de governança, o fallback para variáveis de ambiente herdadas deve ser expressamente proibido. Adicionalmente, o estado de metadados do envelope L2 e o próximo slice técnico (fechamento de reproducibilidade de congelamento) foram reconciliados.
+
+### 2. Correções de Implementação
+- **EXPLICIT_CEILING_REGRESSION_DISCOVERED**: `YES`.
+- **EMPIRICAL_ENV_COST_CEILING_FALLBACK**: `REJECTED_FOR_EMPIRICAL_POLICY`.
+- **EXPLICIT_PER_RUN_CEILING_REQUIRED**: `YES` (a política empírica exige parâmetro estruturado `--cost-ceiling <USD>` ou `costCeilingUsd` explícito).
+- **Módulo de Teto de Custo**: Extração com responsabilidade coesa para `scripts/benchmarks/voice/l2-runner-cost-ceiling.mjs` (45 linhas) e integração em `l2-runner-preconditions.mjs` (148 linhas) e `run-jev-openai-l2-synthetic-integration.mjs` (160 linhas), mantendo todos os módulos executáveis rigorosamente <= 180 linhas e funções <= 50 linhas.
+- **Isolação em Testes de Precondições**: Ajustada determinação de `isOffline` em `runL2Benchmark` para respeitar `options.offlineMode === false` mesmo com stubs/fakes de fetch, garantindo que testes de validação live com stubs executem as guardas live sem tráfego de rede.
+
+### 3. Validação e Testes de Regressão
+- **REGRESSION_TEST_ADDED**: `YES` (`Issue A Regression: rejects L2_COST_CEILING_USD from environment and requires explicit per-run ceiling for empirical policy` em `packages/integrations/src/typesafe/jev-openai-l2-synthetic-runner.test.ts`).
+- **Suíte Focada**: `21/21 PASS` em `jev-openai-l2-synthetic-runner.test.ts`.
+- **Suíte do Pacote Integrations**: `25/25 arquivos PASS`, `190/190 testes PASS`.
+- **PROVIDER_CALL_COUNT**: `0` (todas as superfícies de teste usam fakes/stubs).
+
+### 4. Reconciliação do Envelope e Congelamento
+- **LAST_L2_LIVE_ATTEMPT_RESULT**: `BLOCKED_BY_RUNNER_FAIL_CLOSED_PREAUTH` (fato histórico preservado).
+- **CURRENT_L2_EXECUTION**: `NOT_AUTHORIZED`.
+- **PREVIOUS_EXECUTABLE_FREEZE_STATUS**: `SUPERSEDED_BY_CODE_CHANGE`.
+- **EXECUTABLE_FREEZE_REPRODUCIBILITY**: `BLOCKED`.
+- **NEW_EXECUTABLE_AGGREGATE_SHA256**: `NOT_REPRODUCIBLE_FROM_TRACKED_METHOD`.
+- **NEXT_REQUIRED_SLICE**: `EXECUTABLE_FREEZE_REPRODUCIBILITY_CLOSURE` (obrigatório antes de configuração de credenciais ou autorização live futura).
+
+### 5. Governança e Auditoria
+- **OpenAI real**: `0`
+- **TypeSafe real**: `0`
+- **Twilio**: `0`
+- **Cloud DB**: `0`
+- **Customer data**: `0`
+- **Holdout**: `NO ACCESS`
+- **LIVE_COMMAND_INVOKED**: `NO`
+- **ENV_FILE_READ_OCCURRED_DURING_CLOSURE**: `NO`
+- **FORBIDDEN_IDE_INTERNAL_STORAGE_ACCESSED**: `NO`
+- **SECRET_AUDIT**: `PASS` (boolean-only sobre tracked diff)
+- **PR_MERGE_PERFORMED**: `NO`

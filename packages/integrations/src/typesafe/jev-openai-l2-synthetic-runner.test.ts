@@ -19,6 +19,7 @@ import {
   MAX_TYPESAFE_REQUESTS,
   OPENAI_PRICE_STATUS,
   parseCliArgs,
+  resolveCostCeiling,
   runL2Benchmark,
   TOTAL_MAX_PROVIDER_REQUESTS,
   TYPESAFE_EMPIRICAL_RATE_PER_BTOK,
@@ -359,7 +360,44 @@ describe('L2 Synthetic Integration Runner - Offline Matrix Validation', () => {
       'FATAL_LIVE_PREAUTH_BLOCKED: Unsupported pricing evidence classification: UNVERIFIED_THIRD_PARTY_CLAIM.',
     );
 
-    // Scenario 5: Empirical evidence + acknowledgment + missing ceiling blocks
+    // Scenario 5: Empirical acknowledgment without explicit ceiling and with NO env ceiling blocks
+    await expect(
+      runL2Benchmark({
+        offlineMode: false,
+        allowLiveExecution: true,
+        acceptTypesafeEmpiricalPricing: true,
+        costCeilingUsd: undefined,
+        customArgs: [],
+        customEnv: {},
+        dryRunWrite: true,
+        logger: { log: () => {}, warn: () => {}, error: () => {} },
+      }),
+    ).rejects.toThrow('Explicit per-run cost ceiling required for empirical TypeSafe pricing');
+
+    // Scenario 6: Empirical acknowledgment without explicit ceiling but WITH L2_COST_CEILING_USD present blocks
+    await expect(
+      runL2Benchmark({
+        offlineMode: false,
+        allowLiveExecution: true,
+        acceptTypesafeEmpiricalPricing: true,
+        costCeilingUsd: undefined,
+        customArgs: [],
+        customEnv: { L2_COST_CEILING_USD: '0.96' },
+        dryRunWrite: true,
+        logger: { log: () => {}, warn: () => {}, error: () => {} },
+      }),
+    ).rejects.toThrow('Explicit per-run cost ceiling required for empirical TypeSafe pricing');
+
+    // Legacy official VERIFIED pricing path allows L2_COST_CEILING_USD fallback
+    expect(
+      resolveCostCeiling({
+        acceptTypesafeEmpiricalPricing: false,
+        customArgs: [],
+        customEnv: { L2_COST_CEILING_USD: '0.96' },
+      }),
+    ).toBe(0.96);
+
+    // Unit guard: validateTypeSafePreauth blocks undefined ceiling
     expect(() => {
       validateTypeSafePreauth({
         priceStatus: 'NOT_VERIFIED',
@@ -445,6 +483,28 @@ describe('L2 Synthetic Integration Runner - Offline Matrix Validation', () => {
     }).toThrow(
       'FATAL_LIVE_PREAUTH_BLOCKED: Empirical planning rate mismatch. Expected 42 USD/Btok, got 10.',
     );
+  });
+
+  // Issue A Regression: Empirical policy must reject L2_COST_CEILING_USD from environment and require explicit per-run ceiling
+  it('Issue A Regression: rejects L2_COST_CEILING_USD from environment and requires explicit per-run ceiling for empirical policy', async () => {
+    const fakeTypeSafe = createFakeTypeSafeFetch();
+    const fakeOpenAi = createFakeOpenAiFetch();
+
+    await expect(
+      runL2Benchmark({
+        offlineMode: false,
+        allowLiveExecution: true,
+        acceptTypesafeEmpiricalPricing: true,
+        fakeTypeSafeFetch: fakeTypeSafe.fetchFn,
+        fakeOpenAiFetch: fakeOpenAi.fetchFn,
+        dryRunWrite: true,
+        customEnv: { L2_COST_CEILING_USD: '0.96' },
+        logger: { log: () => {}, warn: () => {}, error: () => {} },
+      }),
+    ).rejects.toThrow('Explicit per-run cost ceiling required for empirical TypeSafe pricing');
+
+    expect(fakeTypeSafe.getCallCount()).toBe(0);
+    expect(fakeOpenAi.getCallCount()).toBe(0);
   });
 
   // Finding C & D: Model Identity mismatch sets accurate counter and non-pass classification
