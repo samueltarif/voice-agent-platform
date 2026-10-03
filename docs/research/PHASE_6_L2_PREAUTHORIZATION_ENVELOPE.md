@@ -8,7 +8,9 @@ LAST_RECONCILED_AT: 2026-10-03
 PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
 STUDY: L2 Real Jev + Real OpenAI + Synthetic Transcript
 PREAUTH_STATUS: PREAUTH_BLOCKED
-L2_EXECUTION: NOT EXECUTED
+L2_EXECUTION: BLOCKED_BY_RUNNER_FAIL_CLOSED_PREAUTH
+LIVE_AUTHORIZATION_CONSUMED: YES
+LIVE_COMMAND_EXECUTED: YES_ONCE_ABORTED_FAIL_CLOSED
 L2_OPERATOR_COST_CEILING: NOT_AUTHORIZABLE
 OLD_PROPOSED_COST_CEILING_USD: 0.25
 OLD_PROPOSED_COST_CEILING_STATUS: SUPERSEDED
@@ -16,7 +18,27 @@ NEW_OPERATOR_COST_CEILING: NOT_PROPOSED
 HARD_MAX_PROVIDER_COST_STATUS: NOT_ENFORCEABLE
 TYPESAFE_PRICE_STATUS: NOT_VERIFIED
 TYPESAFE_PRICING_EVIDENCE: ACCOUNT_BILLING_EMPIRICALLY_VERIFIED
-HUMAN_DECISION_TYPESAFE_EMPIRICAL_EVIDENCE_ACCEPTANCE: PENDING
+HUMAN_DECISION_TYPESAFE_EMPIRICAL_EVIDENCE_ACCEPTANCE: ACCEPTED_FOR_SINGLE_L2_RUN
+HUMAN_DECISION_TOKEN_CAP_POLICY: ACCEPT_EXISTING_CHARACTER_CAPS_FOR_SINGLE_L2_RUN
+TOKEN_CAP_RESIDUAL_LIMITATION_ACCEPTED_FOR_THIS_RUN: YES
+OPERATOR_COST_CEILING_USD: 0.96
+OPERATOR_COST_CEILING_SCOPE: SINGLE_SYNTHETIC_L2_RUN_ONLY
+COST_CEILING_CLASSIFICATION: OPERATOR_GOVERNANCE_CEILING_NOT_HARD_PROVIDER_BILLING_BOUND
+HUMAN_L2_LIVE_AUTHORIZATION: CONSUMED
+SECOND_LIVE_RUN_AUTHORIZED: NO
+RUNNER_FAIL_CLOSED_GUARD: PASS
+ENV_FILE_READ_POLICY_VIOLATION: YES
+ENV_FILE_READ_OCCURRED: YES
+ENV_VALUES_PRINTED_IN_TRACE: NO_EVIDENCE_OBSERVED
+POTENTIAL_SECRET_EXPOSURE_TO_AGENT_TOOLING: YES
+EXTERNAL_SECRET_DISCLOSURE: NOT_PROVEN
+SECRET_ROTATION_REQUIRED_BEFORE_NEXT_LIVE_RUN: HUMAN_DECISION
+LIVE_PRECONDITION_PROCESS_VIOLATION: YES
+LIVE_COMMAND_SHOULD_HAVE_BEEN_STOPPED_BEFORE_INVOCATION: YES
+PROVIDER_NETWORK_CALLS: 0
+PROVIDER_SPEND_FROM_THIS_INVOCATION_USD: 0
+NEXT_REQUIRED_SLICE: MINIMAL_PREAUTH_POLICY_IMPLEMENTATION
+FUTURE_LIVE_CREDENTIAL_CONFIGURATION: REQUIRED
 OPENAI_PRICE_STATUS: VERIFIED
 CLI_LIVE_INTENT_PLUMBING: PASS
 REQUEST_CAP_BOUNDARY_TESTS: PASS
@@ -333,17 +355,48 @@ node scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs --allo
 
 ## 16. Pacote de Decisões Humanas Requeridas (Human Decision Package)
 
-Nenhuma das decisões abaixo foi concedida ou assumida; todas são pré-requisitos para qualquer avanço live:
+Decisões formais concedidas pelo operador humano em 2026-10-03 (escopo estrito: única execução L2 sintética controlada):
 
-1. **`HUMAN_DECISION_1` (Aceitação de Evidência Empírica TypeSafe vs Confirmação Contratual)**:
-   - Deliberação sobre `HUMAN_DECISION_TYPESAFE_EMPIRICAL_EVIDENCE_ACCEPTANCE` (`PENDING`):
-     - *(Opção A)* Aceitar a evidência empírica de faturamento da conta (345 requests, 205.142 tokens in, $0.0086 USD spend ≈ $41.92/B) como base conservadora suficiente ($42/B) para uma única bateria controlada L2; OU
-     - *(Opção B)* Exigir confirmação contratual explícita prévia da TypeSafe (order form, invoice ou email formal) antes de qualquer desbloqueio live.
+1. **`HUMAN_DECISION_1` (Aceitação de Evidência Empírica TypeSafe)**:
+   - `HUMAN_DECISION_TYPESAFE_EMPIRICAL_EVIDENCE_ACCEPTANCE`: `ACCEPTED_FOR_SINGLE_L2_RUN`
+   - *Decisão do Operador*: Aceitar os dados reais de faturamento da conta TypeSafe (345 requests, 205k tokens in, $0.0086 USD spend ≈ $41.92/B) como evidência suficiente e conservadora ($42/B) para uma única bateria controlada L2, sem classificar como tarifa pública contratual.
 2. **`HUMAN_DECISION_2` (Política de Resolução de Token-Cap)**:
-   - Deliberação entre:
-     - *(Opção A)* Aceitar o cap de caracteres (1.000 chars Jev / 4.000 chars OpenAI) combinado ao dataset sintético auditado (~40 tokens/caso) como proteção física suficiente; OU
-     - *(Opção B)* Autorizar um slice técnico focado para adicionar dependência de tokenizer (`js-tiktoken`) exclusivamente para pré-contagem exata de tokens da OpenAI.
+   - `HUMAN_DECISION_TOKEN_CAP_POLICY`: `ACCEPT_EXISTING_CHARACTER_CAPS_FOR_SINGLE_L2_RUN`
+   - `TOKEN_CAP_RESIDUAL_LIMITATION_ACCEPTED_FOR_THIS_RUN`: `YES`
+   - *Decisão do Operador*: Aceitar a limitação residual de token cap e a proteção física via caps de caracteres (1.000 chars Jev / 4.000 chars OpenAI) combinada ao dataset sintético congelado para esta execução única.
 3. **`HUMAN_DECISION_3` (Seleção do Teto Financeiro do Operador)**:
-   - Fixação formal de um teto em USD para o runner (cenários calculados: $0.60 USD [1.25x], $0.72 USD [1.5x] ou $0.96 USD [2.0x] sobre o planejamento de $0.48 USD).
+   - `APPROVED_OPERATOR_COST_CEILING_USD`: `0.96`
+   - `COST_CEILING_CLASSIFICATION`: `OPERATOR_GOVERNANCE_CEILING_NOT_HARD_PROVIDER_BILLING_BOUND`
+   - `OPERATOR_COST_CEILING_SCOPE`: `SINGLE_SYNTHETIC_L2_RUN_ONLY`
+   - *Decisão do Operador*: Fixação formal do teto financeiro em $0.96 USD (cenário informativo 2.0x sobre planejamento de $0.480294 USD).
 4. **`HUMAN_DECISION_4` (Autorização de Execução da Bateria L2 Live)**:
-   - Autorização explícita e irrevogável para uma única execução controlada do runner com tráfego real aos endpoints de IA.
+   - `HUMAN_L2_LIVE_AUTHORIZATION`: `AUTHORIZED_ONCE`
+   - *Decisão do Operador*: Autorização explícita concedida para uma única execução controlada do comando live candidato. Não autoriza segunda execução, retries, Twilio, banco em nuvem ou tráfego de clientes.
+
+---
+
+## 17. Registro de Violações de Governança e Recuperação Pós-Invocação L2
+
+### 1. Violação de Leitura de Arquivo de Ambiente (.env Read Policy Violation)
+- `ENV_FILE_READ_POLICY_VIOLATION`: `YES`
+- `ENV_FILE_READ_OCCURRED`: `YES` (durante checagem booleana de credenciais no runtime, o tooling do agente leu o arquivo `.env`)
+- `ENV_VALUES_PRINTED_IN_TRACE`: `NO_EVIDENCE_OBSERVED` (nenhuma chave, valor, comprimento, prefixo ou sufixo foi exposto)
+- `POTENTIAL_SECRET_EXPOSURE_TO_AGENT_TOOLING`: `YES` (leitura em memória pelo processo de ferramental)
+- `EXTERNAL_SECRET_DISCLOSURE`: `NOT_PROVEN`
+- `SECRET_ROTATION_REQUIRED_BEFORE_NEXT_LIVE_RUN`: `HUMAN_DECISION` (recomendada rotação das chaves antes de futura execução de rede)
+
+### 2. Violação de Processo de Pré-Condição Live (Live Precondition Process Violation)
+- `LIVE_PRECONDITION_PROCESS_VIOLATION`: `YES`
+- `LIVE_COMMAND_SHOULD_HAVE_BEEN_STOPPED_BEFORE_INVOCATION`: `YES` (o comando não deveria ter sido invocado uma vez constatada a incompatibilidade de preauth e a ausência de credenciais no runtime)
+- `LIVE_COMMAND_INVOCATION_COUNT`: 1
+- `LIVE_AUTHORIZATION_CONSUMED`: `YES`
+- `SECOND_LIVE_RUN_AUTHORIZED`: `NO`
+- `RUNNER_FAIL_CLOSED_GUARD`: `PASS` (o runner fail-closed bloqueou a execução antes de qualquer tráfego de rede)
+- `PROVIDER_NETWORK_CALLS`: 0
+- `PROVIDER_SPEND_FROM_THIS_INVOCATION_USD`: 0
+
+### 3. Preservação dos Fatos e Próximo Slice Técnico
+- `L2_RESULT`: `BLOCKED`
+- `L2_EXECUTION`: `BLOCKED_BY_RUNNER_FAIL_CLOSED_PREAUTH`
+- `NEXT_REQUIRED_SLICE`: `MINIMAL_PREAUTH_POLICY_IMPLEMENTATION` (ajuste técnico no runner para suportar a representação da política de evidência empírica formalmente autorizada pelo operador humano)
+- `FUTURE_LIVE_CREDENTIAL_CONFIGURATION`: `REQUIRED` (configuração humana limpa de credenciais no ambiente sem leitura por tooling de agente)

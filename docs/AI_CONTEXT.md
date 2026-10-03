@@ -4,13 +4,13 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-03
-CONTEXT_BASE_MAIN_SHA: ae3204e512469086f0ad60db3bb73bd1fe0e09b8
+CONTEXT_BASE_MAIN_SHA: 8c17534927669f6a02c7bdb822d202ee686eccb3
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
-CURRENT_SLICE: TypeSafe Account Billing Evidence Reconciliation
-CONTEXT_UPDATE_BRANCH: research/006at-typesafe-billing-evidence-reconciliation
+CURRENT_SLICE: L2 Authorized Live Execution
+CONTEXT_UPDATE_BRANCH: research/006au-l2-authorized-live-execution
 CONTEXT_UPDATE_PR: PENDING
-LAST_MERGED_PR_AT_REFRESH: 72
-LAST_MERGE_SHA_AT_REFRESH: ae3204e512469086f0ad60db3bb73bd1fe0e09b8
+LAST_MERGED_PR_AT_REFRESH: 73
+LAST_MERGE_SHA_AT_REFRESH: 8c17534927669f6a02c7bdb822d202ee686eccb3
 LAST_TESTED_CODE_SHA: ed2c3d5f9e7207c6ea2309239727597ff7081127
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
@@ -87,7 +87,7 @@ AI_CONTEXT_HEADER_END
 - **EXPECTED_MODEL_AUTHORITY**: `OPTION_B` (TypeSafe adapter integration config: options.expectedProviderModel).
 - **L1A_MODEL_IDENTITY_SMOKE**: `EXECUTED / PASS` (N=20/20 sucessos com exact match `jev-1.13.0`, 0 mismatches, 0 erros técnicos, mediana descritiva 275ms, p90 316ms, max 685ms; SHA-256 `698c5e2a3b91...`; `docs/research/results/phase-6-typesafe-l1a-model-identity-smoke-run1.json`).
 - **L1B_SYNTHETIC_LATENCY_STUDY**: L1B_PLAN = EXECUTED / PASS_COMPLETE | L1B_RUNNER = IMPLEMENTED / TESTED OFFLINE | L1B_EXECUTION = EXECUTED / PASS_COMPLETE (100 attempted / 100 succeeded, 100/100 model matches jev-1.13.0, 0 mismatches, 0 erros técnicos, 0 timeouts; latência DESCRIPTIVE_ONLY: min 229ms, mediana 257ms, p75 273ms, p90 302ms, p95 325ms, p99 empirical 380ms, max 385ms; SHA-256 f087a6e3ad83fc81b272ffd775d5e66d00c6e7c918d310ca54f45237d59f1cdb; docs/research/results/phase-6-typesafe-l1b-synthetic-latency-run1.json) | L1B_PROVIDER_EXECUTION = EXECUTED.
-- **L2_REAL_JEV_OPENAI_SYNTHETIC**: PRIMARY_CONVERSATION_PROVIDER = OpenAI (DEC-037 / ADR-018) | CURRENT_CONVERSATION_MODEL_CANDIDATE = gpt-6-astra | JEV_ROLE = AUXILIARY_DECISION_MODEL | L2_OPENAI_REQUESTED_MODEL = gpt-6-astra (BLOCKED_UNTIL_OPERATOR_AUTHORIZATION) | L2_DATASET = CREATED (N=12, SHA-256 `bd812341a922...`; `scripts/benchmarks/voice/jev-openai-l2-synthetic-integration-v1-cases.json`) | L2_RUNNER = HARDENED / MODULARIZED / FUNCTION_DOD_PASS (9 módulos <= 180 linhas, cada função <= 50 linhas, max 49, aggregate SHA `8f53f8169771caa26dd9623702a7c65e3e9c730dfcb2bbfcb26188dcd57c77f3`, L2_RUNNER_FOCUSED_TESTS = 19/19 PASS in `packages/integrations/src/typesafe/jev-openai-l2-synthetic-runner.test.ts`) | L2_EXECUTION = NOT EXECUTED | L2_PROVIDER_CALLS = 0 | L2_PROVIDER_EXECUTION = BLOCKED_UNTIL_OPERATOR_AUTHORIZATION_AND_TYPESAFE_PRICE_VERIFICATION.
+- **L2_REAL_JEV_OPENAI_SYNTHETIC**: PRIMARY_CONVERSATION_PROVIDER = OpenAI (DEC-037 / ADR-018) | CURRENT_CONVERSATION_MODEL_CANDIDATE = gpt-6-astra | JEV_ROLE = AUXILIARY_DECISION_MODEL | L2_OPENAI_REQUESTED_MODEL = gpt-6-astra (BLOCKED_UNTIL_OPERATOR_AUTHORIZATION) | L2_DATASET = CREATED (N=12, SHA-256 `bd812341a922...`; `scripts/benchmarks/voice/jev-openai-l2-synthetic-integration-v1-cases.json`) | L2_RUNNER = HARDENED / MODULARIZED / FUNCTION_DOD_PASS (9 módulos <= 180 linhas, cada função <= 50 linhas, max 49, aggregate SHA `8f53f8169771caa26dd9623702a7c65e3e9c730dfcb2bbfcb26188dcd57c77f3`, L2_RUNNER_FOCUSED_TESTS = 19/19 PASS in `packages/integrations/src/typesafe/jev-openai-l2-synthetic-runner.test.ts`) | L2_EXECUTION = BLOCKED_BY_RUNNER_FAIL_CLOSED_PREAUTH | L2_PROVIDER_CALLS = 0 | L2_PROVIDER_EXECUTION = BLOCKED_UNTIL_PREAUTH_POLICY_IMPLEMENTATION_AND_CREDENTIAL_CONFIG.
 - **SECURITY_RUNTIME_SEMANTICS**: `DESIGNED` (`docs/research/PHASE_6_SECURITY_ESCALATE_RUNTIME_SEMANTICS.md`).
 - **SECURITY_RESPONSE_DELIVERY_READY**: `IMPLEMENTED LOCALLY / ROUTING INTEGRATED`.
 - **SECURITY_HISTORY_PERSISTENCE_READY**: `IMPLEMENTED LOCALLY (Turn-scoped qualified H4/H5 history resolution)`.
@@ -198,8 +198,8 @@ AI_CONTEXT_HEADER_END
     3. Adicionar testes unitários isolados de borda para exaustão de caps de requisições (`checkCaps`);
     4. Garantir que precificação e pré-condições operem em modo fail-closed;
     5. Zero chamadas a provedores reais (`TypeSafe = 0`, `OpenAI = 0`, `Twilio = 0`).
-- `L2_EXECUTION` = `NOT EXECUTED`.
-- `OPENAI_PRICE_STATUS` = `VERIFIED` (oficial: $10.00/1M in, $5.00/1M cached in, $50.00/1M out para gpt-6-astra); `TYPESAFE_PRICE_STATUS` = `NOT_VERIFIED` (sem URL pública oficial de faturamento); `TYPESAFE_PRICING_EVIDENCE` = `ACCOUNT_BILLING_EMPIRICALLY_VERIFIED` (tarifa empírica observada ~$41.92/Btok input; hipótese de $42/Btok consistente com uso da conta); `TYPESAFE_EXPLICIT_CONTRACTUAL_TARIFF` = `NOT_OBSERVED`; `TYPESAFE_EMPIRICAL_EVIDENCE_HUMAN_ACCEPTANCE` = `PENDING`.
+- `L2_EXECUTION` = `BLOCKED_BY_RUNNER_FAIL_CLOSED_PREAUTH` (comando live invocado 1 vez com --allow-live --cost-ceiling 0.96; abortado fail-closed antes da rede por TYPESAFE_PRICE_STATUS === 'NOT_VERIFIED'; 0 chamadas de rede; autorização consumida; segunda invocação NÃO autorizada).
+- `OPENAI_PRICE_STATUS` = `VERIFIED` (oficial: $10.00/1M in, $5.00/1M cached in, $50.00/1M out para gpt-6-astra); `TYPESAFE_PRICE_STATUS` = `NOT_VERIFIED` (sem URL pública oficial de faturamento); `TYPESAFE_PRICING_EVIDENCE` = `ACCOUNT_BILLING_EMPIRICALLY_VERIFIED` (tarifa empírica observada ~$41.92/Btok input; hipótese de $42/Btok consistente com uso da conta); `TYPESAFE_EXPLICIT_CONTRACTUAL_TARIFF` = `NOT_OBSERVED`; `HUMAN_DECISION_TYPESAFE_EMPIRICAL_EVIDENCE_ACCEPTANCE` = `ACCEPTED_FOR_SINGLE_L2_RUN`; `HUMAN_DECISION_TOKEN_CAP_POLICY` = `ACCEPT_EXISTING_CHARACTER_CAPS_FOR_SINGLE_L2_RUN`; `TOKEN_CAP_RESIDUAL_LIMITATION_ACCEPTED_FOR_THIS_RUN` = `YES`; `HARD_L2_COST_BOUND_FEASIBLE` = `BLOCKED`; `OPERATOR_COST_CEILING_USD` = `0.96` (`OPERATOR_GOVERNANCE_CEILING_NOT_HARD_PROVIDER_BILLING_BOUND`; escopo: `SINGLE_SYNTHETIC_L2_RUN_ONLY`); `HUMAN_L2_LIVE_AUTHORIZATION` = `CONSUMED`; `SECOND_LIVE_RUN_AUTHORIZED` = `NO`; `ENV_FILE_READ_POLICY_VIOLATION` = `YES`; `LIVE_PRECONDITION_PROCESS_VIOLATION` = `YES`; `NEXT_REQUIRED_SLICE` = `MINIMAL_PREAUTH_POLICY_IMPLEMENTATION`; `FUTURE_LIVE_CREDENTIAL_CONFIGURATION` = `REQUIRED`.
 - `L2_OPERATOR_COST_CEILING` = `NOT_AUTHORIZABLE` (proposta de $0.25 USD aguarda hardening e caps executáveis).
 - `ACTIVE_GUARDED` permanece `BLOCKED` até conclusão de toda a escada de validação (L1-L4).
 - Do NOT execute L2 live.
