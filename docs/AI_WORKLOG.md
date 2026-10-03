@@ -14837,3 +14837,64 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **CURRENT_L2_EXECUTION**: `NOT_AUTHORIZED`
 - **L2_TECHNICAL_READINESS_BEFORE_HUMAN_AUTHORIZATION**: `READY_FOR_NEW_AUTHORIZATION_REVIEW`
 - **NEXT_REQUIRED_STEP**: `HUMAN_REVIEW_OF_OFFLINE_FIX_AND_NEW_L2_AUTHORIZATION_PACKAGE`
+
+---
+
+## 2026-10-03 — Slice 006AZ: Cold-Start Reproducibility Proof & Documentation Reconciliation
+
+### 1. Demanda e Contexto
+- **Slice**: `006AZ`
+- **Branch**: `fix/006az-l2-runtime-module-resolution`
+- **PR**: `#79`
+- **Objetivo**: Provar formalmente a reprodutibilidade da inicialização offline do runner L2 em estado frio (cold-start sem artefatos prévios de build), verificar o status de tracking dos diretórios `dist`, endurecer a suíte de testes de regressão e reconciliar os metadados de governança em `AI_CONTEXT.md` e `PHASE_6_L2_PREAUTHORIZATION_ENVELOPE.md`.
+
+### 2. Prova de Reprodutibilidade em Cold-Start
+- **COLD_START_REPRODUCIBILITY_PREVIOUSLY_PROVEN**: `NO`
+- **DIST_OUTPUT_TRACKING_STATUS**: `UNTRACKED / GENERATED_BUILD_OUTPUT` (`git ls-files` e `git status` confirmam que `packages/errors/dist`, `packages/integrations/dist` e `apps/voice/dist` são 100% ignorados pelo Git via `.gitignore`).
+- **Simulação de Cold-Start**: Remoção forçada dos diretórios `dist` não rastreados (`packages/errors/dist`, `packages/integrations/dist`, `apps/voice/dist`) sem tocar em fontes rastreados (`git status --short` permaneceu `CLEAN`).
+- **Comportamento Pré-Build no Cold-Start**:
+  - Invocação: `node scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs --offline --dry-run-write`
+  - Resultado: Falha com exit code 1 (`Cannot find module .../packages/integrations/dist/.../typesafe-jev-turn-decision-adapter.js`).
+  - Classificação Factual: `COLD_START_REQUIRES_BUILD = YES`
+  - `FRESH_CHECKOUT_DIRECT_RUN_WITHOUT_BUILD = NOT_SUPPORTED`
+- **Contrato Canônico de Preparação**:
+  - `CANONICAL_L2_PREPARATION_COMMAND`: `pnpm build` (`turbo build`)
+  - `COLD_START_BUILD`: `PASS` (12/12 pacotes compilados com sucesso; todos os artefatos `dist` gerados fisicamente no disco).
+- **Inicialização do Runner Pós-Build no Cold-Start**:
+  - Invocação: `node scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs --offline --dry-run-write`
+  - Resultado: `COLD_START_RUNNER_INITIALIZATION = PASS` (grafo de módulos carregado, adaptadores inicializados, execução offline concluída sem qualquer erro de resolução de módulo).
+  - `APP_ERROR_JS_RESOLUTION_ERROR`: `NO`
+  - `MODULE_RESOLUTION_ERROR`: `NO`
+
+### 3. Endurecimento do Teste de Regressão
+- **REGRESSION_TEST_DEPENDS_ON_STALE_DIST**: `NO`
+- **REGRESSION_TEST_HARDENED**: `YES`
+- **Arquivo Modificado**: `packages/integrations/src/typesafe/l2-module-resolution.test.ts` (73 linhas, funções <= 25 linhas).
+- **Nova Asserção**: Adicionado teste explícito `verifies packages/errors export contract and compiled artifact presence`, validando que `package.json` exporta `./dist/index.js` para runtime e `./src/index.ts` para tipos, e que todos os artefatos compilados exigidos pelo runner existem fisicamente no disco.
+
+### 4. Preservação do Congelamento Executável e Semântica L2
+- **RUNTIME_EXECUTABLE_SET_CHANGED**: `NO`
+- **CURRENT_EXECUTABLE_AGGREGATE_SHA256**: `f5ef6e6b88e09094765b0c3b273ba23cae01502bdd0ec4fe28dbcb3f2133794a`
+- **EXECUTABLE_FREEZE_REPRODUCIBILITY**: `PASS` (executado duas vezes consecutivas com saídas idênticas; 11/11 testes passando em `l2-executable-freeze.test.ts`).
+- **DATASET_CHANGED**: `NO` (SHA-256 `bd812341a922ded1c7159191849dae284a88f24afd9c7e8d3c64f9b081602f3f` inalterado).
+- **L2_RUNTIME_SEMANTICS_CHANGED**: `NO`
+
+### 5. Reconciliação Documental
+- **docs/AI_CONTEXT.md**: Atualizado header com `CURRENT_SLICE = Slice 006AZ`, `CONTEXT_UPDATE_BRANCH = fix/006az-l2-runtime-module-resolution`, `CONTEXT_UPDATE_PR = 79`, `LAST_MERGED_PR_AT_REFRESH = 78`, `LAST_MERGE_SHA_AT_REFRESH = 3e19359e483da88a47aa358b098dfe3ecbc02a93`, `LAST_TESTED_CODE_SHA = 375b3a1ae9a6dfd7872518a3fa5dca7a9b0639c3`; atualizado Quality Snapshot para refletir o gate do slice 006AZ e contagens factuais observadas (`206 passed` em integrations).
+- **docs/research/PHASE_6_L2_PREAUTHORIZATION_ENVELOPE.md**: Reconciliados metadados e Seção 2 para remover referências desatualizadas a `PR76` e `BLOCKED` no congelamento; estabelecido `CURRENT_RUNNER_FREEZE = FROZEN_REPRODUCIBLY`, `EXECUTABLE_FREEZE_REPRODUCIBILITY = PASS`, `NEXT_ALLOWED_STEP = HUMAN_REVIEW_OF_PR79`.
+
+### 6. Controles Operacionais e Governança
+- **Chamadas de Provedores Realizadas**:
+  - OpenAI real: `0`
+  - TypeSafe real: `0`
+  - Twilio: `0`
+  - Cloud DB: `0`
+  - Holdout: `NO ACCESS`
+  - Gasto: `US$ 0.00`
+- **LIVE_COMMAND_INVOKED**: `NO`
+- **CURRENT_L2_EXECUTION**: `NOT_AUTHORIZED`
+- **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+- **PR_MERGE_PERFORMED**: `NO`
+- **NEXT_ALLOWED_STEP**: `HUMAN_REVIEW_OF_PR79`
+- **NEXT_REQUIRED_STEP**: `HUMAN_REVIEW_OF_OFFLINE_FIX_AND_NEW_L2_AUTHORIZATION_PACKAGE`

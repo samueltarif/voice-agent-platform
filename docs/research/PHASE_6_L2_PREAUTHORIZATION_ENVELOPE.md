@@ -107,7 +107,7 @@ LIVE_COMMAND_INVOKED: NO
 LIVE_AUTHORIZATION_AVAILABLE: NO
 SECOND_LIVE_RUN_AUTHORIZED: NO
 CURRENT_L2_EXECUTION: NOT_AUTHORIZED
-NEXT_ALLOWED_STEP: HUMAN_REVIEW_OF_OFFLINE_FIX_AND_NEW_L2_AUTHORIZATION_PACKAGE
+NEXT_ALLOWED_STEP: HUMAN_REVIEW_OF_PR79
 NEXT_REQUIRED_STEP: HUMAN_REVIEW_OF_OFFLINE_FIX_AND_NEW_L2_AUTHORIZATION_PACKAGE
 FUTURE_LIVE_CREDENTIAL_CONFIGURATION: REQUIRED_AFTER_FREEZE_CLOSURE
 OPENAI_PRICE_STATUS: VERIFIED
@@ -119,7 +119,7 @@ TOKEN_CAP_ENFORCEMENT: NOT_ENFORCEABLE_AT_RUNTIME
 AGGREGATE_OUTPUT_CAP: DERIVED_ENFORCEABLE_SUBJECT_TO_CAP_ISOLATION_TEST
 CURRENT_RUNNER_FREEZE: FROZEN_REPRODUCIBLY
 LIVE_COMMAND_STATUS: LIVE_COMMAND_NOT_YET_AUTHORIZABLE
-NEXT_ALLOWED_STEP: HUMAN_REVIEW_OF_PR76
+NEXT_ALLOWED_STEP: HUMAN_REVIEW_OF_PR79
 BLOCKER_ANALYSIS_STATUS: PREAUTH_BLOCKER_ANALYSIS_COMPLETE
 L2_PREAUTHORIZATION_ENVELOPE_METADATA_END
 -->
@@ -149,11 +149,12 @@ Estabelecer um envelope rigoroso, auditável e imutável para a futura execuçã
 | **L2_DATASET_VERSION** | `1.0.1` | Campo `version` no JSON do dataset |
 | **L2_DATASET_CASE_COUNT** | `12` | 12 casos sintéticos estritos (7 matcher-positive, 5 matcher-negative) |
 | **L2_DATASET_SHA256** | `bd812341a922ded1c7159191849dae284a88f24afd9c7e8d3c64f9b081602f3f` | Hash SHA-256 congelado |
-| **CURRENT_RUNNER_FREEZE** | `SUPERSEDED_BY_CODE_CHANGE` | Versão modular pós-006AV com módulo de teto de custo |
+| **CURRENT_RUNNER_FREEZE** | `FROZEN_REPRODUCIBLY` | 10 módulos executáveis congelados com método canônico v1.0.0 |
 | **CURRENT_L2_EXECUTABLE_MODULE_COUNT** | `10` | 10 módulos executáveis rastreados no repositório |
-| **PREVIOUS_EXECUTABLE_AGGREGATE_SHA256** | `8f53f8169771caa26dd9623702a7c65e3e9c730dfcb2bbfcb26188dcd57c77f3` | Hash agregado determinístico anterior dos 9 módulos pré-006AV (`SUPERSEDED_BY_CODE_CHANGE`) |
-| **NEW_EXECUTABLE_AGGREGATE_SHA256** | `NOT_REPRODUCIBLE_FROM_TRACKED_METHOD` | Reprodução bloqueada até slice de fechamento formal |
-| **EXECUTABLE_FREEZE_REPRODUCIBILITY** | `BLOCKED` | Bloqueado até PR merge e slice dedicado (`NEXT_REQUIRED_SLICE = EXECUTABLE_FREEZE_REPRODUCIBILITY_CLOSURE`) |
+| **PREVIOUS_EXECUTABLE_AGGREGATE_SHA256** | `8f53f8169771caa26dd9623702a7c65e3e9c730dfcb2bbfcb26188dcd57c77f3` | Hash agregado determinístico histórico dos 9 módulos pré-006AV (`SUPERSEDED_BY_CODE_CHANGE`) |
+| **CURRENT_EXECUTABLE_AGGREGATE_SHA256** | `f5ef6e6b88e09094765b0c3b273ba23cae01502bdd0ec4fe28dbcb3f2133794a` | Hash agregado determinístico verificado dos 10 módulos atuais |
+| **EXECUTABLE_FREEZE_REPRODUCIBILITY** | `PASS` | Comprovado por testes determinísticos automatizados (`packages/integrations/src/typesafe/l2-executable-freeze.test.ts`) |
+| **FREEZE_METHOD_VERSION** | `1.0.0` | Algoritmo determinístico canonical SHA-256 (manifest v1.0.0) |
 
 ### Módulos Executáveis Atuais do Runner (CURRENT_L2_EXECUTABLE_FILE_SET — 10 Módulos)
 
@@ -170,7 +171,7 @@ Estabelecer um envelope rigoroso, auditável e imutável para a futura execuçã
 | `scripts/benchmarks/voice/l2-runner-result-classification.mjs` | 95 | Rastreado |
 | `scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs` | 161 | Rastreado |
 
-*Nota: O hash agregado anterior `8f53f8169771caa26dd9623702a7c65e3e9c730dfcb2bbfcb26188dcd57c77f3` correspondia ao conjunto histórico de 9 módulos (`HISTORICAL_PRE_006AV_EXECUTABLE_FILE_SET`). Com a adição de `l2-runner-cost-ceiling.mjs` no slice 006AV, o hash agregado anterior foi classificado como `SUPERSEDED_BY_CODE_CHANGE`. A reprodução do novo hash agregado para os 10 módulos permanece `EXECUTABLE_FREEZE_REPRODUCIBILITY = BLOCKED` (`NEW_EXECUTABLE_AGGREGATE_SHA256 = NOT_REPRODUCIBLE_FROM_TRACKED_METHOD`) e será resolvida no `NEXT_REQUIRED_SLICE = EXECUTABLE_FREEZE_REPRODUCIBILITY_CLOSURE`.*
+*Nota: O hash agregado anterior `8f53f8169771caa26dd9623702a7c65e3e9c730dfcb2bbfcb26188dcd57c77f3` correspondia ao conjunto histórico de 9 módulos (`HISTORICAL_PRE_006AV_EXECUTABLE_FILE_SET`). Com a adição de `l2-runner-cost-ceiling.mjs` no slice 006AV e fechamento no slice 006AW, o novo conjunto de 10 módulos possui hash agregado determinístico congelado e reproduzível `f5ef6e6b88e09094765b0c3b273ba23cae01502bdd0ec4fe28dbcb3f2133794a` (`EXECUTABLE_FREEZE_REPRODUCIBILITY = PASS`).*
 
 ---
 

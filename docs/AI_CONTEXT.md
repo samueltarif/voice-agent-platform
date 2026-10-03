@@ -4,14 +4,14 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-03
-CONTEXT_BASE_MAIN_SHA: 820e3752f0a838b6f42bea1d34c930c04f4dde2f
+CONTEXT_BASE_MAIN_SHA: 3e19359e483da88a47aa358b098dfe3ecbc02a93
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
-CURRENT_SLICE: Slice 006AY — Authorized Controlled L2 Live Execution
-CONTEXT_UPDATE_BRANCH: research/006ay-l2-authorized-live-execution
-CONTEXT_UPDATE_PR: 78
-LAST_MERGED_PR_AT_REFRESH: 77
-LAST_MERGE_SHA_AT_REFRESH: 820e3752f0a838b6f42bea1d34c930c04f4dde2f
-LAST_TESTED_CODE_SHA: 381c938896d811aa28cb645aed95f802ba6ec706
+CURRENT_SLICE: Slice 006AZ — L2 Runtime Module Resolution Fix
+CONTEXT_UPDATE_BRANCH: fix/006az-l2-runtime-module-resolution
+CONTEXT_UPDATE_PR: 79
+LAST_MERGED_PR_AT_REFRESH: 78
+LAST_MERGE_SHA_AT_REFRESH: 3e19359e483da88a47aa358b098dfe3ecbc02a93
+LAST_TESTED_CODE_SHA: 375b3a1ae9a6dfd7872518a3fa5dca7a9b0639c3
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
 AI_CONTEXT_HEADER_END
@@ -124,8 +124,8 @@ AI_CONTEXT_HEADER_END
 
 ## 6. Estado Atual da Evidência de Qualidade (Quality Gate Snapshot)
 
-- **Último `pnpm check` Global**: `PASS` (executado e observado no slice 006AW na branch `research/006aw-l2-executable-freeze-reproducibility`).
-- **Status das Asserções**: `201 passed` em `@voice-agent/integrations` (26 arquivos de teste, incluindo `21/21 passed` em `jev-openai-l2-synthetic-runner.test.ts` e `11/11 passed` em `l2-executable-freeze.test.ts`).
+- **Último `pnpm check` Global**: `PASS` (executado e observado no slice 006AZ no PR #79).
+- **Status das Asserções**: `206 passed` em `@voice-agent/integrations` (27 arquivos de teste, incluindo `5/5 passed` em `l2-module-resolution.test.ts`, `21/21 passed` em `jev-openai-l2-synthetic-runner.test.ts`, `5/5 passed` em `jev-routing-benchmark.test.ts` e `11/11 passed` em `l2-executable-freeze.test.ts`).
 - **Regressão de Asserções**: `ASSERTION_WEAKER = 0`, `NEW_SKIPS = 0`.
 - **Verificação Arquitetural**: `SUCESSO: Todas as fronteiras e regras arquiteturais respeitadas.`
 - **Verificação de Tamanho de Arquivos**: `SUCESSO: Todos os arquivos de logica estao em conformidade (check:file-size = PASS).`
