@@ -48,11 +48,18 @@ EMPIRICAL_ENV_COST_CEILING_FALLBACK_ALLOWED: NO
 CURRENT_L2_EXECUTION: NOT_AUTHORIZED
 LIVE_AUTHORIZATION_AVAILABLE: NO
 PREAUTH_STATUS: PREAUTH_BLOCKED
-PREVIOUS_EXECUTABLE_AGGREGATE_SHA256: 8f53f8169771caa26dd9623702a7c65e3e9c730dfcb2bbfcb26188dcd57c77f3
+PREVIOUS_EXECUTABLE_AGGREGATE_SHA256: 8f53f8169771caa26dd9623702a7c65e3e9c730dfcb2bbfcb26188dcd57c77f3f
 PREVIOUS_EXECUTABLE_FREEZE_STATUS: SUPERSEDED_BY_CODE_CHANGE
-EXECUTABLE_FREEZE_REPRODUCIBILITY: BLOCKED
-NEW_EXECUTABLE_AGGREGATE_SHA256: NOT_REPRODUCIBLE_FROM_TRACKED_METHOD
-NEXT_REQUIRED_SLICE: EXECUTABLE_FREEZE_REPRODUCIBILITY_CLOSURE
+HISTORICAL_AGGREGATE_REPRODUCIBILITY: LEGACY_NOT_REPRODUCIBLE_FROM_TRACKED_METHOD
+EXECUTABLE_FREEZE_REPRODUCIBILITY: PASS
+FREEZE_METHOD_VERSION: 1.0.0
+CURRENT_EXECUTABLE_AGGREGATE_SHA256: f5ef6e6b88e09094765b0c3b273ba23cae01502bdd0ec4fe28dbcb3f2133794a
+CURRENT_EXECUTABLE_FREEZE_STATUS: FROZEN_REPRODUCIBLY
+HUMAN_SECRET_ROTATION_STATUS: REPORTED_COMPLETE_BY_OPERATOR
+SECRET_ROTATION_EVIDENCE_CLASSIFICATION: HUMAN_REPORTED_NOT_TOOL_VERIFIED
+RUNTIME_CREDENTIAL_AVAILABILITY: NOT_VERIFIED
+NEXT_ALLOWED_STEP: HUMAN_REVIEW_OF_PR76
+NEXT_REQUIRED_STEP_AFTER_MERGE: RUNTIME_CREDENTIAL_PRESENCE_VERIFICATION
 FUTURE_LIVE_CREDENTIAL_CONFIGURATION: REQUIRED_AFTER_FREEZE_CLOSURE
 OPENAI_PRICE_STATUS: VERIFIED
 CLI_LIVE_INTENT_PLUMBING: PASS
@@ -61,9 +68,9 @@ RUNTIME_ENFORCED_INPUT_SIZE_CAP: PASS (1000 chars TypeSafe, 4000 chars OpenAI)
 RUNTIME_ENFORCED_INPUT_TOKEN_CAP: NONE
 TOKEN_CAP_ENFORCEMENT: NOT_ENFORCEABLE_AT_RUNTIME
 AGGREGATE_OUTPUT_CAP: DERIVED_ENFORCEABLE_SUBJECT_TO_CAP_ISOLATION_TEST
-CURRENT_RUNNER_FREEZE: SUPERSEDED_BY_CODE_CHANGE
+CURRENT_RUNNER_FREEZE: FROZEN_REPRODUCIBLY
 LIVE_COMMAND_STATUS: LIVE_COMMAND_NOT_YET_AUTHORIZABLE
-NEXT_ALLOWED_STEP: HUMAN_REVIEW_OF_PR75_THEN_FREEZE_CLOSURE
+NEXT_ALLOWED_STEP: HUMAN_REVIEW_OF_PR76
 BLOCKER_ANALYSIS_STATUS: PREAUTH_BLOCKER_ANALYSIS_COMPLETE
 L2_PREAUTHORIZATION_ENVELOPE_METADATA_END
 -->
@@ -323,7 +330,7 @@ O artefato de saída gerado pelo runner:
 | :--- | :--- | :--- |
 | Dataset Frozen & Verificado | `PASS` (`bd812341a9...`) | Não |
 | Runner Hardening & Modularização | `PASS` (10 módulos <= 180 linhas) | Não |
-| Runner Re-Freeze Agregado | `SUPERSEDED_BY_CODE_CHANGE` (`8f53f81697...` obsoleto; novo aggregate SHA `NOT_REPRODUCIBLE_FROM_TRACKED_METHOD`; `EXECUTABLE_FREEZE_REPRODUCIBILITY = BLOCKED`) | **SIM** |
+| Runner Re-Freeze Agregado | `PASS` (congelado reprodutivelmente em `f5ef6e6b88...` via `compute-l2-executable-freeze.mjs`; `FREEZE_METHOD_VERSION = 1.0.0`; 10 módulos; duas execuções determinísticas idênticas; 10/10 testes PASS) | Não |
 | Runner Function Length DoD | `PASS` (todas as funções <= 50 linhas, max 49) | Não |
 | TypeSafe Model Frozen (`jev-1.13.0`) | `PASS` | Não |
 | OpenAI Model Frozen (`gpt-6-astra`) | `PASS` | Não |
@@ -462,11 +469,10 @@ Decisões formais concedidas pelo operador humano em 2026-10-03 (escopo estrito:
   - `TYPESAFE_EXPLICIT_CONTRACTUAL_TARIFF`: `NOT_OBSERVED`;
   - `HARD_L2_COST_BOUND_FEASIBLE`: `BLOCKED`;
   - `TYPESAFE_PRICING_EVIDENCE`: `ACCOUNT_BILLING_EMPIRICALLY_VERIFIED`.
-- **Status do Hash Agregado Anterior e Próximo Slice Técnico**:
-  - `PREVIOUS_EXECUTABLE_AGGREGATE_SHA256`: `8f53f8169771caa26dd9623702a7c65e3e9c730dfcb2bbfcb26188dcd57c77f3` (`SUPERSEDED_BY_CODE_CHANGE`);
-  - `EXECUTABLE_FREEZE_REPRODUCIBILITY`: `BLOCKED`;
-  - `NEW_EXECUTABLE_AGGREGATE_SHA256`: `NOT_REPRODUCIBLE_FROM_TRACKED_METHOD`;
-  - `NEXT_REQUIRED_SLICE`: `EXECUTABLE_FREEZE_REPRODUCIBILITY_CLOSURE` (pré-requisito técnico offline antes de qualquer configuração de credenciais ou autorização live futura).
+- **Histórico do Hash Anterior (Estado no encerramento do Slice 006AV, superado pelo Slice 006AW)**:
+  - `PREVIOUS_EXECUTABLE_AGGREGATE_SHA256`: `8f53f8169771caa26dd9623702a7c65e3e9c730dfcb2bbfcb26188dcd57c77f3f` (`SUPERSEDED_BY_CODE_CHANGE`);
+  - `HISTORICAL_AGGREGATE_REPRODUCIBILITY`: `LEGACY_NOT_REPRODUCIBLE_FROM_TRACKED_METHOD`;
+  - *Nota de Fechamento*: Este bloqueio histórico foi fechado com sucesso no Slice 006AW (`EXECUTABLE_FREEZE_REPRODUCIBILITY = PASS`, `CURRENT_EXECUTABLE_FREEZE_STATUS = FROZEN_REPRODUCIBLY`, hash atual: `f5ef6e6b88e09094765b0c3b273ba23cae01502bdd0ec4fe28dbcb3f2133794a`; ver Seção 19).
 - **Garantias Estritas de Teto Financeiro**:
   - `EMPIRICAL_EXPLICIT_COST_CEILING_REQUIRED`: `YES`;
   - `EMPIRICAL_ENV_COST_CEILING_FALLBACK_ALLOWED`: `NO` (o runner rejeita estritamente o uso herdado de `L2_COST_CEILING_USD` do ambiente quando a política empírica é selecionada; exige `--cost-ceiling <USD>` explícito na linha de comando).
@@ -480,3 +486,62 @@ Decisões formais concedidas pelo operador humano em 2026-10-03 (escopo estrito:
   - `Cloud DB`: `0`;
   - `Customer data`: `0`;
   - `Holdout`: `NO ACCESS`.
+
+---
+
+## 19. Fechamento da Reprodutibilidade de Congelamento do Executável L2 (Slice 006AW)
+
+- **Slice**: `006AW` (`research/006aw-l2-executable-freeze-reproducibility`)
+- **Objetivo**: Fechar o gate de reproducibilidade do conjunto executável do runner L2 através de ferramenta rastreada no repositório, determinística e livre de dependências de plataforma.
+- **Investigação do Método Histórico**:
+  - `HISTORICAL_FREEZE_METHOD_TRACKED`: `NO` (o hash `8f53f816...` foi registrado documentalmente sem ferramenta ou receita de hashing rastreada no Git);
+  - `HISTORICAL_FREEZE_METHOD_REPRODUCIBLE`: `NO`;
+  - `HISTORICAL_AGGREGATE_REPRODUCIBILITY`: `LEGACY_NOT_REPRODUCIBLE_FROM_TRACKED_METHOD`;
+  - `PREVIOUS_EXECUTABLE_AGGREGATE_SHA256`: `8f53f8169771caa26dd9623702a7c65e3e9c730dfcb2bbfcb26188dcd57c77f3f` (`SUPERSEDED_BY_CODE_CHANGE`).
+- **Implementação do Método Canônico Rastreado**:
+  - **Manifesto Canônico**: `scripts/benchmarks/voice/l2-executable-freeze-manifest.json` (declaração explícita dos 10 módulos executáveis do runner);
+  - **Ferramenta de Cálculo**: `scripts/benchmarks/voice/compute-l2-executable-freeze.mjs` (172 linhas, funções <= 26 linhas);
+  - **Versão do Método**: `FREEZE_METHOD_VERSION = 1.0.0`;
+  - **Determinismo Multiplataforma**: A leitura do conteúdo de cada módulo é feita via Git (`git show ${ref}:${modulePath}`), garantindo que o hashing opere exatamente sobre os bytes canônicos rastreados no Git (com quebras de linha LF), independentemente de conversões automáticas CRLF no sistema de arquivos do host Windows/Linux;
+  - **Ordenação Canônica**: Ordenação lexicográfica estrita dos caminhos POSIX antes da composição do material de agregação;
+  - **Material de Agregação Canônico**: UTF-8 formatado exatamente como:
+    ```
+    FREEZE_METHOD_VERSION:1.0.0
+    <repo-relative-posix-path>:<per-file-sha256>
+    ...
+    ```
+  - **Fail-Closed Guarantees**: A ferramenta falha imediatamente se qualquer módulo do manifesto estiver ausente, se houver caminhos duplicados, se algum caminho escapar da raiz do repositório, se a contagem não corresponder exatamente a 10 módulos, ou se módulos executáveis forem alterados sem conformidade.
+- **Conjunto Executável Atual (10 Módulos)**:
+  1. `scripts/benchmarks/voice/l2-runner-artifact.mjs` (SHA-256: `fcd365e94ad4cae51eca8e535b942f128d78864c05baa61e3ecce255c80e48c6`)
+  2. `scripts/benchmarks/voice/l2-runner-case-execution.mjs` (SHA-256: `4909155e6e4ad0fcd0dc7168a9e136c4939bdb93716468e67ce25d9c65cf0b74`)
+  3. `scripts/benchmarks/voice/l2-runner-cost-ceiling.mjs` (SHA-256: `76382ac71457f8c79d855d39340a1d9c1a0cf975fbdc347bc1fae62ec5520147`)
+  4. `scripts/benchmarks/voice/l2-runner-dependencies.mjs` (SHA-256: `13bf268b6019094d8fd4a0d9e4d208a8bfa7ef85b1c49465428b853ea4ee4ed0`)
+  5. `scripts/benchmarks/voice/l2-runner-input-budget.mjs` (SHA-256: `3f12299aadc810f0350273d288667f00be35cbec2d96ea73b9f26ba8e7d699d5`)
+  6. `scripts/benchmarks/voice/l2-runner-preconditions.mjs` (SHA-256: `4408afcdd94e6e57630cee98286498288d2fe3f85d3716dac96828cad60c582c`)
+  7. `scripts/benchmarks/voice/l2-runner-provider-dispatch.mjs` (SHA-256: `655d84e086752d4f25ac6b772ad7a317a92da842fe0800fe7b1952feb47c96a5`)
+  8. `scripts/benchmarks/voice/l2-runner-request-caps.mjs` (SHA-256: `5e3a55e69f676afb16697afdcd0c3349469f392374989c8b945a3c11d8ffc21f`)
+  9. `scripts/benchmarks/voice/l2-runner-result-classification.mjs` (SHA-256: `b4b8211f6a6784a6084bbb4c652e8e110773de5663348f19a8b30f867eac6648`)
+  10. `scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs` (SHA-256: `7e7a0621b7e91f21c5ddd1aa5a191074cf5f35c9c190b4c5f789852b47c542ec`)
+- **Evidência de Reprodutibilidade em Duas Execuções Independentes**:
+  - `RUN_1_AGGREGATE_SHA256`: `f5ef6e6b88e09094765b0c3b273ba23cae01502bdd0ec4fe28dbcb3f2133794a`
+  - `RUN_2_AGGREGATE_SHA256`: `f5ef6e6b88e09094765b0c3b273ba23cae01502bdd0ec4fe28dbcb3f2133794a`
+  - `TWO_RUN_REPRODUCIBILITY`: `PASS` (`RUN_1 === RUN_2`)
+  - `CURRENT_EXECUTABLE_AGGREGATE_SHA256`: `f5ef6e6b88e09094765b0c3b273ba23cae01502bdd0ec4fe28dbcb3f2133794a`
+  - `EXECUTABLE_FREEZE_REPRODUCIBILITY`: `PASS`
+  - `CURRENT_EXECUTABLE_FREEZE_STATUS`: `FROZEN_REPRODUCIBLY`
+- **Testes Automatizados de Reprodutibilidade**:
+  - `packages/integrations/src/typesafe/l2-executable-freeze.test.ts`: 10 casos de teste cobrindo determinismo, insensibilidade à ordem de enumeração do filesystem, sensibilidade a mutação de 1 byte, fail-closed por arquivo ausente, duplicatas, path traversal fora do repo, discrepância de contagem, ausência total de chamadas a provedores/rede e isolamento de segredos/arquivos `.env`.
+  - Resultado: `11/11 PASS` (incluindo testes de ordenação independente de locale e fail-closed para ausência de manifesto no ref Git sem fallback para working tree).
+- **Dataset Sintético L2**:
+  - `L2_DATASET_SHA256`: `bd812341a922ded1c7159191849dae284a88f24afd9c7e8d3c64f9b081602f3f` (`UNCHANGED`).
+- **Governança de Execução e Status Atual**:
+  - `CURRENT_L2_EXECUTION`: `NOT_AUTHORIZED`;
+  - `LIVE_AUTHORIZATION_AVAILABLE`: `NO`;
+  - `SECOND_LIVE_RUN_AUTHORIZED`: `NO`;
+  - `LIVE_COMMAND_INVOKED`: `NO`;
+  - Provedores reais chamados: `0` (OpenAI real: 0, TypeSafe real: 0, Twilio: 0, Cloud DB: 0, Holdout: NO ACCESS);
+  - `HUMAN_SECRET_ROTATION_STATUS`: `REPORTED_COMPLETE_BY_OPERATOR` (o operador humano reportou formalmente a rotação das chaves);
+  - `SECRET_ROTATION_EVIDENCE_CLASSIFICATION`: `HUMAN_REPORTED_NOT_TOOL_VERIFIED`;
+  - `RUNTIME_CREDENTIAL_AVAILABILITY`: `NOT_VERIFIED` (valores não inspecionados, sem leitura de .env);
+  - `NEXT_ALLOWED_STEP`: `HUMAN_REVIEW_OF_PR76`;
+  - `NEXT_REQUIRED_STEP_AFTER_MERGE`: `RUNTIME_CREDENTIAL_PRESENCE_VERIFICATION` (verificação segura por booleano de processo após o merge).
