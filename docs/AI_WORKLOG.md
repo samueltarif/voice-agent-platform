@@ -13397,3 +13397,169 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **PR68_MERGE_SHA**: `630ee48d8fdd10077e7374053da176d9072c5b9a`
 - **MERGE_PERFORMED**: `NO` (este PR é apenas de sincronização documental do contexto)
 - **NEXT_ALLOWED_STEP**: `review and merge this doc-only context PR, then begin L2 Real Jev + Real OpenAI + Synthetic Transcript — PREAUTHORIZATION PLANNING ONLY`
+
+
+---
+
+## 2026-10-03 — L2 Provider Preauthorization Envelope Definition (Slice 006AQ-PreauthEnvelope)
+
+### 1. Contexto e Preflight
+- **Prompt ID**: `PROMPT-L2-PREAUTHORIZATION-ENVELOPE-001`
+- **AUTHORITATIVE_REPO_ROOT**: `D:/voice-agent-platform-git`
+- **Branch**: `docs/006aq-l2-preauthorization-envelope`
+- **Base (origin/main)**: `774d522180dd1e720ddab91d4ae0b7898bece2c6`
+- **PR #68 & PR #69 Status**: `MERGED`
+- **Provider Calls neste Slice**: TypeSafe = 0, OpenAI = 0, Twilio = 0
+- **Cloud DB Connections**: 0
+- **Local DB Connections**: 0
+- **Holdout**: `NO NEW ACCESS` (`LOCKED_HOLDOUT = CONSUMED` preservado)
+- **Frozen Policy**: `UNCHANGED`
+- **ACTIVE_GUARDED**: `BLOCKED`
+- **PRODUCTION_RUNTIME_WIRING**: `NO`
+- **CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE**: `NOT CLEARED`
+- **L2_EXECUTION**: `NOT EXECUTED`
+
+### 2. Pacote Formal de Pré-Autorização L2
+- **Documento Criado**: `docs/research/PHASE_6_L2_PREAUTHORIZATION_ENVELOPE.md`.
+- **Identidade do Estudo Congelada**:
+  - `L2_DATASET_PATH`: `scripts/benchmarks/voice/jev-openai-l2-synthetic-integration-v1-cases.json`
+  - `L2_DATASET_VERSION`: `1.0.1` (12 casos sintéticos estritos)
+  - `L2_DATASET_SHA256`: `bd812341a922ded1c7159191849dae284a88f24afd9c7e8d3c64f9b081602f3f`
+  - `L2_RUNNER_PATH`: `scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs`
+  - `L2_RUNNER_SHA256`: `89c42ced37e04aafadb752f9fcc03e28fcb5409dfb2ff878c35eb8a1f98e4755`
+  - `L2_RUNNER_COMMIT_SHA`: `4cd15b1b0b6afe5a9f10b371eab387ae85bb8205`
+- **Modelos**:
+  - TypeSafe: `jev-1.13.0` (exact match guard obrigatório).
+  - OpenAI: `gpt-4o-mini` (`NOT_OBSERVABLE_VIA_CURRENT_SURFACE`).
+- **Status de Precificação**:
+  - `TYPESAFE_PRICE_STATUS`: `VERIFIED` ($42 / Btok input, output gratuito).
+  - `OPENAI_PRICE_STATUS`: `VERIFIED` (fonte oficial OpenAI: $0.15 / 1M input, $0.60 / 1M output).
+- **Caps de Requisições e Concorrência**:
+  - `MAX_TYPESAFE_REQUESTS`: 7
+  - `MAX_OPENAI_REQUESTS`: 12
+  - `TOTAL_MAX_PROVIDER_REQUESTS`: 19
+  - `CONCURRENCY`: 1 (serial)
+  - `PROVIDER_RETRIES`: 0
+- **Orçamento e Imposição de Tokens**:
+  - `MAX_OUTPUT_TOKENS_PER_REQUEST`: 500 (enforced via adapter).
+  - `MAX_TOTAL_OUTPUT_TOKENS`: 6.000 (enforced).
+  - `TOKEN_CAP_ENFORCEMENT`: `NOT_ENFORCEABLE_AT_RUNTIME` (runner atual não acumula/valida tokens antes do envio HTTP).
+- **Modelo de Custo Pior-Caso (Worst-Case)**:
+  - TypeSafe: $0.000294 USD
+  - OpenAI: $0.006300 USD
+  - `MAX_PROJECTED_TOTAL_PROVIDER_COST_USD`: $0.006594 USD (~$0.0066 USD).
+- **Proposta de Teto Financeiro**:
+  - `PROPOSED_L2_OPERATOR_COST_CEILING_USD`: $0.25 USD.
+  - `L2_OPERATOR_COST_CEILING`: `PROPOSED_NOT_AUTHORIZED`.
+- **Status do Comando Live**:
+  - `LIVE_COMMAND_STATUS`: `LIVE_COMMAND_NOT_YET_AUTHORIZABLE` (runner atual possui constante `OPENAI_PRICE_STATUS = 'NOT_VERIFIED'` hardcoded e não repassa flag de autorização via CLI).
+- **Classificação do Envelope de Pré-Autorização**:
+  - `PREAUTH_STATUS`: `PREAUTH_BLOCKED_FOR_RUNNER_LIVE_PRECONDITIONS`
+  - **Bloqueadores Restantes**:
+    1. Ajuste pontual do runner para repassar CLI flag `--allow-live` e refletir status verificado de preços;
+    2. Implementação de guarda ativa de limite de tokens (`TOKEN_CAP_ENFORCEMENT`);
+    3. Aprovação humana do teto de custo ($0.25 USD).
+
+### 3. Governança e Integridade
+- **Escopo**: 100% documental (`docs/research/PHASE_6_L2_PREAUTHORIZATION_ENVELOPE.md`, `docs/AI_CONTEXT.md`, `docs/AI_WORKLOG.md`).
+- **AI_WORKLOG_APPEND_ONLY**: `PASS`.
+- **SECRET_AUDIT**: `PASS`.
+- **FULL_PNPM_CHECK**: `NOT_REQUIRED_FOR_DOC_ONLY_SLICE`.
+
+
+---
+
+## 2026-10-03 — PR #70 Preauthorization Evidence Reconciliation (Slice 006AQ-Reconciliation)
+
+### 1. Contexto e Preflight
+- **Prompt ID**: `PROMPT-PR70-PREAUTH-EVIDENCE-RECONCILIATION-001`
+- **AUTHORITATIVE_REPO_ROOT**: `D:/voice-agent-platform-git`
+- **Branch**: `docs/006aq-l2-preauthorization-envelope`
+- **Base do PR #70**: `774d522180dd1e720ddab91d4ae0b7898bece2c6` (após merge do PR #69)
+- **PR #70 Status**: `OPEN` (atualizado na mesma branch)
+- **Provider Calls neste Slice**: TypeSafe = 0, OpenAI = 0, Twilio = 0
+- **Cloud DB Connections**: 0
+- **Local DB Connections**: 0
+- **Holdout**: `NO NEW ACCESS` (`LOCKED_HOLDOUT = CONSUMED` preservado)
+- **Frozen Policy**: `UNCHANGED`
+- **ACTIVE_GUARDED**: `BLOCKED`
+- **PRODUCTION_RUNTIME_WIRING**: `NO`
+- **CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE**: `NOT CLEARED`
+- **L2_EXECUTION**: `NOT EXECUTED`
+
+### 2. Reconciliação Factual da Evidência de Pré-Autorização
+- **Correção do Cabeçalho de `docs/AI_CONTEXT.md`**:
+  - `CONTEXT_BASE_MAIN_SHA`: Atualizado para `774d522180dd1e720ddab91d4ae0b7898bece2c6` (base real do PR #70).
+  - `LAST_MERGED_PR_AT_REFRESH`: `69`.
+  - `LAST_MERGE_SHA_AT_REFRESH`: `774d522180dd1e720ddab91d4ae0b7898bece2c6`.
+  - `CONTEXT_UPDATE_PR`: `70`.
+  - `LAST_TESTED_CODE_SHA`: Preservado em `630ee48d8fdd10077e7374053da176d9072c5b9a` (SHA do último código efetivamente testado no quality gate canônico).
+- **Evidência de Preços**:
+  - **OpenAI**: `OPENAI_PRICE_STATUS = VERIFIED` (`https://openai.com/api/pricing/`: $0.15/1M input, $0.60/1M output).
+  - **TypeSafe**: `TYPESAFE_PRICE_STATUS = NOT_VERIFIED` (ausência de URL pública oficial direta da TypeSafe acessível para verificação de faturamento; requisições empíricas em L1A/L1B comprovam funcionalidade, não preço comercial).
+- **Semântica de Limites de Tokens**:
+  - `RUNTIME_ENFORCED_INPUT_TOKEN_CAP`: `NONE` (não há validador ativo ou interceptor no runner antes das requisições HTTP).
+  - `TOKEN_CAP_ENFORCEMENT`: `NOT_ENFORCEABLE_AT_RUNTIME` (bloqueador formal para execução live).
+  - Premissas de 1.000 / 1.500 tokens de entrada reclassificadas rigorosamente como `CONSERVATIVE_PLANNING_ASSUMPTION`.
+  - Saída: 500 tokens por requisição imposto via adapter; limite agregado de 6.000 tokens classificado como `DERIVED_ENFORCEABLE_SUBJECT_TO_CAP_ISOLATION_TEST`.
+- **Semântica de Custos e Teto do Operador**:
+  - Custo projetado ($0.006594 USD) reclassificado como `PLANNING_SCENARIO_PROJECTED_COST_USD`.
+  - `HARD_MAX_PROVIDER_COST_STATUS`: `NOT_ENFORCEABLE` (devido à ausência de guarda de tokens de entrada em runtime e precificação TypeSafe não verificada publicamente).
+  - `L2_OPERATOR_COST_CEILING`: `NOT_AUTHORIZABLE` (proposta de $0.25 USD mantida exclusivamente como premissa de planejamento, não autorizável antes do hardening).
+- **Comando Live e Congelamento do Runner**:
+  - `LIVE_COMMAND_STATUS`: `LIVE_COMMAND_NOT_YET_AUTHORIZABLE` (runner atual não aceita `--allow-live` e possui status hardcoded).
+  - `CURRENT_RUNNER_FREEZE`: `PRE_HARDENING_REFERENCE` (SHA-256 `89c42ced...`).
+  - `FUTURE_LIVE_RUNNER_FREEZE`: `MUST_BE_RECOMPUTED_AFTER_HARDENING` (o runner será modificado no próximo slice de código, o que exigirá novo congelamento de hash).
+- **Classificação Final do Envelope**:
+  - `PREAUTH_STATUS`: `PREAUTH_BLOCKED_FOR_RUNNER_HARDENING_AND_TOKEN_CAPS`
+
+### 3. Governança e Integridade
+- **Escopo**: 100% documental (`docs/AI_CONTEXT.md`, `docs/AI_WORKLOG.md`, `docs/research/PHASE_6_L2_PREAUTHORIZATION_ENVELOPE.md`).
+- **AI_WORKLOG_APPEND_ONLY**: `PASS`.
+- **SECRET_AUDIT**: `PASS`.
+- **MERGE_PERFORMED**: `NO`.
+
+
+---
+
+## 2026-10-03 — PR #70 Final Documentation Consistency Closure (Slice 006AQ-DocClosure)
+
+### 1. Contexto e Preflight
+- **Prompt ID**: `PROMPT-PR70-FINAL-DOC-CONSISTENCY-CLOSURE-001`
+- **AUTHORITATIVE_REPO_ROOT**: `D:/voice-agent-platform-git`
+- **Branch**: `docs/006aq-l2-preauthorization-envelope`
+- **Base do PR #70**: `774d522180dd1e720ddab91d4ae0b7898bece2c6`
+- **PR #70 Status**: `OPEN`
+- **Provider Calls neste Slice**: TypeSafe = 0, OpenAI = 0, Twilio = 0
+- **Cloud DB Connections**: 0
+- **Local DB Connections**: 0
+- **Holdout**: `NO NEW ACCESS` (`LOCKED_HOLDOUT = CONSUMED` preservado)
+- **Frozen Policy**: `UNCHANGED`
+- **ACTIVE_GUARDED**: `BLOCKED`
+- **PRODUCTION_RUNTIME_WIRING**: `NO`
+- **CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE**: `NOT CLEARED`
+- **L2_EXECUTION**: `NOT EXECUTED`
+
+### 2. Fechamento de Inconsistências Documentais
+- **Quality Gate Snapshot Reconciliado em `docs/AI_CONTEXT.md`**:
+  - `LAST_GLOBAL_PNPM_CHECK_CODE_SHA`: Atualizado para `630ee48d8fdd10077e7374053da176d9072c5b9a` (SHA pós-merge do PR #68 verificado com sucesso no histórico factual).
+  - Status das asserções: `750 passed`, `45 historical skips`, `0 new skips`, `0 failures` (111 arquivos de teste aprovados, 6 skipped de staging; 795 testes totais).
+  - `QUALITY_EVIDENCE_STALE`: `NO` (commits subsequentes estritamente documentais em `docs/`).
+- **Contagem de Testes Focados do Runner L2 Reconciliada**:
+  - `L2_RUNNER`: `IMPLEMENTED / HARDENED / TESTED OFFLINE`.
+  - `L2_RUNNER_FOCUSED_TESTS`: `12/12 PASS` em `packages/integrations/src/typesafe/jev-openai-l2-synthetic-runner.test.ts` (suite endurecida com matriz completa A-T).
+- **Semântica do Próximo Passo (`NEXT_ALLOWED_STEP`) Corrigida**:
+  - Atualizado para `L2 RUNNER HARDENING — OFFLINE ONLY` (objetivos: CLI live flag `--allow-live`, guarda ativa de limite de tokens em runtime, testes de borda de caps e zero chamadas reais).
+  - Preservado: `L2_EXECUTION = NOT EXECUTED`, `DO NOT EXECUTE L2 LIVE.`
+- **Semântica do Commit do Runner Reconciliada**:
+  - `L2_RUNNER_LAST_CODE_COMMIT_SHA`: `4cd15b1b0b6afe5a9f10b371eab387ae85bb8205` (commit de hardening do runner no PR #68, não commit de introdução original).
+- **Normalização da Classificação de Bloqueio**:
+  - `PREAUTH_STATUS`: `PREAUTH_BLOCKED` (evitando string excessivamente longa e refletindo todos os 5 bloqueadores ativos: `BLOCKER_RUNNER_HARDENING`, `BLOCKER_INPUT_TOKEN_CAPS`, `BLOCKER_REQUEST_CAP_BOUNDARY_TESTS`, `BLOCKER_TYPESAFE_PRICING_EVIDENCE`, `BLOCKER_OPERATOR_AUTHORIZATION`).
+- **Correção de Apresentação Markdown**:
+  - Fórmulas de cálculo de custos substituídas por bloco de texto estruturado sem escapes frágeis.
+
+### 3. Governança e Integridade
+- **Escopo**: 100% documental (`docs/AI_CONTEXT.md`, `docs/AI_WORKLOG.md`, `docs/research/PHASE_6_L2_PREAUTHORIZATION_ENVELOPE.md`).
+- **AI_WORKLOG_APPEND_ONLY**: `PASS`.
+- **SECRET_AUDIT**: `PASS`.
+- **MERGE_PERFORMED**: `NO`.

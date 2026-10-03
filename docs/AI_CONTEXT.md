@@ -4,13 +4,13 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-03
-CONTEXT_BASE_MAIN_SHA: 630ee48d8fdd10077e7374053da176d9072c5b9a
+CONTEXT_BASE_MAIN_SHA: 774d522180dd1e720ddab91d4ae0b7898bece2c6
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
 CURRENT_SLICE: L2 Real Jev + Real OpenAI + Synthetic Transcript — Preauthorization Planning
-CONTEXT_UPDATE_BRANCH: docs/006ap-pr68-postmerge-context-sync
-CONTEXT_UPDATE_PR: PENDING
-LAST_MERGED_PR_AT_REFRESH: 68
-LAST_MERGE_SHA_AT_REFRESH: 630ee48d8fdd10077e7374053da176d9072c5b9a
+CONTEXT_UPDATE_BRANCH: docs/006aq-l2-preauthorization-envelope
+CONTEXT_UPDATE_PR: 70
+LAST_MERGED_PR_AT_REFRESH: 69
+LAST_MERGE_SHA_AT_REFRESH: 774d522180dd1e720ddab91d4ae0b7898bece2c6
 LAST_TESTED_CODE_SHA: 630ee48d8fdd10077e7374053da176d9072c5b9a
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
@@ -87,7 +87,7 @@ AI_CONTEXT_HEADER_END
 - **EXPECTED_MODEL_AUTHORITY**: `OPTION_B` (TypeSafe adapter integration config: options.expectedProviderModel).
 - **L1A_MODEL_IDENTITY_SMOKE**: `EXECUTED / PASS` (N=20/20 sucessos com exact match `jev-1.13.0`, 0 mismatches, 0 erros técnicos, mediana descritiva 275ms, p90 316ms, max 685ms; SHA-256 `698c5e2a3b91...`; `docs/research/results/phase-6-typesafe-l1a-model-identity-smoke-run1.json`).
 - **L1B_SYNTHETIC_LATENCY_STUDY**: L1B_PLAN = EXECUTED / PASS_COMPLETE | L1B_RUNNER = IMPLEMENTED / TESTED OFFLINE | L1B_EXECUTION = EXECUTED / PASS_COMPLETE (100 attempted / 100 succeeded, 100/100 model matches jev-1.13.0, 0 mismatches, 0 erros técnicos, 0 timeouts; latência DESCRIPTIVE_ONLY: min 229ms, mediana 257ms, p75 273ms, p90 302ms, p95 325ms, p99 empirical 380ms, max 385ms; SHA-256 f087a6e3ad83fc81b272ffd775d5e66d00c6e7c918d310ca54f45237d59f1cdb; docs/research/results/phase-6-typesafe-l1b-synthetic-latency-run1.json) | L1B_PROVIDER_EXECUTION = EXECUTED.
-- **L2_REAL_JEV_OPENAI_SYNTHETIC**: L2_PLAN = DESIGNED (`docs/research/PHASE_6_L2_REAL_JEV_OPENAI_SYNTHETIC_PLAN.md`) | L2_DATASET = CREATED (N=12, SHA-256 `bd812341a922...`; `scripts/benchmarks/voice/jev-openai-l2-synthetic-integration-v1-cases.json`) | L2_RUNNER = IMPLEMENTED / TESTED OFFLINE (`scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs`, 8/8 unit tests pass in `packages/integrations/src/typesafe/jev-openai-l2-synthetic-runner.test.ts`) | L2_EXECUTION = NOT EXECUTED | L2_PROVIDER_CALLS = 0 | L2_PROVIDER_EXECUTION = AWAITING_OPERATOR_AUTHORIZATION.
+- **L2_REAL_JEV_OPENAI_SYNTHETIC**: L2_PLAN = DESIGNED (`docs/research/PHASE_6_L2_REAL_JEV_OPENAI_SYNTHETIC_PLAN.md`) | L2_DATASET = CREATED (N=12, SHA-256 `bd812341a922...`; `scripts/benchmarks/voice/jev-openai-l2-synthetic-integration-v1-cases.json`) | L2_RUNNER = IMPLEMENTED / HARDENED / TESTED OFFLINE (`scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs`, L2_RUNNER_FOCUSED_TESTS = 12/12 PASS in `packages/integrations/src/typesafe/jev-openai-l2-synthetic-runner.test.ts`) | L2_EXECUTION = NOT EXECUTED | L2_PROVIDER_CALLS = 0 | L2_PROVIDER_EXECUTION = AWAITING_OPERATOR_AUTHORIZATION.
 - **SECURITY_RUNTIME_SEMANTICS**: `DESIGNED` (`docs/research/PHASE_6_SECURITY_ESCALATE_RUNTIME_SEMANTICS.md`).
 - **SECURITY_RESPONSE_DELIVERY_READY**: `IMPLEMENTED LOCALLY / ROUTING INTEGRATED`.
 - **SECURITY_HISTORY_PERSISTENCE_READY**: `IMPLEMENTED LOCALLY (Turn-scoped qualified H4/H5 history resolution)`.
@@ -155,13 +155,14 @@ AI_CONTEXT_HEADER_END
 
 ## 6. Estado Atual da Evidência de Qualidade (Quality Gate Snapshot)
 
-- **Último `pnpm check` Global**: `PASS` (executado e observado no commit `b99f15583ae350bcd01d37759fcc4016e63eac34` com sentinela `PNPM_CHECK_FINAL_PASS`).
-- **Status das Asserções**: `738 passed`, `45 historical skips`, `0 new skips`, `0 failures` (110 arquivos de teste aprovados, 6 skipped de staging; 783 testes totais).
-- **Regressão de Asserções**: `ASSERTION_WEAKER = 0`, `EXISTING_TEST_ASSERTION_STRONGER = 0`, `EXISTING_TEST_ASSERTION_EQUIVALENT = 0`, `NEW_TESTS_ADDED = 11` (9 em `typesafe-jev-turn-decision-adapter.test.ts`, 2 em `guarded-turn-routing.test.ts`).
+- **Último `pnpm check` Global**: `PASS` (executado e observado no commit `630ee48d8fdd10077e7374053da176d9072c5b9a` pós-merge do PR #68).
+- **LAST_GLOBAL_PNPM_CHECK_CODE_SHA**: `630ee48d8fdd10077e7374053da176d9072c5b9a`
+- **Status das Asserções**: `750 passed`, `45 historical skips`, `0 new skips`, `0 failures` (111 arquivos de teste aprovados, 6 skipped de staging; 795 testes totais).
+- **Regressão de Asserções**: `ASSERTION_WEAKER = 0`, `NEW_SKIPS = 0`.
 - **Verificação Arquitetural**: `SUCESSO: Todas as fronteiras e regras arquiteturais respeitadas.`
-- **Verificação de Tamanho de Arquivos**: `HARD_MAX_180 = PASS; TARGET_80_150 = ABOVE TARGET / WARNING (typesafe-jev-turn-decision-adapter.ts: 173 linhas; conversation-orchestrator.ts: 177 linhas; guarded-turn-routing-coordinator.ts: 138 linhas; 0 violações > 180 linhas; check:file-size = PASS).`
-- **Auditoria de Segredos**: `PR60_FINAL_MERGE_SECRET_AUDIT = PASS` | `PR61_FINAL_MERGE_SECRET_AUDIT = PASS` | `PR62_FINAL_MERGE_SECRET_AUDIT = PASS` | `PR63_FINAL_MERGE_SECRET_AUDIT = PASS` (reconciliado pós-merge do PR #63 no SHA `d2e9fa60f060bd943f6aa6ee492edcd4d7c7adee`).
-- **QUALITY_EVIDENCE_STALE**: `NO` (commits subsequentes estritamente documentais em `docs/`).
+- **Verificação de Tamanho de Arquivos**: `SUCESSO: Todos os arquivos de logica estao em conformidade (check:file-size = PASS).`
+- **Auditoria de Segredos**: `SECRET_AUDIT_PASS` (verificado sobre diff de tracking).
+- **QUALITY_EVIDENCE_STALE**: `NO` (commits posteriores em PR #69 e PR #70 foram estritamente documentais em `docs/`).
 
 ---
 
@@ -190,11 +191,17 @@ AI_CONTEXT_HEADER_END
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- **L2 Real Jev + Real OpenAI + Synthetic Transcript — PREAUTHORIZATION PLANNING ONLY** (review & merge this doc-only PR, then proceed to L2 preauthorization planning).
+- **L2 RUNNER HARDENING — OFFLINE ONLY** (após revisão e merge do PR #70).
+  - Objetivos do próximo slice de código:
+    1. Adicionar suporte a CLI flag `--allow-live` e propagação controlada de execução live;
+    2. Implementar guarda em tempo de execução para limites de tokens de entrada (`RUNTIME_ENFORCED_INPUT_TOKEN_CAP`);
+    3. Adicionar testes unitários isolados de borda para exaustão de caps de requisições (`checkCaps`);
+    4. Garantir que precificação e pré-condições operem em modo fail-closed;
+    5. Zero chamadas a provedores reais (`TypeSafe = 0`, `OpenAI = 0`, `Twilio = 0`).
 - `L2_EXECUTION` = `NOT EXECUTED`.
-- `OPENAI_PRICE_STATUS` = `NOT_VERIFIED`.
-- `L2_OPERATOR_COST_CEILING` = `NOT_AUTHORIZED`.
-- `ACTIVE_GUARDED` permanece `BLOCKED` até conclusão da escada de validação (L1-L4).
+- `OPENAI_PRICE_STATUS` = `VERIFIED` (oficial: $0.15/1M in, $0.60/1M out); `TYPESAFE_PRICE_STATUS` = `NOT_VERIFIED` (sem URL pública oficial de faturamento).
+- `L2_OPERATOR_COST_CEILING` = `NOT_AUTHORIZABLE` (proposta de $0.25 USD aguarda hardening e caps executáveis).
+- `ACTIVE_GUARDED` permanece `BLOCKED` até conclusão de toda a escada de validação (L1-L4).
 - Do NOT execute L2 live.
 - Do NOT enable live customer traffic.
 - Do NOT use real telephony / live Twilio (`TWILIO_ACCOUNT_REQUIRED_NOW = NO`).
