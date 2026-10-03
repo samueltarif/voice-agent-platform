@@ -12681,3 +12681,47 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **PRODUCTION_RUNTIME_WIRING**: `NO`
 - **ACTIVE_GUARDED**: `BLOCKED`
 - **L1B_PROVIDER_EXECUTION**: `AWAITING_OPERATOR_AUTHORIZATION`
+
+---
+
+## 2026-10-02 — PR #66 Post-Format Final Offline Evidence Refresh (Slice 006AL)
+
+### 1. Reconciliação de Staleness Pós-Formatação
+- **Prompt**: `PROMPT-006AL-PR66-POST-FORMAT-EVIDENCE-REFRESH-001`
+- **Fase**: Phase 6 (Voice Model Routing & Jev Evaluation)
+- **PR**: #66 (`research/006al-l1b-run1-preauth-runner`)
+- **PR66_INITIAL_OFFLINE_EVIDENCE_STALE_AFTER_PRETTIER**: `YES` (a formatação final com Prettier ocorreu após a primeira suíte offline)
+- **Ação Executada**: Reexecução integral da validação de sintaxe e dos 13 cenários de teste offline sobre o arquivo do runner formatado final exato (`scripts/benchmarks/voice/run-jev-l1b-synthetic-latency.mjs`).
+
+### 2. Resultados da Validação Final Sobre o Runner Formatado
+- **PR66_FINAL_RUNNER_NODE_CHECK**: `PASS` (`node --check scripts/benchmarks/voice/run-jev-l1b-synthetic-latency.mjs` com exit code 0)
+- **PR66_FINAL_RUNNER_OFFLINE_TESTS**: `13/13 PASS`
+  - *Teste A (Missing Cost Ceiling)*: `PASS`
+  - *Teste B (Insufficient Cost Ceiling)*: `PASS`
+  - *Teste C (100 Requests Máximas)*: `PASS`
+  - *Teste D (Request 101 Impossível)*: `PASS`
+  - *Teste E (Zero Retries)*: `PASS`
+  - *Teste F (Max Concurrency Simultânea = 1)*: `PASS`
+  - *Teste G (Deadline Abort e Zero Background Requests)*: `PASS` (`BACKGROUND_REQUEST_AFTER_TIMEOUT = NO`)
+  - *Teste H (Model Identity Mismatch Halts)*: `PASS`
+  - *Teste I (HTTP Auth Error 401/403 Halts)*: `PASS`
+  - *Teste J (3 Consecutivos Erros Halts — Research Heuristic)*: `PASS`
+  - *Teste K (Zero Transcripts Persistidos)*: `PASS`
+  - *Teste L (Zero Raw Payloads / Headers Persistidos)*: `PASS`
+  - *Teste M (Zero Routing Scores Persistidos)*: `PASS`
+- **PR66_FINAL_RUNNER_TESTED_AFTER_LAST_FUNCTIONAL_FILE_CHANGE**: `YES` (evidência coletada no estado exato e final do código)
+- **Nenhum Helper Temporário Criado**: `YES` (validação executada inline em memória)
+
+### 3. Integridade do Dataset e Invariantes
+- **Dataset Count**: `100` casos sintéticos
+- **Dataset SHA-256**: `952da0c7a6a10447baa9e24a976543e06b7480eb9bdef98096242d5276188136` (verificado e inalterado)
+- **Chamadas a Provedores Reais**: TypeSafe = 0, OpenAI = 0, Twilio = 0
+- **ENV_LOADED**: `NO`
+- **DB**: `NO`
+- **HOLDOUT_OPENED**: `NO` (`LOCKED_HOLDOUT = CONSUMED` preservado integralmente)
+- **FROZEN_POLICY_CHANGED**: `NO`
+- **PRODUCTION_JEV_TIMEOUT_MS**: `NOT SELECTED`
+- **PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY**: `NOT SELECTED`
+- **ACTIVE_GUARDED**: `BLOCKED`
+- **L1B_EXECUTION**: `NOT EXECUTED`
+- **L1B_PROVIDER_EXECUTION**: `AWAITING_OPERATOR_AUTHORIZATION`
