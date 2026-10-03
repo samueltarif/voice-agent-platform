@@ -56,7 +56,7 @@ AI_CONTEXT_HEADER_END
 - **EXPECTED_MODEL_AUTHORITY**: `OPTION_B` (TypeSafe adapter integration config: options.expectedProviderModel).
 - **L1A_MODEL_IDENTITY_SMOKE**: `EXECUTED / PASS` (N=20/20 sucessos com exact match `jev-1.13.0`, 0 mismatches, 0 erros técnicos; SHA-256 `698c5e2a3b91...`; `docs/research/results/phase-6-typesafe-l1a-model-identity-smoke-run1.json`).
 - **L1B_SYNTHETIC_LATENCY_STUDY**: L1B_PLAN = EXECUTED / PASS_COMPLETE | L1B_RUNNER = IMPLEMENTED / TESTED OFFLINE | L1B_EXECUTION = EXECUTED / PASS_COMPLETE (100/100 model matches jev-1.13.0, 0 mismatches, 0 erros técnicos; SHA-256 f087a6e3ad83fc81b272ffd775d5e66d00c6e7c918d310ca54f45237d59f1cdb; docs/research/results/phase-6-typesafe-l1b-synthetic-latency-run1.json).
-- **L2_REAL_JEV_OPENAI_SYNTHETIC**: PRIMARY_CONVERSATION_PROVIDER = OpenAI (DEC-037 / ADR-018) | CURRENT_CONVERSATION_MODEL_CANDIDATE = gpt-6-astra | JEV_ROLE = AUXILIARY_DECISION_MODEL | L2_OPENAI_REQUESTED_MODEL = gpt-6-astra (BLOCKED_UNTIL_OPERATOR_AUTHORIZATION) | L2_DATASET = CREATED (N=12, SHA-256 `bd812341a922...`; `scripts/benchmarks/voice/jev-openai-l2-synthetic-integration-v1-cases.json`) | L2_RUNNER = HARDENED / EMPIRICAL_PREAUTH_POLICY_IMPLEMENTED (9 módulos <= 180 linhas, cada função <= 50 linhas, max 34, aggregate SHA anterior `8f53f81697...` SUPERSEDED_BY_CODE_CHANGE, L2_RUNNER_FOCUSED_TESTS = 20/20 PASS in `packages/integrations/src/typesafe/jev-openai-l2-synthetic-runner.test.ts`) | L2_EXECUTION = NOT_AUTHORIZED | L2_PROVIDER_CALLS = 0 | L2_PROVIDER_EXECUTION = BLOCKED_UNTIL_HUMAN_REVIEW_AND_NEW_AUTHORIZATION.
+- **L2_REAL_JEV_OPENAI_SYNTHETIC**: PRIMARY_CONVERSATION_PROVIDER = OpenAI (DEC-037 / ADR-018) | CURRENT_CONVERSATION_MODEL_CANDIDATE = gpt-6-astra | JEV_ROLE = AUXILIARY_DECISION_MODEL | L2_OPENAI_REQUESTED_MODEL = gpt-6-astra (BLOCKED_UNTIL_OPERATOR_AUTHORIZATION) | L2_DATASET = CREATED (N=12, SHA-256 `bd812341a922...`; `scripts/benchmarks/voice/jev-openai-l2-synthetic-integration-v1-cases.json`) | L2_RUNNER = HARDENED / EMPIRICAL_PREAUTH_POLICY_IMPLEMENTED | CURRENT_L2_EXECUTABLE_MODULE_COUNT = 10 (10 módulos <= 180 linhas, cada função <= 50 linhas; PREVIOUS_EXECUTABLE_AGGREGATE_SHA256 = `8f53f81697...` SUPERSEDED_BY_CODE_CHANGE; EXECUTABLE_FREEZE_REPRODUCIBILITY = BLOCKED; NEW_EXECUTABLE_AGGREGATE_SHA256 = NOT_REPRODUCIBLE_FROM_TRACKED_METHOD; L2_RUNNER_FOCUSED_TESTS = 21/21 PASS in `packages/integrations/src/typesafe/jev-openai-l2-synthetic-runner.test.ts`) | TYPESAFE_EMPIRICAL_PRICING_POLICY = IMPLEMENTED | EMPIRICAL_EXPLICIT_COST_CEILING_REQUIRED = YES | EMPIRICAL_ENV_COST_CEILING_FALLBACK_ALLOWED = NO | CURRENT_L2_EXECUTION = NOT_AUTHORIZED | LIVE_AUTHORIZATION_AVAILABLE = NO | SECOND_LIVE_RUN_AUTHORIZED = NO | L2_PROVIDER_CALLS = 0 | NEXT_REQUIRED_SLICE = EXECUTABLE_FREEZE_REPRODUCIBILITY_CLOSURE.
 - **SECURITY_RUNTIME_SEMANTICS**: `DESIGNED` (`docs/research/PHASE_6_SECURITY_ESCALATE_RUNTIME_SEMANTICS.md`).
 - **SECURITY_RESPONSE_DELIVERY_READY**: `IMPLEMENTED LOCALLY / ROUTING INTEGRATED`.
 - **SECURITY_HISTORY_PERSISTENCE_READY**: `IMPLEMENTED LOCALLY (Turn-scoped qualified H4/H5 history resolution)`.
@@ -125,7 +125,7 @@ AI_CONTEXT_HEADER_END
 ## 6. Estado Atual da Evidência de Qualidade (Quality Gate Snapshot)
 
 - **Último `pnpm check` Global**: `PASS` (executado e observado no slice 006AV na branch `fix/006av-l2-preauth-policy-implementation`).
-- **Status das Asserções**: `189 passed` em `@voice-agent/integrations`, `20/20 passed` em `jev-openai-l2-synthetic-runner.test.ts`.
+- **Status das Asserções**: `190 passed` em `@voice-agent/integrations`, `21/21 passed` em `jev-openai-l2-synthetic-runner.test.ts`.
 - **Regressão de Asserções**: `ASSERTION_WEAKER = 0`, `NEW_SKIPS = 0`.
 - **Verificação Arquitetural**: `SUCESSO: Todas as fronteiras e regras arquiteturais respeitadas.`
 - **Verificação de Tamanho de Arquivos**: `SUCESSO: Todos os arquivos de logica estao em conformidade (check:file-size = PASS).`
@@ -161,6 +161,12 @@ AI_CONTEXT_HEADER_END
 - **Revisão Humana do PR #75 Corrigido (fix/006av-l2-preauth-policy-implementation)**.
 - `CURRENT_L2_EXECUTION` = `NOT_AUTHORIZED` (nenhuma invocação live autorizada).
 - `LAST_L2_LIVE_ATTEMPT_RESULT` = `BLOCKED_BY_RUNNER_FAIL_CLOSED_PREAUTH` (tentativa histórica bloqueada antes da rede; autorização consumida).
+- `CURRENT_L2_EXECUTABLE_MODULE_COUNT` = `10`.
+- `L2_RUNNER_FOCUSED_TESTS` = `21/21 PASS`.
+- `INTEGRATIONS_TESTS` = `190/190 PASS`.
+- `OUTPUT_TOKEN_BILLING` = `NOT_EXPLICITLY_OBSERVED`.
+- `INPUT_ONLY_RATE_HYPOTHESIS` = `STRONGLY_SUPPORTED_BY_ACCOUNT_USAGE`.
+- `OUTPUT_RATE` = `NOT_VERIFIED`.
 - `SECOND_LIVE_RUN_AUTHORIZED` = `NO`.
 - `TYPESAFE_PRICE_STATUS` = `NOT_VERIFIED` (sem tarifa contratual observada).
 - `TYPESAFE_PRICING_EVIDENCE` = `ACCOUNT_BILLING_EMPIRICALLY_VERIFIED` (~$41.92/Btok input; hipótese $42.00/Btok).

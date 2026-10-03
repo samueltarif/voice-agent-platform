@@ -8,7 +8,8 @@ LAST_RECONCILED_AT: 2026-10-03
 PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
 STUDY: L2 Real Jev + Real OpenAI + Synthetic Transcript
 PREAUTH_STATUS: PREAUTH_BLOCKED
-L2_EXECUTION: BLOCKED_BY_RUNNER_FAIL_CLOSED_PREAUTH
+L2_EXECUTION: NOT_AUTHORIZED
+CURRENT_L2_EXECUTION: NOT_AUTHORIZED
 LIVE_AUTHORIZATION_CONSUMED: YES
 LIVE_COMMAND_EXECUTED: YES_ONCE_ABORTED_FAIL_CLOSED
 L2_OPERATOR_COST_CEILING: NOT_AUTHORIZABLE
@@ -92,22 +93,28 @@ Estabelecer um envelope rigoroso, auditável e imutável para a futura execuçã
 | **L2_DATASET_VERSION** | `1.0.1` | Campo `version` no JSON do dataset |
 | **L2_DATASET_CASE_COUNT** | `12` | 12 casos sintéticos estritos (7 matcher-positive, 5 matcher-negative) |
 | **L2_DATASET_SHA256** | `bd812341a922ded1c7159191849dae284a88f24afd9c7e8d3c64f9b081602f3f` | Hash SHA-256 congelado |
-| **CURRENT_RUNNER_FREEZE** | `POST_HARDENING_CANDIDATE` | Versão modular pós-hardening offline |
-| **L2_EXECUTABLE_AGGREGATE_SHA256** | `8f53f8169771caa26dd9623702a7c65e3e9c730dfcb2bbfcb26188dcd57c77f3` | Hash agregado determinístico dos 9 módulos executáveis (re-freezed pos-reconciliacao DEC-037 gpt-6-astra) |
+| **CURRENT_RUNNER_FREEZE** | `SUPERSEDED_BY_CODE_CHANGE` | Versão modular pós-006AV com módulo de teto de custo |
+| **CURRENT_L2_EXECUTABLE_MODULE_COUNT** | `10` | 10 módulos executáveis rastreados no repositório |
+| **PREVIOUS_EXECUTABLE_AGGREGATE_SHA256** | `8f53f8169771caa26dd9623702a7c65e3e9c730dfcb2bbfcb26188dcd57c77f3` | Hash agregado determinístico anterior dos 9 módulos pré-006AV (`SUPERSEDED_BY_CODE_CHANGE`) |
+| **NEW_EXECUTABLE_AGGREGATE_SHA256** | `NOT_REPRODUCIBLE_FROM_TRACKED_METHOD` | Reprodução bloqueada até slice de fechamento formal |
+| **EXECUTABLE_FREEZE_REPRODUCIBILITY** | `BLOCKED` | Bloqueado até PR merge e slice dedicado (`NEXT_REQUIRED_SLICE = EXECUTABLE_FREEZE_REPRODUCIBILITY_CLOSURE`) |
 
-### Módulos Executáveis do Runner (L2_EXECUTABLE_FILE_SET)
+### Módulos Executáveis Atuais do Runner (CURRENT_L2_EXECUTABLE_FILE_SET — 10 Módulos)
 
-| Arquivo Executável | SHA-256 | Linhas |
+| Arquivo Executável | Linhas | Status |
 | :--- | :--- | :--- |
-| `scripts/benchmarks/voice/l2-runner-artifact.mjs` | `fcd365e94ad4cae51eca8e535b942f128d78864c05baa61e3ecce255c80e48c6` | 104 |
-| `scripts/benchmarks/voice/l2-runner-case-execution.mjs` | `4909155e6e4ad0fcd0dc7168a9e136c4939bdb93716468e67ce25d9c65cf0b74` | 149 |
-| `scripts/benchmarks/voice/l2-runner-dependencies.mjs` | `13bf268b6019094d8fd4a0d9e4d208a8bfa7ef85b1c49465428b853ea4ee4ed0` | 63 |
-| `scripts/benchmarks/voice/l2-runner-input-budget.mjs` | `3f12299aadc810f0350273d288667f00be35cbec2d96ea73b9f26ba8e7d699d5` | 40 |
-| `scripts/benchmarks/voice/l2-runner-preconditions.mjs` | `868e7e9ddf1fb4159320f1f72935fbb147b85b8c392f71b1f206db4b3b4d6a42` | 130 |
-| `scripts/benchmarks/voice/l2-runner-provider-dispatch.mjs` | `655d84e086752d4f25ac6b772ad7a317a92da842fe0800fe7b1952feb47c96a5` | 154 |
-| `scripts/benchmarks/voice/l2-runner-request-caps.mjs` | `5e3a55e69f676afb16697afdcd0c3349469f392374989c8b945a3c11d8ffc21f` | 19 |
-| `scripts/benchmarks/voice/l2-runner-result-classification.mjs` | `b4b8211f6a6784a6084bbb4c652e8e110773de5663348f19a8b30f867eac6648` | 100 |
-| `scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs` | `c3e9ca4f3a984b72b86c3215ac88410e7d95e7d9a1bc4fb46378dc85d267fb95` | 168 |
+| `scripts/benchmarks/voice/l2-runner-artifact.mjs` | 100 | Rastreado |
+| `scripts/benchmarks/voice/l2-runner-case-execution.mjs` | 142 | Rastreado |
+| `scripts/benchmarks/voice/l2-runner-cost-ceiling.mjs` | 45 | Rastreado (adicionado no slice 006AV) |
+| `scripts/benchmarks/voice/l2-runner-dependencies.mjs` | 61 | Rastreado |
+| `scripts/benchmarks/voice/l2-runner-input-budget.mjs` | 36 | Rastreado |
+| `scripts/benchmarks/voice/l2-runner-preconditions.mjs` | 148 | Rastreado |
+| `scripts/benchmarks/voice/l2-runner-provider-dispatch.mjs` | 148 | Rastreado |
+| `scripts/benchmarks/voice/l2-runner-request-caps.mjs` | 17 | Rastreado |
+| `scripts/benchmarks/voice/l2-runner-result-classification.mjs` | 95 | Rastreado |
+| `scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs` | 161 | Rastreado |
+
+*Nota: O hash agregado anterior `8f53f8169771caa26dd9623702a7c65e3e9c730dfcb2bbfcb26188dcd57c77f3` correspondia ao conjunto histórico de 9 módulos (`HISTORICAL_PRE_006AV_EXECUTABLE_FILE_SET`). Com a adição de `l2-runner-cost-ceiling.mjs` no slice 006AV, o hash agregado anterior foi classificado como `SUPERSEDED_BY_CODE_CHANGE`. A reprodução do novo hash agregado para os 10 módulos permanece `EXECUTABLE_FREEZE_REPRODUCIBILITY = BLOCKED` (`NEW_EXECUTABLE_AGGREGATE_SHA256 = NOT_REPRODUCIBLE_FROM_TRACKED_METHOD`) e será resolvida no `NEXT_REQUIRED_SLICE = EXECUTABLE_FREEZE_REPRODUCIBILITY_CLOSURE`.*
 
 ---
 
@@ -139,7 +146,7 @@ Estabelecer um envelope rigoroso, auditável e imutável para a futura execuçã
 ### TypeSafe Pricing
 - **TYPESAFE_PRICE_STATUS**: `NOT_VERIFIED`
 - **TYPESAFE_OFFICIAL_PRICING_SOURCE**: `NOT_FOUND` (a TypeSafe AI trata taxas e preços como confidenciais sob o Master Customer Agreement; modelo sob acesso antecipado sem URL pública de faturamento sem login).
-- **TYPESAFE_PRICING_MODEL**: Per-token (apenas tokens de entrada; tokens de saída são não-faturados/gratuitos no modelo de decisão estruturada).
+- **TYPESAFE_PRICING_MODEL**: Per-token de entrada observado na conta de faturamento. Hipótese de cobrança exclusiva por tokens de entrada é fortemente suportada pelos dados de uso da conta (`INPUT_ONLY_RATE_HYPOTHESIS = STRONGLY_SUPPORTED_BY_ACCOUNT_USAGE`), porém a tarifação de saída não foi explicitamente observada (`OUTPUT_TOKEN_BILLING = NOT_EXPLICITLY_OBSERVED`) e a taxa de saída permanece `OUTPUT_RATE = NOT_VERIFIED` (proibido promover inferência a fato contratual).
 - **Valor Projetado de Planejamento**: $0.042 / 1.000.000 tokens de entrada ($42.00 / 1.000.000.000 tokens).
 - **Evidência Comercial Aceitável (Ação Humana Futura)**: Order form, anexo de faturamento sob contrato, invoice, extrato de créditos da conta ou email institucional oficial confirmando a tarifa por token/crédito aplicável ao `jev-1.13.0`.
 - **Status Factual**: Bloqueia a execução live até validação documental comercial pelo operador humano.
@@ -277,10 +284,13 @@ O runner agora exige a flag explícita `--allow-live`. Na sua ausência:
 
 Com a flag `--allow-live`:
 - `LIVE_INTENT = REQUESTED`
-- O preflight gate valida todos os pré-requisitos. Como `TYPESAFE_PRICE_STATUS = NOT_VERIFIED`, a execução é barrada com `FATAL_LIVE_PREAUTH_BLOCKED`.
+- Sob o caminho oficial de precificação verificada, `TYPESAFE_PRICE_STATUS !== 'VERIFIED'` bloqueia a execução com `FATAL_LIVE_PREAUTH_BLOCKED`.
+- Sob a política empírica (`--accept-typesafe-empirical-pricing`), a pré-autorização exige cumulativamente todas as guardas empíricas (evidência `ACCOUNT_BILLING_EMPIRICALLY_VERIFIED`, taxa de planejamento $42/Btok, `--cost-ceiling <USD>` explícito >= $0.480294 USD, dataset congelado íntegro, request caps e ausência de fallback de ambiente). Na ausência de qualquer guarda, aborta imediatamente (*fail-closed*).
 
 ### Status:
-`LIVE_COMMAND_STATUS = LIVE_COMMAND_NOT_YET_AUTHORIZABLE`
+- `LIVE_COMMAND_STATUS = NOT_AUTHORIZED`
+- `LIVE_AUTHORIZATION_AVAILABLE = NO`
+- `SECOND_LIVE_RUN_AUTHORIZED = NO`
 
 ---
 
@@ -312,8 +322,8 @@ O artefato de saída gerado pelo runner:
 | Requisito / Gate | Status Observado | Bloqueia Execução Live? |
 | :--- | :--- | :--- |
 | Dataset Frozen & Verificado | `PASS` (`bd812341a9...`) | Não |
-| Runner Hardening & Modularização | `PASS` (9 módulos <= 180 linhas) | Não |
-| Runner Re-Freeze Agregado | `PASS` (`8f53f81697...`) | Não |
+| Runner Hardening & Modularização | `PASS` (10 módulos <= 180 linhas) | Não |
+| Runner Re-Freeze Agregado | `SUPERSEDED_BY_CODE_CHANGE` (`8f53f81697...` obsoleto; novo aggregate SHA `NOT_REPRODUCIBLE_FROM_TRACKED_METHOD`; `EXECUTABLE_FREEZE_REPRODUCIBILITY = BLOCKED`) | **SIM** |
 | Runner Function Length DoD | `PASS` (todas as funções <= 50 linhas, max 49) | Não |
 | TypeSafe Model Frozen (`jev-1.13.0`) | `PASS` | Não |
 | OpenAI Model Frozen (`gpt-6-astra`) | `PASS` | Não |
@@ -349,20 +359,28 @@ A execução live permanece categoricamente bloqueada pelos seguintes impediment
 
 ## 15. Comando Live Candidato e Fail-Closed Preconditions
 
-SE e somente se todos os blockers prévios forem formalmente superados pelo operador humano, o comando técnico exato no runner endurecido é:
+SE e somente se todos os blockers prévios forem formalmente superados pelo operador humano e nova autorização for concedida após o fechamento da reproducibilidade do congelamento, a sintaxe da futura invocação candidata sob política empírica é:
 
 ```bash
-node scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs --allow-live --cost-ceiling <APPROVED_CEILING_USD>
+node scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs --allow-live --accept-typesafe-empirical-pricing --cost-ceiling <EXPLICIT_PER_RUN_CEILING_USD>
 ```
 
-- **LIVE_COMMAND_EXECUTED**: `NO`
+- **DOCUMENTATION_ONLY**: Este comando é documentação de sintaxe futura e **NÃO DEVE SER EXECUTADO**.
 - **LIVE_COMMAND_STATUS**: `NOT_AUTHORIZED`
+- **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
 - **Garantias Fail-Closed em Runtime**:
   1. A ausência da flag `--allow-live` dispara `FATAL_LIVE_INTENT_DENIED` antes de qualquer chamada;
-  2. `TYPESAFE_PRICE_STATUS !== 'VERIFIED'` dispara `FATAL_LIVE_PREAUTH_BLOCKED` imediatamente;
-  3. A ausência de `--cost-ceiling` válido dispara erro fatal impedindo inicialização;
-  4. A ausência de `TYPESAFE_API_KEY` ou `OPENAI_API_KEY` em variáveis de ambiente impede execução sem fallback silencioso;
-  5. Caps de 7 requisições TypeSafe, 12 OpenAI e 19 totais abortam o processo antes da rede caso violados.
+  2. O caminho oficial de precificação verificada continua suportado;
+  3. Para precificação TypeSafe `NOT_VERIFIED`, a pré-autorização empírica passa apenas quando TODAS as guardas da política empírica passarem cumulativamente:
+     - Flag `--accept-typesafe-empirical-pricing` explicitamente presente;
+     - Classificação de evidência exatamente `ACCOUNT_BILLING_EMPIRICALLY_VERIFIED`;
+     - Taxa de planejamento de pesquisa exatamente $42.00 / 1B input tokens;
+     - Teto de custo por execução `--cost-ceiling <USD>` explícito na CLI e >= custo mínimo planejado ($0.480294 USD);
+     - Rejeição estrita de fallback para variável de ambiente `L2_COST_CEILING_USD` (`EMPIRICAL_ENV_COST_CEILING_FALLBACK_ALLOWED = NO`);
+     - Todas as guardas existentes de intenção live, integridade de dataset (`bd812341a9...`), caps de requisição (7 Jev, 12 OpenAI, 19 total), caps de caracteres (1.000 / 4.000) e modelo (`jev-1.13.0`);
+  4. Na ausência de qualquer uma das condições obrigatórias: **FAIL CLOSED**;
+  5. A precificação contratual da TypeSafe não é classificada como verificada (`TYPESAFE_PRICE_STATUS = NOT_VERIFIED`).
 
 ---
 
@@ -379,6 +397,10 @@ Decisões formais concedidas pelo operador humano em 2026-10-03 (escopo estrito:
    - *Decisão do Operador*: Aceitar a limitação residual de token cap e a proteção física via caps de caracteres (1.000 chars Jev / 4.000 chars OpenAI) combinada ao dataset sintético congelado para esta execução única.
 3. **`HUMAN_DECISION_3` (Seleção do Teto Financeiro do Operador)**:
    - `APPROVED_OPERATOR_COST_CEILING_USD`: `0.96`
+   - `OPERATOR_COST_CEILING_USD`: `0.96` (escopo: tentativa histórica única; autorização `CONSUMED`)
+   - `NEW_OPERATOR_COST_CEILING`: `NOT_PROPOSED`
+   - `LIVE_AUTHORIZATION_AVAILABLE`: `NO`
+   - `SECOND_LIVE_RUN_AUTHORIZED`: `NO`
    - `COST_CEILING_CLASSIFICATION`: `OPERATOR_GOVERNANCE_CEILING_NOT_HARD_PROVIDER_BILLING_BOUND`
    - `OPERATOR_COST_CEILING_SCOPE`: `SINGLE_SYNTHETIC_L2_RUN_ONLY`
    - *Decisão do Operador*: Fixação formal do teto financeiro em $0.96 USD (cenário informativo 2.0x sobre planejamento de $0.480294 USD).
@@ -410,8 +432,11 @@ Decisões formais concedidas pelo operador humano em 2026-10-03 (escopo estrito:
 
 ### 3. Preservação dos Fatos e Próximo Slice Técnico
 - `L2_RESULT`: `BLOCKED`
-- `L2_EXECUTION`: `BLOCKED_BY_RUNNER_FAIL_CLOSED_PREAUTH`
-- `NEXT_REQUIRED_SLICE`: `MINIMAL_PREAUTH_POLICY_IMPLEMENTATION` (ajuste técnico no runner para suportar a representação da política de evidência empírica formalmente autorizada pelo operador humano)
+- `LAST_L2_LIVE_ATTEMPT_RESULT`: `BLOCKED_BY_RUNNER_FAIL_CLOSED_PREAUTH`
+- `CURRENT_L2_EXECUTION`: `NOT_AUTHORIZED`
+- `LIVE_AUTHORIZATION_AVAILABLE`: `NO`
+- `SECOND_LIVE_RUN_AUTHORIZED`: `NO`
+- `NEXT_REQUIRED_SLICE`: `EXECUTABLE_FREEZE_REPRODUCIBILITY_CLOSURE`
 - `FUTURE_LIVE_CREDENTIAL_CONFIGURATION`: `REQUIRED` (configuração humana limpa de credenciais no ambiente sem leitura por tooling de agente)
 
 ---

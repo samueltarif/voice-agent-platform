@@ -14344,3 +14344,48 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **FORBIDDEN_IDE_INTERNAL_STORAGE_ACCESSED**: `NO`
 - **SECRET_AUDIT**: `PASS` (boolean-only sobre tracked diff)
 - **PR_MERGE_PERFORMED**: `NO`
+
+---
+
+## 2026-10-03 — PR #75 Final Consistency Closure
+
+### 1. Objetivo e Contexto
+- **Demanda**: Reconciliação documental e encerramento final de consistência do PR #75 (`fix/006av-l2-preauth-policy-implementation`).
+- **Escopo**: Factual e estritamente documental — reconciliar contagem de módulos executáveis (10 módulos), cobertura de testes focados (21/21) e de integrações (190/190), separar evidência histórica da tentativa única bloqueada do estado operacional corrente, reconciliar sintaxe candidata futura com política empírica (`--accept-typesafe-empirical-pricing` e `--cost-ceiling <USD>`) e registrar bloqueio de reproducibilidade de congelamento para o próximo slice técnico.
+- **Alterações de Código Realizadas**: `0` (reconciliação puramente documental).
+
+### 2. Evidência Factual Observada
+- **CURRENT_EXECUTABLE_MODULE_COUNT**: `10` (`scripts/benchmarks/voice/` módulos `.mjs` do runner L2, todos <= 180 linhas, funções <= 50 linhas).
+- **FOCUSED_TESTS**: `21/21 PASS` em `packages/integrations/src/typesafe/jev-openai-l2-synthetic-runner.test.ts`.
+- **INTEGRATIONS_TESTS**: `190/190 PASS` (25 arquivos de teste em `packages/integrations`).
+- **CURRENT_L2_EXECUTION**: `NOT_AUTHORIZED`.
+- **LAST_L2_LIVE_ATTEMPT_RESULT**: `BLOCKED_BY_RUNNER_FAIL_CLOSED_PREAUTH`.
+- **LAST_L2_LIVE_AUTHORIZATION**: `CONSUMED`.
+- **LIVE_AUTHORIZATION_AVAILABLE**: `NO`.
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`.
+- **TYPESAFE_PRICE_STATUS**: `NOT_VERIFIED`.
+- **TYPESAFE_PRICING_EVIDENCE**: `ACCOUNT_BILLING_EMPIRICALLY_VERIFIED`.
+- **OUTPUT_TOKEN_BILLING**: `NOT_EXPLICITLY_OBSERVED`.
+- **INPUT_ONLY_RATE_HYPOTHESIS**: `STRONGLY_SUPPORTED_BY_ACCOUNT_USAGE`.
+- **OUTPUT_RATE**: `NOT_VERIFIED`.
+- **EMPIRICAL_PRICING_POLICY_SUPPORT**: `IMPLEMENTED`.
+- **EMPIRICAL_EXPLICIT_COST_CEILING_REQUIRED**: `YES`.
+- **EMPIRICAL_ENV_COST_CEILING_FALLBACK_ALLOWED**: `NO`.
+- **PREVIOUS_EXECUTABLE_AGGREGATE_SHA256**: `8f53f8169771caa26dd9623702a7c65e3e9c730dfcb2bbfcb26188dcd57c77f3` (`SUPERSEDED_BY_CODE_CHANGE`).
+- **EXECUTABLE_FREEZE_REPRODUCIBILITY**: `BLOCKED`.
+- **NEW_EXECUTABLE_AGGREGATE_SHA256**: `NOT_REPRODUCIBLE_FROM_TRACKED_METHOD`.
+- **NEXT_REQUIRED_SLICE**: `EXECUTABLE_FREEZE_REPRODUCIBILITY_CLOSURE`.
+
+### 3. Governança e Isolamento
+- **provider calls**: `0`
+- **OpenAI real**: `0`
+- **TypeSafe real**: `0`
+- **Twilio**: `0`
+- **Cloud DB**: `0`
+- **Customer data**: `0`
+- **Holdout**: `NO ACCESS`
+- **.env read**: `NO`
+- **live command invoked**: `NO`
+- **FORBIDDEN_IDE_INTERNAL_STORAGE_ACCESSED**: `NO`
+- **PR_MERGE_PERFORMED**: `NO`
+- **PR75_STATUS**: `READY_FOR_HUMAN_MERGE_REVIEW`
