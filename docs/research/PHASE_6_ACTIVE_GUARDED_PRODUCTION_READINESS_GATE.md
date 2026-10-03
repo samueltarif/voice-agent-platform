@@ -412,8 +412,8 @@ A promoção para produção deve seguir rigorosamente a escada de validação i
   │  Requisitos: Model Pinning implementado offline (Slice E.1), teto de custo, ZERO dados de clientes
   ▼
 [L1B: Real Jev + Synthetic Latency Study]
-  │  Status: PLANNED
-  │  Harness: Bateria sintética de latência (N>=100 PLANNED_SAMPLE_SIZE), transporte fake
+  │  Status: PLAN DESIGNED / NOT EXECUTED (docs/research/PHASE_6_TYPESAFE_L1B_SYNTHETIC_LATENCY_PLAN.md)
+  │  Harness: Bateria sintética de latência (N=100 em scripts/benchmarks/voice/jev-l1b-synthetic-latency-v1-cases.json), transporte fake
   │  Objetivo: Coletar distribuição empírica de latência para subsidiar seleção de timeout de produção
   ▼
 [L2: Real Jev + Real OpenAI + Synthetic Transcript]
@@ -462,8 +462,8 @@ A promoção para produção deve seguir rigorosamente a escada de validação i
 
 **Veredito Global**:
 - L1A_MODEL_IDENTITY_SMOKE: EXECUTED / PASS (20/20 exact matches, 0 mismatches, 0 erros técnicos, latência descritiva mediana 275ms; DESCRIPTIVE_ONLY).
-- READY_FOR_L1B_LATENCY_STUDY: PLANNING_ONLY (Pendente desenho metodológico formal e pré-autorização de custos; zero chamadas a provedores).
-- `READY_FOR_L3_REAL_TWILIO`: `NO` (Pendente L1, L2 e provisionamento de conta Twilio).
+- L1B_PLAN: DESIGNED (docs/research/PHASE_6_TYPESAFE_L1B_SYNTHETIC_LATENCY_PLAN.md; dataset N=100 congelado).
+- READY_FOR_L1B_EXECUTION: PENDING_HUMAN_PREAUTH (Exige aprovação formal de teto orçamentário e autorização explícita).
 - `PRODUCTION_READY (ACTIVE_GUARDED)`: `NO / BLOCKED`.
 
 ---
@@ -489,7 +489,7 @@ A promoção para produção deve seguir rigorosamente a escada de validação i
 Com a conclusão do Slice E.1 (Model Identity Guard implementado offline + Plano/Dataset L1A desenhados):
 
 ```
-NEXT_ALLOWED_STEP: L1B Controlled Synthetic Latency Study (PLANNING / PREAUTH ONLY; zero chamadas a provedores)
+NEXT_ALLOWED_STEP: L1B Synthetic Latency Study Preauthorization Review (após merge do plano metodológico)
 ```
 - **Escopo**:
   1. Execução controlada e pontual contra o endpoint da TypeSafe usando exclusivamente o dataset sintético de 20 casos (`scripts/benchmarks/voice/jev-l1a-model-identity-smoke-v1-cases.json`);

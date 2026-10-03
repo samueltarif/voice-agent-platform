@@ -12507,3 +12507,48 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **PRODUCTION_RUNTIME_WIRING**: `NO`
 - **ACTIVE_GUARDED**: `BLOCKED`
 - **FROZEN_POLICY_CHANGED**: `NO`
+
+---
+
+## 2026-10-02 — L1B Controlled Synthetic Latency Study Planning (Slice 006AK)
+
+### 1. Resumo do Slice e Fronteiras Operacionais
+- **Fase**: Phase 6 (Voice Model Routing & Jev Evaluation)
+- **Slice**: L1B Controlled Synthetic Latency Study Planning
+- **Branch**: `research/006ak-l1b-synthetic-latency-plan`
+- **Classificação**: `PLANNING_PREAUTH_ONLY`
+- **Fronteira Estrita**: Zero chamadas a provedores de IA (TypeSafe = 0, OpenAI = 0, Twilio = 0).
+- **ENV_LOADED**: `NO`
+- **ENV_INSPECTED**: `NO`
+- **DB_CONNECTION**: `NO`
+- **HOLDOUT_ACCESSED**: `NO` (`LOCKED_HOLDOUT = CONSUMED` preservado integralmente).
+- **FROZEN_POLICY_CHANGED**: `NO` (Thresholds da V1 inalterados: T_SECURITY=0.56, T_DETERMINISTIC=0.35, T_GENERATIVE=0.47).
+- **CUSTOMER_DATA**: `0` (`CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`).
+- **PRODUCTION_RUNTIME_WIRING**: `NO`.
+- **ACTIVE_GUARDED**: `BLOCKED` (fail-closed no runtime).
+
+### 2. Entregas do Planejamento
+- **Plano Metodológico**: `docs/research/PHASE_6_TYPESAFE_L1B_SYNTHETIC_LATENCY_PLAN.md`
+  - Status: `PLAN DESIGNED / NOT EXECUTED`
+  - Questão de Pesquisa: *"Qual é a distribuição observada de latência do Jev versionado sob requests sintéticos controlados e sequenciais/baixa concorrência, sem dados de clientes?"*
+  - Concorrência planejada: Etapa 1 serial (`concurrency = 1`), Etapa 2 exploratória (`concurrency = 2`). Concorrência > 2 proibida.
+  - Deadline de observação: `4000ms` (telemetria de pesquisa; não é timeout de produção).
+  - Política de retries: `0` (zero repetições; falhas registradas e não mascaradas).
+  - Modelo versionado: `requestedModel = "jev-1.13.0"` | `expectedProviderModel = "jev-1.13.0"`.
+- **Dataset Sintético Congelado**: `scripts/benchmarks/voice/jev-l1b-synthetic-latency-v1-cases.json`
+  - Total de casos: 100
+  - SHA-256: `952da0c7a6a10447baa9e24a976543e06b7480eb9bdef98096242d5276188136`
+  - Faixas (Bins): 35 SHORT, 40 MEDIUM, 25 LONG.
+  - Classificação: `SYNTHETIC_LATENCY_STIMULUS_ONLY` (não é holdout, não é para tuning, não é para acurácia).
+- **Pacote de Pré-Autorização Humana Estruturado**:
+  - Amostra planejada: 100 casos (serial) + até 100 casos (concorrente).
+  - Teto monetário proposto para aprovação humana: `$0.10 USD` (consumo projetado: ~$0.00168 USD).
+  - Decisão sobre runner: YAGNI aplicado; runner live dedicado planejado no documento, adiando implementação para o slice de execução autorizado.
+
+### 3. Estado dos Gates e Invariantes
+- **L1A_MODEL_IDENTITY_SMOKE**: `EXECUTED / PASS` (20/20 exact matches, SHA-256 `698c5e2a3b91...`)
+- **L1B_PLAN**: `DESIGNED`
+- **L1B_EXECUTION**: `NOT EXECUTED`
+- **PRODUCTION_JEV_TIMEOUT_MS**: `NOT SELECTED` (L1B produzirá dados descritivos; decisão desacoplada)
+- **PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY**: `NOT SELECTED`
+- **NEXT_ALLOWED_STEP**: Revisão do plano e pré-autorização humana da execução L1B.

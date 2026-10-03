@@ -1,0 +1,622 @@
+{
+  "version": "1.0.0",
+  "datasetName": "jev-l1b-synthetic-latency-v1-cases",
+  "createdAt": "2026-10-02T22:00:00Z",
+  "classification": "SYNTHETIC_LATENCY_STIMULUS_ONLY",
+  "governance": {
+    "isHoldout": false,
+    "forTuning": false,
+    "forAccuracyClaims": false,
+    "customerData": false,
+    "piiPresent": false
+  },
+  "disclaimer": "Purely synthetic stimuli designed solely for latency measurement under controlled sequential and low-concurrency conditions. Not for policy tuning, not for accuracy benchmarking, not a production tail SLA proof.",
+  "totalCases": 100,
+  "categoryBreakdown": {
+    "SHORT": 35,
+    "MEDIUM": 40,
+    "LONG": 25
+  },
+  "cases": [
+    {
+      "caseId": "l1b-001",
+      "inputSizeCategory": "SHORT",
+      "syntheticCallerUtterance": "Olá, boa tarde! Qual o horário de atendimento de vocês hoje?",
+      "estimatedTokens": 15
+    },
+    {
+      "caseId": "l1b-002",
+      "inputSizeCategory": "SHORT",
+      "syntheticCallerUtterance": "Vocês abrem aos sábados?",
+      "estimatedTokens": 6
+    },
+    {
+      "caseId": "l1b-003",
+      "inputSizeCategory": "SHORT",
+      "syntheticCallerUtterance": "Qual é o endereço da unidade central?",
+      "estimatedTokens": 9
+    },
+    {
+      "caseId": "l1b-004",
+      "inputSizeCategory": "SHORT",
+      "syntheticCallerUtterance": "Quero agendar uma consulta para amanhã cedo.",
+      "estimatedTokens": 11
+    },
+    {
+      "caseId": "l1b-005",
+      "inputSizeCategory": "SHORT",
+      "syntheticCallerUtterance": "Vocês aceitam convênio Unimed?",
+      "estimatedTokens": 8
+    },
+    {
+      "caseId": "l1b-006",
+      "inputSizeCategory": "SHORT",
+      "syntheticCallerUtterance": "Gostaria de falar com o suporte financeiro, por favor.",
+      "estimatedTokens": 14
+    },
+    {
+      "caseId": "l1b-007",
+      "inputSizeCategory": "SHORT",
+      "syntheticCallerUtterance": "Qual é o telefone da recepção da clínica?",
+      "estimatedTokens": 10
+    },
+    {
+      "caseId": "l1b-008",
+      "inputSizeCategory": "SHORT",
+      "syntheticCallerUtterance": "Vocês atendem emergência pediátrica no domingo?",
+      "estimatedTokens": 12
+    },
+    {
+      "caseId": "l1b-009",
+      "inputSizeCategory": "SHORT",
+      "syntheticCallerUtterance": "Qual o valor da consulta particular com clínico geral?",
+      "estimatedTokens": 14
+    },
+    {
+      "caseId": "l1b-010",
+      "inputSizeCategory": "SHORT",
+      "syntheticCallerUtterance": "Como faço para remarcar meu horário de quinta-feira?",
+      "estimatedTokens": 13
+    },
+    {
+      "caseId": "l1b-011",
+      "inputSizeCategory": "SHORT",
+      "syntheticCallerUtterance": "Tem estacionamento no local para pacientes?",
+      "estimatedTokens": 11
+    },
+    {
+      "caseId": "l1b-012",
+      "inputSizeCategory": "SHORT",
+      "syntheticCallerUtterance": "Preciso cancelar meu agendamento de amanhã.",
+      "estimatedTokens": 11
+    },
+    {
+      "caseId": "l1b-013",
+      "inputSizeCategory": "SHORT",
+      "syntheticCallerUtterance": "Vocês fazem exame de sangue sem jejum?",
+      "estimatedTokens": 10
+    },
+    {
+      "caseId": "l1b-014",
+      "inputSizeCategory": "SHORT",
+      "syntheticCallerUtterance": "Até que horas a farmácia da clínica fica aberta?",
+      "estimatedTokens": 12
+    },
+    {
+      "caseId": "l1b-015",
+      "inputSizeCategory": "SHORT",
+      "syntheticCallerUtterance": "Bom dia, estou esperando retorno da minha solicitação.",
+      "estimatedTokens": 14
+    },
+    {
+      "caseId": "l1b-016",
+      "inputSizeCategory": "SHORT",
+      "syntheticCallerUtterance": "Vocês realizam atendimento por telemedicina hoje?",
+      "estimatedTokens": 12
+    },
+    {
+      "caseId": "l1b-017",
+      "inputSizeCategory": "SHORT",
+      "syntheticCallerUtterance": "Qual médico atende cardiologia hoje à tarde?",
+      "estimatedTokens": 11
+    },
+    {
+      "caseId": "l1b-018",
+      "inputSizeCategory": "SHORT",
+      "syntheticCallerUtterance": "A clínica funciona durante o feriado nacional?",
+      "estimatedTokens": 12
+    },
+    {
+      "caseId": "l1b-019",
+      "inputSizeCategory": "SHORT",
+      "syntheticCallerUtterance": "Quero confirmar o horário da minha consulta marcada.",
+      "estimatedTokens": 13
+    },
+    {
+      "caseId": "l1b-020",
+      "inputSizeCategory": "SHORT",
+      "syntheticCallerUtterance": "Tem médico ortopedista disponível agora pela manhã?",
+      "estimatedTokens": 13
+    },
+    {
+      "caseId": "l1b-021",
+      "inputSizeCategory": "SHORT",
+      "syntheticCallerUtterance": "Vocês emitem nota fiscal para reembolso do convênio?",
+      "estimatedTokens": 13
+    },
+    {
+      "caseId": "l1b-022",
+      "inputSizeCategory": "SHORT",
+      "syntheticCallerUtterance": "Qual é o tempo médio de espera no pronto atendimento?",
+      "estimatedTokens": 13
+    },
+    {
+      "caseId": "l1b-023",
+      "inputSizeCategory": "SHORT",
+      "syntheticCallerUtterance": "Preciso de informações sobre o preparo para ultrassom.",
+      "estimatedTokens": 14
+    },
+    {
+      "caseId": "l1b-024",
+      "inputSizeCategory": "SHORT",
+      "syntheticCallerUtterance": "Vocês aceitam pagamento via Pix na recepção?",
+      "estimatedTokens": 11
+    },
+    {
+      "caseId": "l1b-025",
+      "inputSizeCategory": "SHORT",
+      "syntheticCallerUtterance": "Quero saber se o resultado do meu exame já está pronto.",
+      "estimatedTokens": 14
+    },
+    {
+      "caseId": "l1b-026",
+      "inputSizeCategory": "SHORT",
+      "syntheticCallerUtterance": "Vocês atendem pacientes sem horário marcado?",
+      "estimatedTokens": 11
+    },
+    {
+      "caseId": "l1b-027",
+      "inputSizeCategory": "SHORT",
+      "syntheticCallerUtterance": "Qual o andar da sala de vacinação no prédio?",
+      "estimatedTokens": 11
+    },
+    {
+      "caseId": "l1b-028",
+      "inputSizeCategory": "SHORT",
+      "syntheticCallerUtterance": "Boa noite, vocês ainda estão atendendo hoje?",
+      "estimatedTokens": 11
+    },
+    {
+      "caseId": "l1b-029",
+      "inputSizeCategory": "SHORT",
+      "syntheticCallerUtterance": "Como envio meu pedido médico antes da consulta?",
+      "estimatedTokens": 12
+    },
+    {
+      "caseId": "l1b-030",
+      "inputSizeCategory": "SHORT",
+      "syntheticCallerUtterance": "Vocês fazem teste rápido de Covid na unidade?",
+      "estimatedTokens": 11
+    },
+    {
+      "caseId": "l1b-031",
+      "inputSizeCategory": "SHORT",
+      "syntheticCallerUtterance": "O doutor Carlos já iniciou os atendimentos hoje?",
+      "estimatedTokens": 12
+    },
+    {
+      "caseId": "l1b-032",
+      "inputSizeCategory": "SHORT",
+      "syntheticCallerUtterance": "Gostaria de saber se vocês têm convênio Bradesco Saúde.",
+      "estimatedTokens": 14
+    },
+    {
+      "caseId": "l1b-033",
+      "inputSizeCategory": "SHORT",
+      "syntheticCallerUtterance": "A unidade de Copacabana abre no fim de semana?",
+      "estimatedTokens": 12
+    },
+    {
+      "caseId": "l1b-034",
+      "inputSizeCategory": "SHORT",
+      "syntheticCallerUtterance": "Onde retiro o laudo do meu exame de imagem?",
+      "estimatedTokens": 11
+    },
+    {
+      "caseId": "l1b-035",
+      "inputSizeCategory": "SHORT",
+      "syntheticCallerUtterance": "Qual o horário de coleta do laboratório pela manhã?",
+      "estimatedTokens": 13
+    },
+    {
+      "caseId": "l1b-036",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Boa tarde, gostaria de saber se vocês atendem no sábado pela manhã e qual é o valor da consulta inicial com ortopedista.",
+      "estimatedTokens": 30
+    },
+    {
+      "caseId": "l1b-037",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Olá, agendei um retorno para sexta-feira às 15 horas, mas tive um imprevisto e preciso saber os horários livres na próxima semana.",
+      "estimatedTokens": 33
+    },
+    {
+      "caseId": "l1b-038",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Bom dia, meu plano é SulAmérica e gostaria de saber se cobre exames de sangue laboratoriais e ultrassom de rotina.",
+      "estimatedTokens": 29
+    },
+    {
+      "caseId": "l1b-039",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Gostaria de entender como funciona a teleconsulta: recebo o link por WhatsApp ou preciso instalar algum aplicativo específico?",
+      "estimatedTokens": 32
+    },
+    {
+      "caseId": "l1b-040",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Boa tarde, minha mãe é idosa e tem dificuldade de locomoção. O prédio possui acessibilidade com rampa e elevador até as salas?",
+      "estimatedTokens": 32
+    },
+    {
+      "caseId": "l1b-041",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Olá, preciso levar meu filho para consulta pediátrica urgente. Há fila de espera no pronto atendimento neste momento?",
+      "estimatedTokens": 29
+    },
+    {
+      "caseId": "l1b-042",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Gostaria de confirmar se o doutor Roberto atende no período vespertino e se é necessário levar encaminhamento prévio.",
+      "estimatedTokens": 29
+    },
+    {
+      "caseId": "l1b-043",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Fiz um exame de ecocardiograma na terça-feira passada e gostaria de saber se o laudo já pode ser acessado pelo portal.",
+      "estimatedTokens": 30
+    },
+    {
+      "caseId": "l1b-044",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Boa tarde, gostaria de saber se a vacina da gripe está disponível para aplicação imediata e qual o valor da dose particular.",
+      "estimatedTokens": 31
+    },
+    {
+      "caseId": "l1b-045",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Olá, preciso de um orçamento para realização de tomografia computadorizada de tórax com contraste para a próxima terça-feira.",
+      "estimatedTokens": 31
+    },
+    {
+      "caseId": "l1b-046",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Gostaria de alterar a forma de pagamento do meu pacote de fisioterapia de boleto bancário para cartão de crédito parcelado.",
+      "estimatedTokens": 31
+    },
+    {
+      "caseId": "l1b-047",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Bom dia, gostaria de verificar se a clínica emite relatório médico detalhado para fins de perícia do INSS após a consulta.",
+      "estimatedTokens": 31
+    },
+    {
+      "caseId": "l1b-048",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Olá, esqueci minha jaqueta na recepção do segundo andar ontem por volta das quatro da tarde. Alguém encontrou?",
+      "estimatedTokens": 28
+    },
+    {
+      "caseId": "l1b-049",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Gostaria de saber se o médico prescreve receita digital com certificado ICP-Brasil válida em qualquer farmácia do país.",
+      "estimatedTokens": 30
+    },
+    {
+      "caseId": "l1b-050",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Bom dia, estou sentindo dores na coluna desde ontem e gostaria de saber se devo marcar clínico geral ou ir direto ao especialista.",
+      "estimatedTokens": 33
+    },
+    {
+      "caseId": "l1b-051",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Boa tarde, qual é o protocolo de preparo para o exame de endoscopia digestiva marcada para amanhã às oito da manhã?",
+      "estimatedTokens": 29
+    },
+    {
+      "caseId": "l1b-052",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Olá, meu filho tem três anos e precisa tomar vacinas de reforço. Vocês atendem pediatria aos sábados sem agendamento?",
+      "estimatedTokens": 29
+    },
+    {
+      "caseId": "l1b-053",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Gostaria de saber se o convênio NotreDame cobre sessões de fonoaudiologia infantil e quantas sessões são autorizadas por mês.",
+      "estimatedTokens": 31
+    },
+    {
+      "caseId": "l1b-054",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Boa tarde, vocês têm atendimento presencial na unidade da Zona Sul ou essa unidade está funcionando apenas para exames?",
+      "estimatedTokens": 30
+    },
+    {
+      "caseId": "l1b-055",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Olá, gostaria de saber se é possível fazer o check-in online antes de chegar à clínica para evitar filas na recepção.",
+      "estimatedTokens": 29
+    },
+    {
+      "caseId": "l1b-056",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Bom dia, gostaria de confirmar se a consulta de retorno com a nutricionista está inclusa no valor pago na primeira consulta.",
+      "estimatedTokens": 31
+    },
+    {
+      "caseId": "l1b-057",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Olá, gostaria de registrar um elogio ao atendimento atencioso que recebi da equipe de enfermagem durante minha internação.",
+      "estimatedTokens": 31
+    },
+    {
+      "caseId": "l1b-058",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Boa tarde, gostaria de saber se vocês realizam coleta domiciliar de exames de sangue para pacientes acamados e qual a taxa.",
+      "estimatedTokens": 31
+    },
+    {
+      "caseId": "l1b-059",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Olá, meu médico pediu uma ressonância magnética com urgência. Vocês têm disponibilidade de encaixe para esta semana?",
+      "estimatedTokens": 29
+    },
+    {
+      "caseId": "l1b-060",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Gostaria de saber se a consulta de psicologia pode ser realizada quinzenalmente no mesmo horário após o expediente comercial.",
+      "estimatedTokens": 31
+    },
+    {
+      "caseId": "l1b-061",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Bom dia, gostaria de solicitar uma segunda via do recibo de pagamento da consulta realizada no dia 15 do mês passado.",
+      "estimatedTokens": 29
+    },
+    {
+      "caseId": "l1b-062",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Olá, gostaria de saber se a unidade oferece atendimento bilíngue em inglês ou espanhol para um colega estrangeiro em visita.",
+      "estimatedTokens": 31
+    },
+    {
+      "caseId": "l1b-063",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Boa tarde, gostaria de confirmar se o anestesista cobra honorários à parte da internação para a cirurgia de vesícula.",
+      "estimatedTokens": 29
+    },
+    {
+      "caseId": "l1b-064",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Olá, estou com sintomas de sinusite forte e gostaria de saber se o pronto atendimento atende otorrinolaringologia hoje.",
+      "estimatedTokens": 30
+    },
+    {
+      "caseId": "l1b-065",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Bom dia, gostaria de verificar se o médico que me atendeu ontem deixou a receita médica disponível na recepção para retirada.",
+      "estimatedTokens": 31
+    },
+    {
+      "caseId": "l1b-066",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Boa tarde, gostaria de saber se é obrigatório o uso de máscara nas salas de espera e durante a realização dos exames.",
+      "estimatedTokens": 29
+    },
+    {
+      "caseId": "l1b-067",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Olá, gostaria de saber se vocês aceitam pagamento parcelado em até dez vezes sem juros para procedimentos dermatológicos.",
+      "estimatedTokens": 30
+    },
+    {
+      "caseId": "l1b-068",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Bom dia, gostaria de confirmar se o jejum para o exame de glicemia de amanhã precisa ser de oito ou doze horas completas.",
+      "estimatedTokens": 30
+    },
+    {
+      "caseId": "l1b-069",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Olá, gostaria de saber se o resultado do eletrocardiograma sai no mesmo dia ou se precisa de prazo para análise do cardiologista.",
+      "estimatedTokens": 32
+    },
+    {
+      "caseId": "l1b-070",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Boa tarde, preciso marcar uma consulta de triagem para avaliar a necessidade de acompanhamento com endocrinologista.",
+      "estimatedTokens": 29
+    },
+    {
+      "caseId": "l1b-071",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Olá, meu plano de saúde alterou a rede credenciada este mês. Vocês continuam atendendo a categoria Especial da Omint?",
+      "estimatedTokens": 29
+    },
+    {
+      "caseId": "l1b-072",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Bom dia, gostaria de entender como funciona o cancelamento de procedimentos cirúrgicos em caso de sintomas gripais na véspera.",
+      "estimatedTokens": 32
+    },
+    {
+      "caseId": "l1b-073",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Boa tarde, gostaria de saber se vocês têm convênio com laboratórios parceiros para realização de testes genéticos preventivos.",
+      "estimatedTokens": 32
+    },
+    {
+      "caseId": "l1b-074",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Olá, gostaria de saber se o retorno pós-operatório precisa ser agendado com antecedência ou se tem prioridade na recepção.",
+      "estimatedTokens": 31
+    },
+    {
+      "caseId": "l1b-075",
+      "inputSizeCategory": "MEDIUM",
+      "syntheticCallerUtterance": "Bom dia, gostaria de saber se vocês oferecem estacionamento com manobrista e se há desconto para pacientes em atendimento.",
+      "estimatedTokens": 31
+    },
+    {
+      "caseId": "l1b-076",
+      "inputSizeCategory": "LONG",
+      "syntheticCallerUtterance": "Boa tarde, estou entrando em contato porque marquei uma cirurgia ambulatorial simples para a próxima quinta-feira, mas comecei a apresentar febre leve e coriza hoje pela manhã. Gostaria de saber qual é a recomendação da equipe médica sobre manter o procedimento ou se seria mais seguro remarcar para daqui a duas semanas quando eu estiver totalmente recuperado.",
+      "estimatedTokens": 90
+    },
+    {
+      "caseId": "l1b-077",
+      "inputSizeCategory": "LONG",
+      "syntheticCallerUtterance": "Olá, bom dia! Gostaria de esclarecer uma dúvida sobre a cobertura do meu plano de saúde. A operadora me informou que autorizou a cirurgia, mas não soube confirmar se a prótese indicada pelo especialista está inclusa no pacote do hospital ou se vou precisar pagar algum valor residual na alta. Vocês poderiam verificar com o setor de faturamento hospitalar?",
+      "estimatedTokens": 89
+    },
+    {
+      "caseId": "l1b-078",
+      "inputSizeCategory": "LONG",
+      "syntheticCallerUtterance": "Boa tarde, tenho uma consulta marcada para amanhã às quatorze horas com o cardiologista, porém moro no interior e a rodovia principal está com obras e congestionamento intenso. Se eu me atrasar cerca de vinte a trinta minutos, ainda conseguirei ser atendido normalmente ou o médico costuma cancelar a consulta em caso de atraso tolerado?",
+      "estimatedTokens": 84
+    },
+    {
+      "caseId": "l1b-079",
+      "inputSizeCategory": "LONG",
+      "syntheticCallerUtterance": "Olá, gostaria de solicitar orientações detalhadas sobre o jejum para o exame de colonoscopia que farei nesta sexta-feira. No folheto diz que devo iniciar a dieta líquida dois dias antes, mas não ficou claro se sucos naturais de cor escura como uva ou amora são permitidos, ou se devo tomar apenas líquidos transparentes e água de coco.",
+      "estimatedTokens": 84
+    },
+    {
+      "caseId": "l1b-080",
+      "inputSizeCategory": "LONG",
+      "syntheticCallerUtterance": "Bom dia, estou ligando em nome do meu pai, que tem 78 anos e recentemente passou por um procedimento cardíaco na unidade. Ele precisa realizar um ecocardiograma de controle com doppler e exames laboratoriais na mesma manhã para evitar deslocamentos repetidos. Seria possível conciliar a agenda para fazer todos os exames no mesmo bloco de horário?",
+      "estimatedTokens": 87
+    },
+    {
+      "caseId": "l1b-081",
+      "inputSizeCategory": "LONG",
+      "syntheticCallerUtterance": "Boa tarde, gostaria de fazer uma reclamação construtiva sobre o tempo de espera no atendimento telefônico anterior. Fiquei mais de vinte minutos aguardando na linha para confirmar uma guia de autorização de quimioterapia. Sei que a equipe é dedicada, mas para pacientes oncológicos esse tempo de espera na linha gera bastante ansiedade e desconforto.",
+      "estimatedTokens": 88
+    },
+    {
+      "caseId": "l1b-082",
+      "inputSizeCategory": "LONG",
+      "syntheticCallerUtterance": "Olá, gostaria de entender a política de reembolso para consultas de saúde mental. Minha empresa oferece um subsídio corporativo de cinquenta por cento mediante apresentação de nota fiscal e relatório de presença com CRM do médico. Vocês fornecem esses documentos com o descritivo necessário no mesmo dia da consulta ou leva alguns dias úteis?",
+      "estimatedTokens": 86
+    },
+    {
+      "caseId": "l1b-083",
+      "inputSizeCategory": "LONG",
+      "syntheticCallerUtterance": "Bom dia, estou com meu filho de cinco anos apresentando dor abdominal súbita e febre desde a madrugada. Já entramos em contato com o pediatra dele, que recomendou levá-lo para avaliação presencial imediata com ultrassom se necessário. O pronto atendimento infantil de vocês tem equipamento de ultrassonografia disponível 24 horas para diagnóstico rápido?",
+      "estimatedTokens": 89
+    },
+    {
+      "caseId": "l1b-084",
+      "inputSizeCategory": "LONG",
+      "syntheticCallerUtterance": "Boa tarde, realizei uma série de exames de sangue e urina na unidade na semana passada, e a maioria dos laudos já está disponível no aplicativo, exceto o painel imunológico que ainda consta como em processamento. Gostaria de saber se há alguma pendência técnica no laboratório ou se esse tipo específico de análise tem prazo estendido de liberação.",
+      "estimatedTokens": 87
+    },
+    {
+      "caseId": "l1b-085",
+      "inputSizeCategory": "LONG",
+      "syntheticCallerUtterance": "Olá, gostaria de saber se vocês oferecem algum pacote especial de check-up executivo preventivo que inclua consulta clínica, avaliação cardiológica completa com teste ergométrico, exames de sangue detalhados e avaliação oftalmológica, e se todos esses procedimentos podem ser realizados em um único sábado pela manhã.",
+      "estimatedTokens": 79
+    },
+    {
+      "caseId": "l1b-086",
+      "inputSizeCategory": "LONG",
+      "syntheticCallerUtterance": "Bom dia, recebi uma notificação informando que meu médico habitual foi transferido para outra unidade da rede a partir do próximo mês. Gostaria de saber como fica meu histórico de consultas e prontuário médico: eles são transferidos automaticamente no sistema interno para o novo profissional que assumir meus atendimentos na unidade atual?",
+      "estimatedTokens": 85
+    },
+    {
+      "caseId": "l1b-087",
+      "inputSizeCategory": "LONG",
+      "syntheticCallerUtterance": "Boa tarde, gostaria de saber se é permitida a entrada de dois acompanhantes durante a realização de ultrassonografia obstétrica morfológica. Minha esposa está na vigésima semana de gestação e gostaríamos muito que os avós do bebê também pudessem acompanhar o momento na sala de exames, respeitando as normas de higiene da clínica.",
+      "estimatedTokens": 83
+    },
+    {
+      "caseId": "l1b-088",
+      "inputSizeCategory": "LONG",
+      "syntheticCallerUtterance": "Olá, preciso de informações sobre o protocolo para realização de biópsia guiada por tomografia. Meu médico solicitou o procedimento com urgência, mas preciso saber com antecedência quanto tempo de repouso na sala de recuperação será necessário após a punção e se é obrigatório ter um acompanhante maior de idade presente durante todo o período.",
+      "estimatedTokens": 86
+    },
+    {
+      "caseId": "l1b-089",
+      "inputSizeCategory": "LONG",
+      "syntheticCallerUtterance": "Bom dia, gostaria de entender melhor a diferença entre os atendimentos presenciais e as teleconsultas em termos de emissão de pedidos de exames. Se eu fizer uma teleconsulta de clínica médica, a receita digital emitida pelo sistema permite que eu faça a coleta de exames pelo meu convênio em laboratórios de outros estados durante uma viagem a trabalho?",
+      "estimatedTokens": 88
+    },
+    {
+      "caseId": "l1b-090",
+      "inputSizeCategory": "LONG",
+      "syntheticCallerUtterance": "Boa tarde, estou com uma dúvida referente à cobrança duplicada no meu cartão de crédito referente à consulta realizada no dia dez deste mês. Aparecem dois lançamentos com o mesmo valor e mesmo horário na fatura. Gostaria de enviar o extrato para o departamento financeiro para que possam estornar a cobrança excedente o mais breve possível.",
+      "estimatedTokens": 85
+    },
+    {
+      "caseId": "l1b-091",
+      "inputSizeCategory": "LONG",
+      "syntheticCallerUtterance": "Olá, gostaria de saber se a clínica dispõe de atendimento especializado em geriatria preventiva domiciliar para idosos acamados que não possuem condições clínicas de se deslocar até a unidade hospitalar, e quais são os requisitos de encaminhamento médico e cobertura pelo plano de saúde para esse serviço.",
+      "estimatedTokens": 76
+    },
+    {
+      "caseId": "l1b-092",
+      "inputSizeCategory": "LONG",
+      "syntheticCallerUtterance": "Bom dia, meu oftalmologista solicitou um mapeamento de retina e tomografia de coerência óptica. Sei que a dilatação pupilar é necessária e causa embaçamento visual por algumas horas. Gostaria de saber se a clínica recomenda vir de transporte por aplicativo ou se há algum local de espera confortável onde o paciente possa aguardar a visão normalizar.",
+      "estimatedTokens": 88
+    },
+    {
+      "caseId": "l1b-093",
+      "inputSizeCategory": "LONG",
+      "syntheticCallerUtterance": "Boa tarde, gostaria de confirmar se o serviço de transporte inter-hospitalar de UTI móvel da rede está disponível caso um paciente internado no pronto atendimento precise de transferência para a unidade central especializada em cuidados intensivos neurológicos, e se esse transporte requer autorização prévia da família.",
+      "estimatedTokens": 80
+    },
+    {
+      "caseId": "l1b-094",
+      "inputSizeCategory": "LONG",
+      "syntheticCallerUtterance": "Olá, gostaria de solicitar uma declaração de comparecimento para fins de justificativa de ausência no trabalho tanto para mim quanto para meu esposo, que foi meu acompanhante durante o procedimento endoscópico realizado nesta manhã, constando o horário de entrada às sete horas e saída às doze horas e trinta minutos.",
+      "estimatedTokens": 79
+    },
+    {
+      "caseId": "l1b-095",
+      "inputSizeCategory": "LONG",
+      "syntheticCallerUtterance": "Bom dia, gostaria de saber se vocês realizam teste de esforço cardiopulmonar ergoespirometria para atletas amadores que buscam avaliação de capacidade respiratória e limiares ventilatórios, e se é necessário apresentar encaminhamento com atestado de aptidão física prévia antes da realização do teste.",
+      "estimatedTokens": 75
+    },
+    {
+      "caseId": "l1b-096",
+      "inputSizeCategory": "LONG",
+      "syntheticCallerUtterance": "Boa tarde, estou em tratamento dermatológico prolongado com medicação controlada que exige monitoramento hepático mensal por exames de sangue. Gostaria de saber se é possível cadastrar um pedido recorrente de exames para evitar ter que passar em consulta de retorno exclusivamente para emissão de novas guias todo mês.",
+      "estimatedTokens": 80
+    },
+    {
+      "caseId": "l1b-097",
+      "inputSizeCategory": "LONG",
+      "syntheticCallerUtterance": "Olá, gostaria de saber qual é o procedimento adotado pela clínica caso um paciente apresente reação alérgica inesperada ao contraste iodado utilizado na tomografia, quais medicamentos de emergência e suporte de reanimação avançada estão imediatamente disponíveis na sala de imagem para garantir a segurança.",
+      "estimatedTokens": 77
+    },
+    {
+      "caseId": "l1b-098",
+      "inputSizeCategory": "LONG",
+      "syntheticCallerUtterance": "Bom dia, gostaria de entender como funciona o agendamento compartilhado para casal na área de planejamento reprodutivo e fertilidade, se ambos devem abrir prontuários separados na primeira consulta ou se o atendimento inicial é realizado em conjunto como uma única sessão de avaliação clínica e genética.",
+      "estimatedTokens": 76
+    },
+    {
+      "caseId": "l1b-099",
+      "inputSizeCategory": "LONG",
+      "syntheticCallerUtterance": "Boa tarde, gostaria de saber se vocês mantêm um serviço de ouvidoria para pacientes que desejam relatar sugestões de melhoria no fluxo de triagem da emergência, pois observei que a sinalização visual nas salas de espera causa confusão sobre a ordem de chamada entre casos preferenciais e convencionais.",
+      "estimatedTokens": 76
+    },
+    {
+      "caseId": "l1b-100",
+      "inputSizeCategory": "LONG",
+      "syntheticCallerUtterance": "Olá, gostaria de saber se a farmácia de manipulação parceira da clínica consegue entregar os medicamentos dermatológicos personalizados diretamente na residência do paciente, ou se a retirada deve ser feita obrigatoriamente no balcão da farmácia física anexa à unidade de atendimento.",
+      "estimatedTokens": 71
+    }
+  ]
+}
