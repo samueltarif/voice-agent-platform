@@ -13286,3 +13286,73 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **PR68_STATUS**: `BLOCKED_FOR_LOCAL_SCHEMA_STATE`
 - **MERGE_PERFORMED**: `NO`
 - **NEXT_ALLOWED_STEP**: `resolve only the factual local-environment blocker (run approved migrations against local Docker Postgres under explicit human direction)`
+
+
+---
+
+## 2026-10-03 — PR #68 Local Migration & Final Canonical Quality Gate Closure (Slice 006AO-LocalMigration)
+
+### 1. Contexto e Preflight
+- **Prompt ID**: `PROMPT-PR68-LOCAL-MIGRATION-AND-FINAL-CANONICAL-GATE-001`
+- **AUTHORITATIVE_REPO_ROOT**: `D:/voice-agent-platform-git`
+- **Branch**: `research/006ao-l2-runner-preauth`
+- **Base (origin/main)**: `ce12952c5b812c0594a3d955e53df455c9c32654`
+- **QUALITY_GATE_CODE_HEAD**: `08fe217aa40cd55ffb743842beaff45f0093a1dc`
+- **Working Tree Pre-Check**: `clean`
+- **Provider Calls neste Slice**: TypeSafe = 0, OpenAI = 0, Twilio = 0
+- **Cloud DB Connections**: 0 (Neon staging = 0, Neon prod = 0, qualquer cloud DB = 0)
+- **Local DB Infrastructure**: Docker Compose service `postgres` (`postgres:16-alpine`, container `voice-agent-postgres`, porta 5432, status `healthy`)
+- **DATABASE_TARGET_IS_LOCAL**: `YES` (`APP_ENV_IS_PRODUCTION = NO`, `APP_ENV_IS_STAGING = NO`, `CLOUD_DATABASE_TARGET = NO`)
+- **Holdout**: `NO NEW ACCESS` (`LOCKED_HOLDOUT = CONSUMED` preservado)
+- **Frozen Policy**: `UNCHANGED`
+- **ACTIVE_GUARDED**: `BLOCKED`
+- **PRODUCTION_RUNTIME_WIRING**: `NO`
+- **CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE**: `NOT CLEARED`
+- **OPENAI_PRICE_STATUS**: `NOT_VERIFIED`
+- **L2_OPERATOR_COST_CEILING**: `NOT_AUTHORIZED`
+- **L2_EXECUTION**: `NOT EXECUTED`
+
+### 2. Execução da Migration Local Autorizada
+- **Autorização Humana do Prompt**: `LOCAL POSTGRES MIGRATION = YES` (escopo restrito ao PostgreSQL Docker local).
+- **Comando Canônico Observado**: `pnpm --filter @voice-agent/database db:migrate` (executa `drizzle-kit migrate`).
+- **Arquivos Tracked de Migration**: 5 arquivos (2 migrations SQL versionadas: `0000_dizzy_runaways.sql`, `0001_numerous_eddie_brock.sql` e metadados em `meta/`).
+- **Nenhuma Migration Gerada / Nenhum Schema Editado**: `db:generate = NOT RUN`, `DDL manual = NONE`.
+- **LOCAL_MIGRATION_EXIT_CODE**: `0` (`[✓] migrations applied successfully!`)
+- **LOCAL_MIGRATION**: `PASS`
+- **LOCAL_SCHEMA_READY**: `YES` (verificado catálogo PostgreSQL em `voice_agent_dev`: tabelas `user`, `session`, `account`, `verification`, `agents`, `agent_versions`, `organizations`, `organization_memberships`, `plans`, `subscriptions`, `entitlements`, `commercial_grants`, `audit_logs`, `platform_admin_authorizations` presentes).
+
+### 3. Canonical Quality Gate
+- **Comando Canônico Literal**: `pnpm check`
+- **QUALITY_GATE_CODE_HEAD_BEFORE**: `08fe217aa40cd55ffb743842beaff45f0093a1dc`
+- **QUALITY_GATE_CODE_HEAD_AFTER**: `08fe217aa40cd55ffb743842beaff45f0093a1dc`
+- **CANONICAL_PNPM_CHECK_EXIT_CODE**: `0`
+- **Subchecks Status**:
+  - `pnpm format:check`: `PASS`
+  - `pnpm lint`: `PASS`
+  - `pnpm typecheck`: `PASS`
+  - `pnpm test`: `PASS`
+  - `pnpm build`: `PASS` (12/12 pacotes via Turbo, Next.js optimized production build)
+  - `pnpm check:architecture`: `PASS` (todas as fronteiras e regras arquiteturais respeitadas)
+  - `pnpm check:file-size`: `PASS` (todos os arquivos de lógica em conformidade)
+- **Contagens Exatas de Vitest**:
+  - **Test Files**: 111 passed | 6 skipped (117 total)
+  - **Tests**: 750 passed | 45 skipped (795 total)
+  - **Skips Observados**: 45 testes em 6 suites históricas de staging (`staging-connection`, `staging-domain-integrity`, `agent-domain.staging`, `agent-api.staging`, `bootstrap-api.staging`, `auth.staging`), que requerem explicitamente credenciais remotas de staging.
+- **Governança de Test-Diff**:
+  - `NEW_SKIPS`: `0`
+  - `ASSERTION_WEAKER`: `0`
+- **CANONICAL_PNPM_CHECK**: `PASS`
+
+### 4. Doc-Only Staleness Classification
+- **QUALITY_GATE_CODE_HEAD**: `08fe217aa40cd55ffb743842beaff45f0093a1dc`
+- **POST_GATE_CODE_CHANGE**: `NO`
+- **POST_GATE_TEST_CHANGE**: `NO`
+- **POST_GATE_CONFIG_CHANGE**: `NO`
+- **POST_GATE_SCHEMA_SOURCE_CHANGE**: `NO`
+- **POST_GATE_MIGRATION_FILE_CHANGE**: `NO`
+- **POST_GATE_DOC_EVIDENCE_CHANGE_ONLY**: `YES`
+
+### 5. Classificação Final do PR #68
+- **PR68_STATUS**: `READY_FOR_HUMAN_MERGE_REVIEW`
+- **MERGE_PERFORMED**: `NO`
+- **NEXT_ALLOWED_STEP**: `explicit human merge decision for PR #68`
