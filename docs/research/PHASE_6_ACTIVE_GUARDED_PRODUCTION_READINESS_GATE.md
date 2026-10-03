@@ -19,7 +19,7 @@ A implementação offline do Slice D (PR #61) comprovou com sucesso a coordenaç
 
 Este gate estabelece que:
 1. `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE` permanece **`NOT CLEARED`** até celebração de DPA formal, auditoria de subprocessores e autorização jurídica humana.
-2. `MODEL_DRIFT_RUNTIME_GUARD` é **`REQUIRED_BEFORE_ACTIVE_GUARDED`** (estratégia de version pinning desenhada como recomendação arquitetural; autoridade de modelo em runtime `NOT IMPLEMENTED`).
+2. `MODEL_DRIFT_RUNTIME_GUARD` é **`IMPLEMENTED / TESTED LOCALLY`** (`EXPECTED_MODEL_AUTHORITY = OPTION_B`; exact matches observados em L1A 20/20 e L1B 100/100 para `jev-1.13.0`; `MODEL_WEIGHT_IMMUTABILITY = NOT VERIFIED`; `PRODUCTION_RUNTIME_WIRING = NO`).
 3. A latência de staging (N=12, mediana 275ms) é evidência histórica de staging e **não é** autoritativa para timeout de produção (`PRODUCTION_JEV_TIMEOUT_MS = NOT SELECTED (CANDIDATE_PENDING_VALIDATION)`).
 4. A validação deve seguir estritamente uma escada controlada (L0 a L4), separando smoke funcional sintético com validação de modelo (L1A) de estudo empírico de latência (L1B), garantindo isolamento total de dados reais de clientes até aprovação explícita.
 
@@ -60,7 +60,7 @@ Para avaliar a prontidão antes de ligar o roteamento supervisionado em produç�
 | **F. Production Composition** | `DESIGNED / NOT IMPLEMENTED` | Ponto de injeção desacoplado especificado; `PRODUCTION_RUNTIME_WIRING = NO` |
 | **G. Observability** | `DESIGNED / NOT IMPLEMENTED` | Mapeamento de métricas provider-neutral sanitizadas de transcrições e segredos desenhado |
 | **H. Cost Control** | `DESIGNED / NEEDS_HUMAN_APPROVAL` | `PUBLIC_UNIT_PRICE = VERIFIED FOR L1B EXECUTION` ($42/Btok input); `ACTUAL_BILLING = NOT VERIFIED`; `PRODUCTION_BUDGET = NOT SELECTED` |
-| **I. Controlled Live Validation** | `IN PROGRESS (L1 COMPLETE)` | `L0 = COMPLETE`; `L1A = EXECUTED / PASS`; `L1B = EXECUTED / PASS_COMPLETE`; `L2 = NOT EXECUTED`; `L3 = NOT EXECUTED / BLOCKED UNTIL APPROPRIATE SLICE`; `L4 = BLOCKED` |
+| **I. Controlled Live Validation** | `IN PROGRESS (L1 COMPLETE)` | `L0 = COMPLETE`; `L1A = EXECUTED / PASS`; `L1B = EXECUTED / PASS_COMPLETE`; `L2 = PLANNED / NOT EXECUTED`; `L3 = NOT EXECUTED / BLOCKED UNTIL APPROPRIATE SLICE`; `L4 = BLOCKED` |
 | **J. Rollback / Kill Switch** | `DESIGNED / NOT IMPLEMENTED` | Sem reload dinâmico em runtime; alteração de flag exige restart/redeploy; implementação `NOT IMPLEMENTED` |
 | **K. Real Telephony Validation** | `BLOCKED` | Requer conta Twilio e testes L3; postergado para fase apropriada |
 
@@ -420,7 +420,7 @@ A promoção para produção deve seguir rigorosamente a escada de validação i
   │  Objetivo: 100/100 sucessos com exact match jev-1.13.0, 0 timeouts, 0 falhas técnicas; mediana 257ms, p90 302ms, p99 380ms; DESCRIPTIVE_ONLY (sem dados de clientes)
   ▼
 [L2: Real Jev + Real OpenAI + Synthetic Transcript]
-  │  Status: PENDING / NOT EXECUTED
+  │  Status: PLANNED / NOT EXECUTED
   │  Harness: Validação de fallback generativo real sob prompts sintéticos, sem Twilio
   ▼
 [L3: Real Jev + Real Twilio Audio]

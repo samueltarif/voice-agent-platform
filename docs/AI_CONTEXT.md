@@ -3,14 +3,14 @@
 <!--
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
-LAST_REFRESHED_AT: 2026-10-02
-CONTEXT_BASE_MAIN_SHA: 76bead2a44e6516af49a87098864c6475f4b02dd
+LAST_REFRESHED_AT: 2026-10-03
+CONTEXT_BASE_MAIN_SHA: b1734fc664f1aaa717c6fdfca87bfd4bab6f269e
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
-CURRENT_SLICE: L1B Run 1 Evidence Closure
-CONTEXT_UPDATE_BRANCH: research/006al-l1b-run1-preauth-runner
-CONTEXT_UPDATE_PR: 66
-LAST_MERGED_PR_AT_REFRESH: 65
-LAST_MERGE_SHA_AT_REFRESH: 76bead2a44e6516af49a87098864c6475f4b02dd
+CURRENT_SLICE: L2 Real Jev + Real OpenAI + Synthetic Transcript Planning
+CONTEXT_UPDATE_BRANCH: research/006an-l2-real-jev-openai-synthetic-plan
+CONTEXT_UPDATE_PR: 67
+LAST_MERGED_PR_AT_REFRESH: 66
+LAST_MERGE_SHA_AT_REFRESH: b1734fc664f1aaa717c6fdfca87bfd4bab6f269e
 LAST_TESTED_CODE_SHA: cf1336285a18d9359b7b9a5d7a87def70e6595f9
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
@@ -87,6 +87,7 @@ AI_CONTEXT_HEADER_END
 - **EXPECTED_MODEL_AUTHORITY**: `OPTION_B` (TypeSafe adapter integration config: options.expectedProviderModel).
 - **L1A_MODEL_IDENTITY_SMOKE**: `EXECUTED / PASS` (N=20/20 sucessos com exact match `jev-1.13.0`, 0 mismatches, 0 erros técnicos, mediana descritiva 275ms, p90 316ms, max 685ms; SHA-256 `698c5e2a3b91...`; `docs/research/results/phase-6-typesafe-l1a-model-identity-smoke-run1.json`).
 - **L1B_SYNTHETIC_LATENCY_STUDY**: L1B_PLAN = EXECUTED / PASS_COMPLETE | L1B_RUNNER = IMPLEMENTED / TESTED OFFLINE | L1B_EXECUTION = EXECUTED / PASS_COMPLETE (100 attempted / 100 succeeded, 100/100 model matches jev-1.13.0, 0 mismatches, 0 erros técnicos, 0 timeouts; latência DESCRIPTIVE_ONLY: min 229ms, mediana 257ms, p75 273ms, p90 302ms, p95 325ms, p99 empirical 380ms, max 385ms; SHA-256 f087a6e3ad83fc81b272ffd775d5e66d00c6e7c918d310ca54f45237d59f1cdb; docs/research/results/phase-6-typesafe-l1b-synthetic-latency-run1.json) | L1B_PROVIDER_EXECUTION = EXECUTED.
+- **L2_REAL_JEV_OPENAI_SYNTHETIC**: L2_PLAN = DESIGNED (`docs/research/PHASE_6_L2_REAL_JEV_OPENAI_SYNTHETIC_PLAN.md`) | L2_DATASET = CREATED (N=12, SHA-256 `bd812341a922...`; `scripts/benchmarks/voice/jev-openai-l2-synthetic-integration-v1-cases.json`) | L2_EXECUTION = NOT EXECUTED | L2_PROVIDER_CALLS = 0.
 - **SECURITY_RUNTIME_SEMANTICS**: `DESIGNED` (`docs/research/PHASE_6_SECURITY_ESCALATE_RUNTIME_SEMANTICS.md`).
 - **SECURITY_RESPONSE_DELIVERY_READY**: `IMPLEMENTED LOCALLY / ROUTING INTEGRATED`.
 - **SECURITY_HISTORY_PERSISTENCE_READY**: `IMPLEMENTED LOCALLY (Turn-scoped qualified H4/H5 history resolution)`.
@@ -180,7 +181,7 @@ AI_CONTEXT_HEADER_END
 12. `PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY = NOT SELECTED`: Candidato canary 2 a 5 chamadas é proposta exploratória sem dados operacionais.
 13. `MODEL_DRIFT_RUNTIME_GUARD = IMPLEMENTED / TESTED LOCALLY` (`EXPECTED_MODEL_AUTHORITY = OPTION_B`; exact match via `expectedProviderModel`).
 14. `PRODUCTION_RUNTIME_WIRING = NO`: Fiação de runtime em produção desautorizada.
-15. `LIVE_PROVIDER_GUARDED_ROUTING_VALIDATION = PARTIAL`: L1A executado com sucesso (`L1A_EXECUTION = PASS`); L1B executado com sucesso (`L1B_EXECUTION = PASS_COMPLETE`); L2 = NOT EXECUTED; L3 = NOT EXECUTED / BLOCKED UNTIL APPROPRIATE SLICE; L4 = BLOCKED.
+15. `LIVE_PROVIDER_GUARDED_ROUTING_VALIDATION = PARTIAL`: L1A executado com sucesso (`L1A_EXECUTION = PASS`); L1B executado com sucesso (`L1B_EXECUTION = PASS_COMPLETE`); L2 = PLANNED / NOT EXECUTED; L3 = NOT EXECUTED / BLOCKED UNTIL APPROPRIATE SLICE; L4 = BLOCKED.
 16. `LIVE_TWILIO_GUARDED_ROUTING = NOT EXECUTED`: Validação em telefonia real pendente L3.
 17. `CUSTOMER_TRAFFIC = PROHIBITED`
 
@@ -189,7 +190,7 @@ AI_CONTEXT_HEADER_END
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- Candidate: L2 Real Jev + Real OpenAI + Synthetic Transcript (PLANNING / PREAUTH ONLY).
+- Candidate: L2 Runner Implementation & Preauthorization Preparation (after human review of PR).
 - `ACTIVE_GUARDED` permanece `BLOCKED` até conclusão da escada de validação (L1-L4).
 - Do NOT enable live customer traffic.
 - Do NOT use real telephony / live Twilio (TWILIO_ACCOUNT_REQUIRED_NOW = NO).

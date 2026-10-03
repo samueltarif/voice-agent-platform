@@ -12904,3 +12904,60 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - `ACTIVE_GUARDED`: `BLOCKED`
 - `L2`: `NOT EXECUTED` (próximo passo restrito a planning/preauth)
 - `TWILIO_ACCOUNT_REQUIRED_NOW`: `NO` (telefonia necessária apenas a partir de L3)
+
+---
+
+## 2026-10-03 — L2 Real Jev + Real OpenAI + Synthetic Transcript Planning (Slice 006AN)
+
+### 1. Parâmetros de Bootstrap e Governança
+- **Prompt**: `PROMPT-006AN-L2-REAL-JEV-OPENAI-SYNTHETIC-PLANNING-001`
+- **Fase**: Phase 6 (Voice Model Routing & Jev Evaluation)
+- **PR #66 Merge SHA**: `b1734fc664f1aaa717c6fdfca87bfd4bab6f269e`
+- **Branch**: `research/006an-l2-real-jev-openai-synthetic-plan`
+- **Slice**: L2 Real Jev + Real OpenAI + Synthetic Transcript Planning
+- **Provider Calls neste Slice**: TypeSafe = 0, OpenAI = 0, Twilio = 0
+- **ENV_LOADED**: `NO`
+- **DB_CONNECTED**: `NO`
+- **HOLDOUT_OPENED**: `NO` (`LOCKED_HOLDOUT = CONSUMED` preservado)
+- **FROZEN_POLICY_CHANGED**: `NO`
+- **ACTIVE_GUARDED**: `BLOCKED`
+- **PRODUCTION_RUNTIME_WIRING**: `NO`
+- **TWILIO_ACCOUNT_REQUIRED_NOW**: `NO` (telefonia necessária apenas a partir de L3)
+
+### 2. Reconciliação Documental Pós-Merge PR #66
+- `L1B_ZERO_PROVIDER_HEADER_STALE`: `YES` → corrigido para separar fase de planejamento de run 1 live
+- `L1B_NEXT_STEP_STALE`: `YES` → corrigido de fechamento de PR #66 para L2 Planning / Preauth
+- `READINESS_MODEL_DRIFT_SUMMARY_STALE`: `YES` → atualizado para refletir drift guard implementado e exact matches L1A/L1B observados
+- `CORRECTION_IMPACT`: `DOCUMENTATION ONLY`
+- `L1B_ARTIFACT_SHA`: `f087a6e3ad83fc81b272ffd775d5e66d00c6e7c918d310ca54f45237d59f1cdb` (preservado)
+- `L1B_HISTORICAL_TYPESAFE_ATTEMPTS`: `100`
+- `L1B_ACTUAL_BILLED_COST`: `NOT_VERIFIED`
+
+### 3. Desenho Arquitetural do L2
+- **Plano Formal**: `docs/research/PHASE_6_L2_REAL_JEV_OPENAI_SYNTHETIC_PLAN.md` (`L2_PLAN = DESIGNED`)
+- **Dataset Sintético**: `scripts/benchmarks/voice/jev-openai-l2-synthetic-integration-v1-cases.json`
+- **Dataset Count**: `12` casos sintéticos (N=12)
+- **Dataset SHA-256**: `8428006c10912be7d22cb915ecaa7ba7cb17aafd98d161af27b1c69237b4934f`
+- **Categorias de Casos**: 3 Det (Group A) + 4 Gen-like (Group B) + 2 Sec (Group C) + 3 Control (Group D)
+- **Core Success Condition**: Observação factual de cadeia conjunta real (`matcher=true → Jev → GENERATIVE_REQUIRED → OpenAI → Completed`)
+- **Model Authority TypeSafe**: `jev-1.13.0` (expectedProviderModel = jev-1.13.0)
+- **Model Authority OpenAI**: Configurado no adapter; `OPENAI_RESPONSE_MODEL_IDENTITY = NOT OBSERVABLE VIA CURRENT SURFACE`
+- **Hard Caps**: Max TypeSafe = 12, Max OpenAI = 12, Total Max = 24
+- **Custo Projetado Conservador**: TypeSafe ~$0.0005 USD, OpenAI ~$0.105 USD, Total ~$0.11 USD (Teto proposto: $0.25 USD)
+- **L2_EXECUTION**: `NOT EXECUTED` (planejamento concluído, aguardando review humana)
+
+---
+
+## 2026-10-03 — L2 Plan Correction: Group C Semantics, Dataset Encoding, Caps & Cost (Slice 006AN, PR #67)
+
+- **Gatilho**: revisão humana apontou que Group C (matcher = false → Jev = 0) não pode produzir `SECURITY_BLOCKED` via Jev.
+- **PREVIOUS ASSUMPTION**: Group C descrito como `GENERATIVE fail-open ou bloqueio`.
+- **NEW EVIDENCE**: `GuardedTurnRoutingCoordinator.routeTurn()` retorna `GENERATIVE` antes de chamar o Jev quando matcher = false.
+- **CORRECTION**: Group C reclassificado como `SECURITY_SENSITIVE_MATCHER_FIRST_CONTROL` (controle de privacidade/matcher-first; OpenAI = 1; estímulos adversariais sintéticos chegam à OpenAI pelo runtime atual). `SECURITY_ROUTE_LIVE_OBSERVATION = NOT GUARANTEED`.
+- **DEFEITO ADICIONAL (PRODUCT OF AGENT)**: dataset v1.0.0 (SHA `8428006c...`) foi escrito via pipe PowerShell sem UTF-8; todos os caracteres acentuados viraram `?`. Verificação offline contra a allowlist real: 5 de 7 casos destinados a matcher = true resultariam em matcher = false. Classificação: `FIXTURE SETUP BUG`. v1.0.0 nunca usada em execução.
+- **Dataset v1.0.1**: regenerado em UTF-8; matcher verificado offline: 7 true / 5 false, 12/12 conforme `expectedMatcherResult`; SHA-256 `bd812341a922ded1c7159191849dae284a88f24afd9c7e8d3c64f9b081602f3f`.
+- **Thresholds corrigidos no plano**: valores inventados (`0.70`/`0.35`) substituídos pelos canônicos de `frozen-policy-interpreter.ts` (`security >= 0.56`; `deterministic >= 0.35 AND generative <= 0.47`).
+- **Caps corrigidos**: MAX_TYPESAFE = 7 (exato), MAX_OPENAI = 12 (mínimo esperado 5), TOTAL = 19.
+- **Custo OpenAI**: valores derivados de preço não verificado (GPT-4o) removidos; `MAX_PROJECTED_OPENAI_COST = PENDING PRICE VERIFICATION`; teto ao operador `NOT PROPOSED`.
+- **Provider calls**: TypeSafe 0, OpenAI 0, Twilio 0. ENV_LOADED = NO. DB = NO. HOLDOUT_OPENED = NO. FROZEN_POLICY_CHANGED = NO. ACTIVE_GUARDED = BLOCKED.
+- **CORRECTION_IMPACT**: DOCUMENTATION + RESEARCH DATASET ONLY.

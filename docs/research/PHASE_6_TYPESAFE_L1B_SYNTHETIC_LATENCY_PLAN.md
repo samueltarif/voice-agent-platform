@@ -6,7 +6,7 @@
 > **Prompt de Origem**: `PROMPT-006AK-L1B-CONTROLLED-SYNTHETIC-LATENCY-PLANNING-001` / Hardening: `PROMPT-006AK-PR65-L1B-PLAN-HARDENING-AND-MERGE-001`<br />
 > **Fase**: Phase 6 (Voice Model Routing & Jev Evaluation)<br />
 > **Classificação**: `SYNTHETIC_LATENCY_STUDY_PLAN`<br />
-> **Invariante Formal**: ZERO chamadas a provedores neste slice (TypeSafe = 0, OpenAI = 0, Twilio = 0). ZERO dados de clientes. ZERO acesso a holdout. Frozen Policy V1 inalterada. `ACTIVE_GUARDED = BLOCKED`.
+> **Invariante Formal**: Fase de Planejamento com ZERO chamadas a provedores (TypeSafe = 0, OpenAI = 0, Twilio = 0). Execução Live Run 1 subsequente autorizada e auditada (TypeSafe = 100, OpenAI = 0, Twilio = 0). ZERO dados de clientes. ZERO acesso a holdout. Frozen Policy V1 inalterada. `ACTIVE_GUARDED = BLOCKED`.
 
 ---
 
@@ -321,7 +321,7 @@ Classificadas estritamente por natureza:
 > **Classificação de Resultado**: `PASS_COMPLETE` (100/100 sucessos com exact match `jev-1.13.0`, 0 mismatches, 0 falhas técnicas, 0 timeouts, 100% completados sob o deadline de 4000ms).
 
 Após a conclusão bem-sucedida do L1B Run 1:
-- **NEXT_ALLOWED_STEP**: Revisão de evidências e fechamento do PR #66.
+- **NEXT_ALLOWED_STEP**: L2 Real Jev + Real OpenAI + Synthetic Transcript (PLANNING / PREAUTH ONLY).
 - Manter `ACTIVE_GUARDED = BLOCKED`.
 - `PRODUCTION_JEV_TIMEOUT_MS = NOT SELECTED`.
 - `PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY = NOT SELECTED`.
