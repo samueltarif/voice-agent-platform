@@ -14090,3 +14090,37 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **LIVE_COMMAND_STATUS**: `NOT_AUTHORIZED`
 - **PREAUTH_STATUS**: `PREAUTH_BLOCKED`
 - **PR_MERGE_PERFORMED**: `NO`
+
+---
+
+## 2026-10-03 — Recording Human Authorization for Controlled L2 Live Execution (Slice 006AU)
+
+### 1. Preflight e Contexto
+- **AUTHORITATIVE_REPO_ROOT**: `D:/voice-agent-platform-git`
+- **SOURCE_MAIN_SHA**: `8c17534927669f6a02c7bdb822d202ee686eccb3`
+- **Branch**: `research/006au-l2-authorized-live-execution`
+- **Objetivo**: Registro formal do pacote de decisões e autorização humana prévia para execução única controlada da bateria L2 com provedores reais.
+
+### 2. Decisões Humanas Formalmente Concedidas
+- **Decisão 1 (Evidência TypeSafe)**: `HUMAN_DECISION_TYPESAFE_EMPIRICAL_EVIDENCE_ACCEPTANCE = ACCEPTED_FOR_SINGLE_L2_RUN` (aceitação dos dados reais da conta TypeSafe como evidência empírica conservadora de $42/Btok para esta execução).
+- **Decisão 2 (Token Cap Policy)**: `HUMAN_DECISION_TOKEN_CAP_POLICY = ACCEPT_EXISTING_CHARACTER_CAPS_FOR_SINGLE_L2_RUN` (limitação residual de token cap aceita e mitigada por caps de caracteres 1.000 Jev / 4.000 OpenAI + dataset sintético).
+- **Decisão 3 (Teto Financeiro)**: `APPROVED_OPERATOR_COST_CEILING_USD = 0.96` (`COST_CEILING_CLASSIFICATION = OPERATOR_GOVERNANCE_CEILING_NOT_HARD_PROVIDER_BILLING_BOUND`; escopo estrito: `SINGLE_SYNTHETIC_L2_RUN_ONLY`).
+- **Decisão 4 (Autorização de Execução)**: `HUMAN_L2_LIVE_AUTHORIZATION = AUTHORIZED_ONCE` (uma única execução autorizada; sem retries automáticos ou segunda execução).
+
+### 3. Parâmetros de Execução e Limites de Segurança
+- **Cenário de Planejamento**: $0.480294 USD (`L2_PLANNING_TOTAL_PROVIDER_COST_USD = 0.480294`)
+- **Hard Billing Bound**: `HARD_L2_COST_BOUND_FEASIBLE = BLOCKED` (indisponível sem saldo limite por chamada nos provedores)
+- **Dataset**: `scripts/benchmarks/voice/jev-openai-l2-synthetic-integration-v1-cases.json` (N=12, SHA-256 `bd812341a922ded1c7159191849dae284a88f24afd9c7e8d3c64f9b081602f3f`, sintético apenas)
+- **Request Caps**: 7 TypeSafe / 12 OpenAI / 19 Total
+- **Character Caps**: 1.000 chars TypeSafe / 4.000 chars OpenAI
+- **Output Token Cap**: 500 maxCompletionTokens por request OpenAI
+- **Concurrency**: 1
+- **Retries**: 0
+
+### 4. Proibições e Isolamento
+- **Twilio**: `PROHIBITED` (0 chamadas telefônicas)
+- **Cloud DB**: `PROHIBITED` (sem conexões Neon, Staging ou Produção)
+- **Holdout**: `PROHIBITED` (acesso bloqueado)
+- **Customer Data / Customer Transcripts**: `PROHIBITED` (0 dados reais)
+- **Production Wiring**: `NO`
+- **L2_EXECUTION**: `NOT EXECUTED` (status pré-execução)

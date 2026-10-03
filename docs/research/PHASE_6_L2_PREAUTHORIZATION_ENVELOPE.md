@@ -16,7 +16,13 @@ NEW_OPERATOR_COST_CEILING: NOT_PROPOSED
 HARD_MAX_PROVIDER_COST_STATUS: NOT_ENFORCEABLE
 TYPESAFE_PRICE_STATUS: NOT_VERIFIED
 TYPESAFE_PRICING_EVIDENCE: ACCOUNT_BILLING_EMPIRICALLY_VERIFIED
-HUMAN_DECISION_TYPESAFE_EMPIRICAL_EVIDENCE_ACCEPTANCE: PENDING
+HUMAN_DECISION_TYPESAFE_EMPIRICAL_EVIDENCE_ACCEPTANCE: ACCEPTED_FOR_SINGLE_L2_RUN
+HUMAN_DECISION_TOKEN_CAP_POLICY: ACCEPT_EXISTING_CHARACTER_CAPS_FOR_SINGLE_L2_RUN
+TOKEN_CAP_RESIDUAL_LIMITATION_ACCEPTED_FOR_THIS_RUN: YES
+OPERATOR_COST_CEILING_USD: 0.96
+OPERATOR_COST_CEILING_SCOPE: SINGLE_SYNTHETIC_L2_RUN_ONLY
+COST_CEILING_CLASSIFICATION: OPERATOR_GOVERNANCE_CEILING_NOT_HARD_PROVIDER_BILLING_BOUND
+HUMAN_L2_LIVE_AUTHORIZATION: AUTHORIZED_ONCE
 OPENAI_PRICE_STATUS: VERIFIED
 CLI_LIVE_INTENT_PLUMBING: PASS
 REQUEST_CAP_BOUNDARY_TESTS: PASS
@@ -333,17 +339,20 @@ node scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs --allo
 
 ## 16. Pacote de Decisões Humanas Requeridas (Human Decision Package)
 
-Nenhuma das decisões abaixo foi concedida ou assumida; todas são pré-requisitos para qualquer avanço live:
+Decisões formais concedidas pelo operador humano em 2026-10-03 (escopo estrito: única execução L2 sintética controlada):
 
-1. **`HUMAN_DECISION_1` (Aceitação de Evidência Empírica TypeSafe vs Confirmação Contratual)**:
-   - Deliberação sobre `HUMAN_DECISION_TYPESAFE_EMPIRICAL_EVIDENCE_ACCEPTANCE` (`PENDING`):
-     - *(Opção A)* Aceitar a evidência empírica de faturamento da conta (345 requests, 205.142 tokens in, $0.0086 USD spend ≈ $41.92/B) como base conservadora suficiente ($42/B) para uma única bateria controlada L2; OU
-     - *(Opção B)* Exigir confirmação contratual explícita prévia da TypeSafe (order form, invoice ou email formal) antes de qualquer desbloqueio live.
+1. **`HUMAN_DECISION_1` (Aceitação de Evidência Empírica TypeSafe)**:
+   - `HUMAN_DECISION_TYPESAFE_EMPIRICAL_EVIDENCE_ACCEPTANCE`: `ACCEPTED_FOR_SINGLE_L2_RUN`
+   - *Decisão do Operador*: Aceitar os dados reais de faturamento da conta TypeSafe (345 requests, 205k tokens in, $0.0086 USD spend ≈ $41.92/B) como evidência suficiente e conservadora ($42/B) para uma única bateria controlada L2, sem classificar como tarifa pública contratual.
 2. **`HUMAN_DECISION_2` (Política de Resolução de Token-Cap)**:
-   - Deliberação entre:
-     - *(Opção A)* Aceitar o cap de caracteres (1.000 chars Jev / 4.000 chars OpenAI) combinado ao dataset sintético auditado (~40 tokens/caso) como proteção física suficiente; OU
-     - *(Opção B)* Autorizar um slice técnico focado para adicionar dependência de tokenizer (`js-tiktoken`) exclusivamente para pré-contagem exata de tokens da OpenAI.
+   - `HUMAN_DECISION_TOKEN_CAP_POLICY`: `ACCEPT_EXISTING_CHARACTER_CAPS_FOR_SINGLE_L2_RUN`
+   - `TOKEN_CAP_RESIDUAL_LIMITATION_ACCEPTED_FOR_THIS_RUN`: `YES`
+   - *Decisão do Operador*: Aceitar a limitação residual de token cap e a proteção física via caps de caracteres (1.000 chars Jev / 4.000 chars OpenAI) combinada ao dataset sintético congelado para esta execução única.
 3. **`HUMAN_DECISION_3` (Seleção do Teto Financeiro do Operador)**:
-   - Fixação formal de um teto em USD para o runner (cenários calculados: $0.60 USD [1.25x], $0.72 USD [1.5x] ou $0.96 USD [2.0x] sobre o planejamento de $0.48 USD).
+   - `APPROVED_OPERATOR_COST_CEILING_USD`: `0.96`
+   - `COST_CEILING_CLASSIFICATION`: `OPERATOR_GOVERNANCE_CEILING_NOT_HARD_PROVIDER_BILLING_BOUND`
+   - `OPERATOR_COST_CEILING_SCOPE`: `SINGLE_SYNTHETIC_L2_RUN_ONLY`
+   - *Decisão do Operador*: Fixação formal do teto financeiro em $0.96 USD (cenário informativo 2.0x sobre planejamento de $0.480294 USD).
 4. **`HUMAN_DECISION_4` (Autorização de Execução da Bateria L2 Live)**:
-   - Autorização explícita e irrevogável para uma única execução controlada do runner com tráfego real aos endpoints de IA.
+   - `HUMAN_L2_LIVE_AUTHORIZATION`: `AUTHORIZED_ONCE`
+   - *Decisão do Operador*: Autorização explícita concedida para uma única execução controlada do comando live candidato. Não autoriza segunda execução, retries, Twilio, banco em nuvem ou tráfego de clientes.
