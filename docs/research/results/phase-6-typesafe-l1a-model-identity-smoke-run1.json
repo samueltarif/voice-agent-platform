@@ -1,0 +1,201 @@
+{
+  "metadata": {
+    "suite": "phase-6-typesafe-l1a-model-identity-smoke",
+    "version": "1.0.0",
+    "executedAt": "2026-10-02T19:26:19.882Z",
+    "requestedModel": "jev-1.13.0",
+    "expectedProviderModel": "jev-1.13.0",
+    "datasetPath": "scripts/benchmarks/voice/jev-l1a-model-identity-smoke-v1-cases.json",
+    "datasetSha256": "12828e990c1c2523c159630511aeb945b26a941c24ecaa38776b4a2769a3b0d0",
+    "datasetCaseCount": 20,
+    "maxRequestsCeiling": 20,
+    "projectedCostCeilingUsd": 0.1,
+    "projectedCostCeilingGuard": "ENFORCED",
+    "actualBilledCostUsd": "NOT_VERIFIED",
+    "invalidResponseSeparateClassification": "NOT_AVAILABLE_FROM_CURRENT_ADAPTER_ERROR_SURFACE",
+    "retries": 0,
+    "concurrency": 1,
+    "customerData": 0,
+    "openAiCalls": 0,
+    "twilioCalls": 0,
+    "pricePerBtok": 42
+  },
+  "aggregates": {
+    "requestsAttempted": 20,
+    "requestsSucceeded": 20,
+    "modelMatches": 20,
+    "modelMismatches": 0,
+    "technicalFailures": 0,
+    "totalEstimatedUpperBoundInputTokens": 20000,
+    "estimatedUpperBoundCostUsd": 0.00084,
+    "latency": {
+      "medianMs": 275,
+      "p90Ms": 316,
+      "p95Ms": 317,
+      "maxMs": 685,
+      "classification": "DESCRIPTIVE_ONLY"
+    }
+  },
+  "cases": [
+    {
+      "caseId": "l1a-01",
+      "category": "OPERATING_HOURS_DIRECT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 685
+    },
+    {
+      "caseId": "l1a-02",
+      "category": "OPERATING_HOURS_DIRECT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 284
+    },
+    {
+      "caseId": "l1a-03",
+      "category": "OPERATING_HOURS_DIRECT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 292
+    },
+    {
+      "caseId": "l1a-04",
+      "category": "OPERATING_HOURS_DIRECT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 257
+    },
+    {
+      "caseId": "l1a-05",
+      "category": "OPERATING_HOURS_DIRECT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 317
+    },
+    {
+      "caseId": "l1a-06",
+      "category": "OPERATING_HOURS_PARAPHRASE",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 300
+    },
+    {
+      "caseId": "l1a-07",
+      "category": "OPERATING_HOURS_PARAPHRASE",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 283
+    },
+    {
+      "caseId": "l1a-08",
+      "category": "OPERATING_HOURS_PARAPHRASE",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 241
+    },
+    {
+      "caseId": "l1a-09",
+      "category": "OPERATING_HOURS_PARAPHRASE",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 292
+    },
+    {
+      "caseId": "l1a-10",
+      "category": "OPERATING_HOURS_PARAPHRASE",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 316
+    },
+    {
+      "caseId": "l1a-11",
+      "category": "GENERATIVE_REQUIRED",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 304
+    },
+    {
+      "caseId": "l1a-12",
+      "category": "GENERATIVE_REQUIRED",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 262
+    },
+    {
+      "caseId": "l1a-13",
+      "category": "GENERATIVE_REQUIRED",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 262
+    },
+    {
+      "caseId": "l1a-14",
+      "category": "GENERATIVE_REQUIRED",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 274
+    },
+    {
+      "caseId": "l1a-15",
+      "category": "SECURITY_SENSITIVE",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 273
+    },
+    {
+      "caseId": "l1a-16",
+      "category": "SECURITY_SENSITIVE",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 264
+    },
+    {
+      "caseId": "l1a-17",
+      "category": "SECURITY_SENSITIVE",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 282
+    },
+    {
+      "caseId": "l1a-18",
+      "category": "CONTROL_NON_MATCHING",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 270
+    },
+    {
+      "caseId": "l1a-19",
+      "category": "CONTROL_NON_MATCHING",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 266
+    },
+    {
+      "caseId": "l1a-20",
+      "category": "CONTROL_NON_MATCHING",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 275
+    }
+  ]
+}

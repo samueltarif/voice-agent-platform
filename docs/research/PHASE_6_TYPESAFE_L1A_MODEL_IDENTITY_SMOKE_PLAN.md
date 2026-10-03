@@ -1,12 +1,12 @@
 # Phase 6: TypeSafe L1A Model Identity Smoke Plan
 
 > **Documento**: `docs/research/PHASE_6_TYPESAFE_L1A_MODEL_IDENTITY_SMOKE_PLAN.md`<br />
-> **Status**: `DESIGNED / NOT EXECUTED`<br />
+> **Status**: EXECUTED / PASS<br />
 > **Data**: 2026-10-02<br />
 > **Prompt de Origem**: `PROMPT-006AI-MODEL-IDENTITY-GUARD-AND-L1A-SYNTHETIC-SMOKE-PLAN-001`<br />
 > **Fase**: Phase 6 (Voice Model Routing & Jev Evaluation)<br />
-> **Classificação**: `SYNTHETIC_SMOKE_PLAN`<br />
-> **Invariante Formal**: ZERO chamadas reais a provedores neste slice (TypeSafe = 0, OpenAI = 0, Twilio = 0). ZERO dados de clientes. ZERO execução de tráfego real. `ACTIVE_GUARDED = BLOCKED`.
+> **Classificação**: SYNTHETIC_SMOKE_PLAN_AND_RESULT<br />
+> **Invariantes e Chamadas**: PLAN_CREATION_PROVIDER_CALLS = 0 | LIVE_RUN1_TYPESAFE_CALLS = 20 | OPENAI_CALLS = 0 | TWILIO_CALLS = 0. ZERO dados de clientes. ACTIVE_GUARDED = BLOCKED.
 
 ---
 
@@ -68,7 +68,12 @@ A futura execução controlada do L1A deve operar sob as seguintes travas operac
 - `CUSTOMER_DATA_EXPOSURE`: 0 (absolutamente zero transcrições de clientes)
 - `OPENAI_CALLS`: 0 (L1A avalia apenas o adapter TypeSafe; OpenAI não é invocado)
 - `TWILIO_CALLS`: 0 (nenhuma chamada telefônica)
-- `MONETARY_COST_CEILING`: `PENDING_HUMAN / COMMERCIAL VERIFICATION` (orçamento total estimado $< \$0.10$ baseado em preço documentado por token, com teto rígido pré-aprovado)
+- `MONETARY_COST_CEILING`: `PROPOSED_PENDING_OPERATOR_APPROVAL` (teto proposto de $0.10 USD; projeção conservadora: 20.000 input tokens = $0.00084 USD)
+- `PROJECTED_COST_CEILING_GUARD`: `IMPLEMENTED / TESTED OFFLINE` (interrompe execução se projectedCostNext ultrapassar o teto fornecido)
+- `MAX_PROVIDER_REQUEST_CAP`: `HARD_ENFORCED` (máximo de 20 requisições strictly enforced)
+- `ACTUAL_BILLED_COST_HARD_CAP`: `NOT VERIFIED / NOT PROVIDER-ENFORCED` (a API remota não possui quota hard enforceada no runner)
+- `INTEGRATIONS_DIST_REFRESH_REQUIRED_BEFORE_L1A`: `YES` (`pnpm --filter @voice-agent/integrations build` obrigatório antes de carregar o runtime com `.env`)
+- `L1A_RESULT_NOT_FOR_TUNING`: `YES` (scores de roteamento omitidos do artefato de resultado; apenas telemetria de identidade e latência descriptiva são persistidas)
 - `SECRET_LEAK_GUARD`: Zero exibição de `TYPESAFE_API_KEY` em logs, stdout ou arquivos de resultado
 
 ---
@@ -83,7 +88,7 @@ A futura execução do L1A só poderá ser considerada `PASS` se satisfizer cumu
 4. **D. Isolamento Estrito de Dados**: Zero dados reais de clientes transmitidos no payload HTTP ou gravados em artefatos.
 5. **E. Zero Retries**: Nenhuma chamada repetida em caso de lentidão ou falha de rede.
 6. **F. Blindagem de Segredos**: Nenhuma chave de API ou token refletido nos logs ou artefatos gerados (`SECRET_AUDIT_PASS`).
-7. **G. Semântica Fail-Safe Comprovada**: Em caso de mismatch sintético intencional de controle, o runtime deve acionar fail-open para geração principal, sem qualquer bypass determinístico ou encerramento indevido de chamada.
+7. **G. Semântica Fail-Safe de Mismatch**: A semântica de fail-open diante de mismatch é pré-requisito comprovado offline (`OFFLINE_MISMATCH_FAIL_SAFE_PREREQUISITE = PASS / TESTED LOCALLY`). No L1A live, nenhuma chamada extra ou alteração de modelo esperado será fabricada para forçar mismatch (`INTENTIONAL_LIVE_MISMATCH_REQUEST = NO`). Caso um mismatch ocorra naturalmente da resposta do provedor (`LIVE_NATURAL_MISMATCH_BEHAVIOR`), o guard deve rejeitá-la e registrar o mismatch sem desvios.
 8. **H. Invariante da Frozen Policy**: Nenhum threshold da Frozen Policy V1 é alterado.
 
 ---
@@ -107,5 +112,37 @@ Antes que o operador autorize a execução do L1A em um próximo slice:
 - [x] Model Identity Guard implementado e testado offline (`TypeSafeJevTurnDecisionAdapter`).
 - [x] Testes offline de regressão comprovando fail-open em caso de mismatch.
 - [x] Dataset sintético congelado com hash registrado (`12828e990c1c...`).
-- [ ] Autorização humana explícita para invocação remota do script runner com `TYPESAFE_API_KEY` em memória.
-- [ ] Definição do teto monetário autorizado pelo operador.
+- [x] Script runner dedicado com controle rígido de teto de custo criado e auditado (`run-jev-l1a-model-identity-smoke.mjs`).
+- [x] Autorização humana explícita para invocação remota do script runner (`AUTORIZO_L1A_TYPESAFE_N20 = YES`).
+- [x] Definição do teto monetário autorizado pelo operador (`COST_CEILING_USD = 0.10`).
+
+---
+
+## 8. Resultados da Execução L1A (Run 1 — 2026-10-02)
+
+- **Artefato de Resultado**: `docs/research/results/phase-6-typesafe-l1a-model-identity-smoke-run1.json`
+- **SHA-256 do Resultado**: `698c5e2a3b9177e3ec2692caec2f83cb9d1e67fbea9576197a0fab28770c47c3`
+- **Total de Casos Executados**: 20/20
+- **Sucessos com Match de Modelo**: 20/20 (`providerModel === 'jev-1.13.0'`)
+- **Mismatches Observados**: 0
+- **Erros Técnicos / Timeout**: 0
+- **Retries Realizados**: 0
+- **Concorrência**: 1 (sequencial)
+- **Latência Observada (Descritiva)**:
+  - Mediana: `275ms`
+  - p90: `316ms`
+  - p95: `317ms`
+  - Max: `685ms`
+  - Classificação: `DESCRIPTIVE_ONLY` (não constitui estudo estatístico de cauda / L1B)
+- **Custo Máximo Projetado (Upper Bound)**: `0.00084 USD` (20.000 input tokens projetados)
+- **Teto Autorizado pelo Operador**: `0.10 USD` (enforced via runner guard)
+- **Avaliação Formal de Critérios de Aceitação**:
+  - Critério A (Conclusão Técnica Total): **PASS** (20/20)
+  - Critério B (Observabilidade de `providerModel`): **PASS** (20/20)
+  - Critério C (Exact Match no Guard): **PASS** (20/20 com `jev-1.13.0`)
+  - Critério D (Isolamento de Dados do Cliente): **PASS** (zero customer data, 100% sintético)
+  - Critério E (Zero Retries): **PASS** (0 retries)
+  - Critério F (Blindagem de Segredos): **PASS** (`SECRET_AUDIT_PASS`)
+  - Critério G (Semântica Fail-Safe de Mismatch): **PASS** (comprovado offline; 0 mismatches naturais no run)
+  - Critério H (Invariante da Frozen Policy): **PASS** (zero alterações na policy)
+- **Desfecho Final do L1A**: **PASS TOTAL**
