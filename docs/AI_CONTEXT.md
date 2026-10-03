@@ -4,13 +4,13 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-02
-CONTEXT_BASE_MAIN_SHA: 0817b9c762986e9de855dda435dca4892dcefaf0
+CONTEXT_BASE_MAIN_SHA: 76bead2a44e6516af49a87098864c6475f4b02dd
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
-CURRENT_SLICE: L1B Controlled Synthetic Latency Study Planning
-CONTEXT_UPDATE_BRANCH: research/006ak-l1b-synthetic-latency-plan
-CONTEXT_UPDATE_PR: 65
-LAST_MERGED_PR_AT_REFRESH: 64
-LAST_MERGE_SHA_AT_REFRESH: 0817b9c762986e9de855dda435dca4892dcefaf0
+CURRENT_SLICE: L1B Run 1 Evidence Closure
+CONTEXT_UPDATE_BRANCH: research/006al-l1b-run1-preauth-runner
+CONTEXT_UPDATE_PR: 66
+LAST_MERGED_PR_AT_REFRESH: 65
+LAST_MERGE_SHA_AT_REFRESH: 76bead2a44e6516af49a87098864c6475f4b02dd
 LAST_TESTED_CODE_SHA: cf1336285a18d9359b7b9a5d7a87def70e6595f9
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
@@ -86,7 +86,7 @@ AI_CONTEXT_HEADER_END
 - **MODEL_DRIFT_RUNTIME_GUARD**: `IMPLEMENTED / TESTED LOCALLY` (`packages/integrations/src/typesafe/typesafe-jev-turn-decision-adapter.ts`; 23 testes; exact match via `expectedProviderModel`).
 - **EXPECTED_MODEL_AUTHORITY**: `OPTION_B` (TypeSafe adapter integration config: options.expectedProviderModel).
 - **L1A_MODEL_IDENTITY_SMOKE**: `EXECUTED / PASS` (N=20/20 sucessos com exact match `jev-1.13.0`, 0 mismatches, 0 erros técnicos, mediana descritiva 275ms, p90 316ms, max 685ms; SHA-256 `698c5e2a3b91...`; `docs/research/results/phase-6-typesafe-l1a-model-identity-smoke-run1.json`).
-- **L1B_SYNTHETIC_LATENCY_STUDY**: `L1B_PLAN = DESIGNED` (docs/research/PHASE_6_TYPESAFE_L1B_SYNTHETIC_LATENCY_PLAN.md; dataset N=100 em scripts/benchmarks/voice/jev-l1b-synthetic-latency-v1-cases.json; `L1B_RUN1_MAX_PROVIDER_REQUESTS = 100`, `L1B_RUN1_CONCURRENCY = 1`, `L1B_CONCURRENCY_2_EXPLORATION = DEFERRED`) | `L1B_EXECUTION = NOT EXECUTED`.
+- **L1B_SYNTHETIC_LATENCY_STUDY**: L1B_PLAN = EXECUTED / PASS_COMPLETE | L1B_RUNNER = IMPLEMENTED / TESTED OFFLINE | L1B_EXECUTION = EXECUTED / PASS_COMPLETE (100 attempted / 100 succeeded, 100/100 model matches jev-1.13.0, 0 mismatches, 0 erros técnicos, 0 timeouts; latência DESCRIPTIVE_ONLY: min 229ms, mediana 257ms, p75 273ms, p90 302ms, p95 325ms, p99 empirical 380ms, max 385ms; SHA-256 f087a6e3ad83fc81b272ffd775d5e66d00c6e7c918d310ca54f45237d59f1cdb; docs/research/results/phase-6-typesafe-l1b-synthetic-latency-run1.json) | L1B_PROVIDER_EXECUTION = EXECUTED.
 - **SECURITY_RUNTIME_SEMANTICS**: `DESIGNED` (`docs/research/PHASE_6_SECURITY_ESCALATE_RUNTIME_SEMANTICS.md`).
 - **SECURITY_RESPONSE_DELIVERY_READY**: `IMPLEMENTED LOCALLY / ROUTING INTEGRATED`.
 - **SECURITY_HISTORY_PERSISTENCE_READY**: `IMPLEMENTED LOCALLY (Turn-scoped qualified H4/H5 history resolution)`.
@@ -176,11 +176,11 @@ AI_CONTEXT_HEADER_END
 8. `GUARDED_RUNTIME_ROUTING_OFFLINE = IMPLEMENTED / TESTED LOCALLY`
 9. `ACTIVE_GUARDED = BLOCKED`
 10. `PRODUCTION_SHADOW_MAX_CONCURRENCY = NOT SELECTED`: Limite de concorrência operacional de produção não definido.
-11. `PRODUCTION_JEV_TIMEOUT_MS = NOT SELECTED`: Candidato exploratório 600ms-800ms pendente de validação empírica L1B (N>=100).
+11. `PRODUCTION_JEV_TIMEOUT_MS = NOT SELECTED`: Evidência empírica descritiva L1B observada (N=100); timeout de produção requer revisão arquitetural separada e canary subsequente apropriado.
 12. `PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY = NOT SELECTED`: Candidato canary 2 a 5 chamadas é proposta exploratória sem dados operacionais.
 13. `MODEL_DRIFT_RUNTIME_GUARD = IMPLEMENTED / TESTED LOCALLY` (`EXPECTED_MODEL_AUTHORITY = OPTION_B`; exact match via `expectedProviderModel`).
 14. `PRODUCTION_RUNTIME_WIRING = NO`: Fiação de runtime em produção desautorizada.
-15. `LIVE_PROVIDER_GUARDED_ROUTING_VALIDATION = PARTIAL`: L1A executado com sucesso (`L1A_EXECUTION = PASS`); estudo preliminar de latência sob carga sintética pendente (`L1B_PLAN = PLANNED / NOT EXECUTED`).
+15. `LIVE_PROVIDER_GUARDED_ROUTING_VALIDATION = PARTIAL`: L1A executado com sucesso (`L1A_EXECUTION = PASS`); L1B executado com sucesso (`L1B_EXECUTION = PASS_COMPLETE`); L2 = NOT EXECUTED; L3 = NOT EXECUTED / BLOCKED UNTIL APPROPRIATE SLICE; L4 = BLOCKED.
 16. `LIVE_TWILIO_GUARDED_ROUTING = NOT EXECUTED`: Validação em telefonia real pendente L3.
 17. `CUSTOMER_TRAFFIC = PROHIBITED`
 
@@ -189,10 +189,10 @@ AI_CONTEXT_HEADER_END
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- Candidate: L1B Controlled Synthetic Latency Study Preauthorization Review & Execution (requer autorização humana explícita do pacote de pré-autorização; zero chamadas a provedores neste momento).
+- Candidate: L2 Real Jev + Real OpenAI + Synthetic Transcript (PLANNING / PREAUTH ONLY).
 - `ACTIVE_GUARDED` permanece `BLOCKED` até conclusão da escada de validação (L1-L4).
 - Do NOT enable live customer traffic.
-- Do NOT use real telephony / live Twilio.
+- Do NOT use real telephony / live Twilio (TWILIO_ACCOUNT_REQUIRED_NOW = NO).
 
 ### `NOT_YET_ALLOWED`:
 - Transmissão de dados reais de clientes para provedores externos.

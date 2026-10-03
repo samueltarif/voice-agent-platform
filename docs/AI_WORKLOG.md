@@ -12613,3 +12613,294 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY**: `NOT SELECTED`.
 - **Wording de Harness**: Corrigido de "transporte fake" para `NO TELEPHONY / STANDALONE BENCHMARK`.
 - **NEXT_ALLOWED_STEP**: L1B Run 1 Preauthorization + Runner Preparation (OFFLINE FIRST).
+
+---
+
+## 2026-10-02 — PR #65 Process Nuance & L1B Run 1 Offline Runner Preparation (Slice 006AL)
+
+### 1. Reconciliação de Nuance de Processo do PR #65
+- **PR65_TEMPORARY_HELPER_CREATED**: `YES`
+- **TEMP_HELPER_PATH**: `scripts/tmp-update-context.mjs`
+- **TEMP_HELPER_PERSISTED_IN_GIT**: `NO` (utilizado pontualmente e removido imediatamente antes de qualquer commit)
+- **CATEGORY**: `EXECUTION_CONTROL_DEVIATION`
+- **FUNCTIONAL_IMPACT**: `NONE OBSERVED`
+- **SECRET_EXPOSURE**: `NOT OBSERVED`
+- **PR65_FINAL_SECRET_AUDIT_REPORTED**: `PASS`
+- **REVIEW_TRACE_RAW_SENTINEL_IN_REVIEW_TRACE**: `NOT INDEPENDENTLY OBSERVED` (sem reclassificar o merge para FAIL; audit executado com sucesso e merge confirmado)
+
+### 2. Implementação e Validação do Runner L1B Run 1 (Offline)
+- **Prompt**: `PROMPT-006AL-L1B-RUN1-PREAUTH-RUNNER-PREPARATION-OFFLINE-001`
+- **Fase**: Phase 6 (Voice Model Routing & Jev Evaluation)
+- **Runner Path**: `scripts/benchmarks/voice/run-jev-l1b-synthetic-latency.mjs`
+- **Status do Runner**: `L1B_RUNNER = IMPLEMENTED / TESTED OFFLINE`
+- **L1B_RUN1_PURPOSE**: `SERIAL LATENCY BASELINE`
+- **L1B_RUN1_MAX_PROVIDER_REQUESTS**: `100` (hard capped)
+- **L1B_RUN1_CONCURRENCY**: `1` (sequencial puro; max simultâneo = 1 comprovado)
+- **RETRIES**: `0` (zero tentativas em falha ou timeout)
+- **MEASUREMENT_ONLY_DEADLINE_MS**: `4000` (utiliza AbortController/AbortSignal bridged nativamente ao fetch; cancelamento ativo comprovado sem background requests)
+- **REQUESTED_MODEL**: `jev-1.13.0`
+- **EXPECTED_PROVIDER_MODEL**: `jev-1.13.0`
+- **INTEGRATIONS_DIST_REFRESH_REQUIRED_BEFORE_LIVE**: `YES` (`pnpm --filter @voice-agent/integrations build` executado)
+
+### 3. Auditoria Factual de Envelope e Modelo Conservador de Custo
+- **Auditoria de Bytes do Payload Serializado**:
+  - `MIN_SERIALIZED_REQUEST_BYTES`: 1.497 bytes
+  - `MEDIAN_SERIALIZED_REQUEST_BYTES`: 1.594 bytes
+  - `MAX_SERIALIZED_REQUEST_BYTES`: 1.838 bytes (caso `l1b-076`)
+- **Tokenizer**: `TOKENIZER_VERIFIED = NO`
+- **Teto Conservador por Request**: `MAX_ESTIMATED_INPUT_TOKENS_PER_REQUEST = 1000` (`CONSERVATIVE_PROJECTED_TOKEN_BOUND`)
+- **Tokens Projetados Máximos**: $100 \times 1.000 = \mathbf{100.000\ tokens}$
+- **Custo Projetado Máximo**: $100.000 \times \$0.000000042 = \mathbf{\$0.00420\ USD}$
+- **Teto Proposto para Autorização Humana**: `$0.10 USD`
+- **Revalidação Oficial de Preço e Modelo**:
+  - `MODEL_AVAILABILITY_STATUS`: `VERIFIED_PUBLIC_CATALOG` (`jev` / `jev-1.13.0` System One model)
+  - `PRICE_STATUS`: `VERIFIED_OFFICIAL` ($0.042 / milhão de tokens de entrada = $42 / Btok; tokens de saída gratuitos)
+  - `PRICE_SOURCE_URL`: `https://docs.typesafe.ai/models.md`
+  - `PRICE_ACCESS_DATE`: `2026-10-02`
+  - `BILLING_UNIT`: `input tokens only`
+
+### 4. Validação Offline do Runner (13/13 Testes Aprovados)
+- **Teste A (Missing Cost Ceiling)**: `PASS` (interrompe antes de qualquer chamada)
+- **Teste B (Insufficient Cost Ceiling)**: `PASS` (interrompe antes de qualquer chamada)
+- **Teste C, D, E, F (Exatamente 100 max, C=1, zero retries)**: `PASS`
+- **Teste G (Deadline Abort Semantics)**: `PASS` (`signal.aborted` observado, sem background requests, `BACKGROUND_REQUEST_AFTER_TIMEOUT = NO`)
+- **Teste H (Model Identity Mismatch)**: `PASS` (interrompe imediatamente no 1º caso divergente)
+- **Teste I (HTTP Auth Error 401/403)**: `PASS` (interrompe imediatamente)
+- **Teste J (3 Falhas Consecutivas)**: `PASS` (interrompe com `RESEARCH_SAFETY_HEURISTIC`)
+- **Teste K, L, M (Sanitização de Artefato)**: `PASS` (zero transcrições, zero payloads brutos, zero scores persistidos)
+
+### 5. Invariantes de Governança e Produção
+- **Zero Chamadas a Provedores**: TypeSafe = 0, OpenAI = 0, Twilio = 0
+- **ENV_LOADED**: `NO`
+- **DB**: `NO`
+- **HOLDOUT_OPENED**: `NO` (`LOCKED_HOLDOUT = CONSUMED` preservado integralmente)
+- **FROZEN_POLICY_CHANGED**: `NO`
+- **PRODUCTION_JEV_TIMEOUT_MS**: `NOT SELECTED` (4000ms é deadline de medição de pesquisa)
+- **PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY**: `NOT SELECTED`
+- **CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE**: `NOT CLEARED`
+- **PRODUCTION_RUNTIME_WIRING**: `NO`
+- **ACTIVE_GUARDED**: `BLOCKED`
+- **L1B_PROVIDER_EXECUTION**: `AWAITING_OPERATOR_AUTHORIZATION`
+
+---
+
+## 2026-10-02 — PR #66 Post-Format Final Offline Evidence Refresh (Slice 006AL)
+
+### 1. Reconciliação de Staleness Pós-Formatação
+- **Prompt**: `PROMPT-006AL-PR66-POST-FORMAT-EVIDENCE-REFRESH-001`
+- **Fase**: Phase 6 (Voice Model Routing & Jev Evaluation)
+- **PR**: #66 (`research/006al-l1b-run1-preauth-runner`)
+- **PR66_INITIAL_OFFLINE_EVIDENCE_STALE_AFTER_PRETTIER**: `YES` (a formatação final com Prettier ocorreu após a primeira suíte offline)
+- **Ação Executada**: Reexecução integral da validação de sintaxe e dos 13 cenários de teste offline sobre o arquivo do runner formatado final exato (`scripts/benchmarks/voice/run-jev-l1b-synthetic-latency.mjs`).
+
+### 2. Resultados da Validação Final Sobre o Runner Formatado
+- **PR66_FINAL_RUNNER_NODE_CHECK**: `PASS` (`node --check scripts/benchmarks/voice/run-jev-l1b-synthetic-latency.mjs` com exit code 0)
+- **PR66_FINAL_RUNNER_OFFLINE_TESTS**: `13/13 PASS`
+  - *Teste A (Missing Cost Ceiling)*: `PASS`
+  - *Teste B (Insufficient Cost Ceiling)*: `PASS`
+  - *Teste C (100 Requests Máximas)*: `PASS`
+  - *Teste D (Request 101 Impossível)*: `PASS`
+  - *Teste E (Zero Retries)*: `PASS`
+  - *Teste F (Max Concurrency Simultânea = 1)*: `PASS`
+  - *Teste G (Deadline Abort e Zero Background Requests)*: `PASS` (`BACKGROUND_REQUEST_AFTER_TIMEOUT = NO`)
+  - *Teste H (Model Identity Mismatch Halts)*: `PASS`
+  - *Teste I (HTTP Auth Error 401/403 Halts)*: `PASS`
+  - *Teste J (3 Consecutivos Erros Halts — Research Heuristic)*: `PASS`
+  - *Teste K (Zero Transcripts Persistidos)*: `PASS`
+  - *Teste L (Zero Raw Payloads / Headers Persistidos)*: `PASS`
+  - *Teste M (Zero Routing Scores Persistidos)*: `PASS`
+- **PR66_FINAL_RUNNER_TESTED_AFTER_LAST_FUNCTIONAL_FILE_CHANGE**: `YES` (evidência coletada no estado exato e final do código)
+- **Nenhum Helper Temporário Criado**: `YES` (validação executada inline em memória)
+
+### 3. Integridade do Dataset e Invariantes
+- **Dataset Count**: `100` casos sintéticos
+- **Dataset SHA-256**: `952da0c7a6a10447baa9e24a976543e06b7480eb9bdef98096242d5276188136` (verificado e inalterado)
+- **Chamadas a Provedores Reais**: TypeSafe = 0, OpenAI = 0, Twilio = 0
+- **ENV_LOADED**: `NO`
+- **DB**: `NO`
+- **HOLDOUT_OPENED**: `NO` (`LOCKED_HOLDOUT = CONSUMED` preservado integralmente)
+- **FROZEN_POLICY_CHANGED**: `NO`
+- **PRODUCTION_JEV_TIMEOUT_MS**: `NOT SELECTED`
+- **PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY**: `NOT SELECTED`
+- **ACTIVE_GUARDED**: `BLOCKED`
+- **L1B_EXECUTION**: `NOT EXECUTED`
+- **L1B_PROVIDER_EXECUTION**: `AWAITING_OPERATOR_AUTHORIZATION`
+
+---
+
+## 2026-10-02 — PR #66 Preauth Document Formatting Repair (Slice 006AL)
+
+### 1. Contexto e Identificação de Corrupção
+- **Prompt**: `PROMPT-006AL-PR66-PREAUTH-DOC-FORMATTING-REPAIR-001`
+- **Fase**: Phase 6 (Voice Model Routing & Jev Evaluation)
+- **PR**: #66 (`research/006al-l1b-run1-preauth-runner`)
+- **PR66_PREAUTH_DOC_MARKDOWN_CORRUPTION**: `YES`
+- **CATEGORY**: `DOCUMENTATION_FORMATTING_ERROR`
+- **CORRUPTION_LOCATION**: `docs/research/PHASE_6_TYPESAFE_L1B_SYNTHETIC_LATENCY_PLAN.md` (Sections 11.2 and 12)
+- **Detalhes da Corrupção**: Presença de sequências de escape indevidas (`\TOKENIZER`, `\MAX_`, `\PROPOSED_`, `\ACTUAL_`, `\.00420`), fórmulas matemáticas truncadas por interpolação de terminal e ausência do prefixo de dólar em `MAX_PROJECTED_COST_USD`.
+
+### 2. Ação Corretiva e Integridade do Runner
+- **FUNCTIONAL_RUNNER_IMPACT**: `NONE`
+- **RUNNER_CHANGED_THIS_PROMPT**: `NO` (`scripts/benchmarks/voice/run-jev-l1b-synthetic-latency.mjs` permanece inalterado)
+- **DATASET_CHANGED_THIS_PROMPT**: `NO` (`scripts/benchmarks/voice/jev-l1b-synthetic-latency-v1-cases.json` permanece inalterado)
+- **PROVIDER_CALL_IMPACT**: `NONE`
+- **Reparo Realizado**:
+  - Seção 11.2: Formatting/escaping corrigido para markdown limpo com `MAX_ESTIMATED_INPUT_TOKENS_PER_REQUEST = 1000`, `MAX_PROJECTED_INPUT_TOKENS = 100000`, `MAX_PROJECTED_COST_USD = 0.00420`, `PROPOSED_OPERATOR_PROJECTED_COST_CEILING_USD = 0.10`, `ACTUAL_BILLED_COST_HARD_CAP = NOT VERIFIED`.
+  - Seção 12: Pacote exato de pré-autorização humana formatado sem escapes, com contagens e limites explícitos (`100000`, `1000`, `$0.00420 USD`, `$0.10 USD`, `AUTORIZO_L1B_TYPESAFE_N100 = YES`, `COST_CEILING_USD = 0.10`).
+
+### 3. Evidências Fatuais e Invariantes
+- **CORRECT_MAX_PROJECTED_INPUT_TOKENS**: `100000`
+- **CORRECT_MAX_PROJECTED_COST_USD**: `0.00420`
+- **PROPOSED_COST_CEILING_USD**: `0.10`
+- **Provider Calls**: TypeSafe = 0, OpenAI = 0, Twilio = 0
+- **ENV_LOADED**: `NO`
+- **DB**: `NO`
+- **HOLDOUT_OPENED**: `NO` (`LOCKED_HOLDOUT = CONSUMED` preservado)
+- **FROZEN_POLICY_CHANGED**: `NO`
+- **ACTIVE_GUARDED**: `BLOCKED`
+- **L1B_EXECUTION**: `NOT EXECUTED`
+- **L1B_PROVIDER_EXECUTION**: `AWAITING_OPERATOR_AUTHORIZATION`
+---
+
+## 2026-10-02 — L1B Run 1 Controlled Synthetic Latency Study Live Execution (Slice 006AM)
+
+### 1. Autorização Formal e Parâmetros de Execução
+- **Prompt**: `PROMPT-006AM-L1B-RUN1-LIVE-EXECUTION-001`
+- **Fase**: Phase 6 (Voice Model Routing & Jev Evaluation)
+- **PR**: #66 (`research/006al-l1b-run1-preauth-runner`)
+- **OPERATOR_AUTHORIZATION**: `OBSERVED` (`AUTORIZO_L1B_TYPESAFE_N100 = YES`, `COST_CEILING_USD = 0.10`)
+- **AUTHORIZED_MAX_PROVIDER_REQUESTS**: `100`
+- **AUTHORIZED_COST_CEILING_USD**: `0.10`
+- **AUTORIZATION_SCOPE**: L1B Run 1 serial synthetic latency only
+- **LIVE_EXECUTION_INVOCATIONS**: `1` (invocação única, zero retries)
+- **ENV_RUNTIME_LOADED**: `YES` (carregado via `node --env-file=.env ...`)
+- **ENV_FILE_INSPECTED**: `NO` (zero inspeção de arquivo ou chaves)
+- **TYPESAFE_API_KEY_VALUE_OBSERVED**: `NO`
+
+### 2. Integridade do Dataset e Verificação Prévia de Modelo
+- **DATASET_PATH**: `scripts/benchmarks/voice/jev-l1b-synthetic-latency-v1-cases.json`
+- **DATASET_COUNT**: `100` (100% sintético, zero dados reais de clientes, zero PII)
+- **DATASET_SHA256**: `952da0c7a6a10447baa9e24a976543e06b7480eb9bdef98096242d5276188136` (verificado)
+- **REQUESTED_MODEL**: `jev-1.13.0`
+- **EXPECTED_PROVIDER_MODEL**: `jev-1.13.0`
+- **PROVIDER_PRICE_VERIFIED**: `$42 / Btok` ($0.042 / Mtok, $0.000000042 / input token; output gratuito)
+- **MAX_PROJECTED_COST_USD (Pre-Run)**: `$0.00420 USD` (100.000 tokens projetados)
+
+### 3. Resultados Fatuais Observados
+- **Artefato Gerado**: `docs/research/results/phase-6-typesafe-l1b-synthetic-latency-run1.json`
+- **SHA-256 do Artefato**: `f087a6e3ad83fc81b272ffd775d5e66d00c6e7c918d310ca54f45237d59f1cdb`
+- **ARTIFACT_SANITIZATION**: `PASS` (zero utterances sintéticas vazadas, zero payloads brutos, zero Authorization headers, zero scores de roteamento persistidos)
+- **REQUESTS_ATTEMPTED**: `100`
+- **REQUESTS_SUCCEEDED**: `100`
+- **MODEL_MATCHES**: `100` (100% de correspondência com `providerModel === 'jev-1.13.0'`)
+- **MODEL_MISMATCHES**: `0`
+- **TECHNICAL_FAILURES**: `0`
+- **TIMEOUTS**: `0` (100% sob o deadline de 4000ms)
+- **Métricas Descritivas de Latência (DESCRIPTIVE_ONLY — Tail Confidence: NOT ESTABLISHED)**:
+  - `minMs`: 229ms
+  - `medianMs`: 257ms
+  - `p75Ms`: 273ms
+  - `p90Ms`: 302ms
+  - `p95Ms`: 325ms
+  - `p99EmpiricalMs`: 380ms
+  - `maxMs`: 385ms
+  - `completionUnder1500ms`: 100/100 (100%, taxa 1.0)
+- **Detalhamento por Bin de Tamanho**:
+  - `SHORT` (N=35): mediana 257ms, p90 313ms, max 385ms
+  - `MEDIUM` (N=40): mediana 255ms, p90 284ms, max 336ms
+  - `LONG` (N=25): mediana 270ms, p90 325ms, max 340ms
+
+### 4. Contabilidade Financeira e Custos
+- **Conservative Projected Tokens/Request**: 1000
+- **Max Projected Input Tokens**: 100000
+- **Attempt-Derived Upper Bound Cost**: 100 × 1000 × $0.000000042 = `$0.00420 USD`
+- **ACTUAL_BILLED_COST_USD**: `NOT_VERIFIED`
+- **Provider Calls**: TypeSafe = 100, OpenAI = 0, Twilio = 0
+
+### 5. Invariantes de Governança Mantidas
+- **L1B_RESULT_CLASSIFICATION**: `PASS_COMPLETE`
+- **CUSTOMER_DATA**: `0`
+- **REAL_CUSTOMER_PII**: `0`
+- **LOCKED_HOLDOUT**: `CONSUMED`
+- **HOLDOUT_OPENED_THIS_SLICE**: `NO`
+- **HOLDOUT_REUSED_THIS_SLICE**: `NO`
+- **FROZEN_POLICY_CHANGED**: `NO`
+- **PRODUCTION_JEV_TIMEOUT_MS**: `NOT SELECTED` (4000ms é deadline de medição de pesquisa, não timeout de produção)
+- **PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY**: `NOT SELECTED` (estudo serial N=100 não valida concorrência de produção)
+- **CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE**: `NOT CLEARED`
+- **PRODUCTION_RUNTIME_WIRING**: `NO`
+- **ACTIVE_GUARDED**: `BLOCKED`
+
+---
+
+## 2026-10-02 — L1B Evidence Reconciliation & PR #66 Final Closure (Slice 006AM)
+
+### 1. Parâmetros de Reconciliação e Governança
+- **Prompt**: `PROMPT-006AM-PR66-L1B-EVIDENCE-RECONCILIATION-AND-MERGE-001`
+- **Fase**: Phase 6 (Voice Model Routing & Jev Evaluation)
+- **PR**: #66 (`research/006al-l1b-run1-preauth-runner`)
+- **Slice**: L1B Run 1 Evidence Closure
+- **Provider Calls neste Fechamento**: TypeSafe = 0, OpenAI = 0, Twilio = 0
+- **Historical Provider Calls (L1B Run 1)**: TypeSafe = 100, OpenAI = 0, Twilio = 0
+- **ACTUAL_BILLED_COST_USD**: `NOT_VERIFIED`
+
+### 2. Reverificação Factual do Artefato L1B
+- **Artefato**: `docs/research/results/phase-6-typesafe-l1b-synthetic-latency-run1.json`
+- **SHA-256 Recalculado**: `f087a6e3ad83fc81b272ffd775d5e66d00c6e7c918d310ca54f45237d59f1cdb` (exato)
+- **ARTIFACT_SANITIZATION**: `PASS` (ausência comprovada de utterances, transcrições, raw requests/responses, authorization/bearer tokens, API keys e scores de roteamento)
+- **L1B_RESULT**: `PASS_COMPLETE`
+- **Requests Attempted / Succeeded**: 100 / 100
+- **Model Matches / Mismatches**: 100 / 0 (`providerModel === 'jev-1.13.0'`, `identityMatch === true`)
+- **Technical Failures / Timeouts**: 0 / 0
+- **Latência (DESCRIPTIVE_ONLY — Tail Confidence: NOT ESTABLISHED)**:
+  - min: 229ms
+  - median: 257ms
+  - p75: 273ms
+  - p90: 302ms
+  - p95: 325ms
+  - p99 empirical: 380ms
+  - max: 385ms
+  - completion under 1500ms: 100/100 (100%)
+- **Bin Breakdown**:
+  - SHORT (N=35): median=257ms, p90=313ms, max=385ms
+  - MEDIUM (N=40): median=255ms, p90=284ms, max=336ms
+  - LONG (N=25): median=270ms, p90=325ms, max=340ms
+
+### 3. Reconciliação de Nuances de Execução e Auditoria
+- **Nuance de Manuseio de Ambiente (.env)**:
+  - `L1B_ENV_SOURCE_COPY_OPERATION`: `OBSERVED`
+  - `ENV_FILE_CONTENT_INSPECTED`: `NO`
+  - `ENV_SECRET_VALUE_OBSERVED`: `NO`
+  - `ENV_SECRET_VALUE_PRINTED`: `NOT OBSERVED`
+  - `ENV_FILE_TRACKED_BY_GIT`: `NO` (verificado via git status)
+  - `ENV_FILE_REMOVED_AFTER_RUN`: `YES`
+  - `SECURITY_IMPACT`: `NONE OBSERVED`
+  - `ENV_HANDLING_PROCESS_DEVIATION`: `YES` (prompt autorizava runtime loading mas não instruía explicitamente cópia automática de arquivo de segredos; não repetido)
+- **Nuance de Helpers Temporários**:
+  - `L1B_LIVE_TEMP_HELPERS_CREATED`: `3` (`tmp-update-l1b-plan.mjs`, `tmp-update-readiness.mjs`, `tmp-update-context.mjs`)
+  - `TEMP_HELPERS_PERSISTED_IN_GIT`: `NO` (removidos antes de commit)
+  - `CATEGORY`: `EXECUTION_CONTROL_DEVIATION`
+  - `FUNCTIONAL_IMPACT`: `NONE OBSERVED`
+  - `SECRET_EXPOSURE`: `NOT OBSERVED`
+- **Nuance de Observação de Processo Live**:
+  - `LIVE_EXECUTION_INVOCATIONS`: `1`
+  - `LIVE_PROCESS_FINAL_EXIT_CODE_RAW`: `NOT INDEPENDENTLY OBSERVED`
+  - `RESULT_ARTIFACT_COMPLETION_EVIDENCE`: `OBSERVED`
+  - `RESULT_ARTIFACT_CASES`: `100`
+  - `RESULT_ARTIFACT_ALL_SUCCESS`: `YES`
+- **Nuance de Auditoria de Segredos Prévia**:
+  - `PR66_PREVIOUS_SECRET_AUDIT_REPORTED`: `PASS`
+  - `PR66_PREVIOUS_SECRET_AUDIT_RAW_SENTINEL_IN_REVIEW_TRACE`: `NOT INDEPENDENTLY OBSERVED` (nova auditoria final será executada como autoridade única)
+
+### 4. Invariantes de Governança e Fronteiras de Produção
+- `LOCKED_HOLDOUT`: `CONSUMED` (preservado)
+- `HOLDOUT_OPENED_THIS_SLICE`: `NO`
+- `HOLDOUT_REUSED_THIS_SLICE`: `NO`
+- `FROZEN_POLICY_CHANGED`: `NO`
+- `PRODUCTION_JEV_TIMEOUT_MS`: `NOT SELECTED` (evidência descritiva observada; timeout requer decisão arquitetural humana separada)
+- `PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY`: `NOT SELECTED` (baseline serial não dimensiona concorrência)
+- `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE`: `NOT CLEARED`
+- `PRODUCTION_RUNTIME_WIRING`: `NO`
+- `ACTIVE_GUARDED`: `BLOCKED`
+- `L2`: `NOT EXECUTED` (próximo passo restrito a planning/preauth)
+- `TWILIO_ACCOUNT_REQUIRED_NOW`: `NO` (telefonia necessária apenas a partir de L3)

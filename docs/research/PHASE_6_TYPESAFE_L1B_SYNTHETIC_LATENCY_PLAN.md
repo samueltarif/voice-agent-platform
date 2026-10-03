@@ -1,7 +1,7 @@
-﻿# Phase 6: TypeSafe L1B Controlled Synthetic Latency Study Plan
+# Phase 6: TypeSafe L1B Controlled Synthetic Latency Study Plan
 
 > **Documento**: `docs/research/PHASE_6_TYPESAFE_L1B_SYNTHETIC_LATENCY_PLAN.md`<br />
-> **Status**: `PLAN DESIGNED / NOT EXECUTED`<br />
+> **Status**: `EXECUTED / PASS_COMPLETE`<br />
 > **Data**: 2026-10-02<br />
 > **Prompt de Origem**: `PROMPT-006AK-L1B-CONTROLLED-SYNTHETIC-LATENCY-PLANNING-001` / Hardening: `PROMPT-006AK-PR65-L1B-PLAN-HARDENING-AND-MERGE-001`<br />
 > **Fase**: Phase 6 (Voice Model Routing & Jev Evaluation)<br />
@@ -147,13 +147,26 @@ O documento original continha uma divergência textual que associava `$42 / Btok
 - **Classificação**: `PR65_COST_UNIT_TEXT_ERROR = YES` (erro aritmético textual de documentação corrigido; zero impacto funcional ou de faturamento).
 
 ### 11.2 Limites Orçamentários Derivados para N=100
-- **Maior caso do dataset**: 90 tokens estimados.
-- **Teto superior conservador por request (`MAX_ESTIMATED_INPUT_TOKENS_PER_REQUEST`)**: **200 tokens** (incluindo margem de envelope/instrução).
-- **Teto projetado de tokens (`MAX_PROJECTED_INPUT_TOKENS`)**: $100 \times 200 = \mathbf{20.000\ tokens}$.
-- **Custo Máximo Projetado (`MAX_PROJECTED_COST_USD`)**:
-  $$20.000 \times \$0.000000042 = \mathbf{\$0.00084\ USD}$$
-- **Teto Proposto para Autorização Humana (`PROPOSED_OPERATOR_PROJECTED_COST_CEILING_USD`)**: **$0.10 USD** (margem de segurança > 100x sobre a projeção).
-- `ACTUAL_BILLED_COST_HARD_CAP`: `NOT VERIFIED` (a API remota não impõe limite rígido de crédito pelo runner).
+
+- Auditoria de Envelope Serializado: payload JSON completo entre 1.497 e 1.838 bytes, mediana 1.594 bytes.
+- `TOKENIZER_VERIFIED = NO`
+- `MAX_ESTIMATED_INPUT_TOKENS_PER_REQUEST = 1000`
+- Classificação: `CONSERVATIVE_PROJECTED_TOKEN_BOUND`
+- `MAX_PROJECTED_INPUT_TOKENS = 100000`
+
+Cálculo textual:
+100 requests × 1000 tokens/request = 100000 projected input tokens.
+
+Preço histórico verificado:
+$42 / Btok equivalente a $0.000000042 / input token
+
+Cálculo:
+100000 × $0.000000042 = $0.00420 USD.
+
+Registrar:
+- `MAX_PROJECTED_COST_USD = 0.00420`
+- `PROPOSED_OPERATOR_PROJECTED_COST_CEILING_USD = 0.10`
+- `ACTUAL_BILLED_COST_HARD_CAP = NOT VERIFIED`
 
 ---
 
@@ -165,22 +178,61 @@ O pacote a ser submetido ao operador antes de qualquer execução live no próxi
 ==================================================
 L1B RUN 1 PREAUTHORIZATION PACKAGE (EXACT)
 ==================================================
-MODEL_ID: jev-1.13.0 (sujeito a reverificação antes da execução)
-DATASET_PATH: scripts/benchmarks/voice/jev-l1b-synthetic-latency-v1-cases.json
-DATASET_CASES: 100
-DATASET_SHA256: 952da0c7a6a10447baa9e24a976543e06b7480eb9bdef98096242d5276188136
-SERIAL_REQUESTS_PLANNED: 100
-LOW_CONCURRENCY_REQUESTS_PLANNED: 0 (DEFERRED)
-TOTAL_MAX_REQUESTS: 100
-CONCURRENCY: 1 (sequencial puro)
-RETRIES: 0
-MAX_ESTIMATED_INPUT_TOKENS: 20.000
-MAX_PROJECTED_COST_USD: $0.00084 USD
-PROPOSED_HUMAN_COST_CEILING_USD: $0.10 USD
-CUSTOMER_DATA_EXPOSURE: 0
-OPENAI_CALLS: 0
-TWILIO_CALLS: 0
-AUTORIZAÇÃO REQUERIDA: AUTORIZO_L1B_TYPESAFE_N100 = YES
+MODEL_ID:
+jev-1.13.0
+
+DATASET_PATH:
+scripts/benchmarks/voice/jev-l1b-synthetic-latency-v1-cases.json
+
+DATASET_CASES:
+100
+
+DATASET_SHA256:
+952da0c7a6a10447baa9e24a976543e06b7480eb9bdef98096242d5276188136
+
+SERIAL_REQUESTS_PLANNED:
+100
+
+LOW_CONCURRENCY_REQUESTS_PLANNED:
+0 (DEFERRED)
+
+TOTAL_MAX_REQUESTS:
+100
+
+CONCURRENCY:
+1
+
+RETRIES:
+0
+
+MAX_ESTIMATED_INPUT_TOKENS:
+100000
+
+CONSERVATIVE_PROJECTED_TOKENS_PER_REQUEST:
+1000
+
+MAX_PROJECTED_COST_USD:
+$0.00420 USD
+
+PROPOSED_HUMAN_COST_CEILING_USD:
+$0.10 USD
+
+ACTUAL_BILLED_COST_HARD_CAP:
+NOT VERIFIED
+
+CUSTOMER_DATA_EXPOSURE:
+0
+
+OPENAI_CALLS:
+0
+
+TWILIO_CALLS:
+0
+
+Authorization required:
+
+AUTORIZO_L1B_TYPESAFE_N100 = YES
+COST_CEILING_USD = 0.10
 ==================================================
 ```
 
@@ -261,11 +313,57 @@ Classificadas estritamente por natureza:
 
 ---
 
-## 17. Próximo Passo Permitido
+## 17. Status de Execução e Próximo Passo
 
-Após o merge deste plano endurecido:
-- **NEXT_ALLOWED_STEP**: L1B Run 1 Preauthorization + Runner Preparation (OFFLINE FIRST).
-  - Preparar runner dedicado com guarda de custo;
-  - Validar orçamento e parsing offline;
-  - Revalidar preço e disponibilidade do modelo;
-  - Submeter o pacote ao operador humano para autorização formal antes de qualquer chamada remota.
+> **Status do Runner**: `L1B_RUNNER = IMPLEMENTED / TESTED OFFLINE` (`scripts/benchmarks/voice/run-jev-l1b-synthetic-latency.mjs`).
+> **Procedimento Pré-Live**: `INTEGRATIONS_DIST_REFRESH_REQUIRED_BEFORE_LIVE = YES` (`pnpm --filter @voice-agent/integrations build` executado e verificado).
+> **Status de Execução**: `L1B_PROVIDER_EXECUTION = EXECUTED / PASS_COMPLETE`.
+> **Classificação de Resultado**: `PASS_COMPLETE` (100/100 sucessos com exact match `jev-1.13.0`, 0 mismatches, 0 falhas técnicas, 0 timeouts, 100% completados sob o deadline de 4000ms).
+
+Após a conclusão bem-sucedida do L1B Run 1:
+- **NEXT_ALLOWED_STEP**: Revisão de evidências e fechamento do PR #66.
+- Manter `ACTIVE_GUARDED = BLOCKED`.
+- `PRODUCTION_JEV_TIMEOUT_MS = NOT SELECTED`.
+- `PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY = NOT SELECTED`.
+
+---
+
+## 18. Resultados Fatuais do Run 1 (L1B Live Execution)
+
+- **Data da Execução**: 2026-10-02 (2026-10-03T01:50:07.694Z)
+- **Autorização do Operador**: `OBSERVED` (`AUTORIZO_L1B_TYPESAFE_N100 = YES`, `COST_CEILING_USD = 0.10`)
+- **Artefato de Resultados**: `docs/research/results/phase-6-typesafe-l1b-synthetic-latency-run1.json`
+- **SHA-256 do Artefato**: `f087a6e3ad83fc81b272ffd775d5e66d00c6e7c918d310ca54f45237d59f1cdb`
+- **Dataset Utilizado**: `scripts/benchmarks/voice/jev-l1b-synthetic-latency-v1-cases.json` (N=100, SHA-256 `952da0c7a6a10447baa9e24a976543e06b7480eb9bdef98096242d5276188136`)
+- **Modelo Solicitado / Esperado / Observado**: `jev-1.13.0` / `jev-1.13.0` / `jev-1.13.0` (100/100 exact matches, 0 mismatches)
+- **Contabilidade de Requisições**:
+  - `requestsAttempted`: 100
+  - `requestsSucceeded`: 100
+  - `technicalFailures`: 0
+  - `timeouts`: 0
+- **Métricas de Latência (DESCRIPTIVE_ONLY — Tail Confidence: NOT ESTABLISHED)**:
+  - `minMs`: 229ms
+  - `medianMs`: 257ms
+  - `p75Ms`: 273ms
+  - `p90Ms`: 302ms
+  - `p95Ms`: 325ms
+  - `p99EmpiricalMs`: 380ms
+  - `maxMs`: 385ms
+  - `completionUnder1500ms`: 100/100 (100%, taxa 1.0)
+- **Detalhamento por Categoria de Entrada**:
+  - `SHORT` (N=35): mediana 257ms, p90 313ms, max 385ms
+  - `MEDIUM` (N=40): mediana 255ms, p90 284ms, max 336ms
+  - `LONG` (N=25): mediana 270ms, p90 325ms, max 340ms
+- **Métricas Financeiras**:
+  - Preço Verificado: $42 / Btok ($0.000000042 / input token; output gratuito)
+  - Teto Aprovado: $0.10 USD
+  - Custo Máximo Projetado Pré-Run: $0.00420 USD
+  - Custo Estimado Derivado da Execução: $0.00420 USD (Upper Bound)
+  - `ACTUAL_BILLED_COST_USD`: `NOT_VERIFIED`
+- **Fronteiras Arquiteturais Mantidas**:
+  - `PRODUCTION_JEV_TIMEOUT_MS`: `NOT SELECTED`
+  - `PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY`: `NOT SELECTED`
+  - `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE`: `NOT CLEARED`
+  - `PRODUCTION_RUNTIME_WIRING`: `NO`
+  - `ACTIVE_GUARDED`: `BLOCKED`
+  - `LOCKED_HOLDOUT`: `CONSUMED` (zero acesso ao holdout)
