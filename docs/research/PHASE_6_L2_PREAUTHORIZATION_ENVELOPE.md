@@ -25,7 +25,8 @@ AGGREGATE_OUTPUT_CAP: DERIVED_ENFORCEABLE_SUBJECT_TO_CAP_ISOLATION_TEST
 CURRENT_RUNNER_FREEZE: POST_HARDENING_CANDIDATE
 L2_EXECUTABLE_AGGREGATE_SHA256: 8f53f8169771caa26dd9623702a7c65e3e9c730dfcb2bbfcb26188dcd57c77f3
 LIVE_COMMAND_STATUS: LIVE_COMMAND_NOT_YET_AUTHORIZABLE
-NEXT_ALLOWED_STEP: HUMAN_REVIEW_OF_HARDENING_PR
+NEXT_ALLOWED_STEP: HUMAN_DECISION_PACKAGE_REVIEW
+BLOCKER_ANALYSIS_STATUS: PREAUTH_BLOCKER_ANALYSIS_COMPLETE
 L2_PREAUTHORIZATION_ENVELOPE_METADATA_END
 -->
 
@@ -100,8 +101,11 @@ Estabelecer um envelope rigoroso, auditável e imutável para a futura execuçã
 
 ### TypeSafe Pricing
 - **TYPESAFE_PRICE_STATUS**: `NOT_VERIFIED`
-- **Valor Projetado de Planejamento**: $42.00 / 1.000.000.000 tokens ($0.000042 / 1.000 tokens)
-- **Status Factual**: Ausência de URL pública oficial confirmando faturamento da TypeSafe a $42/Btok. Permanece como premissa não verificada, bloqueando a pré-autorização live.
+- **TYPESAFE_OFFICIAL_PRICING_SOURCE**: `NOT_FOUND` (a TypeSafe AI trata taxas e preços como confidenciais sob o Master Customer Agreement; modelo sob acesso antecipado sem URL pública de faturamento sem login).
+- **TYPESAFE_PRICING_MODEL**: Per-token (apenas tokens de entrada; tokens de saída são não-faturados/gratuitos no modelo de decisão estruturada).
+- **Valor Projetado de Planejamento**: $0.042 / 1.000.000 tokens de entrada ($42.00 / 1.000.000.000 tokens).
+- **Evidência Comercial Aceitável (Ação Humana Futura)**: Order form, anexo de faturamento sob contrato, invoice, extrato de créditos da conta ou email institucional oficial confirmando a tarifa por token/crédito aplicável ao `jev-1.13.0`.
+- **Status Factual**: Bloqueia a execução live até validação documental comercial pelo operador humano.
 
 ---
 
@@ -117,12 +121,40 @@ Estabelecer um envelope rigoroso, auditável e imutável para a futura execuçã
 
 ---
 
-## 6. Token Budget & Semantics
+## 6. Token Budget & Request Surface Analysis
+
+### Superfície de Entrada Faturada por Provedor
+1. **TypeSafe / Jev (`TYPESAFE_BILLED_INPUT_SURFACE`)**:
+   - `callerInput`: transcrição sintética do usuário (imposta em runtime pelo runner: máx. 1.000 caracteres);
+   - `state`: metadados estruturais (`language: 'pt-BR'`, `channel: 'phone'`);
+   - `questions`: definições atômicas de roteamento em `JEV_ROUTING_ATOMIC_DEFINITION.questions` (3 perguntas fixas: determinístico, generativo, segurança);
+   - `model`: string do modelo (`jev-1.13.0`).
+   - *Status do Tokenizer*: A TypeSafe não publica biblioteca de tokenização nem vocabulário BPE aberto. A medição exata pré-chamada é tecnicamente inviável offline (`TYPESAFE_TOKENIZER_DOCUMENTED = NO`; limitação residual do provedor).
+
+2. **OpenAI (`OPENAI_BILLED_INPUT_SURFACE`)**:
+   - Prompt de sistema gerado a partir de persona, empresa, objetivo, tom, idioma e regras de conversação;
+   - Histórico sequencial de mensagens de turnos anteriores (`role`, `content`);
+   - Entrada atual do usuário (`role: 'user'`, `content: currentInput.text`);
+   - Envelope estrutural ChatML (tokens de formatação por mensagem: ~3-4 tokens/mensagem + 3 tokens de primer do assistente).
+   - *Status do Tokenizer*: OpenAI utiliza codificação padrão `o200k_base` para `gpt-6-astra`, acessível via bibliotecas como `tiktoken` ou `js-tiktoken`. Atualmente, o repositório **não possui dependência de tokenizer instalada** (`OPENAI_LOCAL_TOKENIZER_AVAILABLE = NO`).
+
+### Classificação do Blocker de Token Caps
+- **Caminho para OpenAI**: `TOKEN_CAP_CLOSURE_PATH = EXACT_LOCAL_TOKENIZER_FEASIBLE_VIA_DEPENDENCY` (viável via PR técnico minimalista adicionando `js-tiktoken` sem alterar a arquitetura).
+- **Caminho para TypeSafe**: `TOKEN_CAP_CLOSURE_PATH = NO_PRECALL_HARD_TOKEN_BOUND_AVAILABLE` (ausência de tokenizer público; segurança assegurada por cap físico de caracteres e dataset congelado).
+- **Classificação Geral da Bateria**: `TOKEN_CAP_CLOSURE_PATH = NO_PRECALL_HARD_TOKEN_BOUND_AVAILABLE` (limitação residual de arquitetura multi-provedor).
 
 ### Distinção entre Premissas e Limites Fatuais
 
 | Propriedade de Token | Valor | Classificação Normativa | Status em Runtime |
 | :--- | :--- | :--- | :--- |
+| **Output Token Cap por Request** | **500** | `RUNTIME_ENFORCED_OUTPUT_CAP` | `ENFORCEABLE` (imposto via `maxCompletionTokens: 500` no adapter OpenAI) |
+| **Input Token Assumption (OpenAI)** | **1.500** | `CONSERVATIVE_PLANNING_ASSUMPTION` | **`NONE`** (sem tokenizer local em runtime) |
+| **Input Token Assumption (TypeSafe)** | **1.000** | `CONSERVATIVE_PLANNING_ASSUMPTION` | **`NONE`** (sem tokenizer local em runtime) |
+| **RUNTIME_ENFORCED_INPUT_SIZE_CAP** | **1.000 chars TypeSafe / 4.000 chars OpenAI** | `RUNTIME_ENFORCED_SIZE_CAP` | **`PASS`** (interceptação fail-closed antes da rede) |
+| **RUNTIME_ENFORCED_INPUT_TOKEN_CAP** | — | — | **`NONE`** |
+| **TOKEN_CAP_ENFORCEMENT** | — | — | **`NOT_ENFORCEABLE_AT_RUNTIME`** (residual limitation sem tokenizer local) |
+
+--- | :--- | :--- | :--- |
 | **Output Token Cap por Request** | **500** | `RUNTIME_ENFORCED_OUTPUT_CAP` | `ENFORCEABLE` (imposto via `maxCompletionTokens: 500` na configuração do adapter OpenAI) |
 | **Input Token Assumption (OpenAI)** | **1.500** | `CONSERVATIVE_PLANNING_ASSUMPTION` | **`NONE`** (sem tokenizer local em runtime) |
 | **Input Token Assumption (TypeSafe)** | **1.000** | `CONSERVATIVE_PLANNING_ASSUMPTION` | **`NONE`** (sem tokenizer local em runtime) |
@@ -242,3 +274,39 @@ A execução live permanece categoricamente bloqueada pelos seguintes impediment
 **`PREAUTH_STATUS = PREAUTH_BLOCKED`**
 
 *(Proibido classificar como `PREAUTH_READY`, `AUTHORIZED` ou `EXECUTED`).*
+
+---
+
+## 15. Comando Live Candidato e Fail-Closed Preconditions
+
+SE e somente se todos os blockers prévios forem formalmente superados pelo operador humano, o comando técnico exato no runner endurecido é:
+
+```bash
+node scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs --allow-live --cost-ceiling <APPROVED_CEILING_USD>
+```
+
+- **LIVE_COMMAND_EXECUTED**: `NO`
+- **LIVE_COMMAND_STATUS**: `NOT_AUTHORIZED`
+- **Garantias Fail-Closed em Runtime**:
+  1. A ausência da flag `--allow-live` dispara `FATAL_LIVE_INTENT_DENIED` antes de qualquer chamada;
+  2. `TYPESAFE_PRICE_STATUS !== 'VERIFIED'` dispara `FATAL_LIVE_PREAUTH_BLOCKED` imediatamente;
+  3. A ausência de `--cost-ceiling` válido dispara erro fatal impedindo inicialização;
+  4. A ausência de `TYPESAFE_API_KEY` ou `OPENAI_API_KEY` em variáveis de ambiente impede execução sem fallback silencioso;
+  5. Caps de 7 requisições TypeSafe, 12 OpenAI e 19 totais abortam o processo antes da rede caso violados.
+
+---
+
+## 16. Pacote de Decisões Humanas Requeridas (Human Decision Package)
+
+Nenhuma das decisões abaixo foi concedida ou assumida; todas são pré-requisitos para qualquer avanço live:
+
+1. **`HUMAN_DECISION_1` (Evidência Comercial TypeSafe)**:
+   - Apresentação de order form, fatura, extrato de créditos ou documento oficial de faturamento para confirmação de tarifa e saldo aplicáveis ao `jev-1.13.0`.
+2. **`HUMAN_DECISION_2` (Política de Resolução de Token-Cap)**:
+   - Deliberação entre:
+     - *(Opção A)* Aceitar o cap de caracteres (1.000 chars Jev / 4.000 chars OpenAI) combinado ao dataset sintético auditado (~40 tokens/caso) como proteção física suficiente; OU
+     - *(Opção B)* Autorizar um slice técnico focado para adicionar dependência de tokenizer (`js-tiktoken`) exclusivamente para pré-contagem exata de tokens da OpenAI.
+3. **`HUMAN_DECISION_3` (Seleção do Teto Financeiro do Operador)**:
+   - Fixação formal de um teto em USD para o runner (cenários calculados: $0.60 USD [1.25x], $0.72 USD [1.5x] ou $0.96 USD [2.0x] sobre o planejamento de $0.48 USD).
+4. **`HUMAN_DECISION_4` (Autorização de Execução da Bateria L2 Live)**:
+   - Autorização explícita e irrevogável para uma única execução controlada do runner com tráfego real aos endpoints de IA.

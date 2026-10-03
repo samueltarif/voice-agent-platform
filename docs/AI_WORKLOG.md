@@ -13971,3 +13971,61 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **TOKEN_CAP_ENFORCEMENT**: `NOT_ENFORCEABLE_AT_RUNTIME`
 - **MERGE_PERFORMED**: `NO`
 - **PR71_STATUS**: `READY_FOR_HUMAN_MERGE_REVIEW`
+
+
+---
+
+## 2026-10-03 — Post-Merge L2 Preauthorization Blocker Analysis (Slice 006AS)
+
+### 1. Contexto e Preflight Pós-Merge
+- **Prompt ID**: `PROMPT-L2-PREAUTH-BLOCKER-CLOSURE-PLAN-001`
+- **AUTHORITATIVE_REPO_ROOT**: `D:/voice-agent-platform-git`
+- **SOURCE_MAIN_SHA**: `3f2d8e484b3440f116baef71eb6d543102a5671a`
+- **PR71_MERGE_SHA**: `3f2d8e484b3440f116baef71eb6d543102a5671a` (PR #71 mergeado com sucesso em main)
+- **Branch Criada**: `research/006as-l2-preauth-blocker-closure`
+- **PR**: Novo PR de análise a ser aberto contra `main`
+- **L2_OPENAI_REQUESTED_MODEL**: `gpt-6-astra` (preservado)
+- **L2_EXECUTABLE_AGGREGATE_SHA256**: `8f53f8169771caa26dd9623702a7c65e3e9c730dfcb2bbfcb26188dcd57c77f3` (preservado)
+- **L2_DATASET_SHA256**: `bd812341a922ded1c7159191849dae284a88f24afd9c7e8d3c64f9b081602f3f` (preservado)
+
+### 2. Análise Conclusiva dos Blockers Ativos
+- **TypeSafe Pricing Blocker**:
+  - `TYPESAFE_OFFICIAL_PRICING_SOURCE`: `NOT_FOUND` (taxas confidenciais sob Master Customer Agreement; modelo em early access sem página pública de billing desautenticada)
+  - `TYPESAFE_PRICE_STATUS`: `NOT_VERIFIED`
+  - `TYPESAFE_PRICING_PUBLIC_EVIDENCE`: `NOT_AVAILABLE`
+  - `TYPESAFE_PRICING_HUMAN_COMMERCIAL_EVIDENCE_REQUIRED`: `YES` (requer order form, invoice ou extrato oficial de créditos)
+- **Input Token Cap Blocker**:
+  - `OPENAI_LOCAL_TOKENIZER_AVAILABLE`: `NO` (sem dependência de tokenizer no workspace; viável via `js-tiktoken` com `o200k_base`)
+  - `OPENAI_PRECALL_TOKEN_COUNT_FEASIBLE`: `YES_WITH_DEPENDENCY`
+  - `TYPESAFE_TOKENIZER_DOCUMENTED`: `NO` (tokenizer privado/proprietário da TypeSafe)
+  - `TYPESAFE_PRECALL_TOKEN_COUNT_FEASIBLE`: `NO` (limitação residual permanente do provedor)
+  - `CONSERVATIVE_TOKEN_BOUND`: `NOT_PROVEN` (relação bytes/chars para tokens não é padronizada como contrato oficial por nenhuma das APIs)
+  - `TOKEN_CAP_CLOSURE_PATH`: `NO_PRECALL_HARD_TOKEN_BOUND_AVAILABLE` (pela barreira da TypeSafe; para OpenAI, viável dependência local)
+- **Hard Cost Bound Feasibility**:
+  - `HARD_L2_COST_BOUND_FEASIBLE`: `BLOCKED` (impossibilitado por precificação TypeSafe confidencial e ausência de tokenizer TypeSafe)
+- **Operator Cost Ceiling**:
+  - `OLD_CEILING`: `0.25 USD / SUPERSEDED`
+  - `CURRENT_OPERATOR_CEILING`: `NOT_PROPOSED`
+  - `L2_OPERATOR_COST_CEILING`: `NOT_AUTHORIZABLE`
+  - Cenários informativos baseados no plano de $0.48 USD: $0.60 USD (1.25x), $0.72 USD (1.5x), $0.96 USD (2.0x)
+- **Candidate Live Command**:
+  - `CANDIDATE_LIVE_COMMAND`: `node scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs --allow-live --cost-ceiling <APPROVED_CEILING_USD>`
+  - `LIVE_COMMAND_EXECUTED`: `NO`
+  - `LIVE_COMMAND_STATUS`: `NOT_AUTHORIZED`
+
+### 3. Pacote de Decisões Humanas (Human Decision Package)
+- Decisão 1: Fornecer evidência comercial da tarifa TypeSafe (`ORDER_FORM` / `INVOICE` / `STATEMENT`)
+- Decisão 2: Deliberar sobre token cap (aceitar caps de caracteres existentes ou autorizar PR técnico com `js-tiktoken` para OpenAI)
+- Decisão 3: Selecionar teto financeiro do operador ($0.60 / $0.72 / $0.96 USD)
+- Decisão 4: Autorizar expressamente a execução única controlada L2 live
+
+### 4. Governança e Isolamento
+- **OpenAI real calls**: `0`
+- **TypeSafe real calls**: `0`
+- **Twilio**: `0`
+- **Cloud DB**: `0`
+- **Holdout**: `NO NEW ACCESS`
+- **Frozen Policy**: `UNCHANGED`
+- **L2_EXECUTION**: `NOT EXECUTED`
+- **PREAUTH_STATUS**: `PREAUTH_BLOCKED`
+- **PR_MERGE_PERFORMED**: `NO`
