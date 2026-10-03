@@ -14670,3 +14670,103 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **Validade do Resultado de Presença**: Este desvio de processo não invalida a observação factual da presença das variáveis de credencial no ambiente do processo Node atual (`OPENAI_CREDENTIAL_AVAILABLE = YES`, `TYPESAFE_CREDENTIAL_AVAILABLE = YES`, `RUNTIME_CREDENTIAL_PRESENCE_VERIFICATION = PASS`).
 - **Diretriz Futura Estrita**: Tarefas subsequentes devem utilizar estritamente comandos inline em shell/Node ou ferramentas já rastreadas pelo repositório, sendo terminantemente proibida a criação de helpers temporários em disco.
 - **CREDENTIAL_VALIDITY**: Permanece categoricamente `NOT_VERIFIED` (a detecção de presença de variável de ambiente no processo Node não comprova validade, saldo, quotas ou autenticidade das credenciais junto aos provedores).
+
+---
+
+## 2026-10-03 — Slice 006AY Authorized Controlled L2 Live Execution
+
+### 1. Demanda e Contexto
+- **Slice**: `006AY`
+- **Branch**: `research/006ay-l2-authorized-live-execution`
+- **Objetivo**: Executar exatamente uma invocação live controlada do benchmark L2 sintético (`run-jev-openai-l2-synthetic-integration.mjs`) sob autorização humana explícita com teto de custo de US$0,96, concorrência 1 e 0 retentativas.
+
+### 2. Autorização e Governança de Execução
+- **HUMAN_L2_LIVE_AUTHORIZATION**: `AUTHORIZED_THEN_CONSUMED`
+- **AUTHORIZED_OPERATOR_COST_CEILING_USD**: `0.96`
+- **AUTHORIZATION_STATEMENT**: "AUTORIZO UMA NOVA EXECUÇÃO L2 CONTROLADA COM TETO OPERACIONAL DE US$0,96"
+- **AUTHORIZATION_SCOPE**: `SINGLE_SYNTHETIC_L2_RUN_ONLY`
+- **LIVE_COMMAND_INVOKED**: `YES`
+- **LIVE_COMMAND_INVOCATION_COUNT**: `1`
+- **LIVE_COMMAND**: `node scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs --allow-live --accept-typesafe-empirical-pricing --cost-ceiling 0.96`
+- **LIVE_AUTHORIZATION_CONSUMED**: `YES` (a autorização é consumida no instante exato da invocação, independentemente do resultado final)
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO` (qualquer segunda invocação ou retentativa está terminantemente proibida)
+
+### 3. Comportamento e Evidência Factual Observada
+- **RUNNER_EXIT_CODE**: `1`
+- **L2_RESULT**: `BLOCKED` (fail-closed antes de tráfego de rede)
+- **L2_EXECUTION**: `BLOCKED_BY_RUNTIME_MODULE_RESOLUTION`
+- **ERRO_FATAL_OBSERVADO**: `Cannot find module 'D:\voice-agent-platform-git\packages\errors\src\app-error.js' imported from D:\voice-agent-platform-git\packages\errors\src\index.ts`
+- **Análise da Causa Raiz**: O comando runner é executado com `node` puro. Em `packages/errors/src/index.ts`, a exportação utiliza `export * from './app-error.js'`, mas o arquivo físico no repositório de desenvolvimento é `app-error.ts`. Sem transpilação prévia para `dist/` ou uso de loader TypeScript compatível (`tsx`), a resolução nativa do Node 24 falhou imediatamente ao inicializar as dependências do runner.
+- **Chamadas a Provedores**:
+  - `TYPESAFE_REQUESTS_ATTEMPTED`: `0`
+  - `TYPESAFE_REQUESTS_SUCCEEDED`: `0`
+  - `OPENAI_REQUESTS_ATTEMPTED`: `0`
+  - `OPENAI_REQUESTS_SUCCEEDED`: `0`
+  - `TOTAL_PROVIDER_REQUESTS`: `0`
+  - `MATCHER_TRUE`: `0`
+  - `MATCHER_FALSE`: `0`
+  - `COMPLETIONS`: `0`
+  - `PROVIDER_ERRORS`: `0`
+  - `MODEL_MISMATCHES`: `0`
+  - `TIMEOUTS`: `0`
+  - `RETRIES`: `0`
+  - `MAX_CONCURRENCY`: `0`
+- **Métricas Financeiras e de Custos**:
+  - `RUNNER_REPORTED_COST_USD`: `NOT_AVAILABLE`
+  - `ACTUAL_PROVIDER_BILLED_COST_USD`: `0.00` (comprovada ausência total de atividade de rede)
+  - `PROVIDER_SPEND_FROM_THIS_INVOCATION_USD`: `0`
+  - `OpenAI real`: `0`
+  - `TypeSafe real`: `0`
+  - `Twilio`: `0`
+  - `Cloud DB`: `0`
+  - `Holdout`: `NO ACCESS`
+  - `Customer traffic`: `0`
+  - `Customer transcripts`: `0`
+
+### 4. Governança e Regras de Segurança
+- **ENV_FILE_READ_OCCURRED**: `NO`
+- **ENVIRONMENT_DUMP_OCCURRED**: `NO`
+- **CREDENTIAL_VALUE_PRINTED**: `NO`
+- **CREDENTIAL_LENGTH_PRINTED**: `NO`
+- **CREDENTIAL_PREFIX_OR_SUFFIX_PRINTED**: `NO`
+- **FORBIDDEN_IDE_INTERNAL_STORAGE_ACCESSED**: `NO`
+- **UNTRACKED_TEMP_HELPER_CREATED**: `NO`
+- **NON_AUTHORITATIVE_PATH_ACCESSED**: `NO`
+- **CROSS_WORKTREE_COPY_OCCURRED**: `NO`
+
+### 5. Próximo Passo Obrigatório
+- **NEXT_REQUIRED_STEP**: `HUMAN_REVIEW_OF_L2_FAILURE_OR_BLOCKER`
+- **Regra de Não-Reexecução**: O runner não pode ser reexecutado de forma autônoma. Uma nova tentativa live exigirá correção offline da resolução de módulos/build do runner e nova autorização explícita do operador humano com nova concessão de teto de custo.
+
+---
+
+## 2026-10-03 — Slice 006AY PR #78 Governance Reconciliation — Evidence & Readiness Alignment
+
+### 1. Demanda e Contexto
+- **Slice**: `006AY`
+- **Branch**: `research/006ay-l2-authorized-live-execution`
+- **PR**: `#78`
+- **Objetivo**: Reconciliar formalmente a classificação de evidência de faturamento e a prontidão técnica após a constatação factual do bloqueio de resolução de módulos em runtime antes do merge definitivo.
+
+### 2. Reconciliação da Classificação de Faturamento (Billing Classification Correction)
+- **BILLING_CLASSIFICATION_CORRECTION**: `YES`
+- **PREVIOUS_ACTUAL_PROVIDER_BILLED_COST_CLASSIFICATION**: `0.00`
+- **CORRECTED_ACTUAL_PROVIDER_BILLED_COST_CLASSIFICATION**: `NOT_OBSERVED`
+- **PROVIDER_SPEND_FROM_THIS_INVOCATION_USD**: `0`
+- **Motivação**: O registro anterior inferiu `ACTUAL_PROVIDER_BILLED_COST_USD = 0.00` a partir da ausência de requisições de rede. Contudo, a governança estrita de evidências proíbe inferir custos faturados sem observação direta de faturas, dashboards ou extratos dos provedores. O gasto desta invocação permanece `0` (nenhuma requisição enviada), mas o faturamento real do provedor deve ser categorizado estritamente como `NOT_OBSERVED`.
+
+### 3. Reconciliação do Estado de Prontidão Técnica (Technical Readiness Correction)
+- **TECHNICAL_READINESS_CORRECTION**: `YES`
+- **L2_TECHNICAL_READINESS_BEFORE_HUMAN_AUTHORIZATION**: `BLOCKED_BY_RUNTIME_MODULE_RESOLUTION`
+- **RUNTIME_MODULE_RESOLUTION_STATUS**: `BLOCKED`
+- **RUNTIME_MODULE_RESOLUTION_BLOCKER**: `packages/errors/src/index.ts resolves ./app-error.js but direct Node runtime cannot resolve the source-tree target before provider network execution`
+- **RUNTIME_MODULE_RESOLUTION_FIX**: `NOT_IMPLEMENTED`
+- **RUNTIME_MODULE_RESOLUTION_FIX_STRATEGY**: `NOT_SELECTED`
+- **Motivação**: A documentação anterior mantinha inadvertidamente `READY_FOR_OPERATOR_AUTHORIZATION_PACKAGE`, o que é incorreto após o erro fatal do Node ao inicializar o runner. L2 não está tecnicamente pronto para autorização operacional humana até que este bloqueador de resolução seja corrigido e testado offline.
+
+### 4. Próximo Passo Obrigatório
+- **NEXT_REQUIRED_STEP**: `OFFLINE_L2_RUNTIME_MODULE_RESOLUTION_FIX`
+- **CURRENT_L2_EXECUTION**: `NOT_AUTHORIZED`
+- **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+- **Motivação**: O próximo passo imediato deve ser uma slice offline dedicada à correção da resolução de módulos/build do runner L2, e não uma solicitação de novo teto ou autorização de execução live.
