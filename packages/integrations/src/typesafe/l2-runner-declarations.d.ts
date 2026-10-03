@@ -11,12 +11,16 @@ declare module '../../../../scripts/benchmarks/voice/run-jev-openai-l2-synthetic
   export const RETRIES: number;
   export const RESEARCH_HARNESS_TIMEOUT_MS: number;
   export const TYPESAFE_PRICE_PER_BTOK: number;
+  export const TYPESAFE_EMPIRICAL_RATE_PER_BTOK: number;
   export const MAX_TYPESAFE_INPUT_TOKENS_PER_REQ: number;
   export const TYPESAFE_HISTORICAL_PROJECTED_COST_USD: number;
   export const MAX_PROJECTED_TYPESAFE_COST_USD: number;
   export const TYPESAFE_PRICE_STATUS: string;
+  export const TYPESAFE_PRICING_EVIDENCE: string;
   export const OPENAI_PRICE_STATUS: string;
   export const PROPOSED_COST_CEILING_USD: number;
+  export const L2_PLANNING_TOTAL_PROVIDER_COST_USD: number;
+  export const HARD_L2_COST_BOUND_FEASIBLE: string;
   export const MAX_TYPESAFE_INPUT_CHARS_PER_REQ: number;
   export const MAX_OPENAI_INPUT_CHARS_PER_REQ: number;
   export const RUNTIME_ENFORCED_INPUT_TOKEN_CAP: string;
@@ -32,6 +36,13 @@ declare module '../../../../scripts/benchmarks/voice/run-jev-openai-l2-synthetic
     customArgs?: string[],
     customEnv?: Record<string, string | undefined>,
   ): number;
+  export function validateTypeSafePreauth(params?: {
+    acceptTypesafeEmpiricalPricing?: boolean | undefined;
+    priceStatus?: string | undefined;
+    pricingEvidence?: string | undefined;
+    empiricalRatePerBtok?: number | undefined;
+    approvedCostCeilingUsd?: number | undefined;
+  }): void;
   export function validateTypeSafeInputBudget(callerTranscript: string): void;
   export function validateOpenAiInputBudget(
     messages: Array<{ role: string; content?: string }>,
@@ -54,16 +65,20 @@ declare module '../../../../scripts/benchmarks/voice/run-jev-openai-l2-synthetic
   ): { status: string; errorCategory: string };
 
   export interface L2BenchmarkOptions {
-    offlineMode?: boolean;
-    allowLiveExecution?: boolean;
-    costCeilingUsd?: number;
-    datasetPath?: string;
-    outPath?: string;
-    dryRunWrite?: boolean;
-    timeoutMs?: number;
-    typeSafeApiKey?: string;
-    openAiApiKey?: string;
-    openAiModelId?: string;
+    offlineMode?: boolean | undefined;
+    allowLiveExecution?: boolean | undefined;
+    acceptTypesafeEmpiricalPricing?: boolean | undefined;
+    typeSafePriceStatus?: string | undefined;
+    typeSafePricingEvidence?: string | undefined;
+    typeSafeEmpiricalRatePerBtok?: number | undefined;
+    costCeilingUsd?: number | undefined;
+    datasetPath?: string | undefined;
+    outPath?: string | undefined;
+    dryRunWrite?: boolean | undefined;
+    timeoutMs?: number | undefined;
+    typeSafeApiKey?: string | undefined;
+    openAiApiKey?: string | undefined;
+    openAiModelId?: string | undefined;
     fakeTypeSafeFetch?: (
       url: string,
       init?: RequestInit,
@@ -79,8 +94,8 @@ declare module '../../../../scripts/benchmarks/voice/run-jev-openai-l2-synthetic
       warn: (...args: unknown[]) => void;
       error: (...args: unknown[]) => void;
     };
-    customArgs?: string[];
-    customEnv?: Record<string, string | undefined>;
+    customArgs?: string[] | undefined;
+    customEnv?: Record<string, string | undefined> | undefined;
   }
 
   export interface L2CaseResult {
@@ -122,10 +137,10 @@ declare module '../../../../scripts/benchmarks/voice/run-jev-openai-l2-synthetic
       projectedCostCeilingUsd: number;
       pricePerBtokTypeSafe: number;
       openAiPriceStatus: string;
-      runtimeEnforcedInputTokenCap?: string;
-      tokenCapEnforcement?: string;
-      maxTypeSafeInputChars?: number;
-      maxOpenAiInputChars?: number;
+      runtimeEnforcedInputTokenCap?: string | undefined;
+      tokenCapEnforcement?: string | undefined;
+      maxTypeSafeInputChars?: number | undefined;
+      maxOpenAiInputChars?: number | undefined;
     };
     aggregates: {
       matcherEvaluations: number;

@@ -14231,3 +14231,72 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - `NEXT_REQUIRED_SLICE`: `MINIMAL_PREAUTH_POLICY_IMPLEMENTATION` (o runner atual não possui representação para a política autorizada `ACCOUNT_BILLING_EMPIRICALLY_VERIFIED` com aceitação humana para uma única execução, exigindo slice técnico focado)
 - `FUTURE_LIVE_CREDENTIAL_CONFIGURATION`: `REQUIRED` (configuração humana de ambiente prévia à execução)
 - `PR_MERGE_PERFORMED`: `NO`
+
+---
+
+## 2026-10-03 — Minimal Empirical Preauthorization Policy Implementation (Slice 006AV)
+
+### 1. Contexto e Objetivo
+- **Slice**: `006AV`
+- **Branch**: `fix/006av-l2-preauth-policy-implementation`
+- **Base SHA**: `4ab14a88670b79538bcf7fe42706af611a092818` (main após merge do PR #74)
+- **Objetivo**: Implementar o menor ajuste de código no runner L2 (`scripts/benchmarks/voice/l2-runner-preconditions.mjs` e `run-jev-openai-l2-synthetic-integration.mjs`) para representar a política de faturamento empírico TypeSafe autorizada pelo operador humano, mantendo todas as salvaguardas fail-closed e limites de complexidade.
+- **Autorização Live**: `NÃO AUTORIZADA` neste slice (puramente de implementação de código, testes e governança documental).
+
+### 2. Análise YAGNI e Decisões de Implementação
+- **CURRENT_REQUIREMENT**: O runner L2 bloqueava qualquer execução live quando `TYPESAFE_PRICE_STATUS !== 'VERIFIED'`. Era necessário permitir uma política alternativa estrita onde a evidência empírica (`ACCOUNT_BILLING_EMPIRICALLY_VERIFIED`) é explicitamente aceita pelo operador humano via flag CLI (`--accept-typesafe-empirical-pricing`) com teto de custo válido (`--cost-ceiling`).
+- **EXISTING_OPTION**: Extensão direta do módulo existente `l2-runner-preconditions.mjs` através da flag `--accept-typesafe-empirical-pricing` e função `validateTypeSafePreauth`.
+- **MINIMAL_OPTION**: Nenhuma abstração genérica, nenhum framework de políticas, nenhum serviço de faturamento criado. Apenas a flag e a validação fail-closed estrita.
+
+### 3. Contrato Técnico e Salvaguardas Fail-Closed
+- **Flag CLI**: `--accept-typesafe-empirical-pricing` (default: `false`).
+- **Requisitos Cumulativos Obrigatórios para Pré-Autorização**:
+  1. `--allow-live` explicitamente fornecido;
+  2. `--accept-typesafe-empirical-pricing` explicitamente fornecido;
+  3. `TYPESAFE_PRICING_EVIDENCE === 'ACCOUNT_BILLING_EMPIRICALLY_VERIFIED'`;
+  4. Taxa de planejamento TypeSafe exatamente igual a `$42.00 / 1B input tokens`;
+  5. Teto de custo válido fornecido e superior ou igual ao mínimo de planejamento (`$0.480294 USD`);
+  6. Dataset sintético congelado íntegro (`bd812341a9...`, N=12);
+  7. Todos os caps de requisição (7 TypeSafe / 12 OpenAI / 19 total) e caracteres (1.000 / 4.000) inalterados;
+  8. Concorrência = 1, retries = 0 inalterados.
+- **Semântica de Precificação**:
+  - `TYPESAFE_PRICE_STATUS`: `NOT_VERIFIED` (permanece inalterado; a aceitação empírica não transforma dados observados em tarifa pública oficial/contratual);
+  - `TYPESAFE_EXPLICIT_CONTRACTUAL_TARIFF`: `NOT_OBSERVED`;
+  - `HARD_L2_COST_BOUND_FEASIBLE`: `BLOCKED`.
+
+### 4. Cobertura de Testes Automatizados
+- **Suíte de Testes Focada (`packages/integrations/src/typesafe/jev-openai-l2-synthetic-runner.test.ts`)**: `20/20 PASS`.
+- **Cenários Cobertos**:
+  1. Caminho de precificação oficial verificada continua funcionando;
+  2. `NOT_VERIFIED` sem reconhecimento empírico continua bloqueando (`FATAL_LIVE_PREAUTH_BLOCKED`);
+  3. Evidência empírica sem reconhecimento explícito continua bloqueando;
+  4. Reconhecimento empírico com classificação de evidência incorreta/desconhecida bloqueia;
+  5. Evidência empírica + reconhecimento sem teto financeiro bloqueia;
+  6. Evidência empírica + reconhecimento com teto financeiro inválido/negativo/zero bloqueia;
+  7. Evidência empírica + reconhecimento com teto insuficiente (< $0.480294) bloqueia;
+  8. Política empírica válida + teto válido passa na pré-autorização;
+  9. Ausência de `--allow-live` continua bloqueando mesmo com política empírica;
+  10. Zero chamadas a provedores reais alcançáveis nos testes unitários.
+- **Regressão**: `ASSERTION_WEAKER = 0`, `NEW_SKIPS = 0`.
+
+### 5. Status de Congelamento e DoD
+- **PREVIOUS_EXECUTABLE_AGGREGATE_SHA256**: `8f53f8169771caa26dd9623702a7c65e3e9c730dfcb2bbfcb26188dcd57c77f3` (`SUPERSEDED_BY_CODE_CHANGE`).
+- **EXECUTABLE_FREEZE_REPRODUCIBILITY**: `BLOCKED` (método de agregação não versionado como ferramenta determinística no repositório).
+- **EXECUTABLE_AGGREGATE_SHA256**: `NOT_REPRODUCIBLE_FROM_TRACKED_METHOD`.
+- **DoD de Tamanho de Arquivos**: Todos os 9 módulos executáveis <= 180 linhas (max 171 linhas em `l2-runner-preconditions.mjs`), todas as funções <= 50 linhas (max 34 linhas).
+
+### 6. Governança e Isolamento
+- **OpenAI real**: `0`
+- **TypeSafe real**: `0`
+- **Twilio**: `0`
+- **Cloud DB**: `0`
+- **Customer data**: `0`
+- **Holdout**: `NO ACCESS`
+- **Frozen Policy**: `UNCHANGED`
+- **LIVE_COMMAND_INVOKED**: `NO`
+- **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+- **ENV_FILE_READ_OCCURRED_DURING_SLICE**: `NO`
+- **DEPENDENCY_CHANGE**: `NO`
+- **SECRET_AUDIT**: `PASS` (boolean-only sobre tracked diff)
+- **PR_MERGE_PERFORMED**: `NO`

@@ -400,3 +400,41 @@ Decisões formais concedidas pelo operador humano em 2026-10-03 (escopo estrito:
 - `L2_EXECUTION`: `BLOCKED_BY_RUNNER_FAIL_CLOSED_PREAUTH`
 - `NEXT_REQUIRED_SLICE`: `MINIMAL_PREAUTH_POLICY_IMPLEMENTATION` (ajuste técnico no runner para suportar a representação da política de evidência empírica formalmente autorizada pelo operador humano)
 - `FUTURE_LIVE_CREDENTIAL_CONFIGURATION`: `REQUIRED` (configuração humana limpa de credenciais no ambiente sem leitura por tooling de agente)
+
+---
+
+## 18. Implementação da Política Mínima de Pré-Autorização Empírica (Slice 006AV)
+
+- **Slice**: `006AV` (`fix/006av-l2-preauth-policy-implementation`)
+- **Objetivo**: Implementar o menor ajuste de código no runner L2 para permitir a representação da política de precificação empírica explicitamente autorizada pelo operador humano, preservando integralmente o comportamento fail-closed.
+- **Mecanismo de Reconhecimento de Política**: `--accept-typesafe-empirical-pricing`
+- **Requisitos Cumulativos para Pré-Autorização com Evidência Empírica**:
+  1. `--allow-live` explicitamente presente;
+  2. `--accept-typesafe-empirical-pricing` explicitamente presente;
+  3. Classificação de evidência de faturamento exatamente igual a `ACCOUNT_BILLING_EMPIRICALLY_VERIFIED`;
+  4. Taxa de planejamento TypeSafe exatamente igual à taxa observada aprovada de `$42.00 / 1B input tokens`;
+  5. Teto de custo válido (`--cost-ceiling <USD>`) presente;
+  6. Teto de custo não inferior ao custo mínimo planejado do cenário L2 (`$0.480294 USD`);
+  7. Dataset sintético congelado íntegro (`bd812341a9...`, N=12);
+  8. Caps de 7 requisições TypeSafe, 12 OpenAI e 19 totais inalterados;
+  9. Caps de caracteres (1.000 chars TypeSafe, 4.000 chars OpenAI) e output tokens (500 tokens) inalterados;
+  10. Concorrência = 1, retries = 0 inalterados.
+- **Status da Precificação**:
+  - `TYPESAFE_PRICE_STATUS`: `NOT_VERIFIED` (inalterado; a política empírica não converte evidência observada em tarifa contratual);
+  - `TYPESAFE_EXPLICIT_CONTRACTUAL_TARIFF`: `NOT_OBSERVED`;
+  - `HARD_L2_COST_BOUND_FEASIBLE`: `BLOCKED`;
+  - `TYPESAFE_PRICING_EVIDENCE`: `ACCOUNT_BILLING_EMPIRICALLY_VERIFIED`.
+- **Status do Hash Agregado Anterior**:
+  - `PREVIOUS_EXECUTABLE_AGGREGATE_SHA256`: `8f53f8169771caa26dd9623702a7c65e3e9c730dfcb2bbfcb26188dcd57c77f3` (`SUPERSEDED_BY_CODE_CHANGE`);
+  - `EXECUTABLE_FREEZE_REPRODUCIBILITY`: `BLOCKED`;
+  - `EXECUTABLE_AGGREGATE_SHA256`: `NOT_REPRODUCIBLE_FROM_TRACKED_METHOD`.
+- **Governança de Execução**:
+  - `LIVE_COMMAND_INVOKED`: `NO`;
+  - `LIVE_AUTHORIZATION_AVAILABLE`: `NO`;
+  - `SECOND_LIVE_RUN_AUTHORIZED`: `NO`;
+  - `TypeSafe real`: `0`;
+  - `OpenAI real`: `0`;
+  - `Twilio`: `0`;
+  - `Cloud DB`: `0`;
+  - `Customer data`: `0`;
+  - `Holdout`: `NO ACCESS`.
