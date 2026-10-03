@@ -124,8 +124,8 @@ AI_CONTEXT_HEADER_END
 
 ## 6. Estado Atual da Evidência de Qualidade (Quality Gate Snapshot)
 
-- **Último `pnpm check` Global**: `PASS` (executado e observado no slice 006AZ no PR #79).
-- **Status das Asserções**: `206 passed` em `@voice-agent/integrations` (27 arquivos de teste, incluindo `5/5 passed` em `l2-module-resolution.test.ts`, `21/21 passed` em `jev-openai-l2-synthetic-runner.test.ts`, `5/5 passed` em `jev-routing-benchmark.test.ts` e `11/11 passed` em `l2-executable-freeze.test.ts`).
+- **Último `pnpm check` Global**: `PASS` (executado e observado no slice 006AZ no PR #79 a partir de estado frio/cold-checkout sem diretórios `dist/` pré-existentes).
+- **Status das Asserções**: `206 passed` em `@voice-agent/integrations` (27 arquivos de teste, incluindo `5/5 passed` desacoplado de build em `l2-module-resolution.test.ts`, `21/21 passed` em `jev-openai-l2-synthetic-runner.test.ts`, `5/5 passed` em `jev-routing-benchmark.test.ts` e `11/11 passed` em `l2-executable-freeze.test.ts`).
 - **Regressão de Asserções**: `ASSERTION_WEAKER = 0`, `NEW_SKIPS = 0`.
 - **Verificação Arquitetural**: `SUCESSO: Todas as fronteiras e regras arquiteturais respeitadas.`
 - **Verificação de Tamanho de Arquivos**: `SUCESSO: Todos os arquivos de logica estao em conformidade (check:file-size = PASS).`

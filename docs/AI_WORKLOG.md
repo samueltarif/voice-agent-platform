@@ -14898,3 +14898,65 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **PR_MERGE_PERFORMED**: `NO`
 - **NEXT_ALLOWED_STEP**: `HUMAN_REVIEW_OF_PR79`
 - **NEXT_REQUIRED_STEP**: `HUMAN_REVIEW_OF_OFFLINE_FIX_AND_NEW_L2_AUTHORIZATION_PACKAGE`
+
+---
+
+## 2026-10-03 — Slice 006AZ: Cold-Check Flaw Correction & Pure Static Regression Separation
+
+### 1. Demanda e Contexto
+- **Slice**: `006AZ`
+- **Branch**: `fix/006az-l2-runtime-module-resolution`
+- **PR**: `#79`
+- **Objetivo**: Reconhecer e corrigir a falha de projeto do teste de regressão em `l2-module-resolution.test.ts`, que dependia da presença prévia de artefatos compilados `dist/` gerados na etapa de build, violando o princípio de que o estágio de teste no `pnpm check` (`test` antes de `build`) deve passar em um checkout frio limpo.
+
+### 2. Reconhecimento e Cronologia de Correção
+- **PREVIOUS_COLD_START_OPERATIONAL_PROOF**: `PASS`
+- **PREVIOUS_REGRESSION_TEST_EXECUTED_AFTER_BUILD**: `YES` (a validação operacional executou `pnpm build` antes de rodar os testes, mascarando a dependência de `dist` no estágio de teste).
+- **PREVIOUS_REGRESSION_TEST_DEPENDS_ON_PREBUILT_DIST**: `YES`
+- **PREVIOUS_CLASSIFICATION_REGRESSION_TEST_DEPENDS_ON_STALE_DIST_NO**: `INCORRECT` (reconhecido explicitamente; a classificação anterior estava equivocada).
+- **REGRESSION_TEST_DESIGN_CORRECTED**: `YES`
+- **FINAL_REGRESSION_TEST_DEPENDS_ON_PREBUILT_DIST**: `NO`
+
+### 3. Redesenho do Teste Automatizado e Separação de Responsabilidades
+- **Ordem do Quality Gate**: `pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm check:architecture && pnpm check:file-size`.
+- **TEST_STAGE_BEFORE_BUILD_STAGE**: `YES` (o comando canônico executa `vitest` antes de `turbo build`).
+- **Novo Escopo do Teste Automatizado** (`packages/integrations/src/typesafe/l2-module-resolution.test.ts`):
+  1. Reprodução estrita da falha histórica: import direto de `packages/errors/src/index.ts` falha com `Cannot find module ... app-error.js`.
+  2. Contrato de export de `@voice-agent/errors`: validação estática de `package.json` (`main = ./dist/index.js`, `import = ./dist/index.js`, `types = ./src/index.ts`).
+  3. Contrato de build de `@voice-agent/errors`: validação estática de `package.json` (`build = tsc`) e `tsconfig.json` (`outDir = ./dist`, `include = src/**/*`).
+  4. Contrato de fontes: verificação estática de que `packages/errors/src/voice-errors.ts` exporta `class ConversationModelError` necessária para o adapter OpenAI.
+  5. Contrato de arquitetura do runner: verificação estática de que `l2-runner-dependencies.mjs` aponta para artefatos compilados `dist`, comprovando que o runner requer compilação canônica prévia.
+  - Zero importações em tempo de execução de arquivos `dist/` inexistentes.
+  - Zero spawn do runner durante o estágio de testes unitários pré-build.
+- **Escopo da Prova Operacional**:
+  - A execução real do runner compilado pertence estritamente à validação operacional pós-build (`pnpm build` seguido de `node ... --offline --dry-run-write`).
+
+### 4. Prova Canônica de Fresh Checkout (True Fresh-Gate Proof)
+- **FRESH_STATE_BEFORE_CANONICAL_GATE**: `YES`
+- **DIST_PRESENT_BEFORE_GATE**: `NO` (diretórios `dist` em `packages/errors`, `packages/integrations` e `apps/voice` removidos antes do gate).
+- **FRESH_CHECKOUT_EQUIVALENT_CANONICAL_GATE**: `PASS` (`pnpm install --frozen-lockfile && pnpm check` executado a partir do estado frio sem pré-build manual; estágio de teste passou com 100% de sucesso antes da regeneração dos artefatos pelo estágio de build).
+- **FINAL_COLD_START_RUNNER_INITIALIZATION**: `PASS` (runner inicializou offline com sucesso após a conclusão do gate canônico).
+
+### 5. Preservação do Congelamento Executável e Governança
+- **RUNTIME_EXECUTABLE_SET_CHANGED**: `NO`
+- **CURRENT_EXECUTABLE_AGGREGATE_SHA256**: `f5ef6e6b88e09094765b0c3b273ba23cae01502bdd0ec4fe28dbcb3f2133794a`
+- **EXECUTABLE_FREEZE_REPRODUCIBILITY**: `PASS`
+- **DATASET_CHANGED**: `NO` (`bd812341a922ded1c7159191849dae284a88f24afd9c7e8d3c64f9b081602f3f`)
+- **L2_RUNTIME_SEMANTICS_CHANGED**: `NO`
+- **Chamadas de Provedores Realizadas**:
+  - OpenAI real: `0`
+  - TypeSafe real: `0`
+  - Twilio: `0`
+  - Cloud DB: `0`
+  - Holdout: `NO ACCESS`
+  - Gasto: `US$ 0.00`
+- **LIVE_COMMAND_INVOKED**: `NO`
+- **CURRENT_L2_EXECUTION**: `NOT_AUTHORIZED`
+- **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+- **RUNTIME_MODULE_RESOLUTION_STATUS**: `FIXED_OFFLINE`
+- **RUNTIME_MODULE_RESOLUTION_FIX**: `IMPLEMENTED`
+- **L2_TECHNICAL_READINESS_BEFORE_HUMAN_AUTHORIZATION**: `READY_FOR_NEW_AUTHORIZATION_REVIEW`
+- **PR_MERGE_PERFORMED**: `NO`
+- **NEXT_ALLOWED_STEP**: `HUMAN_REVIEW_OF_PR79`
+- **NEXT_REQUIRED_STEP**: `HUMAN_REVIEW_OF_OFFLINE_FIX_AND_NEW_L2_AUTHORIZATION_PACKAGE`
