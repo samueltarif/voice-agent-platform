@@ -227,3 +227,12 @@ export function executeOpenAiTurn(params: {
   logger: { error: (...args: unknown[]) => void };
   timeoutMs: number;
 }): Promise<OpenAiTurnExecutionResult>;
+
+export function loadDependencies(): Promise<{
+  TypeSafeJevTurnDecisionAdapter: unknown;
+  TypeSafeModelIdentityMismatchError: unknown;
+  OpenAiConversationModelAdapter: unknown;
+  matchesOperatingHoursCapability: unknown;
+  interpretFrozenTurnPolicy: unknown;
+  handleOperatingHoursTurn: unknown;
+}>;

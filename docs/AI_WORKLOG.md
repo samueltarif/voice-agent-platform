@@ -14770,3 +14770,70 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
 - **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
 - **Motivação**: O próximo passo imediato deve ser uma slice offline dedicada à correção da resolução de módulos/build do runner L2, e não uma solicitação de novo teto ou autorização de execução live.
+
+---
+
+## 2026-10-03 — Slice 006AZ: OFFLINE_L2_RUNTIME_MODULE_RESOLUTION_FIX
+
+### 1. Demanda e Contexto
+- **Slice**: `006AZ`
+- **Branch**: `fix/006az-l2-runtime-module-resolution`
+- **Objetivo**: Corrigir estritamente offline o erro de resolução de módulos em tempo de execução que bloqueou a inicialização do runner sintético L2 (`Cannot find module .../packages/errors/src/app-error.js imported from .../packages/errors/src/index.ts`), sem invocação live, sem chamadas de rede e sem qualquer custo.
+
+### 2. Investigação da Causa Raiz e Reconstrução do Grafo de Módulos
+- **Bloqueio Histórico**: `node scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs` falhou com exit code 1 antes de qualquer chamada de rede porque o Node direto não conseguia resolver `packages/errors/src/app-error.js` a partir de `packages/errors/src/index.ts`.
+- **Cadeia de Importação**:
+  1. `run-jev-openai-l2-synthetic-integration.mjs` invoca `loadDependencies()` em `l2-runner-dependencies.mjs`.
+  2. `l2-runner-dependencies.mjs` importa artefatos compilados de `dist`: `packages/integrations/dist/packages/integrations/src/openai/openai-conversation-model-adapter.js`.
+  3. `openai-conversation-model-adapter.js` importa `./openai-error-mapper.js`.
+  4. `./openai-error-mapper.js` possui `import { ConversationModelError } from '@voice-agent/errors'`.
+  5. Node ESM resolve o specifier `@voice-agent/errors` consultando `packages/errors/package.json`.
+  6. Em `packages/errors/package.json`, o campo `"exports"` apontava incorretamente para `"./src/index.ts"`.
+  7. O Node ao carregar `src/index.ts` encontra `export * from './app-error.js'`.
+  8. Como no diretório fonte `src/` apenas o arquivo TypeScript `app-error.ts` existe fisicamente (e a extensão `.js` é uma convenção de compilação ESM do TypeScript), o Node falha com `ERR_MODULE_NOT_FOUND`.
+
+### 3. Decisão YAGNI e Estratégia de Correção
+- **CURRENT_REQUIREMENT**: O runner controlado L2 deve inicializar offline e carregar suas dependências internas de workspace sem falha de resolução do Node.
+- **EXISTING_OPTION**: `packages/errors` já possui compilação `tsc` para `dist/` gerando `packages/errors/dist/index.js` e `packages/errors/dist/app-error.js`.
+- **MINIMAL_OPTION**: Corrigir o package export em `packages/errors/package.json` (`"main": "./dist/index.js"`, `"exports": { ".": { "types": "./src/index.ts", "import": "./dist/index.js", "default": "./dist/index.js" } }`).
+- **Alternativas Rejeitadas**:
+  - `tsx`: Rejeitado pois `tsx` não está instalado no monorepo e adicionaria dependência/orquestração desnecessária.
+  - Custom import resolver: Rejeitado por violar YAGNI e as regras expressas da slice.
+  - Alteração de `.js` para `.ts` nos fontes: Rejeitado pois violaria as convenções canônicas de ESM TypeScript e quebraria compilações `tsc`.
+  - Framework genérico de loaders: Rejeitado por overengineering.
+- **RUNTIME_MODULE_RESOLUTION_FIX_STRATEGY**: `CORRECT_PACKAGE_EXPORT_TO_DIST`
+- **WHY_THIS_STRATEGY**: Alinha o package export do pacote `@voice-agent/errors` ao seu build output `dist/` já existente, preservando as definições de tipo TypeScript (`"types": "./src/index.ts"`), respeitando o tsconfig paths e sem alterar nenhum dos 10 módulos executáveis congelados do benchmark.
+
+### 4. Preservação do Congelamento Executável (Executable Freeze Impact)
+- **RUNTIME_EXECUTABLE_SET_CHANGED**: `NO`
+- **CURRENT_EXECUTABLE_AGGREGATE_SHA256**: `f5ef6e6b88e09094765b0c3b273ba23cae01502bdd0ec4fe28dbcb3f2133794a`
+- **EXECUTABLE_FREEZE_REPRODUCIBILITY**: `PASS` (11/11 testes em `packages/integrations/src/typesafe/l2-executable-freeze.test.ts` passando)
+- **DATASET_SHA256**: `bd812341a922ded1c7159191849dae284a88f24afd9c7e8d3c64f9b081602f3f` (`DATASET_CHANGED = NO`).
+- **L2_RUNTIME_SEMANTICS_CHANGED**: `NO`
+
+### 5. Teste de Regressão e Validação Offline
+- **Teste de Regressão Criado**: `packages/integrations/src/typesafe/l2-module-resolution.test.ts` (51 linhas, funções <= 30 linhas).
+- **Comprovações do Teste**:
+  - Reprodução do erro histórico: import direto de `packages/errors/src/index.ts` falha com `Cannot find module .../app-error.js`.
+  - Sucesso do runner canônico offline: inicialização completa do grafo de módulos sem erro de resolução.
+  - Carregamento de dependências: `loadDependencies()` retorna todos os adaptadores e interpretes (`TypeSafeJevTurnDecisionAdapter`, `OpenAiConversationModelAdapter`, etc.).
+  - Exportação de erros: `@voice-agent/errors` exporta `ConversationModelError` e `AppError`.
+- **CANONICAL_L2_RUNNER_COMMAND**: `node scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs ...`
+- **RUNTIME_MODULE_GRAPH_LOAD**: `PASS`
+- **RUNTIME_INITIALIZATION**: `PASS`
+- **MODULE_RESOLUTION_ERROR**: `NO`
+- **Chamadas de Provedores Realizadas**:
+  - OpenAI real: `0`
+  - TypeSafe real: `0`
+  - Twilio: `0`
+  - Cloud DB: `0`
+  - Holdout: `NO ACCESS`
+  - Gasto: `$0.00 USD`
+
+### 6. Governança e Status de Prontidão
+- **LIVE_COMMAND_INVOKED**: `NO`
+- **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+- **CURRENT_L2_EXECUTION**: `NOT_AUTHORIZED`
+- **L2_TECHNICAL_READINESS_BEFORE_HUMAN_AUTHORIZATION**: `READY_FOR_NEW_AUTHORIZATION_REVIEW`
+- **NEXT_REQUIRED_STEP**: `HUMAN_REVIEW_OF_OFFLINE_FIX_AND_NEW_L2_AUTHORIZATION_PACKAGE`
