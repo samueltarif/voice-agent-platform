@@ -13060,3 +13060,71 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - Executar secret audit final boolean-only em `git diff origin/main...HEAD` (`SECRET_AUDIT_PASS`).
 - Aguardar pré-autorização expressa do operador humano antes de qualquer execução live.
 - `L2_EXECUTION`: `NOT EXECUTED`.
+
+---
+
+## 2026-10-03 — PR #68 L2 Runner Hardening & Preauthorization Alignment (Slice 006AO-Hardening)
+
+### 1. Parâmetros de Execução
+- **Prompt ID**: `VOICE AGENT PLATFORM — PR #68 L2 PREAUTH RUNNER HARDENING — OFFLINE ONLY`
+- **Branch**: `research/006ao-l2-runner-preauth`
+- **Base SHA (origin/main)**: `ce12952c5b812c0594a3d955e53df455c9c32654`
+- **HEAD Commit**: `4fd7cf3fd74fe7ffa645ff6adfbb2beaf4246f04` (sujeito a novo commit com hardening)
+- **Status do PR #68**: `OPEN / NOT MERGED` (sem merge automático)
+- **Provider Calls neste Slice**: TypeSafe = 0, OpenAI = 0, Twilio = 0
+- **ENV_LOADED**: `NO`
+- **DB_CONNECTED**: `NO`
+- **HOLDOUT_OPENED**: `NO` (`LOCKED_HOLDOUT = CONSUMED` preservado)
+- **FROZEN_POLICY_CHANGED**: `NO`
+- **ACTIVE_GUARDED**: `BLOCKED`
+- **PRODUCTION_RUNTIME_WIRING**: `NO`
+- **CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE**: `NOT CLEARED`
+- **PRODUCTION_JEV_TIMEOUT_MS**: `NOT SELECTED`
+- **PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY**: `NOT SELECTED`
+- **TWILIO_ACCOUNT_REQUIRED_NOW**: `NO`
+- **OPENAI_PRICE_STATUS**: `NOT_VERIFIED`
+
+### 2. Defeitos Investigados e Correções Aplicadas (Findings A-H)
+
+1. **Finding A (Offline Network Isolation)**:
+   - *Defeito*: Em `offlineMode: true` sem fakes explícitos, o runner passava `fetchFn: undefined` aos adapters, com risco de fallback para `globalThis.fetch`.
+   - *Correção*: `createDenyNetworkFetch()` com classe `OfflineNetworkDeniedError` injetado como fallback obrigatório quando `isOffline` for ativo. Teste automatizado comprova rejeição segura sem tocar na rede.
+2. **Finding B (Cost Ceiling & OpenAI Pricing Preauth Guard)**:
+   - *Defeito*: O guard anterior comparava apenas o custo TypeSafe com o teto, permitindo modo live sem verificação de preço da OpenAI.
+   - *Correção*: Exportado `OPENAI_PRICE_STATUS = 'NOT_VERIFIED'`. `validatePreconditions` rejeita categoricamente modo live com `FATAL_LIVE_PREAUTH_BLOCKED` enquanto a pré-autorização formal de preços de ambos os provedores e modelo de custo total não forem homologados.
+3. **Finding C (Result / Exit Integrity & Classification)**:
+   - *Defeito*: Falhas ou execuções parciais não impediam exit code 0 na CLI nem possuíam classificação formal de resultado.
+   - *Correção*: Implementado enum estrito de classificação (`PASS_COMPLETE`, `PARTIAL_CHAIN_OBSERVED`, `MODEL_IDENTITY_MISMATCH`, `PROVIDER_FAILURE`, `CAP_EXCEEDED`, `EXECUTION_STOPPED`). CLI verifica `PASS_COMPLETE` e finaliza com exit code 1 em caso de não-pass.
+4. **Finding D (Counter / Artifact Integrity)**:
+   - *Defeito*: `matcherEvaluations` reportava estaticamente `cases.length` (12) mesmo após abort precoce.
+   - *Correção*: `matcherEvaluations` derivado fatualmente de `caseResults.length` (casos efetivamente avaliados).
+5. **Finding E (Timeout Semantics)**:
+   - *Defeito*: Não havia propagação de deadline/AbortSignal aos adapters, e timeouts nunca eram contados.
+   - *Correção*: Implementado `RESEARCH_HARNESS_TIMEOUT_MS = 5000` (timeout de harness de pesquisa, explicitamente não equivalente a `PRODUCTION_JEV_TIMEOUT_MS`) propagado via `AbortSignal.timeout` para `evaluateTurn` e `streamTurn`. Timeouts incrementam contador e classificam como `TIMEOUT`.
+6. **Finding F (OpenAI Model Evidence Separation)**:
+   - *Defeito*: O artefato gravava `openAiModel` com o modelo solicitado, sugerindo modelo observado.
+   - *Correção*: `openAiRequestedModel` separado de `openAiObservedModel: null`. Metadata registra `openAiModelIdentityStatus: 'NOT_OBSERVABLE_VIA_CURRENT_SURFACE'`.
+7. **Finding G (Canonical Routing Path Analysis)**:
+   - *Análise*:
+     - `CURRENT_REQUIREMENT`: Validar integração ponta a ponta entre TypeSafe Jev e OpenAI sob as invariantes do coordenador.
+     - `EXISTING_OPTION`: `GuardedTurnRoutingCoordinator` em produção realiza fail-open para `GENERATIVE` sob erro de auxiliary port para proteger disponibilidade, o que mascararia stop conditions de pesquisa (mismatch de modelo e 401 Auth error).
+     - `MINIMAL_OPTION`: O harness de pesquisa executa a sequência canônica (Matcher → TypeSafe Jev → Frozen Policy → Handler/OpenAI), preservando fail-stop de pesquisa para model mismatch sem alterar o fail-open nominal do runtime de produção.
+8. **Finding H (Complexity & DoD)**:
+   - *Correção*: Decomposição de `runL2Benchmark` em funções pequenas e coesas (`validatePreconditions`, `executeCase`, `classifyRunResult`, `buildResultArtifact`), respeitando limites de tamanho e complexidade ciclomática <= 8.
+
+### 3. Validação de Testes e Quality Gate
+- **Testes Unitários L2 (`packages/integrations/src/typesafe/jev-openai-l2-synthetic-runner.test.ts`)**: 12/12 testes `PASS` (174ms).
+- **Testes de Pacotes Afetados (`@voice-agent/integrations`, `@voice-agent/voice`)**: 43 arquivos de teste, 391 testes `PASS` (3.15s).
+- **Quality Gate Completo**:
+  - `prettier --check .`: `PASS`
+  - `eslint .`: `PASS` (0 errors, 0 warnings)
+  - `turbo typecheck`: `PASS` (12 packages)
+  - `turbo build`: `PASS` (12 packages)
+  - `check:architecture`: `PASS`
+  - `check:file-size`: `PASS` (244 arquivos conformes)
+
+### 4. Status de Pré-Autorização
+- `L2_EXECUTION`: `NOT EXECUTED`
+- `L2_PROVIDER_EXECUTION`: `AWAITING_OPERATOR_AUTHORIZATION`
+- `PR_68_STATUS`: `HARDENED / READY_FOR_REVIEW` (não mergeado)
+

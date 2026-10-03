@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import type { L2CaseResult } from '../../../../scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs';
 import {
   computeSha256,
   EXPECTED_CASE_COUNT,
@@ -8,22 +9,34 @@ import {
   EXPECTED_TYPESAFE_MODEL,
   MAX_OPENAI_REQUESTS,
   MAX_TYPESAFE_REQUESTS,
-  REQUESTED_TYPESAFE_MODEL,
+  OPENAI_PRICE_STATUS,
   runL2Benchmark,
   TOTAL_MAX_PROVIDER_REQUESTS,
 } from '../../../../scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs';
 
-function createFakeTypeSafeFetch(scoresByCase = {}) {
+interface ScoreSet {
+  deterministic: number;
+  generative: number;
+  security: number;
+}
+
+interface RecordedCall {
+  url: string;
+  headers: Record<string, string> | undefined;
+  body: unknown;
+}
+
+function createFakeTypeSafeFetch(scoresByCase: Record<string, ScoreSet> = {}) {
   let callCount = 0;
-  const calls = [];
+  const calls: RecordedCall[] = [];
 
-  const fetchFn = async (url, init) => {
+  const fetchFn = async (url: string, init?: RequestInit) => {
     callCount++;
-    const body = JSON.parse(init.body);
-    calls.push({ url, headers: init.headers, body });
+    const body = init?.body ? JSON.parse(String(init.body)) : {};
+    calls.push({ url, headers: init?.headers as Record<string, string>, body });
 
-    const transcript = body.state.callerInput;
-    const scores = scoresByCase[transcript] ?? {
+    const transcript = (body as { state?: { callerInput?: string } }).state?.callerInput ?? '';
+    const scores: ScoreSet = scoresByCase[transcript] ?? {
       deterministic: 0.9,
       generative: 0.1,
       security: 0.05,
@@ -48,12 +61,12 @@ function createFakeTypeSafeFetch(scoresByCase = {}) {
 
 function createFakeOpenAiFetch() {
   let callCount = 0;
-  const calls = [];
+  const calls: RecordedCall[] = [];
 
-  const fetchFn = async (url, init) => {
+  const fetchFn = async (url: string, init?: RequestInit) => {
     callCount++;
-    const body = JSON.parse(init.body);
-    calls.push({ url, headers: init.headers, body });
+    const body = init?.body ? JSON.parse(String(init.body)) : {};
+    calls.push({ url, headers: init?.headers as Record<string, string>, body });
 
     const stream = new ReadableStream({
       start(controller) {
@@ -126,11 +139,11 @@ describe('L2 Synthetic Integration Runner - Offline Matrix Validation', () => {
       logger: { log: () => {}, warn: () => {}, error: () => {} },
     });
 
-    const unmatchedCases = result.cases.filter((c) => !c.matcherMatched);
+    const unmatchedCases = result.cases.filter((c: L2CaseResult) => !c.matcherMatched);
     expect(unmatchedCases).toHaveLength(5);
-    expect(unmatchedCases.every((c) => c.jevCalled === false)).toBe(true);
-    expect(unmatchedCases.every((c) => c.jevProviderModel === null)).toBe(true);
-    expect(fakeTypeSafe.getCallCount()).toBe(7); // exactly 7 for matched cases
+    expect(unmatchedCases.every((c: L2CaseResult) => c.jevCalled === false)).toBe(true);
+    expect(unmatchedCases.every((c: L2CaseResult) => c.jevProviderModel === null)).toBe(true);
+    expect(fakeTypeSafe.getCallCount()).toBe(7);
   });
 
   // E, F, G, H, I. Caps, retries, concurrency
@@ -161,10 +174,6 @@ describe('L2 Synthetic Integration Runner - Offline Matrix Validation', () => {
 
   // J, K, L, M, N, O. Frozen Policy routing branches & OpenAI call counts
   it('Matrix J, K, L, M, N, O: tests Frozen Policy classification and single-owner dispatches', async () => {
-    // Custom scores to exercise:
-    // Case l2-01 -> DETERMINISTIC_CANDIDATE (det: 0.9, gen: 0.1, sec: 0.01) -> Det response, OpenAI = 0
-    // Case l2-04 -> GENERATIVE_REQUIRED (det: 0.1, gen: 0.8, sec: 0.01) -> Generative, OpenAI = 1
-    // Case l2-05 -> SECURITY_ESCALATE (det: 0.1, gen: 0.1, sec: 0.9) -> Security blocked, OpenAI = 0
     const scoresByCase = {
       'Qual é o horário de atendimento?': { deterministic: 0.9, generative: 0.1, security: 0.01 },
       'Horário de funcionamento': { deterministic: 0.1, generative: 0.8, security: 0.01 },
@@ -182,19 +191,20 @@ describe('L2 Synthetic Integration Runner - Offline Matrix Validation', () => {
       logger: { log: () => {}, warn: () => {}, error: () => {} },
     });
 
-    const l2_01 = result.cases.find((c) => c.caseId === 'l2-01');
+    const l2_01 = result.cases.find((c: L2CaseResult) => c.caseId === 'l2-01');
     expect(l2_01?.observedRoute).toBe('DETERMINISTIC_RESPONSE');
     expect(l2_01?.openAiCalled).toBe(false);
 
-    const l2_04 = result.cases.find((c) => c.caseId === 'l2-04');
+    const l2_04 = result.cases.find((c: L2CaseResult) => c.caseId === 'l2-04');
     expect(l2_04?.observedRoute).toBe('GENERATIVE');
     expect(l2_04?.openAiCalled).toBe(true);
 
-    const l2_05 = result.cases.find((c) => c.caseId === 'l2-05');
+    const l2_05 = result.cases.find((c: L2CaseResult) => c.caseId === 'l2-05');
     expect(l2_05?.observedRoute).toBe('SECURITY_BLOCKED');
     expect(l2_05?.openAiCalled).toBe(false);
 
     expect(result.aggregates.coreJointChainObserved).toBe(true);
+    expect(result.metadata.classification).toBe('PASS_COMPLETE');
   });
 
   // P. Exactly one final owner per case
@@ -252,8 +262,34 @@ describe('L2 Synthetic Integration Runner - Offline Matrix Validation', () => {
     expect(serialized).not.toContain('securityScore');
   });
 
-  // Model Identity mismatch fail-safe
-  it('verifies TypeSafe model identity mismatch triggers safe stop without retry', async () => {
+  // Finding A: Offline deny-network isolation
+  it('Finding A: verifies offlineMode uses deny-network fetch preventing global network access', async () => {
+    const result = await runL2Benchmark({
+      offlineMode: true,
+      dryRunWrite: true,
+      logger: { log: () => {}, warn: () => {}, error: () => {} },
+    });
+
+    // In offline mode with no fakes, deny-network fetch is called and rejects safely
+    expect(result.metadata.classification).toBe('PROVIDER_FAILURE');
+    expect(result.cases[0]?.errorCategory).toContain('OFFLINE_NETWORK_DENIED');
+  });
+
+  // Finding B: Live preauthorization guard
+  it('Finding B: verifies live mode execution is blocked until price verification and preauth', async () => {
+    expect(OPENAI_PRICE_STATUS).toBe('NOT_VERIFIED');
+
+    await expect(
+      runL2Benchmark({
+        offlineMode: false,
+        dryRunWrite: true,
+        logger: { log: () => {}, warn: () => {}, error: () => {} },
+      }),
+    ).rejects.toThrow('FATAL_LIVE_PREAUTH_BLOCKED');
+  });
+
+  // Finding C & D: Model Identity mismatch sets accurate counter and non-pass classification
+  it('Finding C & D: verifies TypeSafe model identity mismatch stops early, derives accurate counters and status', async () => {
     const mismatchFetch = async () => ({
       ok: true,
       status: 200,
@@ -277,10 +313,56 @@ describe('L2 Synthetic Integration Runner - Offline Matrix Validation', () => {
       logger: { log: () => {}, warn: () => {}, error: () => {} },
     });
 
-    const firstCase = result.cases[0];
-    expect(firstCase?.technicalStatus).toBe('MODEL_IDENTITY_MISMATCH');
-    expect(firstCase?.jevProviderModel).toBe('unexpected-model-2.0');
-    // Aborts early on mismatch
-    expect(result.cases.length).toBe(1);
+    expect(result.cases).toHaveLength(1);
+    expect(result.aggregates.matcherEvaluations).toBe(1);
+    expect(result.metadata.classification).toBe('MODEL_IDENTITY_MISMATCH');
+    expect(result.cases[0]?.technicalStatus).toBe('MODEL_IDENTITY_MISMATCH');
+    expect(result.cases[0]?.jevProviderModel).toBe('unexpected-model-2.0');
+  });
+
+  // Finding E: Timeout handling
+  it('Finding E: verifies timeout is classified as TIMEOUT and increments timeouts counter', async () => {
+    const timeoutFetch = async () => {
+      const err = new Error('The operation was aborted due to timeout');
+      err.name = 'TimeoutError';
+      throw err;
+    };
+
+    const fakeOpenAi = createFakeOpenAiFetch();
+
+    const result = await runL2Benchmark({
+      offlineMode: true,
+      fakeTypeSafeFetch: timeoutFetch,
+      fakeOpenAiFetch: fakeOpenAi.fetchFn,
+      dryRunWrite: true,
+      logger: { log: () => {}, warn: () => {}, error: () => {} },
+    });
+
+    expect(result.aggregates.timeouts).toBeGreaterThan(0);
+    expect(result.metadata.classification).toBe('PROVIDER_FAILURE');
+  });
+
+  // Finding F: OpenAI model requested vs unobservable model
+  it('Finding F: verifies requested OpenAI model is separated from observed model', async () => {
+    const fakeTypeSafe = createFakeTypeSafeFetch();
+    const fakeOpenAi = createFakeOpenAiFetch();
+
+    const result = await runL2Benchmark({
+      offlineMode: true,
+      fakeTypeSafeFetch: fakeTypeSafe.fetchFn,
+      fakeOpenAiFetch: fakeOpenAi.fetchFn,
+      dryRunWrite: true,
+      openAiModelId: 'gpt-4o-mini',
+      logger: { log: () => {}, warn: () => {}, error: () => {} },
+    });
+
+    expect(result.metadata.requestedOpenAiModel).toBe('gpt-4o-mini');
+    expect(result.metadata.openAiModelIdentityStatus).toBe('NOT_OBSERVABLE_VIA_CURRENT_SURFACE');
+
+    const openAiCases = result.cases.filter((c: L2CaseResult) => c.openAiCalled);
+    for (const c of openAiCases) {
+      expect(c.openAiRequestedModel).toBe('gpt-4o-mini');
+      expect(c.openAiObservedModel).toBeNull();
+    }
   });
 });
