@@ -4,14 +4,14 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-03
-CONTEXT_BASE_MAIN_SHA: ce12952c5b812c0594a3d955e53df455c9c32654
+CONTEXT_BASE_MAIN_SHA: 630ee48d8fdd10077e7374053da176d9072c5b9a
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
-CURRENT_SLICE: L2 Runner / Preauthorization Preparation
-CONTEXT_UPDATE_BRANCH: research/006ao-l2-runner-preauth
-CONTEXT_UPDATE_PR: 68
-LAST_MERGED_PR_AT_REFRESH: 67
-LAST_MERGE_SHA_AT_REFRESH: ce12952c5b812c0594a3d955e53df455c9c32654
-LAST_TESTED_CODE_SHA: ce12952c5b812c0594a3d955e53df455c9c32654
+CURRENT_SLICE: L2 Real Jev + Real OpenAI + Synthetic Transcript — Preauthorization Planning
+CONTEXT_UPDATE_BRANCH: docs/006ap-pr68-postmerge-context-sync
+CONTEXT_UPDATE_PR: PENDING
+LAST_MERGED_PR_AT_REFRESH: 68
+LAST_MERGE_SHA_AT_REFRESH: 630ee48d8fdd10077e7374053da176d9072c5b9a
+LAST_TESTED_CODE_SHA: 630ee48d8fdd10077e7374053da176d9072c5b9a
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
 AI_CONTEXT_HEADER_END
@@ -190,10 +190,14 @@ AI_CONTEXT_HEADER_END
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- Candidate: L2 Runner Implementation & Preauthorization Preparation (after human review of PR).
+- **L2 Real Jev + Real OpenAI + Synthetic Transcript — PREAUTHORIZATION PLANNING ONLY** (review & merge this doc-only PR, then proceed to L2 preauthorization planning).
+- `L2_EXECUTION` = `NOT EXECUTED`.
+- `OPENAI_PRICE_STATUS` = `NOT_VERIFIED`.
+- `L2_OPERATOR_COST_CEILING` = `NOT_AUTHORIZED`.
 - `ACTIVE_GUARDED` permanece `BLOCKED` até conclusão da escada de validação (L1-L4).
+- Do NOT execute L2 live.
 - Do NOT enable live customer traffic.
-- Do NOT use real telephony / live Twilio (TWILIO_ACCOUNT_REQUIRED_NOW = NO).
+- Do NOT use real telephony / live Twilio (`TWILIO_ACCOUNT_REQUIRED_NOW = NO`).
 
 ### `NOT_YET_ALLOWED`:
 - Transmissão de dados reais de clientes para provedores externos.
