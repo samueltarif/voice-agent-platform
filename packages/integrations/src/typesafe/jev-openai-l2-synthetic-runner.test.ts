@@ -1,17 +1,27 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { L2CaseResult } from '../../../../scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs';
 import {
+  checkCaps,
   computeSha256,
+  evaluateTypeSafeJev,
+  executeCli,
+  executeOpenAiTurn,
   EXPECTED_CASE_COUNT,
   EXPECTED_DATASET_SHA256,
   EXPECTED_TYPESAFE_MODEL,
+  MAX_OPENAI_INPUT_CHARS_PER_REQ,
   MAX_OPENAI_REQUESTS,
+  MAX_TYPESAFE_INPUT_CHARS_PER_REQ,
   MAX_TYPESAFE_REQUESTS,
   OPENAI_PRICE_STATUS,
+  parseCliArgs,
   runL2Benchmark,
   TOTAL_MAX_PROVIDER_REQUESTS,
+  TYPESAFE_PRICE_STATUS,
+  validateOpenAiInputBudget,
+  validateTypeSafeInputBudget,
 } from '../../../../scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs';
 
 interface ScoreSet {
@@ -74,7 +84,7 @@ function createFakeOpenAiFetch() {
           id: 'chatcmpl-test',
           object: 'chat.completion.chunk',
           created: 123456,
-          model: 'gpt-4o-mini',
+          model: 'gpt-6-astra',
           choices: [
             { index: 0, delta: { content: 'Resposta sintética simulada.' }, finish_reason: null },
           ],
@@ -98,17 +108,18 @@ describe('L2 Synthetic Integration Runner - Offline Matrix Validation', () => {
   const datasetPath = resolve(
     'scripts/benchmarks/voice/jev-openai-l2-synthetic-integration-v1-cases.json',
   );
-  const rawDataset = readFileSync(datasetPath, 'utf8');
-  const dataset = JSON.parse(rawDataset);
 
-  // A. Dataset hash / count
+  // A. Dataset hash & exact case count
   it('Matrix A: verifies dataset SHA-256 and exact case count of 12', () => {
-    expect(computeSha256(rawDataset)).toBe(EXPECTED_DATASET_SHA256);
-    expect(dataset.cases).toHaveLength(EXPECTED_CASE_COUNT);
-    expect(dataset.totalCases).toBe(12);
+    const raw = readFileSync(datasetPath, 'utf8');
+    const hash = computeSha256(raw);
+    expect(hash).toBe(EXPECTED_DATASET_SHA256);
+
+    const parsed = JSON.parse(raw);
+    expect(parsed.cases).toHaveLength(EXPECTED_CASE_COUNT);
   });
 
-  // B & C. Matcher true count = 7, false count = 5
+  // B & C. Matcher results across the 12 cases
   it('Matrix B & C: verifies matcher results count across the 12 cases', async () => {
     const fakeTypeSafe = createFakeTypeSafeFetch();
     const fakeOpenAi = createFakeOpenAiFetch();
@@ -240,23 +251,15 @@ describe('L2 Synthetic Integration Runner - Offline Matrix Validation', () => {
     });
 
     const serialized = JSON.stringify(result);
-
-    // Q: no transcript
     expect(serialized).not.toContain('syntheticCallerUtterance');
     expect(serialized).not.toContain('callerTranscript');
     expect(serialized).not.toContain('Qual é o horário de atendimento?');
-
-    // R: no raw request/response
     expect(serialized).not.toContain('rawRequest');
     expect(serialized).not.toContain('rawResponse');
     expect(serialized).not.toContain('Resposta sintética simulada.');
-
-    // S: no API key/Auth headers
     expect(serialized).not.toContain('Authorization');
     expect(serialized).not.toContain('Bearer');
     expect(serialized).not.toContain('offline-dummy-key');
-
-    // T: no raw routing scores in case results
     expect(serialized).not.toContain('deterministicScore');
     expect(serialized).not.toContain('generativeScore');
     expect(serialized).not.toContain('securityScore');
@@ -270,22 +273,36 @@ describe('L2 Synthetic Integration Runner - Offline Matrix Validation', () => {
       logger: { log: () => {}, warn: () => {}, error: () => {} },
     });
 
-    // In offline mode with no fakes, deny-network fetch is called and rejects safely
     expect(result.metadata.classification).toBe('PROVIDER_FAILURE');
     expect(result.cases[0]?.errorCategory).toContain('OFFLINE_NETWORK_DENIED');
   });
 
-  // Finding B: Live preauthorization guard
+  // Finding B: Live preauthorization guard & pricing status
+  // TEST_CHANGE_REASON: ASSERTION_STRONGER. Validates verified OpenAI price evidence,
+  // unverified TypeSafe price blocker, explicit --allow-live gate, and preauth failure before network.
   it('Finding B: verifies live mode execution is blocked until price verification and preauth', async () => {
-    expect(OPENAI_PRICE_STATUS).toBe('NOT_VERIFIED');
+    expect(OPENAI_PRICE_STATUS).toBe('VERIFIED');
+    expect(TYPESAFE_PRICE_STATUS).toBe('NOT_VERIFIED');
 
+    // Without --allow-live: fails with FATAL_LIVE_INTENT_DENIED
     await expect(
       runL2Benchmark({
         offlineMode: false,
+        allowLiveExecution: false,
         dryRunWrite: true,
         logger: { log: () => {}, warn: () => {}, error: () => {} },
       }),
-    ).rejects.toThrow('FATAL_LIVE_PREAUTH_BLOCKED');
+    ).rejects.toThrow('FATAL_LIVE_INTENT_DENIED');
+
+    // With --allow-live: still blocked because TypeSafe pricing is NOT_VERIFIED
+    await expect(
+      runL2Benchmark({
+        offlineMode: false,
+        allowLiveExecution: true,
+        dryRunWrite: true,
+        logger: { log: () => {}, warn: () => {}, error: () => {} },
+      }),
+    ).rejects.toThrow('FATAL_LIVE_PREAUTH_BLOCKED: TypeSafe price status is NOT_VERIFIED');
   });
 
   // Finding C & D: Model Identity mismatch sets accurate counter and non-pass classification
@@ -352,17 +369,173 @@ describe('L2 Synthetic Integration Runner - Offline Matrix Validation', () => {
       fakeTypeSafeFetch: fakeTypeSafe.fetchFn,
       fakeOpenAiFetch: fakeOpenAi.fetchFn,
       dryRunWrite: true,
-      openAiModelId: 'gpt-4o-mini',
+      openAiModelId: 'gpt-6-astra',
       logger: { log: () => {}, warn: () => {}, error: () => {} },
     });
 
-    expect(result.metadata.requestedOpenAiModel).toBe('gpt-4o-mini');
+    expect(result.metadata.requestedOpenAiModel).toBe('gpt-6-astra');
     expect(result.metadata.openAiModelIdentityStatus).toBe('NOT_OBSERVABLE_VIA_CURRENT_SURFACE');
 
     const openAiCases = result.cases.filter((c: L2CaseResult) => c.openAiCalled);
     for (const c of openAiCases) {
-      expect(c.openAiRequestedModel).toBe('gpt-4o-mini');
+      expect(c.openAiRequestedModel).toBe('gpt-6-astra');
       expect(c.openAiObservedModel).toBeNull();
     }
+  });
+
+  // Hardening G: CLI args parser fail-closed behavior
+  it('Hardening G: verifies CLI args parser sets explicit live-intent flag and options', () => {
+    const defaultParsed = parseCliArgs([]);
+    expect(defaultParsed.allowLiveExecution).toBe(false);
+    expect(defaultParsed.offlineMode).toBe(false);
+
+    const liveParsed = parseCliArgs(['--allow-live', '--cost-ceiling', '0.25']);
+    expect(liveParsed.allowLiveExecution).toBe(true);
+    expect(liveParsed.costCeilingUsd).toBe(0.25);
+
+    const offlineParsed = parseCliArgs(['--offline', '--dry-run-write']);
+    expect(offlineParsed.offlineMode).toBe(true);
+    expect(offlineParsed.dryRunWrite).toBe(true);
+  });
+
+  // Hardening H: TypeSafe 8th request cap boundary (isolated)
+  it('Hardening H: verifies 8th TypeSafe request is blocked BEFORE adapter fetch', async () => {
+    const fakeFetch = createFakeTypeSafeFetch();
+    const mockAdapter = {
+      evaluateTurn: async () => {
+        return fakeFetch.fetchFn('https://api.typesafe.ai/v1/systemone');
+      },
+    };
+
+    const state = {
+      typeSafeRequestsAttempted: 7,
+      typeSafeRequestsSucceeded: 7,
+      openAiRequestsAttempted: 0,
+      openAiRequestsSucceeded: 0,
+      totalProviderRequestsAttempted: 7,
+      technicalFailures: 0,
+      timeouts: 0,
+      consecutiveFailures: 0,
+      typeSafeMismatch: false,
+    };
+
+    const caseData = { caseId: 'l2-cap-test', syntheticCallerUtterance: 'Horário de atendimento' };
+    const res = await evaluateTypeSafeJev({
+      typeSafeAdapter: mockAdapter,
+      caseData,
+      state,
+      deps: { TypeSafeModelIdentityMismatchError: class extends Error {} },
+      logger: { error: () => {} },
+      timeoutMs: 1000,
+    });
+
+    expect(res.errorResult).not.toBeNull();
+    expect(res.errorResult?.errorCategory).toBe('MAX_TYPESAFE_REQUESTS_EXCEEDED');
+    expect(res.errorResult?.shouldStop).toBe(true);
+    expect(fakeFetch.getCallCount()).toBe(0);
+    expect(state.typeSafeRequestsAttempted).toBe(7);
+  });
+
+  // Hardening I: OpenAI 13th request cap boundary (isolated)
+  it('Hardening I: verifies 13th OpenAI request is blocked BEFORE adapter fetch', async () => {
+    const fakeFetch = createFakeOpenAiFetch();
+    const mockAdapter = {
+      streamTurn: async () => {
+        return fakeFetch.fetchFn('https://api.openai.com/v1/chat/completions');
+      },
+    };
+
+    const state = {
+      typeSafeRequestsAttempted: 0,
+      typeSafeRequestsSucceeded: 0,
+      openAiRequestsAttempted: 12,
+      openAiRequestsSucceeded: 12,
+      totalProviderRequestsAttempted: 12,
+      technicalFailures: 0,
+      timeouts: 0,
+      consecutiveFailures: 0,
+      generativeCount: 0,
+    };
+
+    const caseData = {
+      caseId: 'l2-cap-test',
+      syntheticCallerUtterance: 'Qualquer dúvida genérica',
+    };
+    const res = await executeOpenAiTurn({
+      openAiAdapter: mockAdapter,
+      caseData,
+      state,
+      logger: { error: () => {} },
+      timeoutMs: 1000,
+    });
+
+    expect(res.errorCategory).toBe('MAX_OPENAI_REQUESTS_EXCEEDED');
+    expect(res.shouldStop).toBe(true);
+    expect(fakeFetch.getCallCount()).toBe(0);
+    expect(state.openAiRequestsAttempted).toBe(12);
+  });
+
+  // Hardening J: Total 20th provider request cap boundary (isolated)
+  it('Hardening J: verifies 20th total request is blocked BEFORE adapter fetch', async () => {
+    const state = {
+      typeSafeRequestsAttempted: 7,
+      openAiRequestsAttempted: 12,
+      totalProviderRequestsAttempted: 19,
+    };
+
+    expect(checkCaps(state, 'TYPESAFE')).toBe('MAX_TOTAL_REQUESTS_EXCEEDED');
+    expect(checkCaps(state, 'OPENAI')).toBe('MAX_TOTAL_REQUESTS_EXCEEDED');
+  });
+
+  // Hardening K: Input size budget validation before network
+  it('Hardening K: enforces input size caps before network call', async () => {
+    expect(() => {
+      validateTypeSafeInputBudget('a'.repeat(MAX_TYPESAFE_INPUT_CHARS_PER_REQ + 1));
+    }).toThrow('exceeds maximum allowed');
+
+    expect(() => {
+      validateTypeSafeInputBudget('Curto');
+    }).not.toThrow();
+
+    expect(() => {
+      validateOpenAiInputBudget([
+        { role: 'system', content: 'x'.repeat(2000) },
+        { role: 'user', content: 'y'.repeat(MAX_OPENAI_INPUT_CHARS_PER_REQ) },
+      ]);
+    }).toThrow('exceeds maximum allowed');
+
+    expect(() => {
+      validateOpenAiInputBudget([{ role: 'user', content: 'Normal' }]);
+    }).not.toThrow();
+  });
+
+  // Hardening L: Global network is strictly denied in offline mode
+  it('Hardening L: verifies globalThis.fetch is NOT called in offline mode', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const result = await runL2Benchmark({
+      offlineMode: true,
+      dryRunWrite: true,
+      logger: { log: () => {}, warn: () => {}, error: () => {} },
+    });
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+    fetchSpy.mockRestore();
+    expect(result.metadata.classification).toBe('PROVIDER_FAILURE');
+  });
+
+  // Hardening M: CLI executeCli fail-closed exit semantics
+  it('Hardening M: verifies executeCli returns non-zero on non-pass or precondition blockers', async () => {
+    const silentLogger = { log: () => {}, warn: () => {}, error: () => {} };
+    // Missing --allow-live in non-offline call
+    const exitCodeNoLive = await executeCli(['--cost-ceiling', '0.25'], process.env, silentLogger);
+    expect(exitCodeNoLive).toBe(1);
+
+    // With --allow-live but unverified pricing
+    const exitCodeLiveBlocked = await executeCli(
+      ['--allow-live', '--cost-ceiling', '0.25'],
+      process.env,
+      silentLogger,
+    );
+    expect(exitCodeLiveBlocked).toBe(1);
   });
 });

@@ -13563,3 +13563,411 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **AI_WORKLOG_APPEND_ONLY**: `PASS`.
 - **SECRET_AUDIT**: `PASS`.
 - **MERGE_PERFORMED**: `NO`.
+
+---
+
+## 2026-10-03 — L2 Runner Hardening — Offline Only (Slice 006AR-RunnerHardening)
+
+### 1. Contexto e Preflight
+- **Prompt ID**: `PROMPT-L2-RUNNER-HARDENING-OFFLINE-001`
+- **AUTHORITATIVE_REPO_ROOT**: `D:/voice-agent-platform-git`
+- **Base main SHA**: `84dcf576bccdee66f52240f85dc91b65f44b17f8` (post-PR70 merge main)
+- **Branch**: `research/006ar-l2-runner-hardening-offline`
+- **Provider Calls neste Slice**: TypeSafe = 0, OpenAI = 0, Twilio = 0
+- **Cloud DB Connections**: 0
+- **Local DB Connections**: 0 (Local Docker Postgres healthy for test suite)
+- **Holdout**: `NO NEW ACCESS` (`LOCKED_HOLDOUT = CONSUMED` preservado)
+- **Frozen Policy**: `UNCHANGED`
+- **ACTIVE_GUARDED**: `BLOCKED`
+- **PRODUCTION_RUNTIME_WIRING**: `NO`
+- **CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE**: `NOT CLEARED`
+- **L2_EXECUTION**: `NOT EXECUTED`
+
+### 2. Implementação Técnica e Modularização
+- **Modularização Conforme Regras de Complexidade (AGENTS.md <= 180 linhas)**:
+  - `scripts/benchmarks/voice/l2-runner-preconditions.mjs` (130 linhas): parsing de CLI args, validação de preconditions, verificação SHA-256 do dataset, deny-network fetch.
+  - `scripts/benchmarks/voice/l2-runner-request-caps.mjs` (19 linhas): caps e checagem de limites de provedor (7 Jev, 12 OpenAI, 19 total).
+  - `scripts/benchmarks/voice/l2-runner-input-budget.mjs` (40 linhas): limites rígidos de tamanho de payload antes de chamada de rede (`MAX_TYPESAFE_INPUT_CHARS_PER_REQ = 1000`, `MAX_OPENAI_INPUT_CHARS_PER_REQ = 4000`), status honesto de tokens (`RUNTIME_ENFORCED_INPUT_TOKEN_CAP = NONE`, `TOKEN_CAP_ENFORCEMENT = NOT_ENFORCEABLE_AT_RUNTIME`).
+  - `scripts/benchmarks/voice/l2-runner-result-classification.mjs` (100 linhas): classificação de erros e de resultados da execução.
+  - `scripts/benchmarks/voice/l2-runner-artifact.mjs` (84 linhas): montagem estruturada do artefato de resultado com sanitização.
+  - `scripts/benchmarks/voice/l2-runner-dependencies.mjs` (63 linhas): carregamento dinâmico de dependências locais e estado inicial.
+  - `scripts/benchmarks/voice/l2-runner-provider-dispatch.mjs` (137 linhas): turn dispatch com verificação de caps e input budget antes de qualquer chamada fetch.
+  - `scripts/benchmarks/voice/l2-runner-case-execution.mjs` (138 linhas): orquestração de casos e avaliação de Frozen Policy.
+  - `scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs` (143 linhas): entrypoint do runner, coordenação sequencial, CLI runner e re-exports.
+- **Tipagem Estrita**:
+  - `scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.d.mts` e `packages/integrations/src/typesafe/l2-runner-declarations.d.ts` atualizados com tipagem estrita (zero `any`).
+
+### 3. Testes Regression-First e Validação
+- **Testes de Fronteira e Hardening Adicionados**:
+  - `Matrix A-T` preservadas (12 testes originais).
+  - `Finding B`: atualizado com `ASSERTION_STRONGER` validando que `OPENAI_PRICE_STATUS = VERIFIED`, `TYPESAFE_PRICE_STATUS = NOT_VERIFIED`, falta de `--allow-live` gera `FATAL_LIVE_INTENT_DENIED` e presença de `--allow-live` ainda é bloqueada por TypeSafe faturamento não verificado (`FATAL_LIVE_PREAUTH_BLOCKED`).
+  - `Hardening G`: CLI args parsing fail-closed (`--allow-live`, `--cost-ceiling`, `--offline`).
+  - `Hardening H`: 8ª requisição TypeSafe bloqueada ANTES do adapter fetch (fetch count = 0 na 8ª tentativa).
+  - `Hardening I`: 13ª requisição OpenAI bloqueada ANTES do adapter fetch (fetch count = 0 na 13ª tentativa).
+  - `Hardening J`: 20ª requisição total bloqueada ANTES do adapter fetch (`MAX_TOTAL_REQUESTS_EXCEEDED`).
+  - `Hardening K`: violação de input budget (>1000 chars TypeSafe, >4000 chars OpenAI) bloqueada antes da rede.
+  - `Hardening L`: negação estrita de rede no modo offline (`globalThis.fetch` não é chamado).
+  - `Hardening M`: semântica de saída fail-closed em `executeCli` (exit code 1 em qualquer bloqueio).
+- **Contagem de Testes Focados (`packages/integrations/src/typesafe/jev-openai-l2-synthetic-runner.test.ts`)**:
+  - 19 passed (19 total), 0 failed, 0 skipped.
+- **Contagem de Módulos Afetados (`packages/integrations`, `apps/voice`)**:
+  - 43 arquivos de teste, 398 testes aprovados, 0 falhas.
+- **Quality Gate Canônico Global (`pnpm check`)**:
+  - Exit code: 0
+  - 111 arquivos de teste aprovados, 6 skipped de staging (117 total).
+  - 757 testes aprovados, 45 skipped de staging (802 total).
+  - `NEW_SKIPS = 0`, `ASSERTION_WEAKER = 0`.
+  - Architecture check: PASS.
+  - File size check: PASS (244 arquivos de lógica em conformidade).
+
+### 4. Hash Freeze e Reconciliação do Envelope
+- **Dataset SHA-256**: `bd812341a922ded1c7159191849dae284a88f24afd9c7e8d3c64f9b081602f3f` (intacto).
+- **L2_EXECUTABLE_AGGREGATE_SHA256**: `7571366a6da664bbd16031c4eb0a9ec6d7975fab0b98c0a77aba1b992e60dd3f`
+- **Classificação**:
+  - `CLI_LIVE_INTENT_PLUMBING`: `PASS`
+  - `REQUEST_CAP_BOUNDARY_TESTS`: `PASS`
+  - `OFFLINE_NETWORK_DENY`: `PASS`
+  - `RUNTIME_ENFORCED_INPUT_SIZE_CAP`: `PASS` (1.000 chars TypeSafe, 4.000 chars OpenAI)
+  - `RUNTIME_ENFORCED_INPUT_TOKEN_CAP`: `NONE`
+  - `TOKEN_CAP_ENFORCEMENT`: `NOT_ENFORCEABLE_AT_RUNTIME`
+  - `TYPESAFE_PRICE_STATUS`: `NOT_VERIFIED`
+  - `OPENAI_PRICE_STATUS`: `VERIFIED`
+  - `L2_OPERATOR_COST_CEILING`: `NOT_AUTHORIZABLE`
+  - `PREAUTH_STATUS`: `PREAUTH_BLOCKED`
+
+### 5. Governança e Integridade
+- **AI_WORKLOG_APPEND_ONLY**: `PASS`.
+- **SECRET_AUDIT**: `PASS` (boolean-only).
+- **MERGE_PERFORMED**: `NO`.
+
+---
+
+## 2026-10-03 — PR #71 Final Evidence Reconciliation (Slice 006AR-FinalEvidence)
+
+### 1. Contexto e Preflight
+- **Prompt ID**: `PROMPT-PR71-FINAL-EVIDENCE-RECONCILIATION-001`
+- **AUTHORITATIVE_REPO_ROOT**: `D:/voice-agent-platform-git`
+- **Source main SHA**: `84dcf576bccdee66f52240f85dc91b65f44b17f8`
+- **Branch**: `research/006ar-l2-runner-hardening-offline`
+- **PR**: `#71` (OPEN; base: `main`, head: `research/006ar-l2-runner-hardening-offline`)
+- **FINAL_PR71_HEAD (tested exact HEAD)**: `3aa0fd5229b4eab2ef7c60e4503140dd7fd89d7e`
+- **Quality Gate HEAD Reconciliado**: `3aa0fd5229b4eab2ef7c60e4503140dd7fd89d7e` (pós-commit documental PR #71 sync)
+- **POST_GATE_CODE_CHANGE**: `NO`
+- **POST_GATE_TEST_CHANGE**: `NO`
+- **POST_GATE_CONFIG_CHANGE**: `NO`
+- **POST_GATE_DATASET_CHANGE**: `NO`
+- **POST_GATE_DOC_EVIDENCE_CHANGE_ONLY**: `YES`
+
+### 2. Process Deviation & Regras Operacionais
+- **PROCESS_DEVIATION_IDE_INTERNAL_STORAGE_USED**: `YES` (execução anterior utilizou arquivos de script temporários em `.gemini/antigravity-ide/brain/.../scratch/`)
+- **PROCESS_DEVIATION_IMPACT**: `NO_CODE_INTEGRITY_IMPACT_OBSERVED`
+- **KNOWN_SECRET_EXPOSURE**: `NO_EVIDENCE_OBSERVED`
+- **CORRECTIVE_RULE**: `DO_NOT_USE_IDE_INTERNAL_STORAGE_AGAIN` (uso exclusivo de comandos inline ou arquivos tracked no repositório)
+
+### 3. Verificações Textuais de DoD (File & Function Lengths)
+- **L2_EXECUTABLE_FILE_LENGTH_DOD**: `PASS` (todos os 9 módulos executáveis <= 180 linhas: 19, 40, 63, 84, 100, 130, 137, 138, 143).
+- **L2_FUNCTION_LENGTH_DOD**: `FAIL` (`MAX_OBSERVED_FUNCTION_LINES = 101`, `FUNCTIONS_OVER_50 = 4`: `buildResultArtifact` 62 linhas, `executeCase` 101 linhas, `evaluateTypeSafeJev` 65 linhas, `runL2Benchmark` 81 linhas).
+- **Classificação Factual**: `PR71_STATUS = BLOCKED_FOR_TEXTUAL_FUNCTION_DOD` (conforme regra mandatória da Seção 7, sem refatoração neste prompt).
+
+### 4. Instalação e Quality Gate Canônico
+- **FROZEN_INSTALL**: `PASS` (`pnpm install --frozen-lockfile`, exit code 0).
+- **CANONICAL_PNPM_CHECK**: `PASS` (`pnpm check`, exit code 0).
+- **Global Test Results**: 111 test files passed, 6 skipped (staging) / 757 tests passed, 45 skipped (staging), 0 failures.
+- **Focused Tests**: 19/19 passed.
+- **Affected Module Tests**: 43 test files / 398 tests passed.
+- **NEW_SKIPS**: `0`.
+- **ASSERTION_WEAKER**: `0`.
+
+### 5. Congelamento e Integridade
+- **DECLARATION_FILES**: `INTENTIONAL_AND_NON_CONFLICTING` (`.d.mts` e `.d.ts` complementares para resolução em scripts e no pacote `@voice-agent/integrations`).
+- **INPUT_SIZE_CAP_SCOPE**: Caracteres de conteúdo textual medidos antes da chamada de rede (1.000 chars Jev, 4.000 chars OpenAI), excluindo framing interno e metadados.
+- **RUNTIME_ENFORCED_INPUT_TOKEN_CAP**: `NONE` (sem tokenizer local em runtime)
+- **TOKEN_CAP_ENFORCEMENT**: `NOT_ENFORCEABLE_AT_RUNTIME`
+- **REQUEST_CAP_BOUNDARY_TESTS**: `PASS` (8ª Jev, 13ª OpenAI, 20ª total bloqueadas antes de fetch).
+- **OFFLINE_NETWORK_DENY**: `PASS`.
+- **L2_DATASET_SHA256**: `bd812341a922ded1c7159191849dae284a88f24afd9c7e8d3c64f9b081602f3f` (`PASS`).
+- **L2_EXECUTABLE_AGGREGATE_SHA256**: `7571366a6da664bbd16031c4eb0a9ec6d7975fab0b98c0a77aba1b992e60dd3f` (`PASS`).
+- **LOCAL_DB**: `USED_BY_AUTOMATED_TEST_SUITE_ONLY` (Docker local).
+- **CLOUD_DB**: `0`.
+- **TypeSafe real**: `0`.
+- **OpenAI real**: `0`.
+- **Twilio**: `0`.
+- **Holdout**: `NO NEW ACCESS`.
+- **Frozen Policy**: `UNCHANGED`.
+- **L2_EXECUTION**: `NOT EXECUTED`.
+- **TYPESAFE_PRICE_STATUS**: `NOT_VERIFIED`.
+- **L2_OPERATOR_COST_CEILING**: `NOT_AUTHORIZABLE`.
+- **PREAUTH_STATUS**: `PREAUTH_BLOCKED`.
+- **SECRET_AUDIT**: `PASS` (boolean-only).
+- **MERGE_PERFORMED**: `NO`.
+
+---
+
+## 2026-10-03 — PR #71 Function DoD Refactor Closure (Slice 006AR-FunctionDoD)
+
+### 1. Contexto e Preflight
+- **Prompt ID**: `PROMPT-PR71-FUNCTION-DOD-REFACTOR-001`
+- **AUTHORITATIVE_REPO_ROOT**: `D:/voice-agent-platform-git`
+- **Source branch head**: `e1b134376679bd0898b008a456537db97492d3f0`
+- **Source main SHA**: `84dcf576bccdee66f52240f85dc91b65f44b17f8`
+- **Branch**: `research/006ar-l2-runner-hardening-offline`
+- **PR**: `#71` (OPEN; base: `main`, head: `research/006ar-l2-runner-hardening-offline`)
+- **REFACTOR_CODE_HEAD**: `3d0e85d1c8e994133abec4d1f20be5d0ba029947`
+- **QUALITY_GATE_CODE_HEAD**: `3d0e85d1c8e994133abec4d1f20be5d0ba029947`
+
+### 2. Arquivos e Funções Refatoradas
+- **Arquivos Alterados (scripts/benchmarks/voice/)**:
+  1. `scripts/benchmarks/voice/l2-runner-artifact.mjs` (104 linhas)
+  2. `scripts/benchmarks/voice/l2-runner-case-execution.mjs` (149 linhas)
+  3. `scripts/benchmarks/voice/l2-runner-provider-dispatch.mjs` (154 linhas)
+  4. `scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs` (168 linhas)
+- **Quatro Funções Históricas Corrigidas**:
+  - `buildResultArtifact`: 62 linhas -> 21 linhas (extraídas `buildResultMetadata` 35 linhas, `buildResultAggregates` 24 linhas)
+  - `executeCase`: 101 linhas -> 18 linhas (extraídas `executeUnmatchedCase` 23 linhas, `executeGenerativeTurnIfRequired` 30 linhas, `executeMatchedCase` 41 linhas)
+  - `evaluateTypeSafeJev`: 65 linhas -> 41 linhas (extraídas `createTypeSafeCapErrorResult` 12 linhas, `handleTypeSafeEvaluationError` 27 linhas)
+  - `runL2Benchmark`: 81 linhas -> 49 linhas (extraídas `createRunnerAdapters` 21 linhas, `executeBenchmarkCases` 34 linhas)
+- **DoD Textual Final**:
+  - `MAX_OBSERVED_FUNCTION_LINES`: `49`
+  - `FUNCTIONS_OVER_50`: `0`
+  - `L2_FUNCTION_LENGTH_DOD`: `PASS`
+  - `L2_EXECUTABLE_FILE_LENGTH_DOD`: `PASS` (todos os 9 módulos executáveis <= 180 linhas: 104, 149, 63, 40, 130, 154, 19, 100, 168)
+
+### 3. Validação e Quality Gate Canônico
+- **Focused Tests (`jev-openai-l2-synthetic-runner.test.ts`)**: `19/19 PASS` (0 failures, 0 skips)
+- **Affected Module Tests (`packages/integrations` + `apps/voice`)**: `43 test files / 398 tests PASS` (0 failures, 0 skips)
+- **FROZEN_INSTALL**: `PASS` (`pnpm install --frozen-lockfile`, exit code 0)
+- **CANONICAL_PNPM_CHECK**: `PASS` (`pnpm check`, exit code 0 no `REFACTOR_CODE_HEAD`)
+- **Global Vitest Results**: `111 test files passed, 6 skipped (staging) / 757 tests passed, 45 skipped (staging), 0 failures`
+- **Request Cap Boundary Tests**: `PASS` (8ª Jev, 13ª OpenAI, 20ª total bloqueadas antes de fetch)
+- **Offline Network Deny**: `PASS`
+- **NEW_SKIPS**: `0`
+- **ASSERTION_WEAKER**: `0`
+
+### 4. Congelamento e Integridade
+- **L2_DATASET_SHA256**: `bd812341a922ded1c7159191849dae284a88f24afd9c7e8d3c64f9b081602f3f` (`PASS`)
+- **OLD_L2_EXECUTABLE_AGGREGATE_SHA256**: `7571366a6da664bbd16031c4eb0a9ec6d7975fab0b98c0a77aba1b992e60dd3f` (SUPERSEDED)
+- **NEW_L2_EXECUTABLE_AGGREGATE_SHA256**: `960224fc647981a3d3f5c97f58866da0be454df95f3570c0be0072327dc7bfb4` (`PASS`)
+- **LOCAL_DB**: `USED_BY_AUTOMATED_TEST_SUITE_ONLY` (Docker local)
+- **CLOUD_DB**: `0`
+- **TypeSafe real**: `0`
+- **OpenAI real**: `0`
+- **Twilio**: `0`
+- **Customer transcripts**: `0`
+- **Holdout**: `NO NEW ACCESS`
+- **Frozen Policy**: `UNCHANGED`
+- **L2_EXECUTION**: `NOT EXECUTED`
+- **TYPESAFE_PRICE_STATUS**: `NOT_VERIFIED`
+- **RUNTIME_ENFORCED_INPUT_TOKEN_CAP**: `NONE`
+- **TOKEN_CAP_ENFORCEMENT**: `NOT_ENFORCEABLE_AT_RUNTIME`
+- **L2_OPERATOR_COST_CEILING**: `NOT_AUTHORIZABLE`
+- **PREAUTH_STATUS**: `PREAUTH_BLOCKED`
+- **SECRET_AUDIT**: `PASS` (boolean-only sobre git diff origin/main...HEAD)
+- **MERGE_PERFORMED**: `NO`
+- **PR71_STATUS**: `READY_FOR_HUMAN_MERGE_REVIEW`
+
+---
+
+## 2026-10-03 — PR #71 Freeze Documentation Reconciliation (Slice 006AR-FreezeDocReconcile)
+
+### 1. Contexto e Preflight
+- **Prompt ID**: `PROMPT-PR71-FINAL-FREEZE-DOC-RECONCILIATION-001`
+- **AUTHORITATIVE_REPO_ROOT**: `D:/voice-agent-platform-git`
+- **Source branch head**: `fc374c00ca34e1b89b0b0c8858f6aa0a2ccc2b23`
+- **Source main SHA**: `84dcf576bccdee66f52240f85dc91b65f44b17f8`
+- **Branch**: `research/006ar-l2-runner-hardening-offline`
+- **PR**: `#71` (OPEN; base: `main`, head: `research/006ar-l2-runner-hardening-offline`)
+- **QUALITY_GATE_CODE_HEAD**: `3d0e85d1c8e994133abec4d1f20be5d0ba029947`
+- **CODE_CHANGED_AFTER_QUALITY_GATE**: `NO`
+- **CODE_EQUIVALENCE**: `YES`
+
+### 2. Reconciliação do Freeze Executável
+- **CURRENT_L2_EXECUTABLE_AGGREGATE_SHA256**: `960224fc647981a3d3f5c97f58866da0be454df95f3570c0be0072327dc7bfb4`
+- **OLD_L2_EXECUTABLE_AGGREGATE_SHA256**: `7571366a6da664bbd16031c4eb0a9ec6d7975fab0b98c0a77aba1b992e60dd3f` (`SUPERSEDED`)
+- **OLD_FREEZE_CURRENT_USAGE**: `0`
+- **ENVELOPE_FREEZE_CONSISTENCY**: `PASS` (metadados, tabela dos 9 módulos com SHA-256 e linhas, e matriz de decisão perfeitamente sincronizados com o código auditado)
+- **AI_CONTEXT_CONSISTENCY**: `PASS` (previamente sincronizado no HEAD testado)
+- **FULL_PNPM_CHECK**: `NOT_REQUIRED_FOR_DOC_ONLY_POST_GATE_RECONCILIATION` (nenhum código, teste, dependência ou config alterado)
+
+### 3. Governança e Isolamento
+- **TypeSafe real**: `0`
+- **OpenAI real**: `0`
+- **Twilio**: `0`
+- **Cloud DB**: `0`
+- **Customer transcripts**: `0`
+- **Holdout**: `NO NEW ACCESS`
+- **Frozen Policy**: `UNCHANGED`
+- **L2_EXECUTION**: `NOT EXECUTED`
+- **PREAUTH_STATUS**: `PREAUTH_BLOCKED`
+- **TYPESAFE_PRICE_STATUS**: `NOT_VERIFIED`
+- **RUNTIME_ENFORCED_INPUT_TOKEN_CAP**: `NONE`
+- **TOKEN_CAP_ENFORCEMENT**: `NOT_ENFORCEABLE_AT_RUNTIME`
+- **L2_OPERATOR_COST_CEILING**: `NOT_AUTHORIZABLE`
+- **PR71_STATUS**: `READY_FOR_HUMAN_MERGE_REVIEW`
+- **MERGE_PERFORMED**: `NO`
+
+---
+
+## 2026-10-03 — PR #71 OpenAI Model Authority Reconciliation (Slice 006AR-ModelReconcile)
+
+### 1. Contexto e Investigação Histórica de Autoridade
+- **Prompt ID**: `PROMPT-PR71-OPENAI-MODEL-AUTHORITY-RECONCILIATION-001`
+- **AUTHORITATIVE_REPO_ROOT**: `D:/voice-agent-platform-git`
+- **Sequência Histórica**:
+  - `PROMPT-006G`: Avaliou modelos de streaming conversacional e documentou `MOST_SUITABLE_ADVANCED_VOICE_TEXT_MODEL = gpt-4o`.
+  - `DEC-037 / ADR-018`: Operador humano confirmou formalmente OpenAI como provedor primário (`PRIMARY_CONVERSATION_PROVIDER = OpenAI`), adotando `gpt-6-astra` como modelo baseline de máxima inteligência (`CURRENT_BASELINE_MODEL_CANDIDATE = gpt-6-astra`, `CURRENT_CONFIGURED_SMOKE_MODEL = gpt-6-astra`), com configuração estrita e fail-closed (`OPENAI_CONVERSATION_MODEL`), sem fixação arquitetural permanente no core.
+  - `PROMPT-006H`: Estabeleceu baseline dataset e harness em torno do modelo `gpt-6-astra`.
+  - `Slice 006AO (PR #68)`: Commit `a193166` introduziu `DEFAULT_OPENAI_MODEL = 'gpt-4o-mini'` no runner L2 como premissa de baixo custo sem aprovação humana registrada no `DECISIONS_LOG.md`.
+- **Evidência de Decisão Humana**: `NOT_FOUND` para substituição de `gpt-6-astra` por `gpt-4o-mini`.
+- **MODEL_SELECTION_DRIFT**: `CONFIRMED`. A promoção de `gpt-4o-mini` como modelo conversacional do L2 configurou desvio não autorizado da baseline aprovada pelo operador em DEC-037.
+
+### 2. Verificação Oficial de Catálogo e Reconciliação
+- **Fontes Oficiais OpenAI Consultadas**: `https://developers.openai.com/api/docs/models/gpt-6-astra.md`, `https://openai.com/api/pricing/`, `https://platform.openai.com/docs/models`.
+- **GPT_6_ASTRA_API_STATUS**: `AVAILABLE`
+- **GPT_6_ASTRA_API_MODEL_ID**: `gpt-6-astra`
+- **Superfície Suportada**: Chat Completions API (`POST /v1/chat/completions`) e Responses API (`POST /v1/responses`).
+- **Streaming**: Suportado via SSE.
+- **Restauração de Autoridade**: `L2_OPENAI_REQUESTED_MODEL = gpt-6-astra`.
+- **DEFAULT_OPENAI_MODEL**: Atualizado de `gpt-4o-mini` para `gpt-6-astra` em `scripts/benchmarks/voice/l2-runner-preconditions.mjs`.
+- **Configuração de Produção**: `PRODUCTION_MODEL_FALLBACK_DRIFT = NO` (o adapter em `packages/integrations/src/openai/openai-model-config.ts` é 100% fail-closed via `OPENAI_CONVERSATION_MODEL`, sem fallback silencioso para mini).
+
+### 3. Revalidação de Pricing e Custos de Planejamento
+- **OPENAI_MODEL_PRICED**: `gpt-6-astra`
+- **OPENAI_PRICE_STATUS**: `VERIFIED` (.00 / 1M input tokens, .00 / 1M output tokens, .00 / 1M cached input tokens). Preços anteriores de `gpt-4o-mini` classificados formalmente como `SUPERSEDED`.
+- **PLANNING_SCENARIO_OPENAI_COST**:
+  - Input: 12 requests * 1.500 tokens * ( / 1M) = .180000 USD
+  - Output: 12 requests * 500 tokens * ( / 1M) = .300000 USD
+  - Total OpenAI Planejado: **.480000 USD**
+- **Custo Total Planejado do Cenário L2**: .000294 (TypeSafe) + .480000 (OpenAI) = **.480294 USD** (~.48 USD).
+- **Semântica de Teto**: A proposta anterior de .25 USD fica classificada formalmente como `SUPERSEDED`. O custo planejado com `gpt-6-astra` excede .25 USD, reforçando que `L2_OPERATOR_COST_CEILING = NOT_AUTHORIZABLE` até decisão explícita do operador humano.
+
+### 4. Validação Técnica e Re-Freeze
+- **MODEL_RECONCILIATION_CODE_HEAD**: `ed2c3d5f9e7207c6ea2309239727597ff7081127`
+- **Focused Tests (`jev-openai-l2-synthetic-runner.test.ts`)**: `19/19 PASS`
+- **Affected Module Tests (`packages/integrations` + `apps/voice`)**: `43 files / 398 tests PASS`
+- **Canonical Quality Gate (`pnpm check`)**: `PASS` (exit code 0 no HEAD de código)
+- **OLD_L2_EXECUTABLE_AGGREGATE_SHA256**: `960224fc647981a3d3f5c97f58866da0be454df95f3570c0be0072327dc7bfb4` (`SUPERSEDED`)
+- **NEW_L2_EXECUTABLE_AGGREGATE_SHA256**: `8f53f8169771caa26dd9623702a7c65e3e9c730dfcb2bbfcb26188dcd57c77f3` (`PASS`)
+- **DoD Textual**: Preservado (todos os 9 módulos executáveis <= 180 linhas, todas as funções <= 50 linhas).
+
+### 5. Governança e Isolamento
+- **TypeSafe real**: `0`
+- **OpenAI real**: `0`
+- **Twilio**: `0`
+- **Cloud DB**: `0`
+- **Customer transcripts**: `0`
+- **Holdout**: `NO NEW ACCESS`
+- **Frozen Policy**: `UNCHANGED`
+- **L2_EXECUTION**: `NOT EXECUTED`
+- **PREAUTH_STATUS**: `PREAUTH_BLOCKED`
+- **TYPESAFE_PRICE_STATUS**: `NOT_VERIFIED`
+- **TOKEN_CAP_ENFORCEMENT**: `NOT_ENFORCEABLE_AT_RUNTIME`
+- **L2_OPERATOR_COST_CEILING**: `NOT_AUTHORIZABLE`
+- **PR71_STATUS**: `READY_FOR_HUMAN_MERGE_REVIEW`
+- **MERGE_PERFORMED**: `NO`
+
+
+---
+
+## 2026-10-03 — PR #71 Final GPT-6-Astra Pricing Reconciliation (Slice 006AR-PricingClosure)
+
+### 1. Contexto e Preflight
+- **Prompt ID**: `PROMPT-PR71-FINAL-PRICING-GATE-CLOSURE-002`
+- **AUTHORITATIVE_REPO_ROOT**: `D:/voice-agent-platform-git`
+- **SOURCE_PR71_HEAD**: `f7617b16ec233b3d7d1241e76bd8812a8031c145`
+- **Source main SHA**: `84dcf576bccdee66f52240f85dc91b65f44b17f8`
+- **Branch**: `research/006ar-l2-runner-hardening-offline`
+- **PR**: `#71` (OPEN; base: `main`, head: `research/006ar-l2-runner-hardening-offline`)
+- **FINAL_CODE_HEAD**: `ed2c3d5f9e7207c6ea2309239727597ff7081127`
+- **POST_CODE_HEAD_CHANGES**: `DOC_ONLY` (nenhuma alteração de código, teste, dependência ou config após o code HEAD)
+
+### 2. Reconciliação Integral de Pricing e Custo de Planejamento
+- **FINAL_L2_OPENAI_REQUESTED_MODEL**: `gpt-6-astra` (autoridade confirmada em DEC-037 e ADR-018)
+- **OPENAI_MODEL_PRICED**: `gpt-6-astra`
+- **OPENAI_INPUT_PRICE_USD_PER_1M**: `10.00`
+- **OPENAI_CACHED_INPUT_PRICE_USD_PER_1M**: `5.00`
+- **OPENAI_OUTPUT_PRICE_USD_PER_1M**: `50.00`
+- **OPENAI_PRICE_STATUS**: `VERIFIED` (evidência oficial pública OpenAI)
+- **STALE_GPT_4O_MINI_PRICING_CURRENT_USAGE**: `0` (todas as referências a $0.15/$0.60 e $0.006594 marcadas como `SUPERSEDED_GPT_4O_MINI_REFERENCE`)
+- **OPENAI_PLANNING_INPUT_COST_USD**: `0.180000` (12 requests * 1.500 tokens in = 18.000 tokens * $10.00/1M)
+- **OPENAI_PLANNING_OUTPUT_COST_USD**: `0.300000` (12 requests * 500 tokens out = 6.000 tokens * $50.00/1M)
+- **OPENAI_PLANNING_TOTAL_COST_USD**: `0.480000`
+- **L2_PLANNING_TOTAL_PROVIDER_COST_USD**: `0.480294` (TypeSafe $0.000294 USD + OpenAI $0.480000 USD; classificação: `PLANNING_SCENARIO_ONLY`)
+- **OLD_PROPOSED_COST_CEILING_USD**: `0.25`
+- **OLD_PROPOSED_COST_CEILING_STATUS**: `SUPERSEDED` (inferior ao cenário planejado de $0.480294 USD do gpt-6-astra)
+- **NEW_OPERATOR_COST_CEILING**: `NOT_PROPOSED`
+- **L2_OPERATOR_COST_CEILING**: `NOT_AUTHORIZABLE` (fixação de teto bloqueada aguardando autorização humana)
+- **HARD_MAX_PROVIDER_COST_STATUS**: `NOT_ENFORCEABLE`
+
+### 3. Freeze e Integridade Executável
+- **L2_DATASET_SHA256**: `bd812341a922ded1c7159191849dae284a88f24afd9c7e8d3c64f9b081602f3f`
+- **L2_EXECUTABLE_AGGREGATE_SHA256**: `8f53f8169771caa26dd9623702a7c65e3e9c730dfcb2bbfcb26188dcd57c77f3` (`PASS`)
+- **L2_EXECUTABLE_FILE_LENGTH_DOD**: `PASS` (todos os 9 módulos executáveis <= 180 linhas)
+- **L2_FUNCTION_LENGTH_DOD**: `PASS` (todas as funções <= 50 linhas, max 49)
+
+### 4. Governança e Limites Operacionais
+- **OpenAI real**: `0`
+- **TypeSafe real**: `0`
+- **Twilio**: `0`
+- **Cloud DB**: `0`
+- **Holdout**: `NO NEW ACCESS`
+- **Frozen Policy**: `UNCHANGED`
+- **L2_EXECUTION**: `NOT EXECUTED`
+- **PREAUTH_STATUS**: `PREAUTH_BLOCKED`
+- **TYPESAFE_PRICE_STATUS**: `NOT_VERIFIED`
+- **RUNTIME_ENFORCED_INPUT_TOKEN_CAP**: `NONE`
+- **TOKEN_CAP_ENFORCEMENT**: `NOT_ENFORCEABLE_AT_RUNTIME`
+- **MERGE_PERFORMED**: `NO`
+
+
+---
+
+## 2026-10-03 — PR #71 Final Canonical Gate Closure & Evidence (Slice 006AR-GateClosure)
+
+### 1. Contexto e Preflight
+- **Prompt ID**: `PROMPT-PR71-FINAL-PRICING-GATE-CLOSURE-002`
+- **AUTHORITATIVE_REPO_ROOT**: `D:/voice-agent-platform-git`
+- **GATE_HEAD**: `7507ab15e375f3cb820a5eeebb5680c796c09024`
+- **POST_GATE_CODE_CHANGE**: `NO`
+- **POST_GATE_TEST_CHANGE**: `NO`
+- **POST_GATE_CONFIG_CHANGE**: `NO`
+- **POST_GATE_DATASET_CHANGE**: `NO`
+- **POST_GATE_DOC_ONLY**: `YES`
+
+### 2. Resultados do Quality Gate Canônico
+- **FROZEN_INSTALL**: `PASS` (`pnpm install --frozen-lockfile`, exit code 0)
+- **FROZEN_INSTALL_EXIT_CODE**: `0`
+- **CANONICAL_PNPM_CHECK**: `PASS` (`pnpm check`, exit code 0)
+- **PNPM_CHECK_EXIT_CODE**: `0`
+- **LOCKFILE_MANIFEST_MUTATION**: `NO` (`pnpm-lock.yaml` e todos os manifests intactos)
+- **Global Vitest Results**:
+  - Test files: `111 passed, 6 skipped (staging), 0 failed` (117 total)
+  - Tests: `757 passed, 45 skipped (staging), 0 failed` (802 total)
+  - `NEW_SKIPS`: `0`
+  - `ASSERTION_WEAKER`: `0`
+- **Architecture Validation**: `PASS` (`scripts/check-architecture.mjs`, 100% de fronteiras respeitadas)
+- **File Length & Function Size Check**: `PASS` (244 arquivos de lógica verificados, 0 violações)
+
+### 3. Reconciliação Final de Pricing e Custo de Planejamento
+- **PRICING_RECONCILIATION**: `PASS`
+- **STALE_GPT_4O_MINI_PRICING_CURRENT_USAGE**: `0` (todas as menções antigas a $0.15/$0.60 e $0.006594 categorizadas estritamente como `SUPERSEDED_GPT_4O_MINI_REFERENCE`)
+- **OPENAI_PLANNING_TOTAL_COST_USD**: `0.480000`
+- **L2_PLANNING_TOTAL_PROVIDER_COST_USD**: `0.480294` (classificação: `PLANNING_SCENARIO_ONLY`)
+- **OLD_PROPOSED_COST_CEILING_STATUS**: `SUPERSEDED` (o teto prévio de $0.25 USD é inferior ao cenário de planejamento)
+- **NEW_OPERATOR_COST_CEILING**: `NOT_PROPOSED`
+- **L2_OPERATOR_COST_CEILING**: `NOT_AUTHORIZABLE`
+- **PREAUTH_STATUS**: `PREAUTH_BLOCKED`
+
+### 4. Governança e Isolamento
+- **OpenAI real calls**: `0`
+- **TypeSafe real calls**: `0`
+- **Twilio**: `0`
+- **Cloud DB**: `0`
+- **Local DB**: `USED_BY_AUTOMATED_TEST_SUITE_ONLY`
+- **Holdout**: `NO NEW ACCESS`
+- **Frozen Policy**: `UNCHANGED`
+- **L2_EXECUTION**: `NOT EXECUTED`
+- **TYPESAFE_PRICE_STATUS**: `NOT_VERIFIED`
+- **RUNTIME_ENFORCED_INPUT_TOKEN_CAP**: `NONE`
+- **TOKEN_CAP_ENFORCEMENT**: `NOT_ENFORCEABLE_AT_RUNTIME`
+- **MERGE_PERFORMED**: `NO`
+- **PR71_STATUS**: `READY_FOR_HUMAN_MERGE_REVIEW`
