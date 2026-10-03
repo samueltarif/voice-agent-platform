@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -21,6 +20,8 @@ export const L2_EXECUTABLE_MODULES = Object.freeze([
   'scripts/benchmarks/voice/l2-runner-result-classification.mjs',
   'scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs',
 ]);
+
+const compareAscii = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 
 export function computeSha256(content) {
   return createHash('sha256').update(content).digest('hex');
@@ -43,9 +44,7 @@ export function validateManifestData(manifest) {
     throw new Error('Manifest must be a non-null object');
   }
   if (manifest.version !== FREEZE_METHOD_VERSION) {
-    throw new Error(
-      `Unsupported manifest version: ${manifest.version} (expected ${FREEZE_METHOD_VERSION})`,
-    );
+    throw new Error(`Unsupported manifest version: ${manifest.version}`);
   }
   if (!Array.isArray(manifest.executableModules)) {
     throw new Error('Manifest executableModules must be an array');
@@ -55,8 +54,7 @@ export function validateManifestData(manifest) {
       `Expected ${EXPECTED_L2_EXECUTABLE_MODULE_COUNT} modules, got ${manifest.executableModules.length}`,
     );
   }
-  const uniquePaths = new Set(manifest.executableModules);
-  if (uniquePaths.size !== manifest.executableModules.length) {
+  if (new Set(manifest.executableModules).size !== manifest.executableModules.length) {
     throw new Error('Duplicate module paths found in manifest');
   }
   const expectedSet = new Set(L2_EXECUTABLE_MODULES);
@@ -87,7 +85,7 @@ export function resolveModuleBytes(modPath, repoRoot, options = {}) {
 }
 
 export function constructCanonicalMaterial(filesWithSha) {
-  const sorted = [...filesWithSha].sort((a, b) => a.path.localeCompare(b.path));
+  const sorted = [...filesWithSha].sort((a, b) => compareAscii(a.path, b.path));
   return (
     `FREEZE_METHOD_VERSION:${FREEZE_METHOD_VERSION}\n` +
     sorted.map((e) => `${e.path}:${e.sha256}\n`).join('')
@@ -106,8 +104,8 @@ export function resolveManifest(repoRoot, ref, options = {}) {
       stdio: ['pipe', 'pipe', 'ignore'],
     });
     return JSON.parse(raw.toString('utf8'));
-  } catch {
-    return JSON.parse(readFileSync(resolve(repoRoot, manifestPath), 'utf8'));
+  } catch (err) {
+    throw new Error(`Failed to read manifest ${manifestPath} from ref ${ref}: ${err.message}`);
   }
 }
 
@@ -137,7 +135,7 @@ export function computeL2ExecutableFreeze(options = {}) {
 
   const canonicalMaterial = constructCanonicalMaterial(filesWithSha);
   const aggregateSha = computeSha256(Buffer.from(canonicalMaterial, 'utf8'));
-  const sortedFiles = [...filesWithSha].sort((a, b) => a.path.localeCompare(b.path));
+  const sortedFiles = [...filesWithSha].sort((a, b) => compareAscii(a.path, b.path));
 
   return {
     freezeMethodVersion: FREEZE_METHOD_VERSION,

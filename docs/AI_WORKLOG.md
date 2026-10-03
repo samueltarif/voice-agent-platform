@@ -14486,3 +14486,53 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
 - **PR_MERGE_PERFORMED**: `NO`
 - **NEXT_REQUIRED_STEP**: `HUMAN_SECRET_ROTATION_AND_CREDENTIAL_CONFIGURATION`
+
+---
+
+## 2026-10-03 — Slice 006AW L2 Executable Freeze Final Closure & Defect Hardening (PR #76)
+
+### 1. Demanda e Contexto
+- **Slice**: `006AW-Closure`
+- **Branch**: `research/006aw-l2-executable-freeze-reproducibility`
+- **PR**: `#76`
+- **Objetivo**: Fechar pendências técnicas identificadas na revisão do PR #76 referentes a determinismo de ordenação, política estrita de fail-closed para o manifesto do Git ref sem fallback para o working tree, alinhamento exato da documentação do material canônico e registro formal do relato humano de rotação de credenciais.
+
+### 2. Correções Técnicas Aplicadas
+- **Defeito A (Dependência de Locale em Ordenação)**:
+  - `LOCALE_DEPENDENCE_DEFECT_FOUND`: `YES` (o uso de `localeCompare` introduzia dependência indesejada de locale, ICU e ambiente host).
+  - `LOCALE_DEPENDENCE_DEFECT_FIXED`: `YES` (substituído por ordenação ASCII determinística direta por código de unidade: `a < b ? -1 : a > b ? 1 : 0`, aplicada tanto no material agregado canônico quanto no reporte de arquivos).
+  - `CANONICAL_ORDERING_METHOD`: Ordenação direta por código ASCII/POSIX.
+- **Defeito B (Fallback Indesejado para Manifesto no Working Tree)**:
+  - `WORKTREE_MANIFEST_FALLBACK_DEFECT_FOUND`: `YES` (ao falhar a leitura via Git ref, o runner tentava silenciosamente ler o manifesto no disco local).
+  - `WORKTREE_MANIFEST_FALLBACK_DEFECT_FIXED`: `YES` (removido o fallback e a dependência de `readFileSync`; ausência de manifesto no Git ref especificado resulta em `FAIL_CLOSED` estrito).
+  - `WORKTREE_MANIFEST_FALLBACK_ALLOWED`: `NO`.
+- **Alinhamento do Material Canônico**:
+  - `CANONICAL_MATERIAL_FORMAT`: `FREEZE_METHOD_VERSION:1.0.0\n<path>:<sha256>\n...`
+  - `CANONICAL_MATERIAL_DOCUMENTATION_MATCHES_CODE`: `YES` (documentação sincronizada exatamente com a saída da implementação).
+
+### 3. Evidência de Estabilidade do Hash Agregado
+- **RUN_1_AGGREGATE_SHA256**: `f5ef6e6b88e09094765b0c3b273ba23cae01502bdd0ec4fe28dbcb3f2133794a`
+- **RUN_2_AGGREGATE_SHA256**: `f5ef6e6b88e09094765b0c3b273ba23cae01502bdd0ec4fe28dbcb3f2133794a`
+- **TWO_RUN_REPRODUCIBILITY**: `PASS`
+- **PRIOR_AGGREGATE_SHA256**: `f5ef6e6b88e09094765b0c3b273ba23cae01502bdd0ec4fe28dbcb3f2133794a`
+- **FINAL_AGGREGATE_SHA256**: `f5ef6e6b88e09094765b0c3b273ba23cae01502bdd0ec4fe28dbcb3f2133794a`
+- **AGGREGATE_STABILITY**: `PASS` (hash mantido estável e inalterado).
+- **EXECUTABLE_FREEZE_REPRODUCIBILITY**: `PASS`
+- **CURRENT_EXECUTABLE_FREEZE_STATUS**: `FROZEN_REPRODUCIBLY`
+
+### 4. Testes Unitários Focados
+- **Testes Alvo**: `11/11 PASS` em `packages/integrations/src/typesafe/l2-executable-freeze.test.ts` (incluindo regressão para ordenação sem `localeCompare` e fail-closed por ausência de manifesto no ref Git).
+- **Suíte Integrations**: `201/201 PASS` (26 arquivos de teste).
+- **NEW_SKIPS**: `0`
+- **ASSERTION_WEAKER**: `0`
+
+### 5. Governança e Estado das Credenciais
+- **HUMAN_SECRET_ROTATION_STATUS**: `REPORTED_COMPLETE_BY_OPERATOR` (operador reportou renovação das chaves).
+- **SECRET_ROTATION_EVIDENCE_CLASSIFICATION**: `HUMAN_REPORTED_NOT_TOOL_VERIFIED` (valores confidenciais não inspecionados).
+- **RUNTIME_CREDENTIAL_AVAILABILITY**: `NOT_VERIFIED` (presença em variáveis de ambiente a ser checada por booleano estrito após o merge).
+- **provider calls**: `0` (OpenAI: 0, TypeSafe: 0, Twilio: 0, Cloud DB: 0, Holdout: NO ACCESS)
+- **.env read**: `NO`
+- **live command invoked**: `NO`
+- **runtime semantics changed**: `NO`
+- **NEXT_ALLOWED_STEP**: `HUMAN_REVIEW_OF_PR76`
+- **NEXT_REQUIRED_STEP_AFTER_MERGE**: `RUNTIME_CREDENTIAL_PRESENCE_VERIFICATION`

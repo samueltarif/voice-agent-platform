@@ -55,7 +55,11 @@ EXECUTABLE_FREEZE_REPRODUCIBILITY: PASS
 FREEZE_METHOD_VERSION: 1.0.0
 CURRENT_EXECUTABLE_AGGREGATE_SHA256: f5ef6e6b88e09094765b0c3b273ba23cae01502bdd0ec4fe28dbcb3f2133794a
 CURRENT_EXECUTABLE_FREEZE_STATUS: FROZEN_REPRODUCIBLY
-NEXT_REQUIRED_STEP: HUMAN_SECRET_ROTATION_AND_CREDENTIAL_CONFIGURATION
+HUMAN_SECRET_ROTATION_STATUS: REPORTED_COMPLETE_BY_OPERATOR
+SECRET_ROTATION_EVIDENCE_CLASSIFICATION: HUMAN_REPORTED_NOT_TOOL_VERIFIED
+RUNTIME_CREDENTIAL_AVAILABILITY: NOT_VERIFIED
+NEXT_ALLOWED_STEP: HUMAN_REVIEW_OF_PR76
+NEXT_REQUIRED_STEP_AFTER_MERGE: RUNTIME_CREDENTIAL_PRESENCE_VERIFICATION
 FUTURE_LIVE_CREDENTIAL_CONFIGURATION: REQUIRED_AFTER_FREEZE_CLOSURE
 OPENAI_PRICE_STATUS: VERIFIED
 CLI_LIVE_INTENT_PLUMBING: PASS
@@ -64,9 +68,9 @@ RUNTIME_ENFORCED_INPUT_SIZE_CAP: PASS (1000 chars TypeSafe, 4000 chars OpenAI)
 RUNTIME_ENFORCED_INPUT_TOKEN_CAP: NONE
 TOKEN_CAP_ENFORCEMENT: NOT_ENFORCEABLE_AT_RUNTIME
 AGGREGATE_OUTPUT_CAP: DERIVED_ENFORCEABLE_SUBJECT_TO_CAP_ISOLATION_TEST
-CURRENT_RUNNER_FREEZE: SUPERSEDED_BY_CODE_CHANGE
+CURRENT_RUNNER_FREEZE: FROZEN_REPRODUCIBLY
 LIVE_COMMAND_STATUS: LIVE_COMMAND_NOT_YET_AUTHORIZABLE
-NEXT_ALLOWED_STEP: HUMAN_REVIEW_OF_PR75_THEN_FREEZE_CLOSURE
+NEXT_ALLOWED_STEP: HUMAN_REVIEW_OF_PR76
 BLOCKER_ANALYSIS_STATUS: PREAUTH_BLOCKER_ANALYSIS_COMPLETE
 L2_PREAUTHORIZATION_ENVELOPE_METADATA_END
 -->
@@ -465,11 +469,10 @@ Decisões formais concedidas pelo operador humano em 2026-10-03 (escopo estrito:
   - `TYPESAFE_EXPLICIT_CONTRACTUAL_TARIFF`: `NOT_OBSERVED`;
   - `HARD_L2_COST_BOUND_FEASIBLE`: `BLOCKED`;
   - `TYPESAFE_PRICING_EVIDENCE`: `ACCOUNT_BILLING_EMPIRICALLY_VERIFIED`.
-- **Status do Hash Agregado Anterior e Próximo Slice Técnico**:
-  - `PREVIOUS_EXECUTABLE_AGGREGATE_SHA256`: `8f53f8169771caa26dd9623702a7c65e3e9c730dfcb2bbfcb26188dcd57c77f3` (`SUPERSEDED_BY_CODE_CHANGE`);
-  - `EXECUTABLE_FREEZE_REPRODUCIBILITY`: `BLOCKED`;
-  - `NEW_EXECUTABLE_AGGREGATE_SHA256`: `NOT_REPRODUCIBLE_FROM_TRACKED_METHOD`;
-  - `NEXT_REQUIRED_SLICE`: `EXECUTABLE_FREEZE_REPRODUCIBILITY_CLOSURE` (pré-requisito técnico offline antes de qualquer configuração de credenciais ou autorização live futura).
+- **Histórico do Hash Anterior (Estado no encerramento do Slice 006AV, superado pelo Slice 006AW)**:
+  - `PREVIOUS_EXECUTABLE_AGGREGATE_SHA256`: `8f53f8169771caa26dd9623702a7c65e3e9c730dfcb2bbfcb26188dcd57c77f3f` (`SUPERSEDED_BY_CODE_CHANGE`);
+  - `HISTORICAL_AGGREGATE_REPRODUCIBILITY`: `LEGACY_NOT_REPRODUCIBLE_FROM_TRACKED_METHOD`;
+  - *Nota de Fechamento*: Este bloqueio histórico foi fechado com sucesso no Slice 006AW (`EXECUTABLE_FREEZE_REPRODUCIBILITY = PASS`, `CURRENT_EXECUTABLE_FREEZE_STATUS = FROZEN_REPRODUCIBLY`, hash atual: `f5ef6e6b88e09094765b0c3b273ba23cae01502bdd0ec4fe28dbcb3f2133794a`; ver Seção 19).
 - **Garantias Estritas de Teto Financeiro**:
   - `EMPIRICAL_EXPLICIT_COST_CEILING_REQUIRED`: `YES`;
   - `EMPIRICAL_ENV_COST_CEILING_FALLBACK_ALLOWED`: `NO` (o runner rejeita estritamente o uso herdado de `L2_COST_CEILING_USD` do ambiente quando a política empírica é selecionada; exige `--cost-ceiling <USD>` explícito na linha de comando).
@@ -501,10 +504,10 @@ Decisões formais concedidas pelo operador humano em 2026-10-03 (escopo estrito:
   - **Versão do Método**: `FREEZE_METHOD_VERSION = 1.0.0`;
   - **Determinismo Multiplataforma**: A leitura do conteúdo de cada módulo é feita via Git (`git show ${ref}:${modulePath}`), garantindo que o hashing opere exatamente sobre os bytes canônicos rastreados no Git (com quebras de linha LF), independentemente de conversões automáticas CRLF no sistema de arquivos do host Windows/Linux;
   - **Ordenação Canônica**: Ordenação lexicográfica estrita dos caminhos POSIX antes da composição do material de agregação;
-  - **Material de Agregação Canônico**: UTF-8 formatado como:
+  - **Material de Agregação Canônico**: UTF-8 formatado exatamente como:
     ```
-    l2-executable-freeze-v1
-    <repo-relative-posix-path>  <per-file-sha256>
+    FREEZE_METHOD_VERSION:1.0.0
+    <repo-relative-posix-path>:<per-file-sha256>
     ...
     ```
   - **Fail-Closed Guarantees**: A ferramenta falha imediatamente se qualquer módulo do manifesto estiver ausente, se houver caminhos duplicados, se algum caminho escapar da raiz do repositório, se a contagem não corresponder exatamente a 10 módulos, ou se módulos executáveis forem alterados sem conformidade.
@@ -528,7 +531,7 @@ Decisões formais concedidas pelo operador humano em 2026-10-03 (escopo estrito:
   - `CURRENT_EXECUTABLE_FREEZE_STATUS`: `FROZEN_REPRODUCIBLY`
 - **Testes Automatizados de Reprodutibilidade**:
   - `packages/integrations/src/typesafe/l2-executable-freeze.test.ts`: 10 casos de teste cobrindo determinismo, insensibilidade à ordem de enumeração do filesystem, sensibilidade a mutação de 1 byte, fail-closed por arquivo ausente, duplicatas, path traversal fora do repo, discrepância de contagem, ausência total de chamadas a provedores/rede e isolamento de segredos/arquivos `.env`.
-  - Resultado: `10/10 PASS`.
+  - Resultado: `11/11 PASS` (incluindo testes de ordenação independente de locale e fail-closed para ausência de manifesto no ref Git sem fallback para working tree).
 - **Dataset Sintético L2**:
   - `L2_DATASET_SHA256`: `bd812341a922ded1c7159191849dae284a88f24afd9c7e8d3c64f9b081602f3f` (`UNCHANGED`).
 - **Governança de Execução e Status Atual**:
@@ -537,4 +540,8 @@ Decisões formais concedidas pelo operador humano em 2026-10-03 (escopo estrito:
   - `SECOND_LIVE_RUN_AUTHORIZED`: `NO`;
   - `LIVE_COMMAND_INVOKED`: `NO`;
   - Provedores reais chamados: `0` (OpenAI real: 0, TypeSafe real: 0, Twilio: 0, Cloud DB: 0, Holdout: NO ACCESS);
-  - `NEXT_REQUIRED_STEP`: `HUMAN_SECRET_ROTATION_AND_CREDENTIAL_CONFIGURATION` (etapa humana prévia obrigatória antes de qualquer proposição de autorização live futura).
+  - `HUMAN_SECRET_ROTATION_STATUS`: `REPORTED_COMPLETE_BY_OPERATOR` (o operador humano reportou formalmente a rotação das chaves);
+  - `SECRET_ROTATION_EVIDENCE_CLASSIFICATION`: `HUMAN_REPORTED_NOT_TOOL_VERIFIED`;
+  - `RUNTIME_CREDENTIAL_AVAILABILITY`: `NOT_VERIFIED` (valores não inspecionados, sem leitura de .env);
+  - `NEXT_ALLOWED_STEP`: `HUMAN_REVIEW_OF_PR76`;
+  - `NEXT_REQUIRED_STEP_AFTER_MERGE`: `RUNTIME_CREDENTIAL_PRESENCE_VERIFICATION` (verificação segura por booleano de processo após o merge).

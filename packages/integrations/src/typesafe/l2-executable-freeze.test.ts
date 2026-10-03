@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   computeL2ExecutableFreeze,
+  resolveManifest,
   validateManifestData,
   validateModulePath,
   L2_EXECUTABLE_MODULES,
@@ -34,10 +35,13 @@ describe('L2 Executable Freeze Reproducibility Tests', () => {
     expect(run1.executableAggregateSha256).toBe(run2.executableAggregateSha256);
     expect(run1.runtimeFileCount).toBe(EXPECTED_L2_EXECUTABLE_MODULE_COUNT);
     expect(run1.freezeMethodVersion).toBe(FREEZE_METHOD_VERSION);
-    expect(run1.runtimeFileSet).toEqual([...L2_EXECUTABLE_MODULES].sort());
+    expect(run1.runtimeFileSet).toEqual(
+      [...L2_EXECUTABLE_MODULES].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)),
+    );
   });
 
-  it('Case B: file ordering does not depend on manifest or filesystem enumeration order', () => {
+  it('Case B: canonical ordering is based on deterministic ASCII code-unit ordering without localeCompare', () => {
+    const localeCompareSpy = vi.spyOn(String.prototype, 'localeCompare');
     const reversedModules = [...L2_EXECUTABLE_MODULES].reverse();
     const manifestReversed = {
       version: FREEZE_METHOD_VERSION,
@@ -56,7 +60,11 @@ describe('L2 Executable Freeze Reproducibility Tests', () => {
     });
 
     expect(runNormal.executableAggregateSha256).toBe(runReversed.executableAggregateSha256);
-    expect(runReversed.runtimeFileSet).toEqual([...L2_EXECUTABLE_MODULES].sort());
+    expect(runReversed.runtimeFileSet).toEqual(
+      [...L2_EXECUTABLE_MODULES].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)),
+    );
+    expect(localeCompareSpy).not.toHaveBeenCalled();
+    localeCompareSpy.mockRestore();
   });
 
   it('Case C: changing one byte in controlled fixture content changes the aggregate', () => {
@@ -153,5 +161,11 @@ describe('L2 Executable Freeze Reproducibility Tests', () => {
     const result = computeL2ExecutableFreeze();
     expect(result.runtimeFileSet.every((f) => !f.includes('.env'))).toBe(true);
     expect(Object.keys(result.perFileSha256).every((f) => !f.includes('.env'))).toBe(true);
+  });
+
+  it('Case K: missing manifest in requested Git ref fails closed without working-tree fallback', () => {
+    expect(() =>
+      resolveManifest(process.cwd(), 'non-existent-ref-0000000000000000000000000000000000000000'),
+    ).toThrow(/Failed to read manifest/);
   });
 });
