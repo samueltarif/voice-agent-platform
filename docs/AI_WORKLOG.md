@@ -14960,3 +14960,17 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **PR_MERGE_PERFORMED**: `NO`
 - **NEXT_ALLOWED_STEP**: `HUMAN_REVIEW_OF_PR79`
 - **NEXT_REQUIRED_STEP**: `HUMAN_REVIEW_OF_OFFLINE_FIX_AND_NEW_L2_AUTHORIZATION_PACKAGE`
+
+### 6. Resolucao da Resolucao Monorepo Pre-Build e Validacao Fria Definitiva
+- **Problema Adicional Observado em Cold Gate Total**: Ao executar pnpm check a partir de um estado limpo sem dist/, o Vite em apps/web falhou ao tentar resolver @voice-agent/errors apontado exclusivamente para ./dist/index.js, e jev-openai-l2-synthetic-runner.test.ts falhou por importar artefatos de dist/ ausentes.
+- **Correcao Arquitetural Aplicada**:
+  1. Adicionado export condition development: ./src/index.ts em packages/errors/package.json, permitindo que o Vite/Vitest resolva o TypeScript original durante o estagio de testes pre-build, enquanto a execucao em Node no runtime de producao/benchmark utiliza import: ./dist/index.js.
+  2. Adicionado packages/integrations/vitest.config.ts (30 linhas) mapeando pontualmente os artefatos dist em tempo de teste para suas origens TypeScript em src/, permitindo que os testes de integracao do runner rodem em Vitest em checkout frio sem depender de build previo.
+- **Resultado da Prova de Checkout Frio (Cold-Check)**:
+  - DIST_PRESENT_BEFORE_GATE: NO (removidos packages/errors/dist, packages/integrations/dist, apps/voice/dist).
+  - pnpm install --frozen-lockfile && pnpm check: PASS (Format, Lint, Typecheck, Test [113 passed / 775 tests], Build, Architecture, File Size).
+  - node scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs --offline --dry-run-write: PASS (inicializacao offline limpa, 0 erros de resolucao).
+- **Freeze & Dataset**:
+  - CURRENT_EXECUTABLE_AGGREGATE_SHA256: f5ef6e6b88e09094765b0c3b273ba23cae01502bdd0ec4fe28dbcb3f2133794a (PASS).
+  - L2_DATASET_SHA256: bd812341a922ded1c7159191849dae284a88f24afd9c7e8d3c64f9b081602f3f (PASS).
+- **Governanca**: 0 chamadas de rede/provedor, US$ 0 gasto, PR #79 mantido unificado sem merge.
