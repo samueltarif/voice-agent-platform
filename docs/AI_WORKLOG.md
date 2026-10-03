@@ -13917,3 +13917,57 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **RUNTIME_ENFORCED_INPUT_TOKEN_CAP**: `NONE`
 - **TOKEN_CAP_ENFORCEMENT**: `NOT_ENFORCEABLE_AT_RUNTIME`
 - **MERGE_PERFORMED**: `NO`
+
+
+---
+
+## 2026-10-03 — PR #71 Final Canonical Gate Closure & Evidence (Slice 006AR-GateClosure)
+
+### 1. Contexto e Preflight
+- **Prompt ID**: `PROMPT-PR71-FINAL-PRICING-GATE-CLOSURE-002`
+- **AUTHORITATIVE_REPO_ROOT**: `D:/voice-agent-platform-git`
+- **GATE_HEAD**: `7507ab15e375f3cb820a5eeebb5680c796c09024`
+- **POST_GATE_CODE_CHANGE**: `NO`
+- **POST_GATE_TEST_CHANGE**: `NO`
+- **POST_GATE_CONFIG_CHANGE**: `NO`
+- **POST_GATE_DATASET_CHANGE**: `NO`
+- **POST_GATE_DOC_ONLY**: `YES`
+
+### 2. Resultados do Quality Gate Canônico
+- **FROZEN_INSTALL**: `PASS` (`pnpm install --frozen-lockfile`, exit code 0)
+- **FROZEN_INSTALL_EXIT_CODE**: `0`
+- **CANONICAL_PNPM_CHECK**: `PASS` (`pnpm check`, exit code 0)
+- **PNPM_CHECK_EXIT_CODE**: `0`
+- **LOCKFILE_MANIFEST_MUTATION**: `NO` (`pnpm-lock.yaml` e todos os manifests intactos)
+- **Global Vitest Results**:
+  - Test files: `111 passed, 6 skipped (staging), 0 failed` (117 total)
+  - Tests: `757 passed, 45 skipped (staging), 0 failed` (802 total)
+  - `NEW_SKIPS`: `0`
+  - `ASSERTION_WEAKER`: `0`
+- **Architecture Validation**: `PASS` (`scripts/check-architecture.mjs`, 100% de fronteiras respeitadas)
+- **File Length & Function Size Check**: `PASS` (244 arquivos de lógica verificados, 0 violações)
+
+### 3. Reconciliação Final de Pricing e Custo de Planejamento
+- **PRICING_RECONCILIATION**: `PASS`
+- **STALE_GPT_4O_MINI_PRICING_CURRENT_USAGE**: `0` (todas as menções antigas a $0.15/$0.60 e $0.006594 categorizadas estritamente como `SUPERSEDED_GPT_4O_MINI_REFERENCE`)
+- **OPENAI_PLANNING_TOTAL_COST_USD**: `0.480000`
+- **L2_PLANNING_TOTAL_PROVIDER_COST_USD**: `0.480294` (classificação: `PLANNING_SCENARIO_ONLY`)
+- **OLD_PROPOSED_COST_CEILING_STATUS**: `SUPERSEDED` (o teto prévio de $0.25 USD é inferior ao cenário de planejamento)
+- **NEW_OPERATOR_COST_CEILING**: `NOT_PROPOSED`
+- **L2_OPERATOR_COST_CEILING**: `NOT_AUTHORIZABLE`
+- **PREAUTH_STATUS**: `PREAUTH_BLOCKED`
+
+### 4. Governança e Isolamento
+- **OpenAI real calls**: `0`
+- **TypeSafe real calls**: `0`
+- **Twilio**: `0`
+- **Cloud DB**: `0`
+- **Local DB**: `USED_BY_AUTOMATED_TEST_SUITE_ONLY`
+- **Holdout**: `NO NEW ACCESS`
+- **Frozen Policy**: `UNCHANGED`
+- **L2_EXECUTION**: `NOT EXECUTED`
+- **TYPESAFE_PRICE_STATUS**: `NOT_VERIFIED`
+- **RUNTIME_ENFORCED_INPUT_TOKEN_CAP**: `NONE`
+- **TOKEN_CAP_ENFORCEMENT**: `NOT_ENFORCEABLE_AT_RUNTIME`
+- **MERGE_PERFORMED**: `NO`
+- **PR71_STATUS**: `READY_FOR_HUMAN_MERGE_REVIEW`
