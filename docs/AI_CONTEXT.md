@@ -8,7 +8,7 @@ CONTEXT_BASE_MAIN_SHA: b1734fc664f1aaa717c6fdfca87bfd4bab6f269e
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
 CURRENT_SLICE: L2 Real Jev + Real OpenAI + Synthetic Transcript Planning
 CONTEXT_UPDATE_BRANCH: research/006an-l2-real-jev-openai-synthetic-plan
-CONTEXT_UPDATE_PR: 66
+CONTEXT_UPDATE_PR: 67
 LAST_MERGED_PR_AT_REFRESH: 66
 LAST_MERGE_SHA_AT_REFRESH: b1734fc664f1aaa717c6fdfca87bfd4bab6f269e
 LAST_TESTED_CODE_SHA: cf1336285a18d9359b7b9a5d7a87def70e6595f9
