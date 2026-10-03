@@ -14639,3 +14639,34 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **L2_TECHNICAL_READINESS_BEFORE_HUMAN_AUTHORIZATION**: `READY_FOR_OPERATOR_AUTHORIZATION_PACKAGE`
 - **NEXT_REQUIRED_STEP**: `NEW_L2_OPERATOR_COST_CEILING_AND_EXPLICIT_HUMAN_AUTHORIZATION`
 - **PR_MERGE_PERFORMED**: `NO`
+
+---
+
+## 2026-10-03 — Slice 006AX PR #77 Governance Reconciliation — Process Deviations Audit
+
+### 1. Demanda e Contexto
+- **Slice**: `006AX`
+- **Branch**: `research/006ax-l2-runtime-credential-presence`
+- **PR**: `#77`
+- **Objetivo**: Registrar reconciliação factual de governança referente a desvios operacionais observados durante a execução anterior de verificação de credenciais no PR #77 antes do merge definitivo.
+
+### 2. Auditoria Factual de Desvios Operacionais (Process Deviations Audit)
+- **PROCESS_DEVIATION_UNTRACKED_TEMP_HELPERS**: `YES` (a execução anterior criou arquivos auxiliares temporários não rastreados no repositório: `scripts/tmp-test.mjs`, `scripts/tmp-update-docs.mjs` e `scripts/tmp-audit.mjs`).
+- **TEMP_HELPERS_TRACKED_OR_COMMITTED**: `NO` (nenhum arquivo auxiliar temporário foi adicionado ao Git ou comitado).
+- **TEMP_HELPERS_REMOVED_BEFORE_FINAL_STATE**: `YES` (todos os helpers temporários foram removidos via `Remove-Item` antes do encerramento da execução e da submissão do commit).
+- **FINAL_REPO_POLLUTION**: `NO` (o estado final do working tree estava completamente limpo).
+- **NON_AUTHORITATIVE_PATH_METADATA_INSPECTION**: `YES` (a execução anterior executou inspeção de metadados via `Get-Item` contra `D:/voice-agent-platforM`).
+- **NON_AUTHORITATIVE_PATH_FILE_CONTENT_ACCESSED**: `NO_EVIDENCE_OBSERVED` (não houve leitura, abertura ou inspeção de conteúdo de arquivos na pasta não-autoritativa).
+- **CROSS_WORKTREE_COPY_OCCURRED**: `NO_EVIDENCE_OBSERVED` (nenhum arquivo ou dado foi copiado entre diretórios/worktrees).
+- **FORBIDDEN_IDE_INTERNAL_STORAGE_ACCESSED**: `NO` (nenhum acesso a `.gemini`, `.system_generated`, `.agents` ou `brain`).
+- **KNOWN_SECRET_EXPOSURE**: `NO_EVIDENCE_OBSERVED`.
+- **ENV_FILE_READ_OCCURRED**: `NO` (nenhum arquivo `.env` foi aberto, lido ou inspecionado).
+- **CREDENTIAL_VALUE_PRINTED**: `NO`.
+- **CREDENTIAL_LENGTH_PRINTED**: `NO`.
+- **CREDENTIAL_PREFIX_OR_SUFFIX_PRINTED**: `NO`.
+
+### 3. Esclarecimentos e Avaliação de Impacto
+- **Desvio de Scripts Temporários**: O uso de scripts auxiliares temporários no repositório constituiu um desvio de processo operacional (`PROCESS_DEVIATION_UNTRACKED_TEMP_HELPERS`). Todos os arquivos foram sumariamente removidos e jamais comitados ou rastreados pelo Git, garantindo que o repositório final permaneceu sem poluição (`FINAL_REPO_POLLUTION = NO`).
+- **Validade do Resultado de Presença**: Este desvio de processo não invalida a observação factual da presença das variáveis de credencial no ambiente do processo Node atual (`OPENAI_CREDENTIAL_AVAILABLE = YES`, `TYPESAFE_CREDENTIAL_AVAILABLE = YES`, `RUNTIME_CREDENTIAL_PRESENCE_VERIFICATION = PASS`).
+- **Diretriz Futura Estrita**: Tarefas subsequentes devem utilizar estritamente comandos inline em shell/Node ou ferramentas já rastreadas pelo repositório, sendo terminantemente proibida a criação de helpers temporários em disco.
+- **CREDENTIAL_VALIDITY**: Permanece categoricamente `NOT_VERIFIED` (a detecção de presença de variável de ambiente no processo Node não comprova validade, saldo, quotas ou autenticidade das credenciais junto aos provedores).
