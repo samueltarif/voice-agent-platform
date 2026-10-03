@@ -4,13 +4,13 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-03
-CONTEXT_BASE_MAIN_SHA: 630ee48d8fdd10077e7374053da176d9072c5b9a
+CONTEXT_BASE_MAIN_SHA: 774d522180dd1e720ddab91d4ae0b7898bece2c6
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
 CURRENT_SLICE: L2 Real Jev + Real OpenAI + Synthetic Transcript — Preauthorization Planning
 CONTEXT_UPDATE_BRANCH: docs/006aq-l2-preauthorization-envelope
-CONTEXT_UPDATE_PR: PENDING
-LAST_MERGED_PR_AT_REFRESH: 68
-LAST_MERGE_SHA_AT_REFRESH: 630ee48d8fdd10077e7374053da176d9072c5b9a
+CONTEXT_UPDATE_PR: 70
+LAST_MERGED_PR_AT_REFRESH: 69
+LAST_MERGE_SHA_AT_REFRESH: 774d522180dd1e720ddab91d4ae0b7898bece2c6
 LAST_TESTED_CODE_SHA: 630ee48d8fdd10077e7374053da176d9072c5b9a
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
@@ -192,8 +192,8 @@ AI_CONTEXT_HEADER_END
 ### `NEXT_ALLOWED_STEP`:
 - **L2 Real Jev + Real OpenAI + Synthetic Transcript — PREAUTHORIZATION PLANNING ONLY** (review & merge this doc-only PR, then proceed to L2 preauthorization planning).
 - `L2_EXECUTION` = `NOT EXECUTED`.
-- `OPENAI_PRICE_STATUS` = `VERIFIED` (official OpenAI pricing observed: $0.15/1M in, $0.60/1M out).
-- `L2_OPERATOR_COST_CEILING` = `NOT_AUTHORIZED`.
+- `OPENAI_PRICE_STATUS` = `VERIFIED` (official OpenAI pricing: $0.15/1M in, $0.60/1M out); `TYPESAFE_PRICE_STATUS` = `NOT_VERIFIED` (no official public billing URL confirmed).
+- `L2_OPERATOR_COST_CEILING` = `NOT_AUTHORIZABLE` (pre-hardening; input tokens and TypeSafe pricing pending formal enforcement).
 - `ACTIVE_GUARDED` permanece `BLOCKED` até conclusão da escada de validação (L1-L4).
 - Do NOT execute L2 live.
 - Do NOT enable live customer traffic.

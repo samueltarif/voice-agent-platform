@@ -2,49 +2,57 @@
 
 <!--
 L2_PREAUTHORIZATION_ENVELOPE_METADATA_START
-SCHEMA_VERSION: 1.0.0
+SCHEMA_VERSION: 1.1.0
 CREATED_AT: 2026-10-03
+LAST_RECONCILED_AT: 2026-10-03
 PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
 STUDY: L2 Real Jev + Real OpenAI + Synthetic Transcript
-PREAUTH_STATUS: PREAUTH_BLOCKED_FOR_RUNNER_LIVE_PRECONDITIONS
+PREAUTH_STATUS: PREAUTH_BLOCKED_FOR_RUNNER_HARDENING_AND_TOKEN_CAPS
 L2_EXECUTION: NOT EXECUTED
-L2_OPERATOR_COST_CEILING: PROPOSED_NOT_AUTHORIZED
-PROPOSED_COST_CEILING_USD: 0.25
-TYPESAFE_PRICE_STATUS: VERIFIED
+L2_OPERATOR_COST_CEILING: NOT_AUTHORIZABLE
+PROPOSED_COST_CEILING_USD: 0.25 (PLANNING_PROPOSAL)
+HARD_MAX_PROVIDER_COST_STATUS: NOT_ENFORCEABLE
+TYPESAFE_PRICE_STATUS: NOT_VERIFIED
 OPENAI_PRICE_STATUS: VERIFIED
+RUNTIME_ENFORCED_INPUT_TOKEN_CAP: NONE
 TOKEN_CAP_ENFORCEMENT: NOT_ENFORCEABLE_AT_RUNTIME
+AGGREGATE_OUTPUT_CAP: DERIVED_ENFORCEABLE_SUBJECT_TO_CAP_ISOLATION_TEST
+CURRENT_RUNNER_FREEZE: PRE_HARDENING_REFERENCE
+FUTURE_LIVE_RUNNER_FREEZE: MUST_BE_RECOMPUTED_AFTER_HARDENING
 LIVE_COMMAND_STATUS: LIVE_COMMAND_NOT_YET_AUTHORIZABLE
 L2_PREAUTHORIZATION_ENVELOPE_METADATA_END
 -->
 
-> **Documento Canônico de Pré-Autorização da Bateria L2**  
-> Este documento define formalmente os limites técnicos, modelos, precificação verificada, orçamento de tokens, hard caps e condições de parada para a eventual execução da bateria L2 (*Real TypeSafe/Jev + Real OpenAI + Synthetic Transcript*).  
+> **Documento Canônico de Pré-Autorização da Bateria L2**
+> Este documento define formalmente os limites técnicos, modelos, precificação verificada, premissas de tokens, caps de requisição e condições de parada para a eventual execução da bateria L2 (*Real TypeSafe/Jev + Real OpenAI + Synthetic Transcript*).
 > **NENHUMA EXECUÇÃO REAL DE PROVEDOR É REALIZADA OU AUTORIZADA POR ESTE DOCUMENTO.**
 
 ---
 
 ## 1. Purpose
 
-Estabelecer um envelope rigoroso, auditável e imutável para a execução live da bateria experimental L2, garantindo:
-1. Limites financeiros invioláveis (caps de requisição e teto de custo operador);
+Estabelecer um envelope rigoroso, auditável e imutável para a futura execução live da bateria experimental L2, garantindo:
+1. Distinção clara entre premissas teóricas de planejamento (*planning assumptions*) e limites tecnicamente impostos em tempo de execução (*runtime-enforced hard caps*);
 2. Isolamento estrito de dados (zero transcrições de clientes, zero acesso a holdout, zero acesso a banco de dados de produção/staging, zero telefonia/Twilio);
-3. Verificação factual de modelos e precificação dos provedores;
+3. Verificação factual e pública de precificação dos provedores;
 4. Condições determinísticas de parada imediata (*fail-fast*);
-5. Conformidade integral com `AGENTS.md` e `docs/AI_EXECUTION_RULES.md`.
+5. Conformidade estrita com `AGENTS.md` e `docs/AI_EXECUTION_RULES.md`.
 
 ---
 
 ## 2. Frozen Study Identity
 
-| Propriedade | Valor Congelado | Evidência Factual |
+| Propriedade | Valor de Referência (Pre-Hardening) | Evidência Factual |
 | :--- | :--- | :--- |
 | **L2_DATASET_PATH** | `scripts/benchmarks/voice/jev-openai-l2-synthetic-integration-v1-cases.json` | Arquivo rastreado no repositório |
 | **L2_DATASET_VERSION** | `1.0.1` | Campo `version` no JSON do dataset |
 | **L2_DATASET_CASE_COUNT** | `12` | 12 casos sintéticos estritos (7 matcher-positive, 5 matcher-negative) |
-| **L2_DATASET_SHA256** | `bd812341a922ded1c7159191849dae284a88f24afd9c7e8d3c64f9b081602f3f` | Hash SHA-256 verificado |
+| **L2_DATASET_SHA256** | `bd812341a922ded1c7159191849dae284a88f24afd9c7e8d3c64f9b081602f3f` | Hash SHA-256 congelado |
 | **L2_RUNNER_PATH** | `scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs` | Script rastreado |
-| **L2_RUNNER_SHA256** | `89c42ced37e04aafadb752f9fcc03e28fcb5409dfb2ff878c35eb8a1f98e4755` | Hash SHA-256 verificado no HEAD |
-| **L2_RUNNER_COMMIT_SHA** | `4cd15b1b0b6afe5a9f10b371eab387ae85bb8205` | Commit de introdução no PR #68, mergeado na `main` (`630ee48d8fdd10077e7374053da176d9072c5b9a`) |
+| **CURRENT_RUNNER_FREEZE** | `PRE_HARDENING_REFERENCE` | Versão inicial pós-PR68 |
+| **L2_RUNNER_SHA256** | `89c42ced37e04aafadb752f9fcc03e28fcb5409dfb2ff878c35eb8a1f98e4755` | Hash SHA-256 do runner atual |
+| **L2_RUNNER_COMMIT_SHA** | `4cd15b1b0b6afe5a9f10b371eab387ae85bb8205` | Commit de introdução no PR #68 |
+| **FUTURE_LIVE_RUNNER_FREEZE** | `MUST_BE_RECOMPUTED_AFTER_HARDENING` | Qualquer alteração no runner para hardening invalida o SHA atual |
 
 ---
 
@@ -66,87 +74,79 @@ Estabelecer um envelope rigoroso, auditável e imutável para a execução live 
 
 ### OpenAI Pricing
 - **OPENAI_PRICE_STATUS**: `VERIFIED`
-- **OPENAI_PRICING_SOURCE**: [OpenAI Pricing](https://openai.com/api/pricing/) (documentação oficial pública observada)
+- **OPENAI_PRICING_SOURCE_URL**: `https://openai.com/api/pricing/` (documentação oficial pública observada)
 - **OPENAI_PRICING_OBSERVED_AT**: `2026-10-03`
 - **OPENAI_MODEL_PRICED**: `gpt-4o-mini`
 - **INPUT_PRICE**: `$0.15 USD por 1.000.000 tokens` (`$0.00000015 / token`)
 - **CACHED_INPUT_PRICE**: `$0.075 USD por 1.000.000 tokens`
 - **OUTPUT_PRICE**: `$0.60 USD por 1.000.000 tokens` (`$0.00000060 / token`)
-- **PRICING_UNIT**: USD por 1M tokens
+- **PRICING_UNIT**: `USD per 1,000,000 tokens`
 
 ### TypeSafe Pricing
-- **TYPESAFE_PRICE_STATUS**: `VERIFIED`
-- **TYPESAFE_PRICE_SOURCE**: Documentação oficial pública da TypeSafe e evidência empírica das execuções L1A/L1B registradas em `docs/research/PHASE_6_TYPESAFE_L1B_SYNTHETIC_LATENCY_PLAN.md` e `docs/research/PHASE_6_JEV_AUXILIARY_MODEL_GATE.md`
-- **TYPESAFE_PRICE_UNIT**: USD por Bilhão de tokens de entrada (Btok); tokens de saída são gratuitos
-- **TYPESAFE_UNIT_PRICE**: `$42 USD / Btok` (`$0.042 / Mtok`, equivalente a `$0.000000042 / input token`)
+- **TYPESAFE_PRICE_STATUS**: `NOT_VERIFIED`
+- **Motivo da Reclassificação**: A menção histórica a `$42 / Btok` ($0.042 / Mtok) provém de documentos internos de engenharia (ADR-019, planos L1B) e diretórios agregadores de terceiros, mas **não há uma URL pública oficial direta da TypeSafe acessível sem credenciais comprovando o faturamento**.
+- **Regra Aplicada**: Evidência empírica de requisições em L1A/L1B comprova funcionamento técnico, mas NÃO comprova preço de billing. Na ausência de URL oficial pública direta observável, o status é estritamente `NOT_VERIFIED`.
+- **MAX_PROJECTED_TYPESAFE_COST_USD**: `NOT_AUTHORIZABLE_AS_HARD_MAX` (mantido em $0.000294 USD exclusivamente como `PLANNING_ASSUMPTION_NOT_OFFICIALLY_VERIFIED`).
 
 ---
 
-## 5. Request Caps
+## 5. Request Caps & Enforcement Proof
 
-| Parâmetro | Limite Máximo | Justificativa / Derivação |
-| :--- | :--- | :--- |
-| `MAX_TYPESAFE_REQUESTS` | **7** | O dataset contém exatamente 7 casos matcher-positive. TypeSafe só é acionado se matcher retornar `true`. |
-| `MAX_OPENAI_REQUESTS` | **12** | Pior caso teórico: 5 casos matcher-negative (chamam OpenAI diretamente) + 7 casos matcher-positive que eventualmente caiam em rota generativa. |
-| `TOTAL_MAX_PROVIDER_REQUESTS` | **19** | Soma estrita de TypeSafe (7) + OpenAI (12). |
-| `CONCURRENCY` | **1** | Execução puramente serial, caso a caso. |
-| `PROVIDER_RETRIES` | **0** | Nenhum retry automático autorizado. Qualquer falha técnica pontua e é avaliada contra a política de parada. |
-
----
-
-## 6. Token Caps
-
-| Parâmetro | Limite Teórico | Status de Imposição em Tempo de Execução |
-| :--- | :--- | :--- |
-| `MAX_OUTPUT_TOKENS_PER_REQUEST` | **500** | `ENFORCEABLE` (imposto via `maxCompletionTokens: 500` na configuração do `OpenAiConversationModelAdapter`) |
-| `MAX_TOTAL_OUTPUT_TOKENS` | **6.000** | `ENFORCEABLE` (12 requisições * 500 tokens máximos) |
-| `MAX_INPUT_TOKENS_PER_REQUEST` | **1.000** (Jev) / **1.500** (OpenAI) | `BOUNDED_BY_DATASET` (as 12 elocuções do dataset têm entre 15 e 108 caracteres, ~40 tokens; porém **sem validador ativo no runner**) |
-| `MAX_TOTAL_INPUT_TOKENS` | **7.000** (Jev) / **18.000** (OpenAI) | `BOUNDED_BY_DATASET` |
-| **TOKEN_CAP_ENFORCEMENT** | — | **`NOT_ENFORCEABLE_AT_RUNTIME`** (o runner atual não acumula nem valida tokens de entrada antes do envio HTTP) |
+| Parâmetro | Limite | Status de Imposição no Código | Prova por Teste Automatizado |
+| :--- | :--- | :--- | :--- |
+| `MAX_TYPESAFE_REQUESTS` | **7** | `PASS` (guarda pré-chamada em `checkCaps` antes de invocar `evaluateTypeSafeJev`) | `CODE_GUARDED_PRE_CALL_UNIT_TEST_ISOLATION_PENDING` (testado com sucesso em 12 casos, mas teste de exaustão de borda isolada para chamada 8 pendente) |
+| `MAX_OPENAI_REQUESTS` | **12** | `PASS` (guarda pré-chamada em `checkCaps` antes de invocar `executeOpenAiTurn`) | `CODE_GUARDED_PRE_CALL_UNIT_TEST_ISOLATION_PENDING` |
+| `TOTAL_MAX_PROVIDER_REQUESTS` | **19** | `PASS` (guarda em `checkCaps`) | `CODE_GUARDED_PRE_CALL_UNIT_TEST_ISOLATION_PENDING` |
+| `CONCURRENCY` | **1** | `PASS` (execução serial estrita `for` loop) | `PASS` (verificado em suite de testes) |
+| `PROVIDER_RETRIES` | **0** | `PASS` (sem mecanismo de retry configurado) | `PASS` (verificado em suite de testes) |
 
 ---
 
-## 7. Worst-Case Cost Model
+## 6. Token Budget & Semantics
 
-O modelo de custo conservador assume o pior caso em que todos os limites máximos de requisição e tokens de saída são consumidos:
+### Distinção entre Premissas e Limites Fatuais
 
-### 1. Custo TypeSafe / Jev (Worst-Case)
-$$\text{Custo TypeSafe} = \frac{7 \times 1.000 \text{ tokens}}{1.000.000.000} \times \$42 = \$0,000294\text{ USD}$$
-
-### 2. Custo OpenAI `gpt-4o-mini` (Worst-Case)
-- **Input (18.000 tokens a $0.15 / 1M)**:
-  $$\text{Custo Input} = \frac{18.000}{1.000.000} \times \$0,15 = \$0,002700\text{ USD}$$
-- **Output (6.000 tokens a $0.60 / 1M)**:
-  $$\text{Custo Output} = \frac{6.000}{1.000.000} \times \$0,60 = \$0,003600\text{ USD}$$
-- **Total OpenAI**:
-  $$\$0,002700 + \$0,003600 = \$0,006300\text{ USD}$$
-
-### 3. Custo Total Máximo Projetado de Provedores
-$$\text{MAX\_PROJECTED\_TOTAL\_PROVIDER\_COST\_USD} = \$0,000294 + \$0,006300 = \mathbf{\$0,006594\text{ USD}}\ (\approx \$0,0066\text{ USD})$$
-
-*(Mesmo sob hipóteses históricas ultra-conservadoras de 1.500 tokens de entrada médios, o custo total permanece abaixo de $0,11 USD).*
+| Dimensão | Valor | Classificação Semântica | Status de Imposição |
+| :--- | :--- | :--- | :--- |
+| **Output Token Cap por Request** | **500** | `RUNTIME_ENFORCED_OUTPUT_CAP` | `ENFORCEABLE` (imposto via `maxCompletionTokens: 500` na configuração do adapter OpenAI) |
+| **Aggregate Output Token Cap** | **6.000** | `DERIVED_AGGREGATE_OUTPUT_CAP` | `DERIVED_ENFORCEABLE_SUBJECT_TO_CAP_ISOLATION_TEST` (12 chamadas max * 500 tokens max) |
+| **Input Token Assumption (Jev)** | **1.000** | `CONSERVATIVE_PLANNING_ASSUMPTION` | **`NONE`** (sem limitador ou validador ativo no runner) |
+| **Input Token Assumption (OpenAI)** | **1.500** | `CONSERVATIVE_PLANNING_ASSUMPTION` | **`NONE`** (as elocuções sintéticas possuem ~40 tokens, mas não há guarda ativa no código) |
+| **RUNTIME_ENFORCED_INPUT_TOKEN_CAP** | — | — | **`NONE`** |
+| **TOKEN_CAP_ENFORCEMENT** | — | — | **`NOT_ENFORCEABLE_AT_RUNTIME`** (bloqueador obrigatório para execução live) |
 
 ---
 
-## 8. Proposed Operator Cost Ceiling
+## 7. Cost Model & Semantics
 
-- **PROPOSED_L2_OPERATOR_COST_CEILING_USD**: **`$0.25 USD`**
-- **Margem de Segurança**: >35x sobre o pior caso matemático calculado ($0,0066 USD) e >2.3x sobre estimativas históricas superestimadas.
-- **Status do Teto**: **`PROPOSED_NOT_AUTHORIZED`** (aguarda decisão humana explícita em prompt futuro).
+### Cenário de Planejamento (*Planning Scenario*)
+Sob as premissas de planejamento (1.000 tokens in para Jev e 1.500 tokens in + 500 tokens out para OpenAI):
+- **Custo Planejado TypeSafe**:
+  $$rac{7 	imes 1.000}{1.000.000.000} 	imes $42 = $0,000294	ext{ USD}$$
+- **Custo Planejado OpenAI**:
+  $$left(rac{18.000}{1.000.000} 	imes $0,15ight) + left(rac{6.000}{1.000.000} 	imes $0,60ight) = $0,002700 + $0,003600 = $0,006300	ext{ USD}$$
+- **PLANNING_SCENARIO_PROJECTED_COST_USD**:
+  $$$0,000294 + $0,006300 = mathbf{$0,006594	ext{ USD}} (approx $0,0066	ext{ USD})$$
+
+### Semântica de Autorização
+- **HARD_MAX_PROVIDER_COST_STATUS**: **`NOT_ENFORCEABLE`**
+  Como o teto de tokens de entrada não é tecnicamente imposto em runtime pelo runner, e a precificação oficial da TypeSafe está `NOT_VERIFIED`, o valor de $0,006594 **NÃO PODE** ser tratado como teto matemático rígido inviolável.
+- **L2_OPERATOR_COST_CEILING**: **`NOT_AUTHORIZABLE`**
+  A proposta de $0.25 USD permanece registrada como **`PLANNING_PROPOSAL`**, mas NÃO está apta para autorização formal antes do runner hardening.
 
 ---
 
-## 9. Stop Conditions
+## 8. Stop Conditions
 
-A execução deve ser abortada imediatamente (*fail-fast*) com saída estruturada sem retries sob qualquer uma das seguintes condições:
+A execução deve abortar imediatamente (*fail-fast*) sem retries sob:
 1. `STOP_ON_TYPESAFE_MODEL_MISMATCH = YES` (modelo retornado pela TypeSafe difere de `jev-1.13.0`);
 2. `STOP_ON_PROVIDER_AUTH_FAILURE = YES` (erro HTTP 401 ou 403 em qualquer provedor);
 3. `STOP_ON_TIMEOUT_POLICY_BREACH = YES` (requisição excede `RESEARCH_HARNESS_TIMEOUT_MS = 5000ms`);
 4. `STOP_ON_CONSECUTIVE_FAILURES = YES` (3 falhas técnicas consecutivas);
 5. `STOP_ON_REQUEST_CAP_REACHED = YES` (tentativa de exceder 7 chamadas Jev, 12 chamadas OpenAI ou 19 totais);
 6. `STOP_ON_DATASET_HASH_MISMATCH = YES` (hash SHA-256 do dataset difere de `bd812341a9...`);
-7. `STOP_ON_RUNNER_HASH_OR_SHA_MISMATCH = YES` (código do runner alterado em relação à versão aprovada);
-8. `STOP_ON_UNEXPECTED_NETWORK_TARGET = YES` (qualquer conexão fora dos endpoints autorizados de TypeSafe e OpenAI);
+7. `STOP_ON_RUNNER_HASH_OR_SHA_MISMATCH = YES` (runner divergir do SHA congelado pós-hardening);
+8. `STOP_ON_UNEXPECTED_NETWORK_TARGET = YES` (qualquer conexão fora dos endpoints autorizados);
 9. `STOP_ON_UNEXPECTED_DB_ACCESS = YES` (qualquer tentativa de conexão a banco de dados local ou nuvem);
 10. `STOP_ON_UNEXPECTED_TWILIO_ACCESS = YES` (qualquer tentativa de carregar ou chamar Twilio);
 11. `STOP_ON_HOLDOUT_ACCESS = YES` (qualquer tentativa de leitura do dataset de holdout);
@@ -154,37 +154,36 @@ A execução deve ser abortada imediatamente (*fail-fast*) com saída estruturad
 
 ---
 
-## 10. Exact Proposed Live Command
+## 9. Live Command Semantics
 
-Comando proposto para futura execução:
+### Comando Incompleto Planejado:
 ```bash
 node scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs --cost-ceiling 0.25
 ```
 
-### Status de Execução do Comando:
+### Status:
 **`LIVE_COMMAND_STATUS = LIVE_COMMAND_NOT_YET_AUTHORIZABLE`**
+**`LIVE_COMMAND = NOT_YET_DEFINED`**
 
-**Lacunas / Pré-condições ausentes no runner atual:**
-1. A constante `OPENAI_PRICE_STATUS` está fixada como `'NOT_VERIFIED'` em código (`run-jev-openai-l2-synthetic-integration.mjs:30`), bloqueando a execução por `FATAL_LIVE_PREAUTH_BLOCKED`;
-2. O runner em `process.argv` não repassa a flag `allowLiveExecution: true` ao chamar `runL2Benchmark()`;
-3. Falta validação de limite de tokens em runtime (`TOKEN_CAP_ENFORCEMENT`).
-
-*Conforme regras de governança, o runner NÃO é modificado neste slice documental.*
+**Motivos:**
+1. O CLI atual não aceita nem repassa a flag `--allow-live` necessária para contornar a guarda `validatePreconditions`;
+2. A constante `OPENAI_PRICE_STATUS` está fixada como `'NOT_VERIFIED'` no runner;
+3. O comando exato será formalmente congelado somente após o hardening do runner e cálculo do novo hash SHA-256.
 
 ---
 
-## 11. Artifact Contract
+## 10. Artifact Contract
 
 - **Caminho de Saída**: `docs/research/results/phase-6-l2-real-jev-openai-synthetic-run1.json`
 - **Sanitização Obrigatória**:
   - `transcripts`: Apenas elocuções sintéticas aprovadas do dataset;
   - `secrets`: Proibido conter chaves de API, tokens Bearer, headers Authorization ou variáveis de ambiente;
-  - `raw_scores`: Opcional, estruturado conforme schema aprovado;
-  - `customer_data`: 0.
+  - `customer_data`: 0;
+  - `holdout_data`: 0.
 
 ---
 
-## 12. Isolation Guarantees
+## 11. Isolation Guarantees
 
 | Invariante | Status | Garantia |
 | :--- | :--- | :--- |
@@ -199,34 +198,39 @@ node scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs --cost
 
 ---
 
-## 13. Authorization Matrix
+## 12. Preauthorization Decision Matrix
 
 | Requisito / Gate | Status Observado | Bloqueia Execução Live? |
 | :--- | :--- | :--- |
 | Dataset Frozen & Verificado | `PASS` (`bd812341a9...`) | Não |
-| Runner Frozen & Rastreado | `PASS` (`89c42ced37...`) | Não |
+| Runner Hardening & Re-Freeze | **`PENDING_HARDENING`** | **SIM** |
 | TypeSafe Model Frozen (`jev-1.13.0`) | `PASS` | Não |
 | OpenAI Model Frozen (`gpt-4o-mini`) | `PASS` | Não |
-| TypeSafe Pricing Verified | `PASS` (`$42 / Btok`) | Não |
 | OpenAI Pricing Verified | `PASS` (`$0.15 / 1M in`, `$0.60 / 1M out`) | Não |
-| Request Caps Enforceable | `PASS` (7 / 12 / 19) | Não |
+| TypeSafe Pricing Verified | **`NOT_VERIFIED`** (sem URL oficial pública de billing) | **SIM** |
+| Request Caps Pre-Call Guarded | `PASS` (guarda presente em código) | Não |
+| Request Caps Boundary Unit Tests | **`PENDING_ISOLATED_TESTS`** | **SIM** |
 | Token Caps Enforceable em Runtime | **`NOT_ENFORCEABLE_AT_RUNTIME`** | **SIM** |
-| CLI Live Preconditions no Runner | **`BLOCKED (hardcoded NOT_VERIFIED no runner)`** | **SIM** |
-| Teto Financeiro Aprovado pelo Operador | **`PROPOSED_NOT_AUTHORIZED`** | **SIM** |
+| CLI Live Preconditions no Runner | **`BLOCKED (hardcoded NOT_VERIFIED / sem --allow-live)`** | **SIM** |
+| Teto Financeiro Autorizado pelo Operador | **`NOT_AUTHORIZABLE`** (aguarda caps executáveis) | **SIM** |
 | Autorização Humana Explícita | **`AWAITING_HUMAN_DECISION`** | **SIM** |
 
 ---
 
-## 14. Remaining Blockers
+## 13. Remaining Blockers para Execução Live
 
-1. **`BLOCKED_FOR_RUNNER_LIVE_FLAGS`**: O runner necessita de ajuste pontual para aceitar `--allow-live` via CLI e refletir o `OPENAI_PRICE_STATUS = VERIFIED`;
-2. **`BLOCKED_FOR_TOKEN_CAP_ENFORCEMENT`**: O runner deve conter guarda ativa ou verificação explícita de limite de tokens antes da execução de rede;
-3. **`BLOCKED_FOR_OPERATOR_AUTHORIZATION`**: O operador humano deve aprovar formalmente o teto de $0.25 USD e autorizar a execução em prompt posterior.
+1. **`BLOCKED_FOR_RUNNER_HARDENING`**: O runner necessita de hardening em slice de código dedicado para:
+   - Aceitar e propagar flag `--allow-live` via CLI;
+   - Atualizar/injetar `OPENAI_PRICE_STATUS = VERIFIED`;
+   - Implementar guarda de limite de tokens de entrada em tempo de execução (`TOKEN_CAP_ENFORCEMENT`);
+   - Adicionar testes de borda isolados comprovando o bloqueio de requisições excedentes antes da chamada de rede;
+2. **`BLOCKED_FOR_TYPESAFE_OFFICIAL_BILLING_EVIDENCE`**: Ausência de URL pública oficial confirmando faturamento da TypeSafe a $42/Btok;
+3. **`BLOCKED_FOR_OPERATOR_AUTHORIZATION`**: Autorização formal do operador humano para o teto de gastos e execução de rede, após conclusão do hardening e novo freeze.
 
 ---
 
-## 15. Human Authorization Required
+## 14. Classificação Final do Envelope
 
-- [ ] Autorização do teto de gastos: `$0.25 USD`
-- [ ] Autorização de ajuste pontual das pré-condições do runner L2 (CLI flag `--allow-live` e token cap guard)
-- [ ] Autorização explícita de tráfego de rede para os endpoints reais da TypeSafe e OpenAI
+**`PREAUTH_STATUS = PREAUTH_BLOCKED_FOR_RUNNER_HARDENING_AND_TOKEN_CAPS`**
+
+*(Proibido classificar como `PREAUTH_READY`, `AUTHORIZED` ou `EXECUTED`).*
