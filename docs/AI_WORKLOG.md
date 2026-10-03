@@ -12961,3 +12961,102 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **Custo OpenAI**: valores derivados de preço não verificado (GPT-4o) removidos; `MAX_PROJECTED_OPENAI_COST = PENDING PRICE VERIFICATION`; teto ao operador `NOT PROPOSED`.
 - **Provider calls**: TypeSafe 0, OpenAI 0, Twilio 0. ENV_LOADED = NO. DB = NO. HOLDOUT_OPENED = NO. FROZEN_POLICY_CHANGED = NO. ACTIVE_GUARDED = BLOCKED.
 - **CORRECTION_IMPACT**: DOCUMENTATION + RESEARCH DATASET ONLY.
+
+---
+
+## 2026-10-03 — L2 Runner Implementation & Offline Matrix Validation (Slice 006AO)
+
+### 1. Parâmetros de Bootstrap e Governança
+- **Prompt ID**: `PROMPT-006AO-L2-RUNNER-PREAUTH-PREPARATION-OFFLINE-001`
+- **Fase**: Phase 6 (Voice Model Routing & Jev Evaluation)
+- **Base SHA (origin/main)**: `ce12952c5b812c0594a3d955e53df455c9c32654`
+- **PR #67 Status**: `MERGED` (merge commit `ce12952c5b812c0594a3d955e53df455c9c32654`)
+- **Bootstrap Status**: `CURRENT_AFTER_SELF_MERGE`
+- **Branch**: `research/006ao-l2-runner-preauth`
+- **Slice**: L2 Runner Implementation & Preauthorization Preparation (Offline Validation)
+- **Provider Calls neste Slice**: TypeSafe = 0, OpenAI = 0, Twilio = 0
+- **ENV_LOADED**: `NO`
+- **DB_CONNECTED**: `NO`
+- **HOLDOUT_OPENED**: `NO` (`LOCKED_HOLDOUT = CONSUMED` preservado)
+- **FROZEN_POLICY_CHANGED**: `NO`
+- **ACTIVE_GUARDED**: `BLOCKED`
+- **PRODUCTION_RUNTIME_WIRING**: `NO`
+- **CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE**: `NOT CLEARED`
+- **PRODUCTION_JEV_TIMEOUT_MS**: `NOT SELECTED`
+- **PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY**: `NOT SELECTED`
+- **TWILIO_ACCOUNT_REQUIRED_NOW**: `NO`
+
+### 2. Verificação do Dataset L2 Congelado
+- **Caminho**: `scripts/benchmarks/voice/jev-openai-l2-synthetic-integration-v1-cases.json`
+- **Versão**: `1.0.1` (UTF-8 limpo)
+- **Total de Casos**: `12`
+- **SHA-256 Calculado**: `bd812341a922ded1c7159191849dae284a88f24afd9c7e8d3c64f9b081602f3f` (EXACT MATCH)
+- **Matcher Real Contagens**:
+  - `matcher === true`: `7` casos (Groups A e B)
+  - `matcher === false`: `5` casos (Groups C e D)
+  - Conformidade com labels: 12 de 12 (100%)
+
+### 3. Implementação do Runner L2 Dedicado
+- **Caminho do Runner**: `scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs`
+- **Reutilização de Componentes**:
+  - Matcher real: `matchesOperatingHoursCapability` (`apps/voice/src/operating-hours-capability-matcher.ts`)
+  - Frozen Policy real: `interpretFrozenTurnPolicy` (`apps/voice/src/frozen-policy-interpreter.ts`)
+  - TypeSafe Adapter: `TypeSafeJevTurnDecisionAdapter` (`packages/integrations/src/typesafe/typesafe-jev-turn-decision-adapter.ts`)
+  - OpenAI Adapter: `OpenAiConversationModelAdapter` (`packages/integrations/src/openai/openai-conversation-model-adapter.ts`)
+  - Turn Handler: `handleOperatingHoursTurn` (`apps/voice/src/operating-hours-turn-handler.ts`)
+- **Hard Caps Invariáveis**:
+  - `MAX_TYPESAFE_REQUESTS`: `7`
+  - `MAX_OPENAI_REQUESTS`: `12`
+  - `TOTAL_MAX_PROVIDER_REQUESTS`: `19`
+  - `CONCURRENCY`: `1` (serial)
+  - `RETRIES`: `0`
+- **Semântica Matcher-First e Roteamento**:
+  - `matcher === false` → TypeSafe = 0; OpenAI = 1; Route = `GENERATIVE`
+  - `matcher === true` → TypeSafe = 1; avalia Frozen Policy:
+    - `SECURITY_ESCALATE` (securityScore >= 0.56) → OpenAI = 0; Route = `SECURITY_BLOCKED`
+    - `DETERMINISTIC_CANDIDATE` (deterministicScore >= 0.35 && generativeScore <= 0.47) → OpenAI = 0; Route = `DETERMINISTIC_RESPONSE`
+    - `GENERATIVE_REQUIRED` (demais casos) → OpenAI = 1; Route = `GENERATIVE`
+- **Sanitização do Artefato de Resultados**:
+  - Zero transcrições do usuário persistidas (`callerTranscript` omitido)
+  - Zero payloads brutos de request ou response
+  - Zero chaves de API, headers de autorização ou variáveis de ambiente
+  - Zero scores de roteamento numéricos em dados de caso
+
+### 4. Suíte de Testes e Validação Offline (Matrix A-T)
+- **Arquivo de Testes**: `packages/integrations/src/typesafe/jev-openai-l2-synthetic-runner.test.ts`
+- **Comando Executado**: `pnpm --dir D:\voice-agent-platform-git exec vitest run packages/integrations/src/typesafe/jev-openai-l2-synthetic-runner.test.ts`
+- **Resultado Observado**: `8 passed (8 tests), 0 failures, 0 skips` (159ms)
+- **Cobertura da Matriz de Validação Offline**:
+  - `Matrix A`: SHA-256 e contagem do dataset (12 casos) — `PASS`
+  - `Matrix B & C`: Contagens reais do matcher (7 true, 5 false) — `PASS`
+  - `Matrix D`: Matcher false suprime TypeSafe completamente (TypeSafe = 0) — `PASS`
+  - `Matrix E, F, G, H, I`: Teto de requisições (7 / 12 / 19), 0 retries, concorrência 1 — `PASS`
+  - `Matrix J, K, L, M, N, O`: Despacho determinístico, segurança e generativo com contagens exatas de chamadas OpenAI (Det=0, Sec=0, Gen=1) e cadeia conjunta (`coreJointChainObserved`) — `PASS`
+  - `Matrix P`: Exatamente um route owner final por caso — `PASS`
+  - `Matrix Q, R, S, T`: Sanitização estrita de artefato (sem transcrições, payloads, tokens ou scores) — `PASS`
+  - `Model Mismatch Guard`: Prova de fail-safe e stop imediato sob divergência de modelo — `PASS`
+
+### 5. Verificação de Preço e Modelo de Custo Conservador
+- **TypeSafe Jev**:
+  - Modelo Solicitado: `jev-1.13.0`
+  - Preço: `$42 / Btok` ($0.000000042 / token)
+  - Limite Conservador de Input Tokens: 1.000 tokens / request
+  - Requisições Máximas: 7
+  - Max Projected Input Tokens: 7.000 tokens
+  - `MAX_PROJECTED_TYPESAFE_COST_USD`: `$0.000294 USD`
+- **OpenAI**:
+  - Modelo: `gpt-4o-mini` (ou modelo configurado via `OPENAI_CONVERSATION_MODEL`)
+  - Limite Conservador de Tokens: 1.500 input tokens + 500 output tokens por request
+  - Requisições Máximas: 12
+  - Max Projected Input Tokens: 18.000 tokens
+  - Max Projected Output Tokens: 6.000 tokens
+  - Projeção sob modelo conservador (cobrindo até tier standard): `$0.105 USD`
+- **Projeção Total e Teto Proposto**:
+  - `MAX_PROJECTED_TOTAL_COST_USD`: `~$0.1053 USD`
+  - `PROPOSED_OPERATOR_COST_CEILING`: `$0.25 USD` (>2x margem de segurança)
+
+### 6. Próximo Passo
+- Submeter PR no GitHub via GitHub MCP com implementação do runner e suíte de testes offline.
+- Executar secret audit final boolean-only em `git diff origin/main...HEAD` (`SECRET_AUDIT_PASS`).
+- Aguardar pré-autorização expressa do operador humano antes de qualquer execução live.
+- `L2_EXECUTION`: `NOT EXECUTED`.

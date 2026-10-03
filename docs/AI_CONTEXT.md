@@ -4,14 +4,14 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-03
-CONTEXT_BASE_MAIN_SHA: b1734fc664f1aaa717c6fdfca87bfd4bab6f269e
+CONTEXT_BASE_MAIN_SHA: ce12952c5b812c0594a3d955e53df455c9c32654
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
-CURRENT_SLICE: L2 Real Jev + Real OpenAI + Synthetic Transcript Planning
-CONTEXT_UPDATE_BRANCH: research/006an-l2-real-jev-openai-synthetic-plan
-CONTEXT_UPDATE_PR: 67
-LAST_MERGED_PR_AT_REFRESH: 66
-LAST_MERGE_SHA_AT_REFRESH: b1734fc664f1aaa717c6fdfca87bfd4bab6f269e
-LAST_TESTED_CODE_SHA: cf1336285a18d9359b7b9a5d7a87def70e6595f9
+CURRENT_SLICE: L2 Runner / Preauthorization Preparation
+CONTEXT_UPDATE_BRANCH: research/006ao-l2-runner-preauth
+CONTEXT_UPDATE_PR: NOT_ASSIGNED_YET
+LAST_MERGED_PR_AT_REFRESH: 67
+LAST_MERGE_SHA_AT_REFRESH: ce12952c5b812c0594a3d955e53df455c9c32654
+LAST_TESTED_CODE_SHA: ce12952c5b812c0594a3d955e53df455c9c32654
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
 AI_CONTEXT_HEADER_END
@@ -87,7 +87,7 @@ AI_CONTEXT_HEADER_END
 - **EXPECTED_MODEL_AUTHORITY**: `OPTION_B` (TypeSafe adapter integration config: options.expectedProviderModel).
 - **L1A_MODEL_IDENTITY_SMOKE**: `EXECUTED / PASS` (N=20/20 sucessos com exact match `jev-1.13.0`, 0 mismatches, 0 erros técnicos, mediana descritiva 275ms, p90 316ms, max 685ms; SHA-256 `698c5e2a3b91...`; `docs/research/results/phase-6-typesafe-l1a-model-identity-smoke-run1.json`).
 - **L1B_SYNTHETIC_LATENCY_STUDY**: L1B_PLAN = EXECUTED / PASS_COMPLETE | L1B_RUNNER = IMPLEMENTED / TESTED OFFLINE | L1B_EXECUTION = EXECUTED / PASS_COMPLETE (100 attempted / 100 succeeded, 100/100 model matches jev-1.13.0, 0 mismatches, 0 erros técnicos, 0 timeouts; latência DESCRIPTIVE_ONLY: min 229ms, mediana 257ms, p75 273ms, p90 302ms, p95 325ms, p99 empirical 380ms, max 385ms; SHA-256 f087a6e3ad83fc81b272ffd775d5e66d00c6e7c918d310ca54f45237d59f1cdb; docs/research/results/phase-6-typesafe-l1b-synthetic-latency-run1.json) | L1B_PROVIDER_EXECUTION = EXECUTED.
-- **L2_REAL_JEV_OPENAI_SYNTHETIC**: L2_PLAN = DESIGNED (`docs/research/PHASE_6_L2_REAL_JEV_OPENAI_SYNTHETIC_PLAN.md`) | L2_DATASET = CREATED (N=12, SHA-256 `bd812341a922...`; `scripts/benchmarks/voice/jev-openai-l2-synthetic-integration-v1-cases.json`) | L2_EXECUTION = NOT EXECUTED | L2_PROVIDER_CALLS = 0.
+- **L2_REAL_JEV_OPENAI_SYNTHETIC**: L2_PLAN = DESIGNED (`docs/research/PHASE_6_L2_REAL_JEV_OPENAI_SYNTHETIC_PLAN.md`) | L2_DATASET = CREATED (N=12, SHA-256 `bd812341a922...`; `scripts/benchmarks/voice/jev-openai-l2-synthetic-integration-v1-cases.json`) | L2_RUNNER = IMPLEMENTED / TESTED OFFLINE (`scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs`, 8/8 unit tests pass in `packages/integrations/src/typesafe/jev-openai-l2-synthetic-runner.test.ts`) | L2_EXECUTION = NOT EXECUTED | L2_PROVIDER_CALLS = 0 | L2_PROVIDER_EXECUTION = AWAITING_OPERATOR_AUTHORIZATION.
 - **SECURITY_RUNTIME_SEMANTICS**: `DESIGNED` (`docs/research/PHASE_6_SECURITY_ESCALATE_RUNTIME_SEMANTICS.md`).
 - **SECURITY_RESPONSE_DELIVERY_READY**: `IMPLEMENTED LOCALLY / ROUTING INTEGRATED`.
 - **SECURITY_HISTORY_PERSISTENCE_READY**: `IMPLEMENTED LOCALLY (Turn-scoped qualified H4/H5 history resolution)`.
