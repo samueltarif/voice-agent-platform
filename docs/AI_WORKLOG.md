@@ -14536,3 +14536,50 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **runtime semantics changed**: `NO`
 - **NEXT_ALLOWED_STEP**: `HUMAN_REVIEW_OF_PR76`
 - **NEXT_REQUIRED_STEP_AFTER_MERGE**: `RUNTIME_CREDENTIAL_PRESENCE_VERIFICATION`
+
+---
+
+## 2026-10-03 — Slice 006AX L2 Runtime Credential Presence Verification
+
+### 1. Demanda e Contexto
+- **Slice**: `006AX`
+- **Branch**: `research/006ax-l2-runtime-credential-presence`
+- **Objetivo**: Realizar a verificação offline e estritamente booleana da presença das variáveis de processo obrigatórias (`OPENAI_API_KEY` e `TYPESAFE_API_KEY`) no ambiente do processo atual (`process.env`), sem inspecionar ou exibir valores e sem recorrer a arquivos `.env`.
+
+### 2. Governança e Blindagem de Segredos
+- **ENV_FILE_READ_OCCURRED**: `NO` (nenhuma leitura, busca ou abertura de arquivos `.env`).
+- **ENVIRONMENT_DUMP_OCCURRED**: `NO` (nenhum dump ou enumeração irrestrita de variáveis de ambiente).
+- **CREDENTIAL_VALUE_PRINTED**: `NO`.
+- **CREDENTIAL_LENGTH_PRINTED**: `NO`.
+- **CREDENTIAL_PREFIX_OR_SUFFIX_PRINTED**: `NO`.
+- **FORBIDDEN_IDE_INTERNAL_STORAGE_ACCESSED**: `NO`.
+
+### 3. Evidência Factual Observada
+- **SOURCE_MAIN_SHA**: `2dcc1d4910d2686d56268a28bebf168d8e4bca39`
+- **HUMAN_SECRET_ROTATION_STATUS**: `REPORTED_COMPLETE_BY_OPERATOR` (relato humano de renovação registrado formalmente).
+- **SECRET_ROTATION_EVIDENCE_CLASSIFICATION**: `HUMAN_REPORTED_NOT_TOOL_VERIFIED`.
+- **OPENAI_CREDENTIAL_AVAILABLE**: `NO` (ausente ou vazia no processo atual).
+- **TYPESAFE_CREDENTIAL_AVAILABLE**: `NO` (ausente ou vazia no processo atual).
+- **BOTH_REQUIRED_CREDENTIALS_AVAILABLE**: `NO`.
+- **RUNTIME_CREDENTIAL_PRESENCE_VERIFICATION**: `BLOCKED` (regra fail-closed: parada imediata de promoção de prontidão técnica).
+- **RUNTIME_CREDENTIAL_AVAILABILITY**: `MISSING_REQUIRED_PROCESS_ENVIRONMENT_VARIABLE`.
+- **CREDENTIAL_VALIDITY**: `NOT_VERIFIED`.
+- **CREDENTIAL_PROVIDER_ACCEPTANCE**: `NOT_VERIFIED`.
+- **CREDENTIAL_PERMISSIONS**: `NOT_VERIFIED`.
+
+### 4. Isolamento e Governança de Execução
+- **OpenAI real**: `0`
+- **TypeSafe real**: `0`
+- **Twilio**: `0`
+- **Cloud DB**: `0`
+- **Holdout**: `NO ACCESS`
+- **PROVIDER_SPEND_USD**: `0`
+- **LIVE_COMMAND_INVOKED**: `NO`
+- **CURRENT_L2_EXECUTION**: `NOT_AUTHORIZED`
+- **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+- **PREVIOUS_OPERATOR_COST_CEILING_USD**: `0.96` (`CONSUMED_SINGLE_RUN_AUTHORIZATION`)
+- **NEW_OPERATOR_COST_CEILING**: `NOT_YET_AUTHORIZED`
+- **L2_TECHNICAL_READINESS_BEFORE_HUMAN_AUTHORIZATION**: `BLOCKED_BY_RUNTIME_CREDENTIAL_PRESENCE`
+- **NEXT_REQUIRED_STEP**: `HUMAN_RUNTIME_CREDENTIAL_CONFIGURATION`
+- **PR_MERGE_PERFORMED**: `NO`
