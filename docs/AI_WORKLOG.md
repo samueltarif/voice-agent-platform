@@ -12552,3 +12552,64 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **PRODUCTION_JEV_TIMEOUT_MS**: `NOT SELECTED` (L1B produzirá dados descritivos; decisão desacoplada)
 - **PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY**: `NOT SELECTED`
 - **NEXT_ALLOWED_STEP**: Revisão do plano e pré-autorização humana da execução L1B.
+
+---
+
+## 2026-10-02 — PR #65 L1B Latency Plan Hardening & Preauthorization Closure (Slice 006AK)
+
+### 1. Identificação do Evento e Contexto Operacional
+- **Prompt**: `PROMPT-006AK-PR65-L1B-PLAN-HARDENING-AND-MERGE-001`
+- **Fase**: Phase 6 (Voice Model Routing & Jev Evaluation)
+- **PR**: #65 (`research/006ak-l1b-synthetic-latency-plan`)
+- **Classificação**: `DOCUMENTATION_AND_PREAUTH_HARDENING`
+- **Zero Chamadas a Provedores**: TypeSafe = 0, OpenAI = 0, Twilio = 0.
+- **ENV_LOADED**: `NO`
+- **ENV_INSPECTED**: `NO`
+- **DB_CONNECTION**: `NO`
+- **HOLDOUT_OPENED**: `NO` (`LOCKED_HOLDOUT = CONSUMED` preservado integralmente).
+- **FROZEN_POLICY_CHANGED**: `NO`
+- **ACTIVE_GUARDED**: `BLOCKED`
+
+### 2. Correção de Erro Aritmético Textual de Custo
+- **PR65_COST_UNIT_TEXT_ERROR**: `YES`
+- **CATEGORY**: `DOCUMENTATION_ARITHMETIC_ERROR`
+- **FUNCTIONAL_IMPACT**: `NONE`
+- **PROVIDER_CALL_IMPACT**: `NONE`
+- **Correção Aplicada**: O valor de referência de $42 / Btok equivale matematicamente a **$0.000000042 USD por token de entrada** ($42 / 1.000.000.000 tokens), e não $0.000042 por token como constava em menção intermediária do documento preliminar.
+- **Valores Projetados Corrigidos**:
+  - $20.000\text{ tokens} \times \$0.000000042 = \$0.00084\text{ USD}$
+  - $50.000\text{ tokens} \times \$0.000000042 = \$0.00210\text{ USD}$
+- **PRICE_SOURCE_STATUS_FOR_FUTURE_EXECUTION**: `MUST_REVERIFY_BEFORE_LIVE`.
+
+### 3. Eliminação da Ambiguidade N=100 vs. N=200 & Separação de Concorrência
+- **N100_N200_AUTHORIZATION_AMBIGUITY**: `RESOLVED`
+- **L1B_RUN1_PURPOSE**: `SERIAL LATENCY BASELINE`
+- **L1B_RUN1_DATASET_CASES**: `100`
+- **L1B_RUN1_CONCURRENCY**: `1` (sequencial puro)
+- **L1B_RUN1_MAX_PROVIDER_REQUESTS**: `100`
+- **L1B_RUN1_RETRIES**: `0`
+- **LOW_CONCURRENCY_RUN (`L1B_CONCURRENCY_2_EXPLORATION`)**: `DEFERRED / NOT AUTHORIZED` (desmembrado para slice futuro independente).
+- **Significado de `AUTORIZO_L1B_TYPESAFE_N100 = YES`**: Rigorosamente limitado a no máximo 100 requisições sequenciais.
+
+### 4. Auditoria Factual do Dataset Sintético
+- **Dataset Path**: `scripts/benchmarks/voice/jev-l1b-synthetic-latency-v1-cases.json`
+- **Dataset SHA-256**: `952da0c7a6a10447baa9e24a976543e06b7480eb9bdef98096242d5276188136` (preservado e inalterado)
+- **Total de Casos**: `100`
+- **Métricas Factuais por Faixa**:
+  - `SHORT` (35 casos): 24-60 caracteres, 6-15 tokens estimados (mediana: 12 tokens)
+  - `MEDIUM` (40 casos): 110-130 caracteres, 28-33 tokens estimados (mediana: 31 tokens)
+  - `LONG` (25 casos): 284-361 caracteres, 71-90 tokens estimados (mediana: 84 tokens)
+- **Token Terminology**: `HEURISTIC_ESTIMATED_TOKENS` (`TOKENIZER_VERIFIED = NO`, `PROVIDER_REPORTED_INPUT_TOKENS = NOT AVAILABLE / NOT EXECUTED`).
+- **REAL_CUSTOMER_DATA**: `0`
+- **REAL_CUSTOMER_PII**: `0`
+- **SYNTHETIC_PERSON_LIKE_REFERENCES**: `YES` (nomes médicos fictícios e referências familiares sintetizadas)
+- **SYNTHETIC_HEALTH_CONTEXT**: `YES` (100% dos estímulos contextualizados em recepção clínica/hospitalar)
+- **L1B_LATENCY_GENERALIZATION**: `LIMITED TO THIS SYNTHETIC STIMULUS DISTRIBUTION`
+
+### 5. Endurecimento de Salvaguardas e Fronteiras
+- **Paradas Obrigatórias**: HTTP 401/403, violação de teto de custo ($0.10), divergência de hash de dataset, mismatch de modelo (`providerModel != 'jev-1.13.0'`).
+- **RESEARCH_SAFETY_HEURISTIC**: Parada preventiva em caso de 3 falhas técnicas consecutivas (salvaguarda de pesquisa, não circuit-breaker de produto).
+- **PRODUCTION_JEV_TIMEOUT_MS**: `NOT SELECTED` (4000ms é deadline de observação experimental).
+- **PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY**: `NOT SELECTED`.
+- **Wording de Harness**: Corrigido de "transporte fake" para `NO TELEPHONY / STANDALONE BENCHMARK`.
+- **NEXT_ALLOWED_STEP**: L1B Run 1 Preauthorization + Runner Preparation (OFFLINE FIRST).

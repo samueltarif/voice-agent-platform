@@ -413,8 +413,8 @@ A promoção para produção deve seguir rigorosamente a escada de validação i
   ▼
 [L1B: Real Jev + Synthetic Latency Study]
   │  Status: PLAN DESIGNED / NOT EXECUTED (docs/research/PHASE_6_TYPESAFE_L1B_SYNTHETIC_LATENCY_PLAN.md)
-  │  Harness: Bateria sintética de latência (N=100 em scripts/benchmarks/voice/jev-l1b-synthetic-latency-v1-cases.json), transporte fake
-  │  Objetivo: Coletar distribuição empírica de latência para subsidiar seleção de timeout de produção
+  │  Harness: Bateria sintética de latência (N=100 em scripts/benchmarks/voice/jev-l1b-synthetic-latency-v1-cases.json), NO TELEPHONY / STANDALONE BENCHMARK
+  │  Objetivo: Coletar distribuição empírica descritiva de latência (N=100 serial), sem dados de clientes
   ▼
 [L2: Real Jev + Real OpenAI + Synthetic Transcript]
   │  Status: PENDING L1
