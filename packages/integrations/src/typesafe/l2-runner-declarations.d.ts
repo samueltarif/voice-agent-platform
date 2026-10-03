@@ -14,17 +14,36 @@ declare module '../../../../scripts/benchmarks/voice/run-jev-openai-l2-synthetic
   export const MAX_TYPESAFE_INPUT_TOKENS_PER_REQ: number;
   export const TYPESAFE_HISTORICAL_PROJECTED_COST_USD: number;
   export const MAX_PROJECTED_TYPESAFE_COST_USD: number;
+  export const TYPESAFE_PRICE_STATUS: string;
   export const OPENAI_PRICE_STATUS: string;
   export const PROPOSED_COST_CEILING_USD: number;
+  export const MAX_TYPESAFE_INPUT_CHARS_PER_REQ: number;
+  export const MAX_OPENAI_INPUT_CHARS_PER_REQ: number;
+  export const RUNTIME_ENFORCED_INPUT_TOKEN_CAP: string;
+  export const TOKEN_CAP_ENFORCEMENT: string;
 
   export class OfflineNetworkDeniedError extends Error {}
+  export class InputBudgetExceededError extends Error {}
 
   export function computeSha256(content: string): string;
   export function createDenyNetworkFetch(): (url: string, init?: RequestInit) => Promise<never>;
+  export function parseCliArgs(customArgs?: string[]): L2BenchmarkOptions;
   export function parseCostCeiling(
     customArgs?: string[],
     customEnv?: Record<string, string | undefined>,
   ): number;
+  export function validateTypeSafeInputBudget(callerTranscript: string): void;
+  export function validateOpenAiInputBudget(
+    messages: Array<{ role: string; content?: string }>,
+  ): void;
+  export function checkCaps(
+    state: {
+      totalProviderRequestsAttempted: number;
+      typeSafeRequestsAttempted: number;
+      openAiRequestsAttempted: number;
+    },
+    targetProvider: 'TYPESAFE' | 'OPENAI',
+  ): string | null;
   export function classifyTypeSafeError(
     err: unknown,
     isTimedOut: boolean,
@@ -103,6 +122,10 @@ declare module '../../../../scripts/benchmarks/voice/run-jev-openai-l2-synthetic
       projectedCostCeilingUsd: number;
       pricePerBtokTypeSafe: number;
       openAiPriceStatus: string;
+      runtimeEnforcedInputTokenCap?: string;
+      tokenCapEnforcement?: string;
+      maxTypeSafeInputChars?: number;
+      maxOpenAiInputChars?: number;
     };
     aggregates: {
       matcherEvaluations: number;
@@ -124,5 +147,69 @@ declare module '../../../../scripts/benchmarks/voice/run-jev-openai-l2-synthetic
     cases: L2CaseResult[];
   }
 
+  export interface TypeSafeTurnEvaluationResult {
+    output: unknown;
+    errorResult: {
+      technicalStatus: string;
+      errorCategory: string;
+      shouldStop: boolean;
+      latencyMs: number | null;
+      observedModel: string | null;
+    } | null;
+    latencyMs: number;
+    observedModel: string | null;
+  }
+
+  export interface OpenAiTurnExecutionResult {
+    technicalStatus: string;
+    errorCategory: string | null;
+    shouldStop: boolean;
+    latencyMs: number | null;
+  }
+
   export function runL2Benchmark(options?: L2BenchmarkOptions): Promise<L2ResultArtifact>;
+  export function executeCli(
+    args?: string[],
+    env?: Record<string, string | undefined>,
+    customLogger?: {
+      log: (...args: unknown[]) => void;
+      warn: (...args: unknown[]) => void;
+      error: (...args: unknown[]) => void;
+    },
+  ): Promise<number>;
+  export function evaluateTypeSafeJev(params: {
+    typeSafeAdapter: { evaluateTurn: (...args: unknown[]) => Promise<unknown> };
+    caseData: { caseId: string; syntheticCallerUtterance: string };
+    state: {
+      typeSafeRequestsAttempted: number;
+      typeSafeRequestsSucceeded: number;
+      openAiRequestsAttempted: number;
+      openAiRequestsSucceeded: number;
+      totalProviderRequestsAttempted: number;
+      technicalFailures: number;
+      timeouts: number;
+      consecutiveFailures: number;
+      typeSafeMismatch: boolean;
+    };
+    deps: unknown;
+    logger: { error: (...args: unknown[]) => void };
+    timeoutMs: number;
+  }): Promise<TypeSafeTurnEvaluationResult>;
+  export function executeOpenAiTurn(params: {
+    openAiAdapter: { streamTurn: (...args: unknown[]) => Promise<unknown> };
+    caseData: { caseId: string; syntheticCallerUtterance: string };
+    state: {
+      typeSafeRequestsAttempted: number;
+      typeSafeRequestsSucceeded: number;
+      openAiRequestsAttempted: number;
+      openAiRequestsSucceeded: number;
+      totalProviderRequestsAttempted: number;
+      technicalFailures: number;
+      timeouts: number;
+      consecutiveFailures: number;
+      generativeCount?: number;
+    };
+    logger: { error: (...args: unknown[]) => void };
+    timeoutMs: number;
+  }): Promise<OpenAiTurnExecutionResult>;
 }

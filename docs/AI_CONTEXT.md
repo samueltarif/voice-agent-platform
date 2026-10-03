@@ -4,14 +4,14 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-03
-CONTEXT_BASE_MAIN_SHA: 774d522180dd1e720ddab91d4ae0b7898bece2c6
+CONTEXT_BASE_MAIN_SHA: 84dcf576bccdee66f52240f85dc91b65f44b17f8
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
-CURRENT_SLICE: L2 Real Jev + Real OpenAI + Synthetic Transcript — Preauthorization Planning
-CONTEXT_UPDATE_BRANCH: docs/006aq-l2-preauthorization-envelope
-CONTEXT_UPDATE_PR: 70
-LAST_MERGED_PR_AT_REFRESH: 69
-LAST_MERGE_SHA_AT_REFRESH: 774d522180dd1e720ddab91d4ae0b7898bece2c6
-LAST_TESTED_CODE_SHA: 630ee48d8fdd10077e7374053da176d9072c5b9a
+CURRENT_SLICE: L2 Runner Hardening — Offline Only
+CONTEXT_UPDATE_BRANCH: research/006ar-l2-runner-hardening-offline
+CONTEXT_UPDATE_PR: PENDING
+LAST_MERGED_PR_AT_REFRESH: 70
+LAST_MERGE_SHA_AT_REFRESH: 84dcf576bccdee66f52240f85dc91b65f44b17f8
+LAST_TESTED_CODE_SHA: 84dcf576bccdee66f52240f85dc91b65f44b17f8 (base main)
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
 AI_CONTEXT_HEADER_END
@@ -87,7 +87,7 @@ AI_CONTEXT_HEADER_END
 - **EXPECTED_MODEL_AUTHORITY**: `OPTION_B` (TypeSafe adapter integration config: options.expectedProviderModel).
 - **L1A_MODEL_IDENTITY_SMOKE**: `EXECUTED / PASS` (N=20/20 sucessos com exact match `jev-1.13.0`, 0 mismatches, 0 erros técnicos, mediana descritiva 275ms, p90 316ms, max 685ms; SHA-256 `698c5e2a3b91...`; `docs/research/results/phase-6-typesafe-l1a-model-identity-smoke-run1.json`).
 - **L1B_SYNTHETIC_LATENCY_STUDY**: L1B_PLAN = EXECUTED / PASS_COMPLETE | L1B_RUNNER = IMPLEMENTED / TESTED OFFLINE | L1B_EXECUTION = EXECUTED / PASS_COMPLETE (100 attempted / 100 succeeded, 100/100 model matches jev-1.13.0, 0 mismatches, 0 erros técnicos, 0 timeouts; latência DESCRIPTIVE_ONLY: min 229ms, mediana 257ms, p75 273ms, p90 302ms, p95 325ms, p99 empirical 380ms, max 385ms; SHA-256 f087a6e3ad83fc81b272ffd775d5e66d00c6e7c918d310ca54f45237d59f1cdb; docs/research/results/phase-6-typesafe-l1b-synthetic-latency-run1.json) | L1B_PROVIDER_EXECUTION = EXECUTED.
-- **L2_REAL_JEV_OPENAI_SYNTHETIC**: L2_PLAN = DESIGNED (`docs/research/PHASE_6_L2_REAL_JEV_OPENAI_SYNTHETIC_PLAN.md`) | L2_DATASET = CREATED (N=12, SHA-256 `bd812341a922...`; `scripts/benchmarks/voice/jev-openai-l2-synthetic-integration-v1-cases.json`) | L2_RUNNER = IMPLEMENTED / HARDENED / TESTED OFFLINE (`scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs`, L2_RUNNER_FOCUSED_TESTS = 12/12 PASS in `packages/integrations/src/typesafe/jev-openai-l2-synthetic-runner.test.ts`) | L2_EXECUTION = NOT EXECUTED | L2_PROVIDER_CALLS = 0 | L2_PROVIDER_EXECUTION = AWAITING_OPERATOR_AUTHORIZATION.
+- **L2_REAL_JEV_OPENAI_SYNTHETIC**: L2_PLAN = DESIGNED (`docs/research/PHASE_6_L2_REAL_JEV_OPENAI_SYNTHETIC_PLAN.md`) | L2_DATASET = CREATED (N=12, SHA-256 `bd812341a922...`; `scripts/benchmarks/voice/jev-openai-l2-synthetic-integration-v1-cases.json`) | L2_RUNNER = HARDENED / MODULARIZED (9 módulos <= 180 linhas, aggregate SHA `7571366a6da664bbd16031c4eb0a9ec6d7975fab0b98c0a77aba1b992e60dd3f`, L2_RUNNER_FOCUSED_TESTS = 19/19 PASS in `packages/integrations/src/typesafe/jev-openai-l2-synthetic-runner.test.ts`) | L2_EXECUTION = NOT EXECUTED | L2_PROVIDER_CALLS = 0 | L2_PROVIDER_EXECUTION = BLOCKED_UNTIL_OPERATOR_AUTHORIZATION_AND_TYPESAFE_PRICE_VERIFICATION.
 - **SECURITY_RUNTIME_SEMANTICS**: `DESIGNED` (`docs/research/PHASE_6_SECURITY_ESCALATE_RUNTIME_SEMANTICS.md`).
 - **SECURITY_RESPONSE_DELIVERY_READY**: `IMPLEMENTED LOCALLY / ROUTING INTEGRATED`.
 - **SECURITY_HISTORY_PERSISTENCE_READY**: `IMPLEMENTED LOCALLY (Turn-scoped qualified H4/H5 history resolution)`.
@@ -155,7 +155,7 @@ AI_CONTEXT_HEADER_END
 
 ## 6. Estado Atual da Evidência de Qualidade (Quality Gate Snapshot)
 
-- **Último `pnpm check` Global**: `PASS` (executado e observado no commit `630ee48d8fdd10077e7374053da176d9072c5b9a` pós-merge do PR #68).
+- **Último `pnpm check` Global**: `PASS` (executado e observado no slice L2 Runner Hardening — Offline Only na branch `research/006ar-l2-runner-hardening-offline`).
 - **LAST_GLOBAL_PNPM_CHECK_CODE_SHA**: `630ee48d8fdd10077e7374053da176d9072c5b9a`
 - **Status das Asserções**: `750 passed`, `45 historical skips`, `0 new skips`, `0 failures` (111 arquivos de teste aprovados, 6 skipped de staging; 795 testes totais).
 - **Regressão de Asserções**: `ASSERTION_WEAKER = 0`, `NEW_SKIPS = 0`.
@@ -191,7 +191,7 @@ AI_CONTEXT_HEADER_END
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- **L2 RUNNER HARDENING — OFFLINE ONLY** (após revisão e merge do PR #70).
+- **Revisão Humana e Merge do PR de Hardening Offline** (L2 live continua NÃO autorizado).
   - Objetivos do próximo slice de código:
     1. Adicionar suporte a CLI flag `--allow-live` e propagação controlada de execução live;
     2. Implementar guarda em tempo de execução para limites de tokens de entrada (`RUNTIME_ENFORCED_INPUT_TOKEN_CAP`);

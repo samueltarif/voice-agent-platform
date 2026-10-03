@@ -13563,3 +13563,79 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **AI_WORKLOG_APPEND_ONLY**: `PASS`.
 - **SECRET_AUDIT**: `PASS`.
 - **MERGE_PERFORMED**: `NO`.
+
+---
+
+## 2026-10-03 — L2 Runner Hardening — Offline Only (Slice 006AR-RunnerHardening)
+
+### 1. Contexto e Preflight
+- **Prompt ID**: `PROMPT-L2-RUNNER-HARDENING-OFFLINE-001`
+- **AUTHORITATIVE_REPO_ROOT**: `D:/voice-agent-platform-git`
+- **Base main SHA**: `84dcf576bccdee66f52240f85dc91b65f44b17f8` (post-PR70 merge main)
+- **Branch**: `research/006ar-l2-runner-hardening-offline`
+- **Provider Calls neste Slice**: TypeSafe = 0, OpenAI = 0, Twilio = 0
+- **Cloud DB Connections**: 0
+- **Local DB Connections**: 0 (Local Docker Postgres healthy for test suite)
+- **Holdout**: `NO NEW ACCESS` (`LOCKED_HOLDOUT = CONSUMED` preservado)
+- **Frozen Policy**: `UNCHANGED`
+- **ACTIVE_GUARDED**: `BLOCKED`
+- **PRODUCTION_RUNTIME_WIRING**: `NO`
+- **CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE**: `NOT CLEARED`
+- **L2_EXECUTION**: `NOT EXECUTED`
+
+### 2. Implementação Técnica e Modularização
+- **Modularização Conforme Regras de Complexidade (AGENTS.md <= 180 linhas)**:
+  - `scripts/benchmarks/voice/l2-runner-preconditions.mjs` (130 linhas): parsing de CLI args, validação de preconditions, verificação SHA-256 do dataset, deny-network fetch.
+  - `scripts/benchmarks/voice/l2-runner-request-caps.mjs` (19 linhas): caps e checagem de limites de provedor (7 Jev, 12 OpenAI, 19 total).
+  - `scripts/benchmarks/voice/l2-runner-input-budget.mjs` (40 linhas): limites rígidos de tamanho de payload antes de chamada de rede (`MAX_TYPESAFE_INPUT_CHARS_PER_REQ = 1000`, `MAX_OPENAI_INPUT_CHARS_PER_REQ = 4000`), status honesto de tokens (`RUNTIME_ENFORCED_INPUT_TOKEN_CAP = NONE`, `TOKEN_CAP_ENFORCEMENT = NOT_ENFORCEABLE_AT_RUNTIME`).
+  - `scripts/benchmarks/voice/l2-runner-result-classification.mjs` (100 linhas): classificação de erros e de resultados da execução.
+  - `scripts/benchmarks/voice/l2-runner-artifact.mjs` (84 linhas): montagem estruturada do artefato de resultado com sanitização.
+  - `scripts/benchmarks/voice/l2-runner-dependencies.mjs` (63 linhas): carregamento dinâmico de dependências locais e estado inicial.
+  - `scripts/benchmarks/voice/l2-runner-provider-dispatch.mjs` (137 linhas): turn dispatch com verificação de caps e input budget antes de qualquer chamada fetch.
+  - `scripts/benchmarks/voice/l2-runner-case-execution.mjs` (138 linhas): orquestração de casos e avaliação de Frozen Policy.
+  - `scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs` (143 linhas): entrypoint do runner, coordenação sequencial, CLI runner e re-exports.
+- **Tipagem Estrita**:
+  - `scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.d.mts` e `packages/integrations/src/typesafe/l2-runner-declarations.d.ts` atualizados com tipagem estrita (zero `any`).
+
+### 3. Testes Regression-First e Validação
+- **Testes de Fronteira e Hardening Adicionados**:
+  - `Matrix A-T` preservadas (12 testes originais).
+  - `Finding B`: atualizado com `ASSERTION_STRONGER` validando que `OPENAI_PRICE_STATUS = VERIFIED`, `TYPESAFE_PRICE_STATUS = NOT_VERIFIED`, falta de `--allow-live` gera `FATAL_LIVE_INTENT_DENIED` e presença de `--allow-live` ainda é bloqueada por TypeSafe faturamento não verificado (`FATAL_LIVE_PREAUTH_BLOCKED`).
+  - `Hardening G`: CLI args parsing fail-closed (`--allow-live`, `--cost-ceiling`, `--offline`).
+  - `Hardening H`: 8ª requisição TypeSafe bloqueada ANTES do adapter fetch (fetch count = 0 na 8ª tentativa).
+  - `Hardening I`: 13ª requisição OpenAI bloqueada ANTES do adapter fetch (fetch count = 0 na 13ª tentativa).
+  - `Hardening J`: 20ª requisição total bloqueada ANTES do adapter fetch (`MAX_TOTAL_REQUESTS_EXCEEDED`).
+  - `Hardening K`: violação de input budget (>1000 chars TypeSafe, >4000 chars OpenAI) bloqueada antes da rede.
+  - `Hardening L`: negação estrita de rede no modo offline (`globalThis.fetch` não é chamado).
+  - `Hardening M`: semântica de saída fail-closed em `executeCli` (exit code 1 em qualquer bloqueio).
+- **Contagem de Testes Focados (`packages/integrations/src/typesafe/jev-openai-l2-synthetic-runner.test.ts`)**:
+  - 19 passed (19 total), 0 failed, 0 skipped.
+- **Contagem de Módulos Afetados (`packages/integrations`, `apps/voice`)**:
+  - 43 arquivos de teste, 398 testes aprovados, 0 falhas.
+- **Quality Gate Canônico Global (`pnpm check`)**:
+  - Exit code: 0
+  - 111 arquivos de teste aprovados, 6 skipped de staging (117 total).
+  - 757 testes aprovados, 45 skipped de staging (802 total).
+  - `NEW_SKIPS = 0`, `ASSERTION_WEAKER = 0`.
+  - Architecture check: PASS.
+  - File size check: PASS (244 arquivos de lógica em conformidade).
+
+### 4. Hash Freeze e Reconciliação do Envelope
+- **Dataset SHA-256**: `bd812341a922ded1c7159191849dae284a88f24afd9c7e8d3c64f9b081602f3f` (intacto).
+- **L2_EXECUTABLE_AGGREGATE_SHA256**: `7571366a6da664bbd16031c4eb0a9ec6d7975fab0b98c0a77aba1b992e60dd3f`
+- **Classificação**:
+  - `CLI_LIVE_INTENT_PLUMBING`: `PASS`
+  - `REQUEST_CAP_BOUNDARY_TESTS`: `PASS`
+  - `OFFLINE_NETWORK_DENY`: `PASS`
+  - `RUNTIME_ENFORCED_INPUT_SIZE_CAP`: `PASS` (1.000 chars TypeSafe, 4.000 chars OpenAI)
+  - `RUNTIME_ENFORCED_INPUT_TOKEN_CAP`: `NONE`
+  - `TOKEN_CAP_ENFORCEMENT`: `NOT_ENFORCEABLE_AT_RUNTIME`
+  - `TYPESAFE_PRICE_STATUS`: `NOT_VERIFIED`
+  - `OPENAI_PRICE_STATUS`: `VERIFIED`
+  - `L2_OPERATOR_COST_CEILING`: `NOT_AUTHORIZABLE`
+  - `PREAUTH_STATUS`: `PREAUTH_BLOCKED`
+
+### 5. Governança e Integridade
+- **AI_WORKLOG_APPEND_ONLY**: `PASS`.
+- **SECRET_AUDIT**: `PASS` (boolean-only).
+- **MERGE_PERFORMED**: `NO`.
