@@ -13804,3 +13804,63 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **L2_OPERATOR_COST_CEILING**: `NOT_AUTHORIZABLE`
 - **PR71_STATUS**: `READY_FOR_HUMAN_MERGE_REVIEW`
 - **MERGE_PERFORMED**: `NO`
+
+---
+
+## 2026-10-03 — PR #71 OpenAI Model Authority Reconciliation (Slice 006AR-ModelReconcile)
+
+### 1. Contexto e Investigação Histórica de Autoridade
+- **Prompt ID**: `PROMPT-PR71-OPENAI-MODEL-AUTHORITY-RECONCILIATION-001`
+- **AUTHORITATIVE_REPO_ROOT**: `D:/voice-agent-platform-git`
+- **Sequência Histórica**:
+  - `PROMPT-006G`: Avaliou modelos de streaming conversacional e documentou `MOST_SUITABLE_ADVANCED_VOICE_TEXT_MODEL = gpt-4o`.
+  - `DEC-037 / ADR-018`: Operador humano confirmou formalmente OpenAI como provedor primário (`PRIMARY_CONVERSATION_PROVIDER = OpenAI`), adotando `gpt-6-astra` como modelo baseline de máxima inteligência (`CURRENT_BASELINE_MODEL_CANDIDATE = gpt-6-astra`, `CURRENT_CONFIGURED_SMOKE_MODEL = gpt-6-astra`), com configuração estrita e fail-closed (`OPENAI_CONVERSATION_MODEL`), sem fixação arquitetural permanente no core.
+  - `PROMPT-006H`: Estabeleceu baseline dataset e harness em torno do modelo `gpt-6-astra`.
+  - `Slice 006AO (PR #68)`: Commit `a193166` introduziu `DEFAULT_OPENAI_MODEL = 'gpt-4o-mini'` no runner L2 como premissa de baixo custo sem aprovação humana registrada no `DECISIONS_LOG.md`.
+- **Evidência de Decisão Humana**: `NOT_FOUND` para substituição de `gpt-6-astra` por `gpt-4o-mini`.
+- **MODEL_SELECTION_DRIFT**: `CONFIRMED`. A promoção de `gpt-4o-mini` como modelo conversacional do L2 configurou desvio não autorizado da baseline aprovada pelo operador em DEC-037.
+
+### 2. Verificação Oficial de Catálogo e Reconciliação
+- **Fontes Oficiais OpenAI Consultadas**: `https://developers.openai.com/api/docs/models/gpt-6-astra.md`, `https://openai.com/api/pricing/`, `https://platform.openai.com/docs/models`.
+- **GPT_6_ASTRA_API_STATUS**: `AVAILABLE`
+- **GPT_6_ASTRA_API_MODEL_ID**: `gpt-6-astra`
+- **Superfície Suportada**: Chat Completions API (`POST /v1/chat/completions`) e Responses API (`POST /v1/responses`).
+- **Streaming**: Suportado via SSE.
+- **Restauração de Autoridade**: `L2_OPENAI_REQUESTED_MODEL = gpt-6-astra`.
+- **DEFAULT_OPENAI_MODEL**: Atualizado de `gpt-4o-mini` para `gpt-6-astra` em `scripts/benchmarks/voice/l2-runner-preconditions.mjs`.
+- **Configuração de Produção**: `PRODUCTION_MODEL_FALLBACK_DRIFT = NO` (o adapter em `packages/integrations/src/openai/openai-model-config.ts` é 100% fail-closed via `OPENAI_CONVERSATION_MODEL`, sem fallback silencioso para mini).
+
+### 3. Revalidação de Pricing e Custos de Planejamento
+- **OPENAI_MODEL_PRICED**: `gpt-6-astra`
+- **OPENAI_PRICE_STATUS**: `VERIFIED` (.00 / 1M input tokens, .00 / 1M output tokens, .00 / 1M cached input tokens). Preços anteriores de `gpt-4o-mini` classificados formalmente como `SUPERSEDED`.
+- **PLANNING_SCENARIO_OPENAI_COST**:
+  - Input: 12 requests * 1.500 tokens * ( / 1M) = .180000 USD
+  - Output: 12 requests * 500 tokens * ( / 1M) = .300000 USD
+  - Total OpenAI Planejado: **.480000 USD**
+- **Custo Total Planejado do Cenário L2**: .000294 (TypeSafe) + .480000 (OpenAI) = **.480294 USD** (~.48 USD).
+- **Semântica de Teto**: A proposta anterior de .25 USD fica classificada formalmente como `SUPERSEDED`. O custo planejado com `gpt-6-astra` excede .25 USD, reforçando que `L2_OPERATOR_COST_CEILING = NOT_AUTHORIZABLE` até decisão explícita do operador humano.
+
+### 4. Validação Técnica e Re-Freeze
+- **MODEL_RECONCILIATION_CODE_HEAD**: `ed2c3d5f9e7207c6ea2309239727597ff7081127`
+- **Focused Tests (`jev-openai-l2-synthetic-runner.test.ts`)**: `19/19 PASS`
+- **Affected Module Tests (`packages/integrations` + `apps/voice`)**: `43 files / 398 tests PASS`
+- **Canonical Quality Gate (`pnpm check`)**: `PASS` (exit code 0 no HEAD de código)
+- **OLD_L2_EXECUTABLE_AGGREGATE_SHA256**: `960224fc647981a3d3f5c97f58866da0be454df95f3570c0be0072327dc7bfb4` (`SUPERSEDED`)
+- **NEW_L2_EXECUTABLE_AGGREGATE_SHA256**: `8f53f8169771caa26dd9623702a7c65e3e9c730dfcb2bbfcb26188dcd57c77f3` (`PASS`)
+- **DoD Textual**: Preservado (todos os 9 módulos executáveis <= 180 linhas, todas as funções <= 50 linhas).
+
+### 5. Governança e Isolamento
+- **TypeSafe real**: `0`
+- **OpenAI real**: `0`
+- **Twilio**: `0`
+- **Cloud DB**: `0`
+- **Customer transcripts**: `0`
+- **Holdout**: `NO NEW ACCESS`
+- **Frozen Policy**: `UNCHANGED`
+- **L2_EXECUTION**: `NOT EXECUTED`
+- **PREAUTH_STATUS**: `PREAUTH_BLOCKED`
+- **TYPESAFE_PRICE_STATUS**: `NOT_VERIFIED`
+- **TOKEN_CAP_ENFORCEMENT**: `NOT_ENFORCEABLE_AT_RUNTIME`
+- **L2_OPERATOR_COST_CEILING**: `NOT_AUTHORIZABLE`
+- **PR71_STATUS**: `READY_FOR_HUMAN_MERGE_REVIEW`
+- **MERGE_PERFORMED**: `NO`

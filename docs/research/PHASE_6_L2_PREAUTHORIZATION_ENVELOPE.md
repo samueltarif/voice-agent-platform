@@ -10,7 +10,7 @@ STUDY: L2 Real Jev + Real OpenAI + Synthetic Transcript
 PREAUTH_STATUS: PREAUTH_BLOCKED
 L2_EXECUTION: NOT EXECUTED
 L2_OPERATOR_COST_CEILING: NOT_AUTHORIZABLE
-PROPOSED_COST_CEILING_USD: 0.25 (PLANNING_PROPOSAL)
+PROPOSED_COST_CEILING_USD: SUPERSEDED (proposta anterior de 0.25 USD era baseada em gpt-4o-mini; com gpt-6-astra o custo planejado e .48 USD; teto pendente de autorizacao humana)
 HARD_MAX_PROVIDER_COST_STATUS: NOT_ENFORCEABLE
 TYPESAFE_PRICE_STATUS: NOT_VERIFIED
 OPENAI_PRICE_STATUS: VERIFIED
@@ -21,7 +21,7 @@ RUNTIME_ENFORCED_INPUT_TOKEN_CAP: NONE
 TOKEN_CAP_ENFORCEMENT: NOT_ENFORCEABLE_AT_RUNTIME
 AGGREGATE_OUTPUT_CAP: DERIVED_ENFORCEABLE_SUBJECT_TO_CAP_ISOLATION_TEST
 CURRENT_RUNNER_FREEZE: POST_HARDENING_CANDIDATE
-L2_EXECUTABLE_AGGREGATE_SHA256: 960224fc647981a3d3f5c97f58866da0be454df95f3570c0be0072327dc7bfb4
+L2_EXECUTABLE_AGGREGATE_SHA256: 8f53f8169771caa26dd9623702a7c65e3e9c730dfcb2bbfcb26188dcd57c77f3
 LIVE_COMMAND_STATUS: LIVE_COMMAND_NOT_YET_AUTHORIZABLE
 NEXT_ALLOWED_STEP: HUMAN_REVIEW_OF_HARDENING_PR
 L2_PREAUTHORIZATION_ENVELOPE_METADATA_END
@@ -53,7 +53,7 @@ Estabelecer um envelope rigoroso, auditável e imutável para a futura execuçã
 | **L2_DATASET_CASE_COUNT** | `12` | 12 casos sintéticos estritos (7 matcher-positive, 5 matcher-negative) |
 | **L2_DATASET_SHA256** | `bd812341a922ded1c7159191849dae284a88f24afd9c7e8d3c64f9b081602f3f` | Hash SHA-256 congelado |
 | **CURRENT_RUNNER_FREEZE** | `POST_HARDENING_CANDIDATE` | Versão modular pós-hardening offline |
-| **L2_EXECUTABLE_AGGREGATE_SHA256** | `960224fc647981a3d3f5c97f58866da0be454df95f3570c0be0072327dc7bfb4` | Hash agregado determinístico dos 9 módulos executáveis |
+| **L2_EXECUTABLE_AGGREGATE_SHA256** | `8f53f8169771caa26dd9623702a7c65e3e9c730dfcb2bbfcb26188dcd57c77f3` | Hash agregado determinístico dos 9 módulos executáveis (re-freezed pos-reconciliacao DEC-037 gpt-6-astra) |
 
 ### Módulos Executáveis do Runner (L2_EXECUTABLE_FILE_SET)
 
@@ -63,7 +63,7 @@ Estabelecer um envelope rigoroso, auditável e imutável para a futura execuçã
 | `scripts/benchmarks/voice/l2-runner-case-execution.mjs` | `4909155e6e4ad0fcd0dc7168a9e136c4939bdb93716468e67ce25d9c65cf0b74` | 149 |
 | `scripts/benchmarks/voice/l2-runner-dependencies.mjs` | `13bf268b6019094d8fd4a0d9e4d208a8bfa7ef85b1c49465428b853ea4ee4ed0` | 63 |
 | `scripts/benchmarks/voice/l2-runner-input-budget.mjs` | `3f12299aadc810f0350273d288667f00be35cbec2d96ea73b9f26ba8e7d699d5` | 40 |
-| `scripts/benchmarks/voice/l2-runner-preconditions.mjs` | `4b9cef2cc879da7726b817b5a47e38b2e49af87822e8668b981f9626bf97d5cb` | 130 |
+| `scripts/benchmarks/voice/l2-runner-preconditions.mjs` | `868e7e9ddf1fb4159320f1f72935fbb147b85b8c392f71b1f206db4b3b4d6a42` | 130 |
 | `scripts/benchmarks/voice/l2-runner-provider-dispatch.mjs` | `655d84e086752d4f25ac6b772ad7a317a92da842fe0800fe7b1952feb47c96a5` | 154 |
 | `scripts/benchmarks/voice/l2-runner-request-caps.mjs` | `5e3a55e69f676afb16697afdcd0c3349469f392374989c8b945a3c11d8ffc21f` | 19 |
 | `scripts/benchmarks/voice/l2-runner-result-classification.mjs` | `b4b8211f6a6784a6084bbb4c652e8e110773de5663348f19a8b30f867eac6648` | 100 |
@@ -79,9 +79,9 @@ Estabelecer um envelope rigoroso, auditável e imutável para a futura execuçã
 - **Mecanismo de Verificação**: Checagem de identidade estrita (`providerModel === EXPECTED_TYPESAFE_MODEL`). Qualquer divergência dispara interrupção imediata com `MODEL_IDENTITY_MISMATCH`.
 
 ### OpenAI
-- **REQUESTED_OPENAI_MODEL**: `gpt-4o-mini`
+- **REQUESTED_OPENAI_MODEL**: `gpt-6-astra` (reconciliado com DEC-037 / ADR-018; substituindo a introducao sem aprovacao humana de `gpt-4o-mini`)
 - **Status de Observabilidade**: `NOT_OBSERVABLE_VIA_CURRENT_SURFACE`.
-- **Mecanismo de Controle**: Configuração estrita via adapter (`modelId: 'gpt-4o-mini'`), mantendo separação entre modelo requisitado e observado.
+- **Mecanismo de Controle**: Configuração estrita via adapter (`modelId: 'gpt-6-astra'`), mantendo separação entre modelo requisitado e observado.
 
 ---
 
@@ -202,10 +202,10 @@ O artefato de saída gerado pelo runner:
 | :--- | :--- | :--- |
 | Dataset Frozen & Verificado | `PASS` (`bd812341a9...`) | Não |
 | Runner Hardening & Modularização | `PASS` (9 módulos <= 180 linhas) | Não |
-| Runner Re-Freeze Agregado | `PASS` (`960224fc64...`) | Não |
+| Runner Re-Freeze Agregado | `PASS` (`8f53f81697...`) | Não |
 | Runner Function Length DoD | `PASS` (todas as funções <= 50 linhas, max 49) | Não |
 | TypeSafe Model Frozen (`jev-1.13.0`) | `PASS` | Não |
-| OpenAI Model Frozen (`gpt-4o-mini`) | `PASS` | Não |
+| OpenAI Model Frozen (`gpt-6-astra`) | `PASS` | Não |
 | OpenAI Pricing Verified | `PASS` (`$0.15 / 1M in`, `$0.60 / 1M out`) | Não |
 | TypeSafe Pricing Verified | **`NOT_VERIFIED`** (sem URL oficial pública de billing) | **SIM** |
 | Request Caps Pre-Call Guarded | `PASS` (guarda antes de rede) | Não |
