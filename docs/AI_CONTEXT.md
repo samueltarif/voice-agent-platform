@@ -4,13 +4,13 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-02
-CONTEXT_BASE_MAIN_SHA: d2e9fa60f060bd943f6aa6ee492edcd4d7c7adee
+CONTEXT_BASE_MAIN_SHA: 0817b9c762986e9de855dda435dca4892dcefaf0
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
-CURRENT_SLICE: L1A Controlled Live TypeSafe Model Identity Smoke Execution
-CONTEXT_UPDATE_BRANCH: research/006aj-l1a-live-typesafe-model-identity-smoke
-CONTEXT_UPDATE_PR: 64
-LAST_MERGED_PR_AT_REFRESH: 63
-LAST_MERGE_SHA_AT_REFRESH: d2e9fa60f060bd943f6aa6ee492edcd4d7c7adee
+CURRENT_SLICE: L1B Controlled Synthetic Latency Study Planning
+CONTEXT_UPDATE_BRANCH: research/006ak-l1b-synthetic-latency-plan
+CONTEXT_UPDATE_PR: 65
+LAST_MERGED_PR_AT_REFRESH: 64
+LAST_MERGE_SHA_AT_REFRESH: 0817b9c762986e9de855dda435dca4892dcefaf0
 LAST_TESTED_CODE_SHA: cf1336285a18d9359b7b9a5d7a87def70e6595f9
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
@@ -86,6 +86,7 @@ AI_CONTEXT_HEADER_END
 - **MODEL_DRIFT_RUNTIME_GUARD**: `IMPLEMENTED / TESTED LOCALLY` (`packages/integrations/src/typesafe/typesafe-jev-turn-decision-adapter.ts`; 23 testes; exact match via `expectedProviderModel`).
 - **EXPECTED_MODEL_AUTHORITY**: `OPTION_B` (TypeSafe adapter integration config: options.expectedProviderModel).
 - **L1A_MODEL_IDENTITY_SMOKE**: `EXECUTED / PASS` (N=20/20 sucessos com exact match `jev-1.13.0`, 0 mismatches, 0 erros técnicos, mediana descritiva 275ms, p90 316ms, max 685ms; SHA-256 `698c5e2a3b91...`; `docs/research/results/phase-6-typesafe-l1a-model-identity-smoke-run1.json`).
+- **L1B_SYNTHETIC_LATENCY_STUDY**: `L1B_PLAN = DESIGNED` (docs/research/PHASE_6_TYPESAFE_L1B_SYNTHETIC_LATENCY_PLAN.md; dataset N=100 em scripts/benchmarks/voice/jev-l1b-synthetic-latency-v1-cases.json; `L1B_RUN1_MAX_PROVIDER_REQUESTS = 100`, `L1B_RUN1_CONCURRENCY = 1`, `L1B_CONCURRENCY_2_EXPLORATION = DEFERRED`) | `L1B_EXECUTION = NOT EXECUTED`.
 - **SECURITY_RUNTIME_SEMANTICS**: `DESIGNED` (`docs/research/PHASE_6_SECURITY_ESCALATE_RUNTIME_SEMANTICS.md`).
 - **SECURITY_RESPONSE_DELIVERY_READY**: `IMPLEMENTED LOCALLY / ROUTING INTEGRATED`.
 - **SECURITY_HISTORY_PERSISTENCE_READY**: `IMPLEMENTED LOCALLY (Turn-scoped qualified H4/H5 history resolution)`.
@@ -188,7 +189,7 @@ AI_CONTEXT_HEADER_END
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- Candidate: L1B Controlled Synthetic Latency Study ( \ge 100$) (PLANNING / PREAUTH ONLY; zero chamadas a provedores).
+- Candidate: L1B Controlled Synthetic Latency Study Preauthorization Review & Execution (requer autorização humana explícita do pacote de pré-autorização; zero chamadas a provedores neste momento).
 - `ACTIVE_GUARDED` permanece `BLOCKED` até conclusão da escada de validação (L1-L4).
 - Do NOT enable live customer traffic.
 - Do NOT use real telephony / live Twilio.
