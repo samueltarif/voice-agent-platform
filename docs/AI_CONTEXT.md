@@ -199,7 +199,7 @@ AI_CONTEXT_HEADER_END
     4. Garantir que precificação e pré-condições operem em modo fail-closed;
     5. Zero chamadas a provedores reais (`TypeSafe = 0`, `OpenAI = 0`, `Twilio = 0`).
 - `L2_EXECUTION` = `NOT EXECUTED`.
-- `OPENAI_PRICE_STATUS` = `VERIFIED` (oficial: $0.15/1M in, $0.60/1M out); `TYPESAFE_PRICE_STATUS` = `NOT_VERIFIED` (sem URL pública oficial de faturamento).
+- `OPENAI_PRICE_STATUS` = `VERIFIED` (oficial: $10.00/1M in, $5.00/1M cached in, $50.00/1M out para gpt-6-astra); `TYPESAFE_PRICE_STATUS` = `NOT_VERIFIED` (sem URL pública oficial de faturamento).
 - `L2_OPERATOR_COST_CEILING` = `NOT_AUTHORIZABLE` (proposta de $0.25 USD aguarda hardening e caps executáveis).
 - `ACTIVE_GUARDED` permanece `BLOCKED` até conclusão de toda a escada de validação (L1-L4).
 - Do NOT execute L2 live.

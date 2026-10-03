@@ -10,7 +10,9 @@ STUDY: L2 Real Jev + Real OpenAI + Synthetic Transcript
 PREAUTH_STATUS: PREAUTH_BLOCKED
 L2_EXECUTION: NOT EXECUTED
 L2_OPERATOR_COST_CEILING: NOT_AUTHORIZABLE
-PROPOSED_COST_CEILING_USD: SUPERSEDED (proposta anterior de 0.25 USD era baseada em gpt-4o-mini; com gpt-6-astra o custo planejado e .48 USD; teto pendente de autorizacao humana)
+OLD_PROPOSED_COST_CEILING_USD: 0.25
+OLD_PROPOSED_COST_CEILING_STATUS: SUPERSEDED
+NEW_OPERATOR_COST_CEILING: NOT_PROPOSED
 HARD_MAX_PROVIDER_COST_STATUS: NOT_ENFORCEABLE
 TYPESAFE_PRICE_STATUS: NOT_VERIFIED
 OPENAI_PRICE_STATUS: VERIFIED
@@ -88,10 +90,13 @@ Estabelecer um envelope rigoroso, auditável e imutável para a futura execuçã
 ## 4. Pricing Evidence
 
 ### OpenAI Pricing
+- **OPENAI_MODEL_PRICED**: `gpt-6-astra`
 - **OPENAI_PRICE_STATUS**: `VERIFIED`
-- **Input Tokens**: $0.15 / 1.000.000 tokens ($0.00000015 / token)
-- **Output Tokens**: $0.60 / 1.000.000 tokens ($0.00000060 / token)
-- **Fonte de Evidência**: Documentação pública e tabela de preços oficial da OpenAI (`https://openai.com/api/pricing/`), auditada em PR #64 e PR #70.
+- **Input Tokens**: $10.00 / 1.000.000 tokens ($0.00001000 / token)
+- **Cached Input Tokens**: $5.00 / 1.000.000 tokens ($0.00000500 / token)
+- **Output Tokens**: $50.00 / 1.000.000 tokens ($0.00005000 / token)
+- **Fonte de Evidência**: Documentação pública e tabela de preços oficial da OpenAI (`https://openai.com/api/pricing/`, `https://platform.openai.com/docs/models`, `https://developers.openai.com/api/docs/models/gpt-6-astra.md`), verificada no PR #71.
+- **Histórico**: Preços anteriores de `gpt-4o-mini` ($0.15 / 1M in, $0.60 / 1M out) classificados como `SUPERSEDED_GPT_4O_MINI_REFERENCE`.
 
 ### TypeSafe Pricing
 - **TYPESAFE_PRICE_STATUS**: `NOT_VERIFIED`
@@ -131,16 +136,20 @@ Estabelecer um envelope rigoroso, auditável e imutável para a futura execuçã
 
 ### Cenário de Planejamento (*Planning Scenario*)
 Sob as premissas conservadoras de planejamento (1.000 tokens in para Jev e 1.500 tokens in + 500 tokens out para OpenAI):
-- TypeSafe planning cost: (7 * 1.000 / 1.000.000.000) * $42 = **$0.000294 USD**
-- OpenAI planning cost:
-  - Input: 12 * 1.500 * ($0.15 / 1.000.000) = $0.002700 USD
-  - Output: 12 * 500 * ($0.60 / 1.000.000) = $0.003600 USD
-  - Total OpenAI: **$0.006300 USD**
-- Custo total de planejamento: $0.000294 + $0.006300 = **$0.006594 USD** (~$0.0066 USD).
+- TypeSafe planning cost (não verificado): (7 * 1.000 / 1.000.000.000) * $42 = **$0.000294 USD** (`TYPESAFE_PRICE_STATUS = NOT_VERIFIED`)
+- OpenAI planning cost (`gpt-6-astra`):
+  - Input: 12 * 1.500 * ($10.00 / 1.000.000) = $0.180000 USD (total input: 18.000 tokens)
+  - Output: 12 * 500 * ($50.00 / 1.000.000) = $0.300000 USD (total output: 6.000 tokens)
+  - Total OpenAI: **$0.480000 USD** (`OPENAI_PLANNING_TOTAL_COST_USD = 0.480000`)
+- Custo total de planejamento do cenário L2: $0.000294 + $0.480000 = **$0.480294 USD** (`L2_PLANNING_TOTAL_PROVIDER_COST_USD = 0.480294`).
+- **Classificação**: `PLANNING_SCENARIO_ONLY` (estimativa teórica de planejamento, NÃO constitui hard cap nem teto garantido).
+- **Histórico**: O cenário de planejamento anterior de $0.006594 USD ($0.006300 USD OpenAI), derivado de `gpt-4o-mini`, está classificado como `SUPERSEDED_GPT_4O_MINI_REFERENCE`.
 
 ### Semântica de Autorização
-- **PROPOSED_COST_CEILING_USD**: $0.25 USD (margem de segurança ~37x sobre o custo planejado).
-- **L2_OPERATOR_COST_CEILING**: `NOT_AUTHORIZABLE` (a autorização formal pelo operador permanece bloqueada até homologação completa de pré-requisitos).
+- **OLD_PROPOSED_COST_CEILING_USD**: $0.25 USD
+- **OLD_PROPOSED_COST_CEILING_STATUS**: `SUPERSEDED` (a proposta histórica de $0.25 USD, que presumia margem sobre o custo de ~$0.0066 USD do gpt-4o-mini, é inferior ao custo de planejamento de $0.480294 USD do gpt-6-astra e não é autorizável).
+- **NEW_OPERATOR_COST_CEILING**: `NOT_PROPOSED`
+- **L2_OPERATOR_COST_CEILING**: `NOT_AUTHORIZABLE` (a fixação de teto e a autorização formal pelo operador permanecem bloqueadas).
 - **HARD_MAX_PROVIDER_COST_STATUS**: `NOT_ENFORCEABLE` (ausência de suporte a saldo limite por chamada nos endpoints de fornecedores).
 
 ---
@@ -206,7 +215,7 @@ O artefato de saída gerado pelo runner:
 | Runner Function Length DoD | `PASS` (todas as funções <= 50 linhas, max 49) | Não |
 | TypeSafe Model Frozen (`jev-1.13.0`) | `PASS` | Não |
 | OpenAI Model Frozen (`gpt-6-astra`) | `PASS` | Não |
-| OpenAI Pricing Verified | `PASS` (`$0.15 / 1M in`, `$0.60 / 1M out`) | Não |
+| OpenAI Pricing Verified | `PASS` (`$10.00 / 1M in`, `$5.00 / 1M cached in`, `$50.00 / 1M out`) | Não |
 | TypeSafe Pricing Verified | **`NOT_VERIFIED`** (sem URL oficial pública de billing) | **SIM** |
 | Request Caps Pre-Call Guarded | `PASS` (guarda antes de rede) | Não |
 | Request Caps Boundary Unit Tests | `PASS` (8ª Jev, 13ª OpenAI, 20ª total bloqueadas) | Não |
@@ -222,8 +231,9 @@ O artefato de saída gerado pelo runner:
 
 A execução live permanece categoricamente bloqueada pelos seguintes impedimentos ativos:
 1. **`BLOCKER_TYPESAFE_PRICING_EVIDENCE = YES`**: Ausência de URL pública oficial confirmando faturamento da TypeSafe a $42/Btok (`TYPESAFE_PRICE_STATUS = NOT_VERIFIED`);
-2. **`BLOCKER_OPERATOR_AUTHORIZATION = YES`**: O teto financeiro de $0.25 USD e o comando live ainda não foram autorizados pelo operador humano (`L2_OPERATOR_COST_CEILING = NOT_AUTHORIZABLE`);
-3. **`BLOCKER_INPUT_TOKEN_CAPS = RESIDUAL_LIMITATION`**: Tokens exatos de entrada não são interceptáveis em tempo de execução pela ausência de biblioteca de tokenização local no monorepo (mitigado por `RUNTIME_ENFORCED_INPUT_SIZE_CAP` e pelo dataset sintético congelado com ~40 tokens/caso, mas formalmente `RUNTIME_ENFORCED_INPUT_TOKEN_CAP = NONE`).
+2. **`BLOCKER_OPERATOR_COST_CEILING = YES`**: O teto anterior de $0.25 USD é `SUPERSEDED` e nenhum novo teto financeiro foi proposto ou autorizado pelo operador humano (`L2_OPERATOR_COST_CEILING = NOT_AUTHORIZABLE`);
+3. **`BLOCKER_HUMAN_AUTHORIZATION = YES`**: O comando live não foi autorizado pelo operador humano (`AWAITING_HUMAN_DECISION`);
+4. **`BLOCKER_INPUT_TOKEN_CAPS = RESIDUAL_LIMITATION`**: Tokens exatos de entrada não são interceptáveis em tempo de execução pela ausência de biblioteca de tokenização local no monorepo (mitigado por `RUNTIME_ENFORCED_INPUT_SIZE_CAP` e pelo dataset sintético congelado com ~40 tokens/caso, mas formalmente `RUNTIME_ENFORCED_INPUT_TOKEN_CAP = NONE`).
 
 ---
 

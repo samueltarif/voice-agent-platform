@@ -13864,3 +13864,56 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **L2_OPERATOR_COST_CEILING**: `NOT_AUTHORIZABLE`
 - **PR71_STATUS**: `READY_FOR_HUMAN_MERGE_REVIEW`
 - **MERGE_PERFORMED**: `NO`
+
+
+---
+
+## 2026-10-03 — PR #71 Final GPT-6-Astra Pricing Reconciliation (Slice 006AR-PricingClosure)
+
+### 1. Contexto e Preflight
+- **Prompt ID**: `PROMPT-PR71-FINAL-PRICING-GATE-CLOSURE-002`
+- **AUTHORITATIVE_REPO_ROOT**: `D:/voice-agent-platform-git`
+- **SOURCE_PR71_HEAD**: `f7617b16ec233b3d7d1241e76bd8812a8031c145`
+- **Source main SHA**: `84dcf576bccdee66f52240f85dc91b65f44b17f8`
+- **Branch**: `research/006ar-l2-runner-hardening-offline`
+- **PR**: `#71` (OPEN; base: `main`, head: `research/006ar-l2-runner-hardening-offline`)
+- **FINAL_CODE_HEAD**: `ed2c3d5f9e7207c6ea2309239727597ff7081127`
+- **POST_CODE_HEAD_CHANGES**: `DOC_ONLY` (nenhuma alteração de código, teste, dependência ou config após o code HEAD)
+
+### 2. Reconciliação Integral de Pricing e Custo de Planejamento
+- **FINAL_L2_OPENAI_REQUESTED_MODEL**: `gpt-6-astra` (autoridade confirmada em DEC-037 e ADR-018)
+- **OPENAI_MODEL_PRICED**: `gpt-6-astra`
+- **OPENAI_INPUT_PRICE_USD_PER_1M**: `10.00`
+- **OPENAI_CACHED_INPUT_PRICE_USD_PER_1M**: `5.00`
+- **OPENAI_OUTPUT_PRICE_USD_PER_1M**: `50.00`
+- **OPENAI_PRICE_STATUS**: `VERIFIED` (evidência oficial pública OpenAI)
+- **STALE_GPT_4O_MINI_PRICING_CURRENT_USAGE**: `0` (todas as referências a $0.15/$0.60 e $0.006594 marcadas como `SUPERSEDED_GPT_4O_MINI_REFERENCE`)
+- **OPENAI_PLANNING_INPUT_COST_USD**: `0.180000` (12 requests * 1.500 tokens in = 18.000 tokens * $10.00/1M)
+- **OPENAI_PLANNING_OUTPUT_COST_USD**: `0.300000` (12 requests * 500 tokens out = 6.000 tokens * $50.00/1M)
+- **OPENAI_PLANNING_TOTAL_COST_USD**: `0.480000`
+- **L2_PLANNING_TOTAL_PROVIDER_COST_USD**: `0.480294` (TypeSafe $0.000294 USD + OpenAI $0.480000 USD; classificação: `PLANNING_SCENARIO_ONLY`)
+- **OLD_PROPOSED_COST_CEILING_USD**: `0.25`
+- **OLD_PROPOSED_COST_CEILING_STATUS**: `SUPERSEDED` (inferior ao cenário planejado de $0.480294 USD do gpt-6-astra)
+- **NEW_OPERATOR_COST_CEILING**: `NOT_PROPOSED`
+- **L2_OPERATOR_COST_CEILING**: `NOT_AUTHORIZABLE` (fixação de teto bloqueada aguardando autorização humana)
+- **HARD_MAX_PROVIDER_COST_STATUS**: `NOT_ENFORCEABLE`
+
+### 3. Freeze e Integridade Executável
+- **L2_DATASET_SHA256**: `bd812341a922ded1c7159191849dae284a88f24afd9c7e8d3c64f9b081602f3f`
+- **L2_EXECUTABLE_AGGREGATE_SHA256**: `8f53f8169771caa26dd9623702a7c65e3e9c730dfcb2bbfcb26188dcd57c77f3` (`PASS`)
+- **L2_EXECUTABLE_FILE_LENGTH_DOD**: `PASS` (todos os 9 módulos executáveis <= 180 linhas)
+- **L2_FUNCTION_LENGTH_DOD**: `PASS` (todas as funções <= 50 linhas, max 49)
+
+### 4. Governança e Limites Operacionais
+- **OpenAI real**: `0`
+- **TypeSafe real**: `0`
+- **Twilio**: `0`
+- **Cloud DB**: `0`
+- **Holdout**: `NO NEW ACCESS`
+- **Frozen Policy**: `UNCHANGED`
+- **L2_EXECUTION**: `NOT EXECUTED`
+- **PREAUTH_STATUS**: `PREAUTH_BLOCKED`
+- **TYPESAFE_PRICE_STATUS**: `NOT_VERIFIED`
+- **RUNTIME_ENFORCED_INPUT_TOKEN_CAP**: `NONE`
+- **TOKEN_CAP_ENFORCEMENT**: `NOT_ENFORCEABLE_AT_RUNTIME`
+- **MERGE_PERFORMED**: `NO`
