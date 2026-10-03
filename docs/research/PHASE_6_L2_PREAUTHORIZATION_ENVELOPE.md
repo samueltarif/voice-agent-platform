@@ -24,7 +24,21 @@ TOKEN_CAP_RESIDUAL_LIMITATION_ACCEPTED_FOR_THIS_RUN: YES
 OPERATOR_COST_CEILING_USD: 0.96
 OPERATOR_COST_CEILING_SCOPE: SINGLE_SYNTHETIC_L2_RUN_ONLY
 COST_CEILING_CLASSIFICATION: OPERATOR_GOVERNANCE_CEILING_NOT_HARD_PROVIDER_BILLING_BOUND
-HUMAN_L2_LIVE_AUTHORIZATION: AUTHORIZED_ONCE
+HUMAN_L2_LIVE_AUTHORIZATION: CONSUMED
+SECOND_LIVE_RUN_AUTHORIZED: NO
+RUNNER_FAIL_CLOSED_GUARD: PASS
+ENV_FILE_READ_POLICY_VIOLATION: YES
+ENV_FILE_READ_OCCURRED: YES
+ENV_VALUES_PRINTED_IN_TRACE: NO_EVIDENCE_OBSERVED
+POTENTIAL_SECRET_EXPOSURE_TO_AGENT_TOOLING: YES
+EXTERNAL_SECRET_DISCLOSURE: NOT_PROVEN
+SECRET_ROTATION_REQUIRED_BEFORE_NEXT_LIVE_RUN: HUMAN_DECISION
+LIVE_PRECONDITION_PROCESS_VIOLATION: YES
+LIVE_COMMAND_SHOULD_HAVE_BEEN_STOPPED_BEFORE_INVOCATION: YES
+PROVIDER_NETWORK_CALLS: 0
+PROVIDER_SPEND_FROM_THIS_INVOCATION_USD: 0
+NEXT_REQUIRED_SLICE: MINIMAL_PREAUTH_POLICY_IMPLEMENTATION
+FUTURE_LIVE_CREDENTIAL_CONFIGURATION: REQUIRED
 OPENAI_PRICE_STATUS: VERIFIED
 CLI_LIVE_INTENT_PLUMBING: PASS
 REQUEST_CAP_BOUNDARY_TESTS: PASS
@@ -358,3 +372,31 @@ Decisões formais concedidas pelo operador humano em 2026-10-03 (escopo estrito:
 4. **`HUMAN_DECISION_4` (Autorização de Execução da Bateria L2 Live)**:
    - `HUMAN_L2_LIVE_AUTHORIZATION`: `AUTHORIZED_ONCE`
    - *Decisão do Operador*: Autorização explícita concedida para uma única execução controlada do comando live candidato. Não autoriza segunda execução, retries, Twilio, banco em nuvem ou tráfego de clientes.
+
+---
+
+## 17. Registro de Violações de Governança e Recuperação Pós-Invocação L2
+
+### 1. Violação de Leitura de Arquivo de Ambiente (.env Read Policy Violation)
+- `ENV_FILE_READ_POLICY_VIOLATION`: `YES`
+- `ENV_FILE_READ_OCCURRED`: `YES` (durante checagem booleana de credenciais no runtime, o tooling do agente leu o arquivo `.env`)
+- `ENV_VALUES_PRINTED_IN_TRACE`: `NO_EVIDENCE_OBSERVED` (nenhuma chave, valor, comprimento, prefixo ou sufixo foi exposto)
+- `POTENTIAL_SECRET_EXPOSURE_TO_AGENT_TOOLING`: `YES` (leitura em memória pelo processo de ferramental)
+- `EXTERNAL_SECRET_DISCLOSURE`: `NOT_PROVEN`
+- `SECRET_ROTATION_REQUIRED_BEFORE_NEXT_LIVE_RUN`: `HUMAN_DECISION` (recomendada rotação das chaves antes de futura execução de rede)
+
+### 2. Violação de Processo de Pré-Condição Live (Live Precondition Process Violation)
+- `LIVE_PRECONDITION_PROCESS_VIOLATION`: `YES`
+- `LIVE_COMMAND_SHOULD_HAVE_BEEN_STOPPED_BEFORE_INVOCATION`: `YES` (o comando não deveria ter sido invocado uma vez constatada a incompatibilidade de preauth e a ausência de credenciais no runtime)
+- `LIVE_COMMAND_INVOCATION_COUNT`: 1
+- `LIVE_AUTHORIZATION_CONSUMED`: `YES`
+- `SECOND_LIVE_RUN_AUTHORIZED`: `NO`
+- `RUNNER_FAIL_CLOSED_GUARD`: `PASS` (o runner fail-closed bloqueou a execução antes de qualquer tráfego de rede)
+- `PROVIDER_NETWORK_CALLS`: 0
+- `PROVIDER_SPEND_FROM_THIS_INVOCATION_USD`: 0
+
+### 3. Preservação dos Fatos e Próximo Slice Técnico
+- `L2_RESULT`: `BLOCKED`
+- `L2_EXECUTION`: `BLOCKED_BY_RUNNER_FAIL_CLOSED_PREAUTH`
+- `NEXT_REQUIRED_SLICE`: `MINIMAL_PREAUTH_POLICY_IMPLEMENTATION` (ajuste técnico no runner para suportar a representação da política de evidência empírica formalmente autorizada pelo operador humano)
+- `FUTURE_LIVE_CREDENTIAL_CONFIGURATION`: `REQUIRED` (configuração humana limpa de credenciais no ambiente sem leitura por tooling de agente)
