@@ -69,21 +69,53 @@ export async function executeOpenAiTurn(params) {
   }
 }
 
+function createTypeSafeCapErrorResult(capError) {
+  return {
+    output: null,
+    errorResult: {
+      technicalStatus: 'PROVIDER_ERROR',
+      errorCategory: capError,
+      shouldStop: true,
+      latencyMs: null,
+      observedModel: null,
+    },
+  };
+}
+
+function handleTypeSafeEvaluationError({ err, deps, logger, caseId, state, start }) {
+  const isTimeout =
+    err instanceof Error && (err.name === 'TimeoutError' || err.name === 'AbortError');
+  const classification = classifyTypeSafeError(err, isTimeout);
+  state.technicalFailures++;
+  state.consecutiveFailures++;
+  if (classification.status === 'TIMEOUT') state.timeouts++;
+  const isMismatch = err instanceof deps.TypeSafeModelIdentityMismatchError;
+  const isAuth = classification.status === 'HTTP_AUTH_ERROR';
+  const isBudget = classification.status === 'INPUT_BUDGET_EXCEEDED';
+  if (isMismatch) state.typeSafeMismatch = true;
+  if (isAuth) logger.error(`[L2 Runner] STOP: TypeSafe Auth error on ${caseId}`);
+  const latencyMs = Math.max(0, Date.now() - start);
+  const observedModel = isMismatch ? err.observedModel : null;
+  return {
+    output: null,
+    latencyMs,
+    observedModel,
+    errorResult: {
+      technicalStatus: classification.status,
+      errorCategory: classification.errorCategory,
+      shouldStop: isMismatch || isAuth || isBudget,
+      latencyMs,
+      observedModel,
+    },
+  };
+}
+
 export async function evaluateTypeSafeJev(params) {
   const { typeSafeAdapter, caseData, state, deps, logger, timeoutMs } = params;
   const capError = checkCaps(state, 'TYPESAFE');
   if (capError) {
     state.technicalFailures++;
-    return {
-      output: null,
-      errorResult: {
-        technicalStatus: 'PROVIDER_ERROR',
-        errorCategory: capError,
-        shouldStop: true,
-        latencyMs: null,
-        observedModel: null,
-      },
-    };
+    return createTypeSafeCapErrorResult(capError);
   }
   state.typeSafeRequestsAttempted++;
   state.totalProviderRequestsAttempted++;
@@ -109,28 +141,13 @@ export async function evaluateTypeSafeJev(params) {
       observedModel: output.providerModel,
     };
   } catch (err) {
-    const isTimeout =
-      err instanceof Error && (err.name === 'TimeoutError' || err.name === 'AbortError');
-    const classification = classifyTypeSafeError(err, isTimeout);
-    state.technicalFailures++;
-    state.consecutiveFailures++;
-    if (classification.status === 'TIMEOUT') state.timeouts++;
-    const isMismatch = err instanceof deps.TypeSafeModelIdentityMismatchError;
-    const isAuth = classification.status === 'HTTP_AUTH_ERROR';
-    const isBudget = classification.status === 'INPUT_BUDGET_EXCEEDED';
-    if (isMismatch) state.typeSafeMismatch = true;
-    if (isAuth) logger.error(`[L2 Runner] STOP: TypeSafe Auth error on ${caseData.caseId}`);
-    return {
-      output: null,
-      latencyMs: Math.max(0, Date.now() - start),
-      observedModel: isMismatch ? err.observedModel : null,
-      errorResult: {
-        technicalStatus: classification.status,
-        errorCategory: classification.errorCategory,
-        shouldStop: isMismatch || isAuth || isBudget,
-        latencyMs: Math.max(0, Date.now() - start),
-        observedModel: isMismatch ? err.observedModel : null,
-      },
-    };
+    return handleTypeSafeEvaluationError({
+      err,
+      deps,
+      logger,
+      caseId: caseData.caseId,
+      state,
+      start,
+    });
   }
 }

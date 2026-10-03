@@ -35,31 +35,17 @@ function writeArtifactIfNeeded(artifact, options) {
   writeFileSync(outPath, JSON.stringify(artifact, null, 2) + '\n', 'utf8');
 }
 
-export async function runL2Benchmark(options = {}) {
-  const isOffline = Boolean(
-    options.offlineMode || options.fetchFn || options.fakeTypeSafeFetch || options.fakeOpenAiFetch,
-  );
-  const { computedHash, cases, approvedCostCeilingUsd } = validatePreconditions(options, isOffline);
-  const deps = options.deps ?? (await loadDependencies());
-  const logger = options.logger ?? console;
-  const timeoutMs = options.timeoutMs ?? RESEARCH_HARNESS_TIMEOUT_MS;
-
+function createRunnerAdapters({ deps, options, isOffline, openAiModelId }) {
   const fallbackFetch = isOffline ? createDenyNetworkFetch() : undefined;
-  const typeSafeApiKey =
-    options.typeSafeApiKey ?? (options.customEnv ?? process.env).TYPESAFE_API_KEY;
-  const openAiApiKey = options.openAiApiKey ?? (options.customEnv ?? process.env).OPENAI_API_KEY;
-  const openAiModelId =
-    options.openAiModelId ??
-    (options.customEnv ?? process.env).OPENAI_CONVERSATION_MODEL ??
-    DEFAULT_OPENAI_MODEL;
-
+  const env = options.customEnv ?? process.env;
+  const typeSafeApiKey = options.typeSafeApiKey ?? env.TYPESAFE_API_KEY;
+  const openAiApiKey = options.openAiApiKey ?? env.OPENAI_API_KEY;
   const typeSafeAdapter = new deps.TypeSafeJevTurnDecisionAdapter({
     apiKey: typeSafeApiKey || 'offline-dummy-key',
     model: REQUESTED_TYPESAFE_MODEL,
     expectedProviderModel: EXPECTED_TYPESAFE_MODEL,
     fetchFn: options.fakeTypeSafeFetch ?? options.fetchFn ?? fallbackFetch,
   });
-
   const openAiAdapter = new deps.OpenAiConversationModelAdapter({
     config: {
       apiKey: openAiApiKey || 'offline-dummy-key',
@@ -68,11 +54,21 @@ export async function runL2Benchmark(options = {}) {
     },
     fetchFn: options.fakeOpenAiFetch ?? options.fetchFn ?? fallbackFetch,
   });
+  return { typeSafeAdapter, openAiAdapter };
+}
 
-  const state = createInitialState();
+async function executeBenchmarkCases({
+  cases,
+  deps,
+  typeSafeAdapter,
+  openAiAdapter,
+  state,
+  logger,
+  timeoutMs,
+  openAiModelId,
+}) {
   const caseResults = [];
   let stoppedEarly = false;
-
   for (let i = 0; i < cases.length; i++) {
     const { result, shouldStop } = await executeCase({
       caseData: cases[i],
@@ -93,7 +89,37 @@ export async function runL2Benchmark(options = {}) {
       break;
     }
   }
+  return { caseResults, stoppedEarly };
+}
 
+export async function runL2Benchmark(options = {}) {
+  const isOffline = Boolean(
+    options.offlineMode || options.fetchFn || options.fakeTypeSafeFetch || options.fakeOpenAiFetch,
+  );
+  const { computedHash, cases, approvedCostCeilingUsd } = validatePreconditions(options, isOffline);
+  const deps = options.deps ?? (await loadDependencies());
+  const logger = options.logger ?? console;
+  const timeoutMs = options.timeoutMs ?? RESEARCH_HARNESS_TIMEOUT_MS;
+  const env = options.customEnv ?? process.env;
+  const openAiModelId =
+    options.openAiModelId ?? env.OPENAI_CONVERSATION_MODEL ?? DEFAULT_OPENAI_MODEL;
+  const { typeSafeAdapter, openAiAdapter } = createRunnerAdapters({
+    deps,
+    options,
+    isOffline,
+    openAiModelId,
+  });
+  const state = createInitialState();
+  const { caseResults, stoppedEarly } = await executeBenchmarkCases({
+    cases,
+    deps,
+    typeSafeAdapter,
+    openAiAdapter,
+    state,
+    logger,
+    timeoutMs,
+    openAiModelId,
+  });
   const classification = classifyRunResult({
     casesEvaluated: caseResults.length,
     totalExpected: cases.length,
@@ -103,7 +129,6 @@ export async function runL2Benchmark(options = {}) {
     coreJointChainObserved: state.coreJointChainObserved,
     stoppedEarly,
   });
-
   const artifact = buildResultArtifact({
     computedHash,
     cases,
