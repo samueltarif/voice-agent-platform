@@ -13639,3 +13639,64 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **AI_WORKLOG_APPEND_ONLY**: `PASS`.
 - **SECRET_AUDIT**: `PASS` (boolean-only).
 - **MERGE_PERFORMED**: `NO`.
+
+---
+
+## 2026-10-03 — PR #71 Final Evidence Reconciliation (Slice 006AR-FinalEvidence)
+
+### 1. Contexto e Preflight
+- **Prompt ID**: `PROMPT-PR71-FINAL-EVIDENCE-RECONCILIATION-001`
+- **AUTHORITATIVE_REPO_ROOT**: `D:/voice-agent-platform-git`
+- **Source main SHA**: `84dcf576bccdee66f52240f85dc91b65f44b17f8`
+- **Branch**: `research/006ar-l2-runner-hardening-offline`
+- **PR**: `#71` (OPEN; base: `main`, head: `research/006ar-l2-runner-hardening-offline`)
+- **FINAL_PR71_HEAD (tested exact HEAD)**: `3aa0fd5229b4eab2ef7c60e4503140dd7fd89d7e`
+- **Quality Gate HEAD Reconciliado**: `3aa0fd5229b4eab2ef7c60e4503140dd7fd89d7e` (pós-commit documental PR #71 sync)
+- **POST_GATE_CODE_CHANGE**: `NO`
+- **POST_GATE_TEST_CHANGE**: `NO`
+- **POST_GATE_CONFIG_CHANGE**: `NO`
+- **POST_GATE_DATASET_CHANGE**: `NO`
+- **POST_GATE_DOC_EVIDENCE_CHANGE_ONLY**: `YES`
+
+### 2. Process Deviation & Regras Operacionais
+- **PROCESS_DEVIATION_IDE_INTERNAL_STORAGE_USED**: `YES` (execução anterior utilizou arquivos de script temporários em `.gemini/antigravity-ide/brain/.../scratch/`)
+- **PROCESS_DEVIATION_IMPACT**: `NO_CODE_INTEGRITY_IMPACT_OBSERVED`
+- **KNOWN_SECRET_EXPOSURE**: `NO_EVIDENCE_OBSERVED`
+- **CORRECTIVE_RULE**: `DO_NOT_USE_IDE_INTERNAL_STORAGE_AGAIN` (uso exclusivo de comandos inline ou arquivos tracked no repositório)
+
+### 3. Verificações Textuais de DoD (File & Function Lengths)
+- **L2_EXECUTABLE_FILE_LENGTH_DOD**: `PASS` (todos os 9 módulos executáveis <= 180 linhas: 19, 40, 63, 84, 100, 130, 137, 138, 143).
+- **L2_FUNCTION_LENGTH_DOD**: `FAIL` (`MAX_OBSERVED_FUNCTION_LINES = 101`, `FUNCTIONS_OVER_50 = 4`: `buildResultArtifact` 62 linhas, `executeCase` 101 linhas, `evaluateTypeSafeJev` 65 linhas, `runL2Benchmark` 81 linhas).
+- **Classificação Factual**: `PR71_STATUS = BLOCKED_FOR_TEXTUAL_FUNCTION_DOD` (conforme regra mandatória da Seção 7, sem refatoração neste prompt).
+
+### 4. Instalação e Quality Gate Canônico
+- **FROZEN_INSTALL**: `PASS` (`pnpm install --frozen-lockfile`, exit code 0).
+- **CANONICAL_PNPM_CHECK**: `PASS` (`pnpm check`, exit code 0).
+- **Global Test Results**: 111 test files passed, 6 skipped (staging) / 757 tests passed, 45 skipped (staging), 0 failures.
+- **Focused Tests**: 19/19 passed.
+- **Affected Module Tests**: 43 test files / 398 tests passed.
+- **NEW_SKIPS**: `0`.
+- **ASSERTION_WEAKER**: `0`.
+
+### 5. Congelamento e Integridade
+- **DECLARATION_FILES**: `INTENTIONAL_AND_NON_CONFLICTING` (`.d.mts` e `.d.ts` complementares para resolução em scripts e no pacote `@voice-agent/integrations`).
+- **INPUT_SIZE_CAP_SCOPE**: Caracteres de conteúdo textual medidos antes da chamada de rede (1.000 chars Jev, 4.000 chars OpenAI), excluindo framing interno e metadados.
+- **RUNTIME_ENFORCED_INPUT_TOKEN_CAP**: `NONE` (sem tokenizer local em runtime)
+- **TOKEN_CAP_ENFORCEMENT**: `NOT_ENFORCEABLE_AT_RUNTIME`
+- **REQUEST_CAP_BOUNDARY_TESTS**: `PASS` (8ª Jev, 13ª OpenAI, 20ª total bloqueadas antes de fetch).
+- **OFFLINE_NETWORK_DENY**: `PASS`.
+- **L2_DATASET_SHA256**: `bd812341a922ded1c7159191849dae284a88f24afd9c7e8d3c64f9b081602f3f` (`PASS`).
+- **L2_EXECUTABLE_AGGREGATE_SHA256**: `7571366a6da664bbd16031c4eb0a9ec6d7975fab0b98c0a77aba1b992e60dd3f` (`PASS`).
+- **LOCAL_DB**: `USED_BY_AUTOMATED_TEST_SUITE_ONLY` (Docker local).
+- **CLOUD_DB**: `0`.
+- **TypeSafe real**: `0`.
+- **OpenAI real**: `0`.
+- **Twilio**: `0`.
+- **Holdout**: `NO NEW ACCESS`.
+- **Frozen Policy**: `UNCHANGED`.
+- **L2_EXECUTION**: `NOT EXECUTED`.
+- **TYPESAFE_PRICE_STATUS**: `NOT_VERIFIED`.
+- **L2_OPERATOR_COST_CEILING**: `NOT_AUTHORIZABLE`.
+- **PREAUTH_STATUS**: `PREAUTH_BLOCKED`.
+- **SECRET_AUDIT**: `PASS` (boolean-only).
+- **MERGE_PERFORMED**: `NO`.
