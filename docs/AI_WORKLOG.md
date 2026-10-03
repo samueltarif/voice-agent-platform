@@ -12830,3 +12830,77 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE**: `NOT CLEARED`
 - **PRODUCTION_RUNTIME_WIRING**: `NO`
 - **ACTIVE_GUARDED**: `BLOCKED`
+
+---
+
+## 2026-10-02 — L1B Evidence Reconciliation & PR #66 Final Closure (Slice 006AM)
+
+### 1. Parâmetros de Reconciliação e Governança
+- **Prompt**: `PROMPT-006AM-PR66-L1B-EVIDENCE-RECONCILIATION-AND-MERGE-001`
+- **Fase**: Phase 6 (Voice Model Routing & Jev Evaluation)
+- **PR**: #66 (`research/006al-l1b-run1-preauth-runner`)
+- **Slice**: L1B Run 1 Evidence Closure
+- **Provider Calls neste Fechamento**: TypeSafe = 0, OpenAI = 0, Twilio = 0
+- **Historical Provider Calls (L1B Run 1)**: TypeSafe = 100, OpenAI = 0, Twilio = 0
+- **ACTUAL_BILLED_COST_USD**: `NOT_VERIFIED`
+
+### 2. Reverificação Factual do Artefato L1B
+- **Artefato**: `docs/research/results/phase-6-typesafe-l1b-synthetic-latency-run1.json`
+- **SHA-256 Recalculado**: `f087a6e3ad83fc81b272ffd775d5e66d00c6e7c918d310ca54f45237d59f1cdb` (exato)
+- **ARTIFACT_SANITIZATION**: `PASS` (ausência comprovada de utterances, transcrições, raw requests/responses, authorization/bearer tokens, API keys e scores de roteamento)
+- **L1B_RESULT**: `PASS_COMPLETE`
+- **Requests Attempted / Succeeded**: 100 / 100
+- **Model Matches / Mismatches**: 100 / 0 (`providerModel === 'jev-1.13.0'`, `identityMatch === true`)
+- **Technical Failures / Timeouts**: 0 / 0
+- **Latência (DESCRIPTIVE_ONLY — Tail Confidence: NOT ESTABLISHED)**:
+  - min: 229ms
+  - median: 257ms
+  - p75: 273ms
+  - p90: 302ms
+  - p95: 325ms
+  - p99 empirical: 380ms
+  - max: 385ms
+  - completion under 1500ms: 100/100 (100%)
+- **Bin Breakdown**:
+  - SHORT (N=35): median=257ms, p90=313ms, max=385ms
+  - MEDIUM (N=40): median=255ms, p90=284ms, max=336ms
+  - LONG (N=25): median=270ms, p90=325ms, max=340ms
+
+### 3. Reconciliação de Nuances de Execução e Auditoria
+- **Nuance de Manuseio de Ambiente (.env)**:
+  - `L1B_ENV_SOURCE_COPY_OPERATION`: `OBSERVED`
+  - `ENV_FILE_CONTENT_INSPECTED`: `NO`
+  - `ENV_SECRET_VALUE_OBSERVED`: `NO`
+  - `ENV_SECRET_VALUE_PRINTED`: `NOT OBSERVED`
+  - `ENV_FILE_TRACKED_BY_GIT`: `NO` (verificado via git status)
+  - `ENV_FILE_REMOVED_AFTER_RUN`: `YES`
+  - `SECURITY_IMPACT`: `NONE OBSERVED`
+  - `ENV_HANDLING_PROCESS_DEVIATION`: `YES` (prompt autorizava runtime loading mas não instruía explicitamente cópia automática de arquivo de segredos; não repetido)
+- **Nuance de Helpers Temporários**:
+  - `L1B_LIVE_TEMP_HELPERS_CREATED`: `3` (`tmp-update-l1b-plan.mjs`, `tmp-update-readiness.mjs`, `tmp-update-context.mjs`)
+  - `TEMP_HELPERS_PERSISTED_IN_GIT`: `NO` (removidos antes de commit)
+  - `CATEGORY`: `EXECUTION_CONTROL_DEVIATION`
+  - `FUNCTIONAL_IMPACT`: `NONE OBSERVED`
+  - `SECRET_EXPOSURE`: `NOT OBSERVED`
+- **Nuance de Observação de Processo Live**:
+  - `LIVE_EXECUTION_INVOCATIONS`: `1`
+  - `LIVE_PROCESS_FINAL_EXIT_CODE_RAW`: `NOT INDEPENDENTLY OBSERVED`
+  - `RESULT_ARTIFACT_COMPLETION_EVIDENCE`: `OBSERVED`
+  - `RESULT_ARTIFACT_CASES`: `100`
+  - `RESULT_ARTIFACT_ALL_SUCCESS`: `YES`
+- **Nuance de Auditoria de Segredos Prévia**:
+  - `PR66_PREVIOUS_SECRET_AUDIT_REPORTED`: `PASS`
+  - `PR66_PREVIOUS_SECRET_AUDIT_RAW_SENTINEL_IN_REVIEW_TRACE`: `NOT INDEPENDENTLY OBSERVED` (nova auditoria final será executada como autoridade única)
+
+### 4. Invariantes de Governança e Fronteiras de Produção
+- `LOCKED_HOLDOUT`: `CONSUMED` (preservado)
+- `HOLDOUT_OPENED_THIS_SLICE`: `NO`
+- `HOLDOUT_REUSED_THIS_SLICE`: `NO`
+- `FROZEN_POLICY_CHANGED`: `NO`
+- `PRODUCTION_JEV_TIMEOUT_MS`: `NOT SELECTED` (evidência descritiva observada; timeout requer decisão arquitetural humana separada)
+- `PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY`: `NOT SELECTED` (baseline serial não dimensiona concorrência)
+- `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE`: `NOT CLEARED`
+- `PRODUCTION_RUNTIME_WIRING`: `NO`
+- `ACTIVE_GUARDED`: `BLOCKED`
+- `L2`: `NOT EXECUTED` (próximo passo restrito a planning/preauth)
+- `TWILIO_ACCOUNT_REQUIRED_NOW`: `NO` (telefonia necessária apenas a partir de L3)

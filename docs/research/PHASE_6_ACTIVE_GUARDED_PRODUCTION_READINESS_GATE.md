@@ -53,14 +53,14 @@ Para avaliar a prontidão antes de ligar o roteamento supervisionado em produç�
 | Dimensão | Classificação | Justificativa Factual |
 |---|---|---|
 | **A. Privacy / Data Processing** | `BLOCKED / HUMAN_LEGAL_APPROVAL_REQUIRED` | `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`. DPA e autorização jurídica humana pendentes |
-| **B. Model Identity / Model Drift** | `DESIGNED` | Suporte a modelo versionado verificado no provedor; autoridade e guarda de runtime `NOT IMPLEMENTED`; expectativa `UNRESOLVED` |
-| **C. Timeout** | `NOT SELECTED / VALIDATION REQUIRED` | Amostra staging N=12 insuficiente; timeout de produção requer validação controlada L1B; 600-800ms é candidato exploratório |
+| **B. Model Identity / Model Drift** | `IMPLEMENTED / LIVE OBSERVED (L1A/L1B)` | `MODEL_DRIFT_RUNTIME_GUARD = IMPLEMENTED / TESTED LOCALLY`; `EXPECTED_MODEL_AUTHORITY = OPTION_B`; `LIVE_PROVIDER_MODEL_IDENTITY = OBSERVED` (L1A: 20/20, L1B: 100/100 exact matches `jev-1.13.0`); `MODEL_WEIGHT_IMMUTABILITY = NOT VERIFIED`; `PRODUCTION_RUNTIME_WIRING = NO` |
+| **C. Timeout** | `NOT SELECTED / L1B OBSERVED` | L1B latency evidence = `OBSERVED / PASS_COMPLETE` (N=100, median 257ms, p95 325ms, p99 empirical 380ms, max 385ms; `DESCRIPTIVE_ONLY`); `PRODUCTION_JEV_TIMEOUT_MS = NOT SELECTED` (requer review arquitetural separado e validação subsequente/canary apropriado) |
 | **D. Concurrency / Backpressure** | `NOT SELECTED` | Política de non-queuing fail-open desenhada; teto de produção não selecionado; 2-5 canary é proposta exploratória |
 | **E. Provider Failure** | `READY` | Fail-closed para bypass determinístico e fail-open para modelo generativo testados offline |
 | **F. Production Composition** | `DESIGNED / NOT IMPLEMENTED` | Ponto de injeção desacoplado especificado; `PRODUCTION_RUNTIME_WIRING = NO` |
 | **G. Observability** | `DESIGNED / NOT IMPLEMENTED` | Mapeamento de métricas provider-neutral sanitizadas de transcrições e segredos desenhado |
-| **H. Cost Control** | `DESIGNED / NEEDS_HUMAN_APPROVAL` | `COST_PER_JEV_EVALUATION = NOT VERIFIED` (depende de tier comercial acordado); teto orçamentário diário exigido |
-| **I. Controlled Live Validation** | `DESIGNED` | Escada L0-L4 desenhada; L0 concluído, L1A/L1B a L4 não executados |
+| **H. Cost Control** | `DESIGNED / NEEDS_HUMAN_APPROVAL` | `PUBLIC_UNIT_PRICE = VERIFIED FOR L1B EXECUTION` ($42/Btok input); `ACTUAL_BILLING = NOT VERIFIED`; `PRODUCTION_BUDGET = NOT SELECTED` |
+| **I. Controlled Live Validation** | `IN PROGRESS (L1 COMPLETE)` | `L0 = COMPLETE`; `L1A = EXECUTED / PASS`; `L1B = EXECUTED / PASS_COMPLETE`; `L2 = NOT EXECUTED`; `L3 = NOT EXECUTED / BLOCKED UNTIL APPROPRIATE SLICE`; `L4 = BLOCKED` |
 | **J. Rollback / Kill Switch** | `DESIGNED / NOT IMPLEMENTED` | Sem reload dinâmico em runtime; alteração de flag exige restart/redeploy; implementação `NOT IMPLEMENTED` |
 | **K. Real Telephony Validation** | `BLOCKED` | Requer conta Twilio e testes L3; postergado para fase apropriada |
 
@@ -182,8 +182,11 @@ LEGAL_DPO_REVIEW = REQUIRED
 ### 6.1 Fatos Atuais do Código
 - `REQUESTED_MODEL_AUTHORITY`: Constante default `DEFAULT_TYPESAFE_MODEL = 'jev-latest'` definida em `typesafe-jev-turn-decision-adapter.ts`.
 - `OBSERVED_PROVIDER_MODEL`: Campo `model` retornado no corpo da resposta da TypeSafe e mapeado em `AuxiliaryTurnDecisionOutput.providerModel`.
-- `EXPECTED_MODEL_AUTHORITY`: **`UNRESOLVED`**. Nem o snapshot da versão do agente nem a configuração de runtime definem atualmente uma autoridade de modelo esperado para comparação.
-- `CURRENT_MODEL_DRIFT_GUARD`: **`NOT IMPLEMENTED`**.
+- `EXPECTED_MODEL_AUTHORITY`: **`OPTION_B`** (`options.expectedProviderModel` no adapter TypeSafe, validado offline no PR #63).
+- `CURRENT_MODEL_DRIFT_GUARD`: **`IMPLEMENTED / TESTED LOCALLY`** (`TypeSafeModelIdentityMismatchError` no adapter, exact match verificado).
+- `LIVE_PROVIDER_MODEL_IDENTITY`: **`OBSERVED`** (L1A: 20/20 matches `jev-1.13.0`; L1B: 100/100 matches `jev-1.13.0`).
+- `MODEL_WEIGHT_IMMUTABILITY`: **`NOT VERIFIED`**.
+- `PRODUCTION_RUNTIME_WIRING`: **`NO`**.
 
 ### 6.2 Fatos Documentados do Provedor (TypeSafe)
 1. **Existência do alias `jev-latest`**: `PROVIDER_DOCUMENTED` (`docs.typesafe.ai/models.md`).
@@ -417,7 +420,7 @@ A promoção para produção deve seguir rigorosamente a escada de validação i
   │  Objetivo: 100/100 sucessos com exact match jev-1.13.0, 0 timeouts, 0 falhas técnicas; mediana 257ms, p90 302ms, p99 380ms; DESCRIPTIVE_ONLY (sem dados de clientes)
   ▼
 [L2: Real Jev + Real OpenAI + Synthetic Transcript]
-  │  Status: PENDING L1
+  │  Status: PENDING / NOT EXECUTED
   │  Harness: Validação de fallback generativo real sob prompts sintéticos, sem Twilio
   ▼
 [L3: Real Jev + Real Twilio Audio]
