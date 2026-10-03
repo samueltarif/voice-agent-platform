@@ -14389,3 +14389,100 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **FORBIDDEN_IDE_INTERNAL_STORAGE_ACCESSED**: `NO`
 - **PR_MERGE_PERFORMED**: `NO`
 - **PR75_STATUS**: `READY_FOR_HUMAN_MERGE_REVIEW`
+
+---
+
+## 2026-10-03 — Slice 006AW L2 Executable Freeze Reproducibility Closure
+
+### 1. Demanda e Contexto
+- **Slice**: `006AW`
+- **Branch**: `research/006aw-l2-executable-freeze-reproducibility`
+- **Objetivo**: Fechar o gate `EXECUTABLE_FREEZE_REPRODUCIBILITY_CLOSURE` estabelecendo um método rastreado, determinístico e repetível para calcular o SHA-256 agregado do conjunto de 10 módulos executáveis do runner de integração sintética L2.
+- **Natureza do Slice**: Ferramental offline de reprodutibilidade e governança. Sem chamadas a provedores, sem acesso a segredos ou arquivos `.env`, sem modificação de semântica de runtime ou políticas congeladas.
+
+### 2. Investigação do Método Histórico
+- **HISTORICAL_FREEZE_METHOD_TRACKED**: `NO`. Investigação no histórico de commits e documentação comprovou que o hash anterior `8f53f8169771caa26dd9623702a7c65e3e9c730dfcb2bbfcb26188dcd57c77f3f` foi inserido documentalmente sem nenhuma ferramenta de cálculo, script ou receita rastreada no Git.
+- **HISTORICAL_FREEZE_METHOD_REPRODUCIBLE**: `NO`.
+- **HISTORICAL_AGGREGATE_REPRODUCIBILITY**: `LEGACY_NOT_REPRODUCIBLE_FROM_TRACKED_METHOD`.
+- **PREVIOUS_EXECUTABLE_AGGREGATE_SHA256**: `8f53f8169771caa26dd9623702a7c65e3e9c730dfcb2bbfcb26188dcd57c77f3f` (`SUPERSEDED_BY_CODE_CHANGE`).
+- **Decisão**: Preservar o histórico documental e estabelecer prospectivamente um método canônico rastreado no repositório.
+
+### 3. Análise YAGNI e Design da Ferramenta
+- **CURRENT_REQUIREMENT**: O conjunto atual de 10 módulos do runner L2 necessita de um método determinístico, rastreado e repetível para calcular seu SHA-256 agregado.
+- **EXISTING_OPTION**: Nenhum método rastreado existia no histórico.
+- **MINIMAL_OPTION**: Implementar ferramenta dedicada e coesa (`scripts/benchmarks/voice/compute-l2-executable-freeze.mjs`) acompanhada de manifesto declarativo dos 10 módulos (`scripts/benchmarks/voice/l2-executable-freeze-manifest.json`). Zero novas dependências, zero frameworks genéricos, zero serviços de runtime.
+- **Anti-Circularidade**: A própria ferramenta de cálculo não é importada pelo runner L2 em runtime e não faz parte do conjunto executável de 10 módulos.
+
+### 4. Implementação do Método Canônico Rastreado
+- **FREEZE_METHOD_VERSION**: `1.0.0`
+- **Manifesto Canônico**: `scripts/benchmarks/voice/l2-executable-freeze-manifest.json` (10 caminhos POSIX relativos ao repositório).
+- **Ferramenta de Cálculo**: `scripts/benchmarks/voice/compute-l2-executable-freeze.mjs` (172 linhas; função mais longa = 26 linhas; conformidade estrita com limites de 180/50 linhas).
+- **Tipagem**: `scripts/benchmarks/voice/compute-l2-executable-freeze.d.mts` e declarações em `packages/integrations/src/typesafe/l2-runner-declarations.d.ts`.
+- **Determinismo Multiplataforma**: A ferramenta extrai os bytes canônicos de cada módulo a partir do Git (`git show ${ref}:${modulePath}`), neutralizando variações de quebras de linha CRLF/LF do sistema operacional host. Caminhos são normalizados para formato POSIX e ordenados lexicograficamente de forma estrita.
+- **Material de Agregação**:
+  ```
+  l2-executable-freeze-v1
+  <posix-path>  <per-file-sha256>
+  ...
+  ```
+- **Fail-Closed Guarantees**: A ferramenta falha imediatamente em caso de: arquivo ausente, duplicata no manifesto, tentativa de path traversal para fora do repositório, discrepância na contagem (esperado = 10), ou alteração inesperada nos módulos rastreados.
+
+### 5. Conjunto Executável Atual e SHA-256 por Arquivo (10 Módulos)
+1. `scripts/benchmarks/voice/l2-runner-artifact.mjs` — `fcd365e94ad4cae51eca8e535b942f128d78864c05baa61e3ecce255c80e48c6`
+2. `scripts/benchmarks/voice/l2-runner-case-execution.mjs` — `4909155e6e4ad0fcd0dc7168a9e136c4939bdb93716468e67ce25d9c65cf0b74`
+3. `scripts/benchmarks/voice/l2-runner-cost-ceiling.mjs` — `76382ac71457f8c79d855d39340a1d9c1a0cf975fbdc347bc1fae62ec5520147`
+4. `scripts/benchmarks/voice/l2-runner-dependencies.mjs` — `13bf268b6019094d8fd4a0d9e4d208a8bfa7ef85b1c49465428b853ea4ee4ed0`
+5. `scripts/benchmarks/voice/l2-runner-input-budget.mjs` — `3f12299aadc810f0350273d288667f00be35cbec2d96ea73b9f26ba8e7d699d5`
+6. `scripts/benchmarks/voice/l2-runner-preconditions.mjs` — `4408afcdd94e6e57630cee98286498288d2fe3f85d3716dac96828cad60c582c`
+7. `scripts/benchmarks/voice/l2-runner-provider-dispatch.mjs` — `655d84e086752d4f25ac6b772ad7a317a92da842fe0800fe7b1952feb47c96a5`
+8. `scripts/benchmarks/voice/l2-runner-request-caps.mjs` — `5e3a55e69f676afb16697afdcd0c3349469f392374989c8b945a3c11d8ffc21f`
+9. `scripts/benchmarks/voice/l2-runner-result-classification.mjs` — `b4b8211f6a6784a6084bbb4c652e8e110773de5663348f19a8b30f867eac6648`
+10. `scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs` — `7e7a0621b7e91f21c5ddd1aa5a191074cf5f35c9c190b4c5f789852b47c542ec`
+
+### 6. Execução e Evidência de Reprodutibilidade
+- **RUN_1_AGGREGATE_SHA256**: `f5ef6e6b88e09094765b0c3b273ba23cae01502bdd0ec4fe28dbcb3f2133794a`
+- **RUN_2_AGGREGATE_SHA256**: `f5ef6e6b88e09094765b0c3b273ba23cae01502bdd0ec4fe28dbcb3f2133794a`
+- **TWO_RUN_REPRODUCIBILITY**: `PASS` (`RUN_1 === RUN_2`)
+- **CURRENT_EXECUTABLE_AGGREGATE_SHA256**: `f5ef6e6b88e09094765b0c3b273ba23cae01502bdd0ec4fe28dbcb3f2133794a`
+- **EXECUTABLE_FREEZE_REPRODUCIBILITY**: `PASS`
+- **CURRENT_EXECUTABLE_FREEZE_STATUS**: `FROZEN_REPRODUCIBLY`
+- **DATASET_SHA256**: `bd812341a922ded1c7159191849dae284a88f24afd9c7e8d3c64f9b081602f3f` (`UNCHANGED`)
+
+### 7. Testes Unitários de Reprodutibilidade e Robustez
+- **Arquivo de Testes**: `packages/integrations/src/typesafe/l2-executable-freeze.test.ts`
+- **Cenários Cobertos (Casos A a J)**:
+  - Caso A: Duas invocações independentes sobre mesmo HEAD produzem hash idêntico;
+  - Caso B: Hash é independente da ordem de arquivos ou enumeração de filesystem;
+  - Caso C: Mutação de 1 byte altera o hash agregado;
+  - Caso D: Módulo faltante falha fechado (`FAIL_CLOSED`);
+  - Caso E: Caminhos duplicados falham fechado;
+  - Caso F: Path traversal para fora da raiz falha fechado;
+  - Caso G: Discrepância na contagem de módulos falha fechado;
+  - Caso H: Ferramenta realiza zero chamadas de rede ou provedores;
+  - Caso I: Ferramenta não requer nenhuma credencial real;
+  - Caso J: Ferramenta não lê nem acessa arquivos `.env`.
+- **Resultado dos Testes**: `10/10 PASS` em Vitest.
+- **Suíte Completa Integrations**: `200/200 PASS` (26 arquivos de teste).
+
+### 8. Invariantes de Governança, Custos e Semântica de Runtime
+- **TypeSafe request cap**: 7 (inalterado)
+- **OpenAI request cap**: 12 (inalterado)
+- **Total request cap**: 19 (inalterado)
+- **Concurrency**: 1 (inalterado)
+- **Retries**: 0 (inalterado)
+- **TypeSafe text cap**: 1.000 chars (inalterado)
+- **OpenAI text cap**: 4.000 chars (inalterado)
+- **OpenAI output cap**: 500 (inalterado)
+- **Jev expected model**: `jev-1.13.0` (inalterado)
+- **OpenAI requested model**: `gpt-6-astra` (inalterado)
+- **Frozen Policy**: `UNCHANGED`
+- **Dataset**: `UNCHANGED` (`bd812341a9...`)
+- **Provedores reais**: `0` (OpenAI real: 0, TypeSafe real: 0, Twilio: 0, Cloud DB: 0, Holdout: NO ACCESS)
+- **Gasto em provedores neste slice**: `$0.00 USD`
+- **Leitura de .env**: `NO`
+- **Acesso a storages internos de IDE**: `NO`
+- **CURRENT_L2_EXECUTION**: `NOT_AUTHORIZED`
+- **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+- **PR_MERGE_PERFORMED**: `NO`
+- **NEXT_REQUIRED_STEP**: `HUMAN_SECRET_ROTATION_AND_CREDENTIAL_CONFIGURATION`

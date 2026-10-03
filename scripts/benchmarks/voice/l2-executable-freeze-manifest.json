@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0.0",
+  "description": "Deterministic manifest of runtime executable modules for L2 synthetic integration runner",
+  "expectedModuleCount": 10,
+  "executableModules": [
+    "scripts/benchmarks/voice/l2-runner-artifact.mjs",
+    "scripts/benchmarks/voice/l2-runner-case-execution.mjs",
+    "scripts/benchmarks/voice/l2-runner-cost-ceiling.mjs",
+    "scripts/benchmarks/voice/l2-runner-dependencies.mjs",
+    "scripts/benchmarks/voice/l2-runner-input-budget.mjs",
+    "scripts/benchmarks/voice/l2-runner-preconditions.mjs",
+    "scripts/benchmarks/voice/l2-runner-provider-dispatch.mjs",
+    "scripts/benchmarks/voice/l2-runner-request-caps.mjs",
+    "scripts/benchmarks/voice/l2-runner-result-classification.mjs",
+    "scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs"
+  ]
+}
