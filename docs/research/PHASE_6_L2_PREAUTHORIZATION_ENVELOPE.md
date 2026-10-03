@@ -2,12 +2,12 @@
 
 <!--
 L2_PREAUTHORIZATION_ENVELOPE_METADATA_START
-SCHEMA_VERSION: 1.1.0
+SCHEMA_VERSION: 1.2.0
 CREATED_AT: 2026-10-03
 LAST_RECONCILED_AT: 2026-10-03
 PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
 STUDY: L2 Real Jev + Real OpenAI + Synthetic Transcript
-PREAUTH_STATUS: PREAUTH_BLOCKED_FOR_RUNNER_HARDENING_AND_TOKEN_CAPS
+PREAUTH_STATUS: PREAUTH_BLOCKED
 L2_EXECUTION: NOT EXECUTED
 L2_OPERATOR_COST_CEILING: NOT_AUTHORIZABLE
 PROPOSED_COST_CEILING_USD: 0.25 (PLANNING_PROPOSAL)
@@ -18,8 +18,10 @@ RUNTIME_ENFORCED_INPUT_TOKEN_CAP: NONE
 TOKEN_CAP_ENFORCEMENT: NOT_ENFORCEABLE_AT_RUNTIME
 AGGREGATE_OUTPUT_CAP: DERIVED_ENFORCEABLE_SUBJECT_TO_CAP_ISOLATION_TEST
 CURRENT_RUNNER_FREEZE: PRE_HARDENING_REFERENCE
+L2_RUNNER_HARDENED_COMMIT_SHA: 4cd15b1b0b6afe5a9f10b371eab387ae85bb8205
 FUTURE_LIVE_RUNNER_FREEZE: MUST_BE_RECOMPUTED_AFTER_HARDENING
 LIVE_COMMAND_STATUS: LIVE_COMMAND_NOT_YET_AUTHORIZABLE
+NEXT_ALLOWED_STEP: L2 RUNNER HARDENING — OFFLINE ONLY
 L2_PREAUTHORIZATION_ENVELOPE_METADATA_END
 -->
 
@@ -51,7 +53,7 @@ Estabelecer um envelope rigoroso, auditável e imutável para a futura execuçã
 | **L2_RUNNER_PATH** | `scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs` | Script rastreado |
 | **CURRENT_RUNNER_FREEZE** | `PRE_HARDENING_REFERENCE` | Versão inicial pós-PR68 |
 | **L2_RUNNER_SHA256** | `89c42ced37e04aafadb752f9fcc03e28fcb5409dfb2ff878c35eb8a1f98e4755` | Hash SHA-256 do runner atual |
-| **L2_RUNNER_COMMIT_SHA** | `4cd15b1b0b6afe5a9f10b371eab387ae85bb8205` | Commit de introdução no PR #68 |
+| **L2_RUNNER_LAST_CODE_COMMIT_SHA** | `4cd15b1b0b6afe5a9f10b371eab387ae85bb8205` | Commit do hardening final do runner no PR #68 (`L2_RUNNER_HARDENED_COMMIT_SHA`) |
 | **FUTURE_LIVE_RUNNER_FREEZE** | `MUST_BE_RECOMPUTED_AFTER_HARDENING` | Qualquer alteração no runner para hardening invalida o SHA atual |
 
 ---
@@ -74,7 +76,7 @@ Estabelecer um envelope rigoroso, auditável e imutável para a futura execuçã
 
 ### OpenAI Pricing
 - **OPENAI_PRICE_STATUS**: `VERIFIED`
-- **OPENAI_PRICING_SOURCE_URL**: `https://openai.com/api/pricing/` (documentação oficial pública observada)
+- **OPENAI_PRICING_SOURCE_URL**: `https://openai.com/api/pricing/` (documentação oficial pública observada em 2026-10-03)
 - **OPENAI_PRICING_OBSERVED_AT**: `2026-10-03`
 - **OPENAI_MODEL_PRICED**: `gpt-4o-mini`
 - **INPUT_PRICE**: `$0.15 USD por 1.000.000 tokens` (`$0.00000015 / token`)
@@ -120,13 +122,21 @@ Estabelecer um envelope rigoroso, auditável e imutável para a futura execuçã
 ## 7. Cost Model & Semantics
 
 ### Cenário de Planejamento (*Planning Scenario*)
-Sob as premissas de planejamento (1.000 tokens in para Jev e 1.500 tokens in + 500 tokens out para OpenAI):
-- **Custo Planejado TypeSafe**:
-  $$rac{7 	imes 1.000}{1.000.000.000} 	imes $42 = $0,000294	ext{ USD}$$
-- **Custo Planejado OpenAI**:
-  $$left(rac{18.000}{1.000.000} 	imes $0,15ight) + left(rac{6.000}{1.000.000} 	imes $0,60ight) = $0,002700 + $0,003600 = $0,006300	ext{ USD}$$
-- **PLANNING_SCENARIO_PROJECTED_COST_USD**:
-  $$$0,000294 + $0,006300 = mathbf{$0,006594	ext{ USD}} (approx $0,0066	ext{ USD})$$
+Sob as premissas conservadoras de planejamento (1.000 tokens in para Jev e 1.500 tokens in + 500 tokens out para OpenAI):
+
+```text
+TypeSafe planning cost:
+(7 requests * 1,000 input tokens / 1,000,000,000) * $42 USD
+= 0.000294 USD
+
+OpenAI planning cost:
+Input:  (18,000 tokens / 1,000,000) * $0.15 USD = 0.002700 USD
+Output: (6,000 tokens / 1,000,000)  * $0.60 USD = 0.003600 USD
+Total:  0.002700 + 0.003600 = 0.006300 USD
+
+Planning scenario total:
+0.000294 + 0.006300 = 0.006594 USD (~0.0066 USD)
+```
 
 ### Semântica de Autorização
 - **HARD_MAX_PROVIDER_COST_STATUS**: **`NOT_ENFORCEABLE`**
@@ -219,18 +229,17 @@ node scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs --cost
 
 ## 13. Remaining Blockers para Execução Live
 
-1. **`BLOCKED_FOR_RUNNER_HARDENING`**: O runner necessita de hardening em slice de código dedicado para:
-   - Aceitar e propagar flag `--allow-live` via CLI;
-   - Atualizar/injetar `OPENAI_PRICE_STATUS = VERIFIED`;
-   - Implementar guarda de limite de tokens de entrada em tempo de execução (`TOKEN_CAP_ENFORCEMENT`);
-   - Adicionar testes de borda isolados comprovando o bloqueio de requisições excedentes antes da chamada de rede;
-2. **`BLOCKED_FOR_TYPESAFE_OFFICIAL_BILLING_EVIDENCE`**: Ausência de URL pública oficial confirmando faturamento da TypeSafe a $42/Btok;
-3. **`BLOCKED_FOR_OPERATOR_AUTHORIZATION`**: Autorização formal do operador humano para o teto de gastos e execução de rede, após conclusão do hardening e novo freeze.
+A execução live permanece categoricamente bloqueada pelos seguintes impedimentos ativos:
+1. **`BLOCKER_RUNNER_HARDENING = YES`**: Necessidade de slice de código para propagação de CLI flags e fail-closed plumbing;
+2. **`BLOCKER_INPUT_TOKEN_CAPS = YES`**: Ausência de limitador / interceptor de tokens de entrada ativo em runtime;
+3. **`BLOCKER_REQUEST_CAP_BOUNDARY_TESTS = YES`**: Ausência de testes unitários isolados de exaustão de caps de requisição;
+4. **`BLOCKER_TYPESAFE_PRICING_EVIDENCE = YES`**: Ausência de URL pública oficial confirmando faturamento da TypeSafe a $42/Btok;
+5. **`BLOCKER_OPERATOR_AUTHORIZATION = YES`**: O teto financeiro de $0.25 USD e o comando live ainda não foram autorizados pelo operador humano.
 
 ---
 
 ## 14. Classificação Final do Envelope
 
-**`PREAUTH_STATUS = PREAUTH_BLOCKED_FOR_RUNNER_HARDENING_AND_TOKEN_CAPS`**
+**`PREAUTH_STATUS = PREAUTH_BLOCKED`**
 
 *(Proibido classificar como `PREAUTH_READY`, `AUTHORIZED` ou `EXECUTED`).*

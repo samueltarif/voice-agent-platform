@@ -13518,3 +13518,48 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **AI_WORKLOG_APPEND_ONLY**: `PASS`.
 - **SECRET_AUDIT**: `PASS`.
 - **MERGE_PERFORMED**: `NO`.
+
+
+---
+
+## 2026-10-03 — PR #70 Final Documentation Consistency Closure (Slice 006AQ-DocClosure)
+
+### 1. Contexto e Preflight
+- **Prompt ID**: `PROMPT-PR70-FINAL-DOC-CONSISTENCY-CLOSURE-001`
+- **AUTHORITATIVE_REPO_ROOT**: `D:/voice-agent-platform-git`
+- **Branch**: `docs/006aq-l2-preauthorization-envelope`
+- **Base do PR #70**: `774d522180dd1e720ddab91d4ae0b7898bece2c6`
+- **PR #70 Status**: `OPEN`
+- **Provider Calls neste Slice**: TypeSafe = 0, OpenAI = 0, Twilio = 0
+- **Cloud DB Connections**: 0
+- **Local DB Connections**: 0
+- **Holdout**: `NO NEW ACCESS` (`LOCKED_HOLDOUT = CONSUMED` preservado)
+- **Frozen Policy**: `UNCHANGED`
+- **ACTIVE_GUARDED**: `BLOCKED`
+- **PRODUCTION_RUNTIME_WIRING**: `NO`
+- **CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE**: `NOT CLEARED`
+- **L2_EXECUTION**: `NOT EXECUTED`
+
+### 2. Fechamento de Inconsistências Documentais
+- **Quality Gate Snapshot Reconciliado em `docs/AI_CONTEXT.md`**:
+  - `LAST_GLOBAL_PNPM_CHECK_CODE_SHA`: Atualizado para `630ee48d8fdd10077e7374053da176d9072c5b9a` (SHA pós-merge do PR #68 verificado com sucesso no histórico factual).
+  - Status das asserções: `750 passed`, `45 historical skips`, `0 new skips`, `0 failures` (111 arquivos de teste aprovados, 6 skipped de staging; 795 testes totais).
+  - `QUALITY_EVIDENCE_STALE`: `NO` (commits subsequentes estritamente documentais em `docs/`).
+- **Contagem de Testes Focados do Runner L2 Reconciliada**:
+  - `L2_RUNNER`: `IMPLEMENTED / HARDENED / TESTED OFFLINE`.
+  - `L2_RUNNER_FOCUSED_TESTS`: `12/12 PASS` em `packages/integrations/src/typesafe/jev-openai-l2-synthetic-runner.test.ts` (suite endurecida com matriz completa A-T).
+- **Semântica do Próximo Passo (`NEXT_ALLOWED_STEP`) Corrigida**:
+  - Atualizado para `L2 RUNNER HARDENING — OFFLINE ONLY` (objetivos: CLI live flag `--allow-live`, guarda ativa de limite de tokens em runtime, testes de borda de caps e zero chamadas reais).
+  - Preservado: `L2_EXECUTION = NOT EXECUTED`, `DO NOT EXECUTE L2 LIVE.`
+- **Semântica do Commit do Runner Reconciliada**:
+  - `L2_RUNNER_LAST_CODE_COMMIT_SHA`: `4cd15b1b0b6afe5a9f10b371eab387ae85bb8205` (commit de hardening do runner no PR #68, não commit de introdução original).
+- **Normalização da Classificação de Bloqueio**:
+  - `PREAUTH_STATUS`: `PREAUTH_BLOCKED` (evitando string excessivamente longa e refletindo todos os 5 bloqueadores ativos: `BLOCKER_RUNNER_HARDENING`, `BLOCKER_INPUT_TOKEN_CAPS`, `BLOCKER_REQUEST_CAP_BOUNDARY_TESTS`, `BLOCKER_TYPESAFE_PRICING_EVIDENCE`, `BLOCKER_OPERATOR_AUTHORIZATION`).
+- **Correção de Apresentação Markdown**:
+  - Fórmulas de cálculo de custos substituídas por bloco de texto estruturado sem escapes frágeis.
+
+### 3. Governança e Integridade
+- **Escopo**: 100% documental (`docs/AI_CONTEXT.md`, `docs/AI_WORKLOG.md`, `docs/research/PHASE_6_L2_PREAUTHORIZATION_ENVELOPE.md`).
+- **AI_WORKLOG_APPEND_ONLY**: `PASS`.
+- **SECRET_AUDIT**: `PASS`.
+- **MERGE_PERFORMED**: `NO`.
