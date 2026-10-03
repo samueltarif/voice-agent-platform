@@ -147,14 +147,27 @@ O documento original continha uma divergência textual que associava `$42 / Btok
 - **Classificação**: `PR65_COST_UNIT_TEXT_ERROR = YES` (erro aritmético textual de documentação corrigido; zero impacto funcional ou de faturamento).
 
 ### 11.2 Limites Orçamentários Derivados para N=100
-- **Auditoria de Envelope Serializado**: Medição offline com fake fetch comprovou que o payload JSON completo varia entre 1.497 e 1.838 bytes (mediana: 1.594 bytes).
-- **Tokenizer**: \TOKENIZER_VERIFIED = NO\ (não há tokenizer oficial TypeSafe verificado para o billing payload).
-- **Teto Conservador por Request (\MAX_ESTIMATED_INPUT_TOKENS_PER_REQUEST\)**: **1.000 tokens** (padrão conservador de salvaguarda adotado no L1A; classificação: \CONSERVATIVE_PROJECTED_TOKEN_BOUND\).
-- **Teto Projetado de Tokens (\MAX_PROJECTED_INPUT_TOKENS\)**:  \times 1.000 = \mathbf{100.000\ tokens}$.
-- **Custo Máximo Projetado (\MAX_PROJECTED_COST_USD\)**:
-  100.000 \times \.000000042 = \mathbf{\.00420\ USD}
-- **Teto Proposto para Autorização Humana (\PROPOSED_OPERATOR_PROJECTED_COST_CEILING_USD\)**: **.10 USD** (margem de segurança de ~24x sobre a projeção conservadora).
-- \ACTUAL_BILLED_COST_HARD_CAP\: \NOT VERIFIED\ (a API remota não impõe limite rígido de crédito pelo runner).
+
+- Auditoria de Envelope Serializado: payload JSON completo entre 1.497 e 1.838 bytes, mediana 1.594 bytes.
+- `TOKENIZER_VERIFIED = NO`
+- `MAX_ESTIMATED_INPUT_TOKENS_PER_REQUEST = 1000`
+- Classificação: `CONSERVATIVE_PROJECTED_TOKEN_BOUND`
+- `MAX_PROJECTED_INPUT_TOKENS = 100000`
+
+Cálculo textual:
+100 requests × 1000 tokens/request = 100000 projected input tokens.
+
+Preço histórico verificado:
+$42 / Btok equivalente a $0.000000042 / input token
+
+Cálculo:
+100000 × $0.000000042 = $0.00420 USD.
+
+Registrar:
+- `MAX_PROJECTED_COST_USD = 0.00420`
+- `PROPOSED_OPERATOR_PROJECTED_COST_CEILING_USD = 0.10`
+- `ACTUAL_BILLED_COST_HARD_CAP = NOT VERIFIED`
+
 ---
 
 ## 12. Pacote Exato de Pré-Autorização Humana (L1B Run 1)
@@ -165,22 +178,61 @@ O pacote a ser submetido ao operador antes de qualquer execução live no próxi
 ==================================================
 L1B RUN 1 PREAUTHORIZATION PACKAGE (EXACT)
 ==================================================
-MODEL_ID: jev-1.13.0 (sujeito a reverificação antes da execução)
-DATASET_PATH: scripts/benchmarks/voice/jev-l1b-synthetic-latency-v1-cases.json
-DATASET_CASES: 100
-DATASET_SHA256: 952da0c7a6a10447baa9e24a976543e06b7480eb9bdef98096242d5276188136
-SERIAL_REQUESTS_PLANNED: 100
-LOW_CONCURRENCY_REQUESTS_PLANNED: 0 (DEFERRED)
-TOTAL_MAX_REQUESTS: 100
-CONCURRENCY: 1 (sequencial puro)
-RETRIES: 0
-MAX_ESTIMATED_INPUT_TOKENS: 100.000
-MAX_PROJECTED_COST_USD: .00420 USD
-PROPOSED_HUMAN_COST_CEILING_USD: $0.10 USD
-CUSTOMER_DATA_EXPOSURE: 0
-OPENAI_CALLS: 0
-TWILIO_CALLS: 0
-AUTORIZAÇÃO REQUERIDA: AUTORIZO_L1B_TYPESAFE_N100 = YES
+MODEL_ID:
+jev-1.13.0
+
+DATASET_PATH:
+scripts/benchmarks/voice/jev-l1b-synthetic-latency-v1-cases.json
+
+DATASET_CASES:
+100
+
+DATASET_SHA256:
+952da0c7a6a10447baa9e24a976543e06b7480eb9bdef98096242d5276188136
+
+SERIAL_REQUESTS_PLANNED:
+100
+
+LOW_CONCURRENCY_REQUESTS_PLANNED:
+0 (DEFERRED)
+
+TOTAL_MAX_REQUESTS:
+100
+
+CONCURRENCY:
+1
+
+RETRIES:
+0
+
+MAX_ESTIMATED_INPUT_TOKENS:
+100000
+
+CONSERVATIVE_PROJECTED_TOKENS_PER_REQUEST:
+1000
+
+MAX_PROJECTED_COST_USD:
+$0.00420 USD
+
+PROPOSED_HUMAN_COST_CEILING_USD:
+$0.10 USD
+
+ACTUAL_BILLED_COST_HARD_CAP:
+NOT VERIFIED
+
+CUSTOMER_DATA_EXPOSURE:
+0
+
+OPENAI_CALLS:
+0
+
+TWILIO_CALLS:
+0
+
+Authorization required:
+
+AUTORIZO_L1B_TYPESAFE_N100 = YES
+COST_CEILING_USD = 0.10
 ==================================================
 ```
 
@@ -263,9 +315,9 @@ Classificadas estritamente por natureza:
 
 ## 17. Próximo Passo Permitido
 
-> **Status do Runner**: \L1B_RUNNER = IMPLEMENTED / TESTED OFFLINE\ (\scripts/benchmarks/voice/run-jev-l1b-synthetic-latency.mjs\).
-> **Procedimento Pré-Live**: \INTEGRATIONS_DIST_REFRESH_REQUIRED_BEFORE_LIVE = YES\ (\pnpm --filter @voice-agent/integrations build\ executado e verificado).
-> **Status de Execução**: \L1B_PROVIDER_EXECUTION = AWAITING_OPERATOR_AUTHORIZATION\.
+> **Status do Runner**: `L1B_RUNNER = IMPLEMENTED / TESTED OFFLINE` (`scripts/benchmarks/voice/run-jev-l1b-synthetic-latency.mjs`).
+> **Procedimento Pré-Live**: `INTEGRATIONS_DIST_REFRESH_REQUIRED_BEFORE_LIVE = YES` (`pnpm --filter @voice-agent/integrations build` executado e verificado).
+> **Status de Execução**: `L1B_PROVIDER_EXECUTION = AWAITING_OPERATOR_AUTHORIZATION`.
 
 Após o merge deste plano endurecido:
 - **NEXT_ALLOWED_STEP**: L1B Run 1 Preauthorization + Runner Preparation (OFFLINE FIRST).

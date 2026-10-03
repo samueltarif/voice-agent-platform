@@ -12725,3 +12725,38 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **ACTIVE_GUARDED**: `BLOCKED`
 - **L1B_EXECUTION**: `NOT EXECUTED`
 - **L1B_PROVIDER_EXECUTION**: `AWAITING_OPERATOR_AUTHORIZATION`
+
+---
+
+## 2026-10-02 — PR #66 Preauth Document Formatting Repair (Slice 006AL)
+
+### 1. Contexto e Identificação de Corrupção
+- **Prompt**: `PROMPT-006AL-PR66-PREAUTH-DOC-FORMATTING-REPAIR-001`
+- **Fase**: Phase 6 (Voice Model Routing & Jev Evaluation)
+- **PR**: #66 (`research/006al-l1b-run1-preauth-runner`)
+- **PR66_PREAUTH_DOC_MARKDOWN_CORRUPTION**: `YES`
+- **CATEGORY**: `DOCUMENTATION_FORMATTING_ERROR`
+- **CORRUPTION_LOCATION**: `docs/research/PHASE_6_TYPESAFE_L1B_SYNTHETIC_LATENCY_PLAN.md` (Sections 11.2 and 12)
+- **Detalhes da Corrupção**: Presença de sequências de escape indevidas (`\TOKENIZER`, `\MAX_`, `\PROPOSED_`, `\ACTUAL_`, `\.00420`), fórmulas matemáticas truncadas por interpolação de terminal e ausência do prefixo de dólar em `MAX_PROJECTED_COST_USD`.
+
+### 2. Ação Corretiva e Integridade do Runner
+- **FUNCTIONAL_RUNNER_IMPACT**: `NONE`
+- **RUNNER_CHANGED_THIS_PROMPT**: `NO` (`scripts/benchmarks/voice/run-jev-l1b-synthetic-latency.mjs` permanece inalterado)
+- **DATASET_CHANGED_THIS_PROMPT**: `NO` (`scripts/benchmarks/voice/jev-l1b-synthetic-latency-v1-cases.json` permanece inalterado)
+- **PROVIDER_CALL_IMPACT**: `NONE`
+- **Reparo Realizado**:
+  - Seção 11.2: Formatting/escaping corrigido para markdown limpo com `MAX_ESTIMATED_INPUT_TOKENS_PER_REQUEST = 1000`, `MAX_PROJECTED_INPUT_TOKENS = 100000`, `MAX_PROJECTED_COST_USD = 0.00420`, `PROPOSED_OPERATOR_PROJECTED_COST_CEILING_USD = 0.10`, `ACTUAL_BILLED_COST_HARD_CAP = NOT VERIFIED`.
+  - Seção 12: Pacote exato de pré-autorização humana formatado sem escapes, com contagens e limites explícitos (`100000`, `1000`, `$0.00420 USD`, `$0.10 USD`, `AUTORIZO_L1B_TYPESAFE_N100 = YES`, `COST_CEILING_USD = 0.10`).
+
+### 3. Evidências Fatuais e Invariantes
+- **CORRECT_MAX_PROJECTED_INPUT_TOKENS**: `100000`
+- **CORRECT_MAX_PROJECTED_COST_USD**: `0.00420`
+- **PROPOSED_COST_CEILING_USD**: `0.10`
+- **Provider Calls**: TypeSafe = 0, OpenAI = 0, Twilio = 0
+- **ENV_LOADED**: `NO`
+- **DB**: `NO`
+- **HOLDOUT_OPENED**: `NO` (`LOCKED_HOLDOUT = CONSUMED` preservado)
+- **FROZEN_POLICY_CHANGED**: `NO`
+- **ACTIVE_GUARDED**: `BLOCKED`
+- **L1B_EXECUTION**: `NOT EXECUTED`
+- **L1B_PROVIDER_EXECUTION**: `AWAITING_OPERATOR_AUTHORIZATION`
