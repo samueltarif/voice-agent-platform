@@ -4,13 +4,13 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-03
-CONTEXT_BASE_MAIN_SHA: 3f2d8e484b3440f116baef71eb6d543102a5671a
+CONTEXT_BASE_MAIN_SHA: ae3204e512469086f0ad60db3bb73bd1fe0e09b8
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
-CURRENT_SLICE: L2 Preauthorization Blocker Closure
-CONTEXT_UPDATE_BRANCH: research/006as-l2-preauth-blocker-closure
-CONTEXT_UPDATE_PR: 72
-LAST_MERGED_PR_AT_REFRESH: 71
-LAST_MERGE_SHA_AT_REFRESH: 3f2d8e484b3440f116baef71eb6d543102a5671a
+CURRENT_SLICE: TypeSafe Account Billing Evidence Reconciliation
+CONTEXT_UPDATE_BRANCH: research/006at-typesafe-billing-evidence-reconciliation
+CONTEXT_UPDATE_PR: PENDING
+LAST_MERGED_PR_AT_REFRESH: 72
+LAST_MERGE_SHA_AT_REFRESH: ae3204e512469086f0ad60db3bb73bd1fe0e09b8
 LAST_TESTED_CODE_SHA: ed2c3d5f9e7207c6ea2309239727597ff7081127
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
@@ -199,7 +199,7 @@ AI_CONTEXT_HEADER_END
     4. Garantir que precificação e pré-condições operem em modo fail-closed;
     5. Zero chamadas a provedores reais (`TypeSafe = 0`, `OpenAI = 0`, `Twilio = 0`).
 - `L2_EXECUTION` = `NOT EXECUTED`.
-- `OPENAI_PRICE_STATUS` = `VERIFIED` (oficial: $10.00/1M in, $5.00/1M cached in, $50.00/1M out para gpt-6-astra); `TYPESAFE_PRICE_STATUS` = `NOT_VERIFIED` (sem URL pública oficial de faturamento).
+- `OPENAI_PRICE_STATUS` = `VERIFIED` (oficial: $10.00/1M in, $5.00/1M cached in, $50.00/1M out para gpt-6-astra); `TYPESAFE_PRICE_STATUS` = `NOT_VERIFIED` (sem URL pública oficial de faturamento); `TYPESAFE_PRICING_EVIDENCE` = `ACCOUNT_BILLING_EMPIRICALLY_VERIFIED` (tarifa empírica observada ~$41.92/Btok input; hipótese de $42/Btok consistente com uso da conta); `TYPESAFE_EXPLICIT_CONTRACTUAL_TARIFF` = `NOT_OBSERVED`; `TYPESAFE_EMPIRICAL_EVIDENCE_HUMAN_ACCEPTANCE` = `PENDING`.
 - `L2_OPERATOR_COST_CEILING` = `NOT_AUTHORIZABLE` (proposta de $0.25 USD aguarda hardening e caps executáveis).
 - `ACTIVE_GUARDED` permanece `BLOCKED` até conclusão de toda a escada de validação (L1-L4).
 - Do NOT execute L2 live.

@@ -14029,3 +14029,64 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **L2_EXECUTION**: `NOT EXECUTED`
 - **PREAUTH_STATUS**: `PREAUTH_BLOCKED`
 - **PR_MERGE_PERFORMED**: `NO`
+
+---
+
+## 2026-10-03 — TypeSafe Account Billing Evidence Reconciliation (Slice 006AT)
+
+### 1. Preflight e Contexto
+- **AUTHORITATIVE_REPO_ROOT**: `D:/voice-agent-platform-git`
+- **SOURCE_MAIN_SHA**: `ae3204e512469086f0ad60db3bb73bd1fe0e09b8`
+- **Branch**: `research/006at-typesafe-billing-evidence-reconciliation`
+- **Objetivo**: Reconciliação documental de métricas agregadas de faturamento e refill comercial da conta TypeSafe fornecidas pelo operador humano após o merge do PR #72.
+- **Isolamento de Credenciais**:
+  - `raw billing artifacts committed`: `NO`
+  - `api identifiers committed`: `NO`
+  - `pii committed`: `NO`
+
+### 2. Evidência Empírica de Faturamento e Consumo
+- **Métricas Agregadas da Conta**:
+  - `requests`: 345
+  - `input tokens`: 205142
+  - `output tokens`: 22086
+  - `total tokens`: 227228
+- **Dados Financeiros Observados**:
+  - `observed spend`: 0.0086 USD
+  - `commercial refill evidence`: 5.00 USD
+  - `account available credits`: 5.00 USD
+- **Análise Matemática da Tarifa**:
+  - `empirical input rate`: 0.0086 / 205142 * 1.000.000.000 ≈ **41.92 USD / 1B tokens de entrada**
+  - `42 USD / 1B expected spend`: 205142 / 1.000.000.000 * 42 = **0.008615964 USD**
+  - `rounding consistency`: `PASS` (diferença de 0.00001596 USD explicada por exibição a 4 decimais)
+  - `output token billing`: `NOT_EXPLICITLY_OBSERVED` (cobrança observada fortemente consistente com input-only rate a ~$42/B, mas não prova contratualmente tarifa zero de output)
+  - `input only rate hypothesis`: `STRONGLY_SUPPORTED_BY_ACCOUNT_USAGE`
+  - `output rate`: `NOT_VERIFIED`
+
+### 3. Classificação de Evidência e Impacto no Modelo de Custo
+- `TYPESAFE_PRICING_EVIDENCE`: `ACCOUNT_BILLING_EMPIRICALLY_VERIFIED`
+- `TYPESAFE_RATE_HYPOTHESIS_USD_PER_1B`: 42.00
+- `TYPESAFE_RATE_HYPOTHESIS_CONSISTENCY`: `PASS`
+- `TYPESAFE_EXPLICIT_CONTRACTUAL_TARIFF`: `NOT_OBSERVED`
+- `TYPESAFE_PRICE_STATUS`: `NOT_VERIFIED`
+- `HUMAN_DECISION_TYPESAFE_EMPIRICAL_EVIDENCE_ACCEPTANCE`: `PENDING`
+- `TYPESAFE_PLANNING_COMPONENT_USD`: 0.000294 USD
+- `TYPESAFE_PLANNING_COMPONENT_EVIDENCE`: `ACCOUNT_EMPIRICAL_RATE_HYPOTHESIS`
+- `L2_PLANNING_TOTAL_PROVIDER_COST_USD`: 0.480294 USD
+- `HARD_L2_COST_BOUND_FEASIBLE`: `BLOCKED`
+- `CURRENT_OPERATOR_CEILING`: `NOT_PROPOSED`
+- `TOKEN_CAP_CLOSURE_PATH`: `NO_PRECALL_HARD_TOKEN_BOUND_AVAILABLE`
+- `OPENAI_PRECALL_TOKEN_COUNT_FEASIBLE`: `YES_WITH_DEPENDENCY`
+- `TYPESAFE_PRECALL_TOKEN_COUNT_FEASIBLE`: `NO`
+
+### 4. Governança e Isolamento
+- **provider calls**: `0`
+- **OpenAI real calls**: `0`
+- **TypeSafe real calls**: `0`
+- **Twilio**: `0`
+- **Cloud DB**: `0`
+- **Holdout**: `NO NEW ACCESS`
+- **Frozen Policy**: `UNCHANGED`
+- **L2_EXECUTION**: `NOT EXECUTED`
+- **LIVE_COMMAND_STATUS**: `NOT_AUTHORIZED`
+- **PREAUTH_STATUS**: `PREAUTH_BLOCKED`
+- **PR_MERGE_PERFORMED**: `NO`
