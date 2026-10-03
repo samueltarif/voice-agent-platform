@@ -7,7 +7,7 @@ LAST_REFRESHED_AT: 2026-10-03
 CONTEXT_BASE_MAIN_SHA: 630ee48d8fdd10077e7374053da176d9072c5b9a
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
 CURRENT_SLICE: L2 Real Jev + Real OpenAI + Synthetic Transcript — Preauthorization Planning
-CONTEXT_UPDATE_BRANCH: docs/006ap-pr68-postmerge-context-sync
+CONTEXT_UPDATE_BRANCH: docs/006aq-l2-preauthorization-envelope
 CONTEXT_UPDATE_PR: PENDING
 LAST_MERGED_PR_AT_REFRESH: 68
 LAST_MERGE_SHA_AT_REFRESH: 630ee48d8fdd10077e7374053da176d9072c5b9a
@@ -192,7 +192,7 @@ AI_CONTEXT_HEADER_END
 ### `NEXT_ALLOWED_STEP`:
 - **L2 Real Jev + Real OpenAI + Synthetic Transcript — PREAUTHORIZATION PLANNING ONLY** (review & merge this doc-only PR, then proceed to L2 preauthorization planning).
 - `L2_EXECUTION` = `NOT EXECUTED`.
-- `OPENAI_PRICE_STATUS` = `NOT_VERIFIED`.
+- `OPENAI_PRICE_STATUS` = `VERIFIED` (official OpenAI pricing observed: $0.15/1M in, $0.60/1M out).
 - `L2_OPERATOR_COST_CEILING` = `NOT_AUTHORIZED`.
 - `ACTIVE_GUARDED` permanece `BLOCKED` até conclusão da escada de validação (L1-L4).
 - Do NOT execute L2 live.
