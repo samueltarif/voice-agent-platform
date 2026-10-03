@@ -84,7 +84,7 @@ function createFakeOpenAiFetch() {
           id: 'chatcmpl-test',
           object: 'chat.completion.chunk',
           created: 123456,
-          model: 'gpt-4o-mini',
+          model: 'gpt-6-astra',
           choices: [
             { index: 0, delta: { content: 'Resposta sintética simulada.' }, finish_reason: null },
           ],
@@ -369,16 +369,16 @@ describe('L2 Synthetic Integration Runner - Offline Matrix Validation', () => {
       fakeTypeSafeFetch: fakeTypeSafe.fetchFn,
       fakeOpenAiFetch: fakeOpenAi.fetchFn,
       dryRunWrite: true,
-      openAiModelId: 'gpt-4o-mini',
+      openAiModelId: 'gpt-6-astra',
       logger: { log: () => {}, warn: () => {}, error: () => {} },
     });
 
-    expect(result.metadata.requestedOpenAiModel).toBe('gpt-4o-mini');
+    expect(result.metadata.requestedOpenAiModel).toBe('gpt-6-astra');
     expect(result.metadata.openAiModelIdentityStatus).toBe('NOT_OBSERVABLE_VIA_CURRENT_SURFACE');
 
     const openAiCases = result.cases.filter((c: L2CaseResult) => c.openAiCalled);
     for (const c of openAiCases) {
-      expect(c.openAiRequestedModel).toBe('gpt-4o-mini');
+      expect(c.openAiRequestedModel).toBe('gpt-6-astra');
       expect(c.openAiObservedModel).toBeNull();
     }
   });

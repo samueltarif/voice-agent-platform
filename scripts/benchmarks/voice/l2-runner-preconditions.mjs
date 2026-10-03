@@ -7,7 +7,7 @@ export const EXPECTED_DATASET_SHA256 =
 export const EXPECTED_CASE_COUNT = 12;
 export const REQUESTED_TYPESAFE_MODEL = 'jev-1.13.0';
 export const EXPECTED_TYPESAFE_MODEL = 'jev-1.13.0';
-export const DEFAULT_OPENAI_MODEL = 'gpt-4o-mini';
+export const DEFAULT_OPENAI_MODEL = 'gpt-6-astra';
 
 export const RESEARCH_HARNESS_TIMEOUT_MS = 5000;
 export const TYPESAFE_PRICE_PER_BTOK = 42;
