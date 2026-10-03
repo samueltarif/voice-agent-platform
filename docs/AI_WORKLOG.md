@@ -14670,3 +14670,70 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **Validade do Resultado de Presença**: Este desvio de processo não invalida a observação factual da presença das variáveis de credencial no ambiente do processo Node atual (`OPENAI_CREDENTIAL_AVAILABLE = YES`, `TYPESAFE_CREDENTIAL_AVAILABLE = YES`, `RUNTIME_CREDENTIAL_PRESENCE_VERIFICATION = PASS`).
 - **Diretriz Futura Estrita**: Tarefas subsequentes devem utilizar estritamente comandos inline em shell/Node ou ferramentas já rastreadas pelo repositório, sendo terminantemente proibida a criação de helpers temporários em disco.
 - **CREDENTIAL_VALIDITY**: Permanece categoricamente `NOT_VERIFIED` (a detecção de presença de variável de ambiente no processo Node não comprova validade, saldo, quotas ou autenticidade das credenciais junto aos provedores).
+
+---
+
+## 2026-10-03 — Slice 006AY Authorized Controlled L2 Live Execution
+
+### 1. Demanda e Contexto
+- **Slice**: `006AY`
+- **Branch**: `research/006ay-l2-authorized-live-execution`
+- **Objetivo**: Executar exatamente uma invocação live controlada do benchmark L2 sintético (`run-jev-openai-l2-synthetic-integration.mjs`) sob autorização humana explícita com teto de custo de US$0,96, concorrência 1 e 0 retentativas.
+
+### 2. Autorização e Governança de Execução
+- **HUMAN_L2_LIVE_AUTHORIZATION**: `AUTHORIZED_THEN_CONSUMED`
+- **AUTHORIZED_OPERATOR_COST_CEILING_USD**: `0.96`
+- **AUTHORIZATION_STATEMENT**: "AUTORIZO UMA NOVA EXECUÇÃO L2 CONTROLADA COM TETO OPERACIONAL DE US$0,96"
+- **AUTHORIZATION_SCOPE**: `SINGLE_SYNTHETIC_L2_RUN_ONLY`
+- **LIVE_COMMAND_INVOKED**: `YES`
+- **LIVE_COMMAND_INVOCATION_COUNT**: `1`
+- **LIVE_COMMAND**: `node scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs --allow-live --accept-typesafe-empirical-pricing --cost-ceiling 0.96`
+- **LIVE_AUTHORIZATION_CONSUMED**: `YES` (a autorização é consumida no instante exato da invocação, independentemente do resultado final)
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO` (qualquer segunda invocação ou retentativa está terminantemente proibida)
+
+### 3. Comportamento e Evidência Factual Observada
+- **RUNNER_EXIT_CODE**: `1`
+- **L2_RESULT**: `BLOCKED` (fail-closed antes de tráfego de rede)
+- **L2_EXECUTION**: `BLOCKED_BY_RUNTIME_MODULE_RESOLUTION`
+- **ERRO_FATAL_OBSERVADO**: `Cannot find module 'D:\voice-agent-platform-git\packages\errors\src\app-error.js' imported from D:\voice-agent-platform-git\packages\errors\src\index.ts`
+- **Análise da Causa Raiz**: O comando runner é executado com `node` puro. Em `packages/errors/src/index.ts`, a exportação utiliza `export * from './app-error.js'`, mas o arquivo físico no repositório de desenvolvimento é `app-error.ts`. Sem transpilação prévia para `dist/` ou uso de loader TypeScript compatível (`tsx`), a resolução nativa do Node 24 falhou imediatamente ao inicializar as dependências do runner.
+- **Chamadas a Provedores**:
+  - `TYPESAFE_REQUESTS_ATTEMPTED`: `0`
+  - `TYPESAFE_REQUESTS_SUCCEEDED`: `0`
+  - `OPENAI_REQUESTS_ATTEMPTED`: `0`
+  - `OPENAI_REQUESTS_SUCCEEDED`: `0`
+  - `TOTAL_PROVIDER_REQUESTS`: `0`
+  - `MATCHER_TRUE`: `0`
+  - `MATCHER_FALSE`: `0`
+  - `COMPLETIONS`: `0`
+  - `PROVIDER_ERRORS`: `0`
+  - `MODEL_MISMATCHES`: `0`
+  - `TIMEOUTS`: `0`
+  - `RETRIES`: `0`
+  - `MAX_CONCURRENCY`: `0`
+- **Métricas Financeiras e de Custos**:
+  - `RUNNER_REPORTED_COST_USD`: `NOT_AVAILABLE`
+  - `ACTUAL_PROVIDER_BILLED_COST_USD`: `0.00` (comprovada ausência total de atividade de rede)
+  - `PROVIDER_SPEND_FROM_THIS_INVOCATION_USD`: `0`
+  - `OpenAI real`: `0`
+  - `TypeSafe real`: `0`
+  - `Twilio`: `0`
+  - `Cloud DB`: `0`
+  - `Holdout`: `NO ACCESS`
+  - `Customer traffic`: `0`
+  - `Customer transcripts`: `0`
+
+### 4. Governança e Regras de Segurança
+- **ENV_FILE_READ_OCCURRED**: `NO`
+- **ENVIRONMENT_DUMP_OCCURRED**: `NO`
+- **CREDENTIAL_VALUE_PRINTED**: `NO`
+- **CREDENTIAL_LENGTH_PRINTED**: `NO`
+- **CREDENTIAL_PREFIX_OR_SUFFIX_PRINTED**: `NO`
+- **FORBIDDEN_IDE_INTERNAL_STORAGE_ACCESSED**: `NO`
+- **UNTRACKED_TEMP_HELPER_CREATED**: `NO`
+- **NON_AUTHORITATIVE_PATH_ACCESSED**: `NO`
+- **CROSS_WORKTREE_COPY_OCCURRED**: `NO`
+
+### 5. Próximo Passo Obrigatório
+- **NEXT_REQUIRED_STEP**: `HUMAN_REVIEW_OF_L2_FAILURE_OR_BLOCKER`
+- **Regra de Não-Reexecução**: O runner não pode ser reexecutado de forma autônoma. Uma nova tentativa live exigirá correção offline da resolução de módulos/build do runner e nova autorização explícita do operador humano com nova concessão de teto de custo.

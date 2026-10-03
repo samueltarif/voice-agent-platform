@@ -67,9 +67,35 @@ CREDENTIAL_PROVIDER_ACCEPTANCE: NOT_VERIFIED
 CREDENTIAL_PERMISSIONS: NOT_VERIFIED
 CREDENTIAL_ACCOUNT_IDENTITY: NOT_VERIFIED
 CREDENTIAL_BALANCE: NOT_VERIFIED
-L2_TECHNICAL_READINESS_BEFORE_HUMAN_AUTHORIZATION: READY_FOR_OPERATOR_AUTHORIZATION_PACKAGE
-NEXT_ALLOWED_STEP: NEW_L2_OPERATOR_COST_CEILING_AND_EXPLICIT_HUMAN_AUTHORIZATION
-NEXT_REQUIRED_STEP: NEW_L2_OPERATOR_COST_CEILING_AND_EXPLICIT_HUMAN_AUTHORIZATION
+HUMAN_L2_LIVE_AUTHORIZATION: AUTHORIZED_THEN_CONSUMED
+AUTHORIZED_OPERATOR_COST_CEILING_USD: 0.96
+AUTHORIZATION_SCOPE: SINGLE_SYNTHETIC_L2_RUN_ONLY
+LIVE_COMMAND_INVOKED: YES
+LIVE_COMMAND_INVOCATION_COUNT: 1
+LIVE_AUTHORIZATION_CONSUMED: YES
+SECOND_LIVE_RUN_AUTHORIZED: NO
+L2_RESULT: BLOCKED
+L2_EXECUTION: BLOCKED_BY_RUNTIME_MODULE_RESOLUTION
+RUNNER_EXIT_CODE: 1
+RUNNER_BLOCKER_REASON: Cannot find module packages/errors/src/app-error.js imported from packages/errors/src/index.ts
+TYPESAFE_REQUESTS_ATTEMPTED: 0
+TYPESAFE_REQUESTS_SUCCEEDED: 0
+OPENAI_REQUESTS_ATTEMPTED: 0
+OPENAI_REQUESTS_SUCCEEDED: 0
+TOTAL_PROVIDER_REQUESTS: 0
+MATCHER_TRUE: 0
+MATCHER_FALSE: 0
+COMPLETIONS: 0
+PROVIDER_ERRORS: 0
+MODEL_MISMATCHES: 0
+TIMEOUTS: 0
+RETRIES: 0
+MAX_CONCURRENCY: 0
+RUNNER_REPORTED_COST_USD: NOT_AVAILABLE
+ACTUAL_PROVIDER_BILLED_COST_USD: 0.00
+PROVIDER_SPEND_FROM_THIS_INVOCATION_USD: 0
+NEXT_ALLOWED_STEP: HUMAN_REVIEW_OF_L2_FAILURE_OR_BLOCKER
+NEXT_REQUIRED_STEP: HUMAN_REVIEW_OF_L2_FAILURE_OR_BLOCKER
 FUTURE_LIVE_CREDENTIAL_CONFIGURATION: REQUIRED_AFTER_FREEZE_CLOSURE
 OPENAI_PRICE_STATUS: VERIFIED
 CLI_LIVE_INTENT_PLUMBING: PASS
@@ -605,3 +631,32 @@ Decisões formais concedidas pelo operador humano em 2026-10-03 (escopo estrito:
   - `PREVIOUS_OPERATOR_COST_CEILING_USD`: `0.96` (`CONSUMED_SINGLE_RUN_AUTHORIZATION`)
   - `NEW_OPERATOR_COST_CEILING`: `NOT_YET_AUTHORIZED`
   - `NEXT_REQUIRED_STEP`: `NEW_L2_OPERATOR_COST_CEILING_AND_EXPLICIT_HUMAN_AUTHORIZATION`
+
+---
+
+## 21. Execução Live Controlada Autorizada de L2 (Slice 006AY)
+
+- **Slice**: `006AY` (`research/006ay-l2-authorized-live-execution`)
+- **Autorização Humana Explícita Concedida**: "AUTORIZO UMA NOVA EXECUÇÃO L2 CONTROLADA COM TETO OPERACIONAL DE US$0,96"
+- **Escopo Autorizado**: Exatamente 1 execução live controlada do benchmark L2 sintético com teto de custo do operador de US$0,96 (`AUTHORIZED_OPERATOR_COST_CEILING_USD = 0.96`), concorrência 1 e 0 retentativas.
+- **Invocação Live Única Realizada**:
+  ```bash
+  node scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs --allow-live --accept-typesafe-empirical-pricing --cost-ceiling 0.96
+  ```
+- **Consumo da Autorização**: A autorização foi formalmente consumida no instante da invocação (`LIVE_AUTHORIZATION_CONSUMED = YES`). Uma segunda execução live NÃO está autorizada (`SECOND_LIVE_RUN_AUTHORIZED = NO`).
+- **Comportamento e Saída Observada do Runner**:
+  - Exit code: `1`
+  - Erro fatal pré-rede: `Cannot find module 'D:\voice-agent-platform-git\packages\errors\src\app-error.js' imported from D:\voice-agent-platform-git\packages\errors\src\index.ts`
+  - Causa raiz: Sob execução nativa de Node.js sem transpilação TypeScript em runtime, a resolução ESM tentou carregar `./app-error.js` em disco a partir de `packages/errors/src/index.ts`, arquivo este inexistente em formato JS no diretório de fontes TS.
+- **Classificação Factual do Resultado**:
+  - `L2_RESULT`: `BLOCKED` (comportamento fail-closed impediu a execução do benchmark antes de qualquer comunicação de rede)
+  - `L2_EXECUTION`: `BLOCKED_BY_RUNTIME_MODULE_RESOLUTION`
+  - Chamadas de provedores: `0` (TypeSafe: 0, OpenAI: 0, Twilio: 0, Cloud DB: 0, Holdout: sem acesso)
+  - Gasto de provedores incorrido nesta invocação: `$0.00 USD`
+  - Custo reportado pelo runner: `NOT_AVAILABLE`
+  - Custo real faturado: `$0.00 USD` (zero atividade de rede atestada)
+- **Governança Pós-Execução**:
+  - A autorização para execução live permanece categoricamente consumida.
+  - O agente está proibido de reexecutar ou retentar o comando runner.
+  - Qualquer nova invocação live futura dependerá de nova autorização explícita humana e nova concessão de teto operacional após correção offline do problema de resolução de módulos.
+  - `NEXT_REQUIRED_STEP`: `HUMAN_REVIEW_OF_L2_FAILURE_OR_BLOCKER`.
