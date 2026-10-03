@@ -12945,3 +12945,19 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **Hard Caps**: Max TypeSafe = 12, Max OpenAI = 12, Total Max = 24
 - **Custo Projetado Conservador**: TypeSafe ~$0.0005 USD, OpenAI ~$0.105 USD, Total ~$0.11 USD (Teto proposto: $0.25 USD)
 - **L2_EXECUTION**: `NOT EXECUTED` (planejamento concluído, aguardando review humana)
+
+---
+
+## 2026-10-03 — L2 Plan Correction: Group C Semantics, Dataset Encoding, Caps & Cost (Slice 006AN, PR #67)
+
+- **Gatilho**: revisão humana apontou que Group C (matcher = false → Jev = 0) não pode produzir `SECURITY_BLOCKED` via Jev.
+- **PREVIOUS ASSUMPTION**: Group C descrito como `GENERATIVE fail-open ou bloqueio`.
+- **NEW EVIDENCE**: `GuardedTurnRoutingCoordinator.routeTurn()` retorna `GENERATIVE` antes de chamar o Jev quando matcher = false.
+- **CORRECTION**: Group C reclassificado como `SECURITY_SENSITIVE_MATCHER_FIRST_CONTROL` (controle de privacidade/matcher-first; OpenAI = 1; estímulos adversariais sintéticos chegam à OpenAI pelo runtime atual). `SECURITY_ROUTE_LIVE_OBSERVATION = NOT GUARANTEED`.
+- **DEFEITO ADICIONAL (PRODUCT OF AGENT)**: dataset v1.0.0 (SHA `8428006c...`) foi escrito via pipe PowerShell sem UTF-8; todos os caracteres acentuados viraram `?`. Verificação offline contra a allowlist real: 5 de 7 casos destinados a matcher = true resultariam em matcher = false. Classificação: `FIXTURE SETUP BUG`. v1.0.0 nunca usada em execução.
+- **Dataset v1.0.1**: regenerado em UTF-8; matcher verificado offline: 7 true / 5 false, 12/12 conforme `expectedMatcherResult`; SHA-256 `bd812341a922ded1c7159191849dae284a88f24afd9c7e8d3c64f9b081602f3f`.
+- **Thresholds corrigidos no plano**: valores inventados (`0.70`/`0.35`) substituídos pelos canônicos de `frozen-policy-interpreter.ts` (`security >= 0.56`; `deterministic >= 0.35 AND generative <= 0.47`).
+- **Caps corrigidos**: MAX_TYPESAFE = 7 (exato), MAX_OPENAI = 12 (mínimo esperado 5), TOTAL = 19.
+- **Custo OpenAI**: valores derivados de preço não verificado (GPT-4o) removidos; `MAX_PROJECTED_OPENAI_COST = PENDING PRICE VERIFICATION`; teto ao operador `NOT PROPOSED`.
+- **Provider calls**: TypeSafe 0, OpenAI 0, Twilio 0. ENV_LOADED = NO. DB = NO. HOLDOUT_OPENED = NO. FROZEN_POLICY_CHANGED = NO. ACTIVE_GUARDED = BLOCKED.
+- **CORRECTION_IMPACT**: DOCUMENTATION + RESEARCH DATASET ONLY.

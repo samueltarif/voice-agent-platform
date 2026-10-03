@@ -34,7 +34,7 @@ Validar em condições reais de rede externa que os dois provedores operam harmo
 
 Para evitar qualquer desvio arquitetural ou violação de governança, os seguintes limites são absolutos:
 1. **NÃO é Accuracy Benchmark**: O L2 não mede acurácia do Jev nem taxa de acerto do modelo principal.
-2. **NÃO recalibra a Frozen Policy**: Nenhum limiar (`T_SECURITY = 0.56`, `T_DETERMINISTIC = 0.70`, `T_GENERATIVE = 0.35`) será alterado com base no L2.
+2. **NÃO recalibra a Frozen Policy**: Nenhum limiar canônico (`security >= 0.56`; `deterministic >= 0.35 AND generative <= 0.47`; fonte: `apps/voice/src/frozen-policy-interpreter.ts`) será alterado com base no L2.
 3. **NÃO é Tail Latency Study**: O tamanho amostral é voltado para integração funcional, não para SLAs estatísticos de cauda (`p99/p99.9`).
 4. **NÃO utiliza nem abre o Locked Holdout**: O holdout canônico de 40 casos permanece estritamente isolado (`LOCKED_HOLDOUT = CONSUMED`).
 5. **NÃO conecta banco de dados real**: A execução opera com `InMemoryCallSessionStore` e `InMemoryConversationHistoryStore`.
@@ -81,9 +81,9 @@ O L2 constrói sobre os resultados formais dos gates anteriores:
 ## 5. Synthetic Dataset Specification (Dataset Sintético L2)
 
 - **Caminho**: `scripts/benchmarks/voice/jev-openai-l2-synthetic-integration-v1-cases.json`
-- **Versão**: `1.0.0`
+- **Versão**: `1.0.1` (v1.0.0 descartada: utterances corrompidas por encoding na escrita; nunca usada)
 - **Amostra Total**: `N = 12` casos sintéticos.
-- **SHA-256 Congelado**: `8428006c10912be7d22cb915ecaa7ba7cb17aafd98d161af27b1c69237b4934f`
+- **SHA-256 Congelado (candidato, sujeito a review)**: `bd812341a922ded1c7159191849dae284a88f24afd9c7e8d3c64f9b081602f3f`
 - **Justificativa Amostral**: L2 é um gate de integração funcional qualitativa entre dois provedores externos e o runtime determinístico, não um estudo estatístico de latência (papel desempenhado pelo L1B com N=100). Uma bateria concisa de 12 casos permite cobertura de todos os ramos da árvore de roteamento sem queima desnecessária de chamadas ou orçamento.
 
 ### 5.1 Distribuição de Categorias (Candidate Case Groups)
@@ -92,12 +92,15 @@ O L2 constrói sobre os resultados formais dos gates anteriores:
 |---|---|---|---|---|---|
 | **Group A** | `KNOWN_CAPABILITY_DETERMINISTIC` | 3 | `true` | 1 chamada | `DETERMINISTIC_RESPONSE` (OpenAI = 0) |
 | **Group B** | `KNOWN_CAPABILITY_GENERATIVE_LIKE` | 4 | `true` | 1 chamada | `GENERATIVE` via Jev (OpenAI = 1) |
-| **Group C** | `SECURITY_SENSITIVE` | 2 | `false` (allowlist estrita) | 0 chamada | `GENERATIVE` fail-open ou bloqueio |
+| **Group C** | `SECURITY_SENSITIVE_MATCHER_FIRST_CONTROL` | 2 | `false` (allowlist estrita) | 0 chamada | `GENERATIVE` direto (OpenAI = 1); `SECURITY_BLOCKED` via Jev **impossível** |
 | **Group D** | `UNMATCHED_CAPABILITY_CONTROL` | 3 | `false` | 0 chamada (Matcher-First) | `GENERATIVE` direto (OpenAI = 1) |
 
 > [!NOTE]
 > **Separação entre Intenção e Runtime**:
 > `intendedStimulusClass` registra a hipótese do estímulo; `observedRuntimeRoute` registrará o caminho factual percorrido no runtime. Divergências semânticas são normais em modelos probabilísticos e não constituem defeito de integração.
+
+> [!IMPORTANT]
+> **Group C é controle de privacidade/matcher-first, não teste de rota de segurança**: matcher = false → Jev = 0 → `SECURITY_BLOCKED` via Jev impossível → `GENERATIVE` direto com OpenAI = 1. Consequência factual: os estímulos adversariais sintéticos de Group C **são enviados à OpenAI** pelo runtime atual. O que Group C prova é a supressão do Jev (privacidade matcher-first), não bloqueio de segurança.
 
 ---
 
@@ -110,8 +113,9 @@ As seguintes invariantes têm precedência sobre a conclusão das chamadas:
    - Se rota determinística for assumida (`DETERMINISTIC_RESPONSE`) → OpenAI request count = `0`.
 3. **Security Route Invariant**:
    - Se rota de segurança for assumida (`SECURITY_BLOCKED`) → OpenAI request count = `0`, tools = `0`, handoff = `0`, chamada permanece ativa em memória.
+   - **Alcançabilidade**: `SECURITY_BLOCKED` só é alcançável com `matcher = true` (Jev só é chamado após o matcher). Group C (matcher = false) NÃO pode observá-la. A observação live desta rota depende de um caso matcher=true receber `securityScore >= 0.56` do Jev real e **não é garantida por design** (`SECURITY_ROUTE_LIVE_OBSERVATION = NOT GUARANTEED`). Cobertura determinística da rota permanece em L0 (offline).
 4. **Generative Required Route Invariant**:
-   - Se Jev classificar `is_generative_required` ou `is_deterministic_candidate < 0.70` → OpenAI request count = exatamente `1`.
+   - Se Frozen Policy retornar `GENERATIVE_REQUIRED` (nem `securityScore >= 0.56` nem `deterministicScore >= 0.35 AND generativeScore <= 0.47`) → OpenAI request count = exatamente `1`.
 5. **Single-Owner Invariant**:
    - Cada turno tem exatamente UM owner de resposta: determinístico, segurança ou generativo. Nunca múltiplas respostas concorrentes.
 
@@ -156,32 +160,32 @@ Se essa cadeia conjunta não ocorrer naturalmente em nenhum caso:
 
 ### 9.1 Limites de Requisição (Hard Caps)
 - **Dataset Cases**: `12`
-- **Expected TypeSafe Requests**: `7` a `9` (turnos com matcher = true).
-- **MAX_TYPESAFE_REQUESTS**: `12` (teto rígido conservador).
-- **Expected OpenAI Requests**: `7` (4 casos do Grupo B se generativo + 3 casos do Grupo D).
-- **MAX_OPENAI_REQUESTS**: `12` (teto rígido conservador).
-- **TOTAL_MAX_PROVIDER_REQUESTS**: `24` (12 TypeSafe + 12 OpenAI).
+- **Expected TypeSafe Requests**: exatamente `7` (matcher é função pura; 7 casos matcher = true verificados offline contra a allowlist real).
+- **MAX_TYPESAFE_REQUESTS**: `7` (teto rígido = número de casos matcher-eligible).
+- **Expected OpenAI Requests**: mínimo `5` (Groups C + D, matcher = false → OpenAI sempre) a máximo `12` (se todos os 7 casos matcher = true resultarem em `GENERATIVE`).
+- **MAX_OPENAI_REQUESTS**: `12` (teto rígido = total de casos).
+- **TOTAL_MAX_PROVIDER_REQUESTS**: `19` (7 TypeSafe + 12 OpenAI).
 - **CONCURRENCY**: `1` (estritamente serial).
 - **RETRIES**: `0` (zero retries em ambos os provedores).
 
 ### 9.2 Projeção de Custos Conservadora
 1. **TypeSafe Jev**:
    - Input tokens projetados por request: `1.000 tokens`
-   - Max input tokens (12 requests): `12.000 tokens`
-   - Preço público verificado: `$42 / Btok` ($0.000000042 / token)
-   - `MAX_PROJECTED_TYPESAFE_COST`: 12.000 × $0.000000042 = `$0.000504 USD` (< $0.001 USD).
+   - Max input tokens (7 requests): `7.000 tokens`
+   - Preço público histórico (verificado na execução L1B): `$42 / Btok` input ($0.000000042 / token) — **revalidação obrigatória pré-live**
+   - `MAX_PROJECTED_TYPESAFE_COST`: 7.000 × $0.000000042 = `$0.000294 USD` (sujeito à revalidação de preço).
 2. **OpenAI**:
    - Input tokens conservadores por request: `1.500 tokens` (prompt de sistema + histórico + mensagem)
    - Output tokens conservadores por request: `500 tokens`
    - Max input tokens (12 requests): `18.000 tokens`
    - Max output tokens (12 requests): `6.000 tokens`
-   - Projeção baseada em modelo de produção padr?o (ex.: patamar GPT-4o a $2.50/Mtok in, $10.00/Mtok out):
-     - Input: 18.000 × $0.0000025 = $0.045 USD
-     - Output: 6.000 × $0.0000100 = $0.060 USD
-   - `MAX_PROJECTED_OPENAI_COST`: `$0.105 USD`.
+   - Preço OpenAI: **`NOT VERIFIED`** (modelo factual vem de `OPENAI_CONVERSATION_MODEL`/config; preço oficial desse modelo deve ser verificado imediatamente antes da pré-autorização).
+   - Fórmula: `MAX_PROJECTED_OPENAI_COST = 18.000 × input_price_per_token + 6.000 × output_price_per_token`.
+   - Nenhum valor numérico é atribuído neste plano (proibido assumir preço histórico ou de outro modelo).
+   - `MAX_PROJECTED_OPENAI_COST`: `PENDING PRICE VERIFICATION`.
 3. **Custo Total Máximo Projetado**:
-   - `MAX_PROJECTED_TOTAL_COST`: ~$0.11 USD.
-   - **Teto Orçamentário Proposto ao Operador**: `$0.25 USD` (margem de segurança de > 100%).
+   - `MAX_PROJECTED_TOTAL_COST`: `PENDING PRICE VERIFICATION`.
+   - **Teto Orçamentário ao Operador**: `NOT PROPOSED` até verificação de preço OpenAI.
 
 ---
 
@@ -189,14 +193,14 @@ Se essa cadeia conjunta não ocorrer naturalmente em nenhum caso:
 
 Antes de qualquer execução live futura, o operador humano deverá aprovar formalmente o seguinte envelope fechado:
 - **Dataset Count**: 12 casos
-- **Dataset SHA-256**: `8428006c10912be7d22cb915ecaa7ba7cb17aafd98d161af27b1c69237b4934f`
+- **Dataset SHA-256**: `bd812341a922ded1c7159191849dae284a88f24afd9c7e8d3c64f9b081602f3f`
 - **TypeSafe Model**: `jev-1.13.0`
 - **OpenAI Model**: Modelo revalidado documentalmente
-- **Max TypeSafe Requests**: 12
+- **Max TypeSafe Requests**: 7
 - **Max OpenAI Requests**: 12
-- **Total Max Provider Requests**: 24
+- **Total Max Provider Requests**: 19
 - **Concurrency**: 1 | **Retries**: 0
-- **Proposed Operator Cost Ceiling**: $0.25 USD
+- **Proposed Operator Cost Ceiling**: a definir após verificação de preço OpenAI
 - **Customer Data**: 0 | **Twilio**: 0 | **DB**: 0 | **Holdout Access**: NO
 
 ---
@@ -231,7 +235,7 @@ Antes de qualquer execução live futura, o operador humano deverá aprovar form
 Durante a futura execução live:
 1. **Erro HTTP 401 / 403 em Qualquer Provedor**: STOP imediato. Não repetir.
 2. **Model Identity Mismatch no Jev**: Se `providerModel !== 'jev-1.13.0'` → STOP imediato.
-3. **Violação do Teto de Custo**: Se custo projetado atingir $0.25 USD → STOP imediato.
+3. **Violação do Teto de Custo**: Se custo projetado atingir o teto autorizado pelo operador → STOP imediato.
 4. **Corrupção de Integridade do Dataset**: Se hash SHA-256 divergir do congelado → STOP antes de iniciar.
 5. **Nuance de .env**: Não copiar .env de outro diretório. Se chaves necessárias não existirem na pasta de trabalho, STOP e solicitar ação humana.
 6. **3 Erros Técnicos Consecutivos (Research Safety Heuristic)**: Runner interrompe execução para evitar queima inútil de quota sob indisponibilidade sistêmica de rede.
