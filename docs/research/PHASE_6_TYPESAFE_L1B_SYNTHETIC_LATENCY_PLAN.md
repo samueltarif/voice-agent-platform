@@ -147,14 +147,14 @@ O documento original continha uma divergência textual que associava `$42 / Btok
 - **Classificação**: `PR65_COST_UNIT_TEXT_ERROR = YES` (erro aritmético textual de documentação corrigido; zero impacto funcional ou de faturamento).
 
 ### 11.2 Limites Orçamentários Derivados para N=100
-- **Maior caso do dataset**: 90 tokens estimados.
-- **Teto superior conservador por request (`MAX_ESTIMATED_INPUT_TOKENS_PER_REQUEST`)**: **200 tokens** (incluindo margem de envelope/instrução).
-- **Teto projetado de tokens (`MAX_PROJECTED_INPUT_TOKENS`)**: $100 \times 200 = \mathbf{20.000\ tokens}$.
-- **Custo Máximo Projetado (`MAX_PROJECTED_COST_USD`)**:
-  $$20.000 \times \$0.000000042 = \mathbf{\$0.00084\ USD}$$
-- **Teto Proposto para Autorização Humana (`PROPOSED_OPERATOR_PROJECTED_COST_CEILING_USD`)**: **$0.10 USD** (margem de segurança > 100x sobre a projeção).
-- `ACTUAL_BILLED_COST_HARD_CAP`: `NOT VERIFIED` (a API remota não impõe limite rígido de crédito pelo runner).
-
+- **Auditoria de Envelope Serializado**: Medição offline com fake fetch comprovou que o payload JSON completo varia entre 1.497 e 1.838 bytes (mediana: 1.594 bytes).
+- **Tokenizer**: \TOKENIZER_VERIFIED = NO\ (não há tokenizer oficial TypeSafe verificado para o billing payload).
+- **Teto Conservador por Request (\MAX_ESTIMATED_INPUT_TOKENS_PER_REQUEST\)**: **1.000 tokens** (padrão conservador de salvaguarda adotado no L1A; classificação: \CONSERVATIVE_PROJECTED_TOKEN_BOUND\).
+- **Teto Projetado de Tokens (\MAX_PROJECTED_INPUT_TOKENS\)**:  \times 1.000 = \mathbf{100.000\ tokens}$.
+- **Custo Máximo Projetado (\MAX_PROJECTED_COST_USD\)**:
+  100.000 \times \.000000042 = \mathbf{\.00420\ USD}
+- **Teto Proposto para Autorização Humana (\PROPOSED_OPERATOR_PROJECTED_COST_CEILING_USD\)**: **.10 USD** (margem de segurança de ~24x sobre a projeção conservadora).
+- \ACTUAL_BILLED_COST_HARD_CAP\: \NOT VERIFIED\ (a API remota não impõe limite rígido de crédito pelo runner).
 ---
 
 ## 12. Pacote Exato de Pré-Autorização Humana (L1B Run 1)
@@ -174,8 +174,8 @@ LOW_CONCURRENCY_REQUESTS_PLANNED: 0 (DEFERRED)
 TOTAL_MAX_REQUESTS: 100
 CONCURRENCY: 1 (sequencial puro)
 RETRIES: 0
-MAX_ESTIMATED_INPUT_TOKENS: 20.000
-MAX_PROJECTED_COST_USD: $0.00084 USD
+MAX_ESTIMATED_INPUT_TOKENS: 100.000
+MAX_PROJECTED_COST_USD: .00420 USD
 PROPOSED_HUMAN_COST_CEILING_USD: $0.10 USD
 CUSTOMER_DATA_EXPOSURE: 0
 OPENAI_CALLS: 0
@@ -262,6 +262,10 @@ Classificadas estritamente por natureza:
 ---
 
 ## 17. Próximo Passo Permitido
+
+> **Status do Runner**: \L1B_RUNNER = IMPLEMENTED / TESTED OFFLINE\ (\scripts/benchmarks/voice/run-jev-l1b-synthetic-latency.mjs\).
+> **Procedimento Pré-Live**: \INTEGRATIONS_DIST_REFRESH_REQUIRED_BEFORE_LIVE = YES\ (\pnpm --filter @voice-agent/integrations build\ executado e verificado).
+> **Status de Execução**: \L1B_PROVIDER_EXECUTION = AWAITING_OPERATOR_AUTHORIZATION\.
 
 Após o merge deste plano endurecido:
 - **NEXT_ALLOWED_STEP**: L1B Run 1 Preauthorization + Runner Preparation (OFFLINE FIRST).
