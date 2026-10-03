@@ -14737,3 +14737,36 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 ### 5. Próximo Passo Obrigatório
 - **NEXT_REQUIRED_STEP**: `HUMAN_REVIEW_OF_L2_FAILURE_OR_BLOCKER`
 - **Regra de Não-Reexecução**: O runner não pode ser reexecutado de forma autônoma. Uma nova tentativa live exigirá correção offline da resolução de módulos/build do runner e nova autorização explícita do operador humano com nova concessão de teto de custo.
+
+---
+
+## 2026-10-03 — Slice 006AY PR #78 Governance Reconciliation — Evidence & Readiness Alignment
+
+### 1. Demanda e Contexto
+- **Slice**: `006AY`
+- **Branch**: `research/006ay-l2-authorized-live-execution`
+- **PR**: `#78`
+- **Objetivo**: Reconciliar formalmente a classificação de evidência de faturamento e a prontidão técnica após a constatação factual do bloqueio de resolução de módulos em runtime antes do merge definitivo.
+
+### 2. Reconciliação da Classificação de Faturamento (Billing Classification Correction)
+- **BILLING_CLASSIFICATION_CORRECTION**: `YES`
+- **PREVIOUS_ACTUAL_PROVIDER_BILLED_COST_CLASSIFICATION**: `0.00`
+- **CORRECTED_ACTUAL_PROVIDER_BILLED_COST_CLASSIFICATION**: `NOT_OBSERVED`
+- **PROVIDER_SPEND_FROM_THIS_INVOCATION_USD**: `0`
+- **Motivação**: O registro anterior inferiu `ACTUAL_PROVIDER_BILLED_COST_USD = 0.00` a partir da ausência de requisições de rede. Contudo, a governança estrita de evidências proíbe inferir custos faturados sem observação direta de faturas, dashboards ou extratos dos provedores. O gasto desta invocação permanece `0` (nenhuma requisição enviada), mas o faturamento real do provedor deve ser categorizado estritamente como `NOT_OBSERVED`.
+
+### 3. Reconciliação do Estado de Prontidão Técnica (Technical Readiness Correction)
+- **TECHNICAL_READINESS_CORRECTION**: `YES`
+- **L2_TECHNICAL_READINESS_BEFORE_HUMAN_AUTHORIZATION**: `BLOCKED_BY_RUNTIME_MODULE_RESOLUTION`
+- **RUNTIME_MODULE_RESOLUTION_STATUS**: `BLOCKED`
+- **RUNTIME_MODULE_RESOLUTION_BLOCKER**: `packages/errors/src/index.ts resolves ./app-error.js but direct Node runtime cannot resolve the source-tree target before provider network execution`
+- **RUNTIME_MODULE_RESOLUTION_FIX**: `NOT_IMPLEMENTED`
+- **RUNTIME_MODULE_RESOLUTION_FIX_STRATEGY**: `NOT_SELECTED`
+- **Motivação**: A documentação anterior mantinha inadvertidamente `READY_FOR_OPERATOR_AUTHORIZATION_PACKAGE`, o que é incorreto após o erro fatal do Node ao inicializar o runner. L2 não está tecnicamente pronto para autorização operacional humana até que este bloqueador de resolução seja corrigido e testado offline.
+
+### 4. Próximo Passo Obrigatório
+- **NEXT_REQUIRED_STEP**: `OFFLINE_L2_RUNTIME_MODULE_RESOLUTION_FIX`
+- **CURRENT_L2_EXECUTION**: `NOT_AUTHORIZED`
+- **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+- **Motivação**: O próximo passo imediato deve ser uma slice offline dedicada à correção da resolução de módulos/build do runner L2, e não uma solicitação de novo teto ou autorização de execução live.

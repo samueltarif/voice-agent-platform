@@ -92,10 +92,15 @@ TIMEOUTS: 0
 RETRIES: 0
 MAX_CONCURRENCY: 0
 RUNNER_REPORTED_COST_USD: NOT_AVAILABLE
-ACTUAL_PROVIDER_BILLED_COST_USD: 0.00
+ACTUAL_PROVIDER_BILLED_COST_USD: NOT_OBSERVED
 PROVIDER_SPEND_FROM_THIS_INVOCATION_USD: 0
-NEXT_ALLOWED_STEP: HUMAN_REVIEW_OF_L2_FAILURE_OR_BLOCKER
-NEXT_REQUIRED_STEP: HUMAN_REVIEW_OF_L2_FAILURE_OR_BLOCKER
+L2_TECHNICAL_READINESS_BEFORE_HUMAN_AUTHORIZATION: BLOCKED_BY_RUNTIME_MODULE_RESOLUTION
+RUNTIME_MODULE_RESOLUTION_STATUS: BLOCKED
+RUNTIME_MODULE_RESOLUTION_BLOCKER: packages/errors/src/index.ts resolves ./app-error.js but direct Node runtime cannot resolve the source-tree target before provider network execution
+RUNTIME_MODULE_RESOLUTION_FIX: NOT_IMPLEMENTED
+RUNTIME_MODULE_RESOLUTION_FIX_STRATEGY: NOT_SELECTED
+NEXT_ALLOWED_STEP: OFFLINE_L2_RUNTIME_MODULE_RESOLUTION_FIX
+NEXT_REQUIRED_STEP: OFFLINE_L2_RUNTIME_MODULE_RESOLUTION_FIX
 FUTURE_LIVE_CREDENTIAL_CONFIGURATION: REQUIRED_AFTER_FREEZE_CLOSURE
 OPENAI_PRICE_STATUS: VERIFIED
 CLI_LIVE_INTENT_PLUMBING: PASS
@@ -652,11 +657,15 @@ Decisões formais concedidas pelo operador humano em 2026-10-03 (escopo estrito:
   - `L2_RESULT`: `BLOCKED` (comportamento fail-closed impediu a execução do benchmark antes de qualquer comunicação de rede)
   - `L2_EXECUTION`: `BLOCKED_BY_RUNTIME_MODULE_RESOLUTION`
   - Chamadas de provedores: `0` (TypeSafe: 0, OpenAI: 0, Twilio: 0, Cloud DB: 0, Holdout: sem acesso)
-  - Gasto de provedores incorrido nesta invocação: `$0.00 USD`
+  - Gasto de provedores incorrido nesta invocação: `0` (`PROVIDER_SPEND_FROM_THIS_INVOCATION_USD = 0`, pois zero requisições foram despachadas)
   - Custo reportado pelo runner: `NOT_AVAILABLE`
-  - Custo real faturado: `$0.00 USD` (zero atividade de rede atestada)
-- **Governança Pós-Execução**:
+  - Custo real faturado: `NOT_OBSERVED` (`ACTUAL_PROVIDER_BILLED_COST_USD = NOT_OBSERVED`, pois extratos/faturas dos provedores não foram diretamente observados nesta tarefa)
+- **Classificação de Prontidão e Governança Pós-Execução**:
+  - `L2_TECHNICAL_READINESS_BEFORE_HUMAN_AUTHORIZATION`: `BLOCKED_BY_RUNTIME_MODULE_RESOLUTION`
+  - `RUNTIME_MODULE_RESOLUTION_STATUS`: `BLOCKED`
+  - `RUNTIME_MODULE_RESOLUTION_BLOCKER`: `packages/errors/src/index.ts resolves ./app-error.js but direct Node runtime cannot resolve the source-tree target before provider network execution`
+  - `RUNTIME_MODULE_RESOLUTION_FIX`: `NOT_IMPLEMENTED`
+  - `RUNTIME_MODULE_RESOLUTION_FIX_STRATEGY`: `NOT_SELECTED`
   - A autorização para execução live permanece categoricamente consumida.
   - O agente está proibido de reexecutar ou retentar o comando runner.
-  - Qualquer nova invocação live futura dependerá de nova autorização explícita humana e nova concessão de teto operacional após correção offline do problema de resolução de módulos.
-  - `NEXT_REQUIRED_STEP`: `HUMAN_REVIEW_OF_L2_FAILURE_OR_BLOCKER`.
+  - `NEXT_REQUIRED_STEP`: `OFFLINE_L2_RUNTIME_MODULE_RESOLUTION_FIX`.
