@@ -15,6 +15,8 @@ OLD_PROPOSED_COST_CEILING_STATUS: SUPERSEDED
 NEW_OPERATOR_COST_CEILING: NOT_PROPOSED
 HARD_MAX_PROVIDER_COST_STATUS: NOT_ENFORCEABLE
 TYPESAFE_PRICE_STATUS: NOT_VERIFIED
+TYPESAFE_PRICING_EVIDENCE: ACCOUNT_BILLING_EMPIRICALLY_VERIFIED
+HUMAN_DECISION_TYPESAFE_EMPIRICAL_EVIDENCE_ACCEPTANCE: PENDING
 OPENAI_PRICE_STATUS: VERIFIED
 CLI_LIVE_INTENT_PLUMBING: PASS
 REQUEST_CAP_BOUNDARY_TESTS: PASS
@@ -107,6 +109,39 @@ Estabelecer um envelope rigoroso, auditável e imutável para a futura execuçã
 - **Evidência Comercial Aceitável (Ação Humana Futura)**: Order form, anexo de faturamento sob contrato, invoice, extrato de créditos da conta ou email institucional oficial confirmando a tarifa por token/crédito aplicável ao `jev-1.13.0`.
 - **Status Factual**: Bloqueia a execução live até validação documental comercial pelo operador humano.
 
+### TypeSafe Account Billing Evidence (Empirical Reconciliation)
+- **Origem da Evidência**: Métricas de consumo agregadas e comprovação comercial de refill ($5.00 USD) da conta institucional TypeSafe fornecidas pelo operador humano em 2026-10-03 (sem dados brutos, PII, identificadores de chave ou recibos brutos versionados no repositório).
+- **Totais de Uso Agregados Observados**:
+  - `USAGE_TOTAL_REQUESTS`: 345
+  - `USAGE_INPUT_TOKENS`: 205142
+  - `USAGE_OUTPUT_TOKENS`: 22086
+  - `USAGE_TOTAL_TOKENS`: 227228
+- **Valores Financeiros Reportados**:
+  - `ACCOUNT_REPORTED_SPEND_USD`: 0.0086 USD
+  - `ACCOUNT_CREDIT_REFILL_USD`: 5.00 USD
+  - `ACCOUNT_AVAILABLE_CREDITS_USD`: 5.00 USD
+- **Cálculo da Tarifa Efetiva Empírica de Entrada**:
+  - `ACCOUNT_OBSERVED_EFFECTIVE_INPUT_RATE_USD_PER_1B`: 0.0086 / 205142 * 1.000.000.000 ≈ **41.92 USD / 1B tokens de entrada**.
+- **Cálculo de Consistência com Hipótese $42.00 / 1B**:
+  - `EXPECTED_SPEND_AT_42_PER_1B`: 205142 / 1.000.000.000 * 42 = **0.008615964 USD**.
+  - Comparação com gasto observado (`0.0086 USD`): resíduo de ~0.00001596 USD consistente com exibição arredondada/truncada a 4 casas decimais.
+  - `ROUNDING_CONSISTENCY`: `PASS`.
+- **Interpretação de Cobrança de Output Tokens**:
+  - `OUTPUT_TOKEN_BILLING`: `NOT_EXPLICITLY_OBSERVED` (o total faturado é fortemente consistente com cobrança exclusiva sobre tokens de entrada a ~$42/B, mas não prova contratualmente tarifa zero para tokens de saída).
+  - `INPUT_ONLY_RATE_HYPOTHESIS`: `STRONGLY_SUPPORTED_BY_ACCOUNT_USAGE`.
+  - `OUTPUT_RATE`: `NOT_VERIFIED`.
+- **Classificação Factual da Evidência de Preço**:
+  - `TYPESAFE_PRICING_EVIDENCE`: `ACCOUNT_BILLING_EMPIRICALLY_VERIFIED`.
+  - `TYPESAFE_OBSERVED_EFFECTIVE_INPUT_RATE_USD_PER_1B`: approximately 41.92.
+  - `TYPESAFE_RATE_HYPOTHESIS_USD_PER_1B`: 42.00.
+  - `TYPESAFE_RATE_HYPOTHESIS_CONSISTENCY`: `PASS`.
+  - `TYPESAFE_EXPLICIT_CONTRACTUAL_TARIFF`: `NOT_OBSERVED`.
+  - `TYPESAFE_PRICE_STATUS`: `NOT_VERIFIED` (reconciliado como evidência empírica de conta, não contrato público).
+- **Deliberação Humana de Política de Aceitação**:
+  - `HUMAN_DECISION_TYPESAFE_EMPIRICAL_EVIDENCE_ACCEPTANCE`: `PENDING`.
+  - *Opção A (`ACCEPT_ACCOUNT_BILLING_EVIDENCE_FOR_SINGLE_L2_RUN`)*: Permite que o runner L2 utilize 42 USD / 1B input tokens como conservative account-observed planning rate para uma única execução controlada, sem afirmar que é tarifa contratual pública.
+  - *Opção B (`REQUIRE_EXPLICIT_VENDOR_CONFIRMATION`)*: Mantém blocker live ativo até confirmação formal explícita do fornecedor (email/order form/invoice).
+
 ---
 
 ## 5. Request Caps & Enforcement Proof
@@ -168,7 +203,7 @@ Estabelecer um envelope rigoroso, auditável e imutável para a futura execuçã
 
 ### Cenário de Planejamento (*Planning Scenario*)
 Sob as premissas conservadoras de planejamento (1.000 tokens in para Jev e 1.500 tokens in + 500 tokens out para OpenAI):
-- TypeSafe planning cost (não verificado): (7 * 1.000 / 1.000.000.000) * $42 = **$0.000294 USD** (`TYPESAFE_PRICE_STATUS = NOT_VERIFIED`)
+- TypeSafe planning cost (baseado na hipótese empírica de 42 USD / 1B): (7 * 1.000 / 1.000.000.000) * $42 = **$0.000294 USD** (`TYPESAFE_PLANNING_COMPONENT_USD = 0.000294`, `TYPESAFE_PLANNING_COMPONENT_EVIDENCE = ACCOUNT_EMPIRICAL_RATE_HYPOTHESIS`, `TYPESAFE_PRICE_STATUS = NOT_VERIFIED`)
 - OpenAI planning cost (`gpt-6-astra`):
   - Input: 12 * 1.500 * ($10.00 / 1.000.000) = $0.180000 USD (total input: 18.000 tokens)
   - Output: 12 * 500 * ($50.00 / 1.000.000) = $0.300000 USD (total output: 6.000 tokens)
@@ -300,8 +335,10 @@ node scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs --allo
 
 Nenhuma das decisões abaixo foi concedida ou assumida; todas são pré-requisitos para qualquer avanço live:
 
-1. **`HUMAN_DECISION_1` (Evidência Comercial TypeSafe)**:
-   - Apresentação de order form, fatura, extrato de créditos ou documento oficial de faturamento para confirmação de tarifa e saldo aplicáveis ao `jev-1.13.0`.
+1. **`HUMAN_DECISION_1` (Aceitação de Evidência Empírica TypeSafe vs Confirmação Contratual)**:
+   - Deliberação sobre `HUMAN_DECISION_TYPESAFE_EMPIRICAL_EVIDENCE_ACCEPTANCE` (`PENDING`):
+     - *(Opção A)* Aceitar a evidência empírica de faturamento da conta (345 requests, 205.142 tokens in, $0.0086 USD spend ≈ $41.92/B) como base conservadora suficiente ($42/B) para uma única bateria controlada L2; OU
+     - *(Opção B)* Exigir confirmação contratual explícita prévia da TypeSafe (order form, invoice ou email formal) antes de qualquer desbloqueio live.
 2. **`HUMAN_DECISION_2` (Política de Resolução de Token-Cap)**:
    - Deliberação entre:
      - *(Opção A)* Aceitar o cap de caracteres (1.000 chars Jev / 4.000 chars OpenAI) combinado ao dataset sintético auditado (~40 tokens/caso) como proteção física suficiente; OU
