@@ -53,21 +53,21 @@ Estabelecer um envelope rigoroso, auditável e imutável para a futura execuçã
 | **L2_DATASET_CASE_COUNT** | `12` | 12 casos sintéticos estritos (7 matcher-positive, 5 matcher-negative) |
 | **L2_DATASET_SHA256** | `bd812341a922ded1c7159191849dae284a88f24afd9c7e8d3c64f9b081602f3f` | Hash SHA-256 congelado |
 | **CURRENT_RUNNER_FREEZE** | `POST_HARDENING_CANDIDATE` | Versão modular pós-hardening offline |
-| **L2_EXECUTABLE_AGGREGATE_SHA256** | `7571366a6da664bbd16031c4eb0a9ec6d7975fab0b98c0a77aba1b992e60dd3f` | Hash agregado determinístico dos 9 módulos executáveis |
+| **L2_EXECUTABLE_AGGREGATE_SHA256** | `960224fc647981a3d3f5c97f58866da0be454df95f3570c0be0072327dc7bfb4` | Hash agregado determinístico dos 9 módulos executáveis |
 
 ### Módulos Executáveis do Runner (L2_EXECUTABLE_FILE_SET)
 
 | Arquivo Executável | SHA-256 | Linhas |
 | :--- | :--- | :--- |
-| `scripts/benchmarks/voice/l2-runner-artifact.mjs` | `85ad5e6a102066367b2738755264d9d3457bdf8e9f44ab2e092f16b1f9946bd5` | 84 |
-| `scripts/benchmarks/voice/l2-runner-case-execution.mjs` | `1a9d0c68147c905ebec219344882b2c7458f94d550243e69ded29d41b9022705` | 138 |
+| `scripts/benchmarks/voice/l2-runner-artifact.mjs` | `fcd365e94ad4cae51eca8e535b942f128d78864c05baa61e3ecce255c80e48c6` | 104 |
+| `scripts/benchmarks/voice/l2-runner-case-execution.mjs` | `4909155e6e4ad0fcd0dc7168a9e136c4939bdb93716468e67ce25d9c65cf0b74` | 149 |
 | `scripts/benchmarks/voice/l2-runner-dependencies.mjs` | `13bf268b6019094d8fd4a0d9e4d208a8bfa7ef85b1c49465428b853ea4ee4ed0` | 63 |
 | `scripts/benchmarks/voice/l2-runner-input-budget.mjs` | `3f12299aadc810f0350273d288667f00be35cbec2d96ea73b9f26ba8e7d699d5` | 40 |
 | `scripts/benchmarks/voice/l2-runner-preconditions.mjs` | `4b9cef2cc879da7726b817b5a47e38b2e49af87822e8668b981f9626bf97d5cb` | 130 |
-| `scripts/benchmarks/voice/l2-runner-provider-dispatch.mjs` | `a925e8dbe500d242234039c486f52fe2c4bc6da13a1fc42ce514f93560e7de87` | 137 |
+| `scripts/benchmarks/voice/l2-runner-provider-dispatch.mjs` | `655d84e086752d4f25ac6b772ad7a317a92da842fe0800fe7b1952feb47c96a5` | 154 |
 | `scripts/benchmarks/voice/l2-runner-request-caps.mjs` | `5e3a55e69f676afb16697afdcd0c3349469f392374989c8b945a3c11d8ffc21f` | 19 |
 | `scripts/benchmarks/voice/l2-runner-result-classification.mjs` | `b4b8211f6a6784a6084bbb4c652e8e110773de5663348f19a8b30f867eac6648` | 100 |
-| `scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs` | `375a204a6db31b664906ef2e8ed35cfd80fc61df083da1310033f0ccd30ac657` | 143 |
+| `scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs` | `c3e9ca4f3a984b72b86c3215ac88410e7d95e7d9a1bc4fb46378dc85d267fb95` | 168 |
 
 ---
 
@@ -202,7 +202,8 @@ O artefato de saída gerado pelo runner:
 | :--- | :--- | :--- |
 | Dataset Frozen & Verificado | `PASS` (`bd812341a9...`) | Não |
 | Runner Hardening & Modularização | `PASS` (9 módulos <= 180 linhas) | Não |
-| Runner Re-Freeze Agregado | `PASS` (`7571366a6d...`) | Não |
+| Runner Re-Freeze Agregado | `PASS` (`960224fc64...`) | Não |
+| Runner Function Length DoD | `PASS` (todas as funções <= 50 linhas, max 49) | Não |
 | TypeSafe Model Frozen (`jev-1.13.0`) | `PASS` | Não |
 | OpenAI Model Frozen (`gpt-4o-mini`) | `PASS` | Não |
 | OpenAI Pricing Verified | `PASS` (`$0.15 / 1M in`, `$0.60 / 1M out`) | Não |
