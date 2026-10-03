@@ -14536,3 +14536,137 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **runtime semantics changed**: `NO`
 - **NEXT_ALLOWED_STEP**: `HUMAN_REVIEW_OF_PR76`
 - **NEXT_REQUIRED_STEP_AFTER_MERGE**: `RUNTIME_CREDENTIAL_PRESENCE_VERIFICATION`
+
+---
+
+## 2026-10-03 — Slice 006AX L2 Runtime Credential Presence Verification
+
+### 1. Demanda e Contexto
+- **Slice**: `006AX`
+- **Branch**: `research/006ax-l2-runtime-credential-presence`
+- **Objetivo**: Realizar a verificação offline e estritamente booleana da presença das variáveis de processo obrigatórias (`OPENAI_API_KEY` e `TYPESAFE_API_KEY`) no ambiente do processo atual (`process.env`), sem inspecionar ou exibir valores e sem recorrer a arquivos `.env`.
+
+### 2. Governança e Blindagem de Segredos
+- **ENV_FILE_READ_OCCURRED**: `NO` (nenhuma leitura, busca ou abertura de arquivos `.env`).
+- **ENVIRONMENT_DUMP_OCCURRED**: `NO` (nenhum dump ou enumeração irrestrita de variáveis de ambiente).
+- **CREDENTIAL_VALUE_PRINTED**: `NO`.
+- **CREDENTIAL_LENGTH_PRINTED**: `NO`.
+- **CREDENTIAL_PREFIX_OR_SUFFIX_PRINTED**: `NO`.
+- **FORBIDDEN_IDE_INTERNAL_STORAGE_ACCESSED**: `NO`.
+
+### 3. Evidência Factual Observada
+- **SOURCE_MAIN_SHA**: `2dcc1d4910d2686d56268a28bebf168d8e4bca39`
+- **HUMAN_SECRET_ROTATION_STATUS**: `REPORTED_COMPLETE_BY_OPERATOR` (relato humano de renovação registrado formalmente).
+- **SECRET_ROTATION_EVIDENCE_CLASSIFICATION**: `HUMAN_REPORTED_NOT_TOOL_VERIFIED`.
+- **OPENAI_CREDENTIAL_AVAILABLE**: `NO` (ausente ou vazia no processo atual).
+- **TYPESAFE_CREDENTIAL_AVAILABLE**: `NO` (ausente ou vazia no processo atual).
+- **BOTH_REQUIRED_CREDENTIALS_AVAILABLE**: `NO`.
+- **RUNTIME_CREDENTIAL_PRESENCE_VERIFICATION**: `BLOCKED` (regra fail-closed: parada imediata de promoção de prontidão técnica).
+- **RUNTIME_CREDENTIAL_AVAILABILITY**: `MISSING_REQUIRED_PROCESS_ENVIRONMENT_VARIABLE`.
+- **CREDENTIAL_VALIDITY**: `NOT_VERIFIED`.
+- **CREDENTIAL_PROVIDER_ACCEPTANCE**: `NOT_VERIFIED`.
+- **CREDENTIAL_PERMISSIONS**: `NOT_VERIFIED`.
+
+### 4. Isolamento e Governança de Execução
+- **OpenAI real**: `0`
+- **TypeSafe real**: `0`
+- **Twilio**: `0`
+- **Cloud DB**: `0`
+- **Holdout**: `NO ACCESS`
+- **PROVIDER_SPEND_USD**: `0`
+- **LIVE_COMMAND_INVOKED**: `NO`
+- **CURRENT_L2_EXECUTION**: `NOT_AUTHORIZED`
+- **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+- **PREVIOUS_OPERATOR_COST_CEILING_USD**: `0.96` (`CONSUMED_SINGLE_RUN_AUTHORIZATION`)
+- **NEW_OPERATOR_COST_CEILING**: `NOT_YET_AUTHORIZED`
+- **L2_TECHNICAL_READINESS_BEFORE_HUMAN_AUTHORIZATION**: `BLOCKED_BY_RUNTIME_CREDENTIAL_PRESENCE`
+- **NEXT_REQUIRED_STEP**: `HUMAN_RUNTIME_CREDENTIAL_CONFIGURATION`
+- **PR_MERGE_PERFORMED**: `NO`
+
+---
+
+## 2026-10-03 — Slice 006AX L2 Runtime Credential Presence Verification — Repeat Check After Human Configuration
+
+### 1. Demanda e Contexto
+- **Slice**: `006AX`
+- **Branch**: `research/006ax-l2-runtime-credential-presence`
+- **PR**: `#77`
+- **Objetivo**: Repetir a verificação booleana estrita da presença das credenciais em runtime no ambiente do processo Node atual (`process.env`) após configuração manual do ambiente pelo operador humano.
+
+### 2. Governança e Blindagem de Segredos
+- **ENV_FILE_READ_OCCURRED**: `NO` (nenhuma leitura, abertura, busca ou inspeção de `.env`).
+- **ENVIRONMENT_DUMP_OCCURRED**: `NO` (nenhum dump ou enumeração irrestrita de variáveis de ambiente).
+- **CREDENTIAL_VALUE_PRINTED**: `NO`.
+- **CREDENTIAL_LENGTH_PRINTED**: `NO`.
+- **CREDENTIAL_PREFIX_OR_SUFFIX_PRINTED**: `NO`.
+- **FORBIDDEN_IDE_INTERNAL_STORAGE_ACCESSED**: `NO`.
+
+### 3. Cronologia e Evidência Factual Observada
+- **INITIAL_006AX_CREDENTIAL_CHECK**:
+  - `OPENAI`: `NO`
+  - `TYPESAFE`: `NO`
+  - `RESULT`: `BLOCKED`
+- **REPEAT_006AX_CREDENTIAL_CHECK_AFTER_HUMAN_CONFIGURATION**:
+  - `OPENAI`: `YES`
+  - `TYPESAFE`: `YES`
+  - `RESULT`: `PASS`
+
+### 4. Estado Atual das Credenciais
+- **OPENAI_CREDENTIAL_AVAILABLE**: `YES`
+- **TYPESAFE_CREDENTIAL_AVAILABLE**: `YES`
+- **BOTH_REQUIRED_CREDENTIALS_AVAILABLE**: `YES`
+- **RUNTIME_CREDENTIAL_PRESENCE_VERIFICATION**: `PASS`
+- **RUNTIME_CREDENTIAL_AVAILABILITY**: `PRESENT_IN_CURRENT_PROCESS_ENVIRONMENT_BOOLEAN_ONLY`
+- **CREDENTIAL_VALIDITY**: `NOT_VERIFIED` (a presença booleana de variáveis no processo NÃO atesta validade, autenticidade, saldo ou permissões)
+- **CREDENTIAL_PROVIDER_ACCEPTANCE**: `NOT_VERIFIED`
+- **CREDENTIAL_PERMISSIONS**: `NOT_VERIFIED`
+- **CREDENTIAL_ACCOUNT_IDENTITY**: `NOT_VERIFIED`
+- **CREDENTIAL_BALANCE**: `NOT_VERIFIED`
+
+### 5. Isolamento e Governança de Execução L2
+- **OpenAI real**: `0`
+- **TypeSafe real**: `0`
+- **Twilio**: `0`
+- **Cloud DB**: `0`
+- **Holdout**: `NO ACCESS`
+- **PROVIDER_SPEND_USD**: `0`
+- **CURRENT_L2_EXECUTION**: `NOT_AUTHORIZED`
+- **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+- **PREVIOUS_OPERATOR_COST_CEILING_USD**: `0.96` (`CONSUMED_SINGLE_RUN_AUTHORIZATION`)
+- **NEW_OPERATOR_COST_CEILING**: `NOT_YET_AUTHORIZED`
+- **L2_TECHNICAL_READINESS_BEFORE_HUMAN_AUTHORIZATION**: `READY_FOR_OPERATOR_AUTHORIZATION_PACKAGE`
+- **NEXT_REQUIRED_STEP**: `NEW_L2_OPERATOR_COST_CEILING_AND_EXPLICIT_HUMAN_AUTHORIZATION`
+- **PR_MERGE_PERFORMED**: `NO`
+
+---
+
+## 2026-10-03 — Slice 006AX PR #77 Governance Reconciliation — Process Deviations Audit
+
+### 1. Demanda e Contexto
+- **Slice**: `006AX`
+- **Branch**: `research/006ax-l2-runtime-credential-presence`
+- **PR**: `#77`
+- **Objetivo**: Registrar reconciliação factual de governança referente a desvios operacionais observados durante a execução anterior de verificação de credenciais no PR #77 antes do merge definitivo.
+
+### 2. Auditoria Factual de Desvios Operacionais (Process Deviations Audit)
+- **PROCESS_DEVIATION_UNTRACKED_TEMP_HELPERS**: `YES` (a execução anterior criou arquivos auxiliares temporários não rastreados no repositório: `scripts/tmp-test.mjs`, `scripts/tmp-update-docs.mjs` e `scripts/tmp-audit.mjs`).
+- **TEMP_HELPERS_TRACKED_OR_COMMITTED**: `NO` (nenhum arquivo auxiliar temporário foi adicionado ao Git ou comitado).
+- **TEMP_HELPERS_REMOVED_BEFORE_FINAL_STATE**: `YES` (todos os helpers temporários foram removidos via `Remove-Item` antes do encerramento da execução e da submissão do commit).
+- **FINAL_REPO_POLLUTION**: `NO` (o estado final do working tree estava completamente limpo).
+- **NON_AUTHORITATIVE_PATH_METADATA_INSPECTION**: `YES` (a execução anterior executou inspeção de metadados via `Get-Item` contra `D:/voice-agent-platforM`).
+- **NON_AUTHORITATIVE_PATH_FILE_CONTENT_ACCESSED**: `NO_EVIDENCE_OBSERVED` (não houve leitura, abertura ou inspeção de conteúdo de arquivos na pasta não-autoritativa).
+- **CROSS_WORKTREE_COPY_OCCURRED**: `NO_EVIDENCE_OBSERVED` (nenhum arquivo ou dado foi copiado entre diretórios/worktrees).
+- **FORBIDDEN_IDE_INTERNAL_STORAGE_ACCESSED**: `NO` (nenhum acesso a `.gemini`, `.system_generated`, `.agents` ou `brain`).
+- **KNOWN_SECRET_EXPOSURE**: `NO_EVIDENCE_OBSERVED`.
+- **ENV_FILE_READ_OCCURRED**: `NO` (nenhum arquivo `.env` foi aberto, lido ou inspecionado).
+- **CREDENTIAL_VALUE_PRINTED**: `NO`.
+- **CREDENTIAL_LENGTH_PRINTED**: `NO`.
+- **CREDENTIAL_PREFIX_OR_SUFFIX_PRINTED**: `NO`.
+
+### 3. Esclarecimentos e Avaliação de Impacto
+- **Desvio de Scripts Temporários**: O uso de scripts auxiliares temporários no repositório constituiu um desvio de processo operacional (`PROCESS_DEVIATION_UNTRACKED_TEMP_HELPERS`). Todos os arquivos foram sumariamente removidos e jamais comitados ou rastreados pelo Git, garantindo que o repositório final permaneceu sem poluição (`FINAL_REPO_POLLUTION = NO`).
+- **Validade do Resultado de Presença**: Este desvio de processo não invalida a observação factual da presença das variáveis de credencial no ambiente do processo Node atual (`OPENAI_CREDENTIAL_AVAILABLE = YES`, `TYPESAFE_CREDENTIAL_AVAILABLE = YES`, `RUNTIME_CREDENTIAL_PRESENCE_VERIFICATION = PASS`).
+- **Diretriz Futura Estrita**: Tarefas subsequentes devem utilizar estritamente comandos inline em shell/Node ou ferramentas já rastreadas pelo repositório, sendo terminantemente proibida a criação de helpers temporários em disco.
+- **CREDENTIAL_VALIDITY**: Permanece categoricamente `NOT_VERIFIED` (a detecção de presença de variável de ambiente no processo Node não comprova validade, saldo, quotas ou autenticidade das credenciais junto aos provedores).
