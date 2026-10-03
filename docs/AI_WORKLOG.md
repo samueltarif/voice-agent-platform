@@ -13700,3 +13700,67 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **PREAUTH_STATUS**: `PREAUTH_BLOCKED`.
 - **SECRET_AUDIT**: `PASS` (boolean-only).
 - **MERGE_PERFORMED**: `NO`.
+
+---
+
+## 2026-10-03 — PR #71 Function DoD Refactor Closure (Slice 006AR-FunctionDoD)
+
+### 1. Contexto e Preflight
+- **Prompt ID**: `PROMPT-PR71-FUNCTION-DOD-REFACTOR-001`
+- **AUTHORITATIVE_REPO_ROOT**: `D:/voice-agent-platform-git`
+- **Source branch head**: `e1b134376679bd0898b008a456537db97492d3f0`
+- **Source main SHA**: `84dcf576bccdee66f52240f85dc91b65f44b17f8`
+- **Branch**: `research/006ar-l2-runner-hardening-offline`
+- **PR**: `#71` (OPEN; base: `main`, head: `research/006ar-l2-runner-hardening-offline`)
+- **REFACTOR_CODE_HEAD**: `3d0e85d1c8e994133abec4d1f20be5d0ba029947`
+- **QUALITY_GATE_CODE_HEAD**: `3d0e85d1c8e994133abec4d1f20be5d0ba029947`
+
+### 2. Arquivos e Funções Refatoradas
+- **Arquivos Alterados (scripts/benchmarks/voice/)**:
+  1. `scripts/benchmarks/voice/l2-runner-artifact.mjs` (104 linhas)
+  2. `scripts/benchmarks/voice/l2-runner-case-execution.mjs` (149 linhas)
+  3. `scripts/benchmarks/voice/l2-runner-provider-dispatch.mjs` (154 linhas)
+  4. `scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs` (168 linhas)
+- **Quatro Funções Históricas Corrigidas**:
+  - `buildResultArtifact`: 62 linhas -> 21 linhas (extraídas `buildResultMetadata` 35 linhas, `buildResultAggregates` 24 linhas)
+  - `executeCase`: 101 linhas -> 18 linhas (extraídas `executeUnmatchedCase` 23 linhas, `executeGenerativeTurnIfRequired` 30 linhas, `executeMatchedCase` 41 linhas)
+  - `evaluateTypeSafeJev`: 65 linhas -> 41 linhas (extraídas `createTypeSafeCapErrorResult` 12 linhas, `handleTypeSafeEvaluationError` 27 linhas)
+  - `runL2Benchmark`: 81 linhas -> 49 linhas (extraídas `createRunnerAdapters` 21 linhas, `executeBenchmarkCases` 34 linhas)
+- **DoD Textual Final**:
+  - `MAX_OBSERVED_FUNCTION_LINES`: `49`
+  - `FUNCTIONS_OVER_50`: `0`
+  - `L2_FUNCTION_LENGTH_DOD`: `PASS`
+  - `L2_EXECUTABLE_FILE_LENGTH_DOD`: `PASS` (todos os 9 módulos executáveis <= 180 linhas: 104, 149, 63, 40, 130, 154, 19, 100, 168)
+
+### 3. Validação e Quality Gate Canônico
+- **Focused Tests (`jev-openai-l2-synthetic-runner.test.ts`)**: `19/19 PASS` (0 failures, 0 skips)
+- **Affected Module Tests (`packages/integrations` + `apps/voice`)**: `43 test files / 398 tests PASS` (0 failures, 0 skips)
+- **FROZEN_INSTALL**: `PASS` (`pnpm install --frozen-lockfile`, exit code 0)
+- **CANONICAL_PNPM_CHECK**: `PASS` (`pnpm check`, exit code 0 no `REFACTOR_CODE_HEAD`)
+- **Global Vitest Results**: `111 test files passed, 6 skipped (staging) / 757 tests passed, 45 skipped (staging), 0 failures`
+- **Request Cap Boundary Tests**: `PASS` (8ª Jev, 13ª OpenAI, 20ª total bloqueadas antes de fetch)
+- **Offline Network Deny**: `PASS`
+- **NEW_SKIPS**: `0`
+- **ASSERTION_WEAKER**: `0`
+
+### 4. Congelamento e Integridade
+- **L2_DATASET_SHA256**: `bd812341a922ded1c7159191849dae284a88f24afd9c7e8d3c64f9b081602f3f` (`PASS`)
+- **OLD_L2_EXECUTABLE_AGGREGATE_SHA256**: `7571366a6da664bbd16031c4eb0a9ec6d7975fab0b98c0a77aba1b992e60dd3f` (SUPERSEDED)
+- **NEW_L2_EXECUTABLE_AGGREGATE_SHA256**: `960224fc647981a3d3f5c97f58866da0be454df95f3570c0be0072327dc7bfb4` (`PASS`)
+- **LOCAL_DB**: `USED_BY_AUTOMATED_TEST_SUITE_ONLY` (Docker local)
+- **CLOUD_DB**: `0`
+- **TypeSafe real**: `0`
+- **OpenAI real**: `0`
+- **Twilio**: `0`
+- **Customer transcripts**: `0`
+- **Holdout**: `NO NEW ACCESS`
+- **Frozen Policy**: `UNCHANGED`
+- **L2_EXECUTION**: `NOT EXECUTED`
+- **TYPESAFE_PRICE_STATUS**: `NOT_VERIFIED`
+- **RUNTIME_ENFORCED_INPUT_TOKEN_CAP**: `NONE`
+- **TOKEN_CAP_ENFORCEMENT**: `NOT_ENFORCEABLE_AT_RUNTIME`
+- **L2_OPERATOR_COST_CEILING**: `NOT_AUTHORIZABLE`
+- **PREAUTH_STATUS**: `PREAUTH_BLOCKED`
+- **SECRET_AUDIT**: `PASS` (boolean-only sobre git diff origin/main...HEAD)
+- **MERGE_PERFORMED**: `NO`
+- **PR71_STATUS**: `READY_FOR_HUMAN_MERGE_REVIEW`
