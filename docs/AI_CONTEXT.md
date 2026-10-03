@@ -188,7 +188,7 @@ AI_CONTEXT_HEADER_END
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- Candidate: L1B Controlled Synthetic Latency Study ($N \ge 100$) ou Consolidação/PR do Slice L1A.
+- Candidate: L1B Controlled Synthetic Latency Study ( \ge 100$) (PLANNING / PREAUTH ONLY; zero chamadas a provedores).
 - `ACTIVE_GUARDED` permanece `BLOCKED` até conclusão da escada de validação (L1-L4).
 - Do NOT enable live customer traffic.
 - Do NOT use real telephony / live Twilio.

@@ -12449,3 +12449,61 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **PRODUCTION_RUNTIME_WIRING**: `NO`
 - **ACTIVE_GUARDED**: `BLOCKED`
 - **CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE**: `NOT CLEARED`
+
+---
+
+## 2026-10-02 — PR #64 L1A Live Evidence Reconciliation & Final Hardening
+
+### 1. Contexto Operacional e Host Bootstrap
+- **Host**: Novo ambiente local de desenvolvimento (Windows x64).
+- **Toolchain**: Node `v24.20.0` (via NVM), pnpm `12.5.1` (via Corepack).
+- **Branch**: `research/006aj-l1a-live-typesafe-model-identity-smoke`
+- **PR**: #64 (OPEN)
+- **ENV_LOADED_THIS_PROMPT**: `NO`
+- **ENV_FILE_INSPECTED**: `NO`
+- **NEW_TYPESAFE_CALLS_THIS_PROMPT**: `0`
+- **NEW_OPENAI_CALLS**: `0`
+- **NEW_TWILIO_CALLS**: `0`
+
+### 2. Reconciliação da Execução L1A e Invariantes de Provedor
+- **L1A_LIVE_ENV_RUNTIME_LOADED**: `YES` (na execução histórica do Run 1)
+- **ENV_FILE_INSPECTED**: `NO`
+- **TYPESAFE_API_KEY_VALUE_OBSERVED**: `NO`
+- **SECRET_VALUE_PRINTED**: `NOT OBSERVED`
+- **PLAN_CREATION_PROVIDER_CALLS**: `0`
+- **LIVE_RUN1_TYPESAFE_CALLS**: `20`
+- **REQUESTED_MODEL**: `jev-1.13.0`
+- **EXPECTED_PROVIDER_MODEL**: `jev-1.13.0`
+- **LIVE_VERSIONED_MODEL_REQUEST**: `OBSERVED`
+- **LIVE_PROVIDER_MODEL_EXACT_MATCH**: `20/20`
+- **L1A_TECHNICAL_FAILURES**: `0`
+- **L1A_LATENCY**: `DESCRIPTIVE_ONLY` (mediana 275ms, p90 316ms, p95 317ms, max 685ms)
+- **ACTUAL_BILLED_COST_USD**: `NOT_VERIFIED`
+
+### 3. Reconciliação do Holdout Global e do Slice
+- **LOCKED_HOLDOUT**: `CONSUMED`
+- **DO_NOT_REUSE_FOR_TUNING**: `YES`
+- **HOLDOUT_OPENED_THIS_SLICE**: `NO`
+- **HOLDOUT_REUSED_THIS_SLICE**: `NO`
+- *(Nota de governança: o holdout global permanece CONSUMED; nenhum caso de holdout foi aberto ou reutilizado neste slice).*
+
+### 4. Reconciliação do Histórico de Auditoria de Segredos do PR #64
+- **PR64_SECRET_AUDIT_INVOCATIONS_BEFORE_FINAL_HARDENING**: `2`
+- **PR64_SINGLE_FINAL_AUDIT_RULE_VIOLATED**: `YES`
+- **FIRST_AUDIT_BECAME_STALE**: `YES`
+- **FIRST_AUDIT_STALE_REASON**: `tracked AI_CONTEXT commit occurred afterward`
+- **SECOND_AUDIT_REPORTED_RESULT**: `PASS`
+- **SECOND_AUDIT_RAW_SENTINEL_IN_REVIEW_TRACE**: `NOT INDEPENDENTLY OBSERVED`
+- **CATEGORY**: `EXECUTION_CONTROL_DEVIATION`
+- **FUNCTIONAL_IMPACT**: `NONE OBSERVED`
+- **SECRET_EXPOSURE**: `NOT OBSERVED`
+
+### 5. Estado do Gate de Prontidão e Invariantes Finais
+- **L1A_MODEL_IDENTITY_SMOKE**: `EXECUTED / PASS`
+- **L1B**: `NOT EXECUTED`
+- **PRODUCTION_JEV_TIMEOUT_MS**: `NOT SELECTED`
+- **PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY**: `NOT SELECTED`
+- **CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE**: `NOT CLEARED`
+- **PRODUCTION_RUNTIME_WIRING**: `NO`
+- **ACTIVE_GUARDED**: `BLOCKED`
+- **FROZEN_POLICY_CHANGED**: `NO`

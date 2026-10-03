@@ -406,9 +406,9 @@ A promoção para produção deve seguir rigorosamente a escada de validação i
   │  Harness: Test fakes em memória, zero rede externa
   ▼
 [L1A: Real Jev + Synthetic Functional Smoke]
-  │  Status: PLAN DESIGNED / READY FOR REVIEW (docs/research/PHASE_6_TYPESAFE_L1A_MODEL_IDENTITY_SMOKE_PLAN.md)
+  │  Status: EXECUTED / PASS (docs/research/results/phase-6-typesafe-l1a-model-identity-smoke-run1.json)
   │  Harness: Adapter TypeSafe real, prompts sintéticos conhecidos (N=20 frozen em scripts/benchmarks/voice/jev-l1a-model-identity-smoke-v1-cases.json), transporte fake
-  │  Objetivo: Verificar request com modelo versionado, resposta com providerModel, semântica fail-open do guard
+  │  Resultado: 20/20 model matches (jev-1.13.0), 0 mismatches, 0 erros técnicos, latência DESCRIPTIVE_ONLY (mediana 275ms, p90 316ms, max 685ms)
   │  Requisitos: Model Pinning implementado offline (Slice E.1), teto de custo, ZERO dados de clientes
   ▼
 [L1B: Real Jev + Synthetic Latency Study]
@@ -461,8 +461,8 @@ A promoção para produção deve seguir rigorosamente a escada de validação i
 | **11. Aprovação Humana Formal** | `PENDING` | N/A | Sign-off de segurança, produto e jurídico | Operador Humano | NÃO | NÃO | **SIM (MANDATÓRIO)** |
 
 **Veredito Global**:
-- `READY_FOR_L1A_SYNTHETIC_FUNCTIONAL_SMOKE`: `READY_FOR_HUMAN_REVIEW` (Model Identity Guard implementado offline; plano L1A e dataset sintético N=20 congelados).
-- `READY_FOR_L1B_LATENCY_STUDY`: `NO` (Pendente execução/aprovação de L1A e desenho formal da bateria de latência).
+- L1A_MODEL_IDENTITY_SMOKE: EXECUTED / PASS (20/20 exact matches, 0 mismatches, 0 erros técnicos, latência descritiva mediana 275ms; DESCRIPTIVE_ONLY).
+- READY_FOR_L1B_LATENCY_STUDY: PLANNING_ONLY (Pendente desenho metodológico formal e pré-autorização de custos; zero chamadas a provedores).
 - `READY_FOR_L3_REAL_TWILIO`: `NO` (Pendente L1, L2 e provisionamento de conta Twilio).
 - `PRODUCTION_READY (ACTIVE_GUARDED)`: `NO / BLOCKED`.
 
@@ -489,7 +489,7 @@ A promoção para produção deve seguir rigorosamente a escada de validação i
 Com a conclusão do Slice E.1 (Model Identity Guard implementado offline + Plano/Dataset L1A desenhados):
 
 ```
-NEXT_ALLOWED_STEP: L1A Controlled Live TypeSafe Model Identity Smoke (após revisão e autorização formal)
+NEXT_ALLOWED_STEP: L1B Controlled Synthetic Latency Study (PLANNING / PREAUTH ONLY; zero chamadas a provedores)
 ```
 - **Escopo**:
   1. Execução controlada e pontual contra o endpoint da TypeSafe usando exclusivamente o dataset sintético de 20 casos (`scripts/benchmarks/voice/jev-l1a-model-identity-smoke-v1-cases.json`);
