@@ -412,9 +412,9 @@ A promoção para produção deve seguir rigorosamente a escada de validação i
   │  Requisitos: Model Pinning implementado offline (Slice E.1), teto de custo, ZERO dados de clientes
   ▼
 [L1B: Real Jev + Synthetic Latency Study]
-  │  Status: PLAN DESIGNED / NOT EXECUTED (docs/research/PHASE_6_TYPESAFE_L1B_SYNTHETIC_LATENCY_PLAN.md)
+  │  Status: EXECUTED / PASS_COMPLETE (docs/research/results/phase-6-typesafe-l1b-synthetic-latency-run1.json)
   │  Harness: Bateria sintética de latência (N=100 em scripts/benchmarks/voice/jev-l1b-synthetic-latency-v1-cases.json), NO TELEPHONY / STANDALONE BENCHMARK
-  │  Objetivo: Coletar distribuição empírica descritiva de latência (N=100 serial), sem dados de clientes
+  │  Objetivo: 100/100 sucessos com exact match jev-1.13.0, 0 timeouts, 0 falhas técnicas; mediana 257ms, p90 302ms, p99 380ms; DESCRIPTIVE_ONLY (sem dados de clientes)
   ▼
 [L2: Real Jev + Real OpenAI + Synthetic Transcript]
   │  Status: PENDING L1
@@ -462,8 +462,8 @@ A promoção para produção deve seguir rigorosamente a escada de validação i
 
 **Veredito Global**:
 - L1A_MODEL_IDENTITY_SMOKE: EXECUTED / PASS (20/20 exact matches, 0 mismatches, 0 erros técnicos, latência descritiva mediana 275ms; DESCRIPTIVE_ONLY).
-- L1B_PLAN: DESIGNED (docs/research/PHASE_6_TYPESAFE_L1B_SYNTHETIC_LATENCY_PLAN.md; dataset N=100 congelado).
-- READY_FOR_L1B_EXECUTION: PENDING_HUMAN_PREAUTH (Exige aprovação formal de teto orçamentário e autorização explícita).
+- L1B_SYNTHETIC_LATENCY_STUDY: EXECUTED / PASS_COMPLETE (100/100 exact matches, 0 mismatches, 0 erros técnicos, 0 timeouts; mediana descritiva 257ms, p90 302ms, max 385ms; DESCRIPTIVE_ONLY; tail confidence NOT ESTABLISHED).
+- READY_FOR_L1B_EXECUTION: EXECUTED.
 - `PRODUCTION_READY (ACTIVE_GUARDED)`: `NO / BLOCKED`.
 
 ---

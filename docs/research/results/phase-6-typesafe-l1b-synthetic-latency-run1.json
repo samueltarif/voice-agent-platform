@@ -1,0 +1,871 @@
+{
+  "metadata": {
+    "suite": "phase-6-typesafe-l1b-synthetic-latency",
+    "version": "1.0.0",
+    "executedAt": "2026-10-03T01:50:07.694Z",
+    "requestedModel": "jev-1.13.0",
+    "expectedProviderModel": "jev-1.13.0",
+    "datasetPath": "scripts/benchmarks/voice/jev-l1b-synthetic-latency-v1-cases.json",
+    "datasetSha256": "952da0c7a6a10447baa9e24a976543e06b7480eb9bdef98096242d5276188136",
+    "datasetCaseCount": 100,
+    "maxProviderRequests": 100,
+    "concurrency": 1,
+    "observationDeadlineMs": 4000,
+    "retries": 0,
+    "customerData": 0,
+    "openAiCalls": 0,
+    "twilioCalls": 0,
+    "projectedCostCeilingUsd": 0.1,
+    "actualBilledCostUsd": "NOT_VERIFIED",
+    "pricePerBtok": 42,
+    "latencyClassification": "DESCRIPTIVE_ONLY",
+    "tailLatencyConfidence": "NOT ESTABLISHED",
+    "productionTimeoutSelected": false,
+    "productionConcurrencySelected": false
+  },
+  "aggregates": {
+    "requestsAttempted": 100,
+    "requestsSucceeded": 100,
+    "modelMatches": 100,
+    "modelMismatches": 0,
+    "technicalFailures": 0,
+    "timeouts": 0,
+    "totalEstimatedUpperBoundInputTokens": 100000,
+    "estimatedUpperBoundCostUsd": 0.0042,
+    "latency": {
+      "minMs": 229,
+      "medianMs": 257,
+      "p75Ms": 273,
+      "p90Ms": 302,
+      "p95Ms": 325,
+      "p99EmpiricalMs": 380,
+      "maxMs": 385,
+      "classification": "DESCRIPTIVE_ONLY",
+      "tailConfidence": "NOT ESTABLISHED"
+    },
+    "binBreakdown": {
+      "SHORT": {
+        "count": 35,
+        "medianMs": 257,
+        "p90Ms": 313,
+        "maxMs": 385
+      },
+      "MEDIUM": {
+        "count": 40,
+        "medianMs": 255,
+        "p90Ms": 284,
+        "maxMs": 336
+      },
+      "LONG": {
+        "count": 25,
+        "medianMs": 270,
+        "p90Ms": 325,
+        "maxMs": 340
+      }
+    },
+    "completionUnder1500msCount": 100,
+    "completionUnder1500msRate": 1
+  },
+  "cases": [
+    {
+      "caseId": "l1b-001",
+      "inputSizeCategory": "SHORT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 380
+    },
+    {
+      "caseId": "l1b-002",
+      "inputSizeCategory": "SHORT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 246
+    },
+    {
+      "caseId": "l1b-003",
+      "inputSizeCategory": "SHORT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 262
+    },
+    {
+      "caseId": "l1b-004",
+      "inputSizeCategory": "SHORT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 253
+    },
+    {
+      "caseId": "l1b-005",
+      "inputSizeCategory": "SHORT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 273
+    },
+    {
+      "caseId": "l1b-006",
+      "inputSizeCategory": "SHORT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 256
+    },
+    {
+      "caseId": "l1b-007",
+      "inputSizeCategory": "SHORT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 385
+    },
+    {
+      "caseId": "l1b-008",
+      "inputSizeCategory": "SHORT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 238
+    },
+    {
+      "caseId": "l1b-009",
+      "inputSizeCategory": "SHORT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 262
+    },
+    {
+      "caseId": "l1b-010",
+      "inputSizeCategory": "SHORT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 257
+    },
+    {
+      "caseId": "l1b-011",
+      "inputSizeCategory": "SHORT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 261
+    },
+    {
+      "caseId": "l1b-012",
+      "inputSizeCategory": "SHORT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 302
+    },
+    {
+      "caseId": "l1b-013",
+      "inputSizeCategory": "SHORT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 275
+    },
+    {
+      "caseId": "l1b-014",
+      "inputSizeCategory": "SHORT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 247
+    },
+    {
+      "caseId": "l1b-015",
+      "inputSizeCategory": "SHORT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 322
+    },
+    {
+      "caseId": "l1b-016",
+      "inputSizeCategory": "SHORT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 250
+    },
+    {
+      "caseId": "l1b-017",
+      "inputSizeCategory": "SHORT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 279
+    },
+    {
+      "caseId": "l1b-018",
+      "inputSizeCategory": "SHORT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 260
+    },
+    {
+      "caseId": "l1b-019",
+      "inputSizeCategory": "SHORT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 255
+    },
+    {
+      "caseId": "l1b-020",
+      "inputSizeCategory": "SHORT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 250
+    },
+    {
+      "caseId": "l1b-021",
+      "inputSizeCategory": "SHORT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 260
+    },
+    {
+      "caseId": "l1b-022",
+      "inputSizeCategory": "SHORT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 243
+    },
+    {
+      "caseId": "l1b-023",
+      "inputSizeCategory": "SHORT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 270
+    },
+    {
+      "caseId": "l1b-024",
+      "inputSizeCategory": "SHORT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 254
+    },
+    {
+      "caseId": "l1b-025",
+      "inputSizeCategory": "SHORT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 247
+    },
+    {
+      "caseId": "l1b-026",
+      "inputSizeCategory": "SHORT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 235
+    },
+    {
+      "caseId": "l1b-027",
+      "inputSizeCategory": "SHORT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 264
+    },
+    {
+      "caseId": "l1b-028",
+      "inputSizeCategory": "SHORT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 254
+    },
+    {
+      "caseId": "l1b-029",
+      "inputSizeCategory": "SHORT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 250
+    },
+    {
+      "caseId": "l1b-030",
+      "inputSizeCategory": "SHORT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 244
+    },
+    {
+      "caseId": "l1b-031",
+      "inputSizeCategory": "SHORT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 258
+    },
+    {
+      "caseId": "l1b-032",
+      "inputSizeCategory": "SHORT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 254
+    },
+    {
+      "caseId": "l1b-033",
+      "inputSizeCategory": "SHORT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 257
+    },
+    {
+      "caseId": "l1b-034",
+      "inputSizeCategory": "SHORT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 313
+    },
+    {
+      "caseId": "l1b-035",
+      "inputSizeCategory": "SHORT",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 246
+    },
+    {
+      "caseId": "l1b-036",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 247
+    },
+    {
+      "caseId": "l1b-037",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 277
+    },
+    {
+      "caseId": "l1b-038",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 263
+    },
+    {
+      "caseId": "l1b-039",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 271
+    },
+    {
+      "caseId": "l1b-040",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 267
+    },
+    {
+      "caseId": "l1b-041",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 251
+    },
+    {
+      "caseId": "l1b-042",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 241
+    },
+    {
+      "caseId": "l1b-043",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 265
+    },
+    {
+      "caseId": "l1b-044",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 276
+    },
+    {
+      "caseId": "l1b-045",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 245
+    },
+    {
+      "caseId": "l1b-046",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 241
+    },
+    {
+      "caseId": "l1b-047",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 295
+    },
+    {
+      "caseId": "l1b-048",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 247
+    },
+    {
+      "caseId": "l1b-049",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 255
+    },
+    {
+      "caseId": "l1b-050",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 257
+    },
+    {
+      "caseId": "l1b-051",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 274
+    },
+    {
+      "caseId": "l1b-052",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 229
+    },
+    {
+      "caseId": "l1b-053",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 260
+    },
+    {
+      "caseId": "l1b-054",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 244
+    },
+    {
+      "caseId": "l1b-055",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 258
+    },
+    {
+      "caseId": "l1b-056",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 247
+    },
+    {
+      "caseId": "l1b-057",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 255
+    },
+    {
+      "caseId": "l1b-058",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 235
+    },
+    {
+      "caseId": "l1b-059",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 243
+    },
+    {
+      "caseId": "l1b-060",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 249
+    },
+    {
+      "caseId": "l1b-061",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 315
+    },
+    {
+      "caseId": "l1b-062",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 247
+    },
+    {
+      "caseId": "l1b-063",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 267
+    },
+    {
+      "caseId": "l1b-064",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 242
+    },
+    {
+      "caseId": "l1b-065",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 259
+    },
+    {
+      "caseId": "l1b-066",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 243
+    },
+    {
+      "caseId": "l1b-067",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 284
+    },
+    {
+      "caseId": "l1b-068",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 240
+    },
+    {
+      "caseId": "l1b-069",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 310
+    },
+    {
+      "caseId": "l1b-070",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 270
+    },
+    {
+      "caseId": "l1b-071",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 251
+    },
+    {
+      "caseId": "l1b-072",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 251
+    },
+    {
+      "caseId": "l1b-073",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 257
+    },
+    {
+      "caseId": "l1b-074",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 336
+    },
+    {
+      "caseId": "l1b-075",
+      "inputSizeCategory": "MEDIUM",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 275
+    },
+    {
+      "caseId": "l1b-076",
+      "inputSizeCategory": "LONG",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 340
+    },
+    {
+      "caseId": "l1b-077",
+      "inputSizeCategory": "LONG",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 252
+    },
+    {
+      "caseId": "l1b-078",
+      "inputSizeCategory": "LONG",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 253
+    },
+    {
+      "caseId": "l1b-079",
+      "inputSizeCategory": "LONG",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 295
+    },
+    {
+      "caseId": "l1b-080",
+      "inputSizeCategory": "LONG",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 271
+    },
+    {
+      "caseId": "l1b-081",
+      "inputSizeCategory": "LONG",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 271
+    },
+    {
+      "caseId": "l1b-082",
+      "inputSizeCategory": "LONG",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 337
+    },
+    {
+      "caseId": "l1b-083",
+      "inputSizeCategory": "LONG",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 274
+    },
+    {
+      "caseId": "l1b-084",
+      "inputSizeCategory": "LONG",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 266
+    },
+    {
+      "caseId": "l1b-085",
+      "inputSizeCategory": "LONG",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 256
+    },
+    {
+      "caseId": "l1b-086",
+      "inputSizeCategory": "LONG",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 287
+    },
+    {
+      "caseId": "l1b-087",
+      "inputSizeCategory": "LONG",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 244
+    },
+    {
+      "caseId": "l1b-088",
+      "inputSizeCategory": "LONG",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 249
+    },
+    {
+      "caseId": "l1b-089",
+      "inputSizeCategory": "LONG",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 273
+    },
+    {
+      "caseId": "l1b-090",
+      "inputSizeCategory": "LONG",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 258
+    },
+    {
+      "caseId": "l1b-091",
+      "inputSizeCategory": "LONG",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 299
+    },
+    {
+      "caseId": "l1b-092",
+      "inputSizeCategory": "LONG",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 249
+    },
+    {
+      "caseId": "l1b-093",
+      "inputSizeCategory": "LONG",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 243
+    },
+    {
+      "caseId": "l1b-094",
+      "inputSizeCategory": "LONG",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 243
+    },
+    {
+      "caseId": "l1b-095",
+      "inputSizeCategory": "LONG",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 264
+    },
+    {
+      "caseId": "l1b-096",
+      "inputSizeCategory": "LONG",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 279
+    },
+    {
+      "caseId": "l1b-097",
+      "inputSizeCategory": "LONG",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 236
+    },
+    {
+      "caseId": "l1b-098",
+      "inputSizeCategory": "LONG",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 325
+    },
+    {
+      "caseId": "l1b-099",
+      "inputSizeCategory": "LONG",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 270
+    },
+    {
+      "caseId": "l1b-100",
+      "inputSizeCategory": "LONG",
+      "status": "SUCCESS_MATCH",
+      "providerModel": "jev-1.13.0",
+      "identityMatch": true,
+      "latencyMs": 275
+    }
+  ]
+}

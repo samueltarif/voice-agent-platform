@@ -6,7 +6,7 @@ CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-02
 CONTEXT_BASE_MAIN_SHA: 76bead2a44e6516af49a87098864c6475f4b02dd
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
-CURRENT_SLICE: L1B Run 1 Preauthorization & Runner Preparation
+CURRENT_SLICE: L1B Run 1 Live Execution & Results Recording
 CONTEXT_UPDATE_BRANCH: research/006al-l1b-run1-preauth-runner
 CONTEXT_UPDATE_PR: 66
 LAST_MERGED_PR_AT_REFRESH: 65
@@ -86,7 +86,7 @@ AI_CONTEXT_HEADER_END
 - **MODEL_DRIFT_RUNTIME_GUARD**: `IMPLEMENTED / TESTED LOCALLY` (`packages/integrations/src/typesafe/typesafe-jev-turn-decision-adapter.ts`; 23 testes; exact match via `expectedProviderModel`).
 - **EXPECTED_MODEL_AUTHORITY**: `OPTION_B` (TypeSafe adapter integration config: options.expectedProviderModel).
 - **L1A_MODEL_IDENTITY_SMOKE**: `EXECUTED / PASS` (N=20/20 sucessos com exact match `jev-1.13.0`, 0 mismatches, 0 erros técnicos, mediana descritiva 275ms, p90 316ms, max 685ms; SHA-256 `698c5e2a3b91...`; `docs/research/results/phase-6-typesafe-l1a-model-identity-smoke-run1.json`).
-- **L1B_SYNTHETIC_LATENCY_STUDY**: L1B_PLAN = DESIGNED | L1B_RUNNER = IMPLEMENTED / TESTED OFFLINE (scripts/benchmarks/voice/run-jev-l1b-synthetic-latency.mjs; L1B_RUN1_MAX_PROVIDER_REQUESTS = 100, L1B_RUN1_CONCURRENCY = 1, L1B_CONCURRENCY_2_EXPLORATION = DEFERRED) | L1B_EXECUTION = NOT EXECUTED | L1B_PROVIDER_EXECUTION = AWAITING_OPERATOR_AUTHORIZATION.
+- **L1B_SYNTHETIC_LATENCY_STUDY**: L1B_PLAN = DESIGNED | L1B_RUNNER = IMPLEMENTED / TESTED OFFLINE | L1B_EXECUTION = EXECUTED / PASS_COMPLETE (100/100 sucessos com exact match jev-1.13.0, 0 mismatches, 0 erros técnicos, 0 timeouts; mediana descritiva 257ms, p75 273ms, p90 302ms, p95 325ms, p99 380ms, max 385ms; SHA-256 f087a6e3ad83...; docs/research/results/phase-6-typesafe-l1b-synthetic-latency-run1.json) | L1B_PROVIDER_EXECUTION = EXECUTED.
 - **SECURITY_RUNTIME_SEMANTICS**: `DESIGNED` (`docs/research/PHASE_6_SECURITY_ESCALATE_RUNTIME_SEMANTICS.md`).
 - **SECURITY_RESPONSE_DELIVERY_READY**: `IMPLEMENTED LOCALLY / ROUTING INTEGRATED`.
 - **SECURITY_HISTORY_PERSISTENCE_READY**: `IMPLEMENTED LOCALLY (Turn-scoped qualified H4/H5 history resolution)`.
@@ -180,7 +180,7 @@ AI_CONTEXT_HEADER_END
 12. `PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY = NOT SELECTED`: Candidato canary 2 a 5 chamadas é proposta exploratória sem dados operacionais.
 13. `MODEL_DRIFT_RUNTIME_GUARD = IMPLEMENTED / TESTED LOCALLY` (`EXPECTED_MODEL_AUTHORITY = OPTION_B`; exact match via `expectedProviderModel`).
 14. `PRODUCTION_RUNTIME_WIRING = NO`: Fiação de runtime em produção desautorizada.
-15. `LIVE_PROVIDER_GUARDED_ROUTING_VALIDATION = PARTIAL`: L1A executado com sucesso (`L1A_EXECUTION = PASS`); estudo preliminar de latência sob carga sintética pendente (`L1B_PLAN = PLANNED / NOT EXECUTED`).
+15. `LIVE_PROVIDER_GUARDED_ROUTING_VALIDATION = PARTIAL`: L1A executado com sucesso (`L1A_EXECUTION = PASS`); L1B executado com sucesso (`L1B_EXECUTION = PASS_COMPLETE`); validações subsequentes L2-L4 pendentes.
 16. `LIVE_TWILIO_GUARDED_ROUTING = NOT EXECUTED`: Validação em telefonia real pendente L3.
 17. `CUSTOMER_TRAFFIC = PROHIBITED`
 
@@ -189,7 +189,7 @@ AI_CONTEXT_HEADER_END
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- Candidate: L1B Run 1 Live Execution (após autorização explícita do operador: AUTORIZO_L1B_TYPESAFE_N100 = YES, COST_CEILING_USD = 0.10; zero chamadas live sem autorização).
+- Candidate: L1B Run 1 Evidence Review & PR #66 Final Consistency / Merge Preparation.
 - `ACTIVE_GUARDED` permanece `BLOCKED` até conclusão da escada de validação (L1-L4).
 - Do NOT enable live customer traffic.
 - Do NOT use real telephony / live Twilio.

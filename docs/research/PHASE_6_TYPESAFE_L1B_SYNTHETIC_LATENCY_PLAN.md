@@ -313,15 +313,57 @@ Classificadas estritamente por natureza:
 
 ---
 
-## 17. Próximo Passo Permitido
+## 17. Status de Execução e Próximo Passo
 
 > **Status do Runner**: `L1B_RUNNER = IMPLEMENTED / TESTED OFFLINE` (`scripts/benchmarks/voice/run-jev-l1b-synthetic-latency.mjs`).
 > **Procedimento Pré-Live**: `INTEGRATIONS_DIST_REFRESH_REQUIRED_BEFORE_LIVE = YES` (`pnpm --filter @voice-agent/integrations build` executado e verificado).
-> **Status de Execução**: `L1B_PROVIDER_EXECUTION = AWAITING_OPERATOR_AUTHORIZATION`.
+> **Status de Execução**: `L1B_PROVIDER_EXECUTION = EXECUTED / PASS_COMPLETE`.
+> **Classificação de Resultado**: `PASS_COMPLETE` (100/100 sucessos com exact match `jev-1.13.0`, 0 mismatches, 0 falhas técnicas, 0 timeouts, 100% completados sob o deadline de 4000ms).
 
-Após o merge deste plano endurecido:
-- **NEXT_ALLOWED_STEP**: L1B Run 1 Preauthorization + Runner Preparation (OFFLINE FIRST).
-  - Preparar runner dedicado com guarda de custo;
-  - Validar orçamento e parsing offline;
-  - Revalidar preço e disponibilidade do modelo;
-  - Submeter o pacote ao operador humano para autorização formal antes de qualquer chamada remota.
+Após a conclusão bem-sucedida do L1B Run 1:
+- **NEXT_ALLOWED_STEP**: Revisão de evidências e fechamento do PR #66.
+- Manter `ACTIVE_GUARDED = BLOCKED`.
+- `PRODUCTION_JEV_TIMEOUT_MS = NOT SELECTED`.
+- `PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY = NOT SELECTED`.
+
+---
+
+## 18. Resultados Fatuais do Run 1 (L1B Live Execution)
+
+- **Data da Execução**: 2026-10-02 (2026-10-03T01:50:07.694Z)
+- **Autorização do Operador**: `OBSERVED` (`AUTORIZO_L1B_TYPESAFE_N100 = YES`, `COST_CEILING_USD = 0.10`)
+- **Artefato de Resultados**: `docs/research/results/phase-6-typesafe-l1b-synthetic-latency-run1.json`
+- **SHA-256 do Artefato**: `f087a6e3ad83fc81b272ffd775d5e66d00c6e7c918d310ca54f45237d59f1cdb`
+- **Dataset Utilizado**: `scripts/benchmarks/voice/jev-l1b-synthetic-latency-v1-cases.json` (N=100, SHA-256 `952da0c7a6a10447baa9e24a976543e06b7480eb9bdef98096242d5276188136`)
+- **Modelo Solicitado / Esperado / Observado**: `jev-1.13.0` / `jev-1.13.0` / `jev-1.13.0` (100/100 exact matches, 0 mismatches)
+- **Contabilidade de Requisições**:
+  - `requestsAttempted`: 100
+  - `requestsSucceeded`: 100
+  - `technicalFailures`: 0
+  - `timeouts`: 0
+- **Métricas de Latência (DESCRIPTIVE_ONLY — Tail Confidence: NOT ESTABLISHED)**:
+  - `minMs`: 229ms
+  - `medianMs`: 257ms
+  - `p75Ms`: 273ms
+  - `p90Ms`: 302ms
+  - `p95Ms`: 325ms
+  - `p99EmpiricalMs`: 380ms
+  - `maxMs`: 385ms
+  - `completionUnder1500ms`: 100/100 (100%, taxa 1.0)
+- **Detalhamento por Categoria de Entrada**:
+  - `SHORT` (N=35): mediana 257ms, p90 313ms, max 385ms
+  - `MEDIUM` (N=40): mediana 255ms, p90 284ms, max 336ms
+  - `LONG` (N=25): mediana 270ms, p90 325ms, max 340ms
+- **Métricas Financeiras**:
+  - Preço Verificado: $42 / Btok ($0.000000042 / input token; output gratuito)
+  - Teto Aprovado: $0.10 USD
+  - Custo Máximo Projetado Pré-Run: $0.00420 USD
+  - Custo Estimado Derivado da Execução: $0.00420 USD (Upper Bound)
+  - `ACTUAL_BILLED_COST_USD`: `NOT_VERIFIED`
+- **Fronteiras Arquiteturais Mantidas**:
+  - `PRODUCTION_JEV_TIMEOUT_MS`: `NOT SELECTED`
+  - `PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY`: `NOT SELECTED`
+  - `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE`: `NOT CLEARED`
+  - `PRODUCTION_RUNTIME_WIRING`: `NO`
+  - `ACTIVE_GUARDED`: `BLOCKED`
+  - `LOCKED_HOLDOUT`: `CONSUMED` (zero acesso ao holdout)

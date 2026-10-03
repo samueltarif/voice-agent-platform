@@ -12760,3 +12760,73 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **ACTIVE_GUARDED**: `BLOCKED`
 - **L1B_EXECUTION**: `NOT EXECUTED`
 - **L1B_PROVIDER_EXECUTION**: `AWAITING_OPERATOR_AUTHORIZATION`
+---
+
+## 2026-10-02 — L1B Run 1 Controlled Synthetic Latency Study Live Execution (Slice 006AM)
+
+### 1. Autorização Formal e Parâmetros de Execução
+- **Prompt**: `PROMPT-006AM-L1B-RUN1-LIVE-EXECUTION-001`
+- **Fase**: Phase 6 (Voice Model Routing & Jev Evaluation)
+- **PR**: #66 (`research/006al-l1b-run1-preauth-runner`)
+- **OPERATOR_AUTHORIZATION**: `OBSERVED` (`AUTORIZO_L1B_TYPESAFE_N100 = YES`, `COST_CEILING_USD = 0.10`)
+- **AUTHORIZED_MAX_PROVIDER_REQUESTS**: `100`
+- **AUTHORIZED_COST_CEILING_USD**: `0.10`
+- **AUTORIZATION_SCOPE**: L1B Run 1 serial synthetic latency only
+- **LIVE_EXECUTION_INVOCATIONS**: `1` (invocação única, zero retries)
+- **ENV_RUNTIME_LOADED**: `YES` (carregado via `node --env-file=.env ...`)
+- **ENV_FILE_INSPECTED**: `NO` (zero inspeção de arquivo ou chaves)
+- **TYPESAFE_API_KEY_VALUE_OBSERVED**: `NO`
+
+### 2. Integridade do Dataset e Verificação Prévia de Modelo
+- **DATASET_PATH**: `scripts/benchmarks/voice/jev-l1b-synthetic-latency-v1-cases.json`
+- **DATASET_COUNT**: `100` (100% sintético, zero dados reais de clientes, zero PII)
+- **DATASET_SHA256**: `952da0c7a6a10447baa9e24a976543e06b7480eb9bdef98096242d5276188136` (verificado)
+- **REQUESTED_MODEL**: `jev-1.13.0`
+- **EXPECTED_PROVIDER_MODEL**: `jev-1.13.0`
+- **PROVIDER_PRICE_VERIFIED**: `$42 / Btok` ($0.042 / Mtok, $0.000000042 / input token; output gratuito)
+- **MAX_PROJECTED_COST_USD (Pre-Run)**: `$0.00420 USD` (100.000 tokens projetados)
+
+### 3. Resultados Fatuais Observados
+- **Artefato Gerado**: `docs/research/results/phase-6-typesafe-l1b-synthetic-latency-run1.json`
+- **SHA-256 do Artefato**: `f087a6e3ad83fc81b272ffd775d5e66d00c6e7c918d310ca54f45237d59f1cdb`
+- **ARTIFACT_SANITIZATION**: `PASS` (zero utterances sintéticas vazadas, zero payloads brutos, zero Authorization headers, zero scores de roteamento persistidos)
+- **REQUESTS_ATTEMPTED**: `100`
+- **REQUESTS_SUCCEEDED**: `100`
+- **MODEL_MATCHES**: `100` (100% de correspondência com `providerModel === 'jev-1.13.0'`)
+- **MODEL_MISMATCHES**: `0`
+- **TECHNICAL_FAILURES**: `0`
+- **TIMEOUTS**: `0` (100% sob o deadline de 4000ms)
+- **Métricas Descritivas de Latência (DESCRIPTIVE_ONLY — Tail Confidence: NOT ESTABLISHED)**:
+  - `minMs`: 229ms
+  - `medianMs`: 257ms
+  - `p75Ms`: 273ms
+  - `p90Ms`: 302ms
+  - `p95Ms`: 325ms
+  - `p99EmpiricalMs`: 380ms
+  - `maxMs`: 385ms
+  - `completionUnder1500ms`: 100/100 (100%, taxa 1.0)
+- **Detalhamento por Bin de Tamanho**:
+  - `SHORT` (N=35): mediana 257ms, p90 313ms, max 385ms
+  - `MEDIUM` (N=40): mediana 255ms, p90 284ms, max 336ms
+  - `LONG` (N=25): mediana 270ms, p90 325ms, max 340ms
+
+### 4. Contabilidade Financeira e Custos
+- **Conservative Projected Tokens/Request**: 1000
+- **Max Projected Input Tokens**: 100000
+- **Attempt-Derived Upper Bound Cost**: 100 × 1000 × $0.000000042 = `$0.00420 USD`
+- **ACTUAL_BILLED_COST_USD**: `NOT_VERIFIED`
+- **Provider Calls**: TypeSafe = 100, OpenAI = 0, Twilio = 0
+
+### 5. Invariantes de Governança Mantidas
+- **L1B_RESULT_CLASSIFICATION**: `PASS_COMPLETE`
+- **CUSTOMER_DATA**: `0`
+- **REAL_CUSTOMER_PII**: `0`
+- **LOCKED_HOLDOUT**: `CONSUMED`
+- **HOLDOUT_OPENED_THIS_SLICE**: `NO`
+- **HOLDOUT_REUSED_THIS_SLICE**: `NO`
+- **FROZEN_POLICY_CHANGED**: `NO`
+- **PRODUCTION_JEV_TIMEOUT_MS**: `NOT SELECTED` (4000ms é deadline de medição de pesquisa, não timeout de produção)
+- **PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY**: `NOT SELECTED` (estudo serial N=100 não valida concorrência de produção)
+- **CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE**: `NOT CLEARED`
+- **PRODUCTION_RUNTIME_WIRING**: `NO`
+- **ACTIVE_GUARDED**: `BLOCKED`
