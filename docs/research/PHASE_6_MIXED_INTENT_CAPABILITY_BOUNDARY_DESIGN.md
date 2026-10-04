@@ -69,7 +69,7 @@ Separar: (1) detector de relevância (`relevant`), (2) guarda de resolvibilidade
 
 ## 12. Authority Invariant
 
-`JEV_ROLE = AUXILIARY_DECISION_MODEL` preservado: Jev não decide autorização, tenant, billing, lifecycle, permissões ou mutações duráveis.
+`JEV_ROLE = AUXILIARY_DECISION_MODEL` preservado: Jev não decide autorização, tenant, billing, lifecycle, permissões ou mutações duráveis. `FROZEN_POLICY_CHANGED = NO` (thresholds T_SECURITY 0.56 / T_DETERMINISTIC 0.35 / T_GENERATIVE 0.47 intactos).
 
 ## 13. Criterion A After Redesign
 
@@ -89,4 +89,4 @@ Sintético apenas; sem holdout/clientes; sem Twilio/DB; sem live; thresholds/pol
 
 ## 16. Exit Criteria
 
-Desenho revisado pelo humano; `RECOMMENDED_MIXED_INTENT_ARCHITECTURE = HYBRID_MINIMAL` aceito ou ajustado; próximo slice implementa §14 com testes antes de qualquer live.
+Desenho revisado pelo humano; `RECOMMENDED_MIXED_INTENT_ARCHITECTURE = HYBRID_MINIMAL` aceito ou ajustado; próximo slice implementa §14 com testes antes de qualquer live. `MIXED_INTENT_REDESIGN_STATUS = DESIGN_COMPLETE`; `IMPLEMENTATION_STATUS = DESIGN_ONLY`; `TARGETED_LIVE_STUDY_READINESS = BLOCKED` (aguarda implementação + revalidação); `PROPOSED_LIVE_COST_CEILING = NOT_SELECTED`; `SECOND_LIVE_RUN_AUTHORIZED = NO`.

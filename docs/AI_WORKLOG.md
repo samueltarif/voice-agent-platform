@@ -15243,3 +15243,24 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **OPENAI_REAL_CALLS**: `0`; **TYPESAFE_REAL_CALLS**: `0`; **TWILIO**: `0`; **CLOUD_DB**: `0`; **HOLDOUT**: `NO ACCESS`
 - **LIVE_COMMAND_INVOKED**: `NO`; **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
 - **NEXT_REQUIRED_STEP**: `HUMAN_REVIEW_OF_MIXED_INTENT_CAPABILITY_DESIGN`
+
+---
+
+## 2026-10-04 — Slice 006BC Post-Merge Reconciliation + Review (PR81 `1d81f02`)
+
+- **SLICE**: `006BC`
+- **TASK**: `OFFLINE_MIXED_INTENT_CAPABILITY_BOUNDARY_DESIGN`
+- **PR81_MERGE_SHA**: `1d81f02d8fe4c7961b3e6296b099cd26602a70e3` (discrepância `1d31f02` vs `1d81f02` resolvida via Git: vale `1d81f02`)
+- **OPTION_1_SELECTED**: `YES`
+- **IMPLEMENTATION_STATUS**: `DESIGN_ONLY` (sem código de produção alterado)
+- **Snapshot pós-merge**: header reconciliado (BASE `1d81f02`, branch 006bc, PR `PENDING_MANUAL_CREATE`, merge 81); `LAST_TESTED_CODE_SHA = df872bc...` preservado (commits seguintes docs-only)
+- **OPENAI_REAL_CALLS**: `0`
+- **TYPESAFE_REAL_CALLS**: `0`
+- **TWILIO**: `0`
+- **CLOUD_DB**: `0`
+- **HOLDOUT**: `NO ACCESS`
+- **CUSTOMER_TRAFFIC**: `0`
+- **CUSTOMER_TRANSCRIPTS**: `0`
+- **LIVE_COMMAND_INVOKED**: `NO`
+- **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`

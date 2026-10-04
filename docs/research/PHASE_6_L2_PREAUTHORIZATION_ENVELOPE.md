@@ -7,7 +7,7 @@ CREATED_AT: 2026-10-03
 LAST_RECONCILED_AT: 2026-10-04
 PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
 STUDY: L2 Real Jev + Real OpenAI + Synthetic Transcript
-CURRENT_SLICE: 006BB
+CURRENT_SLICE: 006BC
 PREAUTH_STATUS: PREAUTH_BLOCKED
 CURRENT_L2_EXECUTION: NOT_AUTHORIZED
 LIVE_AUTHORIZATION_AVAILABLE: NO
@@ -764,3 +764,19 @@ Decisões formais concedidas pelo operador humano em 2026-10-03 (escopo estrito:
 - **TOTAL_PROVIDER_SPEND_ESTIMATE_USD**: `NOT_VERIFIED`
 - **ACTUAL_PROVIDER_BILLED_COST_USD**: `NOT_OBSERVED`
 - **Por que char cap != token upper bound**: o runtime intercepta `callerTranscript.length > 1000` (chars), sem tokenizer TypeSafe e sem cap de tokens (`TOKEN_CAP_ENFORCEMENT = NOT_ENFORCEABLE_AT_RUNTIME`); 1000 chars podem corresponder a mais ou menos de 1000 tokens conforme idioma/UTF-8, e a tarifa `42 USD/Btok` tampouco e contratual (`TYPESAFE_PRICE_STATUS = NOT_VERIFIED`, `HARD_L2_COST_BOUND_FEASIBLE = BLOCKED`). O valor `0.000294` assume `7 requests x 1000 tokens x 42/Btok` para planejamento, sem componente OpenAI e sem usage observado.
+
+---
+
+## 25. Current Slice 006BC State (Offline Mixed-Intent Design)
+
+- **CURRENT_SLICE**: `006BC`
+- **CURRENT_L2_EXECUTION**: `NOT_AUTHORIZED`
+- **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+- **CURRENT_SLICE_LIVE_COMMAND_INVOKED**: `NO`
+- **CURRENT_SLICE_PROVIDER_CALLS**: `0`
+- **CURRENT_SLICE_PROVIDER_SPEND_USD**: `0`
+- **PROPOSED_LIVE_COST_CEILING**: `NOT_SELECTED`
+- **TARGETED_LIVE_STUDY_READINESS**: `BLOCKED` (aguarda implementação do desenho mixed-intent + revalidação)
+- **NEXT_ALLOWED_STEP**: `HUMAN_REVIEW_OF_MIXED_INTENT_CAPABILITY_DESIGN`
+- **NEXT_REQUIRED_STEP**: `HUMAN_REVIEW_OF_MIXED_INTENT_CAPABILITY_DESIGN`
