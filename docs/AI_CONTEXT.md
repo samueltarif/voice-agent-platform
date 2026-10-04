@@ -3,15 +3,15 @@
 <!--
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
-LAST_REFRESHED_AT: 2026-10-03
-CONTEXT_BASE_MAIN_SHA: 3e19359e483da88a47aa358b098dfe3ecbc02a93
+LAST_REFRESHED_AT: 2026-10-04
+CONTEXT_BASE_MAIN_SHA: f692dc9ee5017ca1e65d184c8102fc17dc82c6b8
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
-CURRENT_SLICE: Slice 006AZ — L2 Runtime Module Resolution Fix
-CONTEXT_UPDATE_BRANCH: fix/006az-l2-runtime-module-resolution
-CONTEXT_UPDATE_PR: 79
-LAST_MERGED_PR_AT_REFRESH: 78
-LAST_MERGE_SHA_AT_REFRESH: 3e19359e483da88a47aa358b098dfe3ecbc02a93
-LAST_TESTED_CODE_SHA: 25bc2d70399e0bedd2dc2a17e9b56caa0c8685a9
+CURRENT_SLICE: Slice 006BA — L2 Authorized Live Execution After Runtime Fix
+CONTEXT_UPDATE_BRANCH: research/006ba-l2-authorized-live-execution
+CONTEXT_UPDATE_PR: TBD
+LAST_MERGED_PR_AT_REFRESH: 79
+LAST_MERGE_SHA_AT_REFRESH: f692dc9ee5017ca1e65d184c8102fc17dc82c6b8
+LAST_TESTED_CODE_SHA: f692dc9ee5017ca1e65d184c8102fc17dc82c6b8
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
 AI_CONTEXT_HEADER_END
@@ -124,7 +124,7 @@ AI_CONTEXT_HEADER_END
 
 ## 6. Estado Atual da Evidência de Qualidade (Quality Gate Snapshot)
 
-- **Último `pnpm check` Global**: `PASS` (executado e observado no slice 006AZ no PR #79 a partir de estado frio/cold-checkout sem diretórios `dist/` pré-existentes).
+- **Último `pnpm check` Global**: `PASS` (executado e observado no slice 006BA sobre `f692dc9`: `FORMAT PASS`, `LINT PASS`, `TYPECHECK PASS 12/12`, `TEST PASS 775 passed / 45 skipped staging`, `BUILD PASS 12/12`, `ARCHITECTURE PASS`, `FILE_SIZE PASS`).
 - **Status das Asserções**: `206 passed` em `@voice-agent/integrations` (27 arquivos de teste, incluindo `5/5 passed` desacoplado de build em `l2-module-resolution.test.ts`, `21/21 passed` em `jev-openai-l2-synthetic-runner.test.ts`, `5/5 passed` em `jev-routing-benchmark.test.ts` e `11/11 passed` em `l2-executable-freeze.test.ts`).
 - **Regressão de Asserções**: `ASSERTION_WEAKER = 0`, `NEW_SKIPS = 0`.
 - **Verificação Arquitetural**: `SUCESSO: Todas as fronteiras e regras arquiteturais respeitadas.`
@@ -158,8 +158,8 @@ AI_CONTEXT_HEADER_END
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- **Revisão Humana do PR #75 Corrigido (fix/006av-l2-preauth-policy-implementation)**.
-- `CURRENT_L2_EXECUTION` = `NOT_AUTHORIZED` (nenhuma invocação live autorizada).
+- **Revisão Humana do Resultado L2 do Slice 006BA (research/006ba-l2-authorized-live-execution)**.
+- `CURRENT_L2_EXECUTION` = `PARTIAL_CHAIN_OBSERVED` (`L2_RESULT = FAILED`; 1 invocação live consumida; `SECOND_LIVE_RUN_AUTHORIZED = NO`).
 - `LAST_L2_LIVE_ATTEMPT_RESULT` = `BLOCKED_BY_RUNNER_FAIL_CLOSED_PREAUTH` (tentativa histórica bloqueada antes da rede; autorização consumida).
 - `CURRENT_L2_EXECUTABLE_MODULE_COUNT` = `10`.
 - `L2_RUNNER_FOCUSED_TESTS` = `21/21 PASS`.

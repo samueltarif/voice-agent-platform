@@ -15004,3 +15004,97 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - Vite/Vitest usam a condicao `development` -> `./src/index.ts` e o plugin de `packages/integrations/vitest.config.ts`, permitindo testes antes do build.
 - A validacao operacional pos-build (`node scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs --offline --dry-run-write`) comprovou o carregamento real do grafo `dist/` sem erro de resolucao.
 - Nenhum comportamento de provider, adapter, politica ou regra de negocio L2 foi alterado; os 10 modulos congelados permanecem com aggregate `f5ef6e6b88e09094765b0c3b273ba23cae01502bdd0ec4fe28dbcb3f2133794a`.
+
+---
+
+## 2026-10-04 — Slice 006BA: Authorized L2 Live Execution After Runtime Fix (PR #79 Follow-Up)
+
+### 1. Authorization & Access Method
+- **SLICE**: `006BA`
+- **BRANCH**: `research/006ba-l2-authorized-live-execution`
+- **SOURCE_MAIN_SHA**: `f692dc9ee5017ca1e65d184c8102fc17dc82c6b8`
+- **LOCAL_PR79_MERGE_EVIDENCE**: `PASS` (merge `f692dc9` presente e ancestral de `HEAD`; `local main == origin/main`; worktree `CLEAN`)
+- **HUMAN_L2_LIVE_AUTHORIZATION**: `AUTHORIZED_THEN_CONSUMED` ("AUTORIZO UMA NOVA EXECUCAO L2 CONTROLADA COM TETO OPERACIONAL DE US$0,96")
+- **AUTHORIZED_OPERATOR_COST_CEILING_USD**: `0.96`
+- **AUTHORIZATION_SCOPE**: `SINGLE_SYNTHETIC_L2_RUN_ONLY`
+- **GITHUB_MCP_STATUS**: `UNAVAILABLE_AUTHORIZATION_FAILURE` (uma tentativa `pull_request_read` PR #79 + `get_me`; erro `awaiting device authorization: context deadline exceeded`; sem retry adicional)
+- **PLAYWRIGHT_GITHUB_FALLBACK**: `PASS` (pagina publica `https://github.com/samueltarif/voice-agent-platform/pull/79` observada: `Merged`, `samueltarif merged 5 commits into main`, `merged commit f692dc9 into main`)
+- **GITHUB_ACCESS_METHOD**: `PLAYWRIGHT_MCP_FALLBACK` (com confirmacao adicional `LOCAL_GIT_ORIGIN_FALLBACK`: `f692dc9` ancestral de `HEAD`)
+- **CONTEXT7_MCP**: `NOT_APPLICABLE`
+- **SUPABASE_MCP**: `NOT_AUTHORIZED`
+
+### 2. Pre-Live Gates (All PASS Before Live)
+- **PRE_LIVE_ALL_GATES**: `PASS`
+- **OPENAI_CREDENTIAL_AVAILABLE**: `YES` (booleano apenas; sem valor/comprimento/prefixo; sem `.env`; sem dotenv)
+- **TYPESAFE_CREDENTIAL_AVAILABLE**: `YES` (booleano apenas)
+- **BOTH_REQUIRED_CREDENTIALS_AVAILABLE**: `YES`
+- **FROZEN_INSTALL**: `PASS` (lockfile up to date; `LOCKFILE_MUTATION = NO`)
+- **PNPM_CHECK**: `PASS` (`FORMAT = PASS`; `LINT = PASS`; `TYPECHECK = PASS 12/12`; `TEST = PASS 775 passed / 45 skipped staging pre-existentes`; `BUILD = PASS 12/12`; `ARCHITECTURE = PASS`; `FILE_SIZE = PASS`)
+- **DIST_ARTIFACTS**: `PASS` (`packages/errors/dist/index.js`, `packages/errors/dist/app-error.js` e os 5 modulos `dist` de `l2-runner-dependencies.mjs` existem fisicamente)
+- **RUNTIME_FILE_COUNT**: `10`
+- **EXECUTABLE_AGGREGATE_SHA256**: `f5ef6e6b88e09094765b0c3b273ba23cae01502bdd0ec4fe28dbcb3f2133794a` (duas execucoes identicas; `EXECUTABLE_FREEZE_REPRODUCIBILITY = PASS`)
+- **DATASET_SHA256**: `bd812341a922ded1c7159191849dae284a88f24afd9c7e8d3c64f9b081602f3f` (`CASE_COUNT = 12`; `MATCHER_POSITIVE = 7`; `MATCHER_NEGATIVE = 5`; holdout `NO ACCESS`)
+- **OFFLINE_INITIALIZATION**: `PASS` (`RUNTIME_MODULE_GRAPH_LOAD = PASS`; `RUNTIME_INITIALIZATION = PASS`; `MODULE_RESOLUTION_ERROR = NO`; `APP_ERROR_JS_RESOLUTION_ERROR = NO`; `OpenAI real = 0`; `TypeSafe real = 0`; classificacao offline `PROVIDER_FAILURE` por deny-network esperado, sem erro de modulo)
+- **FOCUSED_TESTS**: `PASS` (`l2-module-resolution 5/5`; `jev-openai-l2-synthetic-runner 21/21`; `l2-executable-freeze 11/11`; `NEW_SKIPS = 0`; `ASSERTION_WEAKER = 0`)
+- **PLANNING_SCENARIO_TOTAL_USD**: `0.480294` (`OPENAI 0.480000 + TYPESAFE 0.000294`)
+- **COST_CEILING_CLASSIFICATION**: `OPERATOR_GOVERNANCE_CEILING_NOT_HARD_PROVIDER_BILLING_BOUND`
+- **LIVE_COMMAND_INVOCATION_COUNT_BEFORE**: `0`
+- **LIVE_AUTHORIZATION_STATUS_BEFORE**: `AVAILABLE_FOR_ONE_INVOCATION`
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+
+### 3. Live Invocation (Exactly Once)
+- **LIVE_COMMAND**: `node scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs --allow-live --accept-typesafe-empirical-pricing --cost-ceiling 0.96`
+- **LIVE_COMMAND_INVOKED**: `YES`
+- **LIVE_COMMAND_INVOCATION_COUNT**: `1`
+- **LIVE_AUTHORIZATION_CONSUMED**: `YES`
+- **LIVE_AUTHORIZATION_STATUS**: `CONSUMED`
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+
+### 4. Factual Live Evidence
+- **RUNNER_EXIT_CODE**: `1`
+- **L2_RESULT**: `FAILED` (`classification = PARTIAL_CHAIN_OBSERVED`, distinto de `PASS_COMPLETE`; com execucao real de providers, nao fail-closed)
+- **L2_EXECUTION**: `PARTIAL_CHAIN_OBSERVED`
+- **TYPESAFE_REQUESTS_ATTEMPTED**: `7`
+- **TYPESAFE_REQUESTS_SUCCEEDED**: `7`
+- **OPENAI_REQUESTS_ATTEMPTED**: `5`
+- **OPENAI_REQUESTS_SUCCEEDED**: `5`
+- **TOTAL_PROVIDER_REQUESTS_ATTEMPTED**: `12`
+- **TOTAL_PROVIDER_REQUESTS_SUCCEEDED**: `12`
+- **MATCHER_TRUE**: `7`
+- **MATCHER_FALSE**: `5`
+- **COMPLETIONS**: `5` (5 casos `GENERATIVE` com `openAiCalled = true` e `technicalStatus = SUCCESS`)
+- **PROVIDER_ERRORS**: `0`
+- **MODEL_MISMATCHES**: `0`
+- **TIMEOUTS**: `0`
+- **RETRIES**: `0`
+- **MAX_CONCURRENCY**: `1`
+- **REQUEST_CAPS_RESPECTED**: `YES` (7<=7 Jev; 5<=12 OpenAI; 12<=19 total)
+- **EXPECTED_TYPESAFE_MODEL**: `jev-1.13.0`
+- **OBSERVED_TYPESAFE_MODEL**: `jev-1.13.0` (7/7 chamadas Jev com exact match; 0 mismatches)
+- **REQUESTED_OPENAI_MODEL**: `gpt-6-astra`
+- **OBSERVED_OPENAI_MODEL**: `NOT_OBSERVABLE_VIA_CURRENT_SURFACE`
+- **TYPESAFE_CREDENTIAL_PROVIDER_ACCEPTANCE**: `VERIFIED_FOR_THIS_RUN`
+- **TYPESAFE_CREDENTIAL_PERMISSIONS**: `VERIFIED_FOR_USED_ENDPOINT_AND_MODEL_ONLY`
+- **OPENAI_CREDENTIAL_PROVIDER_ACCEPTANCE**: `VERIFIED_FOR_THIS_RUN`
+- **OPENAI_CREDENTIAL_PERMISSIONS**: `VERIFIED_FOR_USED_ENDPOINT_AND_MODEL_ONLY`
+- **RESULT_ARTIFACT_PATH**: `docs/research/results/phase-6-l2-real-jev-openai-synthetic-run1.json`
+- **RESULT_ARTIFACT_SHA256**: `f16c150cbd7d0335d13d4183da24bd29b16199258b4fd6d707d85cf0e109f93a`
+- **RUNNER_REPORTED_COST_USD**: `0.000294` (`estimatedUpperBoundCostUsd` do artefato)
+- **PROVIDER_SPEND_ESTIMATE_USD**: `0.000294`
+- **ACTUAL_PROVIDER_BILLED_COST_USD**: `NOT_OBSERVED`
+- **FROZEN_POLICY**: `UNCHANGED`
+- **DATASET**: `UNCHANGED`
+- **Twilio**: `0`
+- **Cloud DB**: `0`
+- **Holdout**: `NO ACCESS`
+- **Customer traffic**: `0`
+- **Customer transcripts**: `0`
+
+### 5. Governance After Run
+- **L2_TECHNICAL_RESULT**: `FAILED` (chain parcial; `coreJointChainObserved = false`)
+- **ACTIVE_GUARDED**: `BLOCKED`
+- **PRODUCTION_RUNTIME_WIRING**: `NO`
+- **CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE**: `NOT_CLEARED`
+- **NEXT_REQUIRED_STEP**: `HUMAN_REVIEW_OF_L2_FAILURE_OR_BLOCKER`
+- **ENV_FILE_READ_OCCURRED**: `NO`
+- **SECRET_AUDIT**: `PASS` (artefato sem chaves/segredos; apenas `tokenCap` benigno; sem valores impressos)
