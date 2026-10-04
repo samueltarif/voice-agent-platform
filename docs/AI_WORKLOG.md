@@ -15341,3 +15341,18 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **LIVE_COMMAND_INVOKED**: `NO`
 - **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
 - **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+
+---
+
+## 2026-10-04 — 006BD Branch-Name Doc Correction (Docs-Only)
+
+- **006BD_BRANCH_NAME_DOC_CORRECTION**: `COMPLETED`
+- **AI_CONTEXT_BRANCH_NAME_CONSISTENCY**: `PASS`
+- **CORRECT_BRANCH**: `feat/006bd-mixed-intent-capability-boundary` (removido sufixo `-design` do snapshot)
+- **PRODUCTION_CODE_CHANGED**: `NO`
+- **TEST_CODE_CHANGED**: `NO`
+- **OPENAI_REAL_CALLS**: `0`
+- **TYPESAFE_REAL_CALLS**: `0`
+- **LIVE_COMMAND_INVOKED**: `NO`
+- **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`

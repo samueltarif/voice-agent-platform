@@ -124,7 +124,7 @@ AI_CONTEXT_HEADER_END
 
 ## 6. Estado Atual da Evidência de Qualidade (Quality Gate Snapshot)
 
-- **Último `pnpm check` Global**: `PASS` (observado na branch 006BD `feat/006bd-mixed-intent-capability-boundary-design`: `FORMAT PASS`, `LINT PASS`, `TYPECHECK PASS 12/12`, `TEST PASS 793 passed / 45 skipped staging`, `BUILD PASS 12/12`, `ARCHITECTURE PASS`, `FILE_SIZE PASS`; `LATEST_FULL_GATE_HEAD` = HEAD final desta implementação; `LAST_TESTED_CODE_SHA = 48a45478c78e542a699ca1e90cc589bcbbb1c250` (006BD alterou código+testes; gate frio canônico observado neste HEAD code-bearing, ver entrada 006BD no AI_WORKLOG).
+- **Último `pnpm check` Global**: `PASS` (observado na branch 006BD `feat/006bd-mixed-intent-capability-boundary`: `FORMAT PASS`, `LINT PASS`, `TYPECHECK PASS 12/12`, `TEST PASS 793 passed / 45 skipped staging`, `BUILD PASS 12/12`, `ARCHITECTURE PASS`, `FILE_SIZE PASS`; `LATEST_FULL_GATE_HEAD` = HEAD final desta implementação; `LAST_TESTED_CODE_SHA = 48a45478c78e542a699ca1e90cc589bcbbb1c250` (006BD alterou código+testes; gate frio canônico observado neste HEAD code-bearing, ver entrada 006BD no AI_WORKLOG).
 - **Status das Asserções**: `210 passed` em `@voice-agent/integrations` (29 arquivos de teste, incluindo `5/5 passed` desacoplado de build em `l2-module-resolution.test.ts`, `21/21 passed` em `jev-openai-l2-synthetic-runner.test.ts`, `5/5 passed` em `jev-routing-benchmark.test.ts`, `11/11 passed` em `l2-executable-freeze.test.ts`, `2/2 passed` em `l2-joint-chain-result-classification.test.ts` e `2/2 passed` em `l2-targeted-joint-chain-candidates.test.ts`).
 - **Regressão de Asserções**: `ASSERTION_WEAKER = 0`, `NEW_SKIPS = 0`.
 - **Verificação Arquitetural**: `SUCESSO: Todas as fronteiras e regras arquiteturais respeitadas.`
