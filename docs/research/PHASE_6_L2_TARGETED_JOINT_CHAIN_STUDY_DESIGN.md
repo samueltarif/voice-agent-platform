@@ -49,7 +49,7 @@ Arquivo: `scripts/benchmarks/voice/jev-openai-l2-joint-chain-targeted-v1-cases.j
 | tc-jc-03 | "Horário de atendimento" | membro allowlist (nominal curto, espelha l2-04), fora da v1 | elipse pode pontuar generativo | idem | ALTO |
 | tc-jc-04 | "Até que horas você atende?" | membro allowlist (singular), fora da v1 | idem | idem | ALTO |
 
-Hipótese de `GENERATIVE_REQUIRED` é **hipótese**: scores do Jev não são observáveis offline. Se o Jev repetir determinístico, o estudo retorna `NO_MATCHED_GENERATIVE_CASE_OBSERVED` — resultado informativo, não falha de infra.
+Hipótese de `GENERATIVE_REQUIRED` é **hipótese**: scores do Jev não são observáveis offline (`JEV_CANDIDATE_SCORE_BEHAVIOR = HYPOTHESIS_NOT_OBSERVED`). Se o Jev repetir determinístico, o estudo retorna `NO_MATCHED_GENERATIVE_CASE_OBSERVED` — resultado informativo, não falha de infra.
 
 ## 8. TARGETED_EVIDENCE_DESIGN vs TUNING_TO_FORCE_PASS
 
@@ -65,12 +65,14 @@ No wiring do runner (`resolveDeterministicRoute`: orgs iguais, `operatingHours` 
 
 ## 11. Study Shape (Design Targets Only)
 
-- `PROPOSED_TARGETED_STUDY_TYPESAFE_CAP = 6` (natural ≤4 para 4 casos)
-- `PROPOSED_TARGETED_STUDY_OPENAI_CAP = 6` (natural ≤4)
-- `PROPOSED_TARGETED_STUDY_TOTAL_CAP = 12` (natural ≤8)
+Por semântica rastreada de execução (`executeCase` → no máximo 1 chamada Jev por matched + no máximo 1 chamada OpenAI por caso com rota `GENERATIVE`; `retries = 0`; sem loops de retry em `l2-runner-provider-dispatch.mjs`), cada um dos 4 casos gera no máximo 1 TypeSafe e 1 OpenAI. Envelope mínimo aplicável (YAGNI):
+
+- `PROPOSED_TARGETED_STUDY_TYPESAFE_CAP = 4`
+- `PROPOSED_TARGETED_STUDY_OPENAI_CAP = 4`
+- `PROPOSED_TARGETED_STUDY_TOTAL_CAP = 8`
 - `PROPOSED_TARGETED_STUDY_CONCURRENCY = 1`
 - `PROPOSED_TARGETED_STUDY_RETRIES = 0`
-- Alvos de desenho, **não autorização**.
+- Alvos de desenho, **não autorização**. (Correção PR #81 review: proposta anterior 6/6/12 removida por headroom injustificado.)
 
 ## 12. Success Criteria (Future Study)
 

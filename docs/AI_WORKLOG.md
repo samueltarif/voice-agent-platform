@@ -15167,3 +15167,16 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **HISTORICO PRESERVADO**: runtime `f5ef6e6b...` inalterado; dataset v1 `bd812341...` inalterado; artefato `f16c150c...` inalterado; `L2_RESULT = FAILED`
 - **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
 - **NEXT_REQUIRED_STEP**: `HUMAN_REVIEW_OF_TARGETED_JOINT_CHAIN_STUDY_DESIGN`
+
+---
+
+## 2026-10-04 — PR #81 Review: Tighten Targeted Request Envelope 6/6/12 -> 4/4/8
+
+- **PR81_REQUEST_ENVELOPE_MINIMAL**: `YES` (após correção)
+- **Evidência**: `executeCase` gera no máximo 1 Jev (matched) + 1 OpenAI (rota `GENERATIVE`) por caso; `retries = 0`; sem loops em `l2-runner-provider-dispatch.mjs`. Para 4 casos: TypeSafe ≤ 4, OpenAI ≤ 4, total ≤ 8 (YAGNI; headroom 6/6/12 removido por injustificado)
+- **PROPOSED_TARGETED_STUDY_TYPESAFE_CAP**: `4`
+- **PROPOSED_TARGETED_STUDY_OPENAI_CAP**: `4`
+- **PROPOSED_TARGETED_STUDY_TOTAL_CAP**: `8`
+- **Candidatos**: 4/4 legítimos (`PLAUSIBLE_PRODUCT_INTERACTION = YES`; `TARGETED_DATASET_GAMING_RISK = LOW`; disjuntos da v1; sem holdout)
+- **Custo**: `TOTAL_PLANNING_ESTIMATE_USD ≈ 0.160168` inalterado (já calculado sobre 4+4); `PROPOSED_LIVE_COST_CEILING = NOT_SELECTED`
+- **PR81_MERGE_READINESS**: `READY` (pendente gate final)
