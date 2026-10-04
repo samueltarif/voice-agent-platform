@@ -15417,3 +15417,19 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **LIVE_COMMAND_INVOKED**: `NO`
 - **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
 - **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+
+---
+
+## 2026-10-04 — PR #84 Merge-Readiness Review (Docs-Only; Snapshot Branch Fix)
+
+- **PR84_MERGE_READINESS_REVIEW**: `COMPLETED`
+- **PR84_SCOPE_VALID**: `YES` (4 docs; 0 produção/testes/dados/manifests/lockfile)
+- **SNAPSHOT_BRANCH_FIX**: `006BD → 006BE` (única correção desta review; semântica autorreferente de HEAD preservada)
+- **EVIDENCE_SCHEMA_SEMANTICS_RISK**: `PASS` (`matcherMatched` histórico preservado; `FUTURE_MATCHER_MATCHED_REDEFINITION_ALLOWED = NO`)
+- **CRITERION_A_V2_GAMING_RISK_CLASSIFICATION_VALID**: `YES` (LOW mantido: necessidade genuína + Jev cego + sem forcing)
+- **OPTION_A_DECISION_VALID**: `YES`
+- **HISTORICAL_INTEGRITY**: `PASS` (4 SHAs + freeze intactos)
+- **OPENAI_REAL_CALLS**: `0`; **TYPESAFE_REAL_CALLS**: `0`
+- **LIVE_COMMAND_INVOKED**: `NO`
+- **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
