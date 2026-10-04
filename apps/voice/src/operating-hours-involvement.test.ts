@@ -20,7 +20,9 @@ describe('operating-hours involvement boundary (Slice 006BD)', () => {
       ),
     ).toEqual({ relevant: true, exactlyAnswerable: false });
     expect(
-      resolveOperatingHoursInvolvement('Até que horas vocês atendem? Preciso remarcar minha consulta.'),
+      resolveOperatingHoursInvolvement(
+        'Até que horas vocês atendem? Preciso remarcar minha consulta.',
+      ),
     ).toEqual({ relevant: true, exactlyAnswerable: false });
   });
 
@@ -50,9 +52,10 @@ describe('operating-hours involvement boundary (Slice 006BD)', () => {
   });
 
   it('F. prefix/suffix residual text is relevant but not exactly answerable', () => {
-    expect(
-      resolveOperatingHoursInvolvement('Por favor, qual o horário de atendimento?'),
-    ).toEqual({ relevant: true, exactlyAnswerable: false });
+    expect(resolveOperatingHoursInvolvement('Por favor, qual o horário de atendimento?')).toEqual({
+      relevant: true,
+      exactlyAnswerable: false,
+    });
     expect(
       resolveOperatingHoursInvolvement('Qual o horário de atendimento de vocês e obrigado'),
     ).toEqual({ relevant: true, exactlyAnswerable: false });
@@ -60,7 +63,9 @@ describe('operating-hours involvement boundary (Slice 006BD)', () => {
 
   it('G. negated/meta mention is relevant but never exactly answerable', () => {
     expect(
-      resolveOperatingHoursInvolvement('Não perguntei o horário de funcionamento, quero o gerente.'),
+      resolveOperatingHoursInvolvement(
+        'Não perguntei o horário de funcionamento, quero o gerente.',
+      ),
     ).toEqual({ relevant: true, exactlyAnswerable: false });
   });
 
