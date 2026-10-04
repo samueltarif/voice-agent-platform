@@ -96,3 +96,16 @@ Sintético apenas; sem holdout (`HOLDOUT = NO ACCESS`); sem dados/transcritos de
 ## 16. Live Authorization Status
 
 `LIVE_AUTHORIZATION_CONSUMED = YES` (006BA). `SECOND_LIVE_RUN_AUTHORIZED = NO`. Este estudo é OFFLINE e **não** autoriza live. Pré-autorização futura exige: revisão deste desenho, dataset versionado, caps, teto explícito e nova autorização humana explícita. Stop conditions futuras: as do runner (`MODEL_IDENTITY_MISMATCH`, `HTTP_AUTH_ERROR`, 3 falhas consecutivas, budget, caps, timeout 5s).
+
+## 17. Semantic Feasibility Review (PR #81 Review)
+
+- **MATCHER_TYPE**: `NORMALIZED_ALLOWLIST` (normaliza diacríticos/caixa/pontuação e exige igualdade exata contra 24 frases puras de horário em `operating-hours-capability-matcher.ts`).
+- **MATCHER_CAN_MATCH_MIXED_INTENT**: `NO` (qualquer palavra extra — pedido composto, data, entrega — cai fora do set e falha fechada; provado por código + 55 testes do matcher).
+- **MATCHER_MATCHED_UTTERANCE_SEMANTIC_SCOPE**: exclusivamente pedidos de informação de horário de atendimento.
+- **Handler reach**: no wiring do runner (`resolveDeterministicRoute`: orgs iguais, `operatingHours` presente, state ausente), `handleOperatingHoursTurn` resolve TODO matched quando a policy é `DETERMINISTIC_CANDIDATE`.
+- **Conclusão**: um caso matched legítimo hoje é sempre um pedido puro de horário, que o handler responde por completo. O joint (critério A) só ocorreria se o Jev classificasse um pedido totalmente determinístico como `GENERATIVE_REQUIRED` — hipótese de classificador, não necessidade semântica do produto.
+- **Por candidato** (`tc-jc-01..04`): `MATCHER_MATCHED = YES`; `FULLY_DETERMINISTIC_PRODUCT_INTENT = YES`; `LEGITIMATE_NEED_FOR_OPENAI = NO`; `CANDIDATE_JOINT_CHAIN_VALIDITY = INVALID_FOR_PRODUCT_SEMANTIC_PROOF`; scores futuros do Jev `NOT_OBSERVED`.
+- **Correção de risco**: a classificação anterior `DATASET_GAMING_RISK = LOW` estava incorreta sob a lente semântica (sem intenção de gaming, mas um PASS live repousaria em variância do classificador sobre pedidos determinísticos). `TARGETED_DATASET_GAMING_RISK = HIGH` para fins de prova live; como sondas exploratórias de paráfrase matched, o dataset permanece honesto e versionado.
+- **TARGETED_DATASET_PURPOSE**: `EXPLORATORY_MATCHER_POSITIVE_PARAPHRASE_PROBES`.
+- **TARGETED_LIVE_STUDY_READINESS**: `BLOCKED_BY_SEMANTIC_FEASIBILITY`.
+- **CRITERION_A_PRODUCT_SEMANTIC_FEASIBILITY**: `UNREACHABLE_FOR_LEGITIMATE_CURRENT_MATCHED_CASES` (caminho futuro: `OPTION_1` redesenho de matcher/capability para mixed-intent legítimo; `OPTION_2` revisão do critério com governança explícita; `OPTION_3` manter A como requisito não satisfeito e encerrar estudo live; nenhuma opção implementada aqui).

@@ -15180,3 +15180,22 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **Candidatos**: 4/4 legítimos (`PLAUSIBLE_PRODUCT_INTERACTION = YES`; `TARGETED_DATASET_GAMING_RISK = LOW`; disjuntos da v1; sem holdout)
 - **Custo**: `TOTAL_PLANNING_ESTIMATE_USD ≈ 0.160168` inalterado (já calculado sobre 4+4); `PROPOSED_LIVE_COST_CEILING = NOT_SELECTED`
 - **PR81_MERGE_READINESS**: `READY` (pendente gate final)
+
+---
+
+## 2026-10-04 — PR #81 Semantic Feasibility Review (006BB Follow-Up)
+
+- **PR81_SEMANTIC_FEASIBILITY_REVIEW**: `COMPLETED`
+- **AI_CONTEXT_HEADER_STALE**: `YES` (apontava branch 006ba/PR TBD/merge 79/base f692dc9; corrigido para branch 006bb/PR 81/merge 80/base 4f70ec7)
+- **AI_CONTEXT_L2_CURRENT_STATE_STALE**: `YES` (resumo ainda descrevia tentativa bloqueada pre-rede com providers 0; reconciliado com evidência 006BA 7/7+5/5 PARTIAL)
+- **MATCHER_TYPE**: `NORMALIZED_ALLOWLIST` (24 frases puras de horário; mixed-intent = NO por código+55 testes)
+- **CRITERION_A_PRODUCT_SEMANTIC_FEASIBILITY**: `UNREACHABLE_FOR_LEGITIMATE_CURRENT_MATCHED_CASES` (handler resolve todo matched no wiring do runner; joint exigiria Jev GENERATIVE_REQUIRED sobre pedido determinístico)
+- **Candidatos tc-jc-01..04**: `PLAUSIBLE_PRODUCT_INTERACTION = YES`; `FULLY_DETERMINISTIC_PRODUCT_INTENT = YES`; `LEGITIMATE_NEED_FOR_OPENAI = NO`; `CANDIDATE_JOINT_CHAIN_VALIDITY = INVALID_FOR_PRODUCT_SEMANTIC_PROOF`; Jev futuro `NOT_OBSERVED`
+- **CURRENT_TARGETED_DATASET_VALID_FOR_LIVE_JOINT_CHAIN_PROOF**: `NO` (bytes preservados SHA `7fc27cf1...`; status reinterpretado, sem reescrita silenciosa)
+- **TARGETED_DATASET_GAMING_RISK**: `HIGH` (corrige LOW anterior: sem intenção de gaming, mas um PASS live repousaria em variância do classificador sobre pedidos determinísticos)
+- **TARGETED_DATASET_PURPOSE**: `EXPLORATORY_MATCHER_POSITIVE_PARAPHRASE_PROBES`
+- **TARGETED_LIVE_STUDY_READINESS**: `BLOCKED_BY_SEMANTIC_FEASIBILITY`
+- **Opções futuras (não implementadas)**: `OPTION_1` redesenho de matcher/capability para mixed-intent | `OPTION_2` revisão do critério com governança | `OPTION_3` manter A não satisfeito e encerrar estudo live
+- **PROPOSED_LIVE_COST_CEILING**: `NOT_SELECTED`
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+- **Providers nesta task**: `0`; **live invocada**: `NO`; **segredos**: nenhum tocado
