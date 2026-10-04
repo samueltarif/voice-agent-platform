@@ -37,7 +37,7 @@ Campos versionados (`schemaVersion: "2.0.0"`), cada um com UM significado:
 
 - v1 histórico INTACTO (`CRITERION_A_V1_HISTORICAL_SEMANTICS_CHANGED = NO`): mesmo caso com `matcherMatched = true` + joint.
 - `CRITERION_A_V2_DEFINED = YES` (`CRITERION_A_V2_MIXED_INTENT_JOINT_CHAIN`): UM caso misto com `capabilityRelevant = true`, `exactlyAnswerable = false`, Jev avaliado `SUCCESS` (`jev-1.13.0`), policy `GENERATIVE_REQUIRED`, OpenAI invocado `SUCCESS`, completion observada em transporte fake, 0 erro técnico. NÃO exige `matcherMatched = true` (esperado `false`).
-- `CRITERION_A_V2_EVIDENCE_GAMING_RISK = LOW`: casos com necessidade semântica genuína de geração; Jev cego ao desenho; thresholds intactos; PASS exige veredito generativo genuíno do Jev (se discordar → `NO_MATCHED_GENERATIVE_CASE_OBSERVED`, informativo).
+- `CRITERION_A_V2_EVIDENCE_GAMING_RISK = LOW`: casos com necessidade semântica genuína de geração; Jev cego ao desenho; thresholds intactos; PASS exige veredito generativo genuíno do Jev (se discordar → `NO_V2_GENERATIVE_REQUIRED_CASE_OBSERVED`, informativo).
 
 ## 7. SECURITY Semantics
 
@@ -74,7 +74,7 @@ Controle real por caso (≤1 Jev + ≤1 OpenAI, retries 0, concorrência 1): `PR
 ## 12. Cost Planning (Hipotético)
 
 - TypeSafe $42/Btok `NOT_VERIFIED`; OpenAI tabela verificada do projeto ($10/$5/$50 por M).
-- Pior caso 4+4 (1500in/500out): TypeSafe ≈ $0,000168 + OpenAI ≈ $0,16 → total ≈ $0,160168 (`HYPOTHETICAL_NOT_OBSERVED_NOT_BILLED`).
+- Cenário hipotético ilustrativo 4+4 (1500in/500out; `V2_COST_ESTIMATE_CLASSIFICATION = HYPOTHETICAL_PLANNING_SCENARIO_NOT_HARD_UPPER_BOUND`): TypeSafe ≈ $0,000168 + OpenAI ≈ $0,16 → total ≈ $0,160168 (`HYPOTHETICAL_NOT_OBSERVED_NOT_BILLED`). Sem reivindicação de limite máximo: sem token-cap runtime nem tarifa contratual (`HARD_PROVIDER_BILLING_BOUND = NOT_PROVEN`).
 - `PROPOSED_LIVE_COST_CEILING = NOT_SELECTED`; `HARD_PROVIDER_BILLING_BOUND = NOT_PROVEN`.
 
 ## 13. Runner Versioning (`RECOMENDADO = OPTION_B`)
@@ -90,7 +90,7 @@ Só estudo v2 operating-hours; sem framework de benchmark, ontologia, registry, 
 
 ## 15. Risks
 
-Jev pode nunca retornar `GENERATIVE_REQUIRED` (estudo retorna `NO_MATCHED_GENERATIVE_CASE_OBSERVED`, informativo); residual mal delimitado (mitigado por span delimitado + testes); SECURITY em residual sensível (correto por precedência, não conta PASS); deriva de thresholds (proibida).
+Jev pode nunca retornar `GENERATIVE_REQUIRED` (estudo retorna `NO_V2_GENERATIVE_REQUIRED_CASE_OBSERVED`, informativo — i.e., todos os casos v2 legítimos avaliados, nenhum com `policyOutcome = GENERATIVE_REQUIRED`); residual mal delimitado (mitigado por span delimitado + testes); SECURITY em residual sensível (correto por precedência, não conta PASS); deriva de thresholds (proibida).
 
 ## 16. Implementation Plan (Futuro; NOT This Task)
 
