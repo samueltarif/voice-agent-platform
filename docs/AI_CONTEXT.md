@@ -4,10 +4,10 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-04
-CONTEXT_BASE_MAIN_SHA: 1d81f02d8fe4c7961b3e6296b099cd26602a70e3
+CONTEXT_BASE_MAIN_SHA: 0e973c80c9f07f5e1e1b9940250ba295f530103a
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
-CURRENT_SLICE: Slice 006BC — Mixed-Intent Capability Boundary Design (Offline)
-CONTEXT_UPDATE_BRANCH: research/006bc-mixed-intent-capability-boundary-design
+CURRENT_SLICE: Slice 006BD — Mixed-Intent Capability Boundary Implementation (Offline)
+CONTEXT_UPDATE_BRANCH: feat/006bd-mixed-intent-capability-boundary
 CONTEXT_UPDATE_PR: PENDING_MANUAL_CREATE
 LAST_MERGED_PR_AT_REFRESH: 81
 LAST_MERGE_SHA_AT_REFRESH: 1d81f02d8fe4c7961b3e6296b099cd26602a70e3
@@ -124,7 +124,7 @@ AI_CONTEXT_HEADER_END
 
 ## 6. Estado Atual da Evidência de Qualidade (Quality Gate Snapshot)
 
-- **Último `pnpm check` Global**: `PASS` (observado na branch 006BC `research/006bc-mixed-intent-capability-boundary-design`: `FORMAT PASS`, `LINT PASS`, `TYPECHECK PASS 12/12`, `TEST PASS 779 passed / 45 skipped staging`, `BUILD PASS 12/12`, `ARCHITECTURE PASS`, `FILE_SIZE PASS`; `LATEST_FULL_GATE_HEAD` = HEAD final desta reconciliação; `LAST_TESTED_CODE_SHA = df872bcbb7f3c2b18f7d20e0d36b2ec65025b8dd` preservado porque os commits PR81 após ele são docs-only — `LAST_TESTED_CODE_SHA` = último HEAD code/config-bearing com gate frio canônico observado, distinto de `LATEST_FULL_GATE_HEAD`).
+- **Último `pnpm check` Global**: `PASS` (observado na branch 006BD `feat/006bd-mixed-intent-capability-boundary-design`: `FORMAT PASS`, `LINT PASS`, `TYPECHECK PASS 12/12`, `TEST PASS 793 passed / 45 skipped staging`, `BUILD PASS 12/12`, `ARCHITECTURE PASS`, `FILE_SIZE PASS`; `LATEST_FULL_GATE_HEAD` = HEAD final desta implementação; `LAST_TESTED_CODE_SHA = df872bcbb7f3c2b18f7d20e0d36b2ec65025b8dd` preservado porque os commits PR81 após ele são docs-only — `LAST_TESTED_CODE_SHA` = último HEAD code/config-bearing com gate frio canônico observado, distinto de `LATEST_FULL_GATE_HEAD`).
 - **Status das Asserções**: `210 passed` em `@voice-agent/integrations` (29 arquivos de teste, incluindo `5/5 passed` desacoplado de build em `l2-module-resolution.test.ts`, `21/21 passed` em `jev-openai-l2-synthetic-runner.test.ts`, `5/5 passed` em `jev-routing-benchmark.test.ts`, `11/11 passed` em `l2-executable-freeze.test.ts`, `2/2 passed` em `l2-joint-chain-result-classification.test.ts` e `2/2 passed` em `l2-targeted-joint-chain-candidates.test.ts`).
 - **Regressão de Asserções**: `ASSERTION_WEAKER = 0`, `NEW_SKIPS = 0`.
 - **Verificação Arquitetural**: `SUCESSO: Todas as fronteiras e regras arquiteturais respeitadas.`
@@ -158,11 +158,11 @@ AI_CONTEXT_HEADER_END
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- **Slice 006BC (offline, OPTION_1)**: `HYBRID_MINIMAL` desenhado (`PHASE_6_MIXED_INTENT_CAPABILITY_BOUNDARY_DESIGN.md`): `resolveOperatingHoursInvolvement → { relevant, exactlyAnswerable }`, matcher exato intacto, fallback `handled=false → GENERATIVE` já testado; sem implementação.
-- `OPTION_1_SELECTED_FOR_DESIGN` = `YES` | `MIXED_INTENT_REDESIGN_STATUS` = `DESIGN_COMPLETE` | `IMPLEMENTATION_STATUS` = `NOT_STARTED`.
+- **Slice 006BD (offline, OPTION_1 implementado)**: `HYBRID_MINIMAL_IMPLEMENTATION = PASS` — `operating-hours-involvement.ts` criado (`{ relevant, exactlyAnswerable }`, span delimitado, sem substring intra-token, sem teto novo); gate `routeTurn` usa `relevant`; handler/elegibilidade exatos intactos; `SECURITY_ESCALATE` preservado (regressão dedicada); `ALLOWLIST_SIZE = 23` (corrige "24" do desenho 006BC).
+- `HYBRID_MINIMAL_IMPLEMENTATION_STATUS` = `IMPLEMENTED_TESTED_OFFLINE` | `MIXED_INTENT_CAPABILITY_RELEVANCE` = `IMPLEMENTED_TESTED_OFFLINE` | `FULL_DETERMINISTIC_RESOLVABILITY_SEPARATION` = `IMPLEMENTED_TESTED_OFFLINE` | `RESIDUAL_INTENT_DROP_PROTECTION` = `IMPLEMENTED_TESTED_OFFLINE` | `SECURITY_PRECEDENCE_REGRESSION` = `PASS`.
+- `CRITERION_A_PRODUCT_SEMANTIC_FEASIBILITY` = `REACHABLE_AFTER_OFFLINE_IMPLEMENTATION` (Jev `NOT_OBSERVED`) | `TARGETED_LIVE_STUDY_READINESS` = `BLOCKED_PENDING_TARGETED_STUDY_REDESIGN_AND_OFFLINE_VALIDATION`.
 - `CURRENT_L2_EXECUTION` = `NOT_AUTHORIZED` | `LIVE_AUTHORIZATION_AVAILABLE` = `NO` | `SECOND_LIVE_RUN_AUTHORIZED` = `NO`.
-- `TARGETED_LIVE_STUDY_READINESS` = `BLOCKED_PENDING_ARCHITECTURE_IMPLEMENTATION_AND_REVALIDATION`.
-- `NEXT_REQUIRED_STEP` = `HUMAN_REVIEW_OF_MIXED_INTENT_CAPABILITY_DESIGN` (sem implementar, sem live).
+- `NEXT_REQUIRED_STEP` = `HUMAN_REVIEW_OF_006BD_IMPLEMENTATION` (sem live).
 - **Estado L2 atual reconciliado (006BA concluída)**: `HISTORICAL_PR78_L2_RESULT = BLOCKED_BY_RUNTIME_MODULE_RESOLUTION` | `006BA_L2_RESULT = FAILED` | `006BA_L2_EXECUTION = PARTIAL_CHAIN_OBSERVED` | `006BA_TYPESAFE_REQUESTS = 7/7` | `006BA_OPENAI_REQUESTS = 5/5` | `006BA_PROVIDER_ERRORS = 0` | `006BA_MODEL_MISMATCHES = 0` | `006BA_TIMEOUTS = 0` | `006BA_RETRIES = 0` | `SEPARATE_REAL_PROVIDER_PATHS_VERIFIED = PASS` | `SINGLE_CASE_JOINT_CHAIN_OBSERVED = NO` | `HUMAN_DECISION_L2_JOINT_CHAIN_INTENT = A_SINGLE_CASE_JEV_POLICY_OPENAI_CHAIN_REQUIRED_FOR_PASS_COMPLETE`.
 - `CURRENT_L2_EXECUTION` = `NOT_AUTHORIZED` | `LIVE_AUTHORIZATION_AVAILABLE` = `NO` | `SECOND_LIVE_RUN_AUTHORIZED` = `NO`.
 - `TARGETED_STUDY_STATUS` = `DESIGNED_AND_VERSIONED_BUT_LIVE_BLOCKED` | `L3_READINESS` = `BLOCKED` | `PROPOSED_LIVE_COST_CEILING` = `NOT_SELECTED`.

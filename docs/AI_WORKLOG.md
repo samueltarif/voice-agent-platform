@@ -15246,6 +15246,27 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 
 ---
 
+## 2026-10-04 — Slice 006BD: Offline Implementation of HYBRID_MINIMAL
+
+- **SLICE**: `006BD`
+- **BRANCH**: `feat/006bd-mixed-intent-capability-boundary`
+- **SOURCE_MAIN_SHA**: `0e973c80c9f07f5e1e1b9940250ba295f530103a` (PR #82 mergeado em main)
+- **TASK**: `OFFLINE_IMPLEMENTATION_OF_HYBRID_MINIMAL`
+- **HYBRID_MINIMAL_IMPLEMENTATION**: `PASS`
+- **INVOLVEMENT_BOUNDARY_IMPLEMENTED**: `YES` (`apps/voice/src/operating-hours-involvement.ts`: `{ relevant, exactlyAnswerable }`, span delimitado, sem substring intra-token, `NO_NEW_BOUND`)
+- **Matcher refactor**: `export` do set canônico (aditivo; comportamento bit-a-bit; 55 testes verdes)
+- **Coordinator**: gate usa `relevant`; elegibilidade do handler intacta; fallback existente reutilizado
+- **ALLOWLIST_SIZE**: `23` (corrige "24" do desenho 006BC; sem impacto comportamental)
+- **TDD**: testes escritos antes (M1/M2/M3 + módulo ausente falharam); verdes após implementação
+- **FROZEN_POLICY_CHANGED**: `NO` (0.56/0.35/0.47); `SECURITY_PRECEDENCE_REGRESSION`: `PASS`
+- **JEV_SCORE_BEHAVIOR**: `NOT_OBSERVED`
+- **L2_RUNNER_CHANGED**: `NO`; **TARGETED_DATASET_CHANGED**: `NO`
+- **OPENAI_REAL_CALLS**: `0`; **TYPESAFE_REAL_CALLS**: `0`; **TWILIO**: `0`; **CLOUD_DB**: `0`; **HOLDOUT**: `NO ACCESS`
+- **LIVE_COMMAND_INVOKED**: `NO`; **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+- **NEXT_REQUIRED_STEP**: `HUMAN_REVIEW_OF_006BD_IMPLEMENTATION`
+
+---
+
 ## 2026-10-04 — 006BC Final Quality-Snapshot Reconciliation (Docs-Only)
 
 - **006BC_FINAL_DOCUMENT_RECONCILIATION**: `COMPLETED`

@@ -18,7 +18,7 @@ Projetar a menor arquitetura correta que permita a uma fala conter a capability 
 
 ## 4. Current Matcher Semantics
 
-- `MATCHER_TYPE = NORMALIZED_ALLOWLIST` (`apps/voice/src/operating-hours-capability-matcher.ts`): normaliza (trim, minúsculas, sem diacríticos, pontuação→espaço, colapsa espaços) e exige igualdade exata contra 24 frases (`ALLOWLIST_SIZE = 24`).
+- `MATCHER_TYPE = NORMALIZED_ALLOWLIST` (`apps/voice/src/operating-hours-capability-matcher.ts`): normaliza (trim, minúsculas, sem diacríticos, pontuação→espaço, colapsa espaços) e exige igualdade exata contra 23 frases (`ALLOWLIST_SIZE = 23`).
 - `MATCHER_MATCHES_EXACT_WHOLE_UTTERANCE = YES`; `MATCHER_CAN_MATCH_EMBEDDED_CAPABILITY = NO`; `MATCHER_CAN_MATCH_MIXED_INTENT = NO` (qualquer palavra extra falha fechada; 55 testes).
 - `MATCHER_FALSE_POSITIVE_GUARD = exact-equality-after-normalization` (fail-closed p/ desconhecido/difuso/ambíguo).
 - `matchesOperatingHoursCapability(text) === true` significa hoje: "a fala inteira é um pedido canônico puro de horário".
