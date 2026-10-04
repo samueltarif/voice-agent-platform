@@ -15246,6 +15246,27 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 
 ---
 
+## 2026-10-04 — 006BC Final Design-Risk Review (Docs-Only)
+
+- **006BC_FINAL_DESIGN_RISK_REVIEW**: `COMPLETED`
+- **FALSE_POSITIVE_CAN_ENTER_JEV**: `YES`
+- **FALSE_POSITIVE_CAN_REACH_SECURITY_ESCALATE**: `YES` (recusa estática em vez de generativa se Jev pontuar `security ≥ 0.56`)
+- **FALSE_POSITIVE_CAN_CHANGE_USER_VISIBLE_BEHAVIOR**: `YES`
+- **FALSE_POSITIVE_MAX_IMPACT**: `recusa estática SECURITY + 1 chamada Jev` (corrige "só Jev extra + generativa")
+- **MIXED_INTENT_SECURITY_ROUTE_EFFECT**: `AMBIGUOUS_REQUIRES_FUTURE_IMPLEMENTATION_REVIEW` (regressão SECURITY deliberada exigida na implementação)
+- **PROPOSED_RELEVANCE_INPUT_BOUND**: `teto da implementação` (`ARBITRARY_DESIGN_EXAMPLE` de 200 chars rebaixado; derivar de 1000/4000 chars runtime)
+- **RELEVANCE_MATCH_GRANULARITY**: `NORMALIZED_PHRASE_SPAN_WITH_SEPARATOR_BOUNDARIES` (`ACCIDENTAL_TOKEN_SUBSTRING_ALLOWED = NO`)
+- **HYBRID_MINIMAL_DESIGN_STATUS**: `ACCEPTABLE_WITH_CLARIFICATIONS` (recomendação mantida)
+- **AI_CONTEXT_006BC_CURRENT_STATE**: `YES`
+- **PREAUTH_DUPLICATE_CURRENT_KEYS**: `NONE`
+- **PREAUTH_STALE_006BB_CURRENT_REFERENCES**: `NONE`
+- **IMPLEMENTATION_STATUS**: `DESIGN_ONLY`
+- **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+- **Providers**: `0`; **live**: `NO`; **segredos**: nenhum tocado
+
+---
+
 ## 2026-10-04 — Slice 006BC Post-Merge Reconciliation + Review (PR81 `1d81f02`)
 
 - **SLICE**: `006BC`
