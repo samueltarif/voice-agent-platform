@@ -15098,3 +15098,34 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **NEXT_REQUIRED_STEP**: `HUMAN_REVIEW_OF_L2_FAILURE_OR_BLOCKER`
 - **ENV_FILE_READ_OCCURRED**: `NO`
 - **SECRET_AUDIT**: `PASS` (artefato sem chaves/segredos; apenas `tokenCap` benigno; sem valores impressos)
+
+---
+
+## 2026-10-04 — Human Decision A: L2 Single-Case Joint-Chain Criterion Locked (006BA Follow-Up)
+
+### 1. Decisao
+- **HUMAN_DECISION_L2_JOINT_CHAIN_INTENT**: `A_SINGLE_CASE_JEV_POLICY_OPENAI_CHAIN_REQUIRED_FOR_PASS_COMPLETE`
+- **INTERPRETATION_B_STATUS**: `SECONDARY_PROVIDER_PATH_EVIDENCE_ONLY`
+- **L2_RESULT**: `FAILED` (preservado)
+- **L2_EXECUTION**: `PARTIAL_CHAIN_OBSERVED`
+- **REAL_TYPESAFE_PROVIDER_PATH**: `PASS`
+- **REAL_OPENAI_PROVIDER_PATH**: `PASS`
+- **SEPARATE_REAL_PROVIDER_PATHS_VERIFIED**: `PASS`
+- **SINGLE_CASE_JOINT_CHAIN_OBSERVED**: `NO`
+- **PRIMARY_FAILURE_CATEGORY**: `LEGITIMATE_PARTIAL_CHAIN_FAILURE`
+- **PROVIDER_PATH_TECHNICAL_HEALTH**: `PASS_FOR_OBSERVED_PATHS`
+- **L3_READINESS**: `BLOCKED_BY_SINGLE_CASE_JOINT_CHAIN_NOT_OBSERVED`
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+
+### 2. Travamento em Teste
+- **Arquivo**: `packages/integrations/src/typesafe/l2-joint-chain-result-classification.test.ts` (2 testes offline com fakes; sem providers reais; sem credenciais; sem rede; sem `.env`)
+- **Shape travado**: 7 matched determinísticos + 5 unmatched generativos com OpenAI → `coreJointChainObserved = false`, `PARTIAL_CHAIN_OBSERVED`, nunca `PASS_COMPLETE`
+- **JOINT_CHAIN_PREDICATE_CHANGED**: `NO`
+- **RUNTIME_EXECUTABLE_SET_CHANGED**: `NO` (`f5ef6e6b88e09094765b0c3b273ba23cae01502bdd0ec4fe28dbcb3f2133794a`)
+- **DATASET_CHANGED**: `NO` (`bd812341a922ded1c7159191849dae284a88f24afd9c7e8d3c64f9b081602f3f`)
+
+### 3. Custo
+- **RUNNER_REPORTED_COST_USD**: `0.000294` (`TYPESAFE_ONLY_PLANNING_UPPER_BOUND`; OpenAI `NO`)
+- **TOTAL_PROVIDER_SPEND_ESTIMATE_USD**: `NOT_VERIFIED`
+- **ACTUAL_PROVIDER_BILLED_COST_USD**: `NOT_OBSERVED`
+- **NEXT_REQUIRED_STEP**: `OFFLINE_TARGETED_JOINT_CHAIN_STUDY_DESIGN`

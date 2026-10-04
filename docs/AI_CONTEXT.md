@@ -158,8 +158,10 @@ AI_CONTEXT_HEADER_END
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- **Revisão Humana do Resultado L2 do Slice 006BA (research/006ba-l2-authorized-live-execution)**.
+- **Decisão Humana A registrada**: `PASS_COMPLETE` exige joint single-case (`A_SINGLE_CASE_JEV_POLICY_OPENAI_CHAIN_REQUIRED_FOR_PASS_COMPLETE`); B é só evidência secundária (`SEPARATE_REAL_PROVIDER_PATHS_VERIFIED = PASS`).
 - `CURRENT_L2_EXECUTION` = `PARTIAL_CHAIN_OBSERVED` (`L2_RESULT = FAILED`; 1 invocação live consumida; `SECOND_LIVE_RUN_AUTHORIZED = NO`).
+- `L3_READINESS` = `BLOCKED_BY_SINGLE_CASE_JOINT_CHAIN_NOT_OBSERVED`.
+- `NEXT_REQUIRED_STEP` = `OFFLINE_TARGETED_JOINT_CHAIN_STUDY_DESIGN` (offline; sem nova live).
 - `LAST_L2_LIVE_ATTEMPT_RESULT` = `BLOCKED_BY_RUNNER_FAIL_CLOSED_PREAUTH` (tentativa histórica bloqueada antes da rede; autorização consumida).
 - `CURRENT_L2_EXECUTABLE_MODULE_COUNT` = `10`.
 - `L2_RUNNER_FOCUSED_TESTS` = `21/21 PASS`.
