@@ -15213,3 +15213,16 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **PROPOSED_LIVE_COST_CEILING**: `NOT_SELECTED`
 - **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
 - **Providers nesta task**: `0`; **live invocada**: `NO`; **segredos**: nenhum tocado
+
+---
+
+## 2026-10-04 — PR #81 Final Residual Reconciliation (Docs-Only)
+
+- **FINAL_PR81_DOCUMENT_RECONCILIATION**: `COMPLETED`
+- **AI_CONTEXT_SECTION2_STALENESS**: `CORRECTED` (invocação/custo/readiness qualificados por slice; 006BA FAILED/PARTIAL 7/7+5/5 como corrente; próximo = HUMAN_DECISION_ON_JOINT_CHAIN_FEASIBILITY_PATH)
+- **PREAUTH_CURRENT_L2_EXECUTION_AMBIGUITY**: `CORRECTED` (`CURRENT_L2_EXECUTION = NOT_AUTHORIZED`; `HISTORICAL_006BA_L2_EXECUTION = PARTIAL_CHAIN_OBSERVED` preservado)
+- **QUALITY_SNAPSHOT_LATEST_GATE**: `RECONCILED` (779 passed/45 skipped na branch PR81; `LAST_TESTED_CODE_SHA = df872bc...` preservado pois commits seguintes são docs-only)
+- **HISTORICAL_INVOCATION_SCOPE_AMBIGUITY**: `CORRECTED` (`HISTORICAL_PR78_*` + `HISTORICAL_006BA_*`)
+- **HISTORICAL_ENV_INCIDENT**: aliases legados marcados `DEPRECATED_HISTORICAL_ALIAS` escopo PRE_006BA; `006BA/006BB_ENV_FILE_READ_OCCURRED = NO`
+- **Artefatos/dados**: bytes intactos (v1 `bd8123...`; targeted `7fc27c...`; artefato `f16c15...`; freeze `f5ef6e...`)
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`; **providers**: `0`; **live**: `NO`; **segredos**: nenhum tocado
