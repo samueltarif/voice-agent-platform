@@ -15356,3 +15356,22 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **LIVE_COMMAND_INVOKED**: `NO`
 - **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
 - **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+
+---
+
+## 2026-10-04 — 006BD Branch-Name Verification (No Defect Found)
+
+- **006BD_BRANCH_NAME_VERIFICATION**: `COMPLETED`
+- **STALE_BRANCH_REFERENCE_FOUND**: `NO` (zero ocorrências de `feat/006bd-mixed-intent-capability-boundary-design` em `docs/AI_CONTEXT.md`; 2 ocorrências da forma correta)
+- **PRIOR_CORRECTION_COMMIT**: `87b3077ad5964de73f6a170af3538b53aee3b3d3` (correção já aplicada; nenhuma edição cega realizada)
+- **AI_CONTEXT_BRANCH_NAME_CONSISTENCY**: `PASS`
+- **CORRECT_BRANCH**: `feat/006bd-mixed-intent-capability-boundary`
+- **PRODUCTION_CODE_CHANGED**: `NO`
+- **TEST_CODE_CHANGED**: `NO`
+- **PREAUTH_CHANGED**: `NO`
+- **DESIGN_DOC_CHANGED**: `NO`
+- **OPENAI_REAL_CALLS**: `0`
+- **TYPESAFE_REAL_CALLS**: `0`
+- **LIVE_COMMAND_INVOKED**: `NO`
+- **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
