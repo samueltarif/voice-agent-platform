@@ -15183,6 +15183,20 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 
 ---
 
+## 2026-10-04 — PR #81 Final Contradiction/Staleness Reconciliation (Docs-Only)
+
+- **FINAL_PR81_DOCUMENT_RECONCILIATION**: `COMPLETED`
+- **AI_CONTEXT_STALE_CURRENT_STATE_REMAINS**: `NO` (header reconciliado 006bb/PR81/merge80/base4f70ec7; `LIVE_COMMAND_INVOKED`/`L2_RESULT` qualificados `HISTORICAL_006AZ_*`; `L2 = EXECUTED_ONCE_006BA_FAILED_PARTIAL`; resumo 006BA 7/7+5/5 preservado como corrente)
+- **TARGETED_STUDY_INTERNAL_GAMING_RISK_CONTRADICTION**: `CORRECTED` (Seção 8: `DATASET_CREATION_INTENT_GAMING = NO` + `TARGETED_DATASET_GAMING_RISK_FOR_LIVE_PROOF = HIGH`; Seção 17 inalterada)
+- **PREAUTH_CURRENT_SLICE_AMBIGUITY**: `CORRECTED` (`CURRENT_SLICE = 006BB`; `CURRENT_SLICE_LIVE_COMMAND_INVOKED = NO` + `HISTORICAL_006BA_*`; heading 006AZ → Historical; calls/spend qualificados por slice)
+- **HISTORICAL_ENV_INCIDENT_SCOPE_AMBIGUITY**: `CORRECTED` (`HISTORICAL_PRE_006BA_*` explícitos; `006BA/006BB_ENV_FILE_READ_OCCURRED = NO`; nomes antigos mantidos como aliases deprecated)
+- **CRITERION_A_PRODUCT_SEMANTIC_FEASIBILITY**: `UNREACHABLE_FOR_LEGITIMATE_CURRENT_MATCHED_CASES`
+- **TARGETED_LIVE_STUDY_READINESS**: `BLOCKED_BY_SEMANTIC_FEASIBILITY`
+- **Artefatos/dados**: nenhum byte alterado (dataset v1 `bd8123...`; targeted `7fc27c...`; artefato `f16c15...`; freeze `f5ef6e...`)
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`; **providers nesta task**: `0`; **live**: `NO`; **segredos**: nenhum tocado
+
+---
+
 ## 2026-10-04 — PR #81 Semantic Feasibility Review (006BB Follow-Up)
 
 - **PR81_SEMANTIC_FEASIBILITY_REVIEW**: `COMPLETED`

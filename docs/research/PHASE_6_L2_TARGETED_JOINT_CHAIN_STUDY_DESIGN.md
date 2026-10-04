@@ -53,7 +53,7 @@ Hipótese de `GENERATIVE_REQUIRED` é **hipótese**: scores do Jev não são obs
 
 ## 8. TARGETED_EVIDENCE_DESIGN vs TUNING_TO_FORCE_PASS
 
-Casos são interações plausíveis de produto retiradas da allowlist rastreada, não texto sem sentido para forçar thresholds. `DATASET_GAMING_RISK = LOW`.
+Casos são interações plausíveis de produto retiradas da allowlist rastreada, não texto sem sentido para forçar thresholds (`DATASET_CREATION_INTENT_GAMING = NO`). Para fins de prova live, porém, vale a revisão da Seção 17: `TARGETED_DATASET_GAMING_RISK_FOR_LIVE_PROOF = HIGH`, pois um PASS dependeria de o Jev classificar pedidos determinísticos como `GENERATIVE_REQUIRED`.
 
 ## 9. Matcher Validation
 
