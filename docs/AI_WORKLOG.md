@@ -15226,3 +15226,20 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **HISTORICAL_ENV_INCIDENT**: aliases legados marcados `DEPRECATED_HISTORICAL_ALIAS` escopo PRE_006BA; `006BA/006BB_ENV_FILE_READ_OCCURRED = NO`
 - **Artefatos/dados**: bytes intactos (v1 `bd8123...`; targeted `7fc27c...`; artefato `f16c15...`; freeze `f5ef6e...`)
 - **SECOND_LIVE_RUN_AUTHORIZED**: `NO`; **providers**: `0`; **live**: `NO`; **segredos**: nenhum tocado
+
+---
+
+## 2026-10-04 — Slice 006BC: Offline Mixed-Intent Capability Boundary Design (OPTION_1)
+
+- **SLICE**: `006BC`
+- **BRANCH**: `research/006bc-mixed-intent-capability-boundary-design`
+- **SOURCE_MAIN_SHA**: `1d81f02d8fe4c7961b3e6296b099cd26602a70e3` (PR #81 mergeado em main)
+- **TASK**: `OFFLINE_MIXED_INTENT_CAPABILITY_BOUNDARY_DESIGN`
+- **OPTION_1_SELECTED**: `YES`
+- **Conflação**: `CAPABILITY_BOUNDARY_CONFLATION = YES` (mesmo booleano p/ relevância e resolvibilidade; fallback `handled=false→GENERATIVE` existe mas morto p/ matched)
+- **RECOMMENDED_MIXED_INTENT_ARCHITECTURE**: `HYBRID_MINIMAL` (matcher exato intacto + `resolveOperatingHoursInvolvement → { relevant, exactlyAnswerable }`; `ARCHITECTURAL_FIT = GOOD`)
+- **CRITERION_A_FEASIBILITY_AFTER_PROPOSED_REDESIGN**: `REACHABLE` (Jev futuro `NOT_OBSERVED`)
+- **IMPLEMENTATION_STATUS**: `DESIGN_ONLY` (matcher/handler/coordinator/policy/adapters/runner/datasets/artefato intactos)
+- **OPENAI_REAL_CALLS**: `0`; **TYPESAFE_REAL_CALLS**: `0`; **TWILIO**: `0`; **CLOUD_DB**: `0`; **HOLDOUT**: `NO ACCESS`
+- **LIVE_COMMAND_INVOKED**: `NO`; **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+- **NEXT_REQUIRED_STEP**: `HUMAN_REVIEW_OF_MIXED_INTENT_CAPABILITY_DESIGN`
