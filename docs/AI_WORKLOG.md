@@ -14974,3 +14974,33 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - CURRENT_EXECUTABLE_AGGREGATE_SHA256: f5ef6e6b88e09094765b0c3b273ba23cae01502bdd0ec4fe28dbcb3f2133794a (PASS).
   - L2_DATASET_SHA256: bd812341a922ded1c7159191849dae284a88f24afd9c7e8d3c64f9b081602f3f (PASS).
 - **Governanca**: 0 chamadas de rede/provedor, US$ 0 gasto, PR #79 mantido unificado sem merge.
+
+---
+
+## 2026-10-03 - Slice 006AZ: Reconciliacao Final de Evidencias e Metadados (PR #79)
+
+### 1. Correcao Factual de Entrada Anterior (append-only)
+- **PREVIOUS ASSUMPTION**: a entrada "Cold-Check Flaw Correction" (commit `3d91678`) registrou `FRESH_CHECKOUT_EQUIVALENT_CANONICAL_GATE = PASS`.
+- **NEW EVIDENCE**: o gate frio observado em `3d91678` FALHOU no estagio `test` (Vite nao resolveu `@voice-agent/errors` sem `dist/`; `jev-openai-l2-synthetic-runner.test.ts` importava `dist/` ausente).
+- **CORRECTION**: aquela afirmacao foi prematura/incorreta para `3d91678`. O primeiro HEAD com gate frio canonico observado como PASS e `25bc2d70399e0bedd2dc2a17e9b56caa0c8685a9` (secao 6 da mesma entrada).
+
+### 2. Estado Final
+- **PR79_FINAL_CODE_CONFIG_HEAD**: `25bc2d70399e0bedd2dc2a17e9b56caa0c8685a9`
+- **FULL_COLD_STATE_GATE_ON_CODE_CONFIG_HEAD**: `PASS`
+- **AI_CONTEXT_LAST_TESTED_CODE_SHA_CORRECTED**: `YES` (`375b3a1...` -> `25bc2d7...`)
+- **LAST_TESTED_CODE_SHA_SEMANTICS**: `LAST_CODE_OR_CONFIG_BEARING_HEAD_WITH_OBSERVED_FULL_COLD_STATE_GATE`
+- **ENVELOPE_HISTORICAL_CURRENT_SCOPE_AMBIGUITY_CORRECTED**: `YES` (fatos do PR78/006AY prefixados `HISTORICAL_*`; estado atual em campos `CURRENT_*`; chaves duplicadas removidas sem alterar fatos)
+- **PRODUCTION_RUNTIME_RESOLUTION_STRATEGY**: `COMPILED_DIST`
+- **DEVELOPMENT_TEST_RESOLUTION_SUPPORT**: `SOURCE_TS_PREBUILD`
+- **DEVELOPMENT_TEST_RESOLUTION_SEMANTICS_CHANGED**: `YES`
+- **PRODUCTION_L2_BUSINESS_SEMANTICS_CHANGED**: `NO`
+- **PROVIDER_CALLS**: `0`
+- **LIVE_COMMAND_INVOKED_DURING_006AZ**: `NO`
+- **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+
+### 3. Explicacao
+- Producao/benchmark continuam resolvendo `@voice-agent/errors` via `dist/index.js` (condicoes `import`/`default`).
+- Vite/Vitest usam a condicao `development` -> `./src/index.ts` e o plugin de `packages/integrations/vitest.config.ts`, permitindo testes antes do build.
+- A validacao operacional pos-build (`node scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs --offline --dry-run-write`) comprovou o carregamento real do grafo `dist/` sem erro de resolucao.
+- Nenhum comportamento de provider, adapter, politica ou regra de negocio L2 foi alterado; os 10 modulos congelados permanecem com aggregate `f5ef6e6b88e09094765b0c3b273ba23cae01502bdd0ec4fe28dbcb3f2133794a`.
