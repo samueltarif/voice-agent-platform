@@ -5,7 +5,7 @@
  * Rejects all ambiguous, out-of-scope, appointment, delivery, or holiday questions fail-closed.
  */
 
-const CANONICAL_OPERATING_HOURS_PHRASES: ReadonlySet<string> = new Set([
+export const CANONICAL_OPERATING_HOURS_PHRASES: ReadonlySet<string> = new Set([
   'qual e o horario de atendimento',
   'qual o horario de atendimento',
   'qual e o horario de funcionamento',

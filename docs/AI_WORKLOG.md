@@ -15246,6 +15246,48 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 
 ---
 
+## 2026-10-04 — Slice 006BD: Offline Implementation of HYBRID_MINIMAL
+
+- **SLICE**: `006BD`
+- **BRANCH**: `feat/006bd-mixed-intent-capability-boundary`
+- **SOURCE_MAIN_SHA**: `0e973c80c9f07f5e1e1b9940250ba295f530103a` (PR #82 mergeado em main)
+- **TASK**: `OFFLINE_IMPLEMENTATION_OF_HYBRID_MINIMAL`
+- **HYBRID_MINIMAL_IMPLEMENTATION**: `PASS`
+- **INVOLVEMENT_BOUNDARY_IMPLEMENTED**: `YES` (`apps/voice/src/operating-hours-involvement.ts`: `{ relevant, exactlyAnswerable }`, span delimitado, sem substring intra-token, `NO_NEW_BOUND`)
+- **Matcher refactor**: `export` do set canônico (aditivo; comportamento bit-a-bit; 55 testes verdes)
+- **Coordinator**: gate usa `relevant`; elegibilidade do handler intacta; fallback existente reutilizado
+- **ALLOWLIST_SIZE**: `23` (corrige "24" do desenho 006BC; sem impacto comportamental)
+- **TDD**: testes escritos antes (M1/M2/M3 + módulo ausente falharam); verdes após implementação
+- **FROZEN_POLICY_CHANGED**: `NO` (0.56/0.35/0.47); `SECURITY_PRECEDENCE_REGRESSION`: `PASS`
+- **JEV_SCORE_BEHAVIOR**: `NOT_OBSERVED`
+- **L2_RUNNER_CHANGED**: `NO`; **TARGETED_DATASET_CHANGED**: `NO`
+- **OPENAI_REAL_CALLS**: `0`; **TYPESAFE_REAL_CALLS**: `0`; **TWILIO**: `0`; **CLOUD_DB**: `0`; **HOLDOUT**: `NO ACCESS`
+- **LIVE_COMMAND_INVOKED**: `NO`; **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+- **NEXT_REQUIRED_STEP**: `HUMAN_REVIEW_OF_006BD_IMPLEMENTATION`
+
+---
+
+## 2026-10-04 — 006BD Final Document Reconciliation (Docs-Only)
+
+- **006BD_FINAL_DOCUMENT_RECONCILIATION**: `COMPLETED`
+- **PR82_POST_MERGE_METADATA**: `CORRECTED` (header: merge 82/`0e973c8`; BASE `0e973c8`; branch feat/006bd)
+- **AI_CONTEXT_SECTION2_006BD_CURRENT**: `YES` (006BD IMPLEMENTED_* + feasibility + readiness; 006BC restante qualificado)
+- **AI_CONTEXT_SECTION2_SECTION8_CONSISTENCY**: `PASS`
+- **LAST_TESTED_CODE_SHA**: `48a45478c78e542a699ca1e90cc589bcbbb1c250` (`LAST_TESTED_CODE_SHA_STALE = NO`; 006BD alterou código+testes; gate observado neste HEAD)
+- **LAST_TESTED_CODE_SHA_SEMANTICS**: `LAST_CODE_OR_CONFIG_BEARING_HEAD_WITH_OBSERVED_FULL_COLD_STATE_GATE`
+- **PREAUTH_METADATA_CURRENT_SLICE**: `006BD`
+- **PREAUTH_DUPLICATE_CURRENT_SLICE_SECTIONS**: `NONE` (§25 historicizada; §26 canônica única)
+- **PREAUTH_DUPLICATE_CURRENT_KEYS**: `NONE`
+- **HYBRID_MINIMAL_IMPLEMENTATION_STATUS**: `IMPLEMENTED_TESTED_OFFLINE`
+- **TARGETED_LIVE_STUDY_READINESS**: `BLOCKED_PENDING_TARGETED_STUDY_REDESIGN_AND_OFFLINE_VALIDATION`
+- **CURRENT_L2_EXECUTION**: `NOT_AUTHORIZED`
+- **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+- **OPENAI_REAL_CALLS**: `0`; **TYPESAFE_REAL_CALLS**: `0`; **LIVE_COMMAND_INVOKED**: `NO`
+- **Artefatos/dados**: bytes intactos (v1 `bd8123...`; targeted `7fc27c...`; artefato `f16c15...`; freeze `f5ef6e...`)
+
+---
+
 ## 2026-10-04 — 006BC Final Quality-Snapshot Reconciliation (Docs-Only)
 
 - **006BC_FINAL_DOCUMENT_RECONCILIATION**: `COMPLETED`
@@ -15296,6 +15338,40 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **HOLDOUT**: `NO ACCESS`
 - **CUSTOMER_TRAFFIC**: `0`
 - **CUSTOMER_TRANSCRIPTS**: `0`
+- **LIVE_COMMAND_INVOKED**: `NO`
+- **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+
+---
+
+## 2026-10-04 — 006BD Branch-Name Doc Correction (Docs-Only)
+
+- **006BD_BRANCH_NAME_DOC_CORRECTION**: `COMPLETED`
+- **AI_CONTEXT_BRANCH_NAME_CONSISTENCY**: `PASS`
+- **CORRECT_BRANCH**: `feat/006bd-mixed-intent-capability-boundary` (removido sufixo `-design` do snapshot)
+- **PRODUCTION_CODE_CHANGED**: `NO`
+- **TEST_CODE_CHANGED**: `NO`
+- **OPENAI_REAL_CALLS**: `0`
+- **TYPESAFE_REAL_CALLS**: `0`
+- **LIVE_COMMAND_INVOKED**: `NO`
+- **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+
+---
+
+## 2026-10-04 — 006BD Branch-Name Verification (No Defect Found)
+
+- **006BD_BRANCH_NAME_VERIFICATION**: `COMPLETED`
+- **STALE_BRANCH_REFERENCE_FOUND**: `NO` (zero ocorrências de `feat/006bd-mixed-intent-capability-boundary-design` em `docs/AI_CONTEXT.md`; 2 ocorrências da forma correta)
+- **PRIOR_CORRECTION_COMMIT**: `87b3077ad5964de73f6a170af3538b53aee3b3d3` (correção já aplicada; nenhuma edição cega realizada)
+- **AI_CONTEXT_BRANCH_NAME_CONSISTENCY**: `PASS`
+- **CORRECT_BRANCH**: `feat/006bd-mixed-intent-capability-boundary`
+- **PRODUCTION_CODE_CHANGED**: `NO`
+- **TEST_CODE_CHANGED**: `NO`
+- **PREAUTH_CHANGED**: `NO`
+- **DESIGN_DOC_CHANGED**: `NO`
+- **OPENAI_REAL_CALLS**: `0`
+- **TYPESAFE_REAL_CALLS**: `0`
 - **LIVE_COMMAND_INVOKED**: `NO`
 - **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
 - **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
