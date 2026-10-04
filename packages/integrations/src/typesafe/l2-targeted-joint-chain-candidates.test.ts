@@ -26,10 +26,16 @@ describe('L2 Targeted Joint-Chain Candidates (Slice 006BB)', () => {
   it('every candidate matches offline and is disjoint from L2 v1 utterances', () => {
     const parsed = JSON.parse(readFileSync(datasetPath, 'utf8'));
     const l2v1 = JSON.parse(readFileSync(l2v1Path, 'utf8'));
-    const l2v1Utterances = new Set(l2v1.cases.map((c) => c.syntheticCallerUtterance));
+    const l2v1Utterances = new Set(
+      l2v1.cases.map((c: { syntheticCallerUtterance: string }) => c.syntheticCallerUtterance),
+    );
     const seen = new Set<string>();
 
-    for (const c of parsed.cases) {
+    for (const c of parsed.cases as Array<{
+      caseId: string;
+      syntheticCallerUtterance: string;
+      expectedMatcherResult: boolean;
+    }>) {
       expect(c.expectedMatcherResult).toBe(true);
       expect(typeof c.syntheticCallerUtterance).toBe('string');
       expect(c.syntheticCallerUtterance.length).toBeGreaterThan(0);
