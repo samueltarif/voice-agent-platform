@@ -14770,3 +14770,237 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
 - **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
 - **Motivação**: O próximo passo imediato deve ser uma slice offline dedicada à correção da resolução de módulos/build do runner L2, e não uma solicitação de novo teto ou autorização de execução live.
+
+---
+
+## 2026-10-03 — Slice 006AZ: OFFLINE_L2_RUNTIME_MODULE_RESOLUTION_FIX
+
+### 1. Demanda e Contexto
+- **Slice**: `006AZ`
+- **Branch**: `fix/006az-l2-runtime-module-resolution`
+- **Objetivo**: Corrigir estritamente offline o erro de resolução de módulos em tempo de execução que bloqueou a inicialização do runner sintético L2 (`Cannot find module .../packages/errors/src/app-error.js imported from .../packages/errors/src/index.ts`), sem invocação live, sem chamadas de rede e sem qualquer custo.
+
+### 2. Investigação da Causa Raiz e Reconstrução do Grafo de Módulos
+- **Bloqueio Histórico**: `node scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs` falhou com exit code 1 antes de qualquer chamada de rede porque o Node direto não conseguia resolver `packages/errors/src/app-error.js` a partir de `packages/errors/src/index.ts`.
+- **Cadeia de Importação**:
+  1. `run-jev-openai-l2-synthetic-integration.mjs` invoca `loadDependencies()` em `l2-runner-dependencies.mjs`.
+  2. `l2-runner-dependencies.mjs` importa artefatos compilados de `dist`: `packages/integrations/dist/packages/integrations/src/openai/openai-conversation-model-adapter.js`.
+  3. `openai-conversation-model-adapter.js` importa `./openai-error-mapper.js`.
+  4. `./openai-error-mapper.js` possui `import { ConversationModelError } from '@voice-agent/errors'`.
+  5. Node ESM resolve o specifier `@voice-agent/errors` consultando `packages/errors/package.json`.
+  6. Em `packages/errors/package.json`, o campo `"exports"` apontava incorretamente para `"./src/index.ts"`.
+  7. O Node ao carregar `src/index.ts` encontra `export * from './app-error.js'`.
+  8. Como no diretório fonte `src/` apenas o arquivo TypeScript `app-error.ts` existe fisicamente (e a extensão `.js` é uma convenção de compilação ESM do TypeScript), o Node falha com `ERR_MODULE_NOT_FOUND`.
+
+### 3. Decisão YAGNI e Estratégia de Correção
+- **CURRENT_REQUIREMENT**: O runner controlado L2 deve inicializar offline e carregar suas dependências internas de workspace sem falha de resolução do Node.
+- **EXISTING_OPTION**: `packages/errors` já possui compilação `tsc` para `dist/` gerando `packages/errors/dist/index.js` e `packages/errors/dist/app-error.js`.
+- **MINIMAL_OPTION**: Corrigir o package export em `packages/errors/package.json` (`"main": "./dist/index.js"`, `"exports": { ".": { "types": "./src/index.ts", "import": "./dist/index.js", "default": "./dist/index.js" } }`).
+- **Alternativas Rejeitadas**:
+  - `tsx`: Rejeitado pois `tsx` não está instalado no monorepo e adicionaria dependência/orquestração desnecessária.
+  - Custom import resolver: Rejeitado por violar YAGNI e as regras expressas da slice.
+  - Alteração de `.js` para `.ts` nos fontes: Rejeitado pois violaria as convenções canônicas de ESM TypeScript e quebraria compilações `tsc`.
+  - Framework genérico de loaders: Rejeitado por overengineering.
+- **RUNTIME_MODULE_RESOLUTION_FIX_STRATEGY**: `CORRECT_PACKAGE_EXPORT_TO_DIST`
+- **WHY_THIS_STRATEGY**: Alinha o package export do pacote `@voice-agent/errors` ao seu build output `dist/` já existente, preservando as definições de tipo TypeScript (`"types": "./src/index.ts"`), respeitando o tsconfig paths e sem alterar nenhum dos 10 módulos executáveis congelados do benchmark.
+
+### 4. Preservação do Congelamento Executável (Executable Freeze Impact)
+- **RUNTIME_EXECUTABLE_SET_CHANGED**: `NO`
+- **CURRENT_EXECUTABLE_AGGREGATE_SHA256**: `f5ef6e6b88e09094765b0c3b273ba23cae01502bdd0ec4fe28dbcb3f2133794a`
+- **EXECUTABLE_FREEZE_REPRODUCIBILITY**: `PASS` (11/11 testes em `packages/integrations/src/typesafe/l2-executable-freeze.test.ts` passando)
+- **DATASET_SHA256**: `bd812341a922ded1c7159191849dae284a88f24afd9c7e8d3c64f9b081602f3f` (`DATASET_CHANGED = NO`).
+- **L2_RUNTIME_SEMANTICS_CHANGED**: `NO`
+
+### 5. Teste de Regressão e Validação Offline
+- **Teste de Regressão Criado**: `packages/integrations/src/typesafe/l2-module-resolution.test.ts` (51 linhas, funções <= 30 linhas).
+- **Comprovações do Teste**:
+  - Reprodução do erro histórico: import direto de `packages/errors/src/index.ts` falha com `Cannot find module .../app-error.js`.
+  - Sucesso do runner canônico offline: inicialização completa do grafo de módulos sem erro de resolução.
+  - Carregamento de dependências: `loadDependencies()` retorna todos os adaptadores e interpretes (`TypeSafeJevTurnDecisionAdapter`, `OpenAiConversationModelAdapter`, etc.).
+  - Exportação de erros: `@voice-agent/errors` exporta `ConversationModelError` e `AppError`.
+- **CANONICAL_L2_RUNNER_COMMAND**: `node scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs ...`
+- **RUNTIME_MODULE_GRAPH_LOAD**: `PASS`
+- **RUNTIME_INITIALIZATION**: `PASS`
+- **MODULE_RESOLUTION_ERROR**: `NO`
+- **Chamadas de Provedores Realizadas**:
+  - OpenAI real: `0`
+  - TypeSafe real: `0`
+  - Twilio: `0`
+  - Cloud DB: `0`
+  - Holdout: `NO ACCESS`
+  - Gasto: `$0.00 USD`
+
+### 6. Governança e Status de Prontidão
+- **LIVE_COMMAND_INVOKED**: `NO`
+- **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+- **CURRENT_L2_EXECUTION**: `NOT_AUTHORIZED`
+- **L2_TECHNICAL_READINESS_BEFORE_HUMAN_AUTHORIZATION**: `READY_FOR_NEW_AUTHORIZATION_REVIEW`
+- **NEXT_REQUIRED_STEP**: `HUMAN_REVIEW_OF_OFFLINE_FIX_AND_NEW_L2_AUTHORIZATION_PACKAGE`
+
+---
+
+## 2026-10-03 — Slice 006AZ: Cold-Start Reproducibility Proof & Documentation Reconciliation
+
+### 1. Demanda e Contexto
+- **Slice**: `006AZ`
+- **Branch**: `fix/006az-l2-runtime-module-resolution`
+- **PR**: `#79`
+- **Objetivo**: Provar formalmente a reprodutibilidade da inicialização offline do runner L2 em estado frio (cold-start sem artefatos prévios de build), verificar o status de tracking dos diretórios `dist`, endurecer a suíte de testes de regressão e reconciliar os metadados de governança em `AI_CONTEXT.md` e `PHASE_6_L2_PREAUTHORIZATION_ENVELOPE.md`.
+
+### 2. Prova de Reprodutibilidade em Cold-Start
+- **COLD_START_REPRODUCIBILITY_PREVIOUSLY_PROVEN**: `NO`
+- **DIST_OUTPUT_TRACKING_STATUS**: `UNTRACKED / GENERATED_BUILD_OUTPUT` (`git ls-files` e `git status` confirmam que `packages/errors/dist`, `packages/integrations/dist` e `apps/voice/dist` são 100% ignorados pelo Git via `.gitignore`).
+- **Simulação de Cold-Start**: Remoção forçada dos diretórios `dist` não rastreados (`packages/errors/dist`, `packages/integrations/dist`, `apps/voice/dist`) sem tocar em fontes rastreados (`git status --short` permaneceu `CLEAN`).
+- **Comportamento Pré-Build no Cold-Start**:
+  - Invocação: `node scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs --offline --dry-run-write`
+  - Resultado: Falha com exit code 1 (`Cannot find module .../packages/integrations/dist/.../typesafe-jev-turn-decision-adapter.js`).
+  - Classificação Factual: `COLD_START_REQUIRES_BUILD = YES`
+  - `FRESH_CHECKOUT_DIRECT_RUN_WITHOUT_BUILD = NOT_SUPPORTED`
+- **Contrato Canônico de Preparação**:
+  - `CANONICAL_L2_PREPARATION_COMMAND`: `pnpm build` (`turbo build`)
+  - `COLD_START_BUILD`: `PASS` (12/12 pacotes compilados com sucesso; todos os artefatos `dist` gerados fisicamente no disco).
+- **Inicialização do Runner Pós-Build no Cold-Start**:
+  - Invocação: `node scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs --offline --dry-run-write`
+  - Resultado: `COLD_START_RUNNER_INITIALIZATION = PASS` (grafo de módulos carregado, adaptadores inicializados, execução offline concluída sem qualquer erro de resolução de módulo).
+  - `APP_ERROR_JS_RESOLUTION_ERROR`: `NO`
+  - `MODULE_RESOLUTION_ERROR`: `NO`
+
+### 3. Endurecimento do Teste de Regressão
+- **REGRESSION_TEST_DEPENDS_ON_STALE_DIST**: `NO`
+- **REGRESSION_TEST_HARDENED**: `YES`
+- **Arquivo Modificado**: `packages/integrations/src/typesafe/l2-module-resolution.test.ts` (73 linhas, funções <= 25 linhas).
+- **Nova Asserção**: Adicionado teste explícito `verifies packages/errors export contract and compiled artifact presence`, validando que `package.json` exporta `./dist/index.js` para runtime e `./src/index.ts` para tipos, e que todos os artefatos compilados exigidos pelo runner existem fisicamente no disco.
+
+### 4. Preservação do Congelamento Executável e Semântica L2
+- **RUNTIME_EXECUTABLE_SET_CHANGED**: `NO`
+- **CURRENT_EXECUTABLE_AGGREGATE_SHA256**: `f5ef6e6b88e09094765b0c3b273ba23cae01502bdd0ec4fe28dbcb3f2133794a`
+- **EXECUTABLE_FREEZE_REPRODUCIBILITY**: `PASS` (executado duas vezes consecutivas com saídas idênticas; 11/11 testes passando em `l2-executable-freeze.test.ts`).
+- **DATASET_CHANGED**: `NO` (SHA-256 `bd812341a922ded1c7159191849dae284a88f24afd9c7e8d3c64f9b081602f3f` inalterado).
+- **L2_RUNTIME_SEMANTICS_CHANGED**: `NO`
+
+### 5. Reconciliação Documental
+- **docs/AI_CONTEXT.md**: Atualizado header com `CURRENT_SLICE = Slice 006AZ`, `CONTEXT_UPDATE_BRANCH = fix/006az-l2-runtime-module-resolution`, `CONTEXT_UPDATE_PR = 79`, `LAST_MERGED_PR_AT_REFRESH = 78`, `LAST_MERGE_SHA_AT_REFRESH = 3e19359e483da88a47aa358b098dfe3ecbc02a93`, `LAST_TESTED_CODE_SHA = 375b3a1ae9a6dfd7872518a3fa5dca7a9b0639c3`; atualizado Quality Snapshot para refletir o gate do slice 006AZ e contagens factuais observadas (`206 passed` em integrations).
+- **docs/research/PHASE_6_L2_PREAUTHORIZATION_ENVELOPE.md**: Reconciliados metadados e Seção 2 para remover referências desatualizadas a `PR76` e `BLOCKED` no congelamento; estabelecido `CURRENT_RUNNER_FREEZE = FROZEN_REPRODUCIBLY`, `EXECUTABLE_FREEZE_REPRODUCIBILITY = PASS`, `NEXT_ALLOWED_STEP = HUMAN_REVIEW_OF_PR79`.
+
+### 6. Controles Operacionais e Governança
+- **Chamadas de Provedores Realizadas**:
+  - OpenAI real: `0`
+  - TypeSafe real: `0`
+  - Twilio: `0`
+  - Cloud DB: `0`
+  - Holdout: `NO ACCESS`
+  - Gasto: `US$ 0.00`
+- **LIVE_COMMAND_INVOKED**: `NO`
+- **CURRENT_L2_EXECUTION**: `NOT_AUTHORIZED`
+- **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+- **PR_MERGE_PERFORMED**: `NO`
+- **NEXT_ALLOWED_STEP**: `HUMAN_REVIEW_OF_PR79`
+- **NEXT_REQUIRED_STEP**: `HUMAN_REVIEW_OF_OFFLINE_FIX_AND_NEW_L2_AUTHORIZATION_PACKAGE`
+
+---
+
+## 2026-10-03 — Slice 006AZ: Cold-Check Flaw Correction & Pure Static Regression Separation
+
+### 1. Demanda e Contexto
+- **Slice**: `006AZ`
+- **Branch**: `fix/006az-l2-runtime-module-resolution`
+- **PR**: `#79`
+- **Objetivo**: Reconhecer e corrigir a falha de projeto do teste de regressão em `l2-module-resolution.test.ts`, que dependia da presença prévia de artefatos compilados `dist/` gerados na etapa de build, violando o princípio de que o estágio de teste no `pnpm check` (`test` antes de `build`) deve passar em um checkout frio limpo.
+
+### 2. Reconhecimento e Cronologia de Correção
+- **PREVIOUS_COLD_START_OPERATIONAL_PROOF**: `PASS`
+- **PREVIOUS_REGRESSION_TEST_EXECUTED_AFTER_BUILD**: `YES` (a validação operacional executou `pnpm build` antes de rodar os testes, mascarando a dependência de `dist` no estágio de teste).
+- **PREVIOUS_REGRESSION_TEST_DEPENDS_ON_PREBUILT_DIST**: `YES`
+- **PREVIOUS_CLASSIFICATION_REGRESSION_TEST_DEPENDS_ON_STALE_DIST_NO**: `INCORRECT` (reconhecido explicitamente; a classificação anterior estava equivocada).
+- **REGRESSION_TEST_DESIGN_CORRECTED**: `YES`
+- **FINAL_REGRESSION_TEST_DEPENDS_ON_PREBUILT_DIST**: `NO`
+
+### 3. Redesenho do Teste Automatizado e Separação de Responsabilidades
+- **Ordem do Quality Gate**: `pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm check:architecture && pnpm check:file-size`.
+- **TEST_STAGE_BEFORE_BUILD_STAGE**: `YES` (o comando canônico executa `vitest` antes de `turbo build`).
+- **Novo Escopo do Teste Automatizado** (`packages/integrations/src/typesafe/l2-module-resolution.test.ts`):
+  1. Reprodução estrita da falha histórica: import direto de `packages/errors/src/index.ts` falha com `Cannot find module ... app-error.js`.
+  2. Contrato de export de `@voice-agent/errors`: validação estática de `package.json` (`main = ./dist/index.js`, `import = ./dist/index.js`, `types = ./src/index.ts`).
+  3. Contrato de build de `@voice-agent/errors`: validação estática de `package.json` (`build = tsc`) e `tsconfig.json` (`outDir = ./dist`, `include = src/**/*`).
+  4. Contrato de fontes: verificação estática de que `packages/errors/src/voice-errors.ts` exporta `class ConversationModelError` necessária para o adapter OpenAI.
+  5. Contrato de arquitetura do runner: verificação estática de que `l2-runner-dependencies.mjs` aponta para artefatos compilados `dist`, comprovando que o runner requer compilação canônica prévia.
+  - Zero importações em tempo de execução de arquivos `dist/` inexistentes.
+  - Zero spawn do runner durante o estágio de testes unitários pré-build.
+- **Escopo da Prova Operacional**:
+  - A execução real do runner compilado pertence estritamente à validação operacional pós-build (`pnpm build` seguido de `node ... --offline --dry-run-write`).
+
+### 4. Prova Canônica de Fresh Checkout (True Fresh-Gate Proof)
+- **FRESH_STATE_BEFORE_CANONICAL_GATE**: `YES`
+- **DIST_PRESENT_BEFORE_GATE**: `NO` (diretórios `dist` em `packages/errors`, `packages/integrations` e `apps/voice` removidos antes do gate).
+- **FRESH_CHECKOUT_EQUIVALENT_CANONICAL_GATE**: `PASS` (`pnpm install --frozen-lockfile && pnpm check` executado a partir do estado frio sem pré-build manual; estágio de teste passou com 100% de sucesso antes da regeneração dos artefatos pelo estágio de build).
+- **FINAL_COLD_START_RUNNER_INITIALIZATION**: `PASS` (runner inicializou offline com sucesso após a conclusão do gate canônico).
+
+### 5. Preservação do Congelamento Executável e Governança
+- **RUNTIME_EXECUTABLE_SET_CHANGED**: `NO`
+- **CURRENT_EXECUTABLE_AGGREGATE_SHA256**: `f5ef6e6b88e09094765b0c3b273ba23cae01502bdd0ec4fe28dbcb3f2133794a`
+- **EXECUTABLE_FREEZE_REPRODUCIBILITY**: `PASS`
+- **DATASET_CHANGED**: `NO` (`bd812341a922ded1c7159191849dae284a88f24afd9c7e8d3c64f9b081602f3f`)
+- **L2_RUNTIME_SEMANTICS_CHANGED**: `NO`
+- **Chamadas de Provedores Realizadas**:
+  - OpenAI real: `0`
+  - TypeSafe real: `0`
+  - Twilio: `0`
+  - Cloud DB: `0`
+  - Holdout: `NO ACCESS`
+  - Gasto: `US$ 0.00`
+- **LIVE_COMMAND_INVOKED**: `NO`
+- **CURRENT_L2_EXECUTION**: `NOT_AUTHORIZED`
+- **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+- **RUNTIME_MODULE_RESOLUTION_STATUS**: `FIXED_OFFLINE`
+- **RUNTIME_MODULE_RESOLUTION_FIX**: `IMPLEMENTED`
+- **L2_TECHNICAL_READINESS_BEFORE_HUMAN_AUTHORIZATION**: `READY_FOR_NEW_AUTHORIZATION_REVIEW`
+- **PR_MERGE_PERFORMED**: `NO`
+- **NEXT_ALLOWED_STEP**: `HUMAN_REVIEW_OF_PR79`
+- **NEXT_REQUIRED_STEP**: `HUMAN_REVIEW_OF_OFFLINE_FIX_AND_NEW_L2_AUTHORIZATION_PACKAGE`
+
+### 6. Resolucao da Resolucao Monorepo Pre-Build e Validacao Fria Definitiva
+- **Problema Adicional Observado em Cold Gate Total**: Ao executar pnpm check a partir de um estado limpo sem dist/, o Vite em apps/web falhou ao tentar resolver @voice-agent/errors apontado exclusivamente para ./dist/index.js, e jev-openai-l2-synthetic-runner.test.ts falhou por importar artefatos de dist/ ausentes.
+- **Correcao Arquitetural Aplicada**:
+  1. Adicionado export condition development: ./src/index.ts em packages/errors/package.json, permitindo que o Vite/Vitest resolva o TypeScript original durante o estagio de testes pre-build, enquanto a execucao em Node no runtime de producao/benchmark utiliza import: ./dist/index.js.
+  2. Adicionado packages/integrations/vitest.config.ts (30 linhas) mapeando pontualmente os artefatos dist em tempo de teste para suas origens TypeScript em src/, permitindo que os testes de integracao do runner rodem em Vitest em checkout frio sem depender de build previo.
+- **Resultado da Prova de Checkout Frio (Cold-Check)**:
+  - DIST_PRESENT_BEFORE_GATE: NO (removidos packages/errors/dist, packages/integrations/dist, apps/voice/dist).
+  - pnpm install --frozen-lockfile && pnpm check: PASS (Format, Lint, Typecheck, Test [113 passed / 775 tests], Build, Architecture, File Size).
+  - node scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs --offline --dry-run-write: PASS (inicializacao offline limpa, 0 erros de resolucao).
+- **Freeze & Dataset**:
+  - CURRENT_EXECUTABLE_AGGREGATE_SHA256: f5ef6e6b88e09094765b0c3b273ba23cae01502bdd0ec4fe28dbcb3f2133794a (PASS).
+  - L2_DATASET_SHA256: bd812341a922ded1c7159191849dae284a88f24afd9c7e8d3c64f9b081602f3f (PASS).
+- **Governanca**: 0 chamadas de rede/provedor, US$ 0 gasto, PR #79 mantido unificado sem merge.
+
+---
+
+## 2026-10-03 - Slice 006AZ: Reconciliacao Final de Evidencias e Metadados (PR #79)
+
+### 1. Correcao Factual de Entrada Anterior (append-only)
+- **PREVIOUS ASSUMPTION**: a entrada "Cold-Check Flaw Correction" (commit `3d91678`) registrou `FRESH_CHECKOUT_EQUIVALENT_CANONICAL_GATE = PASS`.
+- **NEW EVIDENCE**: o gate frio observado em `3d91678` FALHOU no estagio `test` (Vite nao resolveu `@voice-agent/errors` sem `dist/`; `jev-openai-l2-synthetic-runner.test.ts` importava `dist/` ausente).
+- **CORRECTION**: aquela afirmacao foi prematura/incorreta para `3d91678`. O primeiro HEAD com gate frio canonico observado como PASS e `25bc2d70399e0bedd2dc2a17e9b56caa0c8685a9` (secao 6 da mesma entrada).
+
+### 2. Estado Final
+- **PR79_FINAL_CODE_CONFIG_HEAD**: `25bc2d70399e0bedd2dc2a17e9b56caa0c8685a9`
+- **FULL_COLD_STATE_GATE_ON_CODE_CONFIG_HEAD**: `PASS`
+- **AI_CONTEXT_LAST_TESTED_CODE_SHA_CORRECTED**: `YES` (`375b3a1...` -> `25bc2d7...`)
+- **LAST_TESTED_CODE_SHA_SEMANTICS**: `LAST_CODE_OR_CONFIG_BEARING_HEAD_WITH_OBSERVED_FULL_COLD_STATE_GATE`
+- **ENVELOPE_HISTORICAL_CURRENT_SCOPE_AMBIGUITY_CORRECTED**: `YES` (fatos do PR78/006AY prefixados `HISTORICAL_*`; estado atual em campos `CURRENT_*`; chaves duplicadas removidas sem alterar fatos)
+- **PRODUCTION_RUNTIME_RESOLUTION_STRATEGY**: `COMPILED_DIST`
+- **DEVELOPMENT_TEST_RESOLUTION_SUPPORT**: `SOURCE_TS_PREBUILD`
+- **DEVELOPMENT_TEST_RESOLUTION_SEMANTICS_CHANGED**: `YES`
+- **PRODUCTION_L2_BUSINESS_SEMANTICS_CHANGED**: `NO`
+- **PROVIDER_CALLS**: `0`
+- **LIVE_COMMAND_INVOKED_DURING_006AZ**: `NO`
+- **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+
+### 3. Explicacao
+- Producao/benchmark continuam resolvendo `@voice-agent/errors` via `dist/index.js` (condicoes `import`/`default`).
+- Vite/Vitest usam a condicao `development` -> `./src/index.ts` e o plugin de `packages/integrations/vitest.config.ts`, permitindo testes antes do build.
+- A validacao operacional pos-build (`node scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs --offline --dry-run-write`) comprovou o carregamento real do grafo `dist/` sem erro de resolucao.
+- Nenhum comportamento de provider, adapter, politica ou regra de negocio L2 foi alterado; os 10 modulos congelados permanecem com aggregate `f5ef6e6b88e09094765b0c3b273ba23cae01502bdd0ec4fe28dbcb3f2133794a`.
