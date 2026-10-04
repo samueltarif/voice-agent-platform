@@ -15226,3 +15226,76 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **HISTORICAL_ENV_INCIDENT**: aliases legados marcados `DEPRECATED_HISTORICAL_ALIAS` escopo PRE_006BA; `006BA/006BB_ENV_FILE_READ_OCCURRED = NO`
 - **Artefatos/dados**: bytes intactos (v1 `bd8123...`; targeted `7fc27c...`; artefato `f16c15...`; freeze `f5ef6e...`)
 - **SECOND_LIVE_RUN_AUTHORIZED**: `NO`; **providers**: `0`; **live**: `NO`; **segredos**: nenhum tocado
+
+---
+
+## 2026-10-04 — Slice 006BC: Offline Mixed-Intent Capability Boundary Design (OPTION_1)
+
+- **SLICE**: `006BC`
+- **BRANCH**: `research/006bc-mixed-intent-capability-boundary-design`
+- **SOURCE_MAIN_SHA**: `1d81f02d8fe4c7961b3e6296b099cd26602a70e3` (PR #81 mergeado em main)
+- **TASK**: `OFFLINE_MIXED_INTENT_CAPABILITY_BOUNDARY_DESIGN`
+- **OPTION_1_SELECTED**: `YES`
+- **Conflação**: `CAPABILITY_BOUNDARY_CONFLATION = YES` (mesmo booleano p/ relevância e resolvibilidade; fallback `handled=false→GENERATIVE` existe mas morto p/ matched)
+- **RECOMMENDED_MIXED_INTENT_ARCHITECTURE**: `HYBRID_MINIMAL` (matcher exato intacto + `resolveOperatingHoursInvolvement → { relevant, exactlyAnswerable }`; `ARCHITECTURAL_FIT = GOOD`)
+- **CRITERION_A_FEASIBILITY_AFTER_PROPOSED_REDESIGN**: `REACHABLE` (Jev futuro `NOT_OBSERVED`)
+- **IMPLEMENTATION_STATUS**: `DESIGN_ONLY` (matcher/handler/coordinator/policy/adapters/runner/datasets/artefato intactos)
+- **OPENAI_REAL_CALLS**: `0`; **TYPESAFE_REAL_CALLS**: `0`; **TWILIO**: `0`; **CLOUD_DB**: `0`; **HOLDOUT**: `NO ACCESS`
+- **LIVE_COMMAND_INVOKED**: `NO`; **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+- **NEXT_REQUIRED_STEP**: `HUMAN_REVIEW_OF_MIXED_INTENT_CAPABILITY_DESIGN`
+
+---
+
+## 2026-10-04 — 006BC Final Quality-Snapshot Reconciliation (Docs-Only)
+
+- **006BC_FINAL_DOCUMENT_RECONCILIATION**: `COMPLETED`
+- **AI_CONTEXT_QUALITY_SNAPSHOT_CURRENT**: `YES` (branch 006BC; `LATEST_FULL_GATE_HEAD` = HEAD final desta reconciliação; `LAST_TESTED_CODE_SHA = df872bc...` preservado — commits seguintes docs-only)
+- **LATEST_FULL_GATE_COUNTS**: `779 passed / 45 skipped staging` (`115 passed / 6 skipped` arquivos)
+- **INTEGRATIONS_ASSERTIONS**: `210 passed / 29 arquivos` (inclui `2/2` joint-chain + `2/2` candidates)
+- **TARGETED_LIVE_READINESS_CANONICALIZED**: `YES` (`BLOCKED_PENDING_ARCHITECTURE_IMPLEMENTATION_AND_REVALIDATION` nos dois docs)
+- **IMPLEMENTATION_STATUS**: `DESIGN_ONLY`
+- **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+- **Providers**: `0`; **live**: `NO`; **segredos**: nenhum tocado
+
+---
+
+## 2026-10-04 — 006BC Final Design-Risk Review (Docs-Only)
+
+- **006BC_FINAL_DESIGN_RISK_REVIEW**: `COMPLETED`
+- **FALSE_POSITIVE_CAN_ENTER_JEV**: `YES`
+- **FALSE_POSITIVE_CAN_REACH_SECURITY_ESCALATE**: `YES` (recusa estática em vez de generativa se Jev pontuar `security ≥ 0.56`)
+- **FALSE_POSITIVE_CAN_CHANGE_USER_VISIBLE_BEHAVIOR**: `YES`
+- **FALSE_POSITIVE_MAX_IMPACT**: `recusa estática SECURITY + 1 chamada Jev` (corrige "só Jev extra + generativa")
+- **MIXED_INTENT_SECURITY_ROUTE_EFFECT**: `AMBIGUOUS_REQUIRES_FUTURE_IMPLEMENTATION_REVIEW` (regressão SECURITY deliberada exigida na implementação)
+- **PROPOSED_RELEVANCE_INPUT_BOUND**: `teto da implementação` (`ARBITRARY_DESIGN_EXAMPLE` de 200 chars rebaixado; derivar de 1000/4000 chars runtime)
+- **RELEVANCE_MATCH_GRANULARITY**: `NORMALIZED_PHRASE_SPAN_WITH_SEPARATOR_BOUNDARIES` (`ACCIDENTAL_TOKEN_SUBSTRING_ALLOWED = NO`)
+- **HYBRID_MINIMAL_DESIGN_STATUS**: `ACCEPTABLE_WITH_CLARIFICATIONS` (recomendação mantida)
+- **AI_CONTEXT_006BC_CURRENT_STATE**: `YES`
+- **PREAUTH_DUPLICATE_CURRENT_KEYS**: `NONE`
+- **PREAUTH_STALE_006BB_CURRENT_REFERENCES**: `NONE`
+- **IMPLEMENTATION_STATUS**: `DESIGN_ONLY`
+- **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+- **Providers**: `0`; **live**: `NO`; **segredos**: nenhum tocado
+
+---
+
+## 2026-10-04 — Slice 006BC Post-Merge Reconciliation + Review (PR81 `1d81f02`)
+
+- **SLICE**: `006BC`
+- **TASK**: `OFFLINE_MIXED_INTENT_CAPABILITY_BOUNDARY_DESIGN`
+- **PR81_MERGE_SHA**: `1d81f02d8fe4c7961b3e6296b099cd26602a70e3` (discrepância `1d31f02` vs `1d81f02` resolvida via Git: vale `1d81f02`)
+- **OPTION_1_SELECTED**: `YES`
+- **IMPLEMENTATION_STATUS**: `DESIGN_ONLY` (sem código de produção alterado)
+- **Snapshot pós-merge**: header reconciliado (BASE `1d81f02`, branch 006bc, PR `PENDING_MANUAL_CREATE`, merge 81); `LAST_TESTED_CODE_SHA = df872bc...` preservado (commits seguintes docs-only)
+- **OPENAI_REAL_CALLS**: `0`
+- **TYPESAFE_REAL_CALLS**: `0`
+- **TWILIO**: `0`
+- **CLOUD_DB**: `0`
+- **HOLDOUT**: `NO ACCESS`
+- **CUSTOMER_TRAFFIC**: `0`
+- **CUSTOMER_TRANSCRIPTS**: `0`
+- **LIVE_COMMAND_INVOKED**: `NO`
+- **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
