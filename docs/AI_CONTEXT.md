@@ -6,7 +6,7 @@ CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-04
 CONTEXT_BASE_MAIN_SHA: f692dc9ee5017ca1e65d184c8102fc17dc82c6b8
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
-CURRENT_SLICE: Slice 006BA — L2 Authorized Live Execution After Runtime Fix
+CURRENT_SLICE: Slice 006BB — Targeted Joint-Chain Study Design (Offline)
 CONTEXT_UPDATE_BRANCH: research/006ba-l2-authorized-live-execution
 CONTEXT_UPDATE_PR: TBD
 LAST_MERGED_PR_AT_REFRESH: 79
@@ -158,8 +158,10 @@ AI_CONTEXT_HEADER_END
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- **Decisão Humana A registrada**: `PASS_COMPLETE` exige joint single-case (`A_SINGLE_CASE_JEV_POLICY_OPENAI_CHAIN_REQUIRED_FOR_PASS_COMPLETE`); B é só evidência secundária (`SEPARATE_REAL_PROVIDER_PATHS_VERIFIED = PASS`).
-- `CURRENT_L2_EXECUTION` = `PARTIAL_CHAIN_OBSERVED` (`L2_RESULT = FAILED`; 1 invocação live consumida; `SECOND_LIVE_RUN_AUTHORIZED = NO`).
+- **Slice 006BB (offline)**: `OFFLINE_TARGETED_JOINT_CHAIN_STUDY_DESIGN` — estudo direcionado versionado (`jev-openai-l2-joint-chain-targeted-v1-cases.json`, 4 candidatos, matcher validado offline) para observar 1 joint single-case (critério A).
+- `LIVE_COMMAND_INVOKED` (nesta task) = `NO` (`OPENAI_REAL_CALLS = 0`, `TYPESAFE_REAL_CALLS = 0`); `SECOND_LIVE_RUN_AUTHORIZED = NO`.
+- `L3_READINESS` = `BLOCKED_BY_SINGLE_CASE_JOINT_CHAIN_NOT_OBSERVED`.
+- `NEXT_REQUIRED_STEP` = `HUMAN_REVIEW_OF_TARGETED_JOINT_CHAIN_STUDY_DESIGN` (sem autorizar live).
 - `L3_READINESS` = `BLOCKED_BY_SINGLE_CASE_JOINT_CHAIN_NOT_OBSERVED`.
 - `NEXT_REQUIRED_STEP` = `OFFLINE_TARGETED_JOINT_CHAIN_STUDY_DESIGN` (offline; sem nova live).
 - `LAST_L2_LIVE_ATTEMPT_RESULT` = `BLOCKED_BY_RUNNER_FAIL_CLOSED_PREAUTH` (tentativa histórica bloqueada antes da rede; autorização consumida).

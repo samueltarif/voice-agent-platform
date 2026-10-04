@@ -15147,3 +15147,23 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **Por que**: cap de chars nao e teto de tokens (sem tokenizer; `TOKEN_CAP_ENFORCEMENT = NOT_ENFORCEABLE_AT_RUNTIME`); tarifa nao contratual (`TYPESAFE_PRICE_STATUS = NOT_VERIFIED`); sem componente OpenAI na formula
 - **RESULT_ARTIFACT_CHANGED**: `NO` (JSON historico preservado byte-identico)
 - **PR80_MERGE_READINESS**: `READY` (pendente gate final)
+
+---
+
+## 2026-10-04 — Slice 006BB: Offline Targeted Joint-Chain Study Design
+
+- **SLICE**: `006BB`
+- **BRANCH**: `research/006bb-targeted-joint-chain-study-design`
+- **SOURCE_MAIN_SHA**: `4f70ec77d7d61d00cbe6b06b7fcf2dae472e7ed8` (PR #80 mergeado em main)
+- **CURRENT_TASK**: `OFFLINE_TARGETED_JOINT_CHAIN_STUDY_DESIGN`
+- **Design doc**: `docs/research/PHASE_6_L2_TARGETED_JOINT_CHAIN_STUDY_DESIGN.md`
+- **Dataset novo**: `scripts/benchmarks/voice/jev-openai-l2-joint-chain-targeted-v1-cases.json` (v1.0.0, 4 casos `MATCHED_GENERATIVE_CANDIDATE`, SHA `7fc27cf14963a2a7f9a216100d6419838536b5a4f92f1e6fd35dd1aa60ef5142`; disjunto da v1; sintetico; sem holdout)
+- **CANDIDATE_MATCHER_OFFLINE_VALIDATION**: `PASS` (4/4 matched offline; teste novo 2/2)
+- **DETERMINISTIC_HANDLER_ANALYSIS**: `YES-condicional` (handler resolve todo matched se policy deterministica; joint depende de `GENERATIVE_REQUIRED` do Jev)
+- **Caps propostos**: TypeSafe 6 / OpenAI 6 / total 12 (natural 4/4/8); concorrencia 1; retries 0 (alvos de desenho, sem autorizacao)
+- **TOTAL_PLANNING_ESTIMATE_USD**: `≈ 0.160168` (hipotese 4+4; TypeSafe $42/Btok nao contratual; OpenAI tabela verificada do projeto)
+- **PROPOSED_LIVE_COST_CEILING**: `NOT_SELECTED`
+- **LIVE_COMMAND_INVOKED**: `NO` (`OPENAI_REAL_CALLS = 0`, `TYPESAFE_REAL_CALLS = 0`; `TWILIO = 0`; `CLOUD_DB = 0`; `HOLDOUT = NO ACCESS`; `CUSTOMER = 0`)
+- **HISTORICO PRESERVADO**: runtime `f5ef6e6b...` inalterado; dataset v1 `bd812341...` inalterado; artefato `f16c150c...` inalterado; `L2_RESULT = FAILED`
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+- **NEXT_REQUIRED_STEP**: `HUMAN_REVIEW_OF_TARGETED_JOINT_CHAIN_STUDY_DESIGN`
