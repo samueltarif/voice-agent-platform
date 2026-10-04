@@ -7,7 +7,7 @@ import type {
 import { createNullLogger, type Logger } from '@voice-agent/logger';
 import type { DeterministicResponseDeliveryCoordinator } from './deterministic-response-delivery-coordinator.js';
 import { interpretFrozenTurnPolicy } from './frozen-policy-interpreter.js';
-import { matchesOperatingHoursCapability } from './operating-hours-capability-matcher.js';
+import { resolveOperatingHoursInvolvement } from './operating-hours-involvement.js';
 import { handleOperatingHoursTurn } from './operating-hours-turn-handler.js';
 import {
   CANONICAL_SECURITY_BLOCKED_RESPONSE,
@@ -118,7 +118,8 @@ export class GuardedTurnRoutingCoordinator {
 
   async routeTurn(input: GuardedTurnRoutingInput): Promise<GuardedRoutingResult> {
     const { session, generationId, callerTranscript } = input;
-    if (!matchesOperatingHoursCapability(callerTranscript)) return { outcome: 'GENERATIVE' };
+    const involvement = resolveOperatingHoursInvolvement(callerTranscript);
+    if (!involvement.relevant) return { outcome: 'GENERATIVE' };
     if (!this.deps.isGenerationActive(session.callId, generationId)) return { outcome: 'STALE' };
 
     const auxiliaryOutput = await this.evaluateAuxiliary(input);
