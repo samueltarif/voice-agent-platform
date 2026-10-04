@@ -1,0 +1,56 @@
+{
+  "version": "1.0.0",
+  "suite": "phase-6-l2-joint-chain-targeted",
+  "createdAt": "2026-10-04",
+  "totalCases": 4,
+  "categoryCounts": {
+    "MATCHED_GENERATIVE_CANDIDATE": 4
+  },
+  "governance": {
+    "customerData": 0,
+    "holdoutData": 0,
+    "syntheticOnly": true,
+    "notForAccuracyClaims": true,
+    "notForThresholdTuning": true,
+    "derivedFromL2v101Allowlist": true,
+    "disjointFromL2v101Utterances": true
+  },
+  "cases": [
+    {
+      "caseId": "tc-jc-01",
+      "intendedStimulusClass": "MATCHED_GENERATIVE_CANDIDATE",
+      "description": "Formal possessive hours query; allowlist member unused in L2 v1; probes whether Jev scores a complex matched phrasing as generative",
+      "syntheticCallerUtterance": "Qual é o seu horário de funcionamento?",
+      "expectedMatcherResult": true,
+      "expectedJevEvaluation": true,
+      "estimatedInputTokens": 12
+    },
+    {
+      "caseId": "tc-jc-02",
+      "intendedStimulusClass": "MATCHED_GENERATIVE_CANDIDATE",
+      "description": "Plural formal hours query; allowlist member unused in L2 v1; probes Jev sensitivity to formal phrasing",
+      "syntheticCallerUtterance": "Qual o horário de atendimento de vocês?",
+      "expectedMatcherResult": true,
+      "expectedJevEvaluation": true,
+      "estimatedInputTokens": 12
+    },
+    {
+      "caseId": "tc-jc-03",
+      "intendedStimulusClass": "MATCHED_GENERATIVE_CANDIDATE",
+      "description": "Short nominal hours term mirroring l2-04 shape; allowlist member unused in L2 v1; probes elliptical-input Jev scoring",
+      "syntheticCallerUtterance": "Horário de atendimento",
+      "expectedMatcherResult": true,
+      "expectedJevEvaluation": true,
+      "estimatedInputTokens": 8
+    },
+    {
+      "caseId": "tc-jc-04",
+      "intendedStimulusClass": "MATCHED_GENERATIVE_CANDIDATE",
+      "description": "Singular informal hours query; allowlist member unused in L2 v1; probes Jev scoring of singular phrasing",
+      "syntheticCallerUtterance": "Até que horas você atende?",
+      "expectedMatcherResult": true,
+      "expectedJevEvaluation": true,
+      "estimatedInputTokens": 10
+    }
+  ]
+}

@@ -15147,3 +15147,82 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **Por que**: cap de chars nao e teto de tokens (sem tokenizer; `TOKEN_CAP_ENFORCEMENT = NOT_ENFORCEABLE_AT_RUNTIME`); tarifa nao contratual (`TYPESAFE_PRICE_STATUS = NOT_VERIFIED`); sem componente OpenAI na formula
 - **RESULT_ARTIFACT_CHANGED**: `NO` (JSON historico preservado byte-identico)
 - **PR80_MERGE_READINESS**: `READY` (pendente gate final)
+
+---
+
+## 2026-10-04 — Slice 006BB: Offline Targeted Joint-Chain Study Design
+
+- **SLICE**: `006BB`
+- **BRANCH**: `research/006bb-targeted-joint-chain-study-design`
+- **SOURCE_MAIN_SHA**: `4f70ec77d7d61d00cbe6b06b7fcf2dae472e7ed8` (PR #80 mergeado em main)
+- **CURRENT_TASK**: `OFFLINE_TARGETED_JOINT_CHAIN_STUDY_DESIGN`
+- **Design doc**: `docs/research/PHASE_6_L2_TARGETED_JOINT_CHAIN_STUDY_DESIGN.md`
+- **Dataset novo**: `scripts/benchmarks/voice/jev-openai-l2-joint-chain-targeted-v1-cases.json` (v1.0.0, 4 casos `MATCHED_GENERATIVE_CANDIDATE`, SHA `7fc27cf14963a2a7f9a216100d6419838536b5a4f92f1e6fd35dd1aa60ef5142`; disjunto da v1; sintetico; sem holdout)
+- **CANDIDATE_MATCHER_OFFLINE_VALIDATION**: `PASS` (4/4 matched offline; teste novo 2/2)
+- **DETERMINISTIC_HANDLER_ANALYSIS**: `YES-condicional` (handler resolve todo matched se policy deterministica; joint depende de `GENERATIVE_REQUIRED` do Jev)
+- **Caps propostos**: TypeSafe 6 / OpenAI 6 / total 12 (natural 4/4/8); concorrencia 1; retries 0 (alvos de desenho, sem autorizacao)
+- **TOTAL_PLANNING_ESTIMATE_USD**: `≈ 0.160168` (hipotese 4+4; TypeSafe $42/Btok nao contratual; OpenAI tabela verificada do projeto)
+- **PROPOSED_LIVE_COST_CEILING**: `NOT_SELECTED`
+- **LIVE_COMMAND_INVOKED**: `NO` (`OPENAI_REAL_CALLS = 0`, `TYPESAFE_REAL_CALLS = 0`; `TWILIO = 0`; `CLOUD_DB = 0`; `HOLDOUT = NO ACCESS`; `CUSTOMER = 0`)
+- **HISTORICO PRESERVADO**: runtime `f5ef6e6b...` inalterado; dataset v1 `bd812341...` inalterado; artefato `f16c150c...` inalterado; `L2_RESULT = FAILED`
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+- **NEXT_REQUIRED_STEP**: `HUMAN_REVIEW_OF_TARGETED_JOINT_CHAIN_STUDY_DESIGN`
+
+---
+
+## 2026-10-04 — PR #81 Review: Tighten Targeted Request Envelope 6/6/12 -> 4/4/8
+
+- **PR81_REQUEST_ENVELOPE_MINIMAL**: `YES` (após correção)
+- **Evidência**: `executeCase` gera no máximo 1 Jev (matched) + 1 OpenAI (rota `GENERATIVE`) por caso; `retries = 0`; sem loops em `l2-runner-provider-dispatch.mjs`. Para 4 casos: TypeSafe ≤ 4, OpenAI ≤ 4, total ≤ 8 (YAGNI; headroom 6/6/12 removido por injustificado)
+- **PROPOSED_TARGETED_STUDY_TYPESAFE_CAP**: `4`
+- **PROPOSED_TARGETED_STUDY_OPENAI_CAP**: `4`
+- **PROPOSED_TARGETED_STUDY_TOTAL_CAP**: `8`
+- **Candidatos**: 4/4 legítimos (`PLAUSIBLE_PRODUCT_INTERACTION = YES`; `TARGETED_DATASET_GAMING_RISK = LOW`; disjuntos da v1; sem holdout)
+- **Custo**: `TOTAL_PLANNING_ESTIMATE_USD ≈ 0.160168` inalterado (já calculado sobre 4+4); `PROPOSED_LIVE_COST_CEILING = NOT_SELECTED`
+- **PR81_MERGE_READINESS**: `READY` (pendente gate final)
+
+---
+
+## 2026-10-04 — PR #81 Final Contradiction/Staleness Reconciliation (Docs-Only)
+
+- **FINAL_PR81_DOCUMENT_RECONCILIATION**: `COMPLETED`
+- **AI_CONTEXT_STALE_CURRENT_STATE_REMAINS**: `NO` (header reconciliado 006bb/PR81/merge80/base4f70ec7; `LIVE_COMMAND_INVOKED`/`L2_RESULT` qualificados `HISTORICAL_006AZ_*`; `L2 = EXECUTED_ONCE_006BA_FAILED_PARTIAL`; resumo 006BA 7/7+5/5 preservado como corrente)
+- **TARGETED_STUDY_INTERNAL_GAMING_RISK_CONTRADICTION**: `CORRECTED` (Seção 8: `DATASET_CREATION_INTENT_GAMING = NO` + `TARGETED_DATASET_GAMING_RISK_FOR_LIVE_PROOF = HIGH`; Seção 17 inalterada)
+- **PREAUTH_CURRENT_SLICE_AMBIGUITY**: `CORRECTED` (`CURRENT_SLICE = 006BB`; `CURRENT_SLICE_LIVE_COMMAND_INVOKED = NO` + `HISTORICAL_006BA_*`; heading 006AZ → Historical; calls/spend qualificados por slice)
+- **HISTORICAL_ENV_INCIDENT_SCOPE_AMBIGUITY**: `CORRECTED` (`HISTORICAL_PRE_006BA_*` explícitos; `006BA/006BB_ENV_FILE_READ_OCCURRED = NO`; nomes antigos mantidos como aliases deprecated)
+- **CRITERION_A_PRODUCT_SEMANTIC_FEASIBILITY**: `UNREACHABLE_FOR_LEGITIMATE_CURRENT_MATCHED_CASES`
+- **TARGETED_LIVE_STUDY_READINESS**: `BLOCKED_BY_SEMANTIC_FEASIBILITY`
+- **Artefatos/dados**: nenhum byte alterado (dataset v1 `bd8123...`; targeted `7fc27c...`; artefato `f16c15...`; freeze `f5ef6e...`)
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`; **providers nesta task**: `0`; **live**: `NO`; **segredos**: nenhum tocado
+
+---
+
+## 2026-10-04 — PR #81 Semantic Feasibility Review (006BB Follow-Up)
+
+- **PR81_SEMANTIC_FEASIBILITY_REVIEW**: `COMPLETED`
+- **AI_CONTEXT_HEADER_STALE**: `YES` (apontava branch 006ba/PR TBD/merge 79/base f692dc9; corrigido para branch 006bb/PR 81/merge 80/base 4f70ec7)
+- **AI_CONTEXT_L2_CURRENT_STATE_STALE**: `YES` (resumo ainda descrevia tentativa bloqueada pre-rede com providers 0; reconciliado com evidência 006BA 7/7+5/5 PARTIAL)
+- **MATCHER_TYPE**: `NORMALIZED_ALLOWLIST` (24 frases puras de horário; mixed-intent = NO por código+55 testes)
+- **CRITERION_A_PRODUCT_SEMANTIC_FEASIBILITY**: `UNREACHABLE_FOR_LEGITIMATE_CURRENT_MATCHED_CASES` (handler resolve todo matched no wiring do runner; joint exigiria Jev GENERATIVE_REQUIRED sobre pedido determinístico)
+- **Candidatos tc-jc-01..04**: `PLAUSIBLE_PRODUCT_INTERACTION = YES`; `FULLY_DETERMINISTIC_PRODUCT_INTENT = YES`; `LEGITIMATE_NEED_FOR_OPENAI = NO`; `CANDIDATE_JOINT_CHAIN_VALIDITY = INVALID_FOR_PRODUCT_SEMANTIC_PROOF`; Jev futuro `NOT_OBSERVED`
+- **CURRENT_TARGETED_DATASET_VALID_FOR_LIVE_JOINT_CHAIN_PROOF**: `NO` (bytes preservados SHA `7fc27cf1...`; status reinterpretado, sem reescrita silenciosa)
+- **TARGETED_DATASET_GAMING_RISK**: `HIGH` (corrige LOW anterior: sem intenção de gaming, mas um PASS live repousaria em variância do classificador sobre pedidos determinísticos)
+- **TARGETED_DATASET_PURPOSE**: `EXPLORATORY_MATCHER_POSITIVE_PARAPHRASE_PROBES`
+- **TARGETED_LIVE_STUDY_READINESS**: `BLOCKED_BY_SEMANTIC_FEASIBILITY`
+- **Opções futuras (não implementadas)**: `OPTION_1` redesenho de matcher/capability para mixed-intent | `OPTION_2` revisão do critério com governança | `OPTION_3` manter A não satisfeito e encerrar estudo live
+- **PROPOSED_LIVE_COST_CEILING**: `NOT_SELECTED`
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+- **Providers nesta task**: `0`; **live invocada**: `NO`; **segredos**: nenhum tocado
+
+---
+
+## 2026-10-04 — PR #81 Final Residual Reconciliation (Docs-Only)
+
+- **FINAL_PR81_DOCUMENT_RECONCILIATION**: `COMPLETED`
+- **AI_CONTEXT_SECTION2_STALENESS**: `CORRECTED` (invocação/custo/readiness qualificados por slice; 006BA FAILED/PARTIAL 7/7+5/5 como corrente; próximo = HUMAN_DECISION_ON_JOINT_CHAIN_FEASIBILITY_PATH)
+- **PREAUTH_CURRENT_L2_EXECUTION_AMBIGUITY**: `CORRECTED` (`CURRENT_L2_EXECUTION = NOT_AUTHORIZED`; `HISTORICAL_006BA_L2_EXECUTION = PARTIAL_CHAIN_OBSERVED` preservado)
+- **QUALITY_SNAPSHOT_LATEST_GATE**: `RECONCILED` (779 passed/45 skipped na branch PR81; `LAST_TESTED_CODE_SHA = df872bc...` preservado pois commits seguintes são docs-only)
+- **HISTORICAL_INVOCATION_SCOPE_AMBIGUITY**: `CORRECTED` (`HISTORICAL_PR78_*` + `HISTORICAL_006BA_*`)
+- **HISTORICAL_ENV_INCIDENT**: aliases legados marcados `DEPRECATED_HISTORICAL_ALIAS` escopo PRE_006BA; `006BA/006BB_ENV_FILE_READ_OCCURRED = NO`
+- **Artefatos/dados**: bytes intactos (v1 `bd8123...`; targeted `7fc27c...`; artefato `f16c15...`; freeze `f5ef6e...`)
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`; **providers**: `0`; **live**: `NO`; **segredos**: nenhum tocado
