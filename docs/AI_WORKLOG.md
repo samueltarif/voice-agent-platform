@@ -15375,3 +15375,25 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **LIVE_COMMAND_INVOKED**: `NO`
 - **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
 - **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+
+---
+
+## 2026-10-04 — Slice 006BE: Versioned Mixed-Intent Targeted Study Redesign (Offline)
+
+- **SLICE**: `006BE`
+- **BRANCH**: `research/006be-versioned-mixed-intent-study-redesign`
+- **SOURCE_MAIN_SHA**: `31e83831dc920a3d4828ceadf6d4cfefda455a78` (PR #83 mergeado: `PR83_MERGE_SHA` idem; `PR83_HEAD = 9db97d3...` ancestral confirmado)
+- **TASK**: `VERSIONED_MIXED_INTENT_TARGETED_STUDY_REDESIGN_OFFLINE`
+- **MIXED_INTENT_TARGETED_STUDY_V2_DESIGN**: `COMPLETE` (`PHASE_6_MIXED_INTENT_TARGETED_STUDY_V2_DESIGN.md`, 17 seções)
+- **HISTORICAL_MATCHER_MATCHED_SEMANTICS**: `EXACT_WHOLE_UTTERANCE_MATCHER` (runner `isMatched = matchesOperatingHoursCapability(...)`)
+- **FUTURE_MATCHER_MATCHED_REDEFINITION_ALLOWED**: `NO`
+- **V2_EVIDENCE_SCHEMA_SEMANTICS**: `UNAMBIGUOUS` (`matcherMatched` legado + `capabilityRelevant`/`exactlyAnswerable` + contadores versionados)
+- **CRITERION_A_V1_HISTORICAL_SEMANTICS_CHANGED**: `NO`
+- **CRITERION_A_V2_DEFINED**: `YES` (decisão `OPTION_A` p/ fallback; `CRITERION_A_V2_EVIDENCE_GAMING_RISK = LOW`)
+- **SECURITY_ESCALATE_COUNTS_AS_JOINT_CHAIN_PASS**: `NO`
+- **V2_DATASET_STATUS**: `DESIGN_ONLY_NOT_CREATED` (4 candidatos mistos verificados offline contra allowlist; spans com fronteira)
+- **V2_RUNNER_STATUS**: `DESIGN_ONLY_NOT_IMPLEMENTED` (recomendado `OPTION_B`; freeze método 1.0.0 mantido, agregado v2 futuro)
+- **YAGNI_STATUS**: `PASS`
+- **OPENAI_REAL_CALLS**: `0`; **TYPESAFE_REAL_CALLS**: `0`; **TWILIO**: `0`; **CLOUD_DB**: `0`; **HOLDOUT**: `NO ACCESS`
+- **LIVE_COMMAND_INVOKED**: `NO`; **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+- **NEXT_REQUIRED_STEP**: `HUMAN_REVIEW_OF_006BE_STUDY_V2_DESIGN`
