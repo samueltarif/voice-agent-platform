@@ -15532,3 +15532,21 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **NON_AUTHORITATIVE_PATH_ACCESSED**: `NO`; **CROSS_WORKTREE_COPY_OCCURRED**: `NO`
 - **SECRET_AUDIT**: `PASS`
 - **NEXT_REQUIRED_STEP**: `HUMAN_COMPLETE_V2_PREAUTHORIZATION_DECISION_PACKAGE`
+
+---
+
+## 2026-10-05 — Freeze-Test Timeout Stabilization (Test-Only, Docs Branch)
+
+- **BRANCH_STARTING_HEAD**: `4e59fa03267e2a8145db799c41ac688471b7a1ae` (decision-package commit, local-only)
+- **PERSISTENT_FREEZE_TEST_TIMEOUT_FLAKE**: `CONFIRMED` (2 gates falharam no HEAD docs: rodada1 2 timeouts, rodada2 3 timeouts; só Vitest 5000ms em testes de freeze)
+- **AFFECTED_TESTS**: v1 `Case A` (6.4s/8.6s), v1 `Case I` (5.3s), v2 `tracked v2 freeze on HEAD is reproducible` (5.5s/7.8s/9.3s)
+- **FIX**: timeout por teste `15000`ms somente nesses 3 casos (`it(name, fn, 15000)`); sem convenção local existente; 15s >> 8.6s observados, ainda expõe hang real
+- **PROVIDER_HARNESS_TIMEOUT_CHANGED**: `NO` (harness de estudo segue 5000ms; timeout do Vitest é conceito distinto)
+- **PRODUCTION_SEMANTICS_CHANGED**: `NO`; **BENCHMARK_EXECUTABLE_CHANGED**: `NO`; **FREEZE_HASH_CHANGED**: `NO` (`ade86008…`, `6fdc0827…`, `f5ef6e6b…` reverificados)
+- **FOCUSED_TESTS**: `PASS` (4 arquivos, 33 testes, 0 timeouts, 0 providers)
+- **TEST_CHANGE_CLASSIFICATION**: `ASSERTION_EQUIVALENT` (só limite de tempo; nenhuma assertion tocada)
+- **OPENAI_REAL_CALLS**: `0`; **TYPESAFE_REAL_CALLS**: `0`; **LIVE_COMMAND_INVOKED**: `NO`; **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
+- **HUMAN_V2_LIVE_AUTHORIZATION**: `NOT_DECIDED`; **V2_OPERATOR_COST_CEILING**: `NOT_SELECTED`
+- **ENV_FILE_READ_OCCURRED**: `NO`; **CREDENTIAL_VALUE_PRINTED**: `NO`
+- **FORBIDDEN_IDE_INTERNAL_STORAGE_ACCESSED**: `NO`; **UNTRACKED_TEMP_HELPER_CREATED**: `NO`
+- **SECRET_AUDIT**: `PASS`
