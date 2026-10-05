@@ -7,6 +7,13 @@ export function parseAuthorizedV2CliArgs(customArgs?: string[]): {
   datasetPath: string | undefined;
   outPath: string | undefined;
   dryRunWrite: boolean;
+  authorization:
+    | {
+        studyId?: string | undefined;
+        granted?: boolean | undefined;
+        consumed?: boolean | undefined;
+      }
+    | undefined;
 };
 
 export interface AuthorizedV2StudyArtifact {
@@ -29,6 +36,7 @@ export function runAuthorizedV2Study(options?: {
   datasetPath?: string | undefined;
   outPath?: string | undefined;
   dryRunWrite?: boolean | undefined;
+  customEnv?: Record<string, string | undefined> | undefined;
   logger?:
     | {
         log: (...args: unknown[]) => void;
@@ -64,4 +72,4 @@ export function runAuthorizedV2Study(options?: {
   ref?: string | undefined;
 }): Promise<AuthorizedV2StudyArtifact>;
 
-export function executeAuthorizedV2Cli(args?: string[], customLogger?: unknown): Promise<number>;
+export function executeAuthorizedV2Cli(args?: string[], customLogger?: unknown, testOverrides?: Record<string, unknown>): Promise<number>;

@@ -4,6 +4,7 @@ import { resolve, dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
   AUTHORIZED_V2_OPENAI_MODEL,
+  AUTHORIZED_V2_STUDY_ID,
   AUTHORIZED_V2_TYPESAFE_MODEL,
   validateAuthorizedLivePreconditions,
 } from './l2-mixed-intent-v2-authorized-preconditions.mjs';
@@ -27,6 +28,7 @@ export function parseAuthorizedV2CliArgs(customArgs) {
     datasetPath: undefined,
     outPath: undefined,
     dryRunWrite: false,
+    authorization: undefined,
   };
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -34,6 +36,12 @@ export function parseAuthorizedV2CliArgs(customArgs) {
     else if (arg === '--accept-typesafe-empirical-pricing')
       options.acceptTypesafeEmpiricalPricing = true;
     else if (arg === '--dry-run-write') options.dryRunWrite = true;
+    else if (arg === '--authorize-one-targeted-v2-synthetic-study')
+      options.authorization = {
+        studyId: AUTHORIZED_V2_STUDY_ID,
+        granted: true,
+        consumed: false,
+      };
     else if (arg === '--cost-ceiling' && args[i + 1]) options.costCeilingUsd = Number(args[++i]);
     else if (arg === '--dataset' && args[i + 1]) options.datasetPath = args[++i];
     else if (arg === '--out' && args[i + 1]) options.outPath = args[++i];
@@ -42,11 +50,12 @@ export function parseAuthorizedV2CliArgs(customArgs) {
 }
 
 function createRealV2Adapters({ deps, options, openAiModelId }) {
-  const typeSafeApiKey = options.typeSafeApiKey;
+  const env = options.customEnv ?? process.env;
+  const typeSafeApiKey = options.typeSafeApiKey ?? env.TYPESAFE_API_KEY;
   if (!typeSafeApiKey) {
     throw new Error('FATAL_V2_CREDENTIAL_ABSENT: TypeSafe API key required before dispatch.');
   }
-  const openAiApiKey = options.openAiApiKey;
+  const openAiApiKey = options.openAiApiKey ?? env.OPENAI_API_KEY;
   if (!openAiApiKey) {
     throw new Error('FATAL_V2_CREDENTIAL_ABSENT: OpenAI API key required before dispatch.');
   }
@@ -139,14 +148,15 @@ export async function runAuthorizedV2Study(options = {}) {
   return artifact;
 }
 
-export async function executeAuthorizedV2Cli(args = process.argv.slice(2), customLogger) {
+export async function executeAuthorizedV2Cli(args = process.argv.slice(2), customLogger, testOverrides = {}) {
   const cliOptions = parseAuthorizedV2CliArgs(args);
   const logger = customLogger ?? console;
   try {
     const result = await runAuthorizedV2Study({
       ...cliOptions,
-      useRealAdapters: true,
-      logger,
+      ...testOverrides,
+      useRealAdapters: testOverrides.useRealAdapters ?? true,
+      logger: testOverrides.logger ?? logger,
     });
     if (result.metadata.classification !== 'PASS_COMPLETE') {
       logger.error(
