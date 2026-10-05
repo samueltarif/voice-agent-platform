@@ -15567,3 +15567,14 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **FORBIDDEN_IDE_INTERNAL_STORAGE_ACCESSED**: `NO`; **UNTRACKED_TEMP_HELPER_CREATED**: `NO`
 - **PRODUCTION_RUNTIME**: inalterado (`PRODUCTION_RUNTIME_WIRING = NO`)
 - **SECRET_AUDIT**: `PASS`
+
+---
+
+## 2026-10-05 — 006BG Full-Study Test Timeout Extension (Test-Only)
+
+- **CAUSE**: gate canônico falhou com 1 timeout (teste U, 6691ms sob carga); testes P–W executam estudo completo de 4 casos com freeze real (observado 2.5–6.7s sob carga), todos na margem do default 5000ms
+- **FIX**: timeout por teste `15000`ms estendido aos testes de execução completa P,Q,R,S,T,U,V,W (X já possuía); padrão estreito idêntico ao autorizado; A–N/Y inalterados (rápidos)
+- **ASSERTION_WEAKENED**: `NO` (só limite de tempo; nenhuma assertion tocada; reflow prettier verificado por teste verde)
+- **PROVIDER_HARNESS_TIMEOUT_CHANGED**: `NO` (5000ms preservado)
+- **OPENAI_REAL_CALLS**: `0`; **TYPESAFE_REAL_CALLS**: `0`; **LIVE_COMMAND_INVOKED**: `NO`
+- **SECRET_AUDIT**: `PASS`
