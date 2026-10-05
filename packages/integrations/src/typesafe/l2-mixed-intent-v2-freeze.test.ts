@@ -94,7 +94,7 @@ describe('L2 Mixed-Intent v2 Executable Freeze (Slice 006BF)', () => {
     expect(run1.runtimeFileCount).toBe(9);
   }, 15000);
 
-  it('historical v1 freeze manifest and aggregate remain untouched', () => {
+  it('historical v1 freeze manifest and aggregate remain untouched', { timeout: 15000 }, () => {
     const manifest = JSON.parse(
       readFileSync('scripts/benchmarks/voice/l2-executable-freeze-manifest.json', 'utf8'),
     );

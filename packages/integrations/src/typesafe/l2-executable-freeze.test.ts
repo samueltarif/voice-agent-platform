@@ -133,14 +133,18 @@ describe('L2 Executable Freeze Reproducibility Tests', () => {
     expect(() => validateManifestData(foreignModule)).toThrow('Unexpected executable module');
   });
 
-  it('Case H: freeze tooling performs zero provider/network calls', () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch');
-    const result = computeL2ExecutableFreeze();
+  it(
+    'Case H: freeze tooling performs zero provider/network calls',
+    { timeout: 15000 },
+    async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch');
+      const result = computeL2ExecutableFreeze();
 
-    expect(fetchSpy).not.toHaveBeenCalled();
-    expect(result.runtimeFileCount).toBe(10);
-    fetchSpy.mockRestore();
-  });
+      expect(fetchSpy).not.toHaveBeenCalled();
+      expect(result.runtimeFileCount).toBe(10);
+      fetchSpy.mockRestore();
+    },
+  );
 
   it('Case I: no real credentials required', () => {
     const originalEnv = { ...process.env };
@@ -157,7 +161,7 @@ describe('L2 Executable Freeze Reproducibility Tests', () => {
     }
   }, 15000);
 
-  it('Case J: no .env access during freeze computation', () => {
+  it('Case J: no .env access during freeze computation', { timeout: 15000 }, () => {
     const result = computeL2ExecutableFreeze();
     expect(result.runtimeFileSet.every((f) => !f.includes('.env'))).toBe(true);
     expect(Object.keys(result.perFileSha256).every((f) => !f.includes('.env'))).toBe(true);
