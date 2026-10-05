@@ -15375,3 +15375,61 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **LIVE_COMMAND_INVOKED**: `NO`
 - **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
 - **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+
+---
+
+## 2026-10-04 — Slice 006BE: Versioned Mixed-Intent Targeted Study Redesign (Offline)
+
+- **SLICE**: `006BE`
+- **BRANCH**: `research/006be-versioned-mixed-intent-study-redesign`
+- **SOURCE_MAIN_SHA**: `31e83831dc920a3d4828ceadf6d4cfefda455a78` (PR #83 mergeado: `PR83_MERGE_SHA` idem; `PR83_HEAD = 9db97d3...` ancestral confirmado)
+- **TASK**: `VERSIONED_MIXED_INTENT_TARGETED_STUDY_REDESIGN_OFFLINE`
+- **MIXED_INTENT_TARGETED_STUDY_V2_DESIGN**: `COMPLETE` (`PHASE_6_MIXED_INTENT_TARGETED_STUDY_V2_DESIGN.md`, 17 seções)
+- **HISTORICAL_MATCHER_MATCHED_SEMANTICS**: `EXACT_WHOLE_UTTERANCE_MATCHER` (runner `isMatched = matchesOperatingHoursCapability(...)`)
+- **FUTURE_MATCHER_MATCHED_REDEFINITION_ALLOWED**: `NO`
+- **V2_EVIDENCE_SCHEMA_SEMANTICS**: `UNAMBIGUOUS` (`matcherMatched` legado + `capabilityRelevant`/`exactlyAnswerable` + contadores versionados)
+- **CRITERION_A_V1_HISTORICAL_SEMANTICS_CHANGED**: `NO`
+- **CRITERION_A_V2_DEFINED**: `YES` (decisão `OPTION_A` p/ fallback; `CRITERION_A_V2_EVIDENCE_GAMING_RISK = LOW`)
+- **SECURITY_ESCALATE_COUNTS_AS_JOINT_CHAIN_PASS**: `NO`
+- **V2_DATASET_STATUS**: `DESIGN_ONLY_NOT_CREATED` (4 candidatos mistos verificados offline contra allowlist; spans com fronteira)
+- **V2_RUNNER_STATUS**: `DESIGN_ONLY_NOT_IMPLEMENTED` (recomendado `OPTION_B`; freeze método 1.0.0 mantido, agregado v2 futuro)
+- **YAGNI_STATUS**: `PASS`
+- **OPENAI_REAL_CALLS**: `0`; **TYPESAFE_REAL_CALLS**: `0`; **TWILIO**: `0`; **CLOUD_DB**: `0`; **HOLDOUT**: `NO ACCESS`
+- **LIVE_COMMAND_INVOKED**: `NO`; **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+- **NEXT_REQUIRED_STEP**: `HUMAN_REVIEW_OF_006BE_STUDY_V2_DESIGN`
+
+---
+
+## 2026-10-04 — 006BE Final Evidence-Semantics Reconciliation (Docs-Only)
+
+- **006BE_FINAL_DESIGN_RECONCILIATION**: `COMPLETED`
+- **AI_CONTEXT_SECTION2_006BE_CURRENT**: `YES` (estado v2 + Jev `NOT_OBSERVED` + readiness + next 006BE)
+- **AI_CONTEXT_SECTION2_SECTION8_CONSISTENCY**: `PASS`
+- **V2_COST_ESTIMATE_CLASSIFICATION**: `HYPOTHETICAL_PLANNING_SCENARIO_NOT_HARD_UPPER_BOUND` (terminologia superlativa de custo removida da Seção 12)
+- **V2_NO_GENERATIVE_REQUIRED_RESULT_STATUS**: `NO_V2_GENERATIVE_REQUIRED_CASE_OBSERVED` (todas as ocorrências `NO_MATCHED_*` em docs correntes substituídas; históricas preservadas)
+- **V2_RESULT_STATUS_USES_MATCHED_AS_CAPABILITY_RELEVANCE**: `NO`
+- **HISTORICAL_MATCHER_MATCHED_SEMANTICS**: `EXACT_WHOLE_UTTERANCE_MATCHER`
+- **FUTURE_MATCHER_MATCHED_REDEFINITION_ALLOWED**: `NO`
+- **CRITERION_A_V2_DEFINED**: `YES`
+- **V2_DATASET_STATUS**: `DESIGN_ONLY_NOT_CREATED`
+- **V2_RUNNER_STATUS**: `DESIGN_ONLY_NOT_IMPLEMENTED`
+- **OPENAI_REAL_CALLS**: `0`; **TYPESAFE_REAL_CALLS**: `0`
+- **LIVE_COMMAND_INVOKED**: `NO`
+- **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+
+---
+
+## 2026-10-04 — PR #84 Merge-Readiness Review (Docs-Only; Snapshot Branch Fix)
+
+- **PR84_MERGE_READINESS_REVIEW**: `COMPLETED`
+- **PR84_SCOPE_VALID**: `YES` (4 docs; 0 produção/testes/dados/manifests/lockfile)
+- **SNAPSHOT_BRANCH_FIX**: `006BD → 006BE` (única correção desta review; semântica autorreferente de HEAD preservada)
+- **EVIDENCE_SCHEMA_SEMANTICS_RISK**: `PASS` (`matcherMatched` histórico preservado; `FUTURE_MATCHER_MATCHED_REDEFINITION_ALLOWED = NO`)
+- **CRITERION_A_V2_GAMING_RISK_CLASSIFICATION_VALID**: `YES` (LOW mantido: necessidade genuína + Jev cego + sem forcing)
+- **OPTION_A_DECISION_VALID**: `YES`
+- **HISTORICAL_INTEGRITY**: `PASS` (4 SHAs + freeze intactos)
+- **OPENAI_REAL_CALLS**: `0`; **TYPESAFE_REAL_CALLS**: `0`
+- **LIVE_COMMAND_INVOKED**: `NO`
+- **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
