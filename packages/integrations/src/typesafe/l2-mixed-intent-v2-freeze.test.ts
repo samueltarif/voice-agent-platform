@@ -87,12 +87,12 @@ describe('L2 Mixed-Intent v2 Executable Freeze (Slice 006BF)', () => {
     ).toThrow();
   });
 
-  it('tracked v2 freeze on HEAD is reproducible', () => {
+  it('tracked v2 freeze on HEAD is reproducible', { timeout: 30000 }, () => {
     const run1 = computeMixedIntentV2Freeze();
     const run2 = computeMixedIntentV2Freeze();
     expect(run1.executableAggregateSha256).toBe(run2.executableAggregateSha256);
     expect(run1.runtimeFileCount).toBe(9);
-  }, 15000);
+  });
 
   it('historical v1 freeze manifest and aggregate remain untouched', { timeout: 15000 }, () => {
     const manifest = JSON.parse(

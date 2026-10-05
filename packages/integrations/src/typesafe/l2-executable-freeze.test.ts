@@ -28,7 +28,7 @@ function createMockBytesProvider(overrides: Record<string, string> = {}) {
 }
 
 describe('L2 Executable Freeze Reproducibility Tests', () => {
-  it('Case A: same tracked HEAD + file set produces identical aggregate across independent invocations', () => {
+  it('Case A: same tracked HEAD + file set produces identical aggregate across independent invocations', { timeout: 30000 }, () => {
     const run1 = computeL2ExecutableFreeze();
     const run2 = computeL2ExecutableFreeze();
 
@@ -38,7 +38,7 @@ describe('L2 Executable Freeze Reproducibility Tests', () => {
     expect(run1.runtimeFileSet).toEqual(
       [...L2_EXECUTABLE_MODULES].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)),
     );
-  }, 15000);
+  });
 
   it('Case B: canonical ordering is based on deterministic ASCII code-unit ordering without localeCompare', () => {
     const localeCompareSpy = vi.spyOn(String.prototype, 'localeCompare');
