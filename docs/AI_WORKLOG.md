@@ -15574,6 +15574,7 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 
 - **CAUSE**: gate canônico falhou com 1 timeout (teste U, 6691ms sob carga); testes P–W executam estudo completo de 4 casos com freeze real (observado 2.5–6.7s sob carga), todos na margem do default 5000ms
 - **FIX**: timeout por teste `15000`ms estendido aos testes de execução completa P,Q,R,S,T,U,V,W (X já possuía); padrão estreito idêntico ao autorizado; A–N/Y inalterados (rápidos)
+- **FIX-2**: gate seguinte falhou em H(6464ms)/J(5160ms)/histórico-v1(7329ms) — mesmos testes de computação real de freeze, todos acima de 5s; estendido `15000`ms a esses 3 restantes (nenhuma assertion tocada; Case A isolado chegou a 4798ms, confirmando a margem necessária)
 - **ASSERTION_WEAKENED**: `NO` (só limite de tempo; nenhuma assertion tocada; reflow prettier verificado por teste verde)
 - **PROVIDER_HARNESS_TIMEOUT_CHANGED**: `NO` (5000ms preservado)
 - **OPENAI_REAL_CALLS**: `0`; **TYPESAFE_REAL_CALLS**: `0`; **LIVE_COMMAND_INVOKED**: `NO`
