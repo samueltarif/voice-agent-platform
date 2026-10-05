@@ -9,11 +9,15 @@
 - **DECISION_PACKAGE_STATUS**: `READY_FOR_HUMAN_DECISION`
 - **STUDY**: `L2 Mixed-Intent v2 Jev + OpenAI Synthetic Joint Chain` (Slice 006BF, `MERGED_COMPLETE` via PR #85 + reconciliação PR #86)
 - **DECISION_PACKAGE_BASE_MAIN**: `c7d8e09aab5c46394a3bd8bf95ecb6d1f7aea3f3`
-- **HUMAN_V2_LIVE_AUTHORIZATION**: `NOT_DECIDED`
-- **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
-- **CURRENT_L2_EXECUTION**: `NOT_AUTHORIZED`
-- **V2_OPERATOR_COST_CEILING_USD**: `PENDING_HUMAN_DECISION`
-- **AUTHORIZATION_SCOPE_DECISION**: `PENDING_HUMAN_DECISION`
+- **HUMAN_V2_LIVE_AUTHORIZATION**: `AUTHORIZED_ONE_TARGETED_V2_SYNTHETIC_STUDY` (decidido pelo operador em 2026-10-05; 1 execução; `AUTHORIZATION_CONSUMED = NO`)
+- **LIVE_AUTHORIZATION_AVAILABLE**: `YES_FOR_SINGLE_AUTHORIZED_STUDY_ONLY`
+- **CURRENT_L2_EXECUTION**: `AUTHORIZED_NOT_EXECUTED`
+- **V2_OPERATOR_COST_CEILING_USD**: `0.50` (`AUTHORIZED_OPERATOR_COST_CEILING_USD = 0.50`; `GOVERNANCE_CEILING_NOT_HARD_PROVIDER_BILLING_BOUND`)
+- **AUTHORIZATION_SCOPE_DECISION**: `AUTHORIZED_ONE_TARGETED_V2_SYNTHETIC_STUDY`
+- **CURRENT_V2_TYPESAFE_PRICING_DECISION**: `ACCEPT_ACCOUNT_BILLING_EVIDENCE_FOR_SINGLE_V2_TARGETED_STUDY`
+- **CURRENT_V2_TOKEN_BUDGET_DECISION**: `ACCEPT_CURRENT_RUNTIME_INPUT_LIMITATION_FOR_SINGLE_V2_STUDY`
+- **AUTHORIZED_RUN_COUNT**: `1`
+- **AUTHORIZED_V2_LIVE_EXECUTABLE_FREEZE_SHA256**: `500d922caf5409d85644e879443a14fbd5264f0bd9a1c26792da13afe1b64301` (3 módulos, método 1.0.0; slice 006BG)
 
 ## 2. Current Technical Readiness
 
@@ -22,7 +26,7 @@
 - **V2_IMPLEMENTATION_STATUS / V2_DATASET_STATUS / V2_RUNNER_STATUS**: `IMPLEMENTED_TESTED_OFFLINE`
 - **V2_EXECUTABLE_FREEZE_STATUS**: `FROZEN_REPRODUCIBLY` (método 1.0.0, 9 módulos)
 - **CRITERION_A_V2_OFFLINE_PATH_VALIDATION**: `PASS` (matriz A–G, 22/22 testes focados; gate canônico exit 0: 120 arquivos / 815 testes passed)
-- **Restrição arquitetural conhecida**: o runner v2 recusa incondicionalmente qualquer caminho não-offline (`FATAL_LIVE_NOT_AUTHORIZED`, default offline). O caminho live autorizado (pré-autorização + teto + adapters reais) ainda precisará ser implementado na slice do estudo autorizado, após a decisão humana. Isso não é autorização.
+- **Restrição arquitetural conhecida (resolvida na slice 006BG)**: o runner v2 offline recusava incondicionalmente qualquer caminho não-offline (`FATAL_LIVE_NOT_AUTHORIZED`, default offline). O caminho live autorizado foi implementado como camada fina separada (`run-jev-openai-l2-mixed-intent-v2-live.mjs` + pré-condições autorizadas + freeze próprio de 3 módulos) reutilizando o núcleo semântico v2 congelado, sem alterá-lo. A autorização registrada acima continua `AUTHORIZED_NOT_EXECUTED`: nenhum comando live foi invocado.
 
 ## 3. What Has Been Proven
 

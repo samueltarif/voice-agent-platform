@@ -15550,3 +15550,20 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **ENV_FILE_READ_OCCURRED**: `NO`; **CREDENTIAL_VALUE_PRINTED**: `NO`
 - **FORBIDDEN_IDE_INTERNAL_STORAGE_ACCESSED**: `NO`; **UNTRACKED_TEMP_HELPER_CREATED**: `NO`
 - **SECRET_AUDIT**: `PASS`
+
+---
+
+## 2026-10-05 — 006BG Authorized Live Path Implementation (Fake-Validated, NOT_EXECUTED)
+
+- **PR87_MERGE_SHA**: `fdb28ae3ca7ba425d07160ca10162b86f3a84720`; **BRANCH_BASE**: `origin/main` @ `fdb28ae...`; **NEXT_SLICE_ID**: `006BG` (verificado livre)
+- **HUMAN_AUTHORIZATION_GRANTED**: `YES` (4 decisões: TS-1A aceitar evidência de conta p/ estudo único; aceitar limitação de input p/ estudo único; teto $0.50; autorizar 1 estudo sintético v2)
+- **HUMAN_V2_LIVE_AUTHORIZATION**: `AUTHORIZED_ONE_TARGETED_V2_SYNTHETIC_STUDY`; **AUTHORIZED_RUN_COUNT**: `1`; **AUTHORIZATION_CONSUMED**: `NO`; **AUTHORIZED_OPERATOR_COST_CEILING_USD**: `0.50` (governança, não hard bound); **CURRENT_L2_EXECUTION**: `AUTHORIZED_NOT_EXECUTED`; **LIVE_COMMAND_INVOKED**: `NO`
+- **IMPLEMENTATION**: camada live autorizada fina (`run-...-v2-live.mjs` + `l2-mixed-intent-v2-authorized-preconditions.mjs` + freeze próprio 3 módulos `500d922c…`); núcleo v2 congelado reutilizado sem alteração (`6fdc0827…` preservado); adapters reais via factories existentes; teto explícito sem fallback de ambiente; estimativa de planejamento $0.160168 fail-closed contra teto
+- **INPUT_DECISION**: `ACCEPT_CURRENT_RUNTIME_INPUT_LIMITATION_FOR_SINGLE_V2_STUDY` (TOKEN_CAP `NONE`; OUTPUT 500; REQUEST 4/4/8/1/0; timeout estudo 5000ms preservado)
+- **SEMANTICS**: Criterion A exato; fallback determinístico e SECURITY excluídos; `matcherMatched` histórico; thresholds intactos; consumo de autorização só em dispatch live real (fakes: `NO`)
+- **FOCUSED_AUTHORIZED_V2_TESTS**: `PASS` (25 testes A–Y, 0 providers reais)
+- **OPENAI_REAL_CALLS**: `0`; **TYPESAFE_REAL_CALLS**: `0`; **TWILIO**: `0`; **NEON/STAGING/PROD**: `0`; **HOLDOUT**: `NO ACCESS`; **CUSTOMER**: `0`
+- **ENV_FILE_READ_OCCURRED**: `NO`; **CREDENTIAL_VALUE_PRINTED**: `NO`
+- **FORBIDDEN_IDE_INTERNAL_STORAGE_ACCESSED**: `NO`; **UNTRACKED_TEMP_HELPER_CREATED**: `NO`
+- **PRODUCTION_RUNTIME**: inalterado (`PRODUCTION_RUNTIME_WIRING = NO`)
+- **SECRET_AUDIT**: `PASS`
