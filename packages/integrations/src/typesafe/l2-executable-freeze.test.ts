@@ -28,17 +28,21 @@ function createMockBytesProvider(overrides: Record<string, string> = {}) {
 }
 
 describe('L2 Executable Freeze Reproducibility Tests', () => {
-  it('Case A: same tracked HEAD + file set produces identical aggregate across independent invocations', { timeout: 30000 }, () => {
-    const run1 = computeL2ExecutableFreeze();
-    const run2 = computeL2ExecutableFreeze();
+  it(
+    'Case A: same tracked HEAD + file set produces identical aggregate across independent invocations',
+    { timeout: 30000 },
+    () => {
+      const run1 = computeL2ExecutableFreeze();
+      const run2 = computeL2ExecutableFreeze();
 
-    expect(run1.executableAggregateSha256).toBe(run2.executableAggregateSha256);
-    expect(run1.runtimeFileCount).toBe(EXPECTED_L2_EXECUTABLE_MODULE_COUNT);
-    expect(run1.freezeMethodVersion).toBe(FREEZE_METHOD_VERSION);
-    expect(run1.runtimeFileSet).toEqual(
-      [...L2_EXECUTABLE_MODULES].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)),
-    );
-  });
+      expect(run1.executableAggregateSha256).toBe(run2.executableAggregateSha256);
+      expect(run1.runtimeFileCount).toBe(EXPECTED_L2_EXECUTABLE_MODULE_COUNT);
+      expect(run1.freezeMethodVersion).toBe(FREEZE_METHOD_VERSION);
+      expect(run1.runtimeFileSet).toEqual(
+        [...L2_EXECUTABLE_MODULES].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)),
+      );
+    },
+  );
 
   it('Case B: canonical ordering is based on deterministic ASCII code-unit ordering without localeCompare', () => {
     const localeCompareSpy = vi.spyOn(String.prototype, 'localeCompare');
