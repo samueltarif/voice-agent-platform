@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0.0",
+  "description": "Deterministic manifest of runtime executable modules for L2 mixed-intent v2 offline runner (OPTION_B; v1 frozen set untouched)",
+  "expectedModuleCount": 9,
+  "executableModules": [
+    "scripts/benchmarks/voice/l2-mixed-intent-v2-request-caps.mjs",
+    "scripts/benchmarks/voice/l2-mixed-intent-v2-result-classification.mjs",
+    "scripts/benchmarks/voice/l2-mixed-intent-v2-provider-dispatch.mjs",
+    "scripts/benchmarks/voice/l2-mixed-intent-v2-case-execution.mjs",
+    "scripts/benchmarks/voice/l2-mixed-intent-v2-artifact.mjs",
+    "scripts/benchmarks/voice/run-jev-openai-l2-mixed-intent-v2.mjs",
+    "scripts/benchmarks/voice/compute-l2-mixed-intent-v2-executable-freeze.mjs",
+    "scripts/benchmarks/voice/l2-runner-result-classification.mjs",
+    "scripts/benchmarks/voice/l2-runner-preconditions.mjs"
+  ]
+}

@@ -15433,3 +15433,59 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **LIVE_COMMAND_INVOKED**: `NO`
 - **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
 - **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+
+---
+
+## 2026-10-05 — 006BF Mixed-Intent L2 v2 Offline Implementation (PR #84 Merged)
+
+- **GITHUB_MCP_STATUS**: `UNAVAILABLE_AUTHORIZATION_FAILURE` (1 tentativa; device-flow timeout; merge do PR #84 provado via Git local)
+- **PR84_MERGE_SHA**: `d56772719dcb17a879a5865e8289674ef08532f8` (merge PR #84; `PR84_HEAD_INCLUDED_IN_MAIN = YES`)
+- **SOURCE_MAIN_SHA**: `d56772719dcb17a879a5865e8289674ef08532f8`
+- **BRANCH**: `research/006bf-mixed-intent-l2-v2-offline-implementation` (de main exato)
+- **TDD_RED_OBSERVED**: `YES` (3 suítes / 4 testes falhando antes da implementação)
+- **V2_DATASET_IMPLEMENTATION**: `PASS` (`jev-openai-l2-joint-chain-mixed-intent-v2-cases.json`, v1.0.0, 4 casos, SHA `ade86008b360b90754e2ac95a560d381e7adc655ecb20d09f2a28077faf9c690`)
+- **V2_DATASET_CONTRACT**: `PASS` (4/4 `matcherMatched=false` + `relevant=true` + `exactlyAnswerable=false`; IDs/transcritos únicos; sem ground truth Jev)
+- **V2_RUNNER_IMPLEMENTATION**: `PASS` (`OPTION_B`; entrypoint `run-jev-openai-l2-mixed-intent-v2.mjs` + 6 módulos v2 + 2 transitivos v1 reutilizados sem modificação)
+- **V2_EVIDENCE_SCHEMA_SEMANTICS**: `UNAMBIGUOUS` (`schemaVersion 2.0.0`; `FUTURE_MATCHER_MATCHED_REDEFINITION_ALLOWED = NO`)
+- **HISTORICAL_MATCHER_MATCHED_SEMANTICS**: `EXACT_WHOLE_UTTERANCE_MATCHER`
+- **CRITERION_A_V2_IMPLEMENTATION**: `PASS` (predicado explícito; matriz A–G com fakes)
+- **DETERMINISTIC_CANDIDATE_FALLBACK_COUNTS_AS_CRITERION_A_V2**: `NO` (`OPTION_A_DIRECT_GENERATIVE_REQUIRED_ONLY`)
+- **SECURITY_ESCALATE_COUNTS_AS_JOINT_CHAIN_PASS**: `NO` (thresholds 0.56/0.35/0.47 intactos)
+- **V2_RESULT_CLASSIFICATION**: `PASS` (`PASS_COMPLETE` / `NO_V2_GENERATIVE_REQUIRED_CASE_OBSERVED` / `FAILED_TECHNICAL`; zero `NO_MATCHED_*` p/ relevância v2)
+- **V2_REQUEST_CAP_ENFORCEMENT**: `PASS` (4/4/8, concorrência 1, retries 0; violação falha fechada)
+- **V2_OFFLINE_MATRIX**: `PASS` (22/22 focados: contrato 4 + matriz 13 + freeze 5)
+- **V2_EXECUTABLE_AGGREGATE_SHA256**: `6fdc0827dd4dff4dab49f2c8f5a4e82d3024614680ea23106531c8a954ef1f2e` (método 1.0.0, 9 módulos, reproduzido 2x)
+- **V2_EXECUTABLE_FREEZE_REPRODUCIBILITY**: `PASS`
+- **HISTORICAL_INTEGRITY**: `PASS` (`bd812341a9…`, `7fc27cf1…`, `f16c150c…`, `f5ef6e6b…` intactos)
+- **JEV_SCORE_BEHAVIOR**: `NOT_OBSERVED`; **REAL_PROVIDER_VALIDATION**: `NOT_EXECUTED`
+- **YAGNI_STATUS**: `PASS` (só estudo v2 operating-hours; sem framework/ontologia/DSL/registry)
+- **LAST_TESTED_CODE_SHA**: `205f49315d5119697479c30662fd558b0dc2227c` (gate frio canônico: `FORMAT/LINT/TYPECHECK 12/12/TEST 815 passed/45 skipped/BUILD 12/12/ARCHITECTURE/FILE_SIZE PASS`)
+- **OPENAI_REAL_CALLS**: `0`; **TYPESAFE_REAL_CALLS**: `0`; **TWILIO**: `0`; **CLOUD_DB**: `0`; **HOLDOUT**: `NO ACCESS`
+- **LIVE_COMMAND_INVOKED**: `NO`; **LIVE_AUTHORIZATION_AVAILABLE**: `NO`; **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+- **ENV_FILE_READ_OCCURRED**: `NO`; **ENVIRONMENT_DUMP_OCCURRED**: `NO`; **CREDENTIAL_VALUE_PRINTED**: `NO`
+- **FORBIDDEN_IDE_INTERNAL_STORAGE_ACCESSED**: `NO`; **UNTRACKED_TEMP_HELPER_CREATED**: `NO`
+- **NON_AUTHORITATIVE_PATH_ACCESSED**: `NO`; **CROSS_WORKTREE_COPY_OCCURRED**: `NO`
+- **SECRET_AUDIT**: `PASS`
+- **NEXT_REQUIRED_STEP**: `HUMAN_REVIEW_OF_006BF_OFFLINE_IMPLEMENTATION`
+
+---
+
+## 2026-10-05 — 006BF Final Documentation Reconciliation (Docs-Only)
+
+- **006BF_FINAL_DOCUMENT_RECONCILIATION**: `COMPLETED`
+- **AI_CONTEXT_SECTION2_006BF_CURRENT**: `YES` (linha 59 atualizada: v2 `IMPLEMENTED_TESTED_OFFLINE` + freeze/criterion/real-validation; bullet 006BF + §8 consistentes)
+- **AI_CONTEXT_SECTION2_SECTION8_CONSISTENCY**: `PASS`
+- **FULL_COLD_STATE_GATE_CODE_HEAD_CURRENT_OR_QUALIFIED**: `PASS` (`25bc2d70…` → `205f49315d5119697479c30662fd558b0dc2227c`; semântica = HEAD code-bearing corrente com gate canônico)
+- **PREAUTH_METADATA_CURRENT_SLICE**: `006BF` (header corrigido de `006BE`; §28 canônica única, §§26–27 históricas)
+- **PREAUTH_METADATA_BODY_CONSISTENCY**: `PASS`
+- **PREAUTH_DUPLICATE_CURRENT_SLICE_SECTIONS**: `NONE`
+- **V2_PREAUTH_CHANGED**: `NO` (envelope v2 verificado correto, intocado)
+- **V2_DATASET_SHA256**: `ade86008b360b90754e2ac95a560d381e7adc655ecb20d09f2a28077faf9c690` (preservado)
+- **V2_EXECUTABLE_AGGREGATE_SHA256**: `6fdc0827dd4dff4dab49f2c8f5a4e82d3024614680ea23106531c8a954ef1f2e` (preservado)
+- **PRODUCTION_CODE_CHANGED**: `NO`; **TEST_CODE_CHANGED**: `NO`; **RUNNER_CHANGED**: `NO`
+- **DATASET_CHANGED**: `NO`; **FREEZE_CHANGED**: `NO`; **HISTORICAL_ARTIFACT_CHANGED**: `NO`
+- **OPENAI_REAL_CALLS**: `0`; **TYPESAFE_REAL_CALLS**: `0`; **TWILIO**: `0`; **CLOUD_DB**: `0`; **HOLDOUT**: `NO ACCESS`
+- **LIVE_COMMAND_INVOKED**: `NO`; **LIVE_AUTHORIZATION_AVAILABLE**: `NO`; **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+- **ENV_FILE_READ_OCCURRED**: `NO`; **ENVIRONMENT_DUMP_OCCURRED**: `NO`; **CREDENTIAL_VALUE_PRINTED**: `NO`
+- **FORBIDDEN_IDE_INTERNAL_STORAGE_ACCESSED**: `NO`; **UNTRACKED_TEMP_HELPER_CREATED**: `NO`
+- **NON_AUTHORITATIVE_PATH_ACCESSED**: `NO`; **CROSS_WORKTREE_COPY_OCCURRED**: `NO`
