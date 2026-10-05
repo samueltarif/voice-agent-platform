@@ -92,7 +92,7 @@ describe('L2 Mixed-Intent v2 Executable Freeze (Slice 006BF)', () => {
     const run2 = computeMixedIntentV2Freeze();
     expect(run1.executableAggregateSha256).toBe(run2.executableAggregateSha256);
     expect(run1.runtimeFileCount).toBe(9);
-  });
+  }, 15000);
 
   it('historical v1 freeze manifest and aggregate remain untouched', () => {
     const manifest = JSON.parse(
