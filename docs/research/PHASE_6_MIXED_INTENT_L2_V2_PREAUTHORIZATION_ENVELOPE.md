@@ -1,0 +1,64 @@
+# Envelope de Pré-Autorização L2 — Estudo Mixed-Intent v2 (PHASE_6_MIXED_INTENT_L2_V2_PREAUTHORIZATION_ENVELOPE.md)
+
+> **Este documento NÃO é uma autorização de execução live.**
+> Slice 006BF é implementação offline com providers falsos/injetados. Nenhuma chamada real foi executada.
+
+## 1. Identity
+
+- **SCHEMA_VERSION**: `1.0.0`
+- **CURRENT_SLICE**: `006BF`
+- **STUDY**: `L2 Mixed-Intent v2 Jev + OpenAI Synthetic Joint Chain`
+- **DESIGN_BASELINE**: `docs/research/PHASE_6_MIXED_INTENT_TARGETED_STUDY_V2_DESIGN.md` (006BE, `COMPLETE`)
+- **PREAUTH_STATUS**: `BLOCKED_PENDING_HUMAN_REVIEW`
+
+## 2. Execution Authorization
+
+- **CURRENT_L2_EXECUTION**: `NOT_AUTHORIZED`
+- **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+- **LIVE_COMMAND_INVOKED**: `NO`
+- **V2_LIVE_AUTHORIZED**: `false` (runner recusa qualquer caminho não-offline com `FATAL_LIVE_NOT_AUTHORIZED`)
+
+## 3. Offline Implementation Status
+
+- **V2_DATASET_STATUS**: `IMPLEMENTED_TESTED_OFFLINE`
+- **V2_DATASET_PATH**: `scripts/benchmarks/voice/jev-openai-l2-joint-chain-mixed-intent-v2-cases.json`
+- **V2_DATASET_VERSION**: `1.0.0`
+- **V2_DATASET_SHA256**: `ade86008b360b90754e2ac95a560d381e7adc655ecb20d09f2a28077faf9c690`
+- **V2_DATASET_CASE_COUNT**: `4` (todos `matcherMatched=false`, `capabilityRelevant=true`, `exactlyAnswerable=false`)
+- **V2_RUNNER_STATUS**: `IMPLEMENTED_TESTED_OFFLINE`
+- **V2_RUNNER_ENTRYPOINT**: `scripts/benchmarks/voice/run-jev-openai-l2-mixed-intent-v2.mjs`
+- **V2_EXECUTABLE_FREEZE_STATUS**: `FROZEN_REPRODUCIBLY`
+- **V2_EXECUTABLE_FREEZE_METHOD_VERSION**: `1.0.0`
+- **V2_EXECUTABLE_MODULE_COUNT**: `9` (7 módulos v2 + 2 transitivos v1 reutilizados sem modificação)
+- **V2_EXECUTABLE_AGGREGATE_SHA256**: `55b46d122cdb1211287a9b9c3788a880982b084084e70592c1f83104109f706c`
+- **CRITERION_A_V2_DEFINED**: `YES`
+- **CRITERION_A_V2_OFFLINE_PATH_VALIDATION**: `PASS` (matriz A–G com fakes; `OPTION_A_DIRECT_GENERATIVE_REQUIRED_ONLY`)
+- **HISTORICAL_MATCHER_MATCHED_SEMANTICS**: `EXACT_WHOLE_UTTERANCE_MATCHER`
+- **FUTURE_MATCHER_MATCHED_REDEFINITION_ALLOWED**: `NO`
+- **V2_EVIDENCE_SCHEMA_SEMANTICS**: `UNAMBIGUOUS` (`schemaVersion 2.0.0`)
+
+## 4. Request Caps (Enforced Offline, Not Live Authorization)
+
+- **PROPOSED_V2_TYPESAFE_REQUEST_CAP**: `4`
+- **PROPOSED_V2_OPENAI_REQUEST_CAP**: `4`
+- **PROPOSED_V2_TOTAL_PROVIDER_REQUEST_CAP**: `8`
+- **PROPOSED_V2_CONCURRENCY**: `1`
+- **PROPOSED_V2_RETRIES**: `0`
+- **V2_REQUEST_CAP_ENFORCEMENT**: `PASS` (violação falha fechada antes de qualquer chamada)
+
+## 5. Cost Semantics
+
+- **V2_COST_ESTIMATE_CLASSIFICATION**: `HYPOTHETICAL_PLANNING_SCENARIO_NOT_HARD_UPPER_BOUND`
+- **PROPOSED_LIVE_COST_CEILING**: `NOT_SELECTED`
+- **HARD_PROVIDER_BILLING_BOUND**: `NOT_PROVEN`
+
+## 6. Evidence Status
+
+- **JEV_SCORE_BEHAVIOR**: `NOT_OBSERVED`
+- **REAL_JEV_POLICY_DISTRIBUTION**: `NOT_OBSERVED`
+- **REAL_PROVIDER_VALIDATION**: `NOT_EXECUTED`
+- **OPENAI_REAL_CALLS**: `0`
+- **TYPESAFE_REAL_CALLS**: `0`
+- **TARGETED_LIVE_STUDY_READINESS**: `BLOCKED_PENDING_006BF_REVIEW_AND_SEPARATE_LIVE_AUTHORIZATION_DECISION`
+- **NEXT_REQUIRED_STEP**: `HUMAN_REVIEW_OF_006BF_OFFLINE_IMPLEMENTATION`

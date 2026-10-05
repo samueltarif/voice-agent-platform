@@ -1,0 +1,60 @@
+{
+  "version": "1.0.0",
+  "suite": "phase-6-l2-joint-chain-mixed-intent",
+  "createdAt": "2026-10-05",
+  "totalCases": 4,
+  "categoryCounts": {
+    "MIXED_INTENT_CAPABILITY_RELEVANT_NOT_EXACTLY_ANSWERABLE": 4
+  },
+  "governance": {
+    "customerData": 0,
+    "holdoutData": 0,
+    "syntheticOnly": true,
+    "notForAccuracyClaims": true,
+    "notForThresholdTuning": true,
+    "derivedFrom006BEDesign": true,
+    "disjointFromL2v101Utterances": true
+  },
+  "cases": [
+    {
+      "id": "v2-01",
+      "description": "Operating-hours span plus genuine residual: best period to avoid waiting (generative recommendation work outside deterministic data).",
+      "callerTranscript": "Qual o horário de funcionamento e qual o melhor período para evitar espera?",
+      "expectedMatcherMatched": false,
+      "expectedCapabilityRelevant": true,
+      "expectedExactlyAnswerable": false,
+      "expectedResidualSemanticWork": true,
+      "expectedJevOutcome": "NOT_OBSERVED_STUDY_TARGET"
+    },
+    {
+      "id": "v2-02",
+      "description": "Closing-time span plus genuine residual: phone scheduling policy question outside deterministic data.",
+      "callerTranscript": "Que horas fecha e consigo agendar por telefone?",
+      "expectedMatcherMatched": false,
+      "expectedCapabilityRelevant": true,
+      "expectedExactlyAnswerable": false,
+      "expectedResidualSemanticWork": true,
+      "expectedJevOutcome": "NOT_OBSERVED_STUDY_TARGET"
+    },
+    {
+      "id": "v2-03",
+      "description": "Extended-hours span plus genuine residual: contextual appointment rescheduling request.",
+      "callerTranscript": "Até que horas vocês atendem? Preciso remarcar minha consulta para amanhã.",
+      "expectedMatcherMatched": false,
+      "expectedCapabilityRelevant": true,
+      "expectedExactlyAnswerable": false,
+      "expectedResidualSemanticWork": true,
+      "expectedJevOutcome": "NOT_OBSERVED_STUDY_TARGET"
+    },
+    {
+      "id": "v2-04",
+      "description": "Opening-time span plus genuine residual: document-requirements policy question outside deterministic data.",
+      "callerTranscript": "Que horas abre e quais documentos devo levar?",
+      "expectedMatcherMatched": false,
+      "expectedCapabilityRelevant": true,
+      "expectedExactlyAnswerable": false,
+      "expectedResidualSemanticWork": true,
+      "expectedJevOutcome": "NOT_OBSERVED_STUDY_TARGET"
+    }
+  ]
+}
