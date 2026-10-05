@@ -72,7 +72,7 @@ Alternativas (não escolher aqui):
 - **DECISION TS-1A** (`ACCEPT_ACCOUNT_BILLING_EVIDENCE_FOR_SINGLE_V2_TARGETED_STUDY`): permite $42/B input como taxa conservadora observada em conta, somente para um estudo autorizado específico; NÃO afirma preço contratual/público; incerteza de output permanece reconhecida.
 - **DECISION TS-1B** (`REQUIRE_EXPLICIT_VENDOR_CONFIRMATION_BEFORE_V2_STUDY`): sem autorização live v2 até existir evidência tarifária explícita do provedor.
 
-**CURRENT_V2_TYPESAFE_PRICING_DECISION**: `PENDING_HUMAN_DECISION`
+**CURRENT_V2_TYPESAFE_PRICING_DECISION**: `ACCEPT_ACCOUNT_BILLING_EVIDENCE_FOR_SINGLE_V2_TARGETED_STUDY` (decidido pelo operador em 2026-10-05)
 
 ## 8. Token / Input Budget Decision
 
@@ -89,7 +89,7 @@ Alternativas (não escolher aqui):
 - **ACCEPT_CURRENT_RUNTIME_INPUT_LIMITATION_FOR_SINGLE_V2_STUDY**
 - **REQUIRE_STRICT_TOKEN_CAP_BEFORE_V2_STUDY** (ex.: ligar validação de orçamento por caracteres no caminho v2 na slice autorizada)
 
-**CURRENT_V2_TOKEN_BUDGET_DECISION**: `PENDING_HUMAN_DECISION`
+**CURRENT_V2_TOKEN_BUDGET_DECISION**: `ACCEPT_CURRENT_RUNTIME_INPUT_LIMITATION_FOR_SINGLE_V2_STUDY` (decidido pelo operador em 2026-10-05; somente este estudo)
 
 ## 9. Operator Cost Ceiling Decision
 
@@ -104,7 +104,7 @@ Um teto válido do operador significa: parada de governança explícita, input e
 
 O teto histórico de $0.96 USD foi consumido por execução histórica única e NÃO se transfere automaticamente.
 
-**V2_OPERATOR_COST_CEILING_USD**: `PENDING_HUMAN_DECISION`
+**V2_OPERATOR_COST_CEILING_USD**: `0.50` (decidido pelo operador em 2026-10-05; governança, não hard bound)
 
 ## 10. Authorization Scope Decision
 
@@ -115,7 +115,7 @@ Escopo MÁXIMO de uma futura autorização (se o humano aprovar):
 - Caps 4/4/8, concorrência 1, retries 0
 - Dados de cliente 0, transcrições 0, holdout sem acesso, Twilio 0, DB produção/staging 0, tráfego de produção 0
 
-**AUTHORIZATION_SCOPE_DECISION**: `PENDING_HUMAN_DECISION`
+**AUTHORIZATION_SCOPE_DECISION**: `AUTHORIZED_ONE_TARGETED_V2_SYNTHETIC_STUDY` (decidido pelo operador em 2026-10-05; `AUTHORIZATION_CONSUMED = NO`)
 
 ## 11. Mandatory Stop Conditions
 
