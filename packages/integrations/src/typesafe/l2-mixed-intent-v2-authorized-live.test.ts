@@ -8,7 +8,6 @@ import { handleOperatingHoursTurn } from '../../../../apps/voice/src/operating-h
 import {
   AUTHORIZED_OPERATOR_COST_CEILING_USD,
   AUTHORIZED_V2_STUDY_ID,
-  validateAuthorizedLivePreconditions,
 } from '../../../../scripts/benchmarks/voice/l2-mixed-intent-v2-authorized-preconditions.mjs';
 import {
   MAX_V2_OPENAI_REQUESTS,
