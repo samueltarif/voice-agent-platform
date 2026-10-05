@@ -15578,3 +15578,21 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **PROVIDER_HARNESS_TIMEOUT_CHANGED**: `NO` (5000ms preservado)
 - **OPENAI_REAL_CALLS**: `0`; **TYPESAFE_REAL_CALLS**: `0`; **LIVE_COMMAND_INVOKED**: `NO`
 - **SECRET_AUDIT**: `PASS`
+
+---
+
+## 2026-10-05 — 006BG Pre-PR Consistency Reconciliation (Docs-Only)
+
+- **SCOPE**: reconciliação docs-only; implementação 006BG inalterada (código/testes/dataset/freeze intactos)
+- **PR87_MERGE_SHA**: `fdb28ae3ca7ba425d07160ca10162b86f3a84720` (ancestral do branch)
+- **AUTHORIZATION_FACTS**: granted 1 estudo (`AUTHORIZED_ONE_TARGETED_V2_SYNTHETIC_STUDY`); consumo `NO`; teto `0.50`; pricing TS-1A; input limitation aceita; execução `AUTHORIZED_NOT_EXECUTED`; live NÃO invocada; produção `NO`/proibida
+- **AI_CONTEXT**: header p/ base `fdb28ae`/PR 87/branch 006BG; linhas `NOT_AUTHORIZED` do §8 qualificadas como `OFFLINE_V2_RUNNER` (núcleo 006BF inalterado); teto corrente `0.50` (histórico `NOT_SELECTED` qualificado); `AI_CONTEXT_CURRENT_STATE_CONTRADICTION = NO`
+- **V2_PREAUTH**: `CURRENT_SLICE = 006BG`; `OFFLINE_V2_RUNNER_LIVE_AUTHORIZED = false` qualificado; teto corrente `0.50`; readiness = aguardando review do PR 006BG + invocação explícita
+- **MAIN_PREAUTH**: metadados correntes p/ 006BG (execução autorizada-não-executada, teto `0.50`, decisões aceitas); histórico 006AY/006BA preservado
+- **DECISION_PACKAGE_STATUS**: `HUMAN_DECISION_COMPLETED_AUTHORIZED_NOT_EXECUTED` (autorização veio do operador, não do documento)
+- **AUTHORIZED_LIVE_TEST_COUNT**: `24` ativos (A–X com N/O combinados + Y; correção: entrada anterior dizia "25 testes A–Y" — contagem determinística por `it(` = 18 linha-única + 6 multilinha P,Q,S,T,V,W = 24); `AUTHORIZED_TEST_COUNT_CONSISTENCY = PASS`
+- **NO_CODE_CHANGES**: `YES` (só docs); **LIVE_COMMAND_INVOKED**: `NO`; **AUTHORIZATION_CONSUMED**: `NO`
+- **OPENAI_REAL_CALLS**: `0`; **TYPESAFE_REAL_CALLS**: `0`
+- **ENV_FILE_READ_OCCURRED**: `NO`; **CREDENTIAL_VALUE_PRINTED**: `NO`
+- **FORBIDDEN_IDE_INTERNAL_STORAGE_ACCESSED**: `NO`; **UNTRACKED_TEMP_HELPER_CREATED**: `NO`
+- **SECRET_AUDIT**: `PASS`
