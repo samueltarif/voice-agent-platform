@@ -17,11 +17,9 @@ import {
   V2_RETRIES,
   V2_TOTAL_MAX_PROVIDER_REQUESTS,
   checkV2Caps,
-} from '../../../../scripts/benchmarks/voice/l2-mixed-intent-v2-request-caps.mjs';
-import {
   createV2InitialState,
   executeMixedIntentV2Case,
-} from '../../../../scripts/benchmarks/voice/l2-mixed-intent-v2-case-execution.mjs';
+} from '../../../../scripts/benchmarks/voice/run-jev-openai-l2-mixed-intent-v2.mjs';
 import { runAuthorizedV2Study } from '../../../../scripts/benchmarks/voice/run-jev-openai-l2-mixed-intent-v2-live.mjs';
 
 const silentLogger = { log: () => {}, warn: () => {}, error: () => {} };
@@ -104,6 +102,22 @@ function workingTreeLiveFreezeProviders() {
     manifest: JSON.parse(readFileSync(LIVE_MANIFEST_PATH, 'utf8')),
     readBytes: (modPath: string) => readFileSync(resolve(modPath)),
   };
+}
+
+function requireFirstEvidence(result: {
+  cases: Array<{
+    policyOutcome: string | null;
+    criterionAV2Pass: boolean;
+    openAiInvoked: boolean;
+    jevEvaluated: boolean;
+    technicalStatus: string;
+  }>;
+}) {
+  const first = result.cases[0];
+  if (first === undefined) {
+    throw new Error('authorized study must produce at least one case evidence');
+  }
+  return first;
 }
 
 function baseLiveOptions(overrides: Record<string, unknown> = {}) {
@@ -295,8 +309,8 @@ describe('L2 Mixed-Intent v2 Authorized Live Study (Slice 006BG)', () => {
   it('Q. direct GENERATIVE_REQUIRED fake path is eligible for Criterion A', async () => {
     const { options } = baseLiveOptions();
     const result = await runAuthorizedV2Study(options);
-    expect(result.cases[0].criterionAV2Pass).toBe(true);
-    expect(result.cases[0].policyOutcome).toBe('GENERATIVE_REQUIRED');
+    expect(requireFirstEvidence(result).criterionAV2Pass).toBe(true);
+    expect(requireFirstEvidence(result).policyOutcome).toBe('GENERATIVE_REQUIRED');
     expect(result.aggregates.criterionAV2PassObserved).toBe(true);
   });
 
@@ -308,8 +322,8 @@ describe('L2 Mixed-Intent v2 Authorized Live Study (Slice 006BG)', () => {
       openAiAdapter: openAi.adapter,
     });
     const result = await runAuthorizedV2Study(options);
-    expect(result.cases[0].policyOutcome).toBe('DETERMINISTIC_CANDIDATE');
-    expect(result.cases[0].criterionAV2Pass).toBe(false);
+    expect(requireFirstEvidence(result).policyOutcome).toBe('DETERMINISTIC_CANDIDATE');
+    expect(requireFirstEvidence(result).criterionAV2Pass).toBe(false);
     expect(result.aggregates.criterionAV2PassObserved).toBe(false);
   });
 
@@ -321,9 +335,9 @@ describe('L2 Mixed-Intent v2 Authorized Live Study (Slice 006BG)', () => {
       openAiAdapter: openAi.adapter,
     });
     const result = await runAuthorizedV2Study(options);
-    expect(result.cases[0].policyOutcome).toBe('SECURITY_ESCALATE');
-    expect(result.cases[0].openAiInvoked).toBe(false);
-    expect(result.cases[0].criterionAV2Pass).toBe(false);
+    expect(requireFirstEvidence(result).policyOutcome).toBe('SECURITY_ESCALATE');
+    expect(requireFirstEvidence(result).openAiInvoked).toBe(false);
+    expect(requireFirstEvidence(result).criterionAV2Pass).toBe(false);
     expect(openAi.getTranscripts()).toHaveLength(0);
   });
 
@@ -339,9 +353,9 @@ describe('L2 Mixed-Intent v2 Authorized Live Study (Slice 006BG)', () => {
     };
     const { options } = baseLiveOptions({ typeSafeAdapter: failingJev.adapter });
     const result = await runAuthorizedV2Study(options);
-    expect(result.cases[0].jevEvaluated).toBe(false);
-    expect(result.cases[0].technicalStatus).toBe('TIMEOUT');
-    expect(result.cases[0].criterionAV2Pass).toBe(false);
+    expect(requireFirstEvidence(result).jevEvaluated).toBe(false);
+    expect(requireFirstEvidence(result).technicalStatus).toBe('TIMEOUT');
+    expect(requireFirstEvidence(result).criterionAV2Pass).toBe(false);
   });
 
   it('U. full utterance is preserved end to end', async () => {
