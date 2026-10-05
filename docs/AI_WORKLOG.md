@@ -15597,3 +15597,25 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **ENV_FILE_READ_OCCURRED**: `NO`; **CREDENTIAL_VALUE_PRINTED**: `NO`
 - **FORBIDDEN_IDE_INTERNAL_STORAGE_ACCESSED**: `NO`; **UNTRACKED_TEMP_HELPER_CREATED**: `NO`
 - **SECRET_AUDIT**: `PASS`
+---
+
+## 2026-10-05 — 006BG Final Freeze Timeout Stabilization (Test-Only)
+
+- **PREVIOUS_FINAL_GATE**: `FAIL` (c056b64 canonical gate exited 1; two expensive freeze tests timed out at ~18s under full-suite load)
+- **PRIOR_TIMEOUT_ALREADY_APPLIED**: `YES` (both tests already had 15000ms; they were not missed in prior remediation — 15000ms became insufficient under full-suite load)
+- **EXACT_TWO_TESTS**:
+  - `packages/integrations/src/typesafe/l2-executable-freeze.test.ts` Case A: observed ~18066ms → timeout 15000ms
+  - `packages/integrations/src/typesafe/l2-mixed-intent-v2-freeze.test.ts` "tracked v2 freeze on HEAD is reproducible": observed ~17941ms → timeout 15000ms
+- **VITEST_TIMEOUT_SELECTED_MS**: `30000` (exactly these two tests; provider/research harness timeout 5000ms unchanged)
+- **ASSERTIONS_CHANGED**: `NO`; **PROVIDER_HARNESS_TIMEOUT_CHANGED**: `NO`
+- **FOCUSED_FREEZE_TESTS**: `PASS` (Case A: 4545ms / 8233ms full-suite; "tracked v2 freeze": 4215ms / 7329ms full-suite — both well under 30000ms)
+- **FREEZE_HASHES_UNCHANGED**:
+  - V2_DATASET_SHA256 = `ade86008b360b90754e2ac95a560d381e7adc655ecb20d09f2a28077faf9c690`
+  - OFFLINE_V2_EXECUTABLE_AGGREGATE_SHA256 = `6fdc0827dd4dff4dab49f2c8f5a4e82d3024614680ea23106531c8a954ef1f2e`
+  - AUTHORIZED_V2_LIVE_EXECUTABLE_AGGREGATE_SHA256 = `500d922caf5409d85644e879443a14fbd5264f0bd9a1c26792da13afe1b64301`
+  - HISTORICAL_EXECUTABLE_AGGREGATE_SHA256 = `f5ef6e6b88e09094765b0c3b273ba23cae01502bdd0ec4fe28dbcb3f2133794a`
+- **AUTHORIZATION_UNCHANGED**: granted 1 study (`AUTHORIZED_ONE_TARGETED_V2_SYNTHETIC_STUDY`); `AUTHORIZATION_CONSUMED = NO`; `LIVE_COMMAND_INVOKED = NO`; `OPENAI_REAL_CALLS = 0`; `TYPESAFE_REAL_CALLS = 0`
+- **FULL_QUALITY_GATE**: `PASS` (121 test files passed, 839 tests passed, 45 skipped; format/lint/typecheck/build/architecture/file-size all pass)
+- **CANONICAL_COMMAND_EXIT**: `0`
+- **LATEST_FULL_GATE_HEAD**: `fbccaac` (git rev-parse HEAD after freeze timeout fix commit)
+- **SECRET_AUDIT**: `PASS`
