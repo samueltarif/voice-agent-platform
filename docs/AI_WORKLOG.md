@@ -15489,3 +15489,26 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **ENV_FILE_READ_OCCURRED**: `NO`; **ENVIRONMENT_DUMP_OCCURRED**: `NO`; **CREDENTIAL_VALUE_PRINTED**: `NO`
 - **FORBIDDEN_IDE_INTERNAL_STORAGE_ACCESSED**: `NO`; **UNTRACKED_TEMP_HELPER_CREATED**: `NO`
 - **NON_AUTHORITATIVE_PATH_ACCESSED**: `NO`; **CROSS_WORKTREE_COPY_OCCURRED**: `NO`
+
+---
+
+## 2026-10-05 — 006BF Post-Merge Verification + Docs-Only Reconciliation (PR #85 MERGED)
+
+- **PR85_GITHUB_STATE**: `MERGED` (PR #85 `research: implement mixed-intent L2 v2 offline study`, merged_at `2026-10-05T13:43:28Z`, merge_commit_sha `9a2c61614defebd6b0677e831b7db879f64367f2`; via API pública somente-leitura, sem MCP GitHub)
+- **PR85_MERGE_SHA**: `9a2c61614defebd6b0677e831b7db879f64367f2` (merge commit normal; parents `d567727` + `88d6c85`; `PR85_MERGE_SHA_VALID = YES`)
+- **PR85_HEAD_INCLUDED_IN_MAIN**: `YES` (`merge-base --is-ancestor 88d6c85... origin/main`; merge-tree idêntica ao PR head; `POST_MERGE_CODE_DELTA_OUTSIDE_PR85 = NO`)
+- **PR85_GIT_GITHUB_CONSISTENCY**: `PASS` (merge SHA local == GitHub `merge_commit_sha`)
+- **006BF_STATUS**: `MERGED_COMPLETE`
+- **MERGED_006BF_CONTENT**: `PASS` (dataset/runner/freeze/testes/envelope v2 presentes em `origin/main`)
+- **V2_DATASET_SHA256**: `ade86008b360b90754e2ac95a560d381e7adc655ecb20d09f2a28077faf9c690` (preservado pós-merge)
+- **V2_EXECUTABLE_AGGREGATE_SHA256**: `6fdc0827dd4dff4dab49f2c8f5a4e82d3024614680ea23106531c8a954ef1f2e` (9 módulos, preservado)
+- **HISTORICAL_INTEGRITY**: `PASS` (`bd812341a9…`, `7fc27cf1…`, `f16c150c…`, `f5ef6e6b…` intactos pós-merge)
+- **PR85_PREMERGE_GATE**: `PASS` (exit 0 no head `88d6c85…`; 120 arquivos / 815 testes passed, 0 failed, 6 arquivos / 45 testes skipped; focados 22/22; timeout flake NÃO reproduzido no rerun final; nenhum fix de timeout necessário)
+- **POST_MERGE_RECONCILIATION_SCOPE**: docs-only (`docs/AI_CONTEXT.md`, `docs/AI_WORKLOG.md`, `PHASE_6_MIXED_INTENT_L2_V2_PREAUTHORIZATION_ENVELOPE.md`, `PHASE_6_L2_PREAUTHORIZATION_ENVELOPE.md`); zero código/funcionalidade
+- **REAL_PROVIDER_VALIDATION**: `NOT_EXECUTED`; **CURRENT_L2_EXECUTION**: `NOT_AUTHORIZED`; **LIVE_AUTHORIZATION_AVAILABLE**: `NO`; **SECOND_LIVE_RUN_AUTHORIZED**: `NO`; **PRODUCTION_RUNTIME_WIRING**: `NO`
+- **OPENAI_REAL_CALLS**: `0`; **TYPESAFE_REAL_CALLS**: `0`; **TWILIO**: `0`; **NEON**: `0`; **STAGING_DB**: `0`; **PRODUCTION_DB**: `0`; **HOLDOUT**: `NO ACCESS`
+- **LIVE_COMMAND_INVOKED**: `NO`; **ENV_FILE_READ_OCCURRED**: `NO`; **ENVIRONMENT_DUMP_OCCURRED**: `NO`; **CREDENTIAL_VALUE_PRINTED**: `NO`
+- **FORBIDDEN_IDE_INTERNAL_STORAGE_ACCESSED**: `NO`; **UNTRACKED_TEMP_HELPER_CREATED**: `NO`
+- **NON_AUTHORITATIVE_PATH_ACCESSED**: `NO`; **CROSS_WORKTREE_COPY_OCCURRED**: `NO`
+- **SECRET_AUDIT**: `PASS`
+- **NEXT_REQUIRED_STEP**: `HUMAN_ARCHITECTURE_STUDY_REVIEW_AFTER_006BF`
