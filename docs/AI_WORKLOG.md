@@ -15619,3 +15619,21 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **CANONICAL_COMMAND_EXIT**: `0`
 - **LATEST_FULL_GATE_HEAD**: `fbccaac` (git rev-parse HEAD after freeze timeout fix commit)
 - **SECRET_AUDIT**: `PASS`
+
+---
+
+## 2026-10-05 — 006BH v2 Live Authorization Plumbing Fix (Regression-First, NO_LIVE_THIS_TASK)
+
+- **PR88_MERGED**: `YES` (merge `ac99797a17bd51146ce3acfbe383d8acd44d37a0`, branch `research/006bg-v2-authorized-study-live-path`)
+- **PRIOR_LIVE_INVOCATION_FACTS**: `LIVE_COMMAND_INVOKED=YES`, `LIVE_INVOCATION_COUNT=1`, `REAL_PROVIDER_DISPATCH_OBSERVED=NO`, `AUTHORIZATION_CONSUMED=NO`, `SECOND_RUN_EXECUTED=NO`, `RESULT_ARTIFACT_CREATED=NO`, `TYPESAFE_REAL_CALLS=0`, `OPENAI_REAL_CALLS=0`, failure `FATAL_LIVE_AUTHORIZATION_MISSING: No human authorization supplied`, `LIVE_EXECUTION_STATUS=EXECUTED_ONCE_FAILED_BEFORE_NETWORK`, `REAL_PROVIDER_VALIDATION=NOT_EXECUTED`
+- **NEXT_SLICE_ID**: `006BH` (verified free: no branch, no commit, no docs/code match); branch `fix/006bh-v2-live-authorization-plumbing` from `ac99797...`
+- **ROOT_CAUSE**: `parseAuthorizedV2CliArgs` in `run-jev-openai-l2-mixed-intent-v2-live.mjs` never accepted/propagated human authorization; `executeAuthorizedV2Cli` spread only allowLive/pricing/ceiling/dataset/out into `runAuthorizedV2Study` without `authorization`; `validateAuthorizedLivePreconditions` requires exact `{studyId, granted, consumed}` so real CLI `node ... --allow-live --accept-typesafe-empirical-pricing --cost-ceiling 0.50` always threw `FATAL_LIVE_AUTHORIZATION_MISSING` before network. Secondary gap: `createRealV2Adapters` required explicit `options.typeSafeApiKey/openAiApiKey`, never read `process.env`, so env credentials could not dispatch via CLI.
+- **REGRESSION_TEST_BEFORE_FIX**: `FAIL` (new `l2-mixed-intent-v2-live-cli-authorization.test.ts` H and C failed with `FATAL_LIVE_AUTHORIZATION_MISSING` / undefined studyId; A passed fail-closed)
+- **MINIMAL_FIX**: explicit narrow flag `--authorize-one-targeted-v2-synthetic-study` sets exact `{studyId: AUTHORIZED_V2_STUDY_ID, granted:true, consumed:false}` in parser, no env fallback for authorization, fail-closed without flag; `createRealV2Adapters` now reads `options.customEnv ?? process.env` for `TYPESAFE_API_KEY`/`OPENAI_API_KEY` fail-closed if absent; `executeAuthorizedV2Cli` accepts optional `testOverrides` for fake-only testing, real path still `useRealAdapters=true`; `.d.mts` updated; no generic framework, no adapter redesign, no hardcoded always-authorized, fake tests still `AUTHORIZATION_CONSUMED=NO`, second run still requires separate human decision
+- **REGRESSION_TEST_AFTER_FIX**: `PASS` (3/3 in new file; H proves CLI flag propagates auth, A proves fail-closed without flag, C proves exact identity)
+- **AUTHORIZED_LIVE_TESTS**: `PASS` (24/24 in `l2-mixed-intent-v2-authorized-live.test.ts`, fake-only, 0 real calls; protections for cost/hash/freeze/caps intact)
+- **FROZEN_EVIDENCE**: `V2_DATASET_SHA256=ade86008b360b90754e2ac95a560d381e7adc655ecb20d09f2a28077faf9c690` unchanged; `OFFLINE_V2_EXECUTABLE_AGGREGATE_SHA256=6fdc0827dd4dff4dab49f2c8f5a4e82d3024614680ea23106531c8a954ef1f2e` unchanged (working-tree recomputed); `HISTORICAL_V1= f5ef6e6b88e09094765b0c3b273ba23cae01502bdd0ec4fe28dbcb3f2133794a` unchanged; `OLD_AUTHORIZED_LIVE_FREEZE=500d922caf5409d85644e879443a14fbd5264f0bd9a1c26792da13afe1b64301`; `NEW_AUTHORIZED_LIVE_FREEZE_WORKING_TREE=3b27d0ca5a887e3adef06fb7d4e05db5e0d5faada9874462598129c0d7dc0c30` (1 of 3 modules changed: `run-...-live.mjs` `cd39fcef...` -> `3306aeb5...`; other 2 unchanged; reproducible; manifest still 3 modules so no manifest content change)
+- **NO_LIVE_THIS_TASK**: `OPENAI_REAL_CALLS_THIS_TASK=0`, `TYPESAFE_REAL_CALLS_THIS_TASK=0`, `LIVE_COMMAND_INVOKED_THIS_TASK=NO`; prior failed invocation remains historical only; no retry; no consumption
+- **RETRY_READINESS**: `READY_FOR_HUMAN_REVIEW` (future retry requires separate explicit human review/decision; do NOT execute live from this fix task)
+- **FORBIDDEN_IDE_INTERNAL_STORAGE_ACCESSED**: `NO`; **ENV_FILE_READ_OCCURRED**: `NO`; **CREDENTIAL_VALUE_PRINTED**: `NO`
+- **SECRET_AUDIT**: `PASS` (tracked diff boolean-only, no values)
