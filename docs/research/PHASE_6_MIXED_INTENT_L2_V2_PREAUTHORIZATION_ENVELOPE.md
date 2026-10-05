@@ -31,7 +31,7 @@
 - **LIVE_AUTHORIZATION_AVAILABLE**: `YES_FOR_SINGLE_AUTHORIZED_STUDY_ONLY`
 - **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
 - **LIVE_COMMAND_INVOKED**: `NO`
-- **V2_LIVE_AUTHORIZED**: `false` (`OFFLINE_V2_RUNNER_LIVE_AUTHORIZED = false`; runner 006BF recusa qualquer caminho não-offline com `FATAL_LIVE_NOT_AUTHORIZED`; caminho autorizado vive na camada 006BG)
+- **OFFLINE_V2_RUNNER_LIVE_AUTHORIZED**: `false` (`OFFLINE_V2_RUNNER_LIVE_AUTHORIZED = false`; runner 006BF recusa qualquer caminho não-offline com `FATAL_LIVE_NOT_AUTHORIZED`; caminho autorizado vive na camada 006BG)
 
 ## 3. Offline Implementation Status
 
