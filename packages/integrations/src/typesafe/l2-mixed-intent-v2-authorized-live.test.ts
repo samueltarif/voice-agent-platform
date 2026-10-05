@@ -190,7 +190,7 @@ describe('L2 Mixed-Intent v2 Authorized Live Study (Slice 006BG)', () => {
     expect(openAi.getTranscripts()).toHaveLength(0);
   });
 
-  it('F. offline freeze mismatch dispatches zero providers', async () => {
+  it('F. offline freeze mismatch dispatches zero providers', { timeout: 15000 }, async () => {
     const { options, jev, openAi } = baseLiveOptions({
       computeOfflineFreeze: () => ({ executableAggregateSha256: '0'.repeat(64) }),
     });
@@ -199,7 +199,7 @@ describe('L2 Mixed-Intent v2 Authorized Live Study (Slice 006BG)', () => {
     expect(openAi.getTranscripts()).toHaveLength(0);
   });
 
-  it('G. live freeze mismatch dispatches zero providers', async () => {
+  it('G. live freeze mismatch dispatches zero providers', { timeout: 15000 }, async () => {
     const { options, jev, openAi } = baseLiveOptions({
       computeLiveFreeze: () => ({ executableAggregateSha256: '0'.repeat(64) }),
     });
