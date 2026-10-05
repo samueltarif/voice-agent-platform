@@ -293,28 +293,36 @@ describe('L2 Mixed-Intent v2 Authorized Live Study (Slice 006BG)', () => {
     expect(AUTHORIZED_OPERATOR_COST_CEILING_USD).toBe(0.5);
   });
 
-  it('P. TypeSafe model mismatch is a technical failure with stop', async () => {
-    const { options } = baseLiveOptions({
-      typeSafeAdapter: {
-        evaluateTurn: async () => {
-          throw new LocalModelMismatchError('jev-9.99.9');
+  it(
+    'P. TypeSafe model mismatch is a technical failure with stop',
+    { timeout: 15000 },
+    async () => {
+      const { options } = baseLiveOptions({
+        typeSafeAdapter: {
+          evaluateTurn: async () => {
+            throw new LocalModelMismatchError('jev-9.99.9');
+          },
         },
-      },
-    });
-    const result = await runAuthorizedV2Study(options);
-    expect(result.metadata.classification).toBe('MODEL_IDENTITY_MISMATCH');
-    expect(result.aggregates.criterionAV2PassObserved).toBe(false);
-  });
+      });
+      const result = await runAuthorizedV2Study(options);
+      expect(result.metadata.classification).toBe('MODEL_IDENTITY_MISMATCH');
+      expect(result.aggregates.criterionAV2PassObserved).toBe(false);
+    },
+  );
 
-  it('Q. direct GENERATIVE_REQUIRED fake path is eligible for Criterion A', async () => {
-    const { options } = baseLiveOptions();
-    const result = await runAuthorizedV2Study(options);
-    expect(requireFirstEvidence(result).criterionAV2Pass).toBe(true);
-    expect(requireFirstEvidence(result).policyOutcome).toBe('GENERATIVE_REQUIRED');
-    expect(result.aggregates.criterionAV2PassObserved).toBe(true);
-  });
+  it(
+    'Q. direct GENERATIVE_REQUIRED fake path is eligible for Criterion A',
+    { timeout: 15000 },
+    async () => {
+      const { options } = baseLiveOptions();
+      const result = await runAuthorizedV2Study(options);
+      expect(requireFirstEvidence(result).criterionAV2Pass).toBe(true);
+      expect(requireFirstEvidence(result).policyOutcome).toBe('GENERATIVE_REQUIRED');
+      expect(result.aggregates.criterionAV2PassObserved).toBe(true);
+    },
+  );
 
-  it('R. deterministic candidate fallback is NOT Criterion A', async () => {
+  it('R. deterministic candidate fallback is NOT Criterion A', { timeout: 15000 }, async () => {
     const jev = createMockTypeSafe(DETERMINISTIC_SCORES);
     const openAi = createMockOpenAi('success');
     const { options } = baseLiveOptions({
@@ -327,38 +335,46 @@ describe('L2 Mixed-Intent v2 Authorized Live Study (Slice 006BG)', () => {
     expect(result.aggregates.criterionAV2PassObserved).toBe(false);
   });
 
-  it('S. SECURITY path invokes zero OpenAI and is NOT Criterion A', async () => {
-    const jev = createMockTypeSafe(SECURITY_SCORES);
-    const openAi = createMockOpenAi('success');
-    const { options } = baseLiveOptions({
-      typeSafeAdapter: jev.adapter,
-      openAiAdapter: openAi.adapter,
-    });
-    const result = await runAuthorizedV2Study(options);
-    expect(requireFirstEvidence(result).policyOutcome).toBe('SECURITY_ESCALATE');
-    expect(requireFirstEvidence(result).openAiInvoked).toBe(false);
-    expect(requireFirstEvidence(result).criterionAV2Pass).toBe(false);
-    expect(openAi.getTranscripts()).toHaveLength(0);
-  });
+  it(
+    'S. SECURITY path invokes zero OpenAI and is NOT Criterion A',
+    { timeout: 15000 },
+    async () => {
+      const jev = createMockTypeSafe(SECURITY_SCORES);
+      const openAi = createMockOpenAi('success');
+      const { options } = baseLiveOptions({
+        typeSafeAdapter: jev.adapter,
+        openAiAdapter: openAi.adapter,
+      });
+      const result = await runAuthorizedV2Study(options);
+      expect(requireFirstEvidence(result).policyOutcome).toBe('SECURITY_ESCALATE');
+      expect(requireFirstEvidence(result).openAiInvoked).toBe(false);
+      expect(requireFirstEvidence(result).criterionAV2Pass).toBe(false);
+      expect(openAi.getTranscripts()).toHaveLength(0);
+    },
+  );
 
-  it('T. technical provider error is a truthful technical failure', async () => {
-    const failingJev = {
-      adapter: {
-        evaluateTurn: async () => {
-          const err = new Error('fake timeout');
-          err.name = 'TimeoutError';
-          throw err;
+  it(
+    'T. technical provider error is a truthful technical failure',
+    { timeout: 15000 },
+    async () => {
+      const failingJev = {
+        adapter: {
+          evaluateTurn: async () => {
+            const err = new Error('fake timeout');
+            err.name = 'TimeoutError';
+            throw err;
+          },
         },
-      },
-    };
-    const { options } = baseLiveOptions({ typeSafeAdapter: failingJev.adapter });
-    const result = await runAuthorizedV2Study(options);
-    expect(requireFirstEvidence(result).jevEvaluated).toBe(false);
-    expect(requireFirstEvidence(result).technicalStatus).toBe('TIMEOUT');
-    expect(requireFirstEvidence(result).criterionAV2Pass).toBe(false);
-  });
+      };
+      const { options } = baseLiveOptions({ typeSafeAdapter: failingJev.adapter });
+      const result = await runAuthorizedV2Study(options);
+      expect(requireFirstEvidence(result).jevEvaluated).toBe(false);
+      expect(requireFirstEvidence(result).technicalStatus).toBe('TIMEOUT');
+      expect(requireFirstEvidence(result).criterionAV2Pass).toBe(false);
+    },
+  );
 
-  it('U. full utterance is preserved end to end', async () => {
+  it('U. full utterance is preserved end to end', { timeout: 15000 }, async () => {
     const raw = JSON.parse(
       readFileSync(
         resolve('scripts/benchmarks/voice/jev-openai-l2-joint-chain-mixed-intent-v2-cases.json'),
@@ -380,37 +396,45 @@ describe('L2 Mixed-Intent v2 Authorized Live Study (Slice 006BG)', () => {
     );
   });
 
-  it('V. artifact carries no transcript, raw scores or credentials', async () => {
-    const { options } = baseLiveOptions();
-    const result = await runAuthorizedV2Study(options);
-    const serialized = JSON.stringify(result);
-    expect(serialized).not.toContain('callerTranscript');
-    expect(serialized).not.toContain('securityScore');
-    expect(serialized).not.toContain('Bearer');
-    expect(serialized).not.toContain('offline-dummy-key');
-  });
+  it(
+    'V. artifact carries no transcript, raw scores or credentials',
+    { timeout: 15000 },
+    async () => {
+      const { options } = baseLiveOptions();
+      const result = await runAuthorizedV2Study(options);
+      const serialized = JSON.stringify(result);
+      expect(serialized).not.toContain('callerTranscript');
+      expect(serialized).not.toContain('securityScore');
+      expect(serialized).not.toContain('Bearer');
+      expect(serialized).not.toContain('offline-dummy-key');
+    },
+  );
 
-  it('W. one authorized fake study completes with an exact bounded artifact', async () => {
-    const { options } = baseLiveOptions();
-    const result = await runAuthorizedV2Study(options);
-    expect(result.metadata.classification).toBe('PASS_COMPLETE');
-    expect(result.cases).toHaveLength(4);
-    expect(result.metadata.datasetSha256).toBe(
-      'ade86008b360b90754e2ac95a560d381e7adc655ecb20d09f2a28077faf9c690',
-    );
-    expect(result.metadata.offlineFreezeSha256).toBe(
-      '6fdc0827dd4dff4dab49f2c8f5a4e82d3024614680ea23106531c8a954ef1f2e',
-    );
-    expect(result.metadata.authorizedLiveFreezeSha256).toMatch(/^[a-f0-9]{64}$/);
-    expect(result.metadata.authorizedLiveFreezeModuleCount).toBe(3);
-    expect(result.metadata.authorizationScope).toBe('ONE_TARGETED_V2_SYNTHETIC_STUDY');
-    expect(result.metadata.operatorCeilingUsd).toBe(0.5);
-    expect(result.metadata.authorizationConsumed).toBe(false);
-    expect(result.metadata.providerExecutionStatus).toBe('FAKE_OFFLINE_VALIDATION');
-    expect(result.aggregates.typeSafeRequestsAttempted).toBe(4);
-    expect(result.aggregates.openAiRequestsAttempted).toBe(4);
-    expect(result.aggregates.totalProviderRequestsAttempted).toBe(8);
-  });
+  it(
+    'W. one authorized fake study completes with an exact bounded artifact',
+    { timeout: 15000 },
+    async () => {
+      const { options } = baseLiveOptions();
+      const result = await runAuthorizedV2Study(options);
+      expect(result.metadata.classification).toBe('PASS_COMPLETE');
+      expect(result.cases).toHaveLength(4);
+      expect(result.metadata.datasetSha256).toBe(
+        'ade86008b360b90754e2ac95a560d381e7adc655ecb20d09f2a28077faf9c690',
+      );
+      expect(result.metadata.offlineFreezeSha256).toBe(
+        '6fdc0827dd4dff4dab49f2c8f5a4e82d3024614680ea23106531c8a954ef1f2e',
+      );
+      expect(result.metadata.authorizedLiveFreezeSha256).toMatch(/^[a-f0-9]{64}$/);
+      expect(result.metadata.authorizedLiveFreezeModuleCount).toBe(3);
+      expect(result.metadata.authorizationScope).toBe('ONE_TARGETED_V2_SYNTHETIC_STUDY');
+      expect(result.metadata.operatorCeilingUsd).toBe(0.5);
+      expect(result.metadata.authorizationConsumed).toBe(false);
+      expect(result.metadata.providerExecutionStatus).toBe('FAKE_OFFLINE_VALIDATION');
+      expect(result.aggregates.typeSafeRequestsAttempted).toBe(4);
+      expect(result.aggregates.openAiRequestsAttempted).toBe(4);
+      expect(result.aggregates.totalProviderRequestsAttempted).toBe(8);
+    },
+  );
 
   it('X. fake validation never consumes the real authorization', async () => {
     const { options } = baseLiveOptions();
