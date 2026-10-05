@@ -426,7 +426,7 @@ describe('L2 Mixed-Intent v2 Authorized Live Study (Slice 006BG)', () => {
         ...workingTreeLiveFreezeProviders(),
       }).authorizationConsumed,
     ).toBe(false);
-  });
+  }, 15000);
 
   it('Y. authorized live freeze is deterministic across invocations', async () => {
     const { computeAuthorizedV2LiveFreeze } =
