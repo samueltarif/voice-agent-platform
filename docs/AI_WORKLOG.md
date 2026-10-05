@@ -15637,3 +15637,13 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **RETRY_READINESS**: `READY_FOR_HUMAN_REVIEW` (future retry requires separate explicit human review/decision; do NOT execute live from this fix task)
 - **FORBIDDEN_IDE_INTERNAL_STORAGE_ACCESSED**: `NO`; **ENV_FILE_READ_OCCURRED**: `NO`; **CREDENTIAL_VALUE_PRINTED**: `NO`
 - **SECRET_AUDIT**: `PASS` (tracked diff boolean-only, no values)
+
+---
+
+## 2026-10-05 — 006BH Prettier Formatting Freeze Correction (Append-Only Correction)
+
+- **PREVIOUS_ASSUMPTION**: `NEW_AUTHORIZED_LIVE_FREEZE_WORKING_TREE=3b27d0ca5a887e3adef06fb7d4e05db5e0d5faada9874462598129c0d7dc0c30` with per-file `run-...-live.mjs=3306aeb5...`
+- **NEW_EVIDENCE**: `pnpm check` failed at `format:check` on 3 touched files; `prettier --write` applied formatting-only changes; recomputed working-tree live freeze is `abdece3b7d4350987b9731b8f75948bcac17b5bcf7ab821b5347fa06fbe17db7` with per-file `run-...-live.mjs=6f77009a4e4e6ba126cff36036d5acec77ce6d3e3e662a09fa807a45050e2a05`; other 2 modules unchanged (`01659d87...`, `d0ff1bb6...`); offline `6fdc0827...`, dataset `ade86008...`, historical `f5ef6e6b...` unchanged; reproducibility confirmed via tracked tooling with `readBytes` from filesystem
+- **CORRECTION**: final `NEW_AUTHORIZED_LIVE_FREEZE_SHA256=abdece3b7d4350987b9731b8f75948bcac17b5bcf7ab821b5347fa06fbe17db7` supersedes pre-format `3b27d0ca...` for formatting reasons only; no logic change; `AI_CONTEXT` updated to `abdece3b...`; `OLD_AUTHORIZED_LIVE_FREEZE_SHA256=500d922caf5409d85644e879443a14fbd5264f0bd9a1c26792da13afe1b64301` unchanged
+- **TEST_CHANGE_REASON**: formatting only; `ASSERTION_EQUIVALENT`; focused regression still `PASS` 3/3 after format
+- **SECRET_AUDIT**: `PASS`
