@@ -15550,3 +15550,72 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **ENV_FILE_READ_OCCURRED**: `NO`; **CREDENTIAL_VALUE_PRINTED**: `NO`
 - **FORBIDDEN_IDE_INTERNAL_STORAGE_ACCESSED**: `NO`; **UNTRACKED_TEMP_HELPER_CREATED**: `NO`
 - **SECRET_AUDIT**: `PASS`
+
+---
+
+## 2026-10-05 — 006BG Authorized Live Path Implementation (Fake-Validated, NOT_EXECUTED)
+
+- **PR87_MERGE_SHA**: `fdb28ae3ca7ba425d07160ca10162b86f3a84720`; **BRANCH_BASE**: `origin/main` @ `fdb28ae...`; **NEXT_SLICE_ID**: `006BG` (verificado livre)
+- **HUMAN_AUTHORIZATION_GRANTED**: `YES` (4 decisões: TS-1A aceitar evidência de conta p/ estudo único; aceitar limitação de input p/ estudo único; teto $0.50; autorizar 1 estudo sintético v2)
+- **HUMAN_V2_LIVE_AUTHORIZATION**: `AUTHORIZED_ONE_TARGETED_V2_SYNTHETIC_STUDY`; **AUTHORIZED_RUN_COUNT**: `1`; **AUTHORIZATION_CONSUMED**: `NO`; **AUTHORIZED_OPERATOR_COST_CEILING_USD**: `0.50` (governança, não hard bound); **CURRENT_L2_EXECUTION**: `AUTHORIZED_NOT_EXECUTED`; **LIVE_COMMAND_INVOKED**: `NO`
+- **IMPLEMENTATION**: camada live autorizada fina (`run-...-v2-live.mjs` + `l2-mixed-intent-v2-authorized-preconditions.mjs` + freeze próprio 3 módulos `500d922c…`); núcleo v2 congelado reutilizado sem alteração (`6fdc0827…` preservado); adapters reais via factories existentes; teto explícito sem fallback de ambiente; estimativa de planejamento $0.160168 fail-closed contra teto
+- **INPUT_DECISION**: `ACCEPT_CURRENT_RUNTIME_INPUT_LIMITATION_FOR_SINGLE_V2_STUDY` (TOKEN_CAP `NONE`; OUTPUT 500; REQUEST 4/4/8/1/0; timeout estudo 5000ms preservado)
+- **SEMANTICS**: Criterion A exato; fallback determinístico e SECURITY excluídos; `matcherMatched` histórico; thresholds intactos; consumo de autorização só em dispatch live real (fakes: `NO`)
+- **FOCUSED_AUTHORIZED_V2_TESTS**: `PASS` (25 testes A–Y, 0 providers reais)
+- **OPENAI_REAL_CALLS**: `0`; **TYPESAFE_REAL_CALLS**: `0`; **TWILIO**: `0`; **NEON/STAGING/PROD**: `0`; **HOLDOUT**: `NO ACCESS`; **CUSTOMER**: `0`
+- **ENV_FILE_READ_OCCURRED**: `NO`; **CREDENTIAL_VALUE_PRINTED**: `NO`
+- **FORBIDDEN_IDE_INTERNAL_STORAGE_ACCESSED**: `NO`; **UNTRACKED_TEMP_HELPER_CREATED**: `NO`
+- **PRODUCTION_RUNTIME**: inalterado (`PRODUCTION_RUNTIME_WIRING = NO`)
+- **SECRET_AUDIT**: `PASS`
+
+---
+
+## 2026-10-05 — 006BG Full-Study Test Timeout Extension (Test-Only)
+
+- **CAUSE**: gate canônico falhou com 1 timeout (teste U, 6691ms sob carga); testes P–W executam estudo completo de 4 casos com freeze real (observado 2.5–6.7s sob carga), todos na margem do default 5000ms
+- **FIX**: timeout por teste `15000`ms estendido aos testes de execução completa P,Q,R,S,T,U,V,W (X já possuía); padrão estreito idêntico ao autorizado; A–N/Y inalterados (rápidos)
+- **FIX-2**: gate seguinte falhou em H(6464ms)/J(5160ms)/histórico-v1(7329ms) — mesmos testes de computação real de freeze, todos acima de 5s; estendido `15000`ms a esses 3 restantes (nenhuma assertion tocada; Case A isolado chegou a 4798ms, confirmando a margem necessária)
+- **ASSERTION_WEAKENED**: `NO` (só limite de tempo; nenhuma assertion tocada; reflow prettier verificado por teste verde)
+- **PROVIDER_HARNESS_TIMEOUT_CHANGED**: `NO` (5000ms preservado)
+- **OPENAI_REAL_CALLS**: `0`; **TYPESAFE_REAL_CALLS**: `0`; **LIVE_COMMAND_INVOKED**: `NO`
+- **SECRET_AUDIT**: `PASS`
+
+---
+
+## 2026-10-05 — 006BG Pre-PR Consistency Reconciliation (Docs-Only)
+
+- **SCOPE**: reconciliação docs-only; implementação 006BG inalterada (código/testes/dataset/freeze intactos)
+- **PR87_MERGE_SHA**: `fdb28ae3ca7ba425d07160ca10162b86f3a84720` (ancestral do branch)
+- **AUTHORIZATION_FACTS**: granted 1 estudo (`AUTHORIZED_ONE_TARGETED_V2_SYNTHETIC_STUDY`); consumo `NO`; teto `0.50`; pricing TS-1A; input limitation aceita; execução `AUTHORIZED_NOT_EXECUTED`; live NÃO invocada; produção `NO`/proibida
+- **AI_CONTEXT**: header p/ base `fdb28ae`/PR 87/branch 006BG; linhas `NOT_AUTHORIZED` do §8 qualificadas como `OFFLINE_V2_RUNNER` (núcleo 006BF inalterado); teto corrente `0.50` (histórico `NOT_SELECTED` qualificado); `AI_CONTEXT_CURRENT_STATE_CONTRADICTION = NO`
+- **V2_PREAUTH**: `CURRENT_SLICE = 006BG`; `OFFLINE_V2_RUNNER_LIVE_AUTHORIZED = false` qualificado; teto corrente `0.50`; readiness = aguardando review do PR 006BG + invocação explícita
+- **MAIN_PREAUTH**: metadados correntes p/ 006BG (execução autorizada-não-executada, teto `0.50`, decisões aceitas); histórico 006AY/006BA preservado
+- **DECISION_PACKAGE_STATUS**: `HUMAN_DECISION_COMPLETED_AUTHORIZED_NOT_EXECUTED` (autorização veio do operador, não do documento)
+- **AUTHORIZED_LIVE_TEST_COUNT**: `24` ativos (A–X com N/O combinados + Y; correção: entrada anterior dizia "25 testes A–Y" — contagem determinística por `it(` = 18 linha-única + 6 multilinha P,Q,S,T,V,W = 24); `AUTHORIZED_TEST_COUNT_CONSISTENCY = PASS`
+- **NO_CODE_CHANGES**: `YES` (só docs); **LIVE_COMMAND_INVOKED**: `NO`; **AUTHORIZATION_CONSUMED**: `NO`
+- **OPENAI_REAL_CALLS**: `0`; **TYPESAFE_REAL_CALLS**: `0`
+- **ENV_FILE_READ_OCCURRED**: `NO`; **CREDENTIAL_VALUE_PRINTED**: `NO`
+- **FORBIDDEN_IDE_INTERNAL_STORAGE_ACCESSED**: `NO`; **UNTRACKED_TEMP_HELPER_CREATED**: `NO`
+- **SECRET_AUDIT**: `PASS`
+---
+
+## 2026-10-05 — 006BG Final Freeze Timeout Stabilization (Test-Only)
+
+- **PREVIOUS_FINAL_GATE**: `FAIL` (c056b64 canonical gate exited 1; two expensive freeze tests timed out at ~18s under full-suite load)
+- **PRIOR_TIMEOUT_ALREADY_APPLIED**: `YES` (both tests already had 15000ms; they were not missed in prior remediation — 15000ms became insufficient under full-suite load)
+- **EXACT_TWO_TESTS**:
+  - `packages/integrations/src/typesafe/l2-executable-freeze.test.ts` Case A: observed ~18066ms → timeout 15000ms
+  - `packages/integrations/src/typesafe/l2-mixed-intent-v2-freeze.test.ts` "tracked v2 freeze on HEAD is reproducible": observed ~17941ms → timeout 15000ms
+- **VITEST_TIMEOUT_SELECTED_MS**: `30000` (exactly these two tests; provider/research harness timeout 5000ms unchanged)
+- **ASSERTIONS_CHANGED**: `NO`; **PROVIDER_HARNESS_TIMEOUT_CHANGED**: `NO`
+- **FOCUSED_FREEZE_TESTS**: `PASS` (Case A: 4545ms / 8233ms full-suite; "tracked v2 freeze": 4215ms / 7329ms full-suite — both well under 30000ms)
+- **FREEZE_HASHES_UNCHANGED**:
+  - V2_DATASET_SHA256 = `ade86008b360b90754e2ac95a560d381e7adc655ecb20d09f2a28077faf9c690`
+  - OFFLINE_V2_EXECUTABLE_AGGREGATE_SHA256 = `6fdc0827dd4dff4dab49f2c8f5a4e82d3024614680ea23106531c8a954ef1f2e`
+  - AUTHORIZED_V2_LIVE_EXECUTABLE_AGGREGATE_SHA256 = `500d922caf5409d85644e879443a14fbd5264f0bd9a1c26792da13afe1b64301`
+  - HISTORICAL_EXECUTABLE_AGGREGATE_SHA256 = `f5ef6e6b88e09094765b0c3b273ba23cae01502bdd0ec4fe28dbcb3f2133794a`
+- **AUTHORIZATION_UNCHANGED**: granted 1 study (`AUTHORIZED_ONE_TARGETED_V2_SYNTHETIC_STUDY`); `AUTHORIZATION_CONSUMED = NO`; `LIVE_COMMAND_INVOKED = NO`; `OPENAI_REAL_CALLS = 0`; `TYPESAFE_REAL_CALLS = 0`
+- **FULL_QUALITY_GATE**: `PASS` (121 test files passed, 839 tests passed, 45 skipped; format/lint/typecheck/build/architecture/file-size all pass)
+- **CANONICAL_COMMAND_EXIT**: `0`
+- **LATEST_FULL_GATE_HEAD**: `fbccaac` (git rev-parse HEAD after freeze timeout fix commit)
+- **SECRET_AUDIT**: `PASS`
