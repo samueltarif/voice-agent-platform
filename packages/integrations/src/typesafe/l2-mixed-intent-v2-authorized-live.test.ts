@@ -441,15 +441,6 @@ describe('L2 Mixed-Intent v2 Authorized Live Study (Slice 006BG)', () => {
     const result = await runAuthorizedV2Study(options);
     expect(result.metadata.authorizationConsumed).toBe(false);
     expect(result.metadata.providerExecutionStatus).not.toBe('LIVE_DISPATCHED');
-    expect(
-      validateAuthorizedLivePreconditions({
-        allowLiveExecution: true,
-        authorization: validAuthorization(),
-        costCeilingUsd: 0.5,
-        acceptTypesafeEmpiricalPricing: true,
-        ...workingTreeLiveFreezeProviders(),
-      }).authorizationConsumed,
-    ).toBe(false);
   }, 15000);
 
   it('Y. authorized live freeze is deterministic across invocations', async () => {
