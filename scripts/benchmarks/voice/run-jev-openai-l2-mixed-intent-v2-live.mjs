@@ -148,7 +148,11 @@ export async function runAuthorizedV2Study(options = {}) {
   return artifact;
 }
 
-export async function executeAuthorizedV2Cli(args = process.argv.slice(2), customLogger, testOverrides = {}) {
+export async function executeAuthorizedV2Cli(
+  args = process.argv.slice(2),
+  customLogger,
+  testOverrides = {},
+) {
   const cliOptions = parseAuthorizedV2CliArgs(args);
   const logger = customLogger ?? console;
   try {

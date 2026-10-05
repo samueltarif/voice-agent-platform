@@ -5,9 +5,7 @@ import { matchesOperatingHoursCapability } from '../../../../apps/voice/src/oper
 import { resolveOperatingHoursInvolvement } from '../../../../apps/voice/src/operating-hours-involvement.js';
 import { interpretFrozenTurnPolicy } from '../../../../apps/voice/src/frozen-policy-interpreter.js';
 import { handleOperatingHoursTurn } from '../../../../apps/voice/src/operating-hours-turn-handler.js';
-import {
-  AUTHORIZED_V2_STUDY_ID,
-} from '../../../../scripts/benchmarks/voice/l2-mixed-intent-v2-authorized-preconditions.mjs';
+import { AUTHORIZED_V2_STUDY_ID } from '../../../../scripts/benchmarks/voice/l2-mixed-intent-v2-authorized-preconditions.mjs';
 import {
   parseAuthorizedV2CliArgs,
   runAuthorizedV2Study,

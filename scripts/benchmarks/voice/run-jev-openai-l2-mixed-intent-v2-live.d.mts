@@ -72,4 +72,8 @@ export function runAuthorizedV2Study(options?: {
   ref?: string | undefined;
 }): Promise<AuthorizedV2StudyArtifact>;
 
-export function executeAuthorizedV2Cli(args?: string[], customLogger?: unknown, testOverrides?: Record<string, unknown>): Promise<number>;
+export function executeAuthorizedV2Cli(
+  args?: string[],
+  customLogger?: unknown,
+  testOverrides?: Record<string, unknown>,
+): Promise<number>;
