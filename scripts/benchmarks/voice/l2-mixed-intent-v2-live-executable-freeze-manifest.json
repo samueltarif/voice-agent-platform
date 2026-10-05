@@ -1,0 +1,9 @@
+{
+  "version": "1.0.0",
+  "expectedModuleCount": 3,
+  "executableModules": [
+    "scripts/benchmarks/voice/run-jev-openai-l2-mixed-intent-v2-live.mjs",
+    "scripts/benchmarks/voice/l2-mixed-intent-v2-authorized-preconditions.mjs",
+    "scripts/benchmarks/voice/compute-l2-mixed-intent-v2-live-executable-freeze.mjs"
+  ]
+}
