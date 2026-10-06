@@ -15668,3 +15668,12 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **FORENSICS**: fluxo `env atual -> createRealV2Adapters (options.customEnv ?? process.env) -> normalizeApiKey trim -> endpoint https://api.typesafe.ai/v1/systemone -> Authorization Bearer` sem regressão desde último sucesso conhecido (`cf13362`/`253cf92` anteriores a L1A/L1B); classificação `CREDENTIAL_OR_PROVIDER_AUTH_REJECTION_LIKELY_BUT_NOT_PROVABLE_OFFLINE`, `LOCAL_CODE_FIX_REQUIRED=NOT_PROVEN`, sem probe, sem fix aqui
 - **STATE**: `CURRENT_L2_EXECUTION=EXECUTED_PARTIAL_FAILED_TECHNICAL`, `AUTHORIZATION_CONSUMED=YES`, `SECOND_LIVE_RUN_AUTHORIZED=NO`, `REAL_PROVIDER_VALIDATION=PARTIAL`, `JEV_SCORE_BEHAVIOR=NOT_OBSERVED`, `CRITERION_A_V2_OBSERVED=NO`, `OPENAI_REAL_PROVIDER_VALIDATION=NOT_EXECUTED`; produção bloqueada, clientes proibidos; nenhuma nova autorização
 - **SECRET_AUDIT**: `PASS`
+
+---
+
+## 2026-10-06 — 006BJ Docs-Only Post-Run Reconciliation (NO_CODE, NO_LIVE)
+
+- **SCOPE**: reconciliação docs-only do estado consumido pós-retry; envelopes e decision package atualizados de CURRENT pré-execução para consumido; decisões históricas preservadas; sem nova autorização
+- **STATE**: `AUTHORIZATION_CONSUMED=YES`, `LIVE_AUTHORIZATION_AVAILABLE=NO`, `SECOND_RUN=NO`, `PARTIAL`, TypeSafe `1/0`, OpenAI `0`, `HTTP_AUTH_ERROR`, Criterion A NO, billed `NOT_OBSERVED`
+- **CHANGED**: `AI_CONTEXT`, `AI_WORKLOG`, 3 envelopes de pesquisa; artefato, código, testes, executáveis, dataset e freezes intactos; sem providers; sem live nesta reconciliação
+- **SECRET_AUDIT**: `PASS`
