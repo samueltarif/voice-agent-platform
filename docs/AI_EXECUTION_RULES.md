@@ -76,8 +76,10 @@ Toda auditoria ou validação de segredos no repositório, em arquivos ou em dif
 ## 4. Proteção de Arquivos de Ambiente (.env) e Processos
 
 ### 4.1 Arquivos `.env`
-- É proibido executar comandos como `cat .env`, `type .env`, `Get-Content .env` em `.env`, `.env.local`, `.env.staging`, `.env.production` ou equivalentes.
-- Verificações em arquivos de ambiente devem aferir apenas a presença booleana de variáveis de configuração necessárias, sem exibir seus valores.
+- **DEFAULT**: É proibido executar comandos como `cat .env`, `type .env`, `Get-Content .env` em `.env`, `.env.local`, `.env.staging`, `.env.production` ou equivalentes para exibir valores.
+- **EXCEÇÃO HUMANA EXPLÍCITA**: Quando o operador humano autorizar explicitamente um arquivo de ambiente ESPECÍFICO no prompt, o agente pode carregar/parsear exatamente esse arquivo e somente para a tarefa autorizada, de forma cega a valores.
+- Verificações em arquivos de ambiente devem aferir apenas a presença booleana de variáveis de configuração necessárias (`PRESENT`/`ABSENT`, `MATCH`/`MISMATCH`), sem exibir valores, prefixos, sufixos, tamanhos, hashes ou substrings. Mesmo com autorização, não usar comandos de despejo; usar loader/parser seguro em memória. Não enumerar todas as chaves; inspecionar apenas nomes explicitamente autorizados. Nunca persistir, copiar, commitar ou logar conteúdos de `.env`.
+- Autorização para CARREGAR `.env` NÃO autoriza acesso à rede; chamadas a provedores/redes exigem autorização humana explícita separada.
 
 ### 4.2 Inspeção Segura de Processos
 - **Permitido**: Consultar PID, nome do executável (`node.exe`), porta TCP em escuta (`Get-NetTCPConnection`), endpoint de healthcheck (`/healthz`), status de execução (running/stopped) e exit code.

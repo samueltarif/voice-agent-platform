@@ -15677,3 +15677,17 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **STATE**: `AUTHORIZATION_CONSUMED=YES`, `LIVE_AUTHORIZATION_AVAILABLE=NO`, `SECOND_RUN=NO`, `PARTIAL`, TypeSafe `1/0`, OpenAI `0`, `HTTP_AUTH_ERROR`, Criterion A NO, billed `NOT_OBSERVED`
 - **CHANGED**: `AI_CONTEXT`, `AI_WORKLOG`, 3 envelopes de pesquisa; artefato, código, testes, executáveis, dataset e freezes intactos; sem providers; sem live nesta reconciliação
 - **SECRET_AUDIT**: `PASS`
+
+---
+
+## 2026-10-06 — 006BK Controlled Dotenv Loading Governance + Value-Blind Audit (NO_LIVE, NO_PROVIDERS)
+
+- **AUTHORIZATION**: humano autorizou acesso value-blind somente a `D:/voice-agent-platform-git/.env` para diagnósticos locais; rede/provedores/live seguem NÃO autorizados
+- **GOVERNANCE**: `AGENTS.md` e `docs/AI_EXECUTION_RULES.md` saíram de proibição absoluta para exceção explícita value-blind (`PRESENT`/`ABSENT`, `MATCH`/`MISMATCH`; sem valor/prefixo/sufixo/tamanho/hash; sem `cat`/`type`/`Get-Content`; sem enumeração; sem persistência; rede separada); segredos, rede, produção e storage interno seguem restritos
+- **DOTENV**: existe `YES`, ignorado pelo Git `YES`; inspecionadas somente `TYPESAFE_API_KEY`/`OPENAI_API_KEY`
+- **PRESENCE**: `.env` TypeSafe `YES` / OpenAI `YES`; processo TypeSafe `YES` / OpenAI `YES`
+- **EQUALITY**: TypeSafe processo vs `.env` `NO` (credenciais diferentes; NÃO prova qual causou `HTTP_AUTH_ERROR`); OpenAI `YES`; comparação só de configuração, sem validar provedor
+- **LOADER**: runner live NÃO auto-carrega `.env` (lê `options.customEnv ?? process.env`, sem `dotenv`); repo só usa `node --env-file=.env.staging` explícito em scripts staging; sem loader canônico para o caminho live
+- **STRATEGY**: `USE_NODE_ENV_FILE_AT_INVOCATION` para rodadas locais autorizadas (ex.: `node --env-file=.env ...`), sem nova dependência e sem runtime de produção ler `.env` da raiz; `RUNTIME_CODE_CHANGE_REQUIRED=NO`
+- **SAFETY**: `OPENAI_REAL_CALLS=0`, `TYPESAFE_REAL_CALLS=0`, `LIVE_COMMAND_INVOKED=NO`; nenhum valor impresso ou armazenado
+- **SECRET_AUDIT**: `PASS`
