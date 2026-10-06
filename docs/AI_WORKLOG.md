@@ -15731,3 +15731,38 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **CANONICAL_GATE_INVOCATION_DEVIATION**: `YES` — o comando do canonical gate foi acionado mais de uma vez em background durante a execução original de 006BM devido a timeout de worker do Vitest sob carga, em vez de uma única invocação aguardada; trata-se de um desvio de processo/auditabilidade que não invalida os resultados técnicos/documentais; uma nova invocação única e definitiva no HEAD de correção produzirá a evidência canônica limpa.
 - **SAFETY**: `OPENAI_REAL_CALLS=0`, `TYPESAFE_REAL_CALLS=0`, `LIVE_COMMAND_INVOKED=NO`, `REAL_DOTENV_ACCESSED=NO`, `SECRET_AUDIT=PASS`
 - **STATE**: `AUTHORIZATION_CONSUMED=YES`, `SECOND_LIVE_RUN_AUTHORIZED=NO`, `NEW_LIVE_AUTHORIZATION_CREATED=NO`
+
+---
+
+## 2026-10-06 — 006BN No-Network Local Provider Env Preflight (Offline, NO_LIVE, NO_PROVIDERS)
+
+- **MAIN_STARTING_SHA**: `6a9c5830694c045f24c24cfe91ed87e8fc10f1c5` (commit de merge do PR #94)
+- **EXISTING_TOOL_AUDIT**: não existia ferramenta prévia reutilizável para diagnóstico isolado de variáveis de ambiente sem rede (`EXISTING_NO_NETWORK_ENV_PREFLIGHT = NO`, `REUSE_EXISTING_PREFLIGHT = NO`)
+- **TOOL_IMPLEMENTATION**: criado `scripts/benchmarks/voice/check-local-provider-env-source.mjs` (com declarações de tipos em `check-local-provider-env-source.d.mts`); ferramenta de diagnóstico para operador, estritamente fora do runtime de produção (`PREFLIGHT_IMPLEMENTED = YES`)
+- **CONTRACT_ENFORCEMENT**: `--env-file` explícito obrigatório (`PREFLIGHT_REQUIRES_EXPLICIT_ENV_FILE = YES`); sanitiza estritamente `TYPESAFE_API_KEY` e `OPENAI_API_KEY` no subprocesso filho (`SANITIZED_CHILD_ENVIRONMENT = YES`); saída exclusivamente em booleanos (`VALUE_BLIND_OUTPUT_ONLY = YES`); zero execução de comandos arbitrários (`ARBITRARY_COMMAND_EXECUTION_POSSIBLE = NO`); incapaz de invocar live runner ou rede (`LIVE_RUNNER_INVOCATION_POSSIBLE = NO`, `PROVIDER_NETWORK_CALL_POSSIBLE = NO`); sem mutação de ambiente global do Windows ou do pai (`PARENT_ENV_MUTATED = NO`, `GLOBAL_WINDOWS_ENV_MUTATION_REQUIRED = NO`); zero novas dependências (`NEW_DEPENDENCY_REQUIRED = NO`)
+- **REGRESSION_FIRST_TESTS**: adicionados 7 testes automatizados com dados puramente sintéticos em `packages/integrations/src/typesafe/check-local-provider-env-source.test.ts` cobrindo arquivo ausente (fail closed), ambas chaves presentes (ready), ausência de TypeSafe ou OpenAI (not ready), conflito no pai (isolamento para arquivo), blindagem de saída (zero segredos/tamanhos/hashes) e rejeição de argumentos arbitrários
+- **SAFETY**: `REAL_DOTENV_ACCESSED = NO` (testes e validação puramente sintéticos), `OPENAI_REAL_CALLS = 0`, `TYPESAFE_REAL_CALLS = 0`, `TWILIO_REAL_CALLS = 0`, `LIVE_COMMAND_INVOKED = NO`, `SECRET_AUDIT = PASS`
+- **STATE**: `AUTHORIZATION_CONSUMED = YES`, `SECOND_LIVE_RUN_AUTHORIZED = NO`, `NEW_LIVE_AUTHORIZATION_CREATED = NO`
+
+---
+
+## 2026-10-06 — 006BN Execution Audit Deviations Correction (Offline, NO_LIVE, NO_PROVIDERS)
+
+- **006BN_EXECUTION_AUDIT_CORRECTION**: `YES`
+- **REGRESSION_FIRST_ORDER_DEVIATION**: `YES`
+- **REGRESSION_FIRST_FAILING_EVIDENCE**: `NOT_OBSERVED`
+  - O arquivo de teste foi criado antes do arquivo de implementação;
+  - No entanto, a implementação também foi criada antes da primeira execução de teste registrada;
+  - Portanto, não há observação registrada de falha vermelha (red test) antes da implementação;
+  - O termo `REGRESSION_FIRST_TESTS` na entrada original de 006BN não deve ser interpretado como evidência de execução de teste falhando observada previamente;
+  - Os 7 testes subsequentemente passaram e constituem evidência válida de verificação;
+  - Trata-se de um desvio de processo/auditabilidade que não invalida o comportamento técnico testado.
+- **PRE_FINAL_GATE_INVOCATION_OCCURRED**: `YES`
+- **FINAL_HEAD_GATE_INVOCATION_COUNT_ORIGINAL_006BN**: `1`
+- **TOTAL_CANONICAL_COMMAND_LAUNCHES_ORIGINAL_006BN**: `2`
+  - Uma invocação do comando canônico ocorreu antes do ajuste de formatação pelo Prettier que gerou commit amend;
+  - Após a formatação e amend, o comando canônico foi executado uma vez no HEAD final `74cfe8100e102644dbcc25fcd93e1047dd31ac76`;
+  - Apenas esta última execução é evidência autoritativa para aquele HEAD final;
+  - Portanto, o campo original `CANONICAL_GATE_INVOCATION_COUNT = 1` refere-se a uma invocação autoritativa no HEAD final, e não ao total de lançamentos de comandos durante todo o slice.
+- **SAFETY**: `REAL_DOTENV_ACCESSED = NO`, `OPENAI_REAL_CALLS = 0`, `TYPESAFE_REAL_CALLS = 0`, `TWILIO_REAL_CALLS = 0`, `LIVE_COMMAND_INVOKED = NO`, `SECRET_AUDIT = PASS`
+- **STATE**: `AUTHORIZATION_CONSUMED = YES`, `SECOND_LIVE_RUN_AUTHORIZED = NO`, `NEW_LIVE_AUTHORIZATION_CREATED = NO`
