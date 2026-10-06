@@ -15788,3 +15788,25 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **TEST_COVERAGE**: 9 testes automatizados com dados puramente sintéticos em `packages/integrations/src/typesafe/check-targeted-v2-technical-readiness.test.ts` cobrindo sucesso com dados sintéticos válidos, falha em env ausente, divergência de hash de dataset, divergência de freeze executável live, divergência de configuração de estudo, preservação do isolamento de subprocesso diante de variáveis conflitantes no pai, blindagem total de segredos (zero vazamento de valores, hashes ou fingerprints), rejeição de argumentos arbitrários na CLI e separação explícita entre prontidão técnica e autorização humana
 - **SAFETY**: `REAL_DOTENV_ACCESSED = NO`, `OPENAI_REAL_CALLS = 0`, `TYPESAFE_REAL_CALLS = 0`, `TWILIO_REAL_CALLS = 0`, `LIVE_COMMAND_INVOKED = NO`, `SECRET_AUDIT = PASS`
 - **STATE**: `AUTHORIZATION_CONSUMED = YES`, `SECOND_LIVE_RUN_AUTHORIZED = NO`, `NEW_LIVE_AUTHORIZATION_CREATED = NO`
+
+---
+
+## 2026-10-06 — 006BO Execution Audit Deviations Correction (Offline, NO_LIVE, NO_PROVIDERS)
+
+- **006BO_EXECUTION_AUDIT_CORRECTION**: `YES`
+- **REGRESSION_FIRST_ORDER_DEVIATION**: `YES`
+- **REGRESSION_FIRST_RED_OBSERVED**: `NOT_OBSERVED`
+  - O novo arquivo de teste foi criado antes da implementação;
+  - O comando do teste direcionado foi lançado antes da implementação;
+  - No entanto, nenhum resultado concluído de falha desse comando foi observado e registrado antes da criação dos arquivos de implementação;
+  - Portanto, a transcrição não suporta a alegação de teste vermelho observado antes da implementação;
+  - O campo original `REGRESSION_FIRST_RED_OBSERVED = YES` de 006BO não deve ser tratado como evidência comprovada;
+  - Os testes direcionados executados posteriormente passaram e permanecem como evidência válida de verificação;
+  - Trata-se de um desvio de processo/auditabilidade, e não de uma invalidação técnica.
+- **CANONICAL_GATE_INVOCATION_DEVIATION**: `YES`
+- **TOTAL_CANONICAL_GATE_LAUNCHES_ORIGINAL_006BO**: `2`
+  - O comando canônico foi lançado duas vezes no HEAD `f5a15980ed3fc6d45da54635feb452f258cca0ca` (a primeira tentativa sofreu timeout transiente de RPC de worker do Vitest sob carga);
+  - Portanto, `CANONICAL_GATE_INVOCATION_COUNT = 1` no relatório original de 006BO não deve ser interpretado como o total de lançamentos durante o slice;
+  - Uma nova invocação única e autoritativa do quality gate será executada no HEAD de correção.
+- **SAFETY**: `REAL_DOTENV_ACCESSED = NO`, `OPENAI_REAL_CALLS = 0`, `TYPESAFE_REAL_CALLS = 0`, `TWILIO_REAL_CALLS = 0`, `LIVE_COMMAND_INVOKED = NO`, `SECRET_AUDIT = PASS`
+- **STATE**: `AUTHORIZATION_CONSUMED = YES`, `SECOND_LIVE_RUN_AUTHORIZED = NO`, `NEW_LIVE_AUTHORIZATION_CREATED = NO`
