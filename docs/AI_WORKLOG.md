@@ -15658,3 +15658,13 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **FREEZE**: dataset `ade86008...`, offline `6fdc0827...`, authorized-live `abdece3b...`, historical `f5ef6e6b...` all unchanged; research executable unchanged
 - **SAFETY**: `OPENAI_REAL_CALLS=0`, `TYPESAFE_REAL_CALLS=0`, `LIVE_COMMAND_INVOKED=NO`, `AUTHORIZATION_CONSUMED=NO`, prior single failure preserved, no second invocation, retry still requires separate human decision; this task does NOT authorize retry
 - **SECRET_AUDIT**: `PASS`
+
+---
+
+## 2026-10-06 — 006BJ v2 Live Auth-Failure Post-Run Evidence (Offline-Only, NO_LIVE_THIS_TASK)
+
+- **HISTORY**: first invocation `FAILED_BEFORE_NETWORK_FATAL_LIVE_AUTHORIZATION_MISSING` with `0` dispatch; authorized retry executed exactly once on post-PR90 main; `1` real TypeSafe dispatch with `HTTP_AUTH_ERROR`, `0` OpenAI, `FAILED_TECHNICAL`, `PARTIAL`, Criterion A NO, billed cost `NOT_OBSERVED`
+- **ARTIFACT**: `docs/research/results/phase-6-l2-mixed-intent-v2-live-run1.json` added as-is, SHA `1E71C6D64E31B6147A16FE7DFE5BBD04FED43F15BA639865393EA6246B13519B` (task text variant with `161FE` is a one-char insertion typo; authoritative file hash uses `16FE`); integrity `PASS` (identidade, dataset, freezes, modelos, caps, teto `0.50`, planejamento `0.160168`, 1 dispatch, `HTTP_AUTH_ERROR`, 0 OpenAI, `FAILED_TECHNICAL`, Criterion false, consumo YES, `LIVE_DISPATCHED`); secret audit `PASS` (sem chaves, sem bearer, sem customer/holdout/transcripts); casos `v2-01` avaliado com `HTTP_AUTH_ERROR`, `v2-02/03/04` `NOT_EVALUATED`
+- **FORENSICS**: fluxo `env atual -> createRealV2Adapters (options.customEnv ?? process.env) -> normalizeApiKey trim -> endpoint https://api.typesafe.ai/v1/systemone -> Authorization Bearer` sem regressão desde último sucesso conhecido (`cf13362`/`253cf92` anteriores a L1A/L1B); classificação `CREDENTIAL_OR_PROVIDER_AUTH_REJECTION_LIKELY_BUT_NOT_PROVABLE_OFFLINE`, `LOCAL_CODE_FIX_REQUIRED=NOT_PROVEN`, sem probe, sem fix aqui
+- **STATE**: `CURRENT_L2_EXECUTION=EXECUTED_PARTIAL_FAILED_TECHNICAL`, `AUTHORIZATION_CONSUMED=YES`, `SECOND_LIVE_RUN_AUTHORIZED=NO`, `REAL_PROVIDER_VALIDATION=PARTIAL`, `JEV_SCORE_BEHAVIOR=NOT_OBSERVED`, `CRITERION_A_V2_OBSERVED=NO`, `OPENAI_REAL_PROVIDER_VALIDATION=NOT_EXECUTED`; produção bloqueada, clientes proibidos; nenhuma nova autorização
+- **SECRET_AUDIT**: `PASS`
