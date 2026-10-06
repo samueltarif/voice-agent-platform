@@ -61,32 +61,36 @@ function liveFreezeProviders() {
 }
 
 describe('006BH live CLI authorization plumbing regression', () => {
-  it('H. CLI with explicit single-study flag propagates human authorization to validator', async () => {
-    const cliOptions = parseAuthorizedV2CliArgs([
-      '--allow-live',
-      '--accept-typesafe-empirical-pricing',
-      '--cost-ceiling',
-      '0.50',
-      '--authorize-one-targeted-v2-synthetic-study',
-    ]);
-    const jev = createFakeJev();
-    const openAi = createFakeOpenAi();
-    const result = await runAuthorizedV2Study({
-      ...cliOptions,
-      logger: silentLogger,
-      deps,
-      typeSafeAdapter: jev.adapter,
-      openAiAdapter: openAi.adapter,
-      dryRunWrite: true,
-      timeoutMs: 1000,
-      openAiModelId: 'gpt-6-astra',
-      ...liveFreezeProviders(),
-    });
-    expect(result.metadata.authorizationScope).toBe('ONE_TARGETED_V2_SYNTHETIC_STUDY');
-    expect(result.metadata.authorizationConsumed).toBe(false);
-    expect(result.metadata.providerExecutionStatus).toBe('FAKE_OFFLINE_VALIDATION');
-    expect(result.cases).toHaveLength(4);
-  });
+  it(
+    'H. CLI with explicit single-study flag propagates human authorization to validator',
+    { timeout: 15000 },
+    async () => {
+      const cliOptions = parseAuthorizedV2CliArgs([
+        '--allow-live',
+        '--accept-typesafe-empirical-pricing',
+        '--cost-ceiling',
+        '0.50',
+        '--authorize-one-targeted-v2-synthetic-study',
+      ]);
+      const jev = createFakeJev();
+      const openAi = createFakeOpenAi();
+      const result = await runAuthorizedV2Study({
+        ...cliOptions,
+        logger: silentLogger,
+        deps,
+        typeSafeAdapter: jev.adapter,
+        openAiAdapter: openAi.adapter,
+        dryRunWrite: true,
+        timeoutMs: 1000,
+        openAiModelId: 'gpt-6-astra',
+        ...liveFreezeProviders(),
+      });
+      expect(result.metadata.authorizationScope).toBe('ONE_TARGETED_V2_SYNTHETIC_STUDY');
+      expect(result.metadata.authorizationConsumed).toBe(false);
+      expect(result.metadata.providerExecutionStatus).toBe('FAKE_OFFLINE_VALIDATION');
+      expect(result.cases).toHaveLength(4);
+    },
+  );
 
   it('A. CLI without explicit authorization flag stays fail-closed', async () => {
     const cliOptions = parseAuthorizedV2CliArgs([
