@@ -15743,3 +15743,26 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **REGRESSION_FIRST_TESTS**: adicionados 7 testes automatizados com dados puramente sintéticos em `packages/integrations/src/typesafe/check-local-provider-env-source.test.ts` cobrindo arquivo ausente (fail closed), ambas chaves presentes (ready), ausência de TypeSafe ou OpenAI (not ready), conflito no pai (isolamento para arquivo), blindagem de saída (zero segredos/tamanhos/hashes) e rejeição de argumentos arbitrários
 - **SAFETY**: `REAL_DOTENV_ACCESSED = NO` (testes e validação puramente sintéticos), `OPENAI_REAL_CALLS = 0`, `TYPESAFE_REAL_CALLS = 0`, `TWILIO_REAL_CALLS = 0`, `LIVE_COMMAND_INVOKED = NO`, `SECRET_AUDIT = PASS`
 - **STATE**: `AUTHORIZATION_CONSUMED = YES`, `SECOND_LIVE_RUN_AUTHORIZED = NO`, `NEW_LIVE_AUTHORIZATION_CREATED = NO`
+
+---
+
+## 2026-10-06 — 006BN Execution Audit Deviations Correction (Offline, NO_LIVE, NO_PROVIDERS)
+
+- **006BN_EXECUTION_AUDIT_CORRECTION**: `YES`
+- **REGRESSION_FIRST_ORDER_DEVIATION**: `YES`
+- **REGRESSION_FIRST_FAILING_EVIDENCE**: `NOT_OBSERVED`
+  - O arquivo de teste foi criado antes do arquivo de implementação;
+  - No entanto, a implementação também foi criada antes da primeira execução de teste registrada;
+  - Portanto, não há observação registrada de falha vermelha (red test) antes da implementação;
+  - O termo `REGRESSION_FIRST_TESTS` na entrada original de 006BN não deve ser interpretado como evidência de execução de teste falhando observada previamente;
+  - Os 7 testes subsequentemente passaram e constituem evidência válida de verificação;
+  - Trata-se de um desvio de processo/auditabilidade que não invalida o comportamento técnico testado.
+- **PRE_FINAL_GATE_INVOCATION_OCCURRED**: `YES`
+- **FINAL_HEAD_GATE_INVOCATION_COUNT_ORIGINAL_006BN**: `1`
+- **TOTAL_CANONICAL_COMMAND_LAUNCHES_ORIGINAL_006BN**: `2`
+  - Uma invocação do comando canônico ocorreu antes do ajuste de formatação pelo Prettier que gerou commit amend;
+  - Após a formatação e amend, o comando canônico foi executado uma vez no HEAD final `74cfe8100e102644dbcc25fcd93e1047dd31ac76`;
+  - Apenas esta última execução é evidência autoritativa para aquele HEAD final;
+  - Portanto, o campo original `CANONICAL_GATE_INVOCATION_COUNT = 1` refere-se a uma invocação autoritativa no HEAD final, e não ao total de lançamentos de comandos durante todo o slice.
+- **SAFETY**: `REAL_DOTENV_ACCESSED = NO`, `OPENAI_REAL_CALLS = 0`, `TYPESAFE_REAL_CALLS = 0`, `TWILIO_REAL_CALLS = 0`, `LIVE_COMMAND_INVOKED = NO`, `SECRET_AUDIT = PASS`
+- **STATE**: `AUTHORIZATION_CONSUMED = YES`, `SECOND_LIVE_RUN_AUTHORIZED = NO`, `NEW_LIVE_AUTHORIZATION_CREATED = NO`
