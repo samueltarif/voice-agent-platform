@@ -6,18 +6,24 @@
 
 ## 1. Decision Package Identity
 
-- **DECISION_PACKAGE_STATUS**: `HUMAN_DECISION_COMPLETED_AUTHORIZED_NOT_EXECUTED`
+- **DECISION_PACKAGE_STATUS**: `HUMAN_DECISION_COMPLETED_EXECUTED_PARTIAL_FAILED_TECHNICAL`
 - **STUDY**: `L2 Mixed-Intent v2 Jev + OpenAI Synthetic Joint Chain` (Slice 006BF, `MERGED_COMPLETE` via PR #85 + reconciliação PR #86)
 - **DECISION_PACKAGE_BASE_MAIN**: `c7d8e09aab5c46394a3bd8bf95ecb6d1f7aea3f3`
-- **HUMAN_V2_LIVE_AUTHORIZATION**: `AUTHORIZED_ONE_TARGETED_V2_SYNTHETIC_STUDY` (decidido pelo operador em 2026-10-05; 1 execução; `AUTHORIZATION_CONSUMED = NO`)
-- **LIVE_AUTHORIZATION_AVAILABLE**: `YES_FOR_SINGLE_AUTHORIZED_STUDY_ONLY`
-- **CURRENT_L2_EXECUTION**: `AUTHORIZED_NOT_EXECUTED`
+- **HUMAN_V2_LIVE_AUTHORIZATION**: `AUTHORIZED_ONE_TARGETED_V2_SYNTHETIC_STUDY` (decidido pelo operador em 2026-10-05; 1 execução; `AUTHORIZATION_CONSUMED = YES`; autorização histórica consumida, sem nova autorização)
+- **LIVE_AUTHORIZATION_AVAILABLE**: `NO`
+- **CURRENT_L2_EXECUTION**: `EXECUTED_PARTIAL_FAILED_TECHNICAL`
+- **TOTAL_HISTORICAL_LIVE_COMMAND_INVOCATIONS**: `2` (primeira `FAILED_BEFORE_NETWORK_FATAL_LIVE_AUTHORIZATION_MISSING`; segunda `FAILED_TECHNICAL_HTTP_AUTH_ERROR_AFTER_ONE_TYPESAFE_DISPATCH`)
+- **SECOND_LIVE_RUN_AUTHORIZED**: `NO`
+- **REAL_PROVIDER_VALIDATION**: `PARTIAL`
+- **CRITERION_A_V2_OBSERVED**: `NO`
+- **OPENAI_REAL_PROVIDER_VALIDATION**: `NOT_EXECUTED`
+- **ACTUAL_PROVIDER_BILLED_COST_USD**: `NOT_OBSERVED`
 - **V2_OPERATOR_COST_CEILING_USD**: `0.50` (`AUTHORIZED_OPERATOR_COST_CEILING_USD = 0.50`; `GOVERNANCE_CEILING_NOT_HARD_PROVIDER_BILLING_BOUND`)
 - **AUTHORIZATION_SCOPE_DECISION**: `AUTHORIZED_ONE_TARGETED_V2_SYNTHETIC_STUDY`
 - **CURRENT_V2_TYPESAFE_PRICING_DECISION**: `ACCEPT_ACCOUNT_BILLING_EVIDENCE_FOR_SINGLE_V2_TARGETED_STUDY`
 - **CURRENT_V2_TOKEN_BUDGET_DECISION**: `ACCEPT_CURRENT_RUNTIME_INPUT_LIMITATION_FOR_SINGLE_V2_STUDY`
 - **AUTHORIZED_RUN_COUNT**: `1`
-- **AUTHORIZED_V2_LIVE_EXECUTABLE_FREEZE_SHA256**: `500d922caf5409d85644e879443a14fbd5264f0bd9a1c26792da13afe1b64301` (3 módulos, método 1.0.0; slice 006BG)
+- **AUTHORIZED_V2_LIVE_EXECUTABLE_FREEZE_SHA256**: `abdece3b7d4350987b9731b8f75948bcac17b5bcf7ab821b5347fa06fbe17db7` (3 módulos, método 1.0.0; pós-006BH; histórico pré-006BH `500d922c...` preservado apenas como histórico)
 
 ## 2. Current Technical Readiness
 
@@ -26,7 +32,7 @@
 - **V2_IMPLEMENTATION_STATUS / V2_DATASET_STATUS / V2_RUNNER_STATUS**: `IMPLEMENTED_TESTED_OFFLINE`
 - **V2_EXECUTABLE_FREEZE_STATUS**: `FROZEN_REPRODUCIBLY` (método 1.0.0, 9 módulos)
 - **CRITERION_A_V2_OFFLINE_PATH_VALIDATION**: `PASS` (matriz A–G, 22/22 testes focados; gate canônico exit 0: 120 arquivos / 815 testes passed)
-- **Restrição arquitetural conhecida (resolvida na slice 006BG)**: o runner v2 offline recusava incondicionalmente qualquer caminho não-offline (`FATAL_LIVE_NOT_AUTHORIZED`, default offline). O caminho live autorizado foi implementado como camada fina separada (`run-jev-openai-l2-mixed-intent-v2-live.mjs` + pré-condições autorizadas + freeze próprio de 3 módulos) reutilizando o núcleo semântico v2 congelado, sem alterá-lo. A autorização registrada acima continua `AUTHORIZED_NOT_EXECUTED`: nenhum comando live foi invocado.
+- **Restrição arquitetural conhecida (resolvida na slice 006BG)**: o runner v2 offline recusava incondicionalmente qualquer caminho não-offline (`FATAL_LIVE_NOT_AUTHORIZED`, default offline). O caminho live autorizado foi implementado como camada fina separada (`run-jev-openai-l2-mixed-intent-v2-live.mjs` + pré-condições autorizadas + freeze próprio de 3 módulos) reutilizando o núcleo semântico v2 congelado, sem alterá-lo. Estado pós-retry 006BJ: primeira invocação `FAILED_BEFORE_NETWORK`, retry consumido com `FAILED_TECHNICAL_HTTP_AUTH_ERROR` após 1 dispatch TypeSafe; `REAL_PROVIDER_VALIDATION=PARTIAL`, Criterion A NO, sem nova autorização.
 
 ## 3. What Has Been Proven
 
@@ -39,8 +45,8 @@
 
 ## 4. What Has NOT Been Proven
 
-- **JEV_SCORE_BEHAVIOR**: `NOT_OBSERVED` — comportamento real do Jev (`jev-1.13.0`) nos 4 casos v2 é desconhecido.
-- **REAL_PROVIDER_VALIDATION**: `NOT_EXECUTED` — nenhuma chamada real no estudo v2.
+- **JEV_SCORE_BEHAVIOR**: `NOT_OBSERVED` — comportamento real do Jev (`jev-1.13.0`) nos 4 casos v2 segue desconhecido (retry 006BJ teve 1 dispatch com `HTTP_AUTH_ERROR`, sem scores).
+- **REAL_PROVIDER_VALIDATION (histórico pré-retry)**: `NOT_EXECUTED` — nenhuma chamada real no estudo v2 antes do retry; estado atual pós-retry é `PARTIAL` (ver §1).
 - Distribuição real de policy (`GENERATIVE_REQUIRED` vs determinístico-leaning) — desconhecida; é exatamente o que o estudo live observaria.
 - Custo faturado real, latência real, telefonia real, produção: nada provado.
 
@@ -115,7 +121,7 @@ Escopo MÁXIMO de uma futura autorização (se o humano aprovar):
 - Caps 4/4/8, concorrência 1, retries 0
 - Dados de cliente 0, transcrições 0, holdout sem acesso, Twilio 0, DB produção/staging 0, tráfego de produção 0
 
-**AUTHORIZATION_SCOPE_DECISION**: `AUTHORIZED_ONE_TARGETED_V2_SYNTHETIC_STUDY` (decidido pelo operador em 2026-10-05; `AUTHORIZATION_CONSUMED = NO`)
+**AUTHORIZATION_SCOPE_DECISION**: `AUTHORIZED_ONE_TARGETED_V2_SYNTHETIC_STUDY` (decidido pelo operador em 2026-10-05; valor histórico `AUTHORIZATION_CONSUMED = NO` no momento da decisão; estado atual pós-retry `YES`, sem nova autorização)
 
 ## 11. Mandatory Stop Conditions
 
