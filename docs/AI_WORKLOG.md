@@ -15691,3 +15691,18 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **STRATEGY**: `USE_NODE_ENV_FILE_AT_INVOCATION` para rodadas locais autorizadas (ex.: `node --env-file=.env ...`), sem nova dependência e sem runtime de produção ler `.env` da raiz; `RUNTIME_CODE_CHANGE_REQUIRED=NO`
 - **SAFETY**: `OPENAI_REAL_CALLS=0`, `TYPESAFE_REAL_CALLS=0`, `LIVE_COMMAND_INVOKED=NO`; nenhum valor impresso ou armazenado
 - **SECRET_AUDIT**: `PASS`
+
+---
+
+## 2026-10-06 — 006BL Controlled Node --env-file Precedence Hardening (Offline, NO_LIVE, NO_PROVIDERS)
+
+- **MAIN_STARTING_SHA**: `e2b4e1e86e3f131c509ded322c98eb7be8c4a2f8` (commit de merge do PR #92)
+- **NODE_VERSION**: `v24.20.0` (suporte a `--env-file` `YES`)
+- **PROBE_DESIGN**: sonda offline sintética com `VOICE_AGENT_SYNTHETIC_ENV_PRECEDENCE_PROBE`; sem acesso a `.env` real; sem leitura, impressão, hash ou exposição de segredos reais de provedores
+- **PROBE_A_CONFLICT**: processo pai com variável sintética vs arquivo `--env-file` com valor diferente -> resultado observado: `PARENT_WINS` (Node.js `--env-file` não sobrescreve variáveis já existentes no `process.env`)
+- **PROBE_B_ABSENT**: variável ausente no processo pai -> resultado observado: `FILE_LOADED` (Node.js carrega corretamente valores do arquivo quando não há conflito prévio)
+- **IMPLICATION**: recomendação inicial de 006BK (`USE_NODE_ENV_FILE_AT_INVOCATION`) incompleta porque um processo pai com credencial prévia mascararia silenciosamente o arquivo `.env`
+- **CORRECTED_RECOMMENDATION**: `USE_SANITIZED_NODE_ENV_FILE_AT_INVOCATION` (iniciar subprocesso / subshell, desarmar apenas as chaves específicas autorizadas no ambiente do subprocesso e invocar `node --env-file=<arquivo> ...`; sem mutação de ambiente global de máquina/usuário e sem exibição de segredos)
+- **SOURCE_PINNING**: fonte determinística local `YES`, sem dependências novas (`NEW_DEPENDENCY_REQUIRED=NO`), sem alteração no código de runtime ou runners (`RUNTIME_CODE_CHANGE_REQUIRED=NO`)
+- **SAFETY**: `OPENAI_REAL_CALLS=0`, `TYPESAFE_REAL_CALLS=0`, `LIVE_COMMAND_INVOKED=NO`, `REAL_DOTENV_ACCESSED=NO`, `SECRET_AUDIT=PASS`
+- **STATE**: `AUTHORIZATION_CONSUMED=YES`, `SECOND_LIVE_RUN_AUTHORIZED=NO`, `NEW_LIVE_AUTHORIZATION_CREATED=NO`
