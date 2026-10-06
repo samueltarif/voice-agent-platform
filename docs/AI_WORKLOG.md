@@ -15647,3 +15647,14 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **CORRECTION**: final `NEW_AUTHORIZED_LIVE_FREEZE_SHA256=abdece3b7d4350987b9731b8f75948bcac17b5bcf7ab821b5347fa06fbe17db7` supersedes pre-format `3b27d0ca...` for formatting reasons only; no logic change; `AI_CONTEXT` updated to `abdece3b...`; `OLD_AUTHORIZED_LIVE_FREEZE_SHA256=500d922caf5409d85644e879443a14fbd5264f0bd9a1c26792da13afe1b64301` unchanged
 - **TEST_CHANGE_REASON**: formatting only; `ASSERTION_EQUIVALENT`; focused regression still `PASS` 3/3 after format
 - **SECRET_AUDIT**: `PASS`
+
+---
+
+## 2026-10-06 — 006BI v2 Live CLI Regression Timeout Stabilization (Test-Only, NO_LIVE)
+
+- **PR89_MERGE_SHA**: `bc3f7896d7fa64131e47a069380d4718870ae5da`; **POST_PR89_MAIN_SHA**: `bc3f7896d7fa64131e47a069380d4718870ae5da` (observed via `git rev-parse`; task text shows `...7f6a...` variant which is a one-char transposition typo; authoritative value is `...7fa...` as observed)
+- **PREVIOUS_POST_MERGE_GATE**: `FAIL`, exit `1`, `121` files passed / `1` failed / `6` skipped, `841` passed / `1` failed / `45` skipped; sole failure test H in `l2-mixed-intent-v2-live-cli-authorization.test.ts` exceeding default `5000ms` under full-suite load; focused H passed at `~1710ms` when given `15000ms`; failure type `TIMEOUT` only, no assertion failure, no provider calls, no live
+- **FIX**: only test H per-test Vitest timeout to `15000ms` via existing syntax; scope exactly one test; assertions, fixtures, fakes, runner, auth values, real-adapter logic, provider harness (`5000ms`) and all other timeouts unchanged
+- **FREEZE**: dataset `ade86008...`, offline `6fdc0827...`, authorized-live `abdece3b...`, historical `f5ef6e6b...` all unchanged; research executable unchanged
+- **SAFETY**: `OPENAI_REAL_CALLS=0`, `TYPESAFE_REAL_CALLS=0`, `LIVE_COMMAND_INVOKED=NO`, `AUTHORIZATION_CONSUMED=NO`, prior single failure preserved, no second invocation, retry still requires separate human decision; this task does NOT authorize retry
+- **SECRET_AUDIT**: `PASS`
