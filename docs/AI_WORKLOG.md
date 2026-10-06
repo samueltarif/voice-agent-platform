@@ -15706,3 +15706,18 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **SOURCE_PINNING**: fonte determinística local `YES`, sem dependências novas (`NEW_DEPENDENCY_REQUIRED=NO`), sem alteração no código de runtime ou runners (`RUNTIME_CODE_CHANGE_REQUIRED=NO`)
 - **SAFETY**: `OPENAI_REAL_CALLS=0`, `TYPESAFE_REAL_CALLS=0`, `LIVE_COMMAND_INVOKED=NO`, `REAL_DOTENV_ACCESSED=NO`, `SECRET_AUDIT=PASS`
 - **STATE**: `AUTHORIZATION_CONSUMED=YES`, `SECOND_LIVE_RUN_AUTHORIZED=NO`, `NEW_LIVE_AUTHORIZATION_CREATED=NO`
+
+---
+
+## 2026-10-06 — 006BM PowerShell Sanitized Env Invocation Proof (Offline, NO_LIVE, NO_PROVIDERS)
+
+- **MAIN_STARTING_SHA**: `addcea478f5a74ce38b1370218ff19fa61321155` (commit de merge do PR #93)
+- **PROBE_DESIGN**: sonda sintética com `VOICE_AGENT_SYNTHETIC_CHILD_ENV_PROBE` (`PARENT_SYNTHETIC` no pai, `FILE_SYNTHETIC` no arquivo `synthetic-child-env-probe.env`); sem acesso a `.env` real; sem leitura, impressão, hash ou exposição de segredos reais de provedores
+- **PARENT_BASELINE**: `PARENT_BEFORE_CHILD = PARENT_SYNTHETIC_PRESENT` (processo pai possui a variável herdada)
+- **SANITIZED_CHILD_PROBE**: subprocesso PowerShell desarmou a variável apenas dentro do ambiente filho e invocou `node --env-file=...` -> resultado: `SANITIZED_CHILD_RESULT = FILE_SOURCE_SELECTED`
+- **PARENT_ISOLATION**: `PARENT_AFTER_CHILD = PARENT_SYNTHETIC_PRESENT` (`PARENT_ENV_MUTATED_BY_CHILD = NO`; processo pai permaneceu inalterado)
+- **REPEATABILITY**: segunda execução idêntica no subprocesso filho confirmou `REPEAT_RESULT = FILE_SOURCE_SELECTED` (`DETERMINISTIC_REPEATABILITY = YES`)
+- **CLEANUP**: variável removida da sessão PowerShell e arquivo de sonda excluído (`SYNTHETIC_ENV_FILE_REMAINS = NO`, `SYNTHETIC_PARENT_VARIABLE_REMAINS = NO`)
+- **OPERATIONAL_CONCLUSION**: padrão `POWERSHELL_SANITIZED_CHILD_PATTERN = PROVEN`; `FUTURE_LOCAL_INVOCATION_STRATEGY = SANITIZED_CHILD_POWERSHELL_PLUS_NODE_ENV_FILE`; sem mutação no ambiente global do Windows (`GLOBAL_WINDOWS_ENV_MUTATION_REQUIRED = NO`), sem alteração no código de runtime ou runners (`RUNTIME_CODE_CHANGE_REQUIRED = NO`), sem novas dependências (`NEW_DEPENDENCY_REQUIRED = NO`)
+- **SAFETY**: `OPENAI_REAL_CALLS=0`, `TYPESAFE_REAL_CALLS=0`, `LIVE_COMMAND_INVOKED=NO`, `REAL_DOTENV_ACCESSED=NO`, `SECRET_AUDIT=PASS`
+- **STATE**: `AUTHORIZATION_CONSUMED=YES`, `SECOND_LIVE_RUN_AUTHORIZED=NO`, `NEW_LIVE_AUTHORIZATION_CREATED=NO`
