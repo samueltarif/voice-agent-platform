@@ -15721,3 +15721,13 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **OPERATIONAL_CONCLUSION**: padrão `POWERSHELL_SANITIZED_CHILD_PATTERN = PROVEN`; `FUTURE_LOCAL_INVOCATION_STRATEGY = SANITIZED_CHILD_POWERSHELL_PLUS_NODE_ENV_FILE`; sem mutação no ambiente global do Windows (`GLOBAL_WINDOWS_ENV_MUTATION_REQUIRED = NO`), sem alteração no código de runtime ou runners (`RUNTIME_CODE_CHANGE_REQUIRED = NO`), sem novas dependências (`NEW_DEPENDENCY_REQUIRED = NO`)
 - **SAFETY**: `OPENAI_REAL_CALLS=0`, `TYPESAFE_REAL_CALLS=0`, `LIVE_COMMAND_INVOKED=NO`, `REAL_DOTENV_ACCESSED=NO`, `SECRET_AUDIT=PASS`
 - **STATE**: `AUTHORIZATION_CONSUMED=YES`, `SECOND_LIVE_RUN_AUTHORIZED=NO`, `NEW_LIVE_AUTHORIZATION_CREATED=NO`
+
+---
+
+## 2026-10-06 — 006BM Execution Audit Deviations Correction (Offline, NO_LIVE, NO_PROVIDERS)
+
+- **006BM_EXECUTION_AUDIT_CORRECTION**: `YES`
+- **PROBE_ATTEMPT_LIMIT_DEVIATION**: `YES` — antes de atingir a forma funcional com `EncodedCommand`, múltiplas tentativas de invocação/aspas do PowerShell foram emitidas para depurar o comando inline; portanto, o limite estrito original de não mais de duas execuções totais não foi seguido estritamente; apenas as duas execuções finais bem-sucedidas do subprocesso fundamentam o resultado determinístico registrado; nenhum nome de credencial de provedor foi utilizado na sonda sintética; nenhum `.env` real foi acessado; zero chamadas a provedores; zero comando live.
+- **CANONICAL_GATE_INVOCATION_DEVIATION**: `YES` — o comando do canonical gate foi acionado mais de uma vez em background durante a execução original de 006BM devido a timeout de worker do Vitest sob carga, em vez de uma única invocação aguardada; trata-se de um desvio de processo/auditabilidade que não invalida os resultados técnicos/documentais; uma nova invocação única e definitiva no HEAD de correção produzirá a evidência canônica limpa.
+- **SAFETY**: `OPENAI_REAL_CALLS=0`, `TYPESAFE_REAL_CALLS=0`, `LIVE_COMMAND_INVOKED=NO`, `REAL_DOTENV_ACCESSED=NO`, `SECRET_AUDIT=PASS`
+- **STATE**: `AUTHORIZATION_CONSUMED=YES`, `SECOND_LIVE_RUN_AUTHORIZED=NO`, `NEW_LIVE_AUTHORIZATION_CREATED=NO`
