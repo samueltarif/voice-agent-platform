@@ -122,9 +122,15 @@ Antes de criar ou alterar qualquer arquivo, o agente DEVE seguir este ciclo de i
    - A regra aplica-se igualmente a ambientes de produção, staging, dev, localhost, credenciais sintéticas e temporárias de E2E. **"É apenas local" NÃO é exceção.**
 3. **Auditorias Baseadas Exclusivamente em Booleanos (Value-Blind)**:
    - Auditorias de segredos devem retornar estritamente valores booleanos/status: `SECRET_AUDIT_PASS` ou `SECRET_AUDIT_FAIL`, `PRESENT` / `ABSENT`, sem jamais imprimir a linha ou substring coincidente.
-4. **Proteção de Arquivos de Ambiente (.env) e Processos**:
-   - **NUNCA** executar `cat`, `type`, `Get-Content` ou abrir arquivos `.env`, `.env.local`, `.env.staging`, `.env.production` para inspecionar valores.
-   - Diagnósticos de processos devem utilizar estritamente PID, nome do executável, porta TCP (`Get-NetTCPConnection`), healthchecks e exit code. É proibido inspecionar `CommandLine`, `argv` completo ou variáveis de ambiente de processos.
+4. **Proteção e Carregamento Controlado de Arquivos de Ambiente (.env) e Processos**:
+    - **DEFAULT**: Agentes **NUNCA** devem abrir, inspecionar, imprimir, ecoar ou expor valores de `.env`, `.env.local`, `.env.staging` ou `.env.production` por padrão. **NUNCA** executar `cat`, `type`, `Get-Content` ou abrir esses arquivos para exibir valores.
+    - **EXCEÇÃO HUMANA EXPLÍCITA**: Quando o operador humano autorizar explicitamente um arquivo de ambiente ESPECÍFICO no prompt, o agente pode carregar/parsear exatamente esse arquivo e somente para a tarefa autorizada.
+    - **VALUE-BLIND APENAS**: O carregamento deve ser cego a valores. Saídas permitidas para chaves conhecidas: `PRESENT` / `ABSENT`, `MATCH` / `MISMATCH`. Proibido exibir valor, prefixo, sufixo, tamanho, hash, fingerprint ou substring.
+    - **SEM COMANDOS DE DESPEJO**: Mesmo com autorização, não usar `cat`, `type`, `Get-Content` ou equivalente cuja finalidade seja exibir conteúdo. Usar loader/parser seguro em memória.
+    - **SEM ENUMERAÇÃO**: Não enumerar todas as chaves de ambiente. Inspecionar apenas nomes de chaves explicitamente autorizados no prompt.
+    - **SEM PERSISTÊNCIA**: Nunca copiar `.env` para scratch, storage da IDE, fixtures com segredos, commit de `.env`, log de conteúdo ou armazenamento de valores em `AI_WORKLOG`.
+    - **SEPARAÇÃO DE REDE**: Autorização para CARREGAR `.env` NÃO autoriza acesso à rede. Chamadas a provedores/redes exigem autorização humana explícita separada.
+    - Diagnósticos de processos devem utilizar estritamente PID, nome do executável, porta TCP (`Get-NetTCPConnection`), healthchecks e exit code. É proibido inspecionar `CommandLine`, `argv` completo ou variáveis de ambiente de processos. Checagens booleanas de chaves conhecidas permanecem permitidas.
 5. **Segurança de Banco de Dados e Sessões**:
    - É proibido passar DSNs literais com senhas/tokens em comandos de terminal (inclusive para localhost).
    - É proibido consultar `SELECT token FROM session` ou manipular cookies de sessão manualmente. Autenticação E2E deve ocorrer exclusivamente através dos endpoints oficiais do Better Auth e contexto real de navegador.
