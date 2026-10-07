@@ -15971,3 +15971,99 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `TARGETED_STABILITY_FAILURES`: `0`
 - **SAFETY**: `REAL_DOTENV_ACCESSED = NO`, `OPENAI_REAL_CALLS = 0`, `TYPESAFE_REAL_CALLS = 0`, `TWILIO_REAL_CALLS = 0`, `LIVE_COMMAND_INVOKED = NO`, `SECRET_AUDIT = PASS`
 - **STATE**: `AUTHORIZATION_CONSUMED = YES`, `SECOND_LIVE_RUN_AUTHORIZED = NO`, `NEW_LIVE_AUTHORIZATION_CREATED = NO`
+
+---
+
+## 2026-10-07 — 006BQ In-Memory Human Handoff State Machine & Fallback (Offline, NO_LIVE, NO_PROVIDERS)
+
+- **BRANCH**: `feat/006bq-in-memory-human-handoff`
+- **REGRESSION_FIRST_TEST_FILE_CREATED_BEFORE_IMPLEMENTATION**: `YES`
+  - Criado `apps/voice/src/human-handoff-state-machine.test.ts` antes de criar o arquivo de implementação.
+- **REGRESSION_FIRST_COMMAND_COMPLETED_BEFORE_IMPLEMENTATION**: `YES`
+  - Executado `pnpm vitest run apps/voice/src/human-handoff-state-machine.test.ts`.
+- **REGRESSION_FIRST_RED_OBSERVED**: `YES`
+- **REGRESSION_FIRST_EXIT**: `1`
+- **REGRESSION_FIRST_FAILURE**: `Cannot find module './human-handoff-state-machine.js'`
+- **IMPLEMENTATION_PERFORMED**:
+  - Implementado `apps/voice/src/human-handoff-state-machine.ts` (153 linhas, em estrita conformidade com limites de complexidade e tamanho de arquivo);
+  - Estados primários suportados: `NONE -> REQUESTED -> SELLER_NOTIFIED -> SELLER_READY -> AI_PREPARING -> READY_TO_JOIN -> HUMAN_CONNECTED -> AI_DETACHED`;
+  - Estados excepcionais suportados: `FAILED`, `CANCELED`, `TIMED_OUT`;
+  - Rejeição determinística de transições ilegais e saltos com `InvalidStateTransitionError`;
+  - Proibição de desconexão prematura da IA antes de `HUMAN_CONNECTED`;
+  - Protocolo de fallback determinístico com zero silêncio: falha ou timeout antes da conexão do operador humano gera `aiContinuityRequired: true`, `callRemainsActive: true`, `handoffPending: false` e `disposition: 'RESUME_AI_CONVERSATION'`;
+  - Mapeamento determinístico dos eventos de domínio canônicos de `docs/EVENTS.md`;
+  - Desacoplamento estrito e neutro a provedores: zero chamadas a OpenAI, TypeSafe ou Twilio; zero sinalização SIP/telefonia real (reservada à Fase 8).
+- **TARGETED_TESTS**:
+  - `apps/voice/src/human-handoff-state-machine.test.ts`: 9 testes passando (100% PASS);
+  - Testes relacionados de ciclo de vida de voz: 4 arquivos, 46 testes passando (100% PASS).
+- **PHASE6_STATUS**:
+  - `HUMAN_HANDOFF_IN_MEMORY_STATE_MACHINE = IMPLEMENTED_AND_TESTED_OFFLINE` (Blocker 1 resolvido);
+  - `ZERO_SILENCE_FALLBACK = IMPLEMENTED_AND_TESTED_OFFLINE`;
+  - `PHASE6_BLOCKER_COUNT = 1` (`PRODUCTION_OPERATIONAL_PARAMETERS`);
+  - `PHASE6_COMPLETION_ESTIMATE = 96%`;
+  - `PHASE6_CAN_CLOSE_NOW = NO` (pendente parâmetros operacionais de produção).
+- **SAFETY**: `REAL_DOTENV_ACCESSED = NO`, `OPENAI_REAL_CALLS = 0`, `TYPESAFE_REAL_CALLS = 0`, `TWILIO_REAL_CALLS = 0`, `LIVE_COMMAND_INVOKED = NO`, `SECRET_AUDIT = PASS`
+- **STATE**: `AUTHORIZATION_CONSUMED = YES`, `SECOND_LIVE_RUN_AUTHORIZED = NO`, `NEW_LIVE_AUTHORIZATION_CREATED = NO`
+
+---
+
+## 2026-10-07 — 006BQ Execution Audit Correction (Offline, NO_LIVE, NO_PROVIDERS)
+
+- **006BQ_EXECUTION_AUDIT_CORRECTION**: `YES`
+- **TOTAL_CANONICAL_GATE_LAUNCHES_ORIGINAL_006BQ**: `3`
+- **FINAL_TECHNICAL_HEAD_CANONICAL_GATE_LAUNCHES**: `1`
+- **KNOWN_INTERMEDIATE_GATE_HEAD**: `507a5f954d32bf1122b78bd171bf5e7913063f40`
+- **ORIGINAL_006BQ_FINAL_TECHNICAL_HEAD**: `cca4ccd9a398b62b2573685aecebad9c47e53e0c`
+- **ORIGINAL_FINAL_GATE_RESULT**: `PASS`
+- **CANONICAL_GATE_EXECUTION_SEQUENCE_DEVIATION**: `YES`
+- **SECOND_GATE_COMPLETION_BEFORE_SUBSEQUENT_MUTATION**: `NOT_OBSERVED`
+- **CANONICAL_GATE_OVERLAP**: `NOT_PROVEN`
+- **006BQ_TECHNICAL_RESULT_PRESERVED**: `YES`
+- **EXPLANATION_OF_FIELD**:
+  - O campo original de relatório `CANONICAL_GATE_INVOCATION_COUNT = 1` deve ser interpretado unicamente como o número de invocações do quality gate canônico executadas no HEAD técnico final `cca4ccd9a398b62b2573685aecebad9c47e53e0c`, e NÃO como o número total de lançamentos de gate ao longo de toda a fatia 006BQ;
+  - Durante a execução inicial de 006BQ, o comando do gate foi disparado no HEAD `021c4399...` (falhando na checagem de formatação do Prettier), reexecutado após a formatação (`507a5f95...`, com falha de complexidade ciclômática no ESLint), e finalmente invocado no HEAD de correção `cca4ccd9...`, onde passou integralmente (`PASS`);
+  - As evidências de execução disponíveis não estabelecem conclusão factual de sobreposição de processos do segundo gate e portanto `CANONICAL_GATE_OVERLAP = NOT_PROVEN`;
+  - Esta reconciliação de auditoria altera unicamente a precisão do registro do histórico de execução, preservando integralmente o resultado técnico testado e validado (`006BQ_TECHNICAL_RESULT_PRESERVED = YES`).
+- **TECHNICAL_RESULT_SUMMARY**:
+  - `HANDOFF_STATE_MACHINE_IMPLEMENTED`: `YES`
+  - `ZERO_SILENCE_FALLBACK_IMPLEMENTED`: `YES`
+  - `TARGETED_HANDOFF_TESTS`: `PASS`
+  - `ORIGINAL_006BQ_FINAL_TECHNICAL_HEAD`: `cca4ccd9a398b62b2573685aecebad9c47e53e0c`
+  - `ORIGINAL_006BQ_FINAL_TECHNICAL_TEST_FILES_PASSED`: `125`
+  - `ORIGINAL_006BQ_FINAL_TECHNICAL_TESTS_PASSED`: `867`
+  - `PHASE6_COMPLETION_ESTIMATE`: `96%`
+  - `PHASE6_BLOCKER_COUNT`: `1`
+  - `PHASE6_BLOCKERS`: `PRODUCTION_OPERATIONAL_PARAMETERS`
+- **SAFETY**: `REAL_DOTENV_ACCESSED = NO`, `OPENAI_REAL_CALLS = 0`, `TYPESAFE_REAL_CALLS = 0`, `TWILIO_REAL_CALLS = 0`, `LIVE_COMMAND_INVOKED = NO`, `SECRET_AUDIT = PASS`
+- **STATE**: `AUTHORIZATION_CONSUMED = YES`, `SECOND_LIVE_RUN_AUTHORIZED = NO`, `NEW_LIVE_AUTHORIZATION_CREATED = NO`
+
+---
+
+## 2026-10-07 — 006BQ Execution Audit Correction #2 (Offline, NO_LIVE, NO_PROVIDERS)
+
+- **006BQ_EXECUTION_AUDIT_CORRECTION_2**: `YES`
+- **PREVIOUS_CORRECTION_HEAD**: `5dd2e3e15e84c51739c520e4c3934bd407d673e7`
+- **PREVIOUS_CORRECTION_CANONICAL_GATE_TASK**: `task-1628`
+- **PREVIOUS_CORRECTION_GATE_COMPLETION_OBSERVED_BEFORE_SUBSEQUENT_COMMANDS**: `NO`
+- **ADDITIONAL_PNPM_TEST_LAUNCHED_BEFORE_CANONICAL_GATE_COMPLETION_OBSERVED**: `YES`
+- **ADDITIONAL_PNPM_TEST_TASK**: `task-1634`
+- **VALIDATION_WORKLOAD_OVERLAP**: `PROVEN`
+- **CANONICAL_GATE_OVERLAP**: `NOT_APPLICABLE_UNLESS_A_SECOND_CANONICAL_GATE_WAS_LAUNCHED`
+- **PUSH_LAUNCHED_BEFORE_CANONICAL_GATE_COMPLETION_OBSERVED**: `YES`
+- **PREVIOUS_CORRECTION_FULL_QUALITY_GATE_AUTHORITATIVE**: `NO`
+- **PREVIOUS_CORRECTION_CANONICAL_GATE_RESULT**: `NOT_ACCEPTED_AS_AUTHORITATIVE_DUE_TO_EXECUTION_SEQUENCE`
+- **REASON**:
+  - O task do quality gate canônico (`task-1628`) foi disparado, porém o histórico de execução registra a emissão de comandos subsequentes (incluindo uma tarefa separada de testes `pnpm test` `task-1634` e a operação de push) antes que a conclusão do gate canônico fosse observada;
+  - Não se afirma que o gate canônico em si falhou, mas seu resultado não é aceito como prova autoritativa devido ao desvio de sequência de execução.
+- **TOTAL_CANONICAL_GATE_LAUNCHES_ORIGINAL_006BQ**: `3`
+- **006BQ_TECHNICAL_RESULT_PRESERVED**: `YES`
+- **TECHNICAL_RESULT_SUMMARY**:
+  - `HANDOFF_STATE_MACHINE_IMPLEMENTED`: `YES`
+  - `ZERO_SILENCE_FALLBACK_IMPLEMENTED`: `YES`
+  - `TARGETED_HANDOFF_TESTS`: `PASS`
+  - `ORIGINAL_006BQ_FINAL_TECHNICAL_HEAD`: `cca4ccd9a398b62b2573685aecebad9c47e53e0c`
+  - `PHASE6_COMPLETION_ESTIMATE`: `96%`
+  - `PHASE6_BLOCKER_COUNT`: `1`
+  - `PHASE6_BLOCKERS`: `PRODUCTION_OPERATIONAL_PARAMETERS`
+- **SAFETY**: `REAL_DOTENV_ACCESSED = NO`, `OPENAI_REAL_CALLS = 0`, `TYPESAFE_REAL_CALLS = 0`, `TWILIO_REAL_CALLS = 0`, `LIVE_COMMAND_INVOKED = NO`, `SECRET_AUDIT = PASS`
+- **STATE**: `AUTHORIZATION_CONSUMED = YES`, `SECOND_LIVE_RUN_AUTHORIZED = NO`, `NEW_LIVE_AUTHORIZATION_CREATED = NO`

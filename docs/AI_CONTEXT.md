@@ -4,14 +4,14 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-07
-CONTEXT_BASE_MAIN_SHA: 8d2422b80c4de4e739c3fefc07409fef04ef979a
+CONTEXT_BASE_MAIN_SHA: 14e72e553732eea43e1390b0ee3149f774cc89b2
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
-CURRENT_SLICE: Slice 006BP — Phase 6 Closure-Gap Audit
-CONTEXT_UPDATE_BRANCH: docs/006bp-phase6-closure-gap-audit
+CURRENT_SLICE: Slice 006BQ — In-Memory Human Handoff State Machine and Fallback Protocol
+CONTEXT_UPDATE_BRANCH: feat/006bq-in-memory-human-handoff
 CONTEXT_UPDATE_PR: PENDING_MANUAL_CREATE
-LAST_MERGED_PR_AT_REFRESH: 96
-LAST_MERGE_SHA_AT_REFRESH: 8d2422b80c4de4e739c3fefc07409fef04ef979a
-LAST_TESTED_CODE_SHA: 8d2422b80c4de4e739c3fefc07409fef04ef979a
+LAST_MERGED_PR_AT_REFRESH: 98
+LAST_MERGE_SHA_AT_REFRESH: 14e72e553732eea43e1390b0ee3149f774cc89b2
+LAST_TESTED_CODE_SHA: 14e72e553732eea43e1390b0ee3149f774cc89b2
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
 AI_CONTEXT_HEADER_END
@@ -160,20 +160,18 @@ AI_CONTEXT_HEADER_END
 14. `LIVE_PROVIDER_GUARDED_ROUTING_VALIDATION = PARTIAL`: L1A e L1B executados; L2 com falha técnica de auth; retry não autorizado; L3/L4 bloqueados.
 15. `LIVE_TWILIO_GUARDED_ROUTING = NOT EXECUTED`: Telefonia real pertence à Fase 8.
 16. `CUSTOMER_TRAFFIC = PROHIBITED` (invariante de segurança; escopo da Fase 10).
-17. `HUMAN_HANDOFF_IN_MEMORY_STATE_MACHINE = DOCUMENTED_ONLY`: Falta implementar a máquina de estados em memória e eventos canônicos em `apps/voice` (Bloqueador 1 da Saída da Fase 6).
-18. `PRODUCTION_OPERATIONAL_PARAMETERS = BLOCKED_BY_HUMAN_DECISION`: Parâmetros de produção de `ACTIVE_GUARDED` não selecionados (Bloqueador 2 da Saída da Fase 6; passível de decisão/deferimento para Fase 10).
-19. `PHASE6_COMPLETION_ESTIMATE = 92%` | `PHASE6_CAN_CLOSE_NOW = NO` | `PHASE6_BLOCKER_COUNT = 2`.
-20. `PHASE6_BLOCKERS = HUMAN_HANDOFF_IN_MEMORY_STATE_MACHINE, PRODUCTION_OPERATIONAL_PARAMETERS`.
+17. `HUMAN_HANDOFF_IN_MEMORY_STATE_MACHINE = IMPLEMENTED / TESTED LOCALLY (offline)`: Máquina de estados determinística em memória e fallback de zero silêncio implementados e testados offline (Slice 006BQ em `apps/voice/src/human-handoff-state-machine.ts`; 9 testes unitários determinísticos cobrindo o ciclo completo `NONE -> REQUESTED -> SELLER_NOTIFIED -> SELLER_READY -> AI_PREPARING -> READY_TO_JOIN -> HUMAN_CONNECTED -> AI_DETACHED`, rejeição de saltos ilegais e fallback para continuidade da IA; sinalização de carrier/SIP real é Fase 8).
+18. `PRODUCTION_OPERATIONAL_PARAMETERS = BLOCKED_BY_HUMAN_DECISION`: Parâmetros de produção de `ACTIVE_GUARDED` não selecionados (Bloqueador único remanescente da Saída da Fase 6; passível de decisão/deferimento para Fase 10).
+19. `PHASE6_COMPLETION_ESTIMATE = 96%` | `PHASE6_CAN_CLOSE_NOW = NO` | `PHASE6_BLOCKER_COUNT = 1`.
+20. `PHASE6_BLOCKERS = PRODUCTION_OPERATIONAL_PARAMETERS`.
 
 ---
 
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- **Slice 006BP (Auditoria de Gaps da Fase 6)**: `AUDIT_COMPLETE`. Identificados 2 bloqueadores reais:
-  1. `HUMAN_HANDOFF_IN_MEMORY_STATE_MACHINE` (código/testes em `apps/voice` pendentes);
-  2. `PRODUCTION_OPERATIONAL_PARAMETERS` (parâmetros de produção de `ACTIVE_GUARDED` não selecionados; passível de decisão/deferimento para Fase 10).
-- **Próximo Slice Mínimo**: `006BQ — IN-MEMORY HUMAN HANDOFF STATE MACHINE AND FALLBACK PROTOCOL` (implementação offline determinística em memória de `NONE -> REQUESTED -> SELLER_NOTIFIED -> SELLER_READY -> AI_PREPARING -> READY_TO_JOIN -> HUMAN_CONNECTED -> AI_DETACHED` e fallback conversacional com zero chamadas externas).
+- **Slice 006BQ (In-Memory Human Handoff State Machine & Fallback)**: `IMPLEMENTED_AND_TESTED_OFFLINE`. Blocker 1 resolvido.
+- **Bloqueador Remanescente da Fase 6**: `PRODUCTION_OPERATIONAL_PARAMETERS` (parâmetros de produção de `ACTIVE_GUARDED` não selecionados; passível de seleção humana ou deferimento formal para Fase 10 — Hardening).
 - `AUTHORIZATION_CONSUMED = YES` | `SECOND_LIVE_RUN_AUTHORIZED = NO` | `NEW_LIVE_AUTHORIZATION_CREATED = NO`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
 

@@ -215,5 +215,5 @@ O subsistema de analytics da plataforma deverá permitir medir e correlacionar:
 | **Live Audio Stream** | `NOT YET VALIDATED` | `PROVIDER-DEPENDENT`. Não validado com provider real. |
 | **Call Recording** | `PLANNED` | Depende de configuração de carrier e object storage na FASE 6/8. |
 | **Listen-Only Mode** | `NOT YET VALIDATED` | `PROVIDER-DEPENDENT`. Depende de suporte a conferência com mute seletivo. |
-| **Human Handoff Protocol**| `PLANNED` | Arquitetura de máquina de estados definida; não implementada. |
+| **Human Handoff Protocol**| `IMPLEMENTED / TESTED LOCALLY (offline)` | Máquina de estados determinística em memória e fallback de zero silêncio implementados e testados offline (Slice 006BQ); bridging de carrier/SIP real é Fase 8 (`PROVIDER-UNVERIFIED`). |
 | **Compliance de Gravação** | `COMPLIANCE REQUIRED`| Verificação jurídica necessária antes de produção. |
