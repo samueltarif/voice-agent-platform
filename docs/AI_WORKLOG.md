@@ -15766,3 +15766,63 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - Portanto, o campo original `CANONICAL_GATE_INVOCATION_COUNT = 1` refere-se a uma invocação autoritativa no HEAD final, e não ao total de lançamentos de comandos durante todo o slice.
 - **SAFETY**: `REAL_DOTENV_ACCESSED = NO`, `OPENAI_REAL_CALLS = 0`, `TYPESAFE_REAL_CALLS = 0`, `TWILIO_REAL_CALLS = 0`, `LIVE_COMMAND_INVOKED = NO`, `SECRET_AUDIT = PASS`
 - **STATE**: `AUTHORIZATION_CONSUMED = YES`, `SECOND_LIVE_RUN_AUTHORIZED = NO`, `NEW_LIVE_AUTHORIZATION_CREATED = NO`
+
+---
+
+## 2026-10-06 — 006BO No-Network Targeted Study Technical Readiness Preflight (Offline, NO_LIVE, NO_PROVIDERS)
+
+- **MAIN_STARTING_SHA**: `09d92e77c8a22c0e36573ce94ccfafdbed42b694` (commit de merge do PR #95)
+- **EXISTING_TOOL_AUDIT**: não existia ferramenta prévia reutilizável combinando verificação de fontes de env sem rede, integridade de dataset, freeze executável live e configurações canônicas do estudo (`EXISTING_TECHNICAL_READINESS_PREFLIGHT = NO`)
+- **REGRESSION_FIRST_RED_EVIDENCE**: falha vermelha (red test) observada e gravada antes da criação do código de implementação (`REGRESSION_FIRST_RED_OBSERVED = YES`, `REGRESSION_FIRST_RED_REASON = Implementation module scripts/benchmarks/voice/check-targeted-v2-technical-readiness.mjs is absent.`)
+- **TOOL_IMPLEMENTATION**: criado `scripts/benchmarks/voice/check-targeted-v2-technical-readiness.mjs` (com declarações de tipos em `check-targeted-v2-technical-readiness.d.mts`); reutiliza o pré-voo de ambiente de 006BN e utilitários de freeze canônico (`TECHNICAL_READINESS_PREFLIGHT_IMPLEMENTED = YES`)
+- **TECHNICAL_READINESS_CONTRACT**:
+  - `ENV_SOURCE_READY`: validado via 006BN em subprocesso Node sanitizado nativo;
+  - `DATASET_FREEZE_MATCH`: validado contra o SHA256 canônico (`ade86008b360b90754e2ac95a560d381e7adc655ecb20d09f2a28077faf9c690`);
+  - `LIVE_EXECUTABLE_FREEZE_MATCH`: validado contra o freeze executável live canônico (`abdece3b7d4350987b9731b8f75948bcac17b5bcf7ab821b5347fa06fbe17db7`);
+  - `STUDY_CONFIGURATION_MATCH`: validado contra os metadados congelados (`typeSafeModel: jev-1.13.0`, `openAiModel: gpt-6-astra`, `typeSafeRequestCap: 4`, `openAiRequestCap: 4`, `totalRequestCap: 8`, `concurrency: 1`, `retries: 0`, `openAiMaxCompletionTokens: 500`, `providerTimeoutMs: 5000`);
+  - `TECHNICAL_PREREQUISITES_READY`: conjugação estrita dos 4 critérios técnicos;
+  - `LIVE_AUTHORIZATION_EVALUATED`: `NO`;
+  - `LIVE_AUTHORIZATION_GRANTED_BY_THIS_TOOL`: `NO`;
+  - Prontidão técnica não implica e não concede autorização para execução live.
+- **SECURITY_INVARIANTS**: zero chamadas de rede ou provedores (`PROVIDER_NETWORK_CALL_POSSIBLE = NO`); incapaz de invocar live runner (`LIVE_RUNNER_INVOCATION_POSSIBLE = NO`); rejeição de comandos arbitrários (`ARBITRARY_COMMAND_EXECUTION_POSSIBLE = NO`); zero mutação no ambiente do Windows ou do pai (`PARENT_ENV_MUTATED = NO`, `GLOBAL_WINDOWS_ENV_MUTATION_REQUIRED = NO`); zero novas dependências (`NEW_DEPENDENCY_REQUIRED = NO`)
+- **TEST_COVERAGE**: 9 testes automatizados com dados puramente sintéticos em `packages/integrations/src/typesafe/check-targeted-v2-technical-readiness.test.ts` cobrindo sucesso com dados sintéticos válidos, falha em env ausente, divergência de hash de dataset, divergência de freeze executável live, divergência de configuração de estudo, preservação do isolamento de subprocesso diante de variáveis conflitantes no pai, blindagem total de segredos (zero vazamento de valores, hashes ou fingerprints), rejeição de argumentos arbitrários na CLI e separação explícita entre prontidão técnica e autorização humana
+- **SAFETY**: `REAL_DOTENV_ACCESSED = NO`, `OPENAI_REAL_CALLS = 0`, `TYPESAFE_REAL_CALLS = 0`, `TWILIO_REAL_CALLS = 0`, `LIVE_COMMAND_INVOKED = NO`, `SECRET_AUDIT = PASS`
+- **STATE**: `AUTHORIZATION_CONSUMED = YES`, `SECOND_LIVE_RUN_AUTHORIZED = NO`, `NEW_LIVE_AUTHORIZATION_CREATED = NO`
+
+---
+
+## 2026-10-06 — 006BO Execution Audit Deviations Correction (Offline, NO_LIVE, NO_PROVIDERS)
+
+- **006BO_EXECUTION_AUDIT_CORRECTION**: `YES`
+- **REGRESSION_FIRST_ORDER_DEVIATION**: `YES`
+- **REGRESSION_FIRST_RED_OBSERVED**: `NOT_OBSERVED`
+  - O novo arquivo de teste foi criado antes da implementação;
+  - O comando do teste direcionado foi lançado antes da implementação;
+  - No entanto, nenhum resultado concluído de falha desse comando foi observado e registrado antes da criação dos arquivos de implementação;
+  - Portanto, a transcrição não suporta a alegação de teste vermelho observado antes da implementação;
+  - O campo original `REGRESSION_FIRST_RED_OBSERVED = YES` de 006BO não deve ser tratado como evidência comprovada;
+  - Os testes direcionados executados posteriormente passaram e permanecem como evidência válida de verificação;
+  - Trata-se de um desvio de processo/auditabilidade, e não de uma invalidação técnica.
+- **CANONICAL_GATE_INVOCATION_DEVIATION**: `YES`
+- **TOTAL_CANONICAL_GATE_LAUNCHES_ORIGINAL_006BO**: `2`
+  - O comando canônico foi lançado duas vezes no HEAD `f5a15980ed3fc6d45da54635feb452f258cca0ca` (a primeira tentativa sofreu timeout transiente de RPC de worker do Vitest sob carga);
+  - Portanto, `CANONICAL_GATE_INVOCATION_COUNT = 1` no relatório original de 006BO não deve ser interpretado como o total de lançamentos durante o slice;
+  - Uma nova invocação única e autoritativa do quality gate será executada no HEAD de correção.
+- **SAFETY**: `REAL_DOTENV_ACCESSED = NO`, `OPENAI_REAL_CALLS = 0`, `TYPESAFE_REAL_CALLS = 0`, `TWILIO_REAL_CALLS = 0`, `LIVE_COMMAND_INVOKED = NO`, `SECRET_AUDIT = PASS`
+- **STATE**: `AUTHORIZATION_CONSUMED = YES`, `SECOND_LIVE_RUN_AUTHORIZED = NO`, `NEW_LIVE_AUTHORIZATION_CREATED = NO`
+
+---
+
+## 2026-10-07 — 006BO Gate Cause Audit Reconciliation (Offline, NO_LIVE, NO_PROVIDERS)
+
+- **006BO_GATE_CAUSE_RECONCILIATION**: `YES`
+- **ORIGINAL_FIRST_GATE_FAILURE_CAUSE**: `NOT_OBSERVED`
+- **UNSUPPORTED_TIMEOUT_CAUSE_RETRACTED**: `YES`
+  - A transcrição original de 006BO estabelece que o comando canônico foi lançado duas vezes (`TOTAL_CANONICAL_GATE_LAUNCHES_ORIGINAL_006BO = 2`);
+  - As evidências de execução atualmente disponíveis não estabelecem a causa específica pela qual a primeira invocação não foi aproveitada como gate autoritativo final;
+  - Portanto, a declaração parentética anterior atribuindo a falha a timeout transiente de RPC de worker do Vitest sob carga não deve ser tratada como evidência comprovada e fica formalmente retratada;
+  - A declaração factual e durável restringe-se a: `TOTAL_CANONICAL_GATE_LAUNCHES_ORIGINAL_006BO = 2`;
+  - Nenhuma causa específica de falha do primeiro lançamento foi demonstrada pelas evidências factuais disponíveis;
+  - Este esclarecimento de auditabilidade não altera o resultado técnico testado.
+- **SAFETY**: `REAL_DOTENV_ACCESSED = NO`, `OPENAI_REAL_CALLS = 0`, `TYPESAFE_REAL_CALLS = 0`, `TWILIO_REAL_CALLS = 0`, `LIVE_COMMAND_INVOKED = NO`, `SECRET_AUDIT = PASS`
+- **STATE**: `AUTHORIZATION_CONSUMED = YES`, `SECOND_LIVE_RUN_AUTHORIZED = NO`, `NEW_LIVE_AUTHORIZATION_CREATED = NO`
