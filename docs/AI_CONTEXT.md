@@ -125,7 +125,11 @@ AI_CONTEXT_HEADER_END
 
 ## 6. Estado Atual da Evidência de Qualidade (Quality Gate Snapshot)
 
-- **Último `pnpm check` Global**: `PASS` (observado no merge da PR #101 na branch `main` `70a118596032c2262c21ec477e4fec85ef38c8f6`: `FORMAT PASS`, `LINT PASS`, `TYPECHECK PASS 12/12`, `TEST PASS 867 passed / 45 skipped (125 arquivos passed / 6 skipped)`, `BUILD PASS 12/12`, `ARCHITECTURE PASS`, `FILE_SIZE PASS`).
+- **Último `pnpm check` Global na Main**: `PASS` (observado no merge da PR #101 na branch `main` `70a118596032c2262c21ec477e4fec85ef38c8f6`: `FORMAT PASS`, `LINT PASS`, `TYPECHECK PASS 12/12`, `TEST PASS 867 passed / 45 skipped (125 arquivos passed / 6 skipped)`, `BUILD PASS 12/12`, `ARCHITECTURE PASS`, `FILE_SIZE PASS`).
+- **Último Gate Técnico da Fatia 007B**:
+  - `FINAL_007B_TECHNICAL_GATE_TASK = task-2706`
+  - `FINAL_007B_TECHNICAL_GATE_EXIT = 0`
+  - `FINAL_007B_TECHNICAL_GATE_PRECISE_TEST_COUNTS = NOT_OBSERVED` (devido a truncamento de log na recuperação de evidência de histórico; contagens do desenvolvimento da fatia: 129 arquivos / 890 testes)
 - **Identificadores de HEAD & Semântica Não-Auto-Referencial**:
   - `LAST_RECORDED_FULL_GATE_HEAD = 70a118596032c2262c21ec477e4fec85ef38c8f6`
   - `LAST_RECORDED_FULL_GATE_STATUS = PASS`
@@ -133,8 +137,8 @@ AI_CONTEXT_HEADER_END
   - `LAST_CODE_BEARING_MAIN_SHA = 70a118596032c2262c21ec477e4fec85ef38c8f6`
   - *Nota*: `AI_CONTEXT.md` é conteúdo versionado e não pode conter o SHA do próprio commit que o modifica. O HEAD exato da branch corrente deve ser obtido do Git em runtime (`QUERY_GIT_AT_RUNTIME`). `LAST_RECORDED_FULL_GATE_HEAD` registra a evidência mais recente observada e durável quando este snapshot foi redigido, evitando loops infinitos de auto-referência.
 - **Contagens Canônicas de Testes (Local Slice 007B)**:
-  - `TEST_FILES_PASSED = 129` | `TEST_FILES_FAILED = 0` | `TEST_FILES_SKIPPED = 6`
-  - `TESTS_PASSED = 890` | `TESTS_FAILED = 0` | `TESTS_SKIPPED = 45`
+  - `TEST_FILES_PASSED = NOT_OBSERVED` (slice dev count: 129) | `TEST_FILES_FAILED = 0` | `TEST_FILES_SKIPPED = 6`
+  - `TESTS_PASSED = NOT_OBSERVED` (slice dev count: 890) | `TESTS_FAILED = 0` | `TESTS_SKIPPED = 45`
 - **Regressão de Asserções**: `ASSERTION_WEAKER = 0`, `NEW_SKIPS = 0`.
 - **Verificação Arquitetural**: `SUCESSO: Todas as fronteiras e regras arquiteturais respeitadas.`
 - **Verificação de Tamanho de Arquivos**: `SUCESSO: Todos os arquivos de logica estao em conformidade (check:file-size = PASS).`
