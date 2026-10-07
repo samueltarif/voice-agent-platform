@@ -16184,3 +16184,54 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `PHASE6_CLOSURE_CLASSIFICATION_PRESERVED`: `YES` (`PHASE6_STATUS = CLOSED`, `PHASE6_COMPLETION_ESTIMATE = 100%`, `PHASE6_BLOCKER_COUNT = 0`, `PHASE6_BLOCKERS = NONE`).
 - **SAFETY**: `REAL_DOTENV_ACCESSED = NO`, `OPENAI_REAL_CALLS = 0`, `TYPESAFE_REAL_CALLS = 0`, `TWILIO_REAL_CALLS = 0`, `LIVE_COMMAND_INVOKED = NO`, `SECRET_AUDIT = PASS`
 - **STATE**: `AUTHORIZATION_CONSUMED = YES`, `SECOND_LIVE_RUN_AUTHORIZED = NO`, `NEW_LIVE_AUTHORIZATION_CREATED = NO`
+
+---
+
+## 2026-10-07 — Phase 7 Slice 007A: Phase 7 Entry & Gap Audit (Offline Governance)
+
+- **BRANCH**: `docs/007a-phase7-entry-gap-audit`
+- **PHASE6_STATUS**: `CLOSED` (100% / 0 blockers; formalmente concluída no merge da PR #100)
+- **PHASE7_STATUS**: `OPEN`
+- **PHASE7_COMPLETION_ESTIMATE**: `0%`
+- **PHASE7_BLOCKER_COUNT**: `0`
+- **PHASE7_BLOCKERS**: `NONE`
+- **AUDIT_FINDINGS_BY_DIMENSION**:
+  - **AGENT_DOMAIN_STATUS**: `IMPLEMENTED` (`Agent` e `AgentVersion` agregados com constraints de banco, lifecycle `DRAFT -> PUBLISHED -> ARCHIVED`, concorrência pessimista e versionamento monotônico crescente);
+  - **AGENT_VERSIONING_STATUS**: `IMPLEMENTED` (`AgentConfigurationSnapshotV1` com persona, voz, regras conversacionais/determinísticas, playbook e exemplos);
+  - **PUBLISHED_VERSION_RUNTIME_CONTEXT_STATUS**: `IMPLEMENTED` (runtime de voz exige e consome versão publicada para persona/voz/operatingHours);
+  - **TOOL_CALLING_CONTRACT**: `PARTIAL` (handler determinístico interno de `agent.operating_hours` implementado em `apps/voice`, mas interfaces canônicas universais `ToolPort`, `ToolDefinition`, `ToolExecutionResult` e schemas de validação estão ausentes em `packages/contracts`);
+  - **TOOL_REGISTRY**: `NOT_IMPLEMENTED` (registro dinâmico de ferramentas por tenant e catálogo ausente);
+  - **TOOL_EXECUTION_RUNTIME**: `PARTIAL` (despacho hardcoded offline presente; dispatcher universal com timeout, rate limit e injeção conversacional não implementado);
+  - **BUSINESS_TOOL_INTEGRATIONS**: `NOT_IMPLEMENTED` (ferramentas de negócio reais como produtos, preços, disponibilidade e agendamento ausentes);
+  - **TOOL_AUTHORIZATION_MODEL**: `NOT_IMPLEMENTED` (modelo de permissão de tool calling por AgentVersion e tenant ausente);
+  - **KNOWLEDGE_BASE_DOMAIN**: `NOT_IMPLEMENTED` (entidades de documentos, chunks e ingestão ausentes);
+  - **STRUCTURED_KNOWLEDGE_PATH**: `PARTIAL` (conceitualizado via tools determinísticas e regras no snapshot; tabelas relacionais de catálogo ausentes);
+  - **UNSTRUCTURED_KNOWLEDGE_PATH**: `NOT_IMPLEMENTED` (chunking, embeddings, RAG e busca semântica ausentes);
+  - **RAG_ARCHITECTURE_DECISION**: `PENDING` (aguardando ADR formal e escolha arquitetural);
+  - **OUTBOUND_DOMAIN_MODEL**: `NOT_IMPLEMENTED` (tabelas de campanhas, contatos e jobs de discagem ausentes);
+  - **OUTBOUND_API**: `NOT_IMPLEMENTED` (rotas HTTP de disparo e controle outbound ausentes);
+  - **OUTBOUND_JOB_ORCHESTRATION**: `NOT_IMPLEMENTED` (worker queue e orquestrador de chamadas em lote ausentes);
+  - **OUTBOUND_CALL_BOOTSTRAP**: `PARTIAL` (`CallLifecycleGateway` e sessões de chamada em memória implementados em `apps/voice`, mas desconectados de campanhas e workers);
+  - **REAL_CARRIER_DIALING**: `DEFERRED_PHASE8` (telefonia real PSTN/SIP e carrier bridge pertencem estritamente à Fase 8).
+- **PHASE_BOUNDARY_AUDIT**:
+  - `PHASE7_BOUNDARY_CLEAR`: `YES` (Fase 8 = telefonia real, carrier, handoff físico, listen-only, gravações reais; Fase 9 = Agent Evals; Fase 10 = hardening, tuning de parâmetros de produção e ativação de tráfego real).
+- **GAP_LIST**:
+  - `GAP-01`: Contratos universais de tool calling (`ToolPort`, `ToolDefinition`, `ToolExecutionResult`, execution context) em `packages/contracts`.
+  - `GAP-02`: Tool Registry e dispatcher universal de execução de tools em `apps/voice`.
+  - `GAP-03`: Extensão do schema de configuração de agente (`AgentConfigurationSnapshot`) para declarar ferramentas autorizadas.
+  - `GAP-04`: Domínio e persistência de dados de negócio estruturados (produtos, serviços, regras comerciais).
+  - `GAP-05`: API Core e orquestração de campanhas outbound (`apps/api`, `apps/worker`).
+  - `GAP-06`: Decisão arquitetural de Knowledge Base / RAG (ADR estruturado vs não-estruturado).
+  - `GAP-07`: Ingestão, armazenamento e runtime de recuperação de Knowledge Base.
+- **PROPOSED_SEQUENTIAL_SLICES**:
+  - `007B`: Universal Tool Calling Contracts & Voice Runtime Tool Execution Engine (Contratos, ToolPort, dispatcher, fakes e testes offline).
+  - `007C`: AgentVersion Toolset Configuration Extension & Agent Studio Integration.
+  - `007D`: Deterministic Business Data Domain & Catalog Tools (Products/Services schema, repositories e tool adapters).
+  - `007E`: Outbound Orchestration Core & Worker Call Dispatch (Campaign/Contact models, API trigger, worker queue e bootstrap).
+  - `007F`: Knowledge Base & RAG Architecture Decision Gate (ADR formal sobre chunking, retrieval e storage).
+  - `007G`: Knowledge Base Ingestion Pipeline & Retrieval Runtime.
+- **RECOMMENDED_NEXT_SLICE**: `007B`
+- **RECOMMENDED_NEXT_SLICE_TITLE**: `Universal Tool Calling Contracts & Voice Runtime Tool Execution Engine`
+- **RECOMMENDED_NEXT_SLICE_REASON**: Estabelece os contratos neutros `ToolPort` e o motor de execução em `apps/voice`, desbloqueando ferramentas de negócio e testes offline sem dependências de infraestrutura externa ou seleção prematura de fornecedores.
+- **SAFETY**: `REAL_DOTENV_ACCESSED = NO`, `OPENAI_REAL_CALLS = 0`, `TYPESAFE_REAL_CALLS = 0`, `TWILIO_REAL_CALLS = 0`, `LIVE_COMMAND_INVOKED = NO`, `SECRET_AUDIT = PASS`
+- **STATE**: `AUTHORIZATION_CONSUMED = YES`, `SECOND_LIVE_RUN_AUTHORIZED = NO`, `NEW_LIVE_AUTHORIZATION_CREATED = NO`
