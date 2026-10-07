@@ -125,8 +125,15 @@ AI_CONTEXT_HEADER_END
 
 ## 6. Estado Atual da Evidência de Qualidade (Quality Gate Snapshot)
 
-- **Último `pnpm check` Global**: `PASS` (observado na branch 006BG `research/006bg-v2-authorized-study-live-path`: `FORMAT PASS`, `LINT PASS`, `TYPECHECK PASS 12/12`, `TEST PASS 839 passed / 45 skipped (121 arquivos passed / 6 skipped)`, `BUILD PASS 12/12`, `ARCHITECTURE PASS`, `FILE_SIZE PASS`; `LATEST_FULL_GATE_HEAD` = HEAD final desta reconciliação `b20c47034f405521ede3ac51ad522f304d5eecdf`; `LAST_TESTED_CODE_SHA = b20c47034f405521ede3ac51ad522f304d5eecdf` (006BG adiciona caminho live autorizado, freeze live, testes A-Y; gate frio canônico observado neste HEAD code-bearing, ver entrada 006BG no AI_WORKLOG).
-- **Status das Asserções**: `210 passed` em `@voice-agent/integrations` (29 arquivos de teste, incluindo `5/5 passed` desacoplado de build em `l2-module-resolution.test.ts`, `21/21 passed` em `jev-openai-l2-synthetic-runner.test.ts`, `5/5 passed` em `jev-routing-benchmark.test.ts`, `11/11 passed` em `l2-executable-freeze.test.ts`, `2/2 passed` em `l2-joint-chain-result-classification.test.ts` e `2/2 passed` em `l2-targeted-joint-chain-candidates.test.ts`).
+- **Último `pnpm check` Global**: `PASS` (observado na branch `docs/006bp-phase6-closure-gap-audit`: `FORMAT PASS`, `LINT PASS`, `TYPECHECK PASS 12/12`, `TEST PASS 858 passed / 45 skipped (124 arquivos passed / 6 skipped)`, `BUILD PASS 12/12`, `ARCHITECTURE PASS`, `FILE_SIZE PASS`).
+- **Identificadores de HEAD**:
+  - `LATEST_FULL_GATE_HEAD = b02e025dce5f06b07efd77aeadff698c62ad33b0`
+  - `LATEST_FULL_GATE_STATUS = PASS`
+  - `CURRENT_AUDIT_HEAD = b02e025dce5f06b07efd77aeadff698c62ad33b0` (slice estritamente documental 006BP)
+  - `LAST_CODE_BEARING_MAIN_SHA = 8d2422b80c4de4e739c3fefc07409fef04ef979a` (nenhum código funcional alterado no 006BP)
+- **Contagens Canônicas de Testes**:
+  - `TEST_FILES_PASSED = 124` | `TEST_FILES_FAILED = 0` | `TEST_FILES_SKIPPED = 6`
+  - `TESTS_PASSED = 858` | `TESTS_FAILED = 0` | `TESTS_SKIPPED = 45`
 - **Regressão de Asserções**: `ASSERTION_WEAKER = 0`, `NEW_SKIPS = 0`.
 - **Verificação Arquitetural**: `SUCESSO: Todas as fronteiras e regras arquiteturais respeitadas.`
 - **Verificação de Tamanho de Arquivos**: `SUCESSO: Todos os arquivos de logica estao em conformidade (check:file-size = PASS).`
@@ -136,7 +143,7 @@ AI_CONTEXT_HEADER_END
 
 ## 7. Bloqueios Atuais e Status de Prontidão (Current Blockers & Readiness)
 
-1. `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`: Transmissão de transcrições de clientes para provedores externos proibida.
+1. `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`: Transmissão de transcrições de clientes para provedores externos proibida. Bloqueia tráfego real de clientes em produção, mas está fora da fronteira de saída do motor offline da Fase 6 (`TRANSCRIPT_PRIVACY = NOT_CLEARED_FOR_CUSTOMER_TRAFFIC_BUT_NOT_PHASE6_EXIT_BLOCKER`).
 2. `KNOWN_DETERMINISTIC_HANDLERS = 1` (`agent.operating_hours` implementado e testado; ferramentas de negócio externas pertencem à Fase 7).
 3. `POST_DISPATCH_BARGE_IN_RUNTIME = IMPLEMENTED / TESTED LOCALLY (offline)` | `LIVE_PROVIDER_BARGE_IN_VERIFICATION = PROVIDER-UNVERIFIED` (Fase 8).
 4. `INTERRUPTED_CONTEXT_CONTINUITY_RUNTIME = IMPLEMENTED / TESTED LOCALLY (offline delivery & qualified history)`.
@@ -152,8 +159,10 @@ AI_CONTEXT_HEADER_END
 14. `LIVE_PROVIDER_GUARDED_ROUTING_VALIDATION = PARTIAL`: L1A e L1B executados; L2 com falha técnica de auth; retry não autorizado; L3/L4 bloqueados.
 15. `LIVE_TWILIO_GUARDED_ROUTING = NOT EXECUTED`: Telefonia real pertence à Fase 8.
 16. `CUSTOMER_TRAFFIC = PROHIBITED` (invariante de segurança; escopo da Fase 10).
-17. `HUMAN_HANDOFF_IN_MEMORY_STATE_MACHINE = DOCUMENTED_ONLY`: Falta implementar a máquina de estados em memória e eventos canônicos em `apps/voice` (Bloqueador de Saída da Fase 6).
-18. `PHASE6_COMPLETION_ESTIMATE = 92%` | `PHASE6_CAN_CLOSE_NOW = NO` | `PHASE6_BLOCKER_COUNT = 2`.
+17. `HUMAN_HANDOFF_IN_MEMORY_STATE_MACHINE = DOCUMENTED_ONLY`: Falta implementar a máquina de estados em memória e eventos canônicos em `apps/voice` (Bloqueador 1 da Saída da Fase 6).
+18. `PRODUCTION_OPERATIONAL_PARAMETERS = BLOCKED_BY_HUMAN_DECISION`: Parâmetros de produção de `ACTIVE_GUARDED` não selecionados (Bloqueador 2 da Saída da Fase 6; passível de decisão/deferimento para Fase 10).
+19. `PHASE6_COMPLETION_ESTIMATE = 92%` | `PHASE6_CAN_CLOSE_NOW = NO` | `PHASE6_BLOCKER_COUNT = 2`.
+20. `PHASE6_BLOCKERS = HUMAN_HANDOFF_IN_MEMORY_STATE_MACHINE, PRODUCTION_OPERATIONAL_PARAMETERS`.
 
 ---
 
