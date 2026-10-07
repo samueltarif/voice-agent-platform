@@ -37,3 +37,7 @@ export * from './security-blocked-action.js';
 export * from './security-blocked-response.js';
 export * from './guarded-turn-routing-coordinator.js';
 export * from './human-handoff-state-machine.js';
+export * from './tool-registry.js';
+export * from './tool-execution-engine.js';
+export * from './operating-hours-tool.js';
+export * from './build-safe-log-context.js';

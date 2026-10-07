@@ -16235,3 +16235,57 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **RECOMMENDED_NEXT_SLICE_REASON**: Estabelece os contratos neutros `ToolPort` e o motor de execução em `apps/voice`, desbloqueando ferramentas de negócio e testes offline sem dependências de infraestrutura externa ou seleção prematura de fornecedores.
 - **SAFETY**: `REAL_DOTENV_ACCESSED = NO`, `OPENAI_REAL_CALLS = 0`, `TYPESAFE_REAL_CALLS = 0`, `TWILIO_REAL_CALLS = 0`, `LIVE_COMMAND_INVOKED = NO`, `SECRET_AUDIT = PASS`
 - **STATE**: `AUTHORIZATION_CONSUMED = YES`, `SECOND_LIVE_RUN_AUTHORIZED = NO`, `NEW_LIVE_AUTHORIZATION_CREATED = NO`
+
+---
+
+## 2026-10-07 — Phase 7 Slice 007B: Universal Tool Calling Contracts & Voice Runtime Tool Execution Engine (Offline Implementation)
+
+- **BRANCH**: `feat/007b-universal-tool-execution-engine`
+- **BASE_MAIN_SHA**: `70a118596032c2262c21ec477e4fec85ef38c8f6`
+- **PHASE6_STATUS**: `CLOSED`
+- **PHASE7_STATUS**: `OPEN`
+- **PHASE7_COMPLETION_ESTIMATE**: `15%`
+- **PHASE7_BLOCKER_COUNT**: `0`
+- **PHASE7_BLOCKERS**: `NONE`
+- **TOOL_CALLING_CONTRACT**: `IMPLEMENTED` (`packages/contracts/src/tools/`: `ToolInvocation`, `ToolExecutionContext`, `ToolExecutionResult`, `ToolDefinition`, `ToolPort`, `ToolRegistryPort`, `createZodToolValidator`)
+- **TOOL_REGISTRY**: `IMPLEMENTED` (`apps/voice/src/tool-registry.ts`: `InMemoryToolRegistry` com registro determinístico, resolução por nome canônico, erro em duplicatas, imutabilidade pós-registro e fail-closed)
+- **TOOL_EXECUTION_RUNTIME**: `IMPLEMENTED` (`apps/voice/src/tool-execution-engine.ts`: `ToolExecutionEngine` com resolução de ferramenta, checagem de autorização/allowlist, validação estrita de argumentos antes de invocar o handler, injeção de contexto confiável e contenção de exceções)
+- **TOOL_EXECUTION_SAFETY_BOUNDARY**: `IMPLEMENTED` (argumentos não-confiáveis do modelo não podem forjar nem sobrescrever tenant/agent/permissões; o contexto é construído e injetado pelo runtime do servidor)
+- **TOOL_AUTHORIZATION_MODEL**: `PARTIAL` (boundary de segurança por tenant/allowlist implementada; autorização granular por entitlements e papéis de usuário/agente pertence a fatias futuras)
+- **BUSINESS_TOOL_INTEGRATIONS**: `NOT_IMPLEMENTED` (apenas a capability determinística existente `agent.operating_hours` foi integrada)
+- **OPERATING_HOURS_UNIVERSAL_ENGINE_INTEGRATION**: `YES` (`apps/voice/src/operating-hours-tool.ts`: wrapping determinístico de `handleOperatingHoursTurn` preservando 100% das regras sem duplicação de lógica de negócio)
+- **MODEL_TO_CANONICAL_TOOL_MAPPING**: `PARTIAL` (contratos universais prontos no core de voz e testados offline com fakes; emissores de provedor streaming não implementados nesta fatia)
+- **PROVIDER_SPECIFIC_TOOL_MAPPING**: `NOT_IMPLEMENTED`
+- **KNOWLEDGE_BASE_DOMAIN**: `NOT_IMPLEMENTED`
+- **RAG_ARCHITECTURE_DECISION**: `PENDING`
+- **OUTBOUND_DOMAIN_MODEL**: `NOT_IMPLEMENTED`
+- **DATABASE_SCHEMA_CHANGED**: `NO`
+- **MIGRATION_CREATED**: `NO`
+- **API_ROUTE_CHANGED**: `NO`
+- **FRONTEND_CHANGED**: `NO`
+- **PROVIDER_ADAPTER_CHANGED**: `NO`
+- **LOCKFILE_CHANGED**: `NO`
+- **FILES_CHANGED_SUMMARY**:
+  - `packages/contracts/src/tools/tool-invocation-contracts.ts` (criado)
+  - `packages/contracts/src/tools/tool-definition-contracts.ts` (criado)
+  - `packages/contracts/src/tools/tool-ports.ts` (criado)
+  - `packages/contracts/src/tools/operating-hours-tool-contracts.ts` (criado)
+  - `packages/contracts/src/tools/index.ts` (criado)
+  - `packages/contracts/src/tools/tool-contracts.test.ts` (criado)
+  - `packages/contracts/src/index.ts` (exportação de tools)
+  - `apps/voice/src/tool-registry.ts` (criado)
+  - `apps/voice/src/tool-registry.test.ts` (criado)
+  - `apps/voice/src/build-safe-log-context.ts` (criado)
+  - `apps/voice/src/tool-execution-engine.ts` (criado)
+  - `apps/voice/src/tool-execution-engine.test.ts` (criado)
+  - `apps/voice/src/operating-hours-tool.ts` (criado)
+  - `apps/voice/src/operating-hours-tool.test.ts` (criado)
+  - `apps/voice/src/index.ts` (exportação de tools)
+  - `docs/AI_CONTEXT.md` (atualizado)
+  - `docs/AI_WORKLOG.md` (atualizado)
+- **TEST_COUNTS**: `129 arquivos passaram / 6 skipped (135 total)` | `890 testes passaram / 45 skipped (935 total)`
+- **RECOMMENDED_NEXT_SLICE**: `007C`
+- **RECOMMENDED_NEXT_SLICE_TITLE**: `AgentVersion Toolset Configuration Extension & Agent Studio Integration`
+- **RECOMMENDED_NEXT_SLICE_REASON**: Estender o schema de configuração de AgentVersion e o editor do Agent Studio para declarar e persistir o conjunto de ferramentas autorizadas por agente.
+- **SAFETY**: `REAL_DOTENV_ACCESSED = NO`, `OPENAI_REAL_CALLS = 0`, `TYPESAFE_REAL_CALLS = 0`, `TWILIO_REAL_CALLS = 0`, `LIVE_COMMAND_INVOKED = NO`, `SECRET_AUDIT = PASS`
+- **STATE**: `AUTHORIZATION_CONSUMED = YES`, `SECOND_LIVE_RUN_AUTHORIZED = NO`, `NEW_LIVE_AUTHORIZATION_CREATED = NO`

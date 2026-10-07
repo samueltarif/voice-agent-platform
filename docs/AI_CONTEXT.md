@@ -4,14 +4,14 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-07
-CONTEXT_BASE_MAIN_SHA: b6e72d8b71075577d9ba9f9b64f9fbe95328a9e4
+CONTEXT_BASE_MAIN_SHA: 70a118596032c2262c21ec477e4fec85ef38c8f6
 CURRENT_PHASE: Phase 7 (OPEN)
-CURRENT_SLICE: Slice 007A — Phase 7 Entry & Gap Audit
-CONTEXT_UPDATE_BRANCH: docs/007a-phase7-entry-gap-audit
+CURRENT_SLICE: Slice 007B — Universal Tool Calling Contracts & Voice Runtime Tool Execution Engine
+CONTEXT_UPDATE_BRANCH: feat/007b-universal-tool-execution-engine
 CONTEXT_UPDATE_PR: PENDING_MANUAL_CREATE
-LAST_MERGED_PR_AT_REFRESH: 100
-LAST_MERGE_SHA_AT_REFRESH: b6e72d8b71075577d9ba9f9b64f9fbe95328a9e4
-LAST_TESTED_CODE_SHA: b6e72d8b71075577d9ba9f9b64f9fbe95328a9e4
+LAST_MERGED_PR_AT_REFRESH: 101
+LAST_MERGE_SHA_AT_REFRESH: 70a118596032c2262c21ec477e4fec85ef38c8f6
+LAST_TESTED_CODE_SHA: 70a118596032c2262c21ec477e4fec85ef38c8f6
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
 AI_CONTEXT_HEADER_END
@@ -30,7 +30,7 @@ AI_CONTEXT_HEADER_END
 | :--- | :--- | :--- |
 | **Web** | `PARTIAL` | `apps/web` (Next.js 15.5; Dashboard, Settings, Agent Studio Draft Editor; UI 005D incompleta) |
 | **API** | `IMPLEMENTED` | `apps/api` (Fastify/Node, rotas de drafts, lifecycle, auth interna com service token) |
-| **Voice** | `PARTIAL` | `apps/voice` (Orquestrador com roteamento supervisionado offline, coordenador dedicado `GuardedTurnRoutingCoordinator`, despacho determinístico, entrega estática de segurança offline, ownership OPTION_B, blindagem DISPATCH_ATTEMPTED -> NO_OPENAI_FALLBACK, single-owner Jev evaluation e tratamento qualificado de interrupção H4/H5 implementados/testados offline; streaming OpenAI; AuxiliaryTurnShadowObserver integrado non-blocking; handler determinístico `agent.operating_hours` integrado offline; fiação em runtime de produção: NÃO; tráfego real: NÃO) |
+| **Voice** | `PARTIAL` | `apps/voice` (Motor universal de execução de tools `ToolExecutionEngine`, registro `InMemoryToolRegistry` e wrapper `OperatingHoursTool` implementados/testados offline; Orquestrador com roteamento supervisionado offline, coordenador dedicado `GuardedTurnRoutingCoordinator`, despacho determinístico, entrega estática de segurança offline, ownership OPTION_B, blindagem DISPATCH_ATTEMPTED -> NO_OPENAI_FALLBACK, single-owner Jev evaluation e tratamento qualificado de interrupção H4/H5 implementados/testados offline; streaming OpenAI; AuxiliaryTurnShadowObserver integrado non-blocking; handler determinístico `agent.operating_hours` integrado offline; fiação em runtime de produção: NÃO; tráfego real: NÃO) |
 | **Worker** | `IMPLEMENTED` | `apps/worker` (Fundação de background tasks, processamento de filas assíncronas) |
 | **Database** | `IMPLEMENTED` | `packages/database` (PostgreSQL 16, Drizzle ORM, multi-tenancy, schemas comerciais e de auditoria) |
 
@@ -125,16 +125,16 @@ AI_CONTEXT_HEADER_END
 
 ## 6. Estado Atual da Evidência de Qualidade (Quality Gate Snapshot)
 
-- **Último `pnpm check` Global**: `PASS` (observado no merge da PR #100 na branch `main` `b6e72d8b71075577d9ba9f9b64f9fbe95328a9e4`: `FORMAT PASS`, `LINT PASS`, `TYPECHECK PASS 12/12`, `TEST PASS 867 passed / 45 skipped (125 arquivos passed / 6 skipped)`, `BUILD PASS 12/12`, `ARCHITECTURE PASS`, `FILE_SIZE PASS`).
+- **Último `pnpm check` Global**: `PASS` (observado no merge da PR #101 na branch `main` `70a118596032c2262c21ec477e4fec85ef38c8f6`: `FORMAT PASS`, `LINT PASS`, `TYPECHECK PASS 12/12`, `TEST PASS 867 passed / 45 skipped (125 arquivos passed / 6 skipped)`, `BUILD PASS 12/12`, `ARCHITECTURE PASS`, `FILE_SIZE PASS`).
 - **Identificadores de HEAD & Semântica Não-Auto-Referencial**:
-  - `LAST_RECORDED_FULL_GATE_HEAD = b6e72d8b71075577d9ba9f9b64f9fbe95328a9e4`
+  - `LAST_RECORDED_FULL_GATE_HEAD = 70a118596032c2262c21ec477e4fec85ef38c8f6`
   - `LAST_RECORDED_FULL_GATE_STATUS = PASS`
   - `CURRENT_BRANCH_HEAD_SOURCE = QUERY_GIT_AT_RUNTIME`
-  - `LAST_CODE_BEARING_MAIN_SHA = b6e72d8b71075577d9ba9f9b64f9fbe95328a9e4`
+  - `LAST_CODE_BEARING_MAIN_SHA = 70a118596032c2262c21ec477e4fec85ef38c8f6`
   - *Nota*: `AI_CONTEXT.md` é conteúdo versionado e não pode conter o SHA do próprio commit que o modifica. O HEAD exato da branch corrente deve ser obtido do Git em runtime (`QUERY_GIT_AT_RUNTIME`). `LAST_RECORDED_FULL_GATE_HEAD` registra a evidência mais recente observada e durável quando este snapshot foi redigido, evitando loops infinitos de auto-referência.
-- **Contagens Canônicas de Testes**:
-  - `TEST_FILES_PASSED = 125` | `TEST_FILES_FAILED = 0` | `TEST_FILES_SKIPPED = 6`
-  - `TESTS_PASSED = 867` | `TESTS_FAILED = 0` | `TESTS_SKIPPED = 45`
+- **Contagens Canônicas de Testes (Local Slice 007B)**:
+  - `TEST_FILES_PASSED = 129` | `TEST_FILES_FAILED = 0` | `TEST_FILES_SKIPPED = 6`
+  - `TESTS_PASSED = 890` | `TESTS_FAILED = 0` | `TESTS_SKIPPED = 45`
 - **Regressão de Asserções**: `ASSERTION_WEAKER = 0`, `NEW_SKIPS = 0`.
 - **Verificação Arquitetural**: `SUCESSO: Todas as fronteiras e regras arquiteturais respeitadas.`
 - **Verificação de Tamanho de Arquivos**: `SUCESSO: Todos os arquivos de logica estao em conformidade (check:file-size = PASS).`
@@ -145,34 +145,38 @@ AI_CONTEXT_HEADER_END
 ## 7. Bloqueios Atuais e Status de Prontidão (Current Blockers & Readiness)
 
 1. `PHASE6_STATUS = CLOSED` | `PHASE6_COMPLETION_ESTIMATE = 100%` | `PHASE6_BLOCKER_COUNT = 0` | `PHASE6_BLOCKERS = NONE` (concluída formalmente via PR #100 / DEC-038).
-2. `PHASE7_STATUS = OPEN` | `PHASE7_COMPLETION_ESTIMATE = 0%` | `PHASE7_BLOCKER_COUNT = 0` | `PHASE7_BLOCKERS = NONE`.
-3. `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`: Transmissão de transcrições de clientes para provedores externos proibida (invariante de segurança; tráfego real em produção é Fase 10).
-4. `KNOWN_DETERMINISTIC_HANDLERS = 1` (`agent.operating_hours` implementado e testado; ferramentas universais de negócio são escopo da Fase 7).
-5. `POST_DISPATCH_BARGE_IN_RUNTIME = IMPLEMENTED / TESTED LOCALLY (offline)` | `LIVE_PROVIDER_BARGE_IN_VERIFICATION = PROVIDER-UNVERIFIED` (Fase 8).
-6. `INTERRUPTED_CONTEXT_CONTINUITY_RUNTIME = IMPLEMENTED / TESTED LOCALLY (offline delivery & qualified history)`.
-7. `HISTORY_COMPLETION_RUNTIME = IMPLEMENTED / TESTED LOCALLY (offline orchestrator history resolution)`.
-8. `SECURITY_RESPONSE_DELIVERY_OFFLINE = IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/security-blocked-response.ts`; resposta estática; chamada ativa; sem fallback OpenAI).
-9. `GUARDED_RUNTIME_ROUTING_OFFLINE = IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/guarded-turn-routing-coordinator.ts`).
-10. `ACTIVE_GUARDED = BLOCKED` (fail-closed no runtime; pendente DPA e parâmetros de produção).
-11. `PRODUCTION_SHADOW_MAX_CONCURRENCY = DEFERRED_TO_PHASE10` (Slice 006BR / DEC-038).
-12. `PRODUCTION_JEV_TIMEOUT_MS = DEFERRED_TO_PHASE10` (Slice 006BR / DEC-038).
-13. `PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY = DEFERRED_TO_PHASE10` (Slice 006BR / DEC-038).
-14. `MODEL_DRIFT_RUNTIME_GUARD = IMPLEMENTED / TESTED LOCALLY` (`expectedProviderModel = jev-1.13.0`).
-15. `PRODUCTION_RUNTIME_WIRING = NO`: Fiação de runtime em produção desautorizada.
-16. `LIVE_PROVIDER_GUARDED_ROUTING_VALIDATION = PARTIAL`: L1A e L1B executados; L2 com falha técnica de auth; retry não autorizado; L3/L4 bloqueados.
-17. `LIVE_TWILIO_GUARDED_ROUTING = NOT EXECUTED`: Telefonia real pertence à Fase 8.
-18. `CUSTOMER_TRAFFIC = PROHIBITED` (invariante de segurança; escopo da Fase 10).
-19. `HUMAN_HANDOFF_IN_MEMORY_STATE_MACHINE = IMPLEMENTED / TESTED LOCALLY (offline)`: Máquina de estados determinística em memória e fallback de zero silêncio implementados e testados offline (Slice 006BQ em `apps/voice/src/human-handoff-state-machine.ts`; sinalização de carrier/SIP real é Fase 8).
-20. `PRODUCTION_OPERATIONAL_PARAMETERS = FORMALLY_DEFERRED_TO_PHASE10_BY_HUMAN_DECISION` (Slice 006BR / DEC-038).
+2. `PHASE7_STATUS = OPEN` | `PHASE7_COMPLETION_ESTIMATE = 15%` | `PHASE7_BLOCKER_COUNT = 0` | `PHASE7_BLOCKERS = NONE`.
+3. `TOOL_CALLING_CONTRACT = IMPLEMENTED` (`packages/contracts/src/tools/`: `ToolInvocation`, `ToolExecutionContext`, `ToolExecutionResult`, `ToolDefinition`, `ToolPort`, `ToolRegistryPort`).
+4. `TOOL_REGISTRY = IMPLEMENTED` (`apps/voice/src/tool-registry.ts`: `InMemoryToolRegistry` com fail-closed, duplicate rejection determinística, immutabilidade pós-registro).
+5. `TOOL_EXECUTION_RUNTIME = IMPLEMENTED` (`apps/voice/src/tool-execution-engine.ts`: `ToolExecutionEngine` com isolamento de contexto confiável, validação estrita via zod, contenção segura de exceções sem vazamento de secrets/traces).
+6. `TOOL_EXECUTION_SAFETY_BOUNDARY = IMPLEMENTED` (argumentos não-confiáveis do modelo não podem sobrescrever tenant/permissões; contexto injetado exclusivamente pelo runtime do servidor).
+7. `TOOL_AUTHORIZATION_MODEL = PARTIAL` (boundary de segurança por tenant/allowlist implementada; modelo completo de entitlements e papéis é escopo futuro).
+8. `OPERATING_HOURS_UNIVERSAL_ENGINE_INTEGRATION = YES` (`apps/voice/src/operating-hours-tool.ts`: wrapping determinístico de `handleOperatingHoursTurn` preservando 100% das regras sem duplicação).
+9. `BUSINESS_TOOL_INTEGRATIONS = NOT_IMPLEMENTED` (ferramentas de produtos, preços e agendamento são escopo das fatias 007C/007D).
+10. `MODEL_TO_CANONICAL_TOOL_MAPPING = PARTIAL` (contratos prontos no core de voz; fakes validados offline; emissores de provedor streaming não implementados).
+11. `PROVIDER_SPECIFIC_TOOL_MAPPING = NOT_IMPLEMENTED` (fase de integração de provedores).
+12. `KNOWLEDGE_BASE_DOMAIN = NOT_IMPLEMENTED` (entidades de documentos, chunks e ingestão ausentes).
+13. `RAG_ARCHITECTURE_DECISION = PENDING` (aguardando ADR formal e escolha arquitetural).
+14. `OUTBOUND_DOMAIN_MODEL = NOT_IMPLEMENTED` (tabelas de campanhas, contatos e jobs de discagem ausentes).
+15. `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`: Transmissão de transcrições de clientes para provedores externos proibida (invariante de segurança; tráfego real em produção é Fase 10).
+16. `ACTIVE_GUARDED = BLOCKED` (fail-closed no runtime; pendente DPA e parâmetros de produção).
+17. `PRODUCTION_SHADOW_MAX_CONCURRENCY = DEFERRED_TO_PHASE10` (Slice 006BR / DEC-038).
+18. `PRODUCTION_JEV_TIMEOUT_MS = DEFERRED_TO_PHASE10` (Slice 006BR / DEC-038).
+19. `PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY = DEFERRED_TO_PHASE10` (Slice 006BR / DEC-038).
+20. `MODEL_DRIFT_RUNTIME_GUARD = IMPLEMENTED / TESTED LOCALLY` (`expectedProviderModel = jev-1.13.0`).
+21. `PRODUCTION_RUNTIME_WIRING = NO`: Fiação de runtime em produção desautorizada.
+22. `LIVE_TWILIO_GUARDED_ROUTING = NOT EXECUTED`: Telefonia real pertence à Fase 8.
+23. `CUSTOMER_TRAFFIC = PROHIBITED` (invariante de segurança; escopo da Fase 10).
+24. `PRODUCTION_OPERATIONAL_PARAMETERS = FORMALLY_DEFERRED_TO_PHASE10_BY_HUMAN_DECISION` (Slice 006BR / DEC-038).
 
 ---
 
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- **Phase 7 Entry Status**: `OPEN` (`PHASE7_STATUS = OPEN`, `PHASE7_COMPLETION_ESTIMATE = 0%`, `PHASE7_BLOCKER_COUNT = 0`, `PHASE7_BLOCKERS = NONE`).
-- **Slice 007A (Phase 7 Entry & Gap Audit)**: Auditoria arquitetural de entrada da Fase 7 (Agente IA, Tools, Outbound Orchestration e Knowledge Base).
-- **Recommended Next Slice**: `007B — Universal Tool Calling Contracts & Voice Runtime Tool Execution Engine` (contratos universais de tool calling, ToolPort, dispatcher de execução e testes offline).
+- **Phase 7 Entry Status**: `OPEN` (`PHASE7_STATUS = OPEN`, `PHASE7_COMPLETION_ESTIMATE = 15%`, `PHASE7_BLOCKER_COUNT = 0`, `PHASE7_BLOCKERS = NONE`).
+- **Slice 007B (Universal Tool Calling Contracts & Voice Runtime Tool Execution Engine)**: Concluída com sucesso offline (129 arquivos de teste / 890 testes passando).
+- **Recommended Next Slice**: `007C — AgentVersion Toolset Configuration Extension & Agent Studio Integration` (extensão do schema de AgentVersion para declarar tools autorizadas, persistência de toolset e suporte no editor).
 - `AUTHORIZATION_CONSUMED = YES` | `SECOND_LIVE_RUN_AUTHORIZED = NO` | `NEW_LIVE_AUTHORIZATION_CREATED = NO`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
 
