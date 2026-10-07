@@ -3,15 +3,15 @@
 <!--
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
-LAST_REFRESHED_AT: 2026-10-05
-CONTEXT_BASE_MAIN_SHA: fdb28ae3ca7ba425d07160ca10162b86f3a84720
+LAST_REFRESHED_AT: 2026-10-07
+CONTEXT_BASE_MAIN_SHA: 8d2422b80c4de4e739c3fefc07409fef04ef979a
 CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
-CURRENT_SLICE: Slice 006BG — Mixed-Intent L2 v2 Authorized Study Live Path
-CONTEXT_UPDATE_BRANCH: research/006bg-v2-authorized-study-live-path
+CURRENT_SLICE: Slice 006BP — Phase 6 Closure-Gap Audit
+CONTEXT_UPDATE_BRANCH: docs/006bp-phase6-closure-gap-audit
 CONTEXT_UPDATE_PR: PENDING_MANUAL_CREATE
-LAST_MERGED_PR_AT_REFRESH: 87
-LAST_MERGE_SHA_AT_REFRESH: fdb28ae3ca7ba425d07160ca10162b86f3a84720
-LAST_TESTED_CODE_SHA: b20c47034f405521ede3ac51ad522f304d5eecdf
+LAST_MERGED_PR_AT_REFRESH: 96
+LAST_MERGE_SHA_AT_REFRESH: 8d2422b80c4de4e739c3fefc07409fef04ef979a
+LAST_TESTED_CODE_SHA: 8d2422b80c4de4e739c3fefc07409fef04ef979a
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
 AI_CONTEXT_HEADER_END
@@ -125,8 +125,16 @@ AI_CONTEXT_HEADER_END
 
 ## 6. Estado Atual da Evidência de Qualidade (Quality Gate Snapshot)
 
-- **Último `pnpm check` Global**: `PASS` (observado na branch 006BG `research/006bg-v2-authorized-study-live-path`: `FORMAT PASS`, `LINT PASS`, `TYPECHECK PASS 12/12`, `TEST PASS 839 passed / 45 skipped (121 arquivos passed / 6 skipped)`, `BUILD PASS 12/12`, `ARCHITECTURE PASS`, `FILE_SIZE PASS`; `LATEST_FULL_GATE_HEAD` = HEAD final desta reconciliação `b20c47034f405521ede3ac51ad522f304d5eecdf`; `LAST_TESTED_CODE_SHA = b20c47034f405521ede3ac51ad522f304d5eecdf` (006BG adiciona caminho live autorizado, freeze live, testes A-Y; gate frio canônico observado neste HEAD code-bearing, ver entrada 006BG no AI_WORKLOG).
-- **Status das Asserções**: `210 passed` em `@voice-agent/integrations` (29 arquivos de teste, incluindo `5/5 passed` desacoplado de build em `l2-module-resolution.test.ts`, `21/21 passed` em `jev-openai-l2-synthetic-runner.test.ts`, `5/5 passed` em `jev-routing-benchmark.test.ts`, `11/11 passed` em `l2-executable-freeze.test.ts`, `2/2 passed` em `l2-joint-chain-result-classification.test.ts` e `2/2 passed` em `l2-targeted-joint-chain-candidates.test.ts`).
+- **Último `pnpm check` Global**: `PASS` (observado na branch `docs/006bp-phase6-closure-gap-audit`: `FORMAT PASS`, `LINT PASS`, `TYPECHECK PASS 12/12`, `TEST PASS 858 passed / 45 skipped (124 arquivos passed / 6 skipped)`, `BUILD PASS 12/12`, `ARCHITECTURE PASS`, `FILE_SIZE PASS`).
+- **Identificadores de HEAD & Semântica Não-Auto-Referencial**:
+  - `LAST_RECORDED_FULL_GATE_HEAD = 826fd34d9a85e513a8e4e9f4e1b9c291984d5f48`
+  - `LAST_RECORDED_FULL_GATE_STATUS = PASS`
+  - `CURRENT_BRANCH_HEAD_SOURCE = QUERY_GIT_AT_RUNTIME`
+  - `LAST_CODE_BEARING_MAIN_SHA = 8d2422b80c4de4e739c3fefc07409fef04ef979a`
+  - *Nota*: `AI_CONTEXT.md` é conteúdo versionado e não pode conter o SHA do próprio commit que o modifica. O HEAD exato da branch corrente deve ser obtido do Git em runtime (`QUERY_GIT_AT_RUNTIME`). `LAST_RECORDED_FULL_GATE_HEAD` registra a evidência mais recente observada e durável quando este snapshot foi redigido, evitando loops infinitos de auto-referência.
+- **Contagens Canônicas de Testes**:
+  - `TEST_FILES_PASSED = 124` | `TEST_FILES_FAILED = 0` | `TEST_FILES_SKIPPED = 6`
+  - `TESTS_PASSED = 858` | `TESTS_FAILED = 0` | `TESTS_SKIPPED = 45`
 - **Regressão de Asserções**: `ASSERTION_WEAKER = 0`, `NEW_SKIPS = 0`.
 - **Verificação Arquitetural**: `SUCESSO: Todas as fronteiras e regras arquiteturais respeitadas.`
 - **Verificação de Tamanho de Arquivos**: `SUCESSO: Todos os arquivos de logica estao em conformidade (check:file-size = PASS).`
@@ -136,53 +144,42 @@ AI_CONTEXT_HEADER_END
 
 ## 7. Bloqueios Atuais e Status de Prontidão (Current Blockers & Readiness)
 
-1. `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`: Transmissão de transcrições de clientes para provedores externos proibida.
-2. `KNOWN_DETERMINISTIC_HANDLERS = 1` (`ACTIVE_DETERMINISTIC_BYPASS_READINESS = BLOCKED` até implementação de fiação controlada e testes de integração de runtime).
-3. `POST_DISPATCH_BARGE_IN_DESIGN = DESIGNED` | `POST_DISPATCH_BARGE_IN_RUNTIME = IMPLEMENTED / TESTED LOCALLY (offline)` | `LIVE_PROVIDER_BARGE_IN_VERIFICATION = PROVIDER-UNVERIFIED`
-4. `INTERRUPTED_CONTEXT_CONTINUITY_DESIGN = DESIGNED` | `INTERRUPTED_CONTEXT_METADATA_PROPAGATION = IMPLEMENTED / TESTED LOCALLY` | `INTERRUPTED_CONTEXT_CONTINUITY_RUNTIME = IMPLEMENTED / TESTED LOCALLY (offline delivery & qualified history)`
-5. `HISTORY_COMPLETION_DESIGN = DESIGNED` | `HISTORY_COMPLETION_RUNTIME = IMPLEMENTED / TESTED LOCALLY (offline orchestrator history resolution)`
-6. `SECURITY_RESPONSE_DELIVERY_DESIGN = DESIGNED` | `SECURITY_RESPONSE_DELIVERY_OFFLINE = IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/security-blocked-response.ts`, `apps/voice/src/conversation-orchestrator.ts`; turn-scoped refusal/delivery; call remains active; call termination = NO)
-7. `SECURITY_RUNTIME_ROUTING_INTEGRATION = IMPLEMENTED / TESTED LOCALLY (offline)`
-8. `GUARDED_RUNTIME_ROUTING_OFFLINE = IMPLEMENTED / TESTED LOCALLY`
-9. `ACTIVE_GUARDED = BLOCKED`
-10. `PRODUCTION_SHADOW_MAX_CONCURRENCY = NOT SELECTED`: Limite de concorrência operacional de produção não definido.
-11. `PRODUCTION_JEV_TIMEOUT_MS = NOT SELECTED`: Evidência empírica descritiva L1B observada (N=100); timeout de produção requer revisão arquitetural separada e canary subsequente apropriado.
-12. `PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY = NOT SELECTED`: Candidato canary 2 a 5 chamadas é proposta exploratória sem dados operacionais.
-13. `MODEL_DRIFT_RUNTIME_GUARD = IMPLEMENTED / TESTED LOCALLY` (`EXPECTED_MODEL_AUTHORITY = OPTION_B`; exact match via `expectedProviderModel`).
-14. `PRODUCTION_RUNTIME_WIRING = NO`: Fiação de runtime em produção desautorizada.
-15. `LIVE_PROVIDER_GUARDED_ROUTING_VALIDATION = PARTIAL`: L1A executado com sucesso (`L1A_EXECUTION = PASS`); L1B executado com sucesso (`L1B_EXECUTION = PASS_COMPLETE`); L2 = EXECUTED_ONCE_006BA_FAILED_PARTIAL (supersedes PLANNED-era wording; ver 006BA); L3 = NOT EXECUTED / BLOCKED UNTIL APPROPRIATE SLICE; L4 = BLOCKED.
-16. `LIVE_TWILIO_GUARDED_ROUTING = NOT EXECUTED`: Validação em telefonia real pendente L3.
-17. `CUSTOMER_TRAFFIC = PROHIBITED`
+1. `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`: Transmissão de transcrições de clientes para provedores externos proibida. Bloqueia tráfego real de clientes em produção, mas está fora da fronteira de saída do motor offline da Fase 6 (`TRANSCRIPT_PRIVACY = NOT_CLEARED_FOR_CUSTOMER_TRAFFIC_BUT_NOT_PHASE6_EXIT_BLOCKER`).
+2. `KNOWN_DETERMINISTIC_HANDLERS = 1` (`agent.operating_hours` implementado e testado; ferramentas de negócio externas pertencem à Fase 7).
+3. `POST_DISPATCH_BARGE_IN_RUNTIME = IMPLEMENTED / TESTED LOCALLY (offline)` | `LIVE_PROVIDER_BARGE_IN_VERIFICATION = PROVIDER-UNVERIFIED` (Fase 8).
+4. `INTERRUPTED_CONTEXT_CONTINUITY_RUNTIME = IMPLEMENTED / TESTED LOCALLY (offline delivery & qualified history)`.
+5. `HISTORY_COMPLETION_RUNTIME = IMPLEMENTED / TESTED LOCALLY (offline orchestrator history resolution)`.
+6. `SECURITY_RESPONSE_DELIVERY_OFFLINE = IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/security-blocked-response.ts`; resposta estática; chamada ativa; sem fallback OpenAI).
+7. `GUARDED_RUNTIME_ROUTING_OFFLINE = IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/guarded-turn-routing-coordinator.ts`).
+8. `ACTIVE_GUARDED = BLOCKED` (fail-closed no runtime; pendente DPA e parâmetros de produção).
+9. `PRODUCTION_SHADOW_MAX_CONCURRENCY = NOT SELECTED`.
+10. `PRODUCTION_JEV_TIMEOUT_MS = NOT SELECTED`: Latência empírica L1B observada; parâmetro final de produção não selecionado.
+11. `PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY = NOT SELECTED`.
+12. `MODEL_DRIFT_RUNTIME_GUARD = IMPLEMENTED / TESTED LOCALLY` (`expectedProviderModel = jev-1.13.0`).
+13. `PRODUCTION_RUNTIME_WIRING = NO`: Fiação de runtime em produção desautorizada.
+14. `LIVE_PROVIDER_GUARDED_ROUTING_VALIDATION = PARTIAL`: L1A e L1B executados; L2 com falha técnica de auth; retry não autorizado; L3/L4 bloqueados.
+15. `LIVE_TWILIO_GUARDED_ROUTING = NOT EXECUTED`: Telefonia real pertence à Fase 8.
+16. `CUSTOMER_TRAFFIC = PROHIBITED` (invariante de segurança; escopo da Fase 10).
+17. `HUMAN_HANDOFF_IN_MEMORY_STATE_MACHINE = DOCUMENTED_ONLY`: Falta implementar a máquina de estados em memória e eventos canônicos em `apps/voice` (Bloqueador 1 da Saída da Fase 6).
+18. `PRODUCTION_OPERATIONAL_PARAMETERS = BLOCKED_BY_HUMAN_DECISION`: Parâmetros de produção de `ACTIVE_GUARDED` não selecionados (Bloqueador 2 da Saída da Fase 6; passível de decisão/deferimento para Fase 10).
+19. `PHASE6_COMPLETION_ESTIMATE = 92%` | `PHASE6_CAN_CLOSE_NOW = NO` | `PHASE6_BLOCKER_COUNT = 2`.
+20. `PHASE6_BLOCKERS = HUMAN_HANDOFF_IN_MEMORY_STATE_MACHINE, PRODUCTION_OPERATIONAL_PARAMETERS`.
 
 ---
 
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- **Slice 006BF (offline, implementação v2)**: `V2_IMPLEMENTATION_STATUS = IMPLEMENTED_TESTED_OFFLINE` (dataset v1.0.0 com 4 casos + runner `OPTION_B` + schema v2 `2.0.0` + freeze v2 próprio); `CRITERION_A_V2_DEFINED = YES` com validação offline de caminhos (`OPTION_A` p/ fallback); histórico v1 intacto.
-- `V2_IMPLEMENTATION_STATUS` = `IMPLEMENTED_TESTED_OFFLINE` | `V2_DATASET_STATUS` = `IMPLEMENTED_TESTED_OFFLINE` | `V2_RUNNER_STATUS` = `IMPLEMENTED_TESTED_OFFLINE` | `V2_EXECUTABLE_FREEZE_STATUS` = `FROZEN_REPRODUCIBLY` | `JEV_SCORE_BEHAVIOR` = `NOT_OBSERVED` | `REAL_PROVIDER_VALIDATION` = `NOT_EXECUTED`.
-- `OFFLINE_V2_RUNNER (006BF, núcleo inalterado)`: `CURRENT_L2_EXECUTION` = `NOT_AUTHORIZED` | `LIVE_AUTHORIZATION_AVAILABLE` = `NO` (a autorização vive na camada 006BG) | `SECOND_LIVE_RUN_AUTHORIZED` = `NO`.
-- `NEXT_REQUIRED_STEP` = `HUMAN_REVIEW_OF_006BG_LIVE_PATH_PR` (4 decisões registradas; caminho live implementado e validado com fakes; live NÃO executada).
-- `006BF_STATUS` = `MERGED_COMPLETE` (PR #85; head `88d6c85...`; merge `9a2c616...`) | `006BG_STATUS` = `MERGED_COMPLETE` (PR #88; merge `ac99797a17bd51146ce3acfbe383d8acd44d37a0`; live path implemented fake-validated) | `HUMAN_V2_LIVE_AUTHORIZATION` = `AUTHORIZED_ONE_TARGETED_V2_SYNTHETIC_STUDY` (histórico da decisão; estado atual pós-retry 006BJ: `AUTHORIZATION_CONSUMED = YES`, sem nova autorização) | `AUTHORIZED_RUN_COUNT` = `1` (+ retry autorizado 1x) | `AUTHORIZED_OPERATOR_COST_CEILING_USD` = `0.50` | `CURRENT_L2_EXECUTION` = `EXECUTED_PARTIAL_FAILED_TECHNICAL` (histórico: primeira `EXECUTED_ONCE_FAILED_BEFORE_NETWORK` com `FATAL_LIVE_AUTHORIZATION_MISSING`; retry `FAILED_TECHNICAL_HTTP_AUTH_ERROR` com 1 dispatch; `REAL_PROVIDER_VALIDATION = PARTIAL`) | `TARGETED_LIVE_STUDY_READINESS` = `CONSUMED_NO_NEW_AUTHORIZATION`.
-- `006BH_STATUS` = `IN_PROGRESS` (branch `fix/006bh-v2-live-authorization-plumbing`; root cause CLI auth not propagated; minimal fix explicit `--authorize-one-targeted-v2-synthetic-study`; old live freeze `500d922c...`, new live freeze `abdece3b...` post-prettier working-tree (pre-format `3b27d0ca...` superseded by formatting only), offline `6fdc0827...` unchanged, dataset `ade86008...` unchanged; no second live invocation; future retry requires separate human decision).
-- `006BI_STATUS` = `MERGED_COMPLETE` (PR #90; timeout H 15000ms só no teste; gate final 122/842 PASS).
-- `006BJ_STATUS` = `IN_PROGRESS` (branch `research/006bj-v2-live-auth-failure-postrun-evidence`; retry autorizado executado 1x: 1 dispatch TypeSafe real com `HTTP_AUTH_ERROR`, 0 OpenAI, `FAILED_TECHNICAL`, `PARTIAL`, Criterion A NO, consumo YES, sem segunda; artefato `docs/research/results/phase-6-l2-mixed-intent-v2-live-run1.json` SHA `1E71C6D64E31B6147A16FE7...`; forense offline prefere rejeição de credencial/provedor NÃO PROVÁVEL offline, sem regressão local provada; produção segue bloqueada, clientes proibidos).
-- `HYBRID_MINIMAL_IMPLEMENTATION_STATUS` = `IMPLEMENTED_TESTED_OFFLINE` | `MIXED_INTENT_CAPABILITY_RELEVANCE` = `IMPLEMENTED_TESTED_OFFLINE` | `FULL_DETERMINISTIC_RESOLVABILITY_SEPARATION` = `IMPLEMENTED_TESTED_OFFLINE` | `RESIDUAL_INTENT_DROP_PROTECTION` = `IMPLEMENTED_TESTED_OFFLINE` | `SECURITY_PRECEDENCE_REGRESSION` = `PASS`.
-- `CRITERION_A_PRODUCT_SEMANTIC_FEASIBILITY` = `REACHABLE_AFTER_OFFLINE_IMPLEMENTATION` (Jev `NOT_OBSERVED`) | `HISTORICAL_006BD_TARGETED_LIVE_STUDY_READINESS` = `BLOCKED_PENDING_TARGETED_STUDY_REDESIGN_AND_OFFLINE_VALIDATION`.
-- `OFFLINE_V2_RUNNER (006BF, núcleo inalterado)`: `CURRENT_L2_EXECUTION` = `NOT_AUTHORIZED` | `LIVE_AUTHORIZATION_AVAILABLE` = `NO` (a autorização vive na camada 006BG) | `SECOND_LIVE_RUN_AUTHORIZED` = `NO`.
-- **Estado L2 atual reconciliado (006BA concluída)**: `HISTORICAL_PR78_L2_RESULT = BLOCKED_BY_RUNTIME_MODULE_RESOLUTION` | `006BA_L2_RESULT = FAILED` | `006BA_L2_EXECUTION = PARTIAL_CHAIN_OBSERVED` | `006BA_TYPESAFE_REQUESTS = 7/7` | `006BA_OPENAI_REQUESTS = 5/5` | `006BA_PROVIDER_ERRORS = 0` | `006BA_MODEL_MISMATCHES = 0` | `006BA_TIMEOUTS = 0` | `006BA_RETRIES = 0` | `SEPARATE_REAL_PROVIDER_PATHS_VERIFIED = PASS` | `SINGLE_CASE_JOINT_CHAIN_OBSERVED = NO` | `HUMAN_DECISION_L2_JOINT_CHAIN_INTENT = A_SINGLE_CASE_JEV_POLICY_OPENAI_CHAIN_REQUIRED_FOR_PASS_COMPLETE`.
-- `OFFLINE_V2_RUNNER (006BF, núcleo inalterado)`: `CURRENT_L2_EXECUTION` = `NOT_AUTHORIZED` | `LIVE_AUTHORIZATION_AVAILABLE` = `NO` (a autorização vive na camada 006BG) | `SECOND_LIVE_RUN_AUTHORIZED` = `NO`.
-- `TARGETED_STUDY_STATUS` = `EXECUTED_PARTIAL_FAILED_TECHNICAL_AUTHORIZATION_CONSUMED` | `L3_READINESS` = `BLOCKED` | `HISTORICAL_PROPOSED_LIVE_COST_CEILING` = `NOT_SELECTED` (pré-006BG) | `CURRENT_V2_OPERATOR_COST_CEILING_USD` = `0.50`.
-- `TYPESAFE_PRICE_STATUS` = `NOT_VERIFIED` (sem tarifa contratual observada).
-- `HARD_L2_COST_BOUND_FEASIBLE` = `BLOCKED`.
-- `ACTIVE_GUARDED` permanece `BLOCKED` até conclusão de toda a escada de validação (L1-L4).
-- Do NOT execute L2 live (exceção única: o estudo v2 autorizado, ainda NÃO executado, somente mediante invocação explícita futura).
-- Do NOT enable live customer traffic.
-- Do NOT use real telephony / live Twilio (`TWILIO_ACCOUNT_REQUIRED_NOW = NO`).
+- **Slice 006BP (Auditoria de Gaps da Fase 6)**: `AUDIT_COMPLETE`. Identificados 2 bloqueadores reais:
+  1. `HUMAN_HANDOFF_IN_MEMORY_STATE_MACHINE` (código/testes em `apps/voice` pendentes);
+  2. `PRODUCTION_OPERATIONAL_PARAMETERS` (parâmetros de produção de `ACTIVE_GUARDED` não selecionados; passível de decisão/deferimento para Fase 10).
+- **Próximo Slice Mínimo**: `006BQ — IN-MEMORY HUMAN HANDOFF STATE MACHINE AND FALLBACK PROTOCOL` (implementação offline determinística em memória de `NONE -> REQUESTED -> SELLER_NOTIFIED -> SELLER_READY -> AI_PREPARING -> READY_TO_JOIN -> HUMAN_CONNECTED -> AI_DETACHED` e fallback conversacional com zero chamadas externas).
+- `AUTHORIZATION_CONSUMED = YES` | `SECOND_LIVE_RUN_AUTHORIZED = NO` | `NEW_LIVE_AUTHORIZATION_CREATED = NO`.
+- Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
 
 ### `NOT_YET_ALLOWED`:
 - Transmissão de dados reais de clientes para provedores externos.
-- Ativação de `ACTIVE_GUARDED` no runtime.
+- Ativação de `ACTIVE_GUARDED` no runtime de produção.
 - Modificação de políticas congeladas ou reutilização do holdout de pesquisa.
 - Fiação em runtime de produção (`apps/voice`).
 

@@ -15826,3 +15826,122 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - Este esclarecimento de auditabilidade não altera o resultado técnico testado.
 - **SAFETY**: `REAL_DOTENV_ACCESSED = NO`, `OPENAI_REAL_CALLS = 0`, `TYPESAFE_REAL_CALLS = 0`, `TWILIO_REAL_CALLS = 0`, `LIVE_COMMAND_INVOKED = NO`, `SECRET_AUDIT = PASS`
 - **STATE**: `AUTHORIZATION_CONSUMED = YES`, `SECOND_LIVE_RUN_AUTHORIZED = NO`, `NEW_LIVE_AUTHORIZATION_CREATED = NO`
+
+---
+
+## 2026-10-07 — 006BP Phase 6 Closure-Gap Audit (Offline, NO_IMPLEMENTATION, NO_LIVE, NO_PROVIDERS)
+
+- **MAIN_STARTING_SHA**: `8d2422b80c4de4e739c3fefc07409fef04ef979a` (commit de merge do PR #96)
+- **AUDIT_BRANCH**: `docs/006bp-phase6-closure-gap-audit`
+- **PURPOSE**: Auditoria factual estrita baseada em código rastreado, testes automatizados e contratos vigentes para determinar com precisão o que impede o encerramento formal da Fase 6 em 100%.
+- **PHASE6_COMPLETION_ESTIMATE**: `92%`
+- **PHASE6_CAN_CLOSE_NOW**: `NO`
+- **PHASE6_BLOCKER_COUNT**: `2`
+- **PHASE6_BLOCKERS**:
+  1. `HUMAN_HANDOFF_IN_MEMORY_STATE_MACHINE`: A porção de Fase 6 do protocolo de transbordo humano (máquina de estados determinística em memória `NONE -> REQUESTED -> SELLER_NOTIFIED -> SELLER_READY -> AI_PREPARING -> READY_TO_JOIN -> HUMAN_CONNECTED -> AI_DETACHED`, fallback de zero silêncio no diálogo e eventos de transbordo) está formalizada arquiteturalmente em `docs/LIVE_CALLS_AND_HANDOFF.md`, mas carece de implementação em código/testes em `apps/voice` (`DOCUMENTED_ONLY`).
+  2. `PRODUCTION_OPERATIONAL_PARAMETERS`: Os parâmetros de operação de produção (`PRODUCTION_JEV_TIMEOUT_MS = NOT SELECTED`, `PRODUCTION_SHADOW_MAX_CONCURRENCY = NOT SELECTED`, `PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY = NOT SELECTED`) não foram fixados, bloqueando formalmente a ativação de `ACTIVE_GUARDED` em produção sem decisão humana prévia ou deferimento para a Fase 10 (Hardening).
+- **NEXT_MINIMAL_SLICE**: `006BQ — IN-MEMORY HUMAN HANDOFF STATE MACHINE AND FALLBACK PROTOCOL`
+
+### Matriz Factual de Entrega da Fase 6 (Phase 6 Delivery Matrix)
+- **A. voice runtime core**: `IMPLEMENTED_AND_TESTED` (`apps/voice/src/conversation-orchestrator.ts`, `call-session-state-machine.ts`, fakes de transporte e modelo, testes de fluxo e ciclo de vida; fiação de produção não ligada: `PRODUCTION_RUNTIME_WIRING = NO`).
+- **B. STT/TTS/provider abstractions**: `IMPLEMENTED_AND_TESTED` (`VoiceTransportPort`, `ConversationModelPort`, `AuxiliaryTurnDecisionPort`; adapters `OpenAI`, `TypeSafe Jev`, `Twilio ConversationRelay`; áudio real de carrier é `PROVIDER-UNVERIFIED` / Fase 8).
+- **C. VoiceConfig / provider voice configuration**: `PARTIALLY_RESOLVED` / `DEFERRED_AND_NOT_PHASE6_BLOCKING` (contrato neutro `agentVoiceV1Schema` com `languageCode: pt-BR | en-US | es-ES` implementado em `packages/contracts`; atributos granulares de síntese/timbre deferidos de acordo com DEC-016).
+- **D. streaming/audio pipeline**: `IMPLEMENTED_AND_TESTED` (`TwilioWebSocketBoundary`, `TwilioVoiceTransportAdapter`, TwiML generator, fakes de simulação e golden fixtures; streaming telefônico de carrier real é Fase 8).
+- **E. interruption / barge-in**: `IMPLEMENTED_AND_TESTED` (`handleUserInterruption`, cancelamento de geração `staleGen`, interrupção de transporte, histórico qualificado H4/H5 contra falhas; acústica de telefonia real é `PROVIDER-UNVERIFIED` / Fase 8).
+- **F. VAD/configurability**: `IMPLEMENTED_AND_TESTED` (suporte a eventos `user.speech.started`, `user.speech.final`, `user.interruption` via WebSocket boundary).
+- **G. latency/timeout behavior**: `IMPLEMENTED_AND_TESTED` offline (mecanismo `TimedAuxiliaryTurnDecisionPort` com `AbortController`; staging timeout 1500ms; study timeout 5000ms; parâmetro final de produção `PRODUCTION_JEV_TIMEOUT_MS` permanece `NOT SELECTED` / `BLOCKED_BY_HUMAN_DECISION`).
+- **H. session lifecycle**: `IMPLEMENTED_AND_TESTED` (`CallSessionStateMachine` com estados `INITIATED -> ACTIVE -> ENDED -> TERMINATED`, registry in-memory, testes determinísticos).
+- **I. transcript handling**: `IMPLEMENTED_AND_TESTED` (`InMemoryConversationHistoryStore`, `ConversationContextComposer`, resolução qualificada de histórico).
+- **J. transcript privacy/provider processing governance**: `BLOCKED_BY_PRIVACY_OR_COMPLIANCE` (`CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`; minimização de payload auditada em `PHASE_6_ACTIVE_GUARDED_PRODUCTION_READINESS_GATE.md`; bloqueia tráfego de clientes em produção, mas não impede desenvolvimento de motor offline com dados sintéticos).
+- **K. deterministic routing/policy**: `IMPLEMENTED_AND_TESTED` (`FrozenPolicyInterpreter` com thresholds canônicos T_SEC=0.56, T_DET=0.35, T_GEN=0.47; `GuardedTurnRoutingCoordinator`).
+- **L. deterministic handlers**: `PARTIALLY_RESOLVED` (`agent.operating_hours` implementado com capability matcher e 55+ testes; ferramentas de negócio externas como catálogo, CRM e agenda são de domínio de produto e pertencem à Fase 7).
+- **M. generative path**: `IMPLEMENTED_AND_TESTED` (`OpenAIConversationModelAdapter`, streaming de deltas via `streamTurn()`, fallback fail-open testado).
+- **N. security escalation path**: `IMPLEMENTED_AND_TESTED` (`security-blocked-response.ts`, resposta estática sem fallback OpenAI, sem tools, chamada permanece `ACTIVE`).
+- **O. TypeSafe/Jev integration status**: `IMPLEMENTED_AND_TESTED` (`TypeSafeJevTurnDecisionAdapter`, drift guard exato `jev-1.13.0`, staging shadow observer).
+- **P. OpenAI integration status**: `IMPLEMENTED_AND_TESTED` (`OpenAIConversationModelAdapter`, candidato primário `gpt-6-astra`).
+- **Q. mixed-intent L2 v2 study status**: `IMPLEMENTED_AND_TESTED` offline (dataset v1.0.0 N=4, runner `OPTION_B`, freeze executável `6fdc08...`; execução live autorizada em 006BJ consumida com falha técnica HTTP_AUTH_ERROR; segunda execução live `NOT AUTHORIZED` / não mandatória para encerramento do motor).
+- **R. offline/live research freezes**: `IMPLEMENTED_AND_TESTED` (manifestos canônicos congelados e validados por hash SHA-256).
+- **S. technical readiness preflight**: `IMPLEMENTED_AND_TESTED` (pré-voo de env 006BN e pré-voo técnico 006BO sem rede validados).
+- **T. human handoff Phase-6 portion**: `DOCUMENTED_ONLY` (`STILL_BLOCKING`; máquina de estados in-memory e eventos canônicos não codificados em `apps/voice`).
+- **U. production operational parameters**: `BLOCKED_BY_HUMAN_DECISION` (`STILL_BLOCKING` ativação de produção; timeouts e concorrência não definidos).
+- **V. ACTIVE_GUARDED eligibility**: `BLOCKED` (fail-closed por verificações de runtime, pendência jurídica de DPA e parâmetros de produção).
+- **W. customer traffic eligibility**: `PROHIBITED` (`CUSTOMER_TRAFFIC = PROHIBITED`; escopo da Fase 10, não bloqueia Fase 6).
+- **X. observability required specifically for Phase 6**: `IMPLEMENTED_AND_TESTED` (`correlationId`, `callId`, `turnId`, métricas de latência e logs estruturados sanitizados).
+- **Y. items explicitly deferred to Phase 7/8/9**: `NOT_REQUIRED_FOR_PHASE_6_EXIT` (Tools/RAG -> Fase 7; Telefonia real SIP/WebSockets e gravação -> Fase 8; Evals/Workers/Dashboards -> Fase 9).
+
+### Reconciliação dos Bloqueadores Notáveis (Specific Known Blockers)
+1. **DETERMINISTIC_HANDLERS_STATUS**: `PARTIALLY_RESOLVED`
+   - O padrão determinístico da Fase 6 está resolvido e comprovado por `agent.operating_hours` (PR #49 e PR #50).
+   - Handlers externos (`catalog.product_price`, `calendar.get_slots`, `crm.find_contact`) são ferramentas de negócio e dependem de serviços de aplicação da Fase 7 (`DEFERRED_TO_PHASE_7`).
+2. **TRANSCRIPT_PRIVACY_GOVERNANCE_STATUS**: `STILL_BLOCKING`
+   - Bloqueia exclusivamente a transmissão de dados reais de clientes em produção (`CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`).
+   - Não bloqueia testes de engenharia offline com dados sintéticos.
+3. **PRODUCTION_OPERATIONAL_PARAMETERS_STATUS**: `STILL_BLOCKING`
+   - Bloqueia a habilitação de `ACTIVE_GUARDED` em produção. Exige aprovação de decisão técnica humana ou deferimento formal para a Fase 10 (Hardening).
+4. **VOICE_CONFIG_STATUS**: `PARTIALLY_RESOLVED / DEFERRED_AND_NOT_PHASE6_BLOCKING`
+   - Contrato neutro de idioma (`languageCode`) implementado. Customização de perfis avançados de voz por carrier deferida sem prejuízo ao motor.
+5. **HUMAN_HANDOFF_PHASE6_STATUS**: `STILL_BLOCKING`
+   - A máquina de estados in-memory do protocolo de transbordo e sua integração conversacional com zero silêncio constituem o principal gap de implementação pendente na Fase 6.
+
+- **006BO_DURABLE_STATE_VERIFIED**:
+  - `TECHNICAL_READINESS_PREFLIGHT_PRESENT = YES`
+  - `TECHNICAL_AUTHORIZATION_SEPARATION = PASS`
+  - `PROVIDER_NETWORK_CALL_POSSIBLE = NO`
+  - `LIVE_RUNNER_INVOCATION_POSSIBLE = NO`
+  - `REGRESSION_FIRST_RED_OBSERVED = NOT_OBSERVED`
+  - `TOTAL_CANONICAL_GATE_LAUNCHES_ORIGINAL_006BO = 2`
+  - `ORIGINAL_FIRST_GATE_FAILURE_CAUSE = NOT_OBSERVED`
+  - `UNSUPPORTED_TIMEOUT_CAUSE_RETRACTED = YES`
+- **STATE**: `AUTHORIZATION_CONSUMED = YES`, `SECOND_LIVE_RUN_AUTHORIZED = NO`, `NEW_LIVE_AUTHORIZATION_CREATED = NO`
+
+---
+
+## 2026-10-07 — 006BP Closure Classification Reconciliation (Offline, NO_IMPLEMENTATION, NO_LIVE, NO_PROVIDERS)
+
+- **006BP_CLOSURE_CLASSIFICATION_RECONCILIATION**: `YES`
+- **PHASE6_BLOCKER_COUNT**: `2`
+- **PHASE6_BLOCKERS**:
+  1. `HUMAN_HANDOFF_IN_MEMORY_STATE_MACHINE`
+  2. `PRODUCTION_OPERATIONAL_PARAMETERS`
+- **TRANSCRIPT_PRIVACY_GOVERNANCE_STATUS**: `DEFERRED_AND_NOT_PHASE6_BLOCKING`
+- **CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE**: `NOT_CLEARED`
+- **CUSTOMER_TRAFFIC**: `PROHIBITED`
+- **CLASSIFICATION_RECONCILIATION_RATIONALE**:
+  - A governança de privacidade e transcrição de clientes permanece não resolvida para dados reais (`CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`);
+  - Ela bloqueia formalmente o processamento de transcrições de clientes por provedores externos e o tráfego de produção (`CUSTOMER_TRAFFIC = PROHIBITED`);
+  - Contudo, a análise de saída do slice 006BP posiciona o tráfego real de clientes e a habilitação em produção fora da fronteira de saída do motor offline da Fase 6 (pertencendo à Fase 10 — Hardening, Staging e Produção);
+  - Portanto, a privacidade de transcrição de clientes não deve ser simultaneamente rotulada como um terceiro bloqueador de saída da Fase 6 enquanto `PHASE6_BLOCKER_COUNT` permanece estritamente `2`;
+  - Esta correção altera unicamente a precisão de classificação terminológica entre fases, sem alterar a postura de segurança;
+  - Nenhum tráfego de clientes ou processamento de transcrições por terceiros torna-se autorizado.
+- **SAFETY_INVARIANTS_PRESERVED**:
+  - `ACTIVE_GUARDED = BLOCKED`
+  - `PRODUCTION_RUNTIME_WIRING = NO`
+  - `AUTHORIZATION_CONSUMED = YES`
+  - `SECOND_LIVE_RUN_AUTHORIZED = NO`
+  - `NEW_LIVE_AUTHORIZATION_CREATED = NO`
+  - `REAL_DOTENV_ACCESSED = NO`
+  - `OPENAI_REAL_CALLS = 0`
+  - `TYPESAFE_REAL_CALLS = 0`
+  - `TWILIO_REAL_CALLS = 0`
+  - `LIVE_COMMAND_INVOKED = NO`
+  - `SECRET_AUDIT = PASS`
+
+---
+
+## 2026-10-07 — 006BP Context Self-Reference Reconciliation (Offline, NO_IMPLEMENTATION, NO_LIVE, NO_PROVIDERS)
+
+- **006BP_CONTEXT_SELF_REFERENCE_RECONCILIATION**: `YES`
+- **PREVIOUS_RECONCILIATION_HEAD**: `826fd34d9a85e513a8e4e9f4e1b9c291984d5f48`
+- **SELF_REFERENTIAL_HEAD_EMBEDDING_AVOIDED**: `YES`
+- **CURRENT_BRANCH_HEAD_SOURCE**: `QUERY_GIT_AT_RUNTIME`
+- **LAST_RECORDED_FULL_GATE_HEAD**: `826fd34d9a85e513a8e4e9f4e1b9c291984d5f48`
+- **PHASE6_BLOCKER_COUNT**: `2`
+- **TRANSCRIPT_PRIVACY_GOVERNANCE_STATUS**: `DEFERRED_AND_NOT_PHASE6_BLOCKING`
+- **RATIONALE**:
+  - Ajuste estritamente terminológico e de higiene de snapshot de navegação;
+  - Documentos versionados no repositório (`AI_CONTEXT.md`) não podem tentar embutir o SHA do próprio commit que os altera sem criar loops de auto-referência infinita ou amends recursivos;
+  - O SHA exato da branch corrente deve ser sempre consultado via Git em runtime (`QUERY_GIT_AT_RUNTIME`);
+  - `LAST_RECORDED_FULL_GATE_HEAD` registra a evidência de gate observada e durável mais recente disponível no momento da autoria;
+  - Esta alteração não modifica qualquer comportamento técnico, código de produção, testes ou postura de segurança.
+- **SAFETY**: `REAL_DOTENV_ACCESSED = NO`, `OPENAI_REAL_CALLS = 0`, `TYPESAFE_REAL_CALLS = 0`, `TWILIO_REAL_CALLS = 0`, `LIVE_COMMAND_INVOKED = NO`, `SECRET_AUDIT = PASS`
+- **STATE**: `AUTHORIZATION_CONSUMED = YES`, `SECOND_LIVE_RUN_AUTHORIZED = NO`, `NEW_LIVE_AUTHORIZATION_CREATED = NO`
