@@ -22,6 +22,8 @@ describe('AgentDraftEditor (Component)', () => {
     expect(html).toContain('Persona e Identidade Vocal');
     expect(html).toContain('Regras de Comportamento');
     expect(html).toContain('Idioma e Síntese de Voz');
+    expect(html).toContain('Ferramentas do Agente');
+    expect(html).toContain('agent.operating_hours');
   });
 
   it('renders without action buttons in readOnly mode', () => {

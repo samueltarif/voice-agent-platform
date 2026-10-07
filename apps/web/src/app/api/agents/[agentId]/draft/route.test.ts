@@ -205,6 +205,48 @@ describe('BFF Agent Draft Route (/api/agents/[agentId]/draft)', () => {
         }),
       );
     });
+
+    it('rejects invalid canonical tool identity in draft configuration with 400', async () => {
+      const req = new NextRequest(
+        `http://localhost:3000/api/agents/${agentId}/draft?versionId=${versionId}`,
+        {
+          method: 'PATCH',
+          headers: { host: 'localhost:3000', 'content-type': 'application/json' },
+          body: JSON.stringify({
+            configuration: {
+              ...DEFAULT_AGENT_CONFIGURATION_V1,
+              tools: ['unauthorized_or_unknown_tool'],
+            },
+          }),
+        },
+      );
+
+      const res = await PATCH(req, routeParams);
+      expect(res.status).toBe(400);
+      const data = await res.json();
+      expect(data.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('rejects duplicate canonical tool identities in draft configuration with 400', async () => {
+      const req = new NextRequest(
+        `http://localhost:3000/api/agents/${agentId}/draft?versionId=${versionId}`,
+        {
+          method: 'PATCH',
+          headers: { host: 'localhost:3000', 'content-type': 'application/json' },
+          body: JSON.stringify({
+            configuration: {
+              ...DEFAULT_AGENT_CONFIGURATION_V1,
+              tools: ['agent.operating_hours', 'agent.operating_hours'],
+            },
+          }),
+        },
+      );
+
+      const res = await PATCH(req, routeParams);
+      expect(res.status).toBe(400);
+      const data = await res.json();
+      expect(data.code).toBe('VALIDATION_ERROR');
+    });
   });
 
   describe('DELETE /api/agents/[agentId]/draft (Discard Draft)', () => {

@@ -34,4 +34,5 @@ export const DEFAULT_AGENT_CONFIGURATION_V1: AgentConfigurationSnapshotV1 = {
       idealAgentResponse: 'Nosso atendimento funciona de segunda a sexta, das 8h às 18h.',
     },
   ],
+  tools: ['agent.operating_hours'],
 };

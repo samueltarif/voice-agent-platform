@@ -2,6 +2,24 @@ import { z } from 'zod';
 
 export const AGENT_CONFIGURATION_SCHEMA_VERSION_V1 = 1 as const;
 
+export const CANONICAL_TOOL_NAMES = ['agent.operating_hours'] as const;
+export type CanonicalToolName = (typeof CANONICAL_TOOL_NAMES)[number];
+
+export const canonicalToolNameSchema = z.enum(CANONICAL_TOOL_NAMES);
+
+export const agentToolsV1Schema = z
+  .array(canonicalToolNameSchema)
+  .refine((tools) => new Set(tools).size === tools.length, {
+    message: 'Duplicate tool identities are not allowed',
+  });
+
+export function normalizeCanonicalToolNames(tools: readonly string[]): CanonicalToolName[] {
+  const unique = Array.from(new Set(tools));
+  return unique.filter((t): t is CanonicalToolName =>
+    (CANONICAL_TOOL_NAMES as readonly string[]).includes(t),
+  );
+}
+
 export const agentPersonaV1Schema = z
   .object({
     role: z.string().min(1),
@@ -61,6 +79,7 @@ export const agentConfigurationSnapshotV1Schema = z
     rules: agentRulesV1Schema,
     playbook: agentPlaybookV1Schema.optional(),
     examples: z.array(agentExampleV1Schema).optional(),
+    tools: agentToolsV1Schema.optional(),
   })
   .strict();
 
@@ -70,3 +89,4 @@ export type AgentVoiceV1 = z.infer<typeof agentVoiceV1Schema>;
 export type AgentRulesV1 = z.infer<typeof agentRulesV1Schema>;
 export type AgentPlaybookV1 = z.infer<typeof agentPlaybookV1Schema>;
 export type AgentExampleV1 = z.infer<typeof agentExampleV1Schema>;
+export type AgentToolsV1 = z.infer<typeof agentToolsV1Schema>;
