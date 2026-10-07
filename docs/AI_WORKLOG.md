@@ -15945,3 +15945,29 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - Esta alteração não modifica qualquer comportamento técnico, código de produção, testes ou postura de segurança.
 - **SAFETY**: `REAL_DOTENV_ACCESSED = NO`, `OPENAI_REAL_CALLS = 0`, `TYPESAFE_REAL_CALLS = 0`, `TWILIO_REAL_CALLS = 0`, `LIVE_COMMAND_INVOKED = NO`, `SECRET_AUDIT = PASS`
 - **STATE**: `AUTHORIZATION_CONSUMED = YES`, `SECOND_LIVE_RUN_AUTHORIZED = NO`, `NEW_LIVE_AUTHORIZATION_CREATED = NO`
+
+---
+
+## 2026-10-07 — PR97 Post-Merge Readiness Test Timeout Stabilization (Offline, NO_LIVE, NO_PROVIDERS)
+
+- **BRANCH**: `fix/006bp-post-merge-readiness-test-timeout`
+- **PR97_POST_MERGE_GATE_FAILURE**: `OBSERVED`
+- **PR97_POST_MERGE_GATE_HEAD**: `c3567fa24f2b8cf26ab7af9948b811e2ffc1ba26`
+- **PR97_POST_MERGE_GATE_EXIT**: `1`
+- **OBSERVED_FAILURE**: `VITEST_TEST_TIMEOUT_5000MS`
+- **OBSERVED_FAILING_TEST**: `L & M. human authorization is explicitly NOT evaluated and readiness never implies authorization` in `packages/integrations/src/typesafe/check-targeted-v2-technical-readiness.test.ts`
+- **ROOT_CAUSE**: `NOT_OBSERVED`
+  - A evidência observada estabelece estritamente que o teste sofreu timeout no limite padrão de 5000ms do Vitest durante o quality gate canônico completo no HEAD de merge `c3567fa24f2b8cf26ab7af9948b811e2ffc1ba26`;
+  - A execução direcionada isolada do arquivo de teste passa (comprovando que a lógica de asserção é determinística e correta);
+  - A rotina de teste invoca `checkTargetedV2TechnicalReadiness`, a qual cria 1 subprocesso Node.js sanitizado e 5 subprocessos git para verificação de integridade e freezes, acumulando operações legítimas que podem exceder 5000ms;
+  - Nenhuma outra causa específica além do timeout no teto de 5000ms foi comprovada factualmente.
+- **STABILIZATION_PERFORMED**:
+  - Aplicado bounded timeout explícito `{ timeout: 15000 }` ao teste `L & M. human authorization is explicitly NOT evaluated and readiness never implies authorization`, alinhando-se ao precedente existente do repositório para testes de integração com execução de múltiplos subprocessos (`006BI` e testes de freeze em `packages/integrations`);
+  - 100% das asserções de autorização e ausência de concessão preservadas sem alteração (`ASSERTION_SEMANTICS_WEAKENED = NO`);
+  - Nenhum código de produção, runtime ou persistência alterado.
+- **TARGETED_STABILITY_VALIDATION**:
+  - `TARGETED_STABILITY_RUNS`: `5`
+  - `TARGETED_STABILITY_PASSES`: `5`
+  - `TARGETED_STABILITY_FAILURES`: `0`
+- **SAFETY**: `REAL_DOTENV_ACCESSED = NO`, `OPENAI_REAL_CALLS = 0`, `TYPESAFE_REAL_CALLS = 0`, `TWILIO_REAL_CALLS = 0`, `LIVE_COMMAND_INVOKED = NO`, `SECRET_AUDIT = PASS`
+- **STATE**: `AUTHORIZATION_CONSUMED = YES`, `SECOND_LIVE_RUN_AUTHORIZED = NO`, `NEW_LIVE_AUTHORIZATION_CREATED = NO`
