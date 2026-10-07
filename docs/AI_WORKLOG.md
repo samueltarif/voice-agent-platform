@@ -15971,3 +15971,36 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `TARGETED_STABILITY_FAILURES`: `0`
 - **SAFETY**: `REAL_DOTENV_ACCESSED = NO`, `OPENAI_REAL_CALLS = 0`, `TYPESAFE_REAL_CALLS = 0`, `TWILIO_REAL_CALLS = 0`, `LIVE_COMMAND_INVOKED = NO`, `SECRET_AUDIT = PASS`
 - **STATE**: `AUTHORIZATION_CONSUMED = YES`, `SECOND_LIVE_RUN_AUTHORIZED = NO`, `NEW_LIVE_AUTHORIZATION_CREATED = NO`
+
+---
+
+## 2026-10-07 — 006BQ In-Memory Human Handoff State Machine & Fallback (Offline, NO_LIVE, NO_PROVIDERS)
+
+- **BRANCH**: `feat/006bq-in-memory-human-handoff`
+- **REGRESSION_FIRST_TEST_FILE_CREATED_BEFORE_IMPLEMENTATION**: `YES`
+  - Criado `apps/voice/src/human-handoff-state-machine.test.ts` antes de criar o arquivo de implementação.
+- **REGRESSION_FIRST_COMMAND_COMPLETED_BEFORE_IMPLEMENTATION**: `YES`
+  - Executado `pnpm vitest run apps/voice/src/human-handoff-state-machine.test.ts`.
+- **REGRESSION_FIRST_RED_OBSERVED**: `YES`
+- **REGRESSION_FIRST_EXIT**: `1`
+- **REGRESSION_FIRST_FAILURE**: `Cannot find module './human-handoff-state-machine.js'`
+- **IMPLEMENTATION_PERFORMED**:
+  - Implementado `apps/voice/src/human-handoff-state-machine.ts` (153 linhas, em estrita conformidade com limites de complexidade e tamanho de arquivo);
+  - Estados primários suportados: `NONE -> REQUESTED -> SELLER_NOTIFIED -> SELLER_READY -> AI_PREPARING -> READY_TO_JOIN -> HUMAN_CONNECTED -> AI_DETACHED`;
+  - Estados excepcionais suportados: `FAILED`, `CANCELED`, `TIMED_OUT`;
+  - Rejeição determinística de transições ilegais e saltos com `InvalidStateTransitionError`;
+  - Proibição de desconexão prematura da IA antes de `HUMAN_CONNECTED`;
+  - Protocolo de fallback determinístico com zero silêncio: falha ou timeout antes da conexão do operador humano gera `aiContinuityRequired: true`, `callRemainsActive: true`, `handoffPending: false` e `disposition: 'RESUME_AI_CONVERSATION'`;
+  - Mapeamento determinístico dos eventos de domínio canônicos de `docs/EVENTS.md`;
+  - Desacoplamento estrito e neutro a provedores: zero chamadas a OpenAI, TypeSafe ou Twilio; zero sinalização SIP/telefonia real (reservada à Fase 8).
+- **TARGETED_TESTS**:
+  - `apps/voice/src/human-handoff-state-machine.test.ts`: 9 testes passando (100% PASS);
+  - Testes relacionados de ciclo de vida de voz: 4 arquivos, 46 testes passando (100% PASS).
+- **PHASE6_STATUS**:
+  - `HUMAN_HANDOFF_IN_MEMORY_STATE_MACHINE = IMPLEMENTED_AND_TESTED_OFFLINE` (Blocker 1 resolvido);
+  - `ZERO_SILENCE_FALLBACK = IMPLEMENTED_AND_TESTED_OFFLINE`;
+  - `PHASE6_BLOCKER_COUNT = 1` (`PRODUCTION_OPERATIONAL_PARAMETERS`);
+  - `PHASE6_COMPLETION_ESTIMATE = 96%`;
+  - `PHASE6_CAN_CLOSE_NOW = NO` (pendente parâmetros operacionais de produção).
+- **SAFETY**: `REAL_DOTENV_ACCESSED = NO`, `OPENAI_REAL_CALLS = 0`, `TYPESAFE_REAL_CALLS = 0`, `TWILIO_REAL_CALLS = 0`, `LIVE_COMMAND_INVOKED = NO`, `SECRET_AUDIT = PASS`
+- **STATE**: `AUTHORIZATION_CONSUMED = YES`, `SECOND_LIVE_RUN_AUTHORIZED = NO`, `NEW_LIVE_AUTHORIZATION_CREATED = NO`
