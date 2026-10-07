@@ -126,11 +126,12 @@ AI_CONTEXT_HEADER_END
 ## 6. Estado Atual da Evidência de Qualidade (Quality Gate Snapshot)
 
 - **Último `pnpm check` Global**: `PASS` (observado na branch `docs/006bp-phase6-closure-gap-audit`: `FORMAT PASS`, `LINT PASS`, `TYPECHECK PASS 12/12`, `TEST PASS 858 passed / 45 skipped (124 arquivos passed / 6 skipped)`, `BUILD PASS 12/12`, `ARCHITECTURE PASS`, `FILE_SIZE PASS`).
-- **Identificadores de HEAD**:
-  - `LATEST_FULL_GATE_HEAD = b02e025dce5f06b07efd77aeadff698c62ad33b0`
-  - `LATEST_FULL_GATE_STATUS = PASS`
-  - `CURRENT_AUDIT_HEAD = b02e025dce5f06b07efd77aeadff698c62ad33b0` (slice estritamente documental 006BP)
-  - `LAST_CODE_BEARING_MAIN_SHA = 8d2422b80c4de4e739c3fefc07409fef04ef979a` (nenhum código funcional alterado no 006BP)
+- **Identificadores de HEAD & Semântica Não-Auto-Referencial**:
+  - `LAST_RECORDED_FULL_GATE_HEAD = 826fd34d9a85e513a8e4e9f4e1b9c291984d5f48`
+  - `LAST_RECORDED_FULL_GATE_STATUS = PASS`
+  - `CURRENT_BRANCH_HEAD_SOURCE = QUERY_GIT_AT_RUNTIME`
+  - `LAST_CODE_BEARING_MAIN_SHA = 8d2422b80c4de4e739c3fefc07409fef04ef979a`
+  - *Nota*: `AI_CONTEXT.md` é conteúdo versionado e não pode conter o SHA do próprio commit que o modifica. O HEAD exato da branch corrente deve ser obtido do Git em runtime (`QUERY_GIT_AT_RUNTIME`). `LAST_RECORDED_FULL_GATE_HEAD` registra a evidência mais recente observada e durável quando este snapshot foi redigido, evitando loops infinitos de auto-referência.
 - **Contagens Canônicas de Testes**:
   - `TEST_FILES_PASSED = 124` | `TEST_FILES_FAILED = 0` | `TEST_FILES_SKIPPED = 6`
   - `TESTS_PASSED = 858` | `TESTS_FAILED = 0` | `TESTS_SKIPPED = 45`

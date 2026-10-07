@@ -15925,3 +15925,23 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `TWILIO_REAL_CALLS = 0`
   - `LIVE_COMMAND_INVOKED = NO`
   - `SECRET_AUDIT = PASS`
+
+---
+
+## 2026-10-07 — 006BP Context Self-Reference Reconciliation (Offline, NO_IMPLEMENTATION, NO_LIVE, NO_PROVIDERS)
+
+- **006BP_CONTEXT_SELF_REFERENCE_RECONCILIATION**: `YES`
+- **PREVIOUS_RECONCILIATION_HEAD**: `826fd34d9a85e513a8e4e9f4e1b9c291984d5f48`
+- **SELF_REFERENTIAL_HEAD_EMBEDDING_AVOIDED**: `YES`
+- **CURRENT_BRANCH_HEAD_SOURCE**: `QUERY_GIT_AT_RUNTIME`
+- **LAST_RECORDED_FULL_GATE_HEAD**: `826fd34d9a85e513a8e4e9f4e1b9c291984d5f48`
+- **PHASE6_BLOCKER_COUNT**: `2`
+- **TRANSCRIPT_PRIVACY_GOVERNANCE_STATUS**: `DEFERRED_AND_NOT_PHASE6_BLOCKING`
+- **RATIONALE**:
+  - Ajuste estritamente terminológico e de higiene de snapshot de navegação;
+  - Documentos versionados no repositório (`AI_CONTEXT.md`) não podem tentar embutir o SHA do próprio commit que os altera sem criar loops de auto-referência infinita ou amends recursivos;
+  - O SHA exato da branch corrente deve ser sempre consultado via Git em runtime (`QUERY_GIT_AT_RUNTIME`);
+  - `LAST_RECORDED_FULL_GATE_HEAD` registra a evidência de gate observada e durável mais recente disponível no momento da autoria;
+  - Esta alteração não modifica qualquer comportamento técnico, código de produção, testes ou postura de segurança.
+- **SAFETY**: `REAL_DOTENV_ACCESSED = NO`, `OPENAI_REAL_CALLS = 0`, `TYPESAFE_REAL_CALLS = 0`, `TWILIO_REAL_CALLS = 0`, `LIVE_COMMAND_INVOKED = NO`, `SECRET_AUDIT = PASS`
+- **STATE**: `AUTHORIZATION_CONSUMED = YES`, `SECOND_LIVE_RUN_AUTHORIZED = NO`, `NEW_LIVE_AUTHORIZATION_CREATED = NO`
