@@ -130,6 +130,13 @@ AI_CONTEXT_HEADER_END
   - `FINAL_007B_TECHNICAL_GATE_TASK = task-2706`
   - `FINAL_007B_TECHNICAL_GATE_EXIT = 0`
   - `FINAL_007B_TECHNICAL_GATE_PRECISE_TEST_COUNTS = NOT_OBSERVED` (devido a truncamento de log na recuperação de evidência de histórico; contagens do desenvolvimento da fatia: 129 arquivos / 890 testes)
+- **Reconciliação Pós-Merge PR #102 (007B Governance Reconciliation)**:
+  - `PR102_TECHNICAL_POST_MERGE_GATE = PASS`
+  - `PR102_POST_MERGE_GATE_TASK = task-2808`
+  - `PR102_POST_MERGE_GATE_EXIT = 0`
+  - `PR102_POST_MERGE_GATE_PRECISE_TEST_COUNTS = NOT_OBSERVED`
+  - `007B_POST_MERGE_INTERNAL_STORAGE_VIOLATION = DOCUMENTED`
+  - `007B_GOVERNANCE_RECONCILIATION_STATUS = PENDING_MERGE`
 - **Identificadores de HEAD & Semântica Não-Auto-Referencial**:
   - `LAST_RECORDED_FULL_GATE_HEAD = 70a118596032c2262c21ec477e4fec85ef38c8f6`
   - `LAST_RECORDED_FULL_GATE_STATUS = PASS`
@@ -180,7 +187,9 @@ AI_CONTEXT_HEADER_END
 ### `NEXT_ALLOWED_STEP`:
 - **Phase 7 Entry Status**: `OPEN` (`PHASE7_STATUS = OPEN`, `PHASE7_COMPLETION_ESTIMATE = 15%`, `PHASE7_BLOCKER_COUNT = 0`, `PHASE7_BLOCKERS = NONE`).
 - **Slice 007B (Universal Tool Calling Contracts & Voice Runtime Tool Execution Engine)**: Concluída com sucesso offline (129 arquivos de teste / 890 testes passando).
-- **Recommended Next Slice**: `007C — AgentVersion Toolset Configuration Extension & Agent Studio Integration` (extensão do schema de AgentVersion para declarar tools autorizadas, persistência de toolset e suporte no editor).
+- `NEXT_ALLOWED_STEP = MERGE_007B_GOVERNANCE_RECONCILIATION`
+- `NEXT_ALLOWED_SLICE = NOT_YET_ALLOWED`
+- **Planned Slice 007C (NOT_YET_ALLOWED)**: `007C — AgentVersion Toolset Configuration Extension & Agent Studio Integration` (pendente até o merge desta reconciliação de governança; não iniciar 007C ainda).
 - `AUTHORIZATION_CONSUMED = YES` | `SECOND_LIVE_RUN_AUTHORIZED = NO` | `NEW_LIVE_AUTHORIZATION_CREATED = NO`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
 
