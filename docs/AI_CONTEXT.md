@@ -4,14 +4,14 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-07
-CONTEXT_BASE_MAIN_SHA: 14e72e553732eea43e1390b0ee3149f774cc89b2
-CURRENT_PHASE: Phase 6 (Voice Model Routing & Jev Evaluation)
-CURRENT_SLICE: Slice 006BQ — In-Memory Human Handoff State Machine and Fallback Protocol
-CONTEXT_UPDATE_BRANCH: feat/006bq-in-memory-human-handoff
+CONTEXT_BASE_MAIN_SHA: f2f0bf8037fb5cd2a8098a024c211228a36fb1f2
+CURRENT_PHASE: Phase 6 (CLOSED)
+CURRENT_SLICE: Slice 006BR — Production Operational Parameters Deferment and Phase 6 Closure
+CONTEXT_UPDATE_BRANCH: docs/006br-phase6-production-parameters-deferment
 CONTEXT_UPDATE_PR: PENDING_MANUAL_CREATE
-LAST_MERGED_PR_AT_REFRESH: 98
-LAST_MERGE_SHA_AT_REFRESH: 14e72e553732eea43e1390b0ee3149f774cc89b2
-LAST_TESTED_CODE_SHA: 14e72e553732eea43e1390b0ee3149f774cc89b2
+LAST_MERGED_PR_AT_REFRESH: 99
+LAST_MERGE_SHA_AT_REFRESH: f2f0bf8037fb5cd2a8098a024c211228a36fb1f2
+LAST_TESTED_CODE_SHA: f2f0bf8037fb5cd2a8098a024c211228a36fb1f2
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
 AI_CONTEXT_HEADER_END
@@ -73,9 +73,9 @@ AI_CONTEXT_HEADER_END
 - **ACTIVE_GUARDED**: `BLOCKED`.
 - **PRODUCTION_RUNTIME_WIRING**: `NO`.
 - **CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE**: `NOT CLEARED`.
-- **CUSTOMER_TRAFFIC**: `PROHIBITED`.
-- **PRODUCTION_SHADOW_MAX_CONCURRENCY**: `NOT SELECTED`.
-- **PRODUCTION_JEV_TIMEOUT_MS**: `NOT SELECTED`.
+- **PRODUCTION_SHADOW_MAX_CONCURRENCY**: `DEFERRED_TO_PHASE10` (Slice 006BR / DEC-038).
+- **PRODUCTION_JEV_TIMEOUT_MS**: `DEFERRED_TO_PHASE10` (Slice 006BR / DEC-038).
+- **PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY**: `DEFERRED_TO_PHASE10` (Slice 006BR / DEC-038).
 
 ---
 
@@ -125,16 +125,16 @@ AI_CONTEXT_HEADER_END
 
 ## 6. Estado Atual da Evidência de Qualidade (Quality Gate Snapshot)
 
-- **Último `pnpm check` Global**: `PASS` (observado na branch `docs/006bp-phase6-closure-gap-audit`: `FORMAT PASS`, `LINT PASS`, `TYPECHECK PASS 12/12`, `TEST PASS 858 passed / 45 skipped (124 arquivos passed / 6 skipped)`, `BUILD PASS 12/12`, `ARCHITECTURE PASS`, `FILE_SIZE PASS`).
+- **Último `pnpm check` Global**: `PASS` (observado no merge da PR #99 na branch `main` `f2f0bf8037fb5cd2a8098a024c211228a36fb1f2`: `FORMAT PASS`, `LINT PASS`, `TYPECHECK PASS 12/12`, `TEST PASS 867 passed / 45 skipped (125 arquivos passed / 6 skipped)`, `BUILD PASS 12/12`, `ARCHITECTURE PASS`, `FILE_SIZE PASS`).
 - **Identificadores de HEAD & Semântica Não-Auto-Referencial**:
-  - `LAST_RECORDED_FULL_GATE_HEAD = 826fd34d9a85e513a8e4e9f4e1b9c291984d5f48`
+  - `LAST_RECORDED_FULL_GATE_HEAD = f2f0bf8037fb5cd2a8098a024c211228a36fb1f2`
   - `LAST_RECORDED_FULL_GATE_STATUS = PASS`
   - `CURRENT_BRANCH_HEAD_SOURCE = QUERY_GIT_AT_RUNTIME`
-  - `LAST_CODE_BEARING_MAIN_SHA = 8d2422b80c4de4e739c3fefc07409fef04ef979a`
+  - `LAST_CODE_BEARING_MAIN_SHA = f2f0bf8037fb5cd2a8098a024c211228a36fb1f2`
   - *Nota*: `AI_CONTEXT.md` é conteúdo versionado e não pode conter o SHA do próprio commit que o modifica. O HEAD exato da branch corrente deve ser obtido do Git em runtime (`QUERY_GIT_AT_RUNTIME`). `LAST_RECORDED_FULL_GATE_HEAD` registra a evidência mais recente observada e durável quando este snapshot foi redigido, evitando loops infinitos de auto-referência.
 - **Contagens Canônicas de Testes**:
-  - `TEST_FILES_PASSED = 124` | `TEST_FILES_FAILED = 0` | `TEST_FILES_SKIPPED = 6`
-  - `TESTS_PASSED = 858` | `TESTS_FAILED = 0` | `TESTS_SKIPPED = 45`
+  - `TEST_FILES_PASSED = 125` | `TEST_FILES_FAILED = 0` | `TEST_FILES_SKIPPED = 6`
+  - `TESTS_PASSED = 867` | `TESTS_FAILED = 0` | `TESTS_SKIPPED = 45`
 - **Regressão de Asserções**: `ASSERTION_WEAKER = 0`, `NEW_SKIPS = 0`.
 - **Verificação Arquitetural**: `SUCESSO: Todas as fronteiras e regras arquiteturais respeitadas.`
 - **Verificação de Tamanho de Arquivos**: `SUCESSO: Todos os arquivos de logica estao em conformidade (check:file-size = PASS).`
@@ -152,26 +152,26 @@ AI_CONTEXT_HEADER_END
 6. `SECURITY_RESPONSE_DELIVERY_OFFLINE = IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/security-blocked-response.ts`; resposta estática; chamada ativa; sem fallback OpenAI).
 7. `GUARDED_RUNTIME_ROUTING_OFFLINE = IMPLEMENTED / TESTED LOCALLY` (`apps/voice/src/guarded-turn-routing-coordinator.ts`).
 8. `ACTIVE_GUARDED = BLOCKED` (fail-closed no runtime; pendente DPA e parâmetros de produção).
-9. `PRODUCTION_SHADOW_MAX_CONCURRENCY = NOT SELECTED`.
-10. `PRODUCTION_JEV_TIMEOUT_MS = NOT SELECTED`: Latência empírica L1B observada; parâmetro final de produção não selecionado.
-11. `PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY = NOT SELECTED`.
+9. `PRODUCTION_SHADOW_MAX_CONCURRENCY = DEFERRED_TO_PHASE10` (Slice 006BR / DEC-038).
+10. `PRODUCTION_JEV_TIMEOUT_MS = DEFERRED_TO_PHASE10` (Slice 006BR / DEC-038).
+11. `PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY = DEFERRED_TO_PHASE10` (Slice 006BR / DEC-038).
 12. `MODEL_DRIFT_RUNTIME_GUARD = IMPLEMENTED / TESTED LOCALLY` (`expectedProviderModel = jev-1.13.0`).
 13. `PRODUCTION_RUNTIME_WIRING = NO`: Fiação de runtime em produção desautorizada.
 14. `LIVE_PROVIDER_GUARDED_ROUTING_VALIDATION = PARTIAL`: L1A e L1B executados; L2 com falha técnica de auth; retry não autorizado; L3/L4 bloqueados.
 15. `LIVE_TWILIO_GUARDED_ROUTING = NOT EXECUTED`: Telefonia real pertence à Fase 8.
 16. `CUSTOMER_TRAFFIC = PROHIBITED` (invariante de segurança; escopo da Fase 10).
 17. `HUMAN_HANDOFF_IN_MEMORY_STATE_MACHINE = IMPLEMENTED / TESTED LOCALLY (offline)`: Máquina de estados determinística em memória e fallback de zero silêncio implementados e testados offline (Slice 006BQ em `apps/voice/src/human-handoff-state-machine.ts`; 9 testes unitários determinísticos cobrindo o ciclo completo `NONE -> REQUESTED -> SELLER_NOTIFIED -> SELLER_READY -> AI_PREPARING -> READY_TO_JOIN -> HUMAN_CONNECTED -> AI_DETACHED`, rejeição de saltos ilegais e fallback para continuidade da IA; sinalização de carrier/SIP real é Fase 8).
-18. `PRODUCTION_OPERATIONAL_PARAMETERS = BLOCKED_BY_HUMAN_DECISION`: Parâmetros de produção de `ACTIVE_GUARDED` não selecionados (Bloqueador único remanescente da Saída da Fase 6; passível de decisão/deferimento para Fase 10).
-19. `PHASE6_COMPLETION_ESTIMATE = 96%` | `PHASE6_CAN_CLOSE_NOW = NO` | `PHASE6_BLOCKER_COUNT = 1`.
-20. `PHASE6_BLOCKERS = PRODUCTION_OPERATIONAL_PARAMETERS`.
+18. `PRODUCTION_OPERATIONAL_PARAMETERS = FORMALLY_DEFERRED_TO_PHASE10_BY_HUMAN_DECISION` (Slice 006BR / DEC-038).
+19. `PHASE6_COMPLETION_ESTIMATE = 100%` | `PHASE6_CAN_CLOSE_NOW = YES` | `PHASE6_BLOCKER_COUNT = 0` | `PHASE6_STATUS = CLOSED`.
+20. `PHASE6_BLOCKERS = NONE`.
 
 ---
 
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- **Slice 006BQ (In-Memory Human Handoff State Machine & Fallback)**: `IMPLEMENTED_AND_TESTED_OFFLINE`. Blocker 1 resolvido.
-- **Bloqueador Remanescente da Fase 6**: `PRODUCTION_OPERATIONAL_PARAMETERS` (parâmetros de produção de `ACTIVE_GUARDED` não selecionados; passível de seleção humana ou deferimento formal para Fase 10 — Hardening).
+- **Phase 6 Exit Status**: `CLOSED` (`PHASE6_STATUS = CLOSED`, `PHASE6_COMPLETION_ESTIMATE = 100%`, `PHASE6_BLOCKER_COUNT = 0`, `NEXT_PHASE6_BLOCKER = NONE`).
+- **Slice 006BR (Production Operational Parameters Deferment & Phase 6 Closure)**: Deferimento formal dos três parâmetros operacionais de produção (`PRODUCTION_JEV_TIMEOUT_MS`, `PRODUCTION_SHADOW_MAX_CONCURRENCY`, `PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY`) aprovado por decisão humana explícita (DEC-038). A seleção dos valores numéricos e tuning final ocorrerá na Fase 10 (Hardening).
 - `AUTHORIZATION_CONSUMED = YES` | `SECOND_LIVE_RUN_AUTHORIZED = NO` | `NEW_LIVE_AUTHORIZATION_CREATED = NO`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
 
