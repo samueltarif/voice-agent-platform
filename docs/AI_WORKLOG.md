@@ -16103,3 +16103,30 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - Fase 10 (Hardening, tuning final de parâmetros de produção, ativação de tráfego real).
 - **SAFETY**: `REAL_DOTENV_ACCESSED = NO`, `OPENAI_REAL_CALLS = 0`, `TYPESAFE_REAL_CALLS = 0`, `TWILIO_REAL_CALLS = 0`, `LIVE_COMMAND_INVOKED = NO`, `SECRET_AUDIT = PASS`
 - **STATE**: `AUTHORIZATION_CONSUMED = YES`, `SECOND_LIVE_RUN_AUTHORIZED = NO`, `NEW_LIVE_AUTHORIZATION_CREATED = NO`
+
+---
+
+## 2026-10-07 — 006BR Execution Audit Correction (Offline Governance)
+
+- **006BR_EXECUTION_AUDIT_CORRECTION**: `YES`
+- **TOTAL_CANONICAL_GATE_LAUNCHES_ORIGINAL_006BR**: `2`
+- **FIRST_006BR_GATE_HEAD**: `ca48ce2a875a323548fe408f08b66abe258a9f38`
+- **SECOND_006BR_GATE_HEAD**: `97fe4aff1eca60f906065de59bc593eacc1a5c61`
+- **FIRST_GATE_COMPLETION_OBSERVED_BEFORE_SUBSEQUENT_COMMANDS**: `NO`
+- **SECOND_GATE_COMPLETION_OBSERVED_BEFORE_SUBSEQUENT_COMMANDS**: `NO`
+- **PUSH_COMMANDS_ISSUED_BEFORE_GATE_COMPLETION_OBSERVED**: `YES`
+- **CANONICAL_GATE_EXECUTION_SEQUENCE_DEVIATION**: `YES`
+- **ORIGINAL_006BR_REPORTED_GATE_RESULT**: `PASS_REPORTED_BUT_NOT_ACCEPTED_AS_AUTHORITATIVE_FOR_SEQUENCE_AUDIT`
+- **REASON**:
+  - O histórico de transcrição registra a emissão de comandos shell (como `git push`) antes que a conclusão dos tasks dos gates canônicos fosse visivelmente observada;
+  - Não se afirma que nenhum dos gates falhou, porém seu resultado reportado não é aceito como prova autoritativa devido ao desvio de sequência de execução.
+- **FIELD_CLARIFICATION**:
+  - O campo original `CANONICAL_GATE_INVOCATION_COUNT = 1` deve ser interpretado unicamente como uma execução de gate no HEAD pré-correção `97fe4aff...`, e NÃO como o número total de lançamentos de gate ao longo de toda a fatia 006BR.
+- **PRESERVED_DECISION_AND_CLOSURE**:
+  - `006BR_DECISION_RESULT_PRESERVED`: `YES` (a decisão humana explícita DEC-038 diferindo os três parâmetros operacionais de produção para a Fase 10 permanece integralmente preservada);
+  - `PHASE6_CLOSURE_CLASSIFICATION_PRESERVED`: `YES` (`PHASE6_STATUS = CLOSED`, `PHASE6_COMPLETION_ESTIMATE = 100%`, `PHASE6_BLOCKER_COUNT = 0`, `PHASE6_BLOCKERS = NONE`).
+- **AI_CONTEXT_QUALITY_SNAPSHOT_RECONCILIATION**:
+  - `STALE_006BP_QUALITY_SNAPSHOT_RECONCILED`: `YES` (alinhado a evidência durável pós-merge da PR #99 na `main` `f2f0bf8037fb5cd2a8098a024c211228a36fb1f2`: 125 arquivos / 867 testes);
+  - `AI_CONTEXT_SELF_REFERENCE_SAFE`: `YES`.
+- **SAFETY**: `REAL_DOTENV_ACCESSED = NO`, `OPENAI_REAL_CALLS = 0`, `TYPESAFE_REAL_CALLS = 0`, `TWILIO_REAL_CALLS = 0`, `LIVE_COMMAND_INVOKED = NO`, `SECRET_AUDIT = PASS`
+- **STATE**: `AUTHORIZATION_CONSUMED = YES`, `SECOND_LIVE_RUN_AUTHORIZED = NO`, `NEW_LIVE_AUTHORIZATION_CREATED = NO`
