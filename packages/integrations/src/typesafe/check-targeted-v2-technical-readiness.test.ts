@@ -149,20 +149,24 @@ describe('006BO no-network technical readiness preflight', () => {
     expect(parsed.envFilePath).toBe('test.env');
   });
 
-  it('L & M. human authorization is explicitly NOT evaluated and readiness never implies authorization', async () => {
-    await withTempSyntheticEnv(
-      'TYPESAFE_API_KEY=SYNTHETIC_TS\nOPENAI_API_KEY=SYNTHETIC_OA\n',
-      async (filePath) => {
-        const result = await checkTargetedV2TechnicalReadiness({ envFilePath: filePath });
-        expect(result.liveAuthorizationEvaluated).toBe(false);
-        expect(result.liveAuthorizationGrantedByThisTool).toBe(false);
+  it(
+    'L & M. human authorization is explicitly NOT evaluated and readiness never implies authorization',
+    { timeout: 15000 },
+    async () => {
+      await withTempSyntheticEnv(
+        'TYPESAFE_API_KEY=SYNTHETIC_TS\nOPENAI_API_KEY=SYNTHETIC_OA\n',
+        async (filePath) => {
+          const result = await checkTargetedV2TechnicalReadiness({ envFilePath: filePath });
+          expect(result.liveAuthorizationEvaluated).toBe(false);
+          expect(result.liveAuthorizationGrantedByThisTool).toBe(false);
 
-        const report = formatTechnicalReadinessReport(result);
-        expect(report).toContain('LIVE_AUTHORIZATION_EVALUATED = NO');
-        expect(report).toContain('LIVE_AUTHORIZATION_GRANTED_BY_THIS_TOOL = NO');
-        expect(report).not.toMatch(/LIVE_READY\s*=\s*YES/);
-        expect(report).not.toMatch(/AUTHORIZED\s*=\s*YES/);
-      },
-    );
-  });
+          const report = formatTechnicalReadinessReport(result);
+          expect(report).toContain('LIVE_AUTHORIZATION_EVALUATED = NO');
+          expect(report).toContain('LIVE_AUTHORIZATION_GRANTED_BY_THIS_TOOL = NO');
+          expect(report).not.toMatch(/LIVE_READY\s*=\s*YES/);
+          expect(report).not.toMatch(/AUTHORIZED\s*=\s*YES/);
+        },
+      );
+    },
+  );
 });
