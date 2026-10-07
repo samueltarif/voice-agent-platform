@@ -16067,3 +16067,39 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `PHASE6_BLOCKERS`: `PRODUCTION_OPERATIONAL_PARAMETERS`
 - **SAFETY**: `REAL_DOTENV_ACCESSED = NO`, `OPENAI_REAL_CALLS = 0`, `TYPESAFE_REAL_CALLS = 0`, `TWILIO_REAL_CALLS = 0`, `LIVE_COMMAND_INVOKED = NO`, `SECRET_AUDIT = PASS`
 - **STATE**: `AUTHORIZATION_CONSUMED = YES`, `SECOND_LIVE_RUN_AUTHORIZED = NO`, `NEW_LIVE_AUTHORIZATION_CREATED = NO`
+
+---
+
+## 2026-10-07 — 006BR Production Operational Parameters Deferment and Phase 6 Closure (Offline Governance)
+
+- **BRANCH**: `docs/006br-phase6-production-parameters-deferment`
+- **HUMAN_DECISION_OBSERVED**: `YES`
+- **HUMAN_DECISION**: `DEFER_THREE_PRODUCTION_OPERATIONAL_PARAMETERS_TO_PHASE10`
+  - Aprovado o deferimento formal dos três parâmetros operacionais de produção para a Fase 10 (Hardening / Production Readiness):
+    - `PRODUCTION_JEV_TIMEOUT_MS = DEFERRED_TO_PHASE10`
+    - `PRODUCTION_SHADOW_MAX_CONCURRENCY = DEFERRED_TO_PHASE10`
+    - `PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY = DEFERRED_TO_PHASE10`
+- **NUMERIC_VALUES_SELECTED**: `NO` (nenhum valor numérico foi fixado prematuramente no código ou documentação)
+- **PRODUCTION_ENABLEMENT_AUTHORIZED**: `NO`
+- **DECISION_REFERENCE**: `DEC-038`
+- **RATIONALE**:
+  - A fiação de runtime em produção permanece inativa (`PRODUCTION_RUNTIME_WIRING = NO`);
+  - O tráfego real de clientes permanece proibido (`CUSTOMER_TRAFFIC = PROHIBITED`);
+  - `ACTIVE_GUARDED` permanece bloqueado (`ACTIVE_GUARDED = BLOCKED`);
+  - Os valores são parâmetros operacionais de carga/produção e portanto sua seleção final deve ocorrer na Fase 10, junto com os testes de carga e prontidão de produção.
+- **PHASE6_CLOSURE_AUDIT**:
+  - Todos os requisitos offline do motor de voz da Fase 6 foram implementados e testados (Voice Runtime Core, STT/TTS abstractions, streaming pipeline, VAD, barge-in, decision delivery, security delivery, guarded turn routing, history resolution e human handoff state machine em memória com fallback zero-silêncio);
+  - `HUMAN_HANDOFF_PHASE6_BLOCKER_RESOLVED = YES`;
+  - `PRODUCTION_OPERATIONAL_PARAMETERS = FORMALLY_DEFERRED_TO_PHASE10_BY_HUMAN_DECISION`;
+  - `PHASE6_BLOCKER_COUNT = 0`;
+  - `PHASE6_BLOCKERS = NONE`;
+  - `PHASE6_COMPLETION_ESTIMATE = 100%`;
+  - `PHASE6_CAN_CLOSE_NOW = YES`;
+  - `PHASE6_STATUS = CLOSED`.
+- **EXCLUDED_LATER_PHASE_ITEMS**:
+  - Fase 7 (Tools de negócio, Knowledge/RAG);
+  - Fase 8 (Telefonia real, bridging de carrier, SIP, listen-only, gravação real);
+  - Fase 9 (Agent Evals, analytics assíncronos);
+  - Fase 10 (Hardening, tuning final de parâmetros de produção, ativação de tráfego real).
+- **SAFETY**: `REAL_DOTENV_ACCESSED = NO`, `OPENAI_REAL_CALLS = 0`, `TYPESAFE_REAL_CALLS = 0`, `TWILIO_REAL_CALLS = 0`, `LIVE_COMMAND_INVOKED = NO`, `SECRET_AUDIT = PASS`
+- **STATE**: `AUTHORIZATION_CONSUMED = YES`, `SECOND_LIVE_RUN_AUTHORIZED = NO`, `NEW_LIVE_AUTHORIZATION_CREATED = NO`

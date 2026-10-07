@@ -76,14 +76,15 @@ Este documento estabelece as fases sequenciais de implementação da plataforma.
 
 ---
 
-### 🎤 FASE 6 — Motor de Voz
-- Implementação das portas `TelephonyProvider` e `RealtimeAIProvider`.
-- Criação de adaptadores de simulação/fake para desenvolvimento e testes sem custos.
-- Orquestração de pipeline de áudio bidirecional (WebSockets/SIP stream).
-- Implementação de VAD configurável e algoritmo de barge-in.
-- Mecanismo determinístico de execução de ferramentas (*tool calling*).
-- **Human Handoff Protocol**: Máquina de estados determinística (`NONE` → `REQUESTED` → `SELLER_NOTIFIED` → `SELLER_READY` → `AI_PREPARING` → `READY_TO_JOIN` → `HUMAN_CONNECTED` → `AI_DETACHED`) e fallbacks de indisponibilidade.
-- **Live Call Telemetry**: Transmissão em tempo real de transcrição, eventos e telemetria de chamadas ativas.
+### 🎤 FASE 6 — Motor de Voz *(Concluída — Motor Offline 100% / PHASE6_STATUS = CLOSED)*
+- [x] Implementação das portas `TelephonyProvider` e `RealtimeAIProvider`.
+- [x] Criação de adaptadores de simulação/fake para desenvolvimento e testes sem custos.
+- [x] Orquestração de pipeline de áudio bidirecional (WebSockets/SIP stream).
+- [x] Implementação de VAD configurável e algoritmo de barge-in.
+- [x] Mecanismo determinístico de execução de ferramentas (*tool calling*).
+- [x] **Human Handoff Protocol**: Máquina de estados determinística (`NONE` → `REQUESTED` → `SELLER_NOTIFIED` → `SELLER_READY` → `AI_PREPARING` → `READY_TO_JOIN` → `HUMAN_CONNECTED` → `AI_DETACHED`) e fallbacks de indisponibilidade (Slice 006BQ).
+- [x] **Live Call Telemetry**: Transmissão em tempo real de transcrição, eventos e telemetria de chamadas ativas.
+- [x] **Parâmetros Operacionais de Produção**: Deferimento formal por decisão humana explícita de `PRODUCTION_JEV_TIMEOUT_MS`, `PRODUCTION_SHADOW_MAX_CONCURRENCY` e `PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY` para a Fase 10 (Slice 006BR / DEC-038).
 
 ---
 
@@ -113,10 +114,10 @@ Este documento estabelece as fases sequenciais de implementação da plataforma.
 ---
 
 ### 🛡️ FASE 10 — Hardening, Staging e Produção
+- Seleção final, tuning e validação dos parâmetros operacionais de produção (`PRODUCTION_JEV_TIMEOUT_MS`, `PRODUCTION_SHADOW_MAX_CONCURRENCY`, `PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY`) antes da ativação de `ACTIVE_GUARDED` e liberação de tráfego real (DEC-038).
 - Bateria de testes de carga simulando dezenas de chamadas simultâneas.
 - Auditoria de segurança e pentest em isolamento multi-tenant e credenciais de Platform Admin.
 - Verificação formal de conformidade jurídica de gravação de chamadas antes de produção.
 - Piloto controlado em ambiente de produção com clientes beta.
 - Estratégia de retorno gradual (canary/blue-green) para deploys.
-
 
