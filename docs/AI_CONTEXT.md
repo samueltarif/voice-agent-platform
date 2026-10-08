@@ -125,7 +125,7 @@ AI_CONTEXT_HEADER_END
 
 ## 6. Estado Atual da Evidência de Qualidade (Quality Gate Snapshot)
 
-- **Último `pnpm check` Global na Main**: `PASS` (observado no merge da PR #104 na branch `main` `ceb23fda99006bb6e8160bdb372b191848468a00`: `FORMAT PASS`, `LINT PASS`, `TYPECHECK PASS 12/12`, `TEST PASS 919 passed / 45 skipped (134 arquivos passed / 6 skipped)`, `BUILD PASS 12/12`, `ARCHITECTURE PASS`, `FILE_SIZE PASS`).
+- **Último `pnpm check` Global na Main**: `PASS` (observado no merge da PR #105 / 007D post-merge na branch `main` `4252dbb086ad3d8dbc36713860d8b862ff15d89f`: exit 0; contagens precisas de testes: `NOT_OBSERVED`).
 - **Último Gate Técnico da Fatia 007B**:
   - `FINAL_007B_TECHNICAL_GATE_TASK = task-2706`
   - `FINAL_007B_TECHNICAL_GATE_EXIT = 0`
@@ -138,10 +138,10 @@ AI_CONTEXT_HEADER_END
   - `007B_POST_MERGE_INTERNAL_STORAGE_VIOLATION = DOCUMENTED`
   - `007B_GOVERNANCE_RECONCILIATION_STATUS = PENDING_MERGE`
 - **Identificadores de HEAD & Semântica Não-Auto-Referencial**:
-  - `LAST_RECORDED_FULL_GATE_HEAD = ceb23fda99006bb6e8160bdb372b191848468a00`
+  - `LAST_RECORDED_FULL_GATE_HEAD = 4252dbb086ad3d8dbc36713860d8b862ff15d89f`
   - `LAST_RECORDED_FULL_GATE_STATUS = PASS`
   - `CURRENT_BRANCH_HEAD_SOURCE = QUERY_GIT_AT_RUNTIME`
-  - `LAST_CODE_BEARING_MAIN_SHA = ceb23fda99006bb6e8160bdb372b191848468a00`
+  - `LAST_CODE_BEARING_MAIN_SHA = 4252dbb086ad3d8dbc36713860d8b862ff15d89f`
   - *Nota*: `AI_CONTEXT.md` é conteúdo versionado e não pode conter o SHA do próprio commit que o modifica. O HEAD exato da branch corrente deve ser obtido do Git em runtime (`QUERY_GIT_AT_RUNTIME`). `LAST_RECORDED_FULL_GATE_HEAD` registra a evidência mais recente observada e durável quando este snapshot foi redigido, evitando loops infinitos de auto-referência.
 - **Contagens Canônicas de Testes (Local Slice 007B)**:
   - `TEST_FILES_PASSED = NOT_OBSERVED` (slice dev count: 129) | `TEST_FILES_FAILED = 0` | `TEST_FILES_SKIPPED = 6`
@@ -200,7 +200,7 @@ AI_CONTEXT_HEADER_END
 
 ### `NEXT_ALLOWED_STEP`:
 - **Phase 7 Status**: `OPEN` (`PHASE7_STATUS = OPEN`, `PHASE7_COMPLETION_ESTIMATE = 65%`, `PHASE7_BLOCKER_COUNT = 0`, `PHASE7_BLOCKERS = NONE`).
-- **Slice 007E (Outbound Orchestration Core & Worker Call Dispatch)**: Implementada offline; PR-readiness pendente de fresh authoritative gate (`007E_PR_READINESS = PENDING_FRESH_GATE` até observação direta).
+- **Slice 007E (Outbound Orchestration Core & Worker Call Dispatch)**: Implementada offline; PR-readiness pendente de final authoritative gate (`007E_PR_READINESS = PENDING_FINAL_GATE`).
 - `NEXT_ALLOWED_STEP = CREATE_007E_PR_ONLY_AFTER_FINAL_GATE_PASS`
 - `NEXT_ALLOWED_SLICE = 007F_ONLY_AFTER_007E_MERGE_AND_POST_MERGE_VERIFICATION`
 - **Recommended Next Slice**: `007F — Outbound Campaign Management API & Batch Scheduling` (ou conforme backlog de governança).
