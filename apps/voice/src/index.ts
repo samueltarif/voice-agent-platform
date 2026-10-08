@@ -42,3 +42,6 @@ export * from './tool-execution-engine.js';
 export * from './operating-hours-tool.js';
 export * from './build-safe-log-context.js';
 export * from './published-version-toolset.js';
+export * from './catalog-query-port.js';
+export * from './catalog-search-tool.js';
+export * from './catalog-item-detail-tool.js';

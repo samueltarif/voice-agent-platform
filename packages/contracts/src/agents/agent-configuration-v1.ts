@@ -2,7 +2,11 @@ import { z } from 'zod';
 
 export const AGENT_CONFIGURATION_SCHEMA_VERSION_V1 = 1 as const;
 
-export const CANONICAL_TOOL_NAMES = ['agent.operating_hours'] as const;
+export const CANONICAL_TOOL_NAMES = [
+  'agent.operating_hours',
+  'catalog.search',
+  'catalog.item_detail',
+] as const;
 export type CanonicalToolName = (typeof CANONICAL_TOOL_NAMES)[number];
 
 export const canonicalToolNameSchema = z.enum(CANONICAL_TOOL_NAMES);
