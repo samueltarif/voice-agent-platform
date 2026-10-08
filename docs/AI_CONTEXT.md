@@ -4,14 +4,14 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-08
-CONTEXT_BASE_MAIN_SHA: 4252dbb086ad3d8dbc36713860d8b862ff15d89f
+CONTEXT_BASE_MAIN_SHA: a6dbff3e783d84f84aa10a52e31797f0307c4473
 CURRENT_PHASE: Phase 7 (OPEN)
-CURRENT_SLICE: Slice 007E — Outbound Orchestration Core & Worker Call Dispatch
-CONTEXT_UPDATE_BRANCH: feat/007e-outbound-orchestration-core
-CONTEXT_UPDATE_PR: PENDING_MANUAL_CREATE
-LAST_MERGED_PR_AT_REFRESH: 105
-LAST_MERGE_SHA_AT_REFRESH: 4252dbb086ad3d8dbc36713860d8b862ff15d89f
-LAST_TESTED_CODE_SHA: 4252dbb086ad3d8dbc36713860d8b862ff15d89f
+CURRENT_SLICE: Slice 007E — Post-Merge Evidence Reconciliation
+CONTEXT_UPDATE_BRANCH: docs/007e-postmerge-evidence-reconciliation
+CONTEXT_UPDATE_PR: PENDING_CREATE
+LAST_MERGED_PR_AT_REFRESH: 106
+LAST_MERGE_SHA_AT_REFRESH: a6dbff3e783d84f84aa10a52e31797f0307c4473
+LAST_TESTED_CODE_SHA: a6dbff3e783d84f84aa10a52e31797f0307c4473
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
 AI_CONTEXT_HEADER_END
@@ -138,10 +138,10 @@ AI_CONTEXT_HEADER_END
   - `007B_POST_MERGE_INTERNAL_STORAGE_VIOLATION = DOCUMENTED`
   - `007B_GOVERNANCE_RECONCILIATION_STATUS = PENDING_MERGE`
 - **Identificadores de HEAD & Semântica Não-Auto-Referencial**:
-  - `LAST_RECORDED_FULL_GATE_HEAD = 4252dbb086ad3d8dbc36713860d8b862ff15d89f`
+  - `LAST_RECORDED_FULL_GATE_HEAD = a6dbff3e783d84f84aa10a52e31797f0307c4473`
   - `LAST_RECORDED_FULL_GATE_STATUS = PASS`
   - `CURRENT_BRANCH_HEAD_SOURCE = QUERY_GIT_AT_RUNTIME`
-  - `LAST_CODE_BEARING_MAIN_SHA = 4252dbb086ad3d8dbc36713860d8b862ff15d89f`
+  - `LAST_CODE_BEARING_MAIN_SHA = a6dbff3e783d84f84aa10a52e31797f0307c4473`
   - *Nota*: `AI_CONTEXT.md` é conteúdo versionado e não pode conter o SHA do próprio commit que o modifica. O HEAD exato da branch corrente deve ser obtido do Git em runtime (`QUERY_GIT_AT_RUNTIME`). `LAST_RECORDED_FULL_GATE_HEAD` registra a evidência mais recente observada e durável quando este snapshot foi redigido, evitando loops infinitos de auto-referência.
 - **Contagens Canônicas de Testes (Local Slice 007B)**:
   - `TEST_FILES_PASSED = NOT_OBSERVED` (slice dev count: 129) | `TEST_FILES_FAILED = 0` | `TEST_FILES_SKIPPED = 6`
@@ -193,6 +193,8 @@ AI_CONTEXT_HEADER_END
 31. `PRODUCTION_OUTBOUND_DIALER = NOT_IMPLEMENTED`.
 32. `CUSTOMER_TRAFFIC = PROHIBITED` (invariante de segurança; escopo da Fase 10).
 33. `PRODUCTION_OPERATIONAL_PARAMETERS = FORMALLY_DEFERRED_TO_PHASE10_BY_HUMAN_DECISION` (Slice 006BR / DEC-038).
+34. `AGENT_EVALS = DEFERRED_PHASE9` (avaliações de agentes pertencem estritamente à Fase 9; nenhuma infraestrutura de evals implementada).
+35. `PRODUCTION_HARDENING_CUSTOMER_TRAFFIC = DEFERRED_PHASE10` (hardening de produção e tráfego de clientes pertencem estritamente à Fase 10).
 
 ---
 
@@ -200,9 +202,9 @@ AI_CONTEXT_HEADER_END
 
 ### `NEXT_ALLOWED_STEP`:
 - **Phase 7 Status**: `OPEN` (`PHASE7_STATUS = OPEN`, `PHASE7_COMPLETION_ESTIMATE = 65%`, `PHASE7_BLOCKER_COUNT = 0`, `PHASE7_BLOCKERS = NONE`).
-- **Slice 007E (Outbound Orchestration Core & Worker Call Dispatch)**: Implementada offline; PR-readiness pendente de final authoritative gate (`007E_PR_READINESS = PENDING_FINAL_GATE`).
-- `NEXT_ALLOWED_STEP = CREATE_007E_PR_ONLY_AFTER_FINAL_GATE_PASS`
-- `NEXT_ALLOWED_SLICE = 007F_ONLY_AFTER_007E_MERGE_AND_POST_MERGE_VERIFICATION`
+- **Slice 007E — Post-Merge Evidence Reconciliation (docs-only)**: `007E_FINAL_STATUS_ON_MAIN = PENDING_DOCUMENTATION_RECONCILIATION` até o merge desta reconciliação.
+- `NEXT_ALLOWED_STEP = MERGE_007E_DOCUMENTATION_RECONCILIATION`
+- `NEXT_ALLOWED_SLICE = NOT_YET_ALLOWED`
 - **Recommended Next Slice**: `007F — Outbound Campaign Management API & Batch Scheduling` (ou conforme backlog de governança).
 - `AUTHORIZATION_CONSUMED = YES` | `SECOND_LIVE_RUN_AUTHORIZED = NO` | `NEW_LIVE_AUTHORIZATION_CREATED = NO`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
