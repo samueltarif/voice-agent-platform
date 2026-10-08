@@ -45,3 +45,4 @@ export * from './published-version-toolset.js';
 export * from './catalog-query-port.js';
 export * from './catalog-search-tool.js';
 export * from './catalog-item-detail-tool.js';
+export * from './outbound-call-lifecycle-bootstrap-adapter.js';

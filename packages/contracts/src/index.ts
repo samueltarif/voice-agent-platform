@@ -6,3 +6,4 @@ export * from './bootstrap.js';
 export * from './voice/index.js';
 export * from './tools/index.js';
 export * from './catalog/index.js';
+export * from './outbound/index.js';
