@@ -16714,3 +16714,83 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **CUSTOMER_TRAFFIC**: `PROHIBITED`
 - **ACTIVE_GUARDED**: `BLOCKED`
 - **PRODUCTION_RUNTIME_WIRING**: `NO`
+
+---
+
+## 2026-10-08 — Slice 007E: Vitest Worker Concurrency Infrastructure Stabilization
+
+### A. Preservação de Evidência da Falha no Gate Autorizado Anterior (task-4168)
+- **TASK**: `task-4168`
+- **HEAD**: `42904ba61f5ba0a453f267847c6cedc18a1cd351`
+- **FINAL_STATUS**: `COMPLETED`
+- **EXIT**: `1`
+- **FORMAT**: `PASS`
+- **LINT**: `PASS`
+- **TYPECHECK**: `PASS`
+- **TEST_FILES_PASSED**: `143`
+- **TEST_FILES_FAILED**: `0`
+- **TEST_FILES_SKIPPED**: `6`
+- **TESTS_PASSED**: `971`
+- **TESTS_FAILED**: `0`
+- **TESTS_SKIPPED**: `45`
+- **UNHANDLED_INFRA_ERRORS**: `1`
+- **UNHANDLED_INFRA_ERROR**: `[vitest-worker]: Timeout calling "onTaskUpdate"`
+- **ETAPAS_NÃO_EXECUTADAS_NO_TASK_4168**:
+  - `BUILD`: `NOT_EXECUTED`
+  - `ARCHITECTURE_CHECK`: `NOT_EXECUTED`
+  - `FILE_SIZE_CHECK`: `NOT_EXECUTED`
+- **READINESS_TEST_TIMEOUT_STABILIZATION**: `VALIDATED` (testes subprocess-heavy em `check-targeted-v2-technical-readiness.test.ts` com bounded timeout de 15000ms passaram sem erros no task-4168 e nos 5 stability runs dedicados; nenhum aumento adicional de timeout individual aplicado).
+
+### B. Registro de Desvio de Governança na Espera do task-4168
+- **TASK_4168_SCHEDULE_WAIT_TOOL_USED**: `YES`
+- **TASK_4168_CONCURRENT_VALIDATION_WORKLOAD**: `NO`
+- **TASK_4168_REPOSITORY_MUTATION_WHILE_GATE_RUNNING**: `NO`
+- **TASK_4168_WAIT_DISCIPLINE_DEVIATION**: `YES` (uso indevido do schedule para polling; nos gates subsequentes o schedule está expressamente vedado e somente manage_task é permitido)
+
+### C. Causa Raiz & Estabilização de Concorrência de Workers
+- **ROOT_CAUSE_CLASS**: `VITEST_WORKER_RPC_SATURATION_UNDER_MONOREPO_PARALLELISM`
+- **CONFIGURAÇÃO_ALTERADA**: `vitest.config.ts` adicionado `maxWorkers: 4`
+- **PREVIOUS_MAX_WORKERS**: default (desdelimitado / baseado no número de núcleos de CPU)
+- **FINAL_MAX_WORKERS**: `4`
+- **GLOBAL_TEST_TIMEOUT_CHANGED**: `NO`
+- **POOL_CHANGED**: `NO`
+- **FILE_PARALLELISM_CHANGED**: `NO`
+- **TEST_ASSERTIONS_WEAKENED**: `NO`
+- **NEW_TEST_SKIPS**: `0`
+- **PRODUCTION_CODE_CHANGED**: `NO`
+
+### D. Validação Sequencial Completa do Estágio de Testes (Full Test Stability Runs)
+- **RUN_1** (`task-4210`):
+  - `EXIT`: `0`
+  - `TEST_FILES_PASSED`: `143` (6 skipped)
+  - `TESTS_PASSED`: `971` (45 skipped)
+  - `UNHANDLED_RPC_ERRORS`: `0`
+  - `DURATION`: `166.40s`
+- **RUN_2** (`task-4251`):
+  - `EXIT`: `0`
+  - `TEST_FILES_PASSED`: `143` (6 skipped)
+  - `TESTS_PASSED`: `971` (45 skipped)
+  - `UNHANDLED_RPC_ERRORS`: `0`
+  - `DURATION`: `180.05s`
+- **FULL_TEST_STABILITY_RUNS**: `2`
+- **FULL_TEST_STABILITY_PASSES**: `2`
+- **FULL_TEST_RPC_ERRORS**: `0`
+
+### E. Validações Focadas dos Estágios Não Atingidos no task-4168
+- `pnpm build`: `PASS` (12 workspaces, 11 páginas Next.js, exit 0; `task-4298`)
+- `pnpm check:architecture`: `PASS` (AST check 100% em conformidade, exit 0)
+- `pnpm check:file-size`: `PASS` (279 arquivos de lógica verificados, exit 0)
+
+### F. Segurança & Governança Operacional
+- **FORBIDDEN_INTERNAL_STORAGE_ACCESSED**: `NO`
+- **REAL_DOTENV_ACCESSED**: `NO`
+- **OPENAI_REAL_CALLS**: `0`
+- **TYPESAFE_REAL_CALLS**: `0`
+- **TWILIO_REAL_CALLS**: `0`
+- **LIVE_COMMAND_INVOKED**: `NO`
+- **PROVIDER_SPEND_USD**: `0`
+- **SECRET_AUDIT**: `PASS`
+- **CUSTOMER_TRAFFIC**: `PROHIBITED`
+- **ACTIVE_GUARDED**: `BLOCKED`
+- **PRODUCTION_RUNTIME_WIRING**: `NO`
+- **AI_WORKLOG_HISTORY_INTEGRITY**: `PASS` (registros históricos e incidentes anteriores preservados intactos)
