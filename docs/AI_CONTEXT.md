@@ -195,9 +195,10 @@ AI_CONTEXT_HEADER_END
 
 ### `NEXT_ALLOWED_STEP`:
 - **Phase 7 Entry Status**: `OPEN` (`PHASE7_STATUS = OPEN`, `PHASE7_COMPLETION_ESTIMATE = 50%`, `PHASE7_BLOCKER_COUNT = 0`, `PHASE7_BLOCKERS = NONE`).
-- **Slice 007D (Deterministic Business Data Domain & Catalog Tools)**: Concluída com sucesso offline e validada por testes focados (contratos, persistência tenant-scoped, adapters e composição no engine).
-- `NEXT_ALLOWED_STEP = CREATE_007D_PR`
-- `NEXT_ALLOWED_SLICE = 007E`
+- **Slice 007D (Deterministic Business Data Domain & Catalog Tools)**: Implementada offline e validada por testes focados; aguardando gate canônico final de remediação.
+- `007D_PR_READINESS = PENDING_FINAL_REMEDIATION_GATE`
+- `NEXT_ALLOWED_STEP = CREATE_007D_PR_ONLY_AFTER_AUTHORITATIVE_GATE_PASS`
+- `NEXT_ALLOWED_SLICE = 007E_ONLY_AFTER_007D_MERGE_AND_POST_MERGE_VERIFICATION`
 - **Planned Slice 007E**: `007E — Outbound Orchestration Core & Worker Call Dispatch`
 - `AUTHORIZATION_CONSUMED = YES` | `SECOND_LIVE_RUN_AUTHORIZED = NO` | `NEW_LIVE_AUTHORIZATION_CREATED = NO`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.

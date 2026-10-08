@@ -16505,3 +16505,37 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `CUSTOMER_TRAFFIC = PROHIBITED`
   - `ACTIVE_GUARDED = BLOCKED`
   - `PRODUCTION_RUNTIME_WIRING = NO`
+
+---
+
+## 2026-10-08 — Slice 007D: Format-Gate Remediation (Drizzle Meta Prettier-Only)
+
+- **SLICE_ID**: `007D`
+- **ORIGINAL_IMPLEMENTATION_HEAD**: `925a6ca8124b9f44d4fc75bf235c8470b8c2ded0`
+- **007D_INITIAL_CANONICAL_GATE**: `FAIL`
+- **007D_INITIAL_GATE_FAILURE_STAGE**: `FORMAT`
+- **007D_INITIAL_GATE_EXIT_CODE**: `1`
+- **007D_INITIAL_GATE_HEAD**: `925a6ca8124b9f44d4fc75bf235c8470b8c2ded0`
+- **007D_INITIAL_GATE_FAILURE_CLASSIFICATION**: `DRIZZLE_GENERATED_METADATA_PRETTIER_FORMAT_ONLY`
+- **FAILED_FILES_ONLY**:
+  - `packages/database/src/migrations/meta/_journal.json`
+  - `packages/database/src/migrations/meta/0002_snapshot.json`
+- **NO_LATER_STAGE_CLAIMED**: `YES (the failed invocation stopped at FORMAT; lint/typecheck/test/build/architecture/file-size did not run in that gate)`
+- **FOCUSED_DEV_VALIDATIONS**: `development evidence only (typecheck 4 packages, eslint clean, 18/18 contracts+voice unit tests, 10/10 catalog persistence integration tests on local Postgres, 57/57 neighboring regression tests); NOT a substitute for the canonical final gate`
+- **INITIAL_FAILED_GATE_PUSHED**: `NO`
+- **REMEDIATION**: `prettier --write applied ONLY to the two generated Drizzle metadata JSON files listed above`
+- **MIGRATION_SQL_SEMANTICS_CHANGED**: `NO (0002_silent_squadron_sinister.sql untouched; historical migrations untouched)`
+- **METHOD_NOTE**: `git diff -w --exit-code on the two files returned 1 because Prettier reflowed single-element arrays onto single lines (line-join hunks, zero token changes; full hunk output inspected). A stronger read-only canonical-JSON comparison (sorted keys, order-sensitive arrays) of HEAD vs worktree for both files returned SEMANTIC_IDENTICAL/SEMANTIC_IDENTICAL. DRIZZLE_META_FORMATTING_ONLY = YES on that substantive basis, with this methodological deviation recorded transparently.`
+- **LOCAL_NEXT_ARTIFACT**: `apps/web/.next deleted as ignored generated-artifact cleanup for the observed Cannot-find-module-419.js dev runtime error; zero tracked Git changes from that cleanup (NEXT_LOCAL_BUILD_ARTIFACT_CLEANED = YES)`
+- **SAFETY & GOVERNANCE**:
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED = NO`
+  - `REAL_DOTENV_ACCESSED = NO`
+  - `OPENAI_REAL_CALLS = 0`
+  - `TYPESAFE_REAL_CALLS = 0`
+  - `TWILIO_REAL_CALLS = 0`
+  - `LIVE_COMMAND_INVOKED = NO`
+  - `PROVIDER_SPEND_USD = 0`
+  - `SECRET_AUDIT = PASS`
+  - `CUSTOMER_TRAFFIC = PROHIBITED`
+  - `ACTIVE_GUARDED = BLOCKED`
+  - `PRODUCTION_RUNTIME_WIRING = NO`
