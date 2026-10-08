@@ -4,14 +4,14 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-07
-CONTEXT_BASE_MAIN_SHA: db546936e1385bedff230ae5cffd3b7f6eb6da99
+CONTEXT_BASE_MAIN_SHA: ceb23fda99006bb6e8160bdb372b191848468a00
 CURRENT_PHASE: Phase 7 (OPEN)
-CURRENT_SLICE: Slice 007C — AgentVersion Toolset Configuration Extension & Agent Studio Integration
-CONTEXT_UPDATE_BRANCH: feat/007c-agentversion-toolset-configuration
+CURRENT_SLICE: Slice 007D — Deterministic Business Data Domain & Catalog Tools
+CONTEXT_UPDATE_BRANCH: feat/007d-business-catalog-tools
 CONTEXT_UPDATE_PR: PENDING_MANUAL_CREATE
-LAST_MERGED_PR_AT_REFRESH: 103
-LAST_MERGE_SHA_AT_REFRESH: db546936e1385bedff230ae5cffd3b7f6eb6da99
-LAST_TESTED_CODE_SHA: db546936e1385bedff230ae5cffd3b7f6eb6da99
+LAST_MERGED_PR_AT_REFRESH: 104
+LAST_MERGE_SHA_AT_REFRESH: ceb23fda99006bb6e8160bdb372b191848468a00
+LAST_TESTED_CODE_SHA: ceb23fda99006bb6e8160bdb372b191848468a00
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
 AI_CONTEXT_HEADER_END
@@ -28,11 +28,11 @@ AI_CONTEXT_HEADER_END
 
 | Subsistema | Status | Evidência / Localização |
 | :--- | :--- | :--- |
-| **Web** | `PARTIAL` | `apps/web` (Next.js 15.5; Dashboard, Settings, Agent Studio Draft Editor integrado com seção de configuração de ferramentas canônicas; UI 005D incompleta) |
+| **Web** | `PARTIAL` | `apps/web` (Next.js 15.5; Dashboard, Settings, Agent Studio Draft Editor integrado com seção de configuração de ferramentas canônicas incluindo catálogo; UI 005D incompleta) |
 | **API** | `IMPLEMENTED` | `apps/api` (Fastify/Node, rotas de drafts, lifecycle com validação de toolset canônico, auth interna com service token) |
-| **Voice** | `PARTIAL` | `apps/voice` (Motor universal de execução de tools `ToolExecutionEngine`, registro `InMemoryToolRegistry`, adapter `OperatingHoursTool` e resolução de toolset de versão publicada `resolvePublishedVersionToolset` implementados/testados offline; Orquestrador com roteamento supervisionado offline, coordenador dedicado `GuardedTurnRoutingCoordinator`, despacho determinístico, entrega estática de segurança offline, ownership OPTION_B, blindagem DISPATCH_ATTEMPTED -> NO_OPENAI_FALLBACK, single-owner Jev evaluation e tratamento qualificado de interrupção H4/H5 implementados/testados offline; streaming OpenAI; AuxiliaryTurnShadowObserver integrado non-blocking; handler determinístico `agent.operating_hours` integrado offline; fiação em runtime de produção: NÃO; tráfego real: NÃO) |
+| **Voice** | `PARTIAL` | `apps/voice` (Motor universal de execução de tools `ToolExecutionEngine`, registro `InMemoryToolRegistry`, adapters `OperatingHoursTool`/`CatalogSearchTool`/`CatalogItemDetailTool` e resolução de toolset de versão publicada `resolvePublishedVersionToolset` implementados/testados offline; Orquestrador com roteamento supervisionado offline, coordenador dedicado `GuardedTurnRoutingCoordinator`, despacho determinístico, entrega estática de segurança offline, ownership OPTION_B, blindagem DISPATCH_ATTEMPTED -> NO_OPENAI_FALLBACK, single-owner Jev evaluation e tratamento qualificado de interrupção H4/H5 implementados/testados offline; streaming OpenAI; AuxiliaryTurnShadowObserver integrado non-blocking; handler determinístico `agent.operating_hours` integrado offline; fiação em runtime de produção: NÃO; tráfego real: NÃO) |
 | **Worker** | `IMPLEMENTED` | `apps/worker` (Fundação de background tasks, processamento de filas assíncronas) |
-| **Database** | `IMPLEMENTED` | `packages/database` (PostgreSQL 16, Drizzle ORM, multi-tenancy, schemas comerciais, de auditoria e `agent_versions.configuration` com preservação snapshot de toolset) |
+| **Database** | `IMPLEMENTED` | `packages/database` (PostgreSQL 16, Drizzle ORM, multi-tenancy, schemas comerciais, de auditoria, `agent_versions.configuration` com preservação snapshot de toolset e `catalog_items` tenant-scoped com `CatalogRepository`) |
 
 ---
 
@@ -156,7 +156,7 @@ AI_CONTEXT_HEADER_END
 ## 7. Bloqueios Atuais e Status de Prontidão (Current Blockers & Readiness)
 
 1. `PHASE6_STATUS = CLOSED` | `PHASE6_COMPLETION_ESTIMATE = 100%` | `PHASE6_BLOCKER_COUNT = 0` | `PHASE6_BLOCKERS = NONE` (concluída formalmente via PR #100 / DEC-038).
-2. `PHASE7_STATUS = OPEN` | `PHASE7_COMPLETION_ESTIMATE = 35%` | `PHASE7_BLOCKER_COUNT = 0` | `PHASE7_BLOCKERS = NONE`.
+2. `PHASE7_STATUS = OPEN` | `PHASE7_COMPLETION_ESTIMATE = 50%` | `PHASE7_BLOCKER_COUNT = 0` | `PHASE7_BLOCKERS = NONE`.
 3. `AGENT_DOMAIN_STATUS = IMPLEMENTED` (`packages/database`: schema e repositórios de agentes e lifecycle).
 4. `AGENT_VERSIONING_STATUS = IMPLEMENTED` (`packages/database`, `packages/contracts`: ciclo draft/publish/archive com imutabilidade de versões publicadas).
 5. `TOOL_CALLING_CONTRACT = IMPLEMENTED` (`packages/contracts/src/tools/`: `ToolInvocation`, `ToolExecutionContext`, `ToolExecutionResult`, `ToolDefinition`, `ToolPort`, `ToolRegistryPort`).
@@ -166,8 +166,13 @@ AI_CONTEXT_HEADER_END
 9. `AGENT_STUDIO_TOOLSET_CONFIGURATION = IMPLEMENTED` (`apps/web/src/features/agents/agent-tools-section.tsx`: edição e round-trip de ferramentas canônicas na UI do Agent Studio).
 10. `PUBLISHED_VERSION_TOOLSET_CONTEXT = IMPLEMENTED` (`apps/voice/src/published-version-toolset.ts`: resolução, autorização e contexto de execução de ferramentas canônicas a partir de snapshot de versão publicada).
 11. `TOOL_AUTHORIZATION_MODEL = PARTIAL` (boundary de segurança por tenant/allowlist implementada; modelo completo de entitlements e papéis é escopo futuro).
+12. `CATALOG_BUSINESS_DATA_DOMAIN = IMPLEMENTED` (`packages/contracts/src/catalog/`: `catalog-item-contracts`, `catalog-tool-contracts` com `catalog.search` e `catalog.item_detail`).
+13. `CATALOG_PERSISTENCE = IMPLEMENTED` (`packages/database/src/schema/catalog.ts`: `catalog_items` tenant-scoped com kind PRODUCT|SERVICE, preço em minor units + currency; migration `0002_silent_squadron_sinister.sql`).
+14. `CATALOG_QUERY_REPOSITORY = IMPLEMENTED` (`packages/database/src/repositories/catalog-repository.ts`: `searchCatalog`/`getCatalogItem` com tenant isolation, limite limitado e ordenação determinística).
+15. `CATALOG_TOOL_INTEGRATION = IMPLEMENTED` (`apps/voice/src/catalog-search-tool.ts`, `apps/voice/src/catalog-item-detail-tool.ts`: adapters provider-neutral sobre `ToolExecutionEngine` com `CatalogQueryPort` injetada).
+16. `AGENT_STUDIO_CATALOG_TOOL_SELECTION = IMPLEMENTED` (`apps/web/src/features/agents/agent-tools-section.tsx`: entradas explícitas para `catalog.search` e `catalog.item_detail`).
 12. `OPERATING_HOURS_UNIVERSAL_ENGINE_INTEGRATION = YES` (`apps/voice/src/operating-hours-tool.ts`: wrapping determinístico de `handleOperatingHoursTurn` preservando 100% das regras sem duplicação).
-13. `BUSINESS_TOOL_INTEGRATIONS = NOT_IMPLEMENTED` (ferramentas de produtos, preços e agendamento são escopo de fatias posteriores).
+13. `BUSINESS_TOOL_INTEGRATIONS = PARTIAL` (catálogo determinístico implementado; booking/CRM/calendário seguem ausentes).
 14. `MODEL_TO_CANONICAL_TOOL_MAPPING = PARTIAL` (contratos prontos no core de voz; fakes validados offline; emissores de provedor streaming não implementados).
 15. `PROVIDER_SPECIFIC_TOOL_MAPPING = NOT_IMPLEMENTED` (fase de integração de provedores).
 16. `KNOWLEDGE_BASE_DOMAIN = NOT_IMPLEMENTED` (entidades de documentos, chunks e ingestão ausentes).
@@ -189,11 +194,11 @@ AI_CONTEXT_HEADER_END
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- **Phase 7 Entry Status**: `OPEN` (`PHASE7_STATUS = OPEN`, `PHASE7_COMPLETION_ESTIMATE = 35%`, `PHASE7_BLOCKER_COUNT = 0`, `PHASE7_BLOCKERS = NONE`).
-- **Slice 007C (AgentVersion Toolset Configuration Extension & Agent Studio Integration)**: Concluída com sucesso offline e validada pelo full quality gate.
-- `NEXT_ALLOWED_STEP = CREATE_007C_PR`
-- `NEXT_ALLOWED_SLICE = 007D`
-- **Planned Slice 007D**: `007D — Business Tool Integrations (Products & Catalog Lookup)`
+- **Phase 7 Entry Status**: `OPEN` (`PHASE7_STATUS = OPEN`, `PHASE7_COMPLETION_ESTIMATE = 50%`, `PHASE7_BLOCKER_COUNT = 0`, `PHASE7_BLOCKERS = NONE`).
+- **Slice 007D (Deterministic Business Data Domain & Catalog Tools)**: Concluída com sucesso offline e validada por testes focados (contratos, persistência tenant-scoped, adapters e composição no engine).
+- `NEXT_ALLOWED_STEP = CREATE_007D_PR`
+- `NEXT_ALLOWED_SLICE = 007E`
+- **Planned Slice 007E**: `007E — Outbound Orchestration Core & Worker Call Dispatch`
 - `AUTHORIZATION_CONSUMED = YES` | `SECOND_LIVE_RUN_AUTHORIZED = NO` | `NEW_LIVE_AUTHORIZATION_CREATED = NO`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
 

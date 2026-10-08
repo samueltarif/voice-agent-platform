@@ -16420,3 +16420,88 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `CUSTOMER_TRAFFIC = PROHIBITED`
   - `ACTIVE_GUARDED = BLOCKED`
   - `PRODUCTION_RUNTIME_WIRING = NO`
+
+---
+
+## 2026-10-08 — Slice 007D: Deterministic Business Data Domain & Catalog Tools
+
+- **SLICE_ID**: `007D`
+- **BASE_MAIN_SHA**: `ceb23fda99006bb6e8160bdb372b191848468a00`
+- **FEATURE_BRANCH**: `feat/007d-business-catalog-tools`
+- **OBJECTIVE**: Smallest coherent deterministic business-data foundation allowing the voice tool runtime to perform safe READ-ONLY catalog lookup against tenant-scoped server-side product/service data, without booking/order/payment behavior.
+- **INVESTIGATION**:
+  - `EXISTING_PRODUCT_DOMAIN = NOT_IMPLEMENTED` (only SaaS billing plans in `packages/database/src/schema/commercial.ts`, no business catalog products)
+  - `EXISTING_SERVICE_DOMAIN = NOT_IMPLEMENTED`
+  - `EXISTING_CATALOG_SCHEMA = NO`
+  - `EXISTING_PRICE_MONEY_CONVENTION = priceCents integer >= 0 + currency text default BRL` (reused from `plans`)
+  - `EXISTING_CATALOG_REPOSITORY = NO`
+  - `EXISTING_CATALOG_API = NO`
+  - `EXISTING_CATALOG_TOOL = NO`
+  - `EXISTING_AGENT_STUDIO_TOOL_METADATA_EXTENSION_POINT = AVAILABLE_CANONICAL_TOOLS in apps/web/src/features/agents/agent-tools-section.tsx`
+  - No duplication: single `catalog_items` entity with kind discriminator (option B), no separate product/service concepts.
+- **DOMAIN MODEL**:
+  - `packages/database/src/schema/catalog.ts`: `catalog_items` (id, organizationId FK restrict, kind `catalog_item_kind` PRODUCT|SERVICE, name, description, sku, active default true, priceCents nullable, currency default BRL, createdAt, updatedAt; checks for name, price, currency; indexes scoped by tenant)
+  - Priceless items modeled explicitly with `priceCents = NULL`; no inventory/tax/discount/promo/bundle/subscription/variant/fulfillment.
+- **MONEY AUTHORITY**:
+  - Integer minor units + explicit 3-letter currency, no floating point; tool responses return persisted authoritative prices only; no discount/tax/dynamic pricing/payment.
+- **REPOSITORY**:
+  - `packages/database/src/repositories/catalog-repository.ts`: `CatalogRepository` with `createCatalogItem` (fixture/canonical setup path), `getCatalogItem` (id/sku, tenant-scoped, null on cross-tenant without leaking), `searchCatalog` (bounded limit default 10 max 50, deterministic order name+id, normalized escaped ILIKE, active-only by default).
+- **CANONICAL TOOLS**:
+  - `CATALOG_CANONICAL_TOOL_NAMES = ['catalog.search', 'catalog.item_detail']`
+  - `packages/contracts/src/catalog/catalog-item-contracts.ts` + `catalog-tool-contracts.ts`: strict zod schemas; args limited to query/itemId/sku/kind/limit; organizationId never accepted from model.
+  - Registered in `CANONICAL_TOOL_NAMES` (`packages/contracts/src/agents/agent-configuration-v1.ts`), selectable by 007C AgentVersion toolset validation.
+- **ADAPTERS**:
+  - `apps/voice/src/catalog-search-tool.ts` + `catalog-item-detail-tool.ts` over injected `CatalogQueryPort` (`apps/voice/src/catalog-query-port.ts`); no provider SDKs, no OpenAI/TypeSafe parsing, no provider calls.
+  - Sanitized public output only (no organizationId, internals, traces, SQL, secrets).
+- **REGISTRY COMPOSITION**:
+  - Offline-tested with `InMemoryToolRegistry` + `ToolExecutionEngine` + `createPublishedVersionToolAuthorizer`: allowlisted+registered executes; unconfigured rejected UNAUTHORIZED; configured-but-unregistered fails UNKNOWN; no production wiring.
+- **AGENT STUDIO**:
+  - `FRONTEND_CHANGED = YES` (minimal: two entries in `AVAILABLE_CANONICAL_TOOLS`)
+  - `AGENT_STUDIO_CATALOG_TOOL_SELECTION = IMPLEMENTED`
+- **API**:
+  - `API_CHANGED = NO` (runtime capability via repository/tool path; no CRUD/admin surface created).
+- **TESTS** (28 new, all passing focused):
+  - contracts `catalog-contracts.test.ts`: 8 (kinds, money, priceless null, invalid money, arg security, detail identity, canonical acceptance, unknown rejection)
+  - database `catalog-persistence.integration.test.ts`: 10 (PRODUCT/SERVICE persist+read, cross-tenant null, same-sku tenant scoping, active/inactive rule, bounded limit, deterministic ordering, exact price, invalid money rejected, identity-required fail-closed; runId-scoped teardown with zero leftovers)
+  - voice `catalog-search-tool.test.ts`: 3, `catalog-item-detail-tool.test.ts`: 3, `catalog-tool-composition.test.ts`: 4 (incl. operating_hours regression)
+  - Regression suites still green: toolset domain/HTTP, agent-configuration, published-version-toolset, engine/registry, operating_hours, web tools section/editor.
+  - Zero paid provider calls in tests.
+- **ESTADO DE IMPLEMENTAÇÃO**:
+  - `CATALOG_BUSINESS_DATA_DOMAIN = IMPLEMENTED`
+  - `CATALOG_PERSISTENCE = IMPLEMENTED`
+  - `CATALOG_QUERY_REPOSITORY = IMPLEMENTED`
+  - `CATALOG_TOOL_INTEGRATION = IMPLEMENTED`
+  - `BUSINESS_TOOL_INTEGRATIONS = PARTIAL`
+  - `TOOL_CALLING_CONTRACT = IMPLEMENTED`
+  - `TOOL_REGISTRY = IMPLEMENTED`
+  - `TOOL_EXECUTION_RUNTIME = IMPLEMENTED`
+  - `AGENT_VERSION_TOOLSET_CONFIGURATION = IMPLEMENTED`
+  - `AGENT_STUDIO_TOOLSET_CONFIGURATION = IMPLEMENTED`
+  - `PUBLISHED_VERSION_TOOLSET_CONTEXT = IMPLEMENTED`
+  - `TOOL_AUTHORIZATION_MODEL = PARTIAL`
+  - `MODEL_TO_CANONICAL_TOOL_MAPPING = PARTIAL`
+  - `PROVIDER_SPECIFIC_TOOL_MAPPING = NOT_IMPLEMENTED`
+  - `DATABASE_SCHEMA_CHANGED = YES`
+  - `MIGRATION_CREATED = YES (0002_silent_squadron_sinister.sql, additive only)`
+  - `CONTRACTS_CHANGED = YES`
+  - `DATABASE_REPOSITORY_CHANGED = YES`
+  - `API_CHANGED = NO`
+  - `FRONTEND_CHANGED = YES`
+  - `VOICE_CHANGED = YES`
+  - `PROVIDER_ADAPTER_CHANGED = NO`
+  - `LOCKFILE_CHANGED = NO`
+  - `KNOWLEDGE_BASE_DOMAIN = NOT_IMPLEMENTED`
+  - `RAG_ARCHITECTURE_DECISION = PENDING`
+  - `OUTBOUND_DOMAIN_MODEL = NOT_IMPLEMENTED`
+- **SAFETY & GOVERNANCE**:
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED = NO`
+  - `REAL_DOTENV_ACCESSED = NO`
+  - `OPENAI_REAL_CALLS = 0`
+  - `TYPESAFE_REAL_CALLS = 0`
+  - `TWILIO_REAL_CALLS = 0`
+  - `LIVE_COMMAND_INVOKED = NO`
+  - `PROVIDER_SPEND_USD = 0`
+  - `SECRET_AUDIT = PASS`
+  - `CUSTOMER_TRAFFIC = PROHIBITED`
+  - `ACTIVE_GUARDED = BLOCKED`
+  - `PRODUCTION_RUNTIME_WIRING = NO`

@@ -5,6 +5,7 @@ export * from './commercial-repository.js';
 export * from './commercial-plan-source-resolver.js';
 export * from './commercial-entitlement-resolver.js';
 export * from './commercial-publication-policy.js';
+export * from './catalog-repository.js';
 export * from './agent-repository.js';
 export * from './agent-lifecycle-service.js';
 export * from './agent-version-repository.js';
