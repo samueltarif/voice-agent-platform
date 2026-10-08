@@ -41,3 +41,4 @@ export * from './tool-registry.js';
 export * from './tool-execution-engine.js';
 export * from './operating-hours-tool.js';
 export * from './build-safe-log-context.js';
+export * from './published-version-toolset.js';

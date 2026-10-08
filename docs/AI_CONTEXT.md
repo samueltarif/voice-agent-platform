@@ -4,14 +4,14 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-07
-CONTEXT_BASE_MAIN_SHA: 70a118596032c2262c21ec477e4fec85ef38c8f6
+CONTEXT_BASE_MAIN_SHA: db546936e1385bedff230ae5cffd3b7f6eb6da99
 CURRENT_PHASE: Phase 7 (OPEN)
-CURRENT_SLICE: Slice 007B — Universal Tool Calling Contracts & Voice Runtime Tool Execution Engine
-CONTEXT_UPDATE_BRANCH: feat/007b-universal-tool-execution-engine
+CURRENT_SLICE: Slice 007C — AgentVersion Toolset Configuration Extension & Agent Studio Integration
+CONTEXT_UPDATE_BRANCH: feat/007c-agentversion-toolset-configuration
 CONTEXT_UPDATE_PR: PENDING_MANUAL_CREATE
-LAST_MERGED_PR_AT_REFRESH: 101
-LAST_MERGE_SHA_AT_REFRESH: 70a118596032c2262c21ec477e4fec85ef38c8f6
-LAST_TESTED_CODE_SHA: 70a118596032c2262c21ec477e4fec85ef38c8f6
+LAST_MERGED_PR_AT_REFRESH: 103
+LAST_MERGE_SHA_AT_REFRESH: db546936e1385bedff230ae5cffd3b7f6eb6da99
+LAST_TESTED_CODE_SHA: db546936e1385bedff230ae5cffd3b7f6eb6da99
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
 AI_CONTEXT_HEADER_END
@@ -28,11 +28,11 @@ AI_CONTEXT_HEADER_END
 
 | Subsistema | Status | Evidência / Localização |
 | :--- | :--- | :--- |
-| **Web** | `PARTIAL` | `apps/web` (Next.js 15.5; Dashboard, Settings, Agent Studio Draft Editor; UI 005D incompleta) |
-| **API** | `IMPLEMENTED` | `apps/api` (Fastify/Node, rotas de drafts, lifecycle, auth interna com service token) |
-| **Voice** | `PARTIAL` | `apps/voice` (Motor universal de execução de tools `ToolExecutionEngine`, registro `InMemoryToolRegistry` e wrapper `OperatingHoursTool` implementados/testados offline; Orquestrador com roteamento supervisionado offline, coordenador dedicado `GuardedTurnRoutingCoordinator`, despacho determinístico, entrega estática de segurança offline, ownership OPTION_B, blindagem DISPATCH_ATTEMPTED -> NO_OPENAI_FALLBACK, single-owner Jev evaluation e tratamento qualificado de interrupção H4/H5 implementados/testados offline; streaming OpenAI; AuxiliaryTurnShadowObserver integrado non-blocking; handler determinístico `agent.operating_hours` integrado offline; fiação em runtime de produção: NÃO; tráfego real: NÃO) |
+| **Web** | `PARTIAL` | `apps/web` (Next.js 15.5; Dashboard, Settings, Agent Studio Draft Editor integrado com seção de configuração de ferramentas canônicas; UI 005D incompleta) |
+| **API** | `IMPLEMENTED` | `apps/api` (Fastify/Node, rotas de drafts, lifecycle com validação de toolset canônico, auth interna com service token) |
+| **Voice** | `PARTIAL` | `apps/voice` (Motor universal de execução de tools `ToolExecutionEngine`, registro `InMemoryToolRegistry`, adapter `OperatingHoursTool` e resolução de toolset de versão publicada `resolvePublishedVersionToolset` implementados/testados offline; Orquestrador com roteamento supervisionado offline, coordenador dedicado `GuardedTurnRoutingCoordinator`, despacho determinístico, entrega estática de segurança offline, ownership OPTION_B, blindagem DISPATCH_ATTEMPTED -> NO_OPENAI_FALLBACK, single-owner Jev evaluation e tratamento qualificado de interrupção H4/H5 implementados/testados offline; streaming OpenAI; AuxiliaryTurnShadowObserver integrado non-blocking; handler determinístico `agent.operating_hours` integrado offline; fiação em runtime de produção: NÃO; tráfego real: NÃO) |
 | **Worker** | `IMPLEMENTED` | `apps/worker` (Fundação de background tasks, processamento de filas assíncronas) |
-| **Database** | `IMPLEMENTED` | `packages/database` (PostgreSQL 16, Drizzle ORM, multi-tenancy, schemas comerciais e de auditoria) |
+| **Database** | `IMPLEMENTED` | `packages/database` (PostgreSQL 16, Drizzle ORM, multi-tenancy, schemas comerciais, de auditoria e `agent_versions.configuration` com preservação snapshot de toolset) |
 
 ---
 
@@ -156,40 +156,44 @@ AI_CONTEXT_HEADER_END
 ## 7. Bloqueios Atuais e Status de Prontidão (Current Blockers & Readiness)
 
 1. `PHASE6_STATUS = CLOSED` | `PHASE6_COMPLETION_ESTIMATE = 100%` | `PHASE6_BLOCKER_COUNT = 0` | `PHASE6_BLOCKERS = NONE` (concluída formalmente via PR #100 / DEC-038).
-2. `PHASE7_STATUS = OPEN` | `PHASE7_COMPLETION_ESTIMATE = 15%` | `PHASE7_BLOCKER_COUNT = 0` | `PHASE7_BLOCKERS = NONE`.
-3. `TOOL_CALLING_CONTRACT = IMPLEMENTED` (`packages/contracts/src/tools/`: `ToolInvocation`, `ToolExecutionContext`, `ToolExecutionResult`, `ToolDefinition`, `ToolPort`, `ToolRegistryPort`).
-4. `TOOL_REGISTRY = IMPLEMENTED` (`apps/voice/src/tool-registry.ts`: `InMemoryToolRegistry` com fail-closed, duplicate rejection determinística, immutabilidade pós-registro).
-5. `TOOL_EXECUTION_RUNTIME = IMPLEMENTED` (`apps/voice/src/tool-execution-engine.ts`: `ToolExecutionEngine` com isolamento de contexto confiável, validação estrita via zod, contenção segura de exceções sem vazamento de secrets/traces).
-6. `TOOL_EXECUTION_SAFETY_BOUNDARY = IMPLEMENTED` (argumentos não-confiáveis do modelo não podem sobrescrever tenant/permissões; contexto injetado exclusivamente pelo runtime do servidor).
-7. `TOOL_AUTHORIZATION_MODEL = PARTIAL` (boundary de segurança por tenant/allowlist implementada; modelo completo de entitlements e papéis é escopo futuro).
-8. `OPERATING_HOURS_UNIVERSAL_ENGINE_INTEGRATION = YES` (`apps/voice/src/operating-hours-tool.ts`: wrapping determinístico de `handleOperatingHoursTurn` preservando 100% das regras sem duplicação).
-9. `BUSINESS_TOOL_INTEGRATIONS = NOT_IMPLEMENTED` (ferramentas de produtos, preços e agendamento são escopo das fatias 007C/007D).
-10. `MODEL_TO_CANONICAL_TOOL_MAPPING = PARTIAL` (contratos prontos no core de voz; fakes validados offline; emissores de provedor streaming não implementados).
-11. `PROVIDER_SPECIFIC_TOOL_MAPPING = NOT_IMPLEMENTED` (fase de integração de provedores).
-12. `KNOWLEDGE_BASE_DOMAIN = NOT_IMPLEMENTED` (entidades de documentos, chunks e ingestão ausentes).
-13. `RAG_ARCHITECTURE_DECISION = PENDING` (aguardando ADR formal e escolha arquitetural).
-14. `OUTBOUND_DOMAIN_MODEL = NOT_IMPLEMENTED` (tabelas de campanhas, contatos e jobs de discagem ausentes).
-15. `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`: Transmissão de transcrições de clientes para provedores externos proibida (invariante de segurança; tráfego real em produção é Fase 10).
-16. `ACTIVE_GUARDED = BLOCKED` (fail-closed no runtime; pendente DPA e parâmetros de produção).
-17. `PRODUCTION_SHADOW_MAX_CONCURRENCY = DEFERRED_TO_PHASE10` (Slice 006BR / DEC-038).
-18. `PRODUCTION_JEV_TIMEOUT_MS = DEFERRED_TO_PHASE10` (Slice 006BR / DEC-038).
-19. `PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY = DEFERRED_TO_PHASE10` (Slice 006BR / DEC-038).
-20. `MODEL_DRIFT_RUNTIME_GUARD = IMPLEMENTED / TESTED LOCALLY` (`expectedProviderModel = jev-1.13.0`).
-21. `PRODUCTION_RUNTIME_WIRING = NO`: Fiação de runtime em produção desautorizada.
-22. `LIVE_TWILIO_GUARDED_ROUTING = NOT EXECUTED`: Telefonia real pertence à Fase 8.
-23. `CUSTOMER_TRAFFIC = PROHIBITED` (invariante de segurança; escopo da Fase 10).
-24. `PRODUCTION_OPERATIONAL_PARAMETERS = FORMALLY_DEFERRED_TO_PHASE10_BY_HUMAN_DECISION` (Slice 006BR / DEC-038).
+2. `PHASE7_STATUS = OPEN` | `PHASE7_COMPLETION_ESTIMATE = 35%` | `PHASE7_BLOCKER_COUNT = 0` | `PHASE7_BLOCKERS = NONE`.
+3. `AGENT_DOMAIN_STATUS = IMPLEMENTED` (`packages/database`: schema e repositórios de agentes e lifecycle).
+4. `AGENT_VERSIONING_STATUS = IMPLEMENTED` (`packages/database`, `packages/contracts`: ciclo draft/publish/archive com imutabilidade de versões publicadas).
+5. `TOOL_CALLING_CONTRACT = IMPLEMENTED` (`packages/contracts/src/tools/`: `ToolInvocation`, `ToolExecutionContext`, `ToolExecutionResult`, `ToolDefinition`, `ToolPort`, `ToolRegistryPort`).
+6. `TOOL_REGISTRY = IMPLEMENTED` (`apps/voice/src/tool-registry.ts`: `InMemoryToolRegistry` com fail-closed, duplicate rejection determinística, immutabilidade pós-registro).
+7. `TOOL_EXECUTION_RUNTIME = IMPLEMENTED` (`apps/voice/src/tool-execution-engine.ts`: `ToolExecutionEngine` com isolamento de contexto confiável, validação estrita via zod, contenção segura de exceções sem vazamento de secrets/traces).
+8. `AGENT_VERSION_TOOLSET_CONFIGURATION = IMPLEMENTED` (`packages/contracts/src/agents/agent-configuration-v1.ts`: toolset canônico validado com rejeição de desconhecidos e duplicados, persistência JSONB snapshot sem migração DDL).
+9. `AGENT_STUDIO_TOOLSET_CONFIGURATION = IMPLEMENTED` (`apps/web/src/features/agents/agent-tools-section.tsx`: edição e round-trip de ferramentas canônicas na UI do Agent Studio).
+10. `PUBLISHED_VERSION_TOOLSET_CONTEXT = IMPLEMENTED` (`apps/voice/src/published-version-toolset.ts`: resolução, autorização e contexto de execução de ferramentas canônicas a partir de snapshot de versão publicada).
+11. `TOOL_AUTHORIZATION_MODEL = PARTIAL` (boundary de segurança por tenant/allowlist implementada; modelo completo de entitlements e papéis é escopo futuro).
+12. `OPERATING_HOURS_UNIVERSAL_ENGINE_INTEGRATION = YES` (`apps/voice/src/operating-hours-tool.ts`: wrapping determinístico de `handleOperatingHoursTurn` preservando 100% das regras sem duplicação).
+13. `BUSINESS_TOOL_INTEGRATIONS = NOT_IMPLEMENTED` (ferramentas de produtos, preços e agendamento são escopo de fatias posteriores).
+14. `MODEL_TO_CANONICAL_TOOL_MAPPING = PARTIAL` (contratos prontos no core de voz; fakes validados offline; emissores de provedor streaming não implementados).
+15. `PROVIDER_SPECIFIC_TOOL_MAPPING = NOT_IMPLEMENTED` (fase de integração de provedores).
+16. `KNOWLEDGE_BASE_DOMAIN = NOT_IMPLEMENTED` (entidades de documentos, chunks e ingestão ausentes).
+17. `RAG_ARCHITECTURE_DECISION = PENDING` (aguardando ADR formal e escolha arquitetural).
+18. `OUTBOUND_DOMAIN_MODEL = NOT_IMPLEMENTED` (tabelas de campanhas, contatos e jobs de discagem ausentes).
+19. `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`: Transmissão de transcrições de clientes para provedores externos proibida (invariante de segurança; tráfego real em produção é Fase 10).
+20. `ACTIVE_GUARDED = BLOCKED` (fail-closed no runtime; pendente DPA e parâmetros de produção).
+21. `PRODUCTION_SHADOW_MAX_CONCURRENCY = DEFERRED_TO_PHASE10` (Slice 006BR / DEC-038).
+22. `PRODUCTION_JEV_TIMEOUT_MS = DEFERRED_TO_PHASE10` (Slice 006BR / DEC-038).
+23. `PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY = DEFERRED_TO_PHASE10` (Slice 006BR / DEC-038).
+24. `MODEL_DRIFT_RUNTIME_GUARD = IMPLEMENTED / TESTED LOCALLY` (`expectedProviderModel = jev-1.13.0`).
+25. `PRODUCTION_RUNTIME_WIRING = NO`: Fiação de runtime em produção desautorizada.
+26. `LIVE_TWILIO_GUARDED_ROUTING = NOT EXECUTED`: Telefonia real pertence à Fase 8.
+27. `CUSTOMER_TRAFFIC = PROHIBITED` (invariante de segurança; escopo da Fase 10).
+28. `PRODUCTION_OPERATIONAL_PARAMETERS = FORMALLY_DEFERRED_TO_PHASE10_BY_HUMAN_DECISION` (Slice 006BR / DEC-038).
 
 ---
 
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- **Phase 7 Entry Status**: `OPEN` (`PHASE7_STATUS = OPEN`, `PHASE7_COMPLETION_ESTIMATE = 15%`, `PHASE7_BLOCKER_COUNT = 0`, `PHASE7_BLOCKERS = NONE`).
-- **Slice 007B (Universal Tool Calling Contracts & Voice Runtime Tool Execution Engine)**: Concluída com sucesso offline (129 arquivos de teste / 890 testes passando).
-- `NEXT_ALLOWED_STEP = MERGE_007B_GOVERNANCE_RECONCILIATION`
-- `NEXT_ALLOWED_SLICE = NOT_YET_ALLOWED`
-- **Planned Slice 007C (NOT_YET_ALLOWED)**: `007C — AgentVersion Toolset Configuration Extension & Agent Studio Integration` (pendente até o merge desta reconciliação de governança; não iniciar 007C ainda).
+- **Phase 7 Entry Status**: `OPEN` (`PHASE7_STATUS = OPEN`, `PHASE7_COMPLETION_ESTIMATE = 35%`, `PHASE7_BLOCKER_COUNT = 0`, `PHASE7_BLOCKERS = NONE`).
+- **Slice 007C (AgentVersion Toolset Configuration Extension & Agent Studio Integration)**: Concluída com sucesso offline e validada pelo full quality gate.
+- `NEXT_ALLOWED_STEP = CREATE_007C_PR`
+- `NEXT_ALLOWED_SLICE = 007D`
+- **Planned Slice 007D**: `007D — Business Tool Integrations (Products & Catalog Lookup)`
 - `AUTHORIZATION_CONSUMED = YES` | `SECOND_LIVE_RUN_AUTHORIZED = NO` | `NEW_LIVE_AUTHORIZATION_CREATED = NO`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
 
@@ -199,6 +203,7 @@ AI_CONTEXT_HEADER_END
 - Modificação de políticas congeladas ou reutilização do holdout de pesquisa.
 - Fiação em runtime de produção (`apps/voice`).
 - Real telephony / carrier dialing (Fase 8).
+
 
 ---
 

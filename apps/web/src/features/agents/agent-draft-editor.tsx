@@ -7,6 +7,7 @@ import { AgentDraftEditorActions } from './agent-draft-editor-actions';
 import { AgentPersonaSection } from './agent-persona-section';
 import { AgentVoiceSection } from './agent-voice-section';
 import { AgentRulesSection } from './agent-rules-section';
+import { AgentToolsSection } from './agent-tools-section';
 import { AgentPlaybookSection } from './agent-playbook-section';
 import { AgentExamplesSection } from './agent-examples-section';
 
@@ -65,6 +66,12 @@ export function AgentDraftEditor({
       <AgentRulesSection
         rules={config.rules}
         onChange={(rules) => setConfig({ ...config, rules })}
+        disabled={isBusy}
+      />
+
+      <AgentToolsSection
+        tools={config.tools}
+        onChange={(tools) => setConfig({ ...config, tools })}
         disabled={isBusy}
       />
 

@@ -16354,3 +16354,69 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **PURPOSE**: `This reconciliation exists to preserve an accurate append-only audit trail without rewriting the historical 007B implementation entry.`
 - **SAFETY**: `REAL_DOTENV_ACCESSED = NO`, `OPENAI_REAL_CALLS = 0`, `TYPESAFE_REAL_CALLS = 0`, `TWILIO_REAL_CALLS = 0`, `LIVE_COMMAND_INVOKED = NO`, `SECRET_AUDIT = PASS`
 - **STATE**: `AUTHORIZATION_CONSUMED = YES`, `SECOND_LIVE_RUN_AUTHORIZED = NO`, `NEW_LIVE_AUTHORIZATION_CREATED = NO`
+
+---
+
+## 2026-10-07 — Slice 007C: AgentVersion Toolset Configuration Extension & Agent Studio Integration
+
+- **SLICE_ID**: `007C`
+- **BASE_MAIN_SHA**: `db546936e1385bedff230ae5cffd3b7f6eb6da99`
+- **FEATURE_BRANCH**: `feat/007c-agentversion-toolset-configuration`
+- **OBJECTIVE**: Implement the smallest complete vertical slice that allows an AgentVersion to declare which canonical tools are configured/allowed for that version, persists that configuration, exposes it through the existing Agent Studio draft/version flow, and preserves it through publication.
+- **CORE DOMAIN & CONTRACTS**:
+  - `packages/contracts/src/agents/agent-configuration-v1.ts`: Defined `CANONICAL_TOOL_NAMES = ['agent.operating_hours'] as const`, `canonicalToolNameSchema`, `agentToolsV1Schema` (com validação de unicidade e rejeição de desconhecidos/duplicados) e `normalizeCanonicalToolNames`.
+  - Adicionado campo opcional `tools?: agentToolsV1Schema` no `agentConfigurationSnapshotV1Schema`.
+- **DATABASE & PERSISTENCE**:
+  - `DATABASE_SCHEMA_CHANGED = NO`, `MIGRATION_CREATED = NO`.
+  - Reutilizada a coluna JSONB `agent_versions.configuration` existente, garantindo compatibilidade retroativa e integridade de snapshots imutáveis.
+- **AGENT STUDIO WEB INTEGRATION**:
+  - `apps/web/src/features/agents/agent-tools-section.tsx`: Criado componente de configuração de ferramentas canônicas com toggle, contagem e estado desabilitado.
+  - `apps/web/src/features/agents/agent-draft-editor.tsx`: Integrada seção `AgentToolsSection` no fluxo de edição de rascunho com persistência round-trip.
+  - `apps/web/src/features/agents/agent-default-configuration.ts`: Atualizado default para incluir `tools: ['agent.operating_hours']`.
+- **API & LIFECYCLE**:
+  - `apps/api/src/routes/agent-draft-routes.ts` & `apps/web/src/app/api/agents/[agentId]/draft/route.ts`: Validação de esquema rejeita ferramentas desconhecidas e duplicadas deterministicamente com preservação de tenant isolation.
+  - Publicação de versão congela snapshot da configuração incluindo toolset exatamente como configurado.
+- **VOICE RUNTIME CONTEXT EXTENSION**:
+  - `apps/voice/src/published-version-toolset.ts`: Implementadas funções `resolvePublishedVersionToolset`, `isToolConfiguredInSnapshot`, `createPublishedVersionToolAuthorizer` e `buildPublishedVersionToolExecutionContext` para estender o boundary de runtime neutro de provedor.
+- **TESTES AUTOMATIZADOS**:
+  - `packages/contracts/src/agents/agent-toolset-configuration.test.ts`: 6 testes unitários para schemas, normalização e validação.
+  - `packages/database/src/agent-version-toolset.domain.test.ts`: 6 testes de integração de domínio para persistência, tenant isolation e imutabilidade de publicação.
+  - `apps/api/src/http/agent-draft-toolset.http.test.ts`: 6 testes de integração HTTP de drafts com service tokens.
+  - `apps/web/src/app/api/agents/[agentId]/draft/route.test.ts`: 11 testes cobrindo validação e persistência de toolset.
+  - `apps/web/src/features/agents/agent-tools-section.test.tsx`: 3 testes de renderização e interação do componente de tools.
+  - `apps/web/src/features/agents/agent-draft-editor.test.tsx`: 2 testes de renderização e round-trip do editor de rascunhos.
+  - `apps/voice/src/published-version-toolset.test.ts`: 6 testes de resolução de contexto de runtime e autorização.
+- **ESTADO DE IMPLEMENTAÇÃO**:
+  - `AGENT_DOMAIN_STATUS = IMPLEMENTED`
+  - `AGENT_VERSIONING_STATUS = IMPLEMENTED`
+  - `PUBLISHED_VERSION_RUNTIME_CONTEXT_STATUS = IMPLEMENTED`
+  - `TOOL_CALLING_CONTRACT = IMPLEMENTED`
+  - `TOOL_REGISTRY = IMPLEMENTED`
+  - `TOOL_EXECUTION_RUNTIME = IMPLEMENTED`
+  - `AGENT_VERSION_TOOLSET_CONFIGURATION = IMPLEMENTED`
+  - `AGENT_STUDIO_TOOLSET_CONFIGURATION = IMPLEMENTED`
+  - `PUBLISHED_VERSION_TOOLSET_CONTEXT = IMPLEMENTED`
+  - `TOOL_AUTHORIZATION_MODEL = PARTIAL`
+  - `BUSINESS_TOOL_INTEGRATIONS = NOT_IMPLEMENTED`
+  - `MODEL_TO_CANONICAL_TOOL_MAPPING = PARTIAL`
+  - `PROVIDER_SPECIFIC_TOOL_MAPPING = NOT_IMPLEMENTED`
+  - `DATABASE_SCHEMA_CHANGED = NO`
+  - `MIGRATION_CREATED = NO`
+  - `CONTRACTS_CHANGED = YES`
+  - `API_CHANGED = YES`
+  - `FRONTEND_CHANGED = YES`
+  - `VOICE_RUNTIME_CONTEXT_CHANGED = YES`
+  - `PROVIDER_ADAPTER_CHANGED = NO`
+  - `LOCKFILE_CHANGED = NO`
+- **SAFETY & GOVERNANCE**:
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED = NO`
+  - `REAL_DOTENV_ACCESSED = NO`
+  - `OPENAI_REAL_CALLS = 0`
+  - `TYPESAFE_REAL_CALLS = 0`
+  - `TWILIO_REAL_CALLS = 0`
+  - `LIVE_COMMAND_INVOKED = NO`
+  - `PROVIDER_SPEND_USD = 0`
+  - `SECRET_AUDIT = PASS`
+  - `CUSTOMER_TRAFFIC = PROHIBITED`
+  - `ACTIVE_GUARDED = BLOCKED`
+  - `PRODUCTION_RUNTIME_WIRING = NO`
