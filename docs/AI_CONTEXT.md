@@ -4,14 +4,14 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-08
-CONTEXT_BASE_MAIN_SHA: a6dbff3e783d84f84aa10a52e31797f0307c4473
+CONTEXT_BASE_MAIN_SHA: 5f99a2b67927ab306390116a6567a727f35fb70e
 CURRENT_PHASE: Phase 7 (OPEN)
-CURRENT_SLICE: Slice 007E — Post-Merge Evidence Reconciliation
-CONTEXT_UPDATE_BRANCH: docs/007e-postmerge-evidence-reconciliation
-CONTEXT_UPDATE_PR: PENDING_CREATE
-LAST_MERGED_PR_AT_REFRESH: 106
-LAST_MERGE_SHA_AT_REFRESH: a6dbff3e783d84f84aa10a52e31797f0307c4473
-LAST_TESTED_CODE_SHA: a6dbff3e783d84f84aa10a52e31797f0307c4473
+CURRENT_SLICE: Slice 007F — Outbound Campaign Management API & Batch Dispatch
+CONTEXT_UPDATE_BRANCH: feat/007f-outbound-campaign-api-batch-dispatch
+CONTEXT_UPDATE_PR: NONE
+LAST_MERGED_PR_AT_REFRESH: 107
+LAST_MERGE_SHA_AT_REFRESH: 5f99a2b67927ab306390116a6567a727f35fb70e
+LAST_TESTED_CODE_SHA: 5f99a2b67927ab306390116a6567a727f35fb70e
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
 AI_CONTEXT_HEADER_END
@@ -29,7 +29,7 @@ AI_CONTEXT_HEADER_END
 | Subsistema | Status | Evidência / Localização |
 | :--- | :--- | :--- |
 | **Web** | `PARTIAL` | `apps/web` (Next.js 15.5; Dashboard, Settings, Agent Studio Draft Editor integrado com seção de configuração de ferramentas canônicas incluindo catálogo; UI 005D incompleta) |
-| **API** | `IMPLEMENTED` | `apps/api` (Fastify/Node, rotas de drafts, lifecycle com validação de toolset canônico, auth interna com service token) |
+| **API** | `IMPLEMENTED` | `apps/api` (Fastify/Node, rotas de drafts, lifecycle com validação de toolset canônico, auth interna com service token, gerenciamento de campanhas outbound /v1/campaigns e agendamento em lote de jobs) |
 | **Voice** | `PARTIAL` | `apps/voice` (Motor universal de execução de tools `ToolExecutionEngine`, registro `InMemoryToolRegistry`, adapters `OperatingHoursTool`/`CatalogSearchTool`/`CatalogItemDetailTool` e resolução de toolset de versão publicada `resolvePublishedVersionToolset` implementados/testados offline; Orquestrador com roteamento supervisionado offline, coordenador dedicado `GuardedTurnRoutingCoordinator`, despacho determinístico, entrega estática de segurança offline, ownership OPTION_B, blindagem DISPATCH_ATTEMPTED -> NO_OPENAI_FALLBACK, single-owner Jev evaluation e tratamento qualificado de interrupção H4/H5 implementados/testados offline; streaming OpenAI; AuxiliaryTurnShadowObserver integrado non-blocking; handler determinístico `agent.operating_hours` integrado offline; fiação em runtime de produção: NÃO; tráfego real: NÃO) |
 | **Worker** | `IMPLEMENTED` | `apps/worker` (Fundação de background tasks, processamento de filas assíncronas) |
 | **Database** | `IMPLEMENTED` | `packages/database` (PostgreSQL 16, Drizzle ORM, multi-tenancy, schemas comerciais, de auditoria, `agent_versions.configuration` com preservação snapshot de toolset e `catalog_items` tenant-scoped com `CatalogRepository`) |
@@ -181,31 +181,33 @@ AI_CONTEXT_HEADER_END
 19. `OUTBOUND_JOB_ORCHESTRATION = IMPLEMENTED` (`packages/contracts/src/outbound/`: contratos, máquina de estados determinística, validação de transições).
 20. `OUTBOUND_WORKER_DISPATCH = IMPLEMENTED` (`apps/worker/src/outbound-call-dispatcher.ts`: claim atômico via `SKIP LOCKED`, política de retry exponencial delimitada, idempotência).
 21. `OUTBOUND_CALL_BOOTSTRAP = IMPLEMENTED` (`apps/voice/src/outbound-call-lifecycle-bootstrap-adapter.ts`: adapter desacoplado entre worker e CallLifecycleGateway com validação estrita de versão publicada).
-22. `OUTBOUND_API = NOT_IMPLEMENTED` (fatia offline focada no core de orquestração e worker).
-23. `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`: Transmissão de transcrições de clientes para provedores externos proibida (invariante de segurança; tráfego real em produção é Fase 10).
-24. `ACTIVE_GUARDED = BLOCKED` (fail-closed no runtime; pendente DPA e parâmetros de produção).
-25. `PRODUCTION_SHADOW_MAX_CONCURRENCY = DEFERRED_TO_PHASE10` (Slice 006BR / DEC-038).
-26. `PRODUCTION_JEV_TIMEOUT_MS = DEFERRED_TO_PHASE10` (Slice 006BR / DEC-038).
-27. `PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY = DEFERRED_TO_PHASE10` (Slice 006BR / DEC-038).
-28. `MODEL_DRIFT_RUNTIME_GUARD = IMPLEMENTED / TESTED LOCALLY` (`expectedProviderModel = jev-1.13.0`).
-29. `PRODUCTION_RUNTIME_WIRING = NO`: Fiação de runtime em produção desautorizada.
-30. `REAL_CARRIER_DIALING = DEFERRED_PHASE8`: Telefonia real pertence à Fase 8.
-31. `PRODUCTION_OUTBOUND_DIALER = NOT_IMPLEMENTED`.
-32. `CUSTOMER_TRAFFIC = PROHIBITED` (invariante de segurança; escopo da Fase 10).
-33. `PRODUCTION_OPERATIONAL_PARAMETERS = FORMALLY_DEFERRED_TO_PHASE10_BY_HUMAN_DECISION` (Slice 006BR / DEC-038).
-34. `AGENT_EVALS = DEFERRED_PHASE9` (avaliações de agentes pertencem estritamente à Fase 9; nenhuma infraestrutura de evals implementada).
-35. `PRODUCTION_HARDENING_CUSTOMER_TRAFFIC = DEFERRED_PHASE10` (hardening de produção e tráfego de clientes pertencem estritamente à Fase 10).
+22. `OUTBOUND_API = PARTIAL` (rotas de campanhas /v1/campaigns e agendamento em lote determinístico /v1/campaigns/{id}/batch-schedule implementadas/testadas offline; lifecycles avançados deferred).
+23. `OUTBOUND_CAMPAIGN_API = IMPLEMENTED` (rotas tenant-scoped /v1/campaigns POST/GET/LIST).
+24. `OUTBOUND_BATCH_SCHEDULING = IMPLEMENTED` (rota de lote com bounds estáticos, autoridade de versão e atomicidade).
+25. `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`: Transmissão de transcrições de clientes para provedores externos proibida (invariante de segurança; tráfego real em produção é Fase 10).
+26. `ACTIVE_GUARDED = BLOCKED` (fail-closed no runtime; pendente DPA e parâmetros de produção).
+27. `PRODUCTION_SHADOW_MAX_CONCURRENCY = DEFERRED_TO_PHASE10` (Slice 006BR / DEC-038).
+28. `PRODUCTION_JEV_TIMEOUT_MS = DEFERRED_TO_PHASE10` (Slice 006BR / DEC-038).
+29. `PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY = DEFERRED_TO_PHASE10` (Slice 006BR / DEC-038).
+30. `MODEL_DRIFT_RUNTIME_GUARD = IMPLEMENTED / TESTED LOCALLY` (`expectedProviderModel = jev-1.13.0`).
+31. `PRODUCTION_RUNTIME_WIRING = NO`: Fiação de runtime em produção desautorizada.
+32. `REAL_CARRIER_DIALING = DEFERRED_PHASE8`: Telefonia real pertence à Fase 8.
+33. `PRODUCTION_OUTBOUND_DIALER = NOT_IMPLEMENTED`.
+34. `CUSTOMER_TRAFFIC = PROHIBITED` (invariante de segurança; escopo da Fase 10).
+35. `PRODUCTION_OPERATIONAL_PARAMETERS = FORMALLY_DEFERRED_TO_PHASE10_BY_HUMAN_DECISION` (Slice 006BR / DEC-038).
+36. `AGENT_EVALS = DEFERRED_PHASE9` (avaliações de agentes pertencem estritamente à Fase 9; nenhuma infraestrutura de evals implementada).
+37. `PRODUCTION_HARDENING_CUSTOMER_TRAFFIC = DEFERRED_PHASE10` (hardening de produção e tráfego de clientes pertencem estritamente à Fase 10).
 
 ---
 
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- **Phase 7 Status**: `OPEN` (`PHASE7_STATUS = OPEN`, `PHASE7_COMPLETION_ESTIMATE = 65%`, `PHASE7_BLOCKER_COUNT = 0`, `PHASE7_BLOCKERS = NONE`).
-- **Slice 007E — Post-Merge Evidence Reconciliation (docs-only)**: `007E_FINAL_STATUS_ON_MAIN = PENDING_DOCUMENTATION_RECONCILIATION` até o merge desta reconciliação.
-- `NEXT_ALLOWED_STEP = MERGE_007E_DOCUMENTATION_RECONCILIATION`
+- **Phase 7 Status**: `OPEN` (`PHASE7_STATUS = OPEN`, `PHASE7_COMPLETION_ESTIMATE = 80%`, `PHASE7_BLOCKER_COUNT = 0`, `PHASE7_BLOCKERS = NONE`).
+- **Slice 007F — Outbound Campaign Management API & Batch Dispatch**: `IMPLEMENTED / TESTED LOCALLY`.
+- `NEXT_ALLOWED_STEP = AUTOMATED_PR_REVIEW_AND_MERGE_007F`
 - `NEXT_ALLOWED_SLICE = NOT_YET_ALLOWED`
-- **Recommended Next Slice**: `007F — Outbound Campaign Management API & Batch Scheduling` (ou conforme backlog de governança).
+- **Recommended Next Slice**: `007G — Knowledge Base / RAG Architecture & Domain Contracts` (ou conforme backlog de governança).
 - `AUTHORIZATION_CONSUMED = YES` | `SECOND_LIVE_RUN_AUTHORIZED = NO` | `NEW_LIVE_AUTHORIZATION_CREATED = NO`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
 

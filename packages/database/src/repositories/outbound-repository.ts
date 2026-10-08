@@ -5,16 +5,23 @@ import type {
   ClaimNextDueJobInput,
   CreateOutboundCampaignInput,
   CreateOutboundJobInput,
+  ListOutboundCampaignsInput,
   OutboundCallJob,
   OutboundCampaign,
   OutboundRepositoryPort,
+  ScheduleBatchJobsInput,
   UpdateJobOutcomeInput,
 } from '@voice-agent/contracts';
 import { validateJobStatusTransition } from '@voice-agent/contracts';
 import { outboundCallJobs, type OutboundCallJobEntity } from '../schema/outbound.js';
 import { agentVersions } from '../schema/agents.js';
 import { mapOutboundCallJob } from './outbound-mapping.js';
-import { createOutboundCampaign, getOutboundCampaignById } from './outbound-campaign-repository.js';
+import {
+  createOutboundCampaign,
+  getOutboundCampaignById,
+  listOutboundCampaigns,
+} from './outbound-campaign-repository.js';
+import { scheduleBatchJobs } from './outbound-batch-scheduler.js';
 import { buildClaimNextDueJobSql, buildClaimJobSql } from './outbound-claim-queries.js';
 
 export class DrizzleOutboundRepository implements OutboundRepositoryPort {
@@ -29,6 +36,10 @@ export class DrizzleOutboundRepository implements OutboundRepositoryPort {
     campaignId: string,
   ): Promise<OutboundCampaign | null> {
     return getOutboundCampaignById(this.db, organizationId, campaignId);
+  }
+
+  async listCampaigns(input: ListOutboundCampaignsInput): Promise<OutboundCampaign[]> {
+    return listOutboundCampaigns(this.db, input);
   }
 
   async createJob(input: CreateOutboundJobInput): Promise<OutboundCallJob> {
@@ -91,12 +102,16 @@ export class DrizzleOutboundRepository implements OutboundRepositoryPort {
       .where(
         and(
           eq(outboundCallJobs.organizationId, organizationId),
-          eq(outboundCallJobs.id, idempotencyKey),
+          eq(outboundCallJobs.idempotencyKey, idempotencyKey),
         ),
       )
       .limit(1);
 
     return row ? mapOutboundCallJob(row) : null;
+  }
+
+  async scheduleBatchJobs(input: ScheduleBatchJobsInput): Promise<OutboundCallJob[]> {
+    return scheduleBatchJobs(this.db, input);
   }
 
   async claimNextDueJob(input: ClaimNextDueJobInput): Promise<OutboundCallJob | null> {

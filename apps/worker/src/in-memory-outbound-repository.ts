@@ -4,22 +4,22 @@ import {
   type ClaimNextDueJobInput,
   type CreateOutboundCampaignInput,
   type CreateOutboundJobInput,
+  type ListOutboundCampaignsInput,
   type OutboundCallJob,
   type OutboundCampaign,
   type OutboundRepositoryPort,
+  type ScheduleBatchJobsInput,
   type UpdateJobOutcomeInput,
 } from '@voice-agent/contracts';
+import { scheduleInMemoryBatchJobs } from './in-memory-outbound-batch-scheduler.js';
 
 function isJobDue(job: OutboundCallJob, now: Date): boolean {
   if (job.status === 'SCHEDULED') return job.scheduledAt <= now;
-  if (job.status === 'FAILED_RETRYABLE') return Boolean(job.nextRetryAt && job.nextRetryAt <= now);
-  return false;
+  return Boolean(job.status === 'FAILED_RETRYABLE' && job.nextRetryAt && job.nextRetryAt <= now);
 }
 
 function isEligibleToClaim(job: OutboundCallJob, orgId: string, now: Date): boolean {
-  if (job.organizationId !== orgId) return false;
-  if (job.attempts >= job.maxAttempts) return false;
-  return isJobDue(job, now);
+  return job.organizationId === orgId && job.attempts < job.maxAttempts && isJobDue(job, now);
 }
 
 export class InMemoryOutboundRepository implements OutboundRepositoryPort {
@@ -27,6 +27,7 @@ export class InMemoryOutboundRepository implements OutboundRepositoryPort {
   private readonly jobs = new Map<string, OutboundCallJob>();
 
   async createCampaign(input: CreateOutboundCampaignInput): Promise<OutboundCampaign> {
+    const now = new Date();
     const campaign: OutboundCampaign = {
       id: `camp-${Math.random().toString(36).substring(2, 9)}`,
       organizationId: input.organizationId,
@@ -35,23 +36,33 @@ export class InMemoryOutboundRepository implements OutboundRepositoryPort {
       name: input.name,
       description: input.description,
       status: input.status ?? 'ACTIVE',
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: now,
+      updatedAt: now,
     };
     this.campaigns.set(campaign.id, campaign);
     return campaign;
   }
 
-  async getCampaignById(
-    organizationId: string,
-    campaignId: string,
-  ): Promise<OutboundCampaign | null> {
-    const campaign = this.campaigns.get(campaignId);
-    if (!campaign || campaign.organizationId !== organizationId) return null;
-    return campaign;
+  async getCampaignById(orgId: string, campId: string): Promise<OutboundCampaign | null> {
+    const camp = this.campaigns.get(campId);
+    return camp && camp.organizationId === orgId ? camp : null;
+  }
+
+  async listCampaigns(input: ListOutboundCampaignsInput): Promise<OutboundCampaign[]> {
+    const limit = Math.min(Math.max(1, input.limit ?? 20), 100);
+    const offset = Math.max(0, input.offset ?? 0);
+    return Array.from(this.campaigns.values())
+      .filter((c) => c.organizationId === input.organizationId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(offset, offset + limit);
+  }
+
+  async scheduleBatchJobs(input: ScheduleBatchJobsInput): Promise<OutboundCallJob[]> {
+    return scheduleInMemoryBatchJobs(this, input);
   }
 
   async createJob(input: CreateOutboundJobInput): Promise<OutboundCallJob> {
+    const now = new Date();
     const job: OutboundCallJob = {
       id: `job-${Math.random().toString(36).substring(2, 9)}`,
       organizationId: input.organizationId,
@@ -61,31 +72,25 @@ export class InMemoryOutboundRepository implements OutboundRepositoryPort {
       destinationPhone: input.destinationPhone,
       recipientName: input.recipientName,
       status: 'SCHEDULED',
-      scheduledAt: input.scheduledAt ?? new Date(),
+      scheduledAt: input.scheduledAt ?? now,
       attempts: 0,
       maxAttempts: input.maxAttempts ?? 3,
       idempotencyKey: input.idempotencyKey,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: now,
+      updatedAt: now,
     };
     this.jobs.set(job.id, job);
     return job;
   }
 
-  async getJobById(organizationId: string, jobId: string): Promise<OutboundCallJob | null> {
+  async getJobById(orgId: string, jobId: string): Promise<OutboundCallJob | null> {
     const job = this.jobs.get(jobId);
-    if (!job || job.organizationId !== organizationId) return null;
-    return job;
+    return job && job.organizationId === orgId ? job : null;
   }
 
-  async getJobByIdempotencyKey(
-    organizationId: string,
-    idempotencyKey: string,
-  ): Promise<OutboundCallJob | null> {
-    for (const job of this.jobs.values()) {
-      if (job.organizationId === organizationId && job.idempotencyKey === idempotencyKey) {
-        return job;
-      }
+  async getJobByIdempotencyKey(orgId: string, key: string): Promise<OutboundCallJob | null> {
+    for (const j of this.jobs.values()) {
+      if (j.organizationId === orgId && j.idempotencyKey === key) return j;
     }
     return null;
   }
@@ -95,19 +100,15 @@ export class InMemoryOutboundRepository implements OutboundRepositoryPort {
     const eligible = Array.from(this.jobs.values())
       .filter((j) => isEligibleToClaim(j, input.organizationId, now))
       .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime());
-
-    const first = eligible[0];
-    if (!first) return null;
-    return this.applyClaim(first, input.workerId, now);
+    return eligible[0] ? this.applyClaim(eligible[0], input.workerId, now) : null;
   }
 
   async claimJob(input: ClaimJobInput): Promise<OutboundCallJob | null> {
     const job = this.jobs.get(input.jobId);
     const now = input.now ?? new Date();
-    if (!job || !isEligibleToClaim(job, input.organizationId, now)) {
-      return null;
-    }
-    return this.applyClaim(job, input.workerId, now);
+    return job && isEligibleToClaim(job, input.organizationId, now)
+      ? this.applyClaim(job, input.workerId, now)
+      : null;
   }
 
   async updateJobOutcome(input: UpdateJobOutcomeInput): Promise<OutboundCallJob> {
