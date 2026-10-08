@@ -8,6 +8,8 @@ import { registerAgentLifecycleRoutes } from './routes/agent-lifecycle-routes.js
 import { registerAgentVersionReadRoutes } from './routes/agent-version-read-routes.js';
 import { registerAgentDraftRoutes } from './routes/agent-draft-routes.js';
 import { registerMeOrganizationRoutes } from './routes/me-organization-routes.js';
+import { registerOutboundCampaignRoutes } from './routes/outbound-campaign-routes.js';
+import { registerOutboundBatchRoutes } from './routes/outbound-batch-routes.js';
 import { serviceAuthMiddleware } from './auth/service-auth-middleware.js';
 import { bootstrapAuthMiddleware } from './auth/bootstrap-auth-middleware.js';
 
@@ -54,6 +56,8 @@ export function createApp(deps: ApiDependencies): OpenAPIHono {
   // 4. Asymmetric internal service authentication for tenant routes
   app.use('/v1/agents', serviceAuthMiddleware(deps.verifier));
   app.use('/v1/agents/*', serviceAuthMiddleware(deps.verifier));
+  app.use('/v1/campaigns', serviceAuthMiddleware(deps.verifier));
+  app.use('/v1/campaigns/*', serviceAuthMiddleware(deps.verifier));
 
   // 5. Asymmetric bootstrap authentication for user-scoped routes
   app.use('/v1/me/*', bootstrapAuthMiddleware(deps.bootstrapVerifier));
@@ -64,6 +68,8 @@ export function createApp(deps: ApiDependencies): OpenAPIHono {
   registerAgentVersionReadRoutes(app, deps);
   registerAgentDraftRoutes(app, deps);
   registerMeOrganizationRoutes(app, deps);
+  registerOutboundCampaignRoutes(app, deps);
+  registerOutboundBatchRoutes(app, deps);
 
   // 6. Global error handler & not found handler with canonical error envelopes
   app.onError(createApiErrorHandler(deps.logger));

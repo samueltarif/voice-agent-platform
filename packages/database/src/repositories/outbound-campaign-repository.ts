@@ -1,6 +1,10 @@
-import { and, eq } from 'drizzle-orm';
+import { and, asc, desc, eq } from 'drizzle-orm';
 import type { DatabaseInstance } from '../client/connection.js';
-import type { CreateOutboundCampaignInput, OutboundCampaign } from '@voice-agent/contracts';
+import type {
+  CreateOutboundCampaignInput,
+  ListOutboundCampaignsInput,
+  OutboundCampaign,
+} from '@voice-agent/contracts';
 import { outboundCampaigns } from '../schema/outbound.js';
 import { agentVersions } from '../schema/agents.js';
 import { mapOutboundCampaign } from './outbound-mapping.js';
@@ -57,4 +61,22 @@ export async function getOutboundCampaignById(
     .limit(1);
 
   return row ? mapOutboundCampaign(row) : null;
+}
+
+export async function listOutboundCampaigns(
+  db: DatabaseInstance,
+  input: ListOutboundCampaignsInput,
+): Promise<OutboundCampaign[]> {
+  const clampedLimit = Math.min(Math.max(1, input.limit ?? 20), 100);
+  const offset = Math.max(0, input.offset ?? 0);
+
+  const rows = await db
+    .select()
+    .from(outboundCampaigns)
+    .where(eq(outboundCampaigns.organizationId, input.organizationId))
+    .orderBy(desc(outboundCampaigns.createdAt), asc(outboundCampaigns.id))
+    .limit(clampedLimit)
+    .offset(offset);
+
+  return rows.map(mapOutboundCampaign);
 }

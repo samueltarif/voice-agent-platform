@@ -275,4 +275,129 @@ describe('Outbound Persistence & Tenant Isolation (007E Integration)', () => {
       }),
     ).rejects.toThrow(/Invalid outbound job status transition/);
   });
+
+  it('lists campaigns with pagination and strict tenant isolation', async () => {
+    const camp1 = await outboundRepo.createCampaign({
+      organizationId: orgAId,
+      agentId: agentAId,
+      agentVersionId: publishedVersionAId,
+      name: `List Test 1 ${runId}`,
+    });
+    const camp2 = await outboundRepo.createCampaign({
+      organizationId: orgAId,
+      agentId: agentAId,
+      agentVersionId: publishedVersionAId,
+      name: `List Test 2 ${runId}`,
+    });
+
+    const listA = await outboundRepo.listCampaigns({
+      organizationId: orgAId,
+      limit: 10,
+      offset: 0,
+    });
+    expect(listA.length).toBeGreaterThanOrEqual(2);
+    const ids = listA.map((c) => c.id);
+    expect(ids).toContain(camp1.id);
+    expect(ids).toContain(camp2.id);
+
+    // Cross-tenant list must return zero of orgA's campaigns
+    const listB = await outboundRepo.listCampaigns({
+      organizationId: orgBId,
+      limit: 10,
+      offset: 0,
+    });
+    expect(listB.map((c) => c.id)).not.toContain(camp1.id);
+    expect(listB.map((c) => c.id)).not.toContain(camp2.id);
+  });
+
+  it('schedules batch jobs atomically and supports idempotent replay', async () => {
+    const campaign = await outboundRepo.createCampaign({
+      organizationId: orgAId,
+      agentId: agentAId,
+      agentVersionId: publishedVersionAId,
+      name: `Batch Campaign ${runId}`,
+    });
+
+    const batchKey = `batch-idem-${runId}`;
+    const jobs = await outboundRepo.scheduleBatchJobs({
+      organizationId: orgAId,
+      campaignId: campaign.id,
+      batchIdempotencyKey: batchKey,
+      items: [
+        { destinationPhone: '+5511988880001', recipientName: 'Lead A' },
+        { destinationPhone: '+5511988880002', recipientName: 'Lead B' },
+      ],
+    });
+
+    expect(jobs).toHaveLength(2);
+    expect(jobs[0]?.status).toBe('SCHEDULED');
+    expect(jobs[0]?.agentVersionId).toBe(publishedVersionAId);
+    expect(jobs[1]?.status).toBe('SCHEDULED');
+
+    // Idempotent retry: exact same request returns identical jobs without duplicates
+    const retryJobs = await outboundRepo.scheduleBatchJobs({
+      organizationId: orgAId,
+      campaignId: campaign.id,
+      batchIdempotencyKey: batchKey,
+      items: [
+        { destinationPhone: '+5511988880001', recipientName: 'Lead A' },
+        { destinationPhone: '+5511988880002', recipientName: 'Lead B' },
+      ],
+    });
+
+    expect(retryJobs).toHaveLength(2);
+    expect(retryJobs[0]?.id).toBe(jobs[0]?.id);
+    expect(retryJobs[1]?.id).toBe(jobs[1]?.id);
+
+    // Different idempotency key creates distinct jobs
+    const differentJobs = await outboundRepo.scheduleBatchJobs({
+      organizationId: orgAId,
+      campaignId: campaign.id,
+      batchIdempotencyKey: `batch-different-${runId}`,
+      items: [{ destinationPhone: '+5511988880003', recipientName: 'Lead C' }],
+    });
+
+    expect(differentJobs).toHaveLength(1);
+    expect(differentJobs[0]?.id).not.toBe(jobs[0]?.id);
+  });
+
+  it('rejects batch scheduling on conflicting partial key, cross-tenant, or unpublished version', async () => {
+    const campaign = await outboundRepo.createCampaign({
+      organizationId: orgAId,
+      agentId: agentAId,
+      agentVersionId: publishedVersionAId,
+      name: `Validation Campaign ${runId}`,
+    });
+
+    // 1. Partial collision
+    const existingKey = `single-key-${runId}`;
+    await outboundRepo.createJob({
+      organizationId: orgAId,
+      campaignId: campaign.id,
+      agentId: agentAId,
+      agentVersionId: publishedVersionAId,
+      destinationPhone: '+5511988889999',
+      idempotencyKey: existingKey,
+    });
+
+    await expect(
+      outboundRepo.scheduleBatchJobs({
+        organizationId: orgAId,
+        campaignId: campaign.id,
+        items: [
+          { destinationPhone: '+5511988889999', idempotencyKey: existingKey },
+          { destinationPhone: '+5511988889998', idempotencyKey: `new-key-${runId}` },
+        ],
+      }),
+    ).rejects.toThrow(/Idempotency conflict/);
+
+    // 2. Cross-tenant campaign rejected
+    await expect(
+      outboundRepo.scheduleBatchJobs({
+        organizationId: orgBId,
+        campaignId: campaign.id,
+        items: [{ destinationPhone: '+5511988889997', idempotencyKey: `cross-key-${runId}` }],
+      }),
+    ).rejects.toThrow(/not found/);
+  });
 });

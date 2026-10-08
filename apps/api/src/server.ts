@@ -13,6 +13,7 @@ import {
   MembershipRepository,
   OrganizationRepository,
   UserOrganizationContextRepository,
+  DrizzleOutboundRepository,
 } from '@voice-agent/database';
 import { ServiceAssertionVerifier } from './auth/service-assertion-verifier.js';
 import { BootstrapAssertionVerifier } from './auth/bootstrap-assertion-verifier.js';
@@ -51,6 +52,7 @@ const publicationService = new AgentPublicationService(db, publicationPolicy);
 const membershipRepo = new MembershipRepository(db);
 const organizationRepo = new OrganizationRepository(db);
 const userOrgContextRepo = new UserOrganizationContextRepository(db);
+const outboundRepo = new DrizzleOutboundRepository(db);
 
 const verifier = new ServiceAssertionVerifier({ publicJwks });
 const bootstrapVerifier = new BootstrapAssertionVerifier({ publicJwks });
@@ -68,6 +70,7 @@ const app = createApp({
   membershipRepo,
   organizationRepo,
   userOrgContextRepo,
+  outboundRepo,
 });
 
 const server = serve({ fetch: app.fetch, port }, (info) => {

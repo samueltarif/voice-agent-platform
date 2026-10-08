@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import type { OutboundCallJobStatus } from './outbound-job-status.js';
+import type { ScheduleBatchJobsInput } from './outbound-batch-contracts.js';
+import type { ListOutboundCampaignsInput } from './outbound-campaign-dtos.js';
 
 export const OUTBOUND_CAMPAIGN_STATUSES = [
   'DRAFT',
@@ -103,12 +105,14 @@ export interface UpdateJobOutcomeInput {
 export interface OutboundRepositoryPort {
   createCampaign(input: CreateOutboundCampaignInput): Promise<OutboundCampaign>;
   getCampaignById(organizationId: string, campaignId: string): Promise<OutboundCampaign | null>;
+  listCampaigns(input: ListOutboundCampaignsInput): Promise<OutboundCampaign[]>;
   createJob(input: CreateOutboundJobInput): Promise<OutboundCallJob>;
   getJobById(organizationId: string, jobId: string): Promise<OutboundCallJob | null>;
   getJobByIdempotencyKey(
     organizationId: string,
     idempotencyKey: string,
   ): Promise<OutboundCallJob | null>;
+  scheduleBatchJobs(input: ScheduleBatchJobsInput): Promise<OutboundCallJob[]>;
   claimNextDueJob(input: ClaimNextDueJobInput): Promise<OutboundCallJob | null>;
   claimJob(input: ClaimJobInput): Promise<OutboundCallJob | null>;
   updateJobOutcome(input: UpdateJobOutcomeInput): Promise<OutboundCallJob>;

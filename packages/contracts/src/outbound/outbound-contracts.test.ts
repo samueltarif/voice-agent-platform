@@ -9,6 +9,14 @@ import {
   createOutboundCampaignInputSchema,
   createOutboundJobInputSchema,
 } from './outbound-contracts.js';
+import {
+  OUTBOUND_BATCH_MAX_SIZE,
+  scheduleBatchJobsHttpBodySchema,
+} from './outbound-batch-contracts.js';
+import {
+  createOutboundCampaignHttpBodySchema,
+  listOutboundCampaignsQuerySchema,
+} from './outbound-campaign-dtos.js';
 
 describe('Outbound Contracts & State Machine (007E)', () => {
   it('identifies terminal outbound job states', () => {
@@ -90,5 +98,68 @@ describe('Outbound Contracts & State Machine (007E)', () => {
       idempotencyKey: '',
     });
     expect(invalid.success).toBe(false);
+  });
+
+  it('validates HTTP campaign creation schema without trusting client organizationId', () => {
+    const valid = createOutboundCampaignHttpBodySchema.safeParse({
+      agentId: '22222222-2222-4222-8222-222222222222',
+      agentVersionId: '33333333-3333-4333-8333-333333333333',
+      name: 'Black Friday Campaign',
+    });
+    expect(valid.success).toBe(true);
+    if (valid.success) {
+      expect(valid.data.status).toBe('ACTIVE');
+    }
+
+    // Rejects body attempting to spoof organizationId (strict schema)
+    const spoofAttempt = createOutboundCampaignHttpBodySchema.safeParse({
+      organizationId: '99999999-9999-4999-8999-999999999999',
+      agentId: '22222222-2222-4222-8222-222222222222',
+      agentVersionId: '33333333-3333-4333-8333-333333333333',
+      name: 'Spoofed Org Campaign',
+    });
+    expect(spoofAttempt.success).toBe(false);
+  });
+
+  it('validates and bounds list campaigns query schema', () => {
+    const parsedDefault = listOutboundCampaignsQuerySchema.safeParse({});
+    expect(parsedDefault.success).toBe(true);
+    if (parsedDefault.success) {
+      expect(parsedDefault.data.limit).toBe(20);
+      expect(parsedDefault.data.offset).toBe(0);
+    }
+
+    const parsedCustom = listOutboundCampaignsQuerySchema.safeParse({ limit: '50', offset: '10' });
+    expect(parsedCustom.success).toBe(true);
+    if (parsedCustom.success) {
+      expect(parsedCustom.data.limit).toBe(50);
+      expect(parsedCustom.data.offset).toBe(10);
+    }
+
+    const overLimit = listOutboundCampaignsQuerySchema.safeParse({ limit: 101 });
+    expect(overLimit.success).toBe(false);
+  });
+
+  it('validates batch scheduling schema and enforces bounded batch size', () => {
+    expect(OUTBOUND_BATCH_MAX_SIZE).toBe(100);
+
+    const empty = scheduleBatchJobsHttpBodySchema.safeParse({ items: [] });
+    expect(empty.success).toBe(false);
+
+    const validBatch = scheduleBatchJobsHttpBodySchema.safeParse({
+      batchIdempotencyKey: 'batch-test-1',
+      items: [
+        { destinationPhone: '+5511999990001', recipientName: 'Lead 1' },
+        { destinationPhone: '+5511999990002', recipientName: 'Lead 2' },
+      ],
+    });
+    expect(validBatch.success).toBe(true);
+
+    const overSized = scheduleBatchJobsHttpBodySchema.safeParse({
+      items: Array.from({ length: 101 }, (_, i) => ({
+        destinationPhone: `+551199999${String(i).padStart(4, '0')}`,
+      })),
+    });
+    expect(overSized.success).toBe(false);
   });
 });

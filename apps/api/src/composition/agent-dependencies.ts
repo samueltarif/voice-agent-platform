@@ -10,6 +10,7 @@ import type {
   OrganizationRepository,
   UserOrganizationContextRepository,
 } from '@voice-agent/database';
+import type { OutboundRepositoryPort } from '@voice-agent/contracts';
 import type { ServiceAssertionVerifier } from '../auth/service-assertion-verifier.js';
 import type { BootstrapAssertionVerifier } from '../auth/bootstrap-assertion-verifier.js';
 
@@ -26,4 +27,5 @@ export interface ApiDependencies {
   readonly membershipRepo: MembershipRepository;
   readonly organizationRepo: OrganizationRepository;
   readonly userOrgContextRepo: UserOrganizationContextRepository;
+  readonly outboundRepo?: OutboundRepositoryPort | undefined;
 }

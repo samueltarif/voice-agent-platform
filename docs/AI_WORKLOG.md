@@ -16842,3 +16842,64 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `LIVE_COMMAND_INVOKED = NO`
   - `PROVIDER_SPEND_USD = 0`
   - `SECRET_AUDIT = PASS`
+
+---
+
+## 2026-10-08 — Slice 007F: Outbound Campaign Management API & Batch Dispatch
+
+- **SLICE_ID**: `007F`
+- **BASE_MAIN_SHA**: `5f99a2b67927ab306390116a6567a727f35fb70e`
+- **FEATURE_BRANCH**: `feat/007f-outbound-campaign-api-batch-dispatch`
+- **OBJECTIVE**: Implement tenant-scoped outbound campaign management API and deterministic batch scheduling layer on top of 007E core.
+- **DELIVERED_COMPONENTS**:
+  - `packages/contracts/src/outbound/outbound-batch-contracts.ts`: Bounded batch contracts (`OUTBOUND_BATCH_MAX_SIZE = 100`), Zod validation schemas for batch scheduling and items.
+  - `packages/contracts/src/outbound/outbound-campaign-dtos.ts`: Campaign creation, list and retrieval schemas and DTO types (request body strictly omits `organizationId` to prevent tenant spoofing).
+  - `packages/contracts/src/outbound/outbound-contracts.ts`: Added `listCampaigns` and `scheduleBatchJobs` to `OutboundRepositoryPort`.
+  - `packages/database/src/repositories/outbound-campaign-repository.ts`: Implemented `listOutboundCampaigns` with deterministic ordering (`desc(createdAt), asc(id)`) and pagination.
+  - `packages/database/src/repositories/outbound-batch-scheduler.ts`: Transactional atomic batch scheduling with duplicate key validation, published version check, campaign existence check, and idempotent replay/conflict resolution.
+  - `packages/database/src/repositories/outbound-repository.ts`: Integrated campaign listing and batch job scheduling.
+  - `apps/api/src/routes/outbound-campaign-routes.ts`: Tenant-scoped endpoints `POST /v1/campaigns`, `GET /v1/campaigns`, `GET /v1/campaigns/:campaignId`.
+  - `apps/api/src/routes/outbound-batch-routes.ts`: Tenant-scoped batch scheduling endpoint `POST /v1/campaigns/:campaignId/batch-schedule` and alias `POST /v1/campaigns/:campaignId/batch`.
+  - `apps/worker/src/in-memory-outbound-repository.ts`: Updated worker test fake with batch scheduling and campaign listing support.
+  - `apps/api/src/http/outbound-campaign-api.http.test.ts`: 13 automated HTTP integration tests covering authorization, validation, cross-tenant isolation, atomicity, idempotency, and error handling.
+- **DOMAIN_STATUSES**:
+  - `OUTBOUND_DOMAIN_MODEL = IMPLEMENTED`
+  - `OUTBOUND_JOB_ORCHESTRATION = IMPLEMENTED`
+  - `OUTBOUND_WORKER_DISPATCH = IMPLEMENTED`
+  - `OUTBOUND_CALL_BOOTSTRAP = IMPLEMENTED`
+  - `OUTBOUND_CAMPAIGN_API = IMPLEMENTED`
+  - `OUTBOUND_BATCH_SCHEDULING = IMPLEMENTED`
+  - `OUTBOUND_API = PARTIAL`
+  - `OUTBOUND_BATCH_MAX_SIZE = 100`
+  - `ATOMIC_BATCH_CREATION = YES`
+  - `BATCH_IDEMPOTENCY = IMPLEMENTED`
+  - `TENANT_ISOLATION = ENFORCED`
+  - `AGENTVERSION_AUTHORITY = ENFORCED`
+  - `REAL_CARRIER_DIALING = DEFERRED_PHASE8`
+  - `PRODUCTION_OUTBOUND_DIALER = NOT_IMPLEMENTED`
+  - `KNOWLEDGE_BASE_DOMAIN = NOT_IMPLEMENTED`
+  - `RAG_ARCHITECTURE_DECISION = PENDING`
+  - `AGENT_EVALS = DEFERRED_PHASE9`
+  - `PRODUCTION_HARDENING_CUSTOMER_TRAFFIC = DEFERRED_PHASE10`
+  - `PRODUCTION_RUNTIME_WIRING = NO`
+  - `CUSTOMER_TRAFFIC = PROHIBITED`
+- **SCOPE_AUDIT**:
+  - `DATABASE_SCHEMA_CHANGED = NO`
+  - `MIGRATION_CREATED = NO`
+  - `CONTRACTS_CHANGED = YES`
+  - `DATABASE_REPOSITORY_CHANGED = YES`
+  - `API_CHANGED = YES`
+  - `WORKER_CHANGED = YES` (in-memory test fake aligned with repository port)
+  - `VOICE_CHANGED = NO`
+  - `FRONTEND_CHANGED = NO`
+  - `TEST_INFRA_CHANGED = NO`
+  - `PROVIDER_ADAPTER_CHANGED = NO`
+  - `LOCKFILE_CHANGED = NO`
+- **SAFETY**:
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED = NO`
+  - `REAL_DOTENV_ACCESSED = NO`
+  - `OPENAI_REAL_CALLS = 0`
+  - `TYPESAFE_REAL_CALLS = 0`
+  - `TWILIO_REAL_CALLS = 0`
+  - `LIVE_COMMAND_INVOKED = NO`
+  - `PROVIDER_SPEND_USD = 0`
