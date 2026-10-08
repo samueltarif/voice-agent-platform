@@ -16903,3 +16903,90 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `TWILIO_REAL_CALLS = 0`
   - `LIVE_COMMAND_INVOKED = NO`
   - `PROVIDER_SPEND_USD = 0`
+
+---
+
+## 2026-10-08 — Slice 007G: Knowledge Base / RAG Architecture & Domain Contracts
+
+- **SLICE_ID**: `007G`
+- **BASE_MAIN_SHA**: `91a402a50bc42a044765863884f236740c18491a`
+- **FEATURE_BRANCH**: `feat/007g-knowledge-base-rag-architecture-contracts`
+- **OBJECTIVE**: Resolve the pending Knowledge Base / RAG architecture decision and implement the smallest provider-neutral domain contract layer for later ingestion, indexing and retrieval work. Architecture + contracts only; no runtime.
+- **DISCOVERY**:
+  - `EXISTING_KNOWLEDGE_BASE_DOMAIN = NOT_IMPLEMENTED` (zero contracts/tables/ports; only a negative test rejecting `knowledgeDocumentIds` in agent config v1).
+  - `EXISTING_RAG_ARCHITECTURE_DECISION = PENDING` (ROADMAP Phase 7 + AI_CONTEXT pre-slice).
+  - `EXISTING_RETRIEVAL_CONTRACT = NOT_IMPLEMENTED`
+  - `EXISTING_EMBEDDING_CONTRACT = NOT_IMPLEMENTED`
+  - `EXISTING_STRUCTURED_KNOWLEDGE_PATH = CatalogRepository + catalog.search/catalog.item_detail + agent.operating_hours via ToolExecutionEngine/InMemoryToolRegistry`
+  - `EXISTING_TOOL_EXECUTION_PATH = ToolExecutionEngine + InMemoryToolRegistry + ToolPort/ToolDefinition + AgentConfigurationSnapshotV1 canonical toolset`
+  - `EXISTING_STORAGE_ABSTRACTION = StorageProvider port Pending Decision (INTEGRATIONS.md); no KB storage`
+- **DELIVERED_COMPONENTS**:
+  - `docs/architecture/decisions/ADR-020-knowledge-base-rag-architecture-contracts.md`: Proposed ADR deciding structured-vs-unstructured boundary, lifecycle, chunking, retrieval/embedding port boundaries, provenance, tenant isolation, server-side access boundary, untrusted-content security; providers NOT_BOUND, runtimes DEFERRED.
+  - `packages/contracts/src/knowledge/knowledge-document-contracts.ts`: source types, document lifecycle state machine with explicit transitions, content identity and source reference schemas.
+  - `packages/contracts/src/knowledge/knowledge-chunk-contracts.ts`: chunk schemas, versioned chunking policy with engineering-default bounds, deterministic stable chunk identity helper.
+  - `packages/contracts/src/knowledge/knowledge-access-scope-contracts.ts`: server-resolved access scope (mandatory organizationId, optional agent/agentVersion/collection).
+  - `packages/contracts/src/knowledge/knowledge-retrieval-contracts.ts`: bounded retrieval query, citation, hit/result interfaces, neutral retrieval and embedding ports.
+  - `packages/contracts/src/knowledge/index.ts` + export from `packages/contracts/src/index.ts`.
+  - `packages/contracts/src/knowledge/knowledge-contracts.test.ts`: 9 offline contract tests (lifecycle, tenant scope, provenance, bounds, citations, stable identity, provider neutrality, access scope).
+- **DOMAIN_STATUSES**:
+  - `STRUCTURED_DATA_AUTHORITY = DATABASE_AND_DETERMINISTIC_TOOLS`
+  - `UNSTRUCTURED_KNOWLEDGE_PATH = KNOWLEDGE_BASE_RETRIEVAL`
+  - `RAG_MAY_OVERRIDE_STRUCTURED_AUTHORITY = NO`
+  - `KNOWLEDGE_BASE_ARCHITECTURE = DECIDED`
+  - `RAG_ARCHITECTURE_DECISION = DECIDED`
+  - `KNOWLEDGE_BASE_DOMAIN_CONTRACTS = IMPLEMENTED`
+  - `KNOWLEDGE_BASE_DOMAIN = PARTIAL`
+  - `KNOWLEDGE_BASE_PERSISTENCE = NOT_IMPLEMENTED`
+  - `KNOWLEDGE_BASE_INGESTION_RUNTIME = NOT_IMPLEMENTED`
+  - `KNOWLEDGE_BASE_RETRIEVAL_RUNTIME = NOT_IMPLEMENTED`
+  - `REAL_EMBEDDING_PROVIDER = NOT_IMPLEMENTED`
+  - `VECTOR_STORAGE_PROVIDER = NOT_BOUND`
+  - `TENANT_ISOLATION = ENFORCED`
+  - `KNOWLEDGE_ACCESS_AUTHORITY = SERVER_SIDE`
+  - `MODEL_MAY_SELECT_ARBITRARY_TENANT_KNOWLEDGE = NO`
+  - `RETRIEVED_CONTENT_TRUST = UNTRUSTED_DATA`
+  - `RETRIEVED_CONTENT_MAY_OVERRIDE_SYSTEM_POLICY = NO`
+  - `REAL_CARRIER_DIALING = DEFERRED_PHASE8`
+  - `AGENT_EVALS = DEFERRED_PHASE9`
+  - `PRODUCTION_HARDENING_CUSTOMER_TRAFFIC = DEFERRED_PHASE10`
+  - `PRODUCTION_RUNTIME_WIRING = NO`
+  - `CUSTOMER_TRAFFIC = PROHIBITED`
+- **SCOPE_AUDIT**:
+  - `ADR_CREATED = YES`
+  - `CONTRACTS_CHANGED = YES`
+  - `DATABASE_SCHEMA_CHANGED = NO`
+  - `MIGRATION_CREATED = NO`
+  - `DATABASE_REPOSITORY_CHANGED = NO`
+  - `API_CHANGED = NO`
+  - `WORKER_CHANGED = NO`
+  - `VOICE_CHANGED = NO`
+  - `FRONTEND_CHANGED = NO`
+  - `TEST_INFRA_CHANGED = NO`
+  - `PROVIDER_ADAPTER_CHANGED = NO`
+  - `LOCKFILE_CHANGED = NO`
+- **EVIDENCE_AT_WRITE**:
+  - `NEW_CONTRACT_TESTS = 9/9 PASS` (`packages/contracts/src/knowledge/knowledge-contracts.test.ts`, observed pre-commit via project-scoped vitest run; development evidence only, NOT canonical gate evidence)
+  - `CANONICAL_GATE = PENDING_AT_WRITE` (full `pnpm install --frozen-lockfile && pnpm check` runs once on FINAL_HEAD after commit, per slice protocol)
+- **INITIAL_CANONICAL_GATE_RESULT** (historical; observed foreground on `ebb4ec21b36275a124a7b1924b0360f46b8b3001`; preserved verbatim, never to be reclassified):
+  - `007G_INITIAL_CANONICAL_GATE_HEAD = ebb4ec21b36275a124a7b1924b0360f46b8b3001`
+  - `007G_INITIAL_CANONICAL_GATE_STATUS = FAILED`
+  - `007G_INITIAL_CANONICAL_GATE_EXIT_CODE = 1`
+  - `007G_INITIAL_CANONICAL_GATE_FAILED_STAGE = FORMAT`
+  - `007G_INITIAL_CANONICAL_GATE_FORMAT_FAILURE_FILES = packages/contracts/src/knowledge/knowledge-contracts.test.ts, packages/contracts/src/knowledge/knowledge-retrieval-contracts.ts`
+  - `007G_INITIAL_CANONICAL_GATE_LINT = NOT_EXECUTED`
+  - `007G_INITIAL_CANONICAL_GATE_TYPECHECK = NOT_EXECUTED`
+  - `007G_INITIAL_CANONICAL_GATE_TEST = NOT_EXECUTED`
+  - `007G_INITIAL_CANONICAL_GATE_BUILD = NOT_EXECUTED`
+  - `007G_INITIAL_CANONICAL_GATE_ARCHITECTURE = NOT_EXECUTED`
+  - `007G_INITIAL_CANONICAL_GATE_FILE_SIZE = NOT_EXECUTED`
+  - `REMEDIATION = format-only Prettier fix on the 2 listed files, then fresh canonical gate on amended head per 007G fix-forward protocol`
+- **SAFETY**:
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED = NO`
+  - `REAL_DOTENV_ACCESSED = NO`
+  - `OPENAI_REAL_CALLS = 0`
+  - `TYPESAFE_REAL_CALLS = 0`
+  - `TWILIO_REAL_CALLS = 0`
+  - `EMBEDDING_PROVIDER_REAL_CALLS = 0`
+  - `VECTOR_DATABASE_REAL_CALLS = 0`
+  - `LIVE_COMMAND_INVOKED = NO`
+  - `PROVIDER_SPEND_USD = 0`
