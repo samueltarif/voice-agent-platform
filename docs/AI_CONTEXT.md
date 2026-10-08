@@ -4,14 +4,14 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-08
-CONTEXT_BASE_MAIN_SHA: 5f99a2b67927ab306390116a6567a727f35fb70e
+CONTEXT_BASE_MAIN_SHA: 91a402a50bc42a044765863884f236740c18491a
 CURRENT_PHASE: Phase 7 (OPEN)
-CURRENT_SLICE: Slice 007F — Outbound Campaign Management API & Batch Dispatch
-CONTEXT_UPDATE_BRANCH: feat/007f-outbound-campaign-api-batch-dispatch
+CURRENT_SLICE: Slice 007G — Knowledge Base / RAG Architecture & Domain Contracts
+CONTEXT_UPDATE_BRANCH: feat/007g-knowledge-base-rag-architecture-contracts
 CONTEXT_UPDATE_PR: NONE
-LAST_MERGED_PR_AT_REFRESH: 107
-LAST_MERGE_SHA_AT_REFRESH: 5f99a2b67927ab306390116a6567a727f35fb70e
-LAST_TESTED_CODE_SHA: 5f99a2b67927ab306390116a6567a727f35fb70e
+LAST_MERGED_PR_AT_REFRESH: 108
+LAST_MERGE_SHA_AT_REFRESH: 91a402a50bc42a044765863884f236740c18491a
+LAST_TESTED_CODE_SHA: 91a402a50bc42a044765863884f236740c18491a
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
 AI_CONTEXT_HEADER_END
@@ -156,7 +156,7 @@ AI_CONTEXT_HEADER_END
 ## 7. Bloqueios Atuais e Status de Prontidão (Current Blockers & Readiness)
 
 1. `PHASE6_STATUS = CLOSED` | `PHASE6_COMPLETION_ESTIMATE = 100%` | `PHASE6_BLOCKER_COUNT = 0` | `PHASE6_BLOCKERS = NONE` (concluída formalmente via PR #100 / DEC-038).
-2. `PHASE7_STATUS = OPEN` | `PHASE7_COMPLETION_ESTIMATE = 65%` | `PHASE7_BLOCKER_COUNT = 0` | `PHASE7_BLOCKERS = NONE`.
+2. `PHASE7_STATUS = OPEN` | `PHASE7_COMPLETION_ESTIMATE = 83%` | `PHASE7_BLOCKER_COUNT = 0` | `PHASE7_BLOCKERS = NONE`.
 3. `AGENT_DOMAIN_STATUS = IMPLEMENTED` (`packages/database`: schema e repositórios de agentes e lifecycle).
 4. `AGENT_VERSIONING_STATUS = IMPLEMENTED` (`packages/database`, `packages/contracts`: ciclo draft/publish/archive com imutabilidade de versões publicadas).
 5. `TOOL_CALLING_CONTRACT = IMPLEMENTED` (`packages/contracts/src/tools/`: `ToolInvocation`, `ToolExecutionContext`, `ToolExecutionResult`, `ToolDefinition`, `ToolPort`, `ToolRegistryPort`).
@@ -175,8 +175,11 @@ AI_CONTEXT_HEADER_END
 13. `BUSINESS_TOOL_INTEGRATIONS = PARTIAL` (catálogo determinístico implementado; booking/CRM/calendário seguem ausentes).
 14. `MODEL_TO_CANONICAL_TOOL_MAPPING = PARTIAL` (contratos prontos no core de voz; fakes validados offline; emissores de provedor streaming não implementados).
 15. `PROVIDER_SPECIFIC_TOOL_MAPPING = NOT_IMPLEMENTED` (fase de integração de provedores).
-16. `KNOWLEDGE_BASE_DOMAIN = NOT_IMPLEMENTED` (entidades de documentos, chunks e ingestão ausentes).
-17. `RAG_ARCHITECTURE_DECISION = PENDING` (aguardando ADR formal e escolha arquitetural).
+16. `KNOWLEDGE_BASE_ARCHITECTURE = DECIDED` (ADR-020 Proposed: autoridade estruturada vs. retrieval, lifecycle, chunking, portas neutras, acesso server-side, conteúdo recuperado como `UNTRUSTED_DATA`).
+17. `RAG_ARCHITECTURE_DECISION = DECIDED` (ADR-020 Proposed; provedores `NOT_BOUND`, runtimes `DEFERRED`).
+18. `KNOWLEDGE_BASE_DOMAIN_CONTRACTS = IMPLEMENTED` (`packages/contracts/src/knowledge/`: contratos de documento/chunk/escopo/retrieval + 9 testes offline).
+19. `KNOWLEDGE_BASE_DOMAIN = PARTIAL` (contratos decididos e implementados; persistência/ingestão/retrieval runtime ausentes).
+20. `KNOWLEDGE_BASE_PERSISTENCE = NOT_IMPLEMENTED` | `KNOWLEDGE_BASE_INGESTION_RUNTIME = NOT_IMPLEMENTED` | `KNOWLEDGE_BASE_RETRIEVAL_RUNTIME = NOT_IMPLEMENTED` | `REAL_EMBEDDING_PROVIDER = NOT_IMPLEMENTED` | `VECTOR_STORAGE_PROVIDER = NOT_BOUND`.
 18. `OUTBOUND_DOMAIN_MODEL = IMPLEMENTED` (`packages/database/src/schema/outbound.ts`: `outbound_campaigns` e `outbound_call_jobs`, DrizzleOutboundRepository, migration `0003_tiresome_nemesis.sql`).
 19. `OUTBOUND_JOB_ORCHESTRATION = IMPLEMENTED` (`packages/contracts/src/outbound/`: contratos, máquina de estados determinística, validação de transições).
 20. `OUTBOUND_WORKER_DISPATCH = IMPLEMENTED` (`apps/worker/src/outbound-call-dispatcher.ts`: claim atômico via `SKIP LOCKED`, política de retry exponencial delimitada, idempotência).
@@ -203,11 +206,11 @@ AI_CONTEXT_HEADER_END
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- **Phase 7 Status**: `OPEN` (`PHASE7_STATUS = OPEN`, `PHASE7_COMPLETION_ESTIMATE = 80%`, `PHASE7_BLOCKER_COUNT = 0`, `PHASE7_BLOCKERS = NONE`).
-- **Slice 007F — Outbound Campaign Management API & Batch Dispatch**: `IMPLEMENTED / TESTED LOCALLY`.
-- `NEXT_ALLOWED_STEP = AUTOMATED_PR_REVIEW_AND_MERGE_007F`
+- **Phase 7 Status**: `OPEN` (`PHASE7_STATUS = OPEN`, `PHASE7_COMPLETION_ESTIMATE = 83%`, `PHASE7_BLOCKER_COUNT = 0`, `PHASE7_BLOCKERS = NONE`).
+- **Slice 007G — Knowledge Base / RAG Architecture & Domain Contracts**: `IMPLEMENTED / TESTED LOCALLY` (pending canonical gate on final HEAD).
+- `NEXT_ALLOWED_STEP = AUTOMATED_PR_REVIEW_AND_MERGE_007G`
 - `NEXT_ALLOWED_SLICE = NOT_YET_ALLOWED`
-- **Recommended Next Slice**: `007G — Knowledge Base / RAG Architecture & Domain Contracts` (ou conforme backlog de governança).
+- **Recommended Next Slice**: `007H — Knowledge Base Persistence, Ingestion & Retrieval Runtime` (ou conforme backlog de governança).
 - `AUTHORIZATION_CONSUMED = YES` | `SECOND_LIVE_RUN_AUTHORIZED = NO` | `NEW_LIVE_AUTHORIZATION_CREATED = NO`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
 
@@ -227,6 +230,7 @@ AI_CONTEXT_HEADER_END
 - [AI_EXECUTION_RULES.md](AI_EXECUTION_RULES.md): Execução detalhada, integridade e classificação de evidências.
 - [AI_WORKLOG.md](AI_WORKLOG.md): Registro histórico cronológico append-only.
 - [architecture/decisions/ADR-019-jev-guarded-runtime-integration.md](architecture/decisions/ADR-019-jev-guarded-runtime-integration.md): Design de integração do Jev.
+- [architecture/decisions/ADR-020-knowledge-base-rag-architecture-contracts.md](architecture/decisions/ADR-020-knowledge-base-rag-architecture-contracts.md): Knowledge Base / RAG: autoridade estruturada vs. retrieval, lifecycle, chunking, portas neutras e acesso server-side.
 - [research/PHASE_6_TYPESAFE_JEV_SHADOW_ADAPTER.md](research/PHASE_6_TYPESAFE_JEV_SHADOW_ADAPTER.md): Especificação e contrato do adapter offline.
 - [research/PHASE_6_ACTIVE_GUARDED_PRODUCTION_READINESS_GATE.md](research/PHASE_6_ACTIVE_GUARDED_PRODUCTION_READINESS_GATE.md): Gate de prontidão e dimensionamento para ativação de ACTIVE_GUARDED.
 - [research/PHASE_6_L2_PREAUTHORIZATION_ENVELOPE.md](research/PHASE_6_L2_PREAUTHORIZATION_ENVELOPE.md): Envelope de pré-autorização e garantias de isolamento L2.
