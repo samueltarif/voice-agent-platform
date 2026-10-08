@@ -201,7 +201,7 @@ AI_CONTEXT_HEADER_END
 ### `NEXT_ALLOWED_STEP`:
 - **Phase 7 Status**: `OPEN` (`PHASE7_STATUS = OPEN`, `PHASE7_COMPLETION_ESTIMATE = 65%`, `PHASE7_BLOCKER_COUNT = 0`, `PHASE7_BLOCKERS = NONE`).
 - **Slice 007E (Outbound Orchestration Core & Worker Call Dispatch)**: Implementada offline; PR-readiness pendente de fresh authoritative gate (`007E_PR_READINESS = PENDING_FRESH_GATE` até observação direta).
-- `NEXT_ALLOWED_STEP = SUBMIT_007E_PR_ONLY_AFTER_FRESH_AUTHORITATIVE_GATE_PASS`
+- `NEXT_ALLOWED_STEP = CREATE_007E_PR_ONLY_AFTER_FINAL_GATE_PASS`
 - `NEXT_ALLOWED_SLICE = 007F_ONLY_AFTER_007E_MERGE_AND_POST_MERGE_VERIFICATION`
 - **Recommended Next Slice**: `007F — Outbound Campaign Management API & Batch Scheduling` (ou conforme backlog de governança).
 - `AUTHORIZATION_CONSUMED = YES` | `SECOND_LIVE_RUN_AUTHORIZED = NO` | `NEW_LIVE_AUTHORIZATION_CREATED = NO`.
