@@ -3,15 +3,15 @@
 <!--
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
-LAST_REFRESHED_AT: 2026-10-07
-CONTEXT_BASE_MAIN_SHA: ceb23fda99006bb6e8160bdb372b191848468a00
+LAST_REFRESHED_AT: 2026-10-08
+CONTEXT_BASE_MAIN_SHA: 4252dbb086ad3d8dbc36713860d8b862ff15d89f
 CURRENT_PHASE: Phase 7 (OPEN)
-CURRENT_SLICE: Slice 007D — Deterministic Business Data Domain & Catalog Tools
-CONTEXT_UPDATE_BRANCH: feat/007d-business-catalog-tools
+CURRENT_SLICE: Slice 007E — Outbound Orchestration Core & Worker Call Dispatch
+CONTEXT_UPDATE_BRANCH: feat/007e-outbound-orchestration-core
 CONTEXT_UPDATE_PR: PENDING_MANUAL_CREATE
-LAST_MERGED_PR_AT_REFRESH: 104
-LAST_MERGE_SHA_AT_REFRESH: ceb23fda99006bb6e8160bdb372b191848468a00
-LAST_TESTED_CODE_SHA: ceb23fda99006bb6e8160bdb372b191848468a00
+LAST_MERGED_PR_AT_REFRESH: 105
+LAST_MERGE_SHA_AT_REFRESH: 4252dbb086ad3d8dbc36713860d8b862ff15d89f
+LAST_TESTED_CODE_SHA: 4252dbb086ad3d8dbc36713860d8b862ff15d89f
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
 AI_CONTEXT_HEADER_END
@@ -125,7 +125,7 @@ AI_CONTEXT_HEADER_END
 
 ## 6. Estado Atual da Evidência de Qualidade (Quality Gate Snapshot)
 
-- **Último `pnpm check` Global na Main**: `PASS` (observado no merge da PR #101 na branch `main` `70a118596032c2262c21ec477e4fec85ef38c8f6`: `FORMAT PASS`, `LINT PASS`, `TYPECHECK PASS 12/12`, `TEST PASS 867 passed / 45 skipped (125 arquivos passed / 6 skipped)`, `BUILD PASS 12/12`, `ARCHITECTURE PASS`, `FILE_SIZE PASS`).
+- **Último `pnpm check` Global na Main**: `PASS` (observado no merge da PR #105 / 007D post-merge na branch `main` `4252dbb086ad3d8dbc36713860d8b862ff15d89f`: exit 0; contagens precisas de testes: `NOT_OBSERVED`).
 - **Último Gate Técnico da Fatia 007B**:
   - `FINAL_007B_TECHNICAL_GATE_TASK = task-2706`
   - `FINAL_007B_TECHNICAL_GATE_EXIT = 0`
@@ -138,10 +138,10 @@ AI_CONTEXT_HEADER_END
   - `007B_POST_MERGE_INTERNAL_STORAGE_VIOLATION = DOCUMENTED`
   - `007B_GOVERNANCE_RECONCILIATION_STATUS = PENDING_MERGE`
 - **Identificadores de HEAD & Semântica Não-Auto-Referencial**:
-  - `LAST_RECORDED_FULL_GATE_HEAD = 70a118596032c2262c21ec477e4fec85ef38c8f6`
+  - `LAST_RECORDED_FULL_GATE_HEAD = 4252dbb086ad3d8dbc36713860d8b862ff15d89f`
   - `LAST_RECORDED_FULL_GATE_STATUS = PASS`
   - `CURRENT_BRANCH_HEAD_SOURCE = QUERY_GIT_AT_RUNTIME`
-  - `LAST_CODE_BEARING_MAIN_SHA = 70a118596032c2262c21ec477e4fec85ef38c8f6`
+  - `LAST_CODE_BEARING_MAIN_SHA = 4252dbb086ad3d8dbc36713860d8b862ff15d89f`
   - *Nota*: `AI_CONTEXT.md` é conteúdo versionado e não pode conter o SHA do próprio commit que o modifica. O HEAD exato da branch corrente deve ser obtido do Git em runtime (`QUERY_GIT_AT_RUNTIME`). `LAST_RECORDED_FULL_GATE_HEAD` registra a evidência mais recente observada e durável quando este snapshot foi redigido, evitando loops infinitos de auto-referência.
 - **Contagens Canônicas de Testes (Local Slice 007B)**:
   - `TEST_FILES_PASSED = NOT_OBSERVED` (slice dev count: 129) | `TEST_FILES_FAILED = 0` | `TEST_FILES_SKIPPED = 6`
@@ -156,7 +156,7 @@ AI_CONTEXT_HEADER_END
 ## 7. Bloqueios Atuais e Status de Prontidão (Current Blockers & Readiness)
 
 1. `PHASE6_STATUS = CLOSED` | `PHASE6_COMPLETION_ESTIMATE = 100%` | `PHASE6_BLOCKER_COUNT = 0` | `PHASE6_BLOCKERS = NONE` (concluída formalmente via PR #100 / DEC-038).
-2. `PHASE7_STATUS = OPEN` | `PHASE7_COMPLETION_ESTIMATE = 50%` | `PHASE7_BLOCKER_COUNT = 0` | `PHASE7_BLOCKERS = NONE`.
+2. `PHASE7_STATUS = OPEN` | `PHASE7_COMPLETION_ESTIMATE = 65%` | `PHASE7_BLOCKER_COUNT = 0` | `PHASE7_BLOCKERS = NONE`.
 3. `AGENT_DOMAIN_STATUS = IMPLEMENTED` (`packages/database`: schema e repositórios de agentes e lifecycle).
 4. `AGENT_VERSIONING_STATUS = IMPLEMENTED` (`packages/database`, `packages/contracts`: ciclo draft/publish/archive com imutabilidade de versões publicadas).
 5. `TOOL_CALLING_CONTRACT = IMPLEMENTED` (`packages/contracts/src/tools/`: `ToolInvocation`, `ToolExecutionContext`, `ToolExecutionResult`, `ToolDefinition`, `ToolPort`, `ToolRegistryPort`).
@@ -177,29 +177,33 @@ AI_CONTEXT_HEADER_END
 15. `PROVIDER_SPECIFIC_TOOL_MAPPING = NOT_IMPLEMENTED` (fase de integração de provedores).
 16. `KNOWLEDGE_BASE_DOMAIN = NOT_IMPLEMENTED` (entidades de documentos, chunks e ingestão ausentes).
 17. `RAG_ARCHITECTURE_DECISION = PENDING` (aguardando ADR formal e escolha arquitetural).
-18. `OUTBOUND_DOMAIN_MODEL = NOT_IMPLEMENTED` (tabelas de campanhas, contatos e jobs de discagem ausentes).
-19. `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`: Transmissão de transcrições de clientes para provedores externos proibida (invariante de segurança; tráfego real em produção é Fase 10).
-20. `ACTIVE_GUARDED = BLOCKED` (fail-closed no runtime; pendente DPA e parâmetros de produção).
-21. `PRODUCTION_SHADOW_MAX_CONCURRENCY = DEFERRED_TO_PHASE10` (Slice 006BR / DEC-038).
-22. `PRODUCTION_JEV_TIMEOUT_MS = DEFERRED_TO_PHASE10` (Slice 006BR / DEC-038).
-23. `PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY = DEFERRED_TO_PHASE10` (Slice 006BR / DEC-038).
-24. `MODEL_DRIFT_RUNTIME_GUARD = IMPLEMENTED / TESTED LOCALLY` (`expectedProviderModel = jev-1.13.0`).
-25. `PRODUCTION_RUNTIME_WIRING = NO`: Fiação de runtime em produção desautorizada.
-26. `LIVE_TWILIO_GUARDED_ROUTING = NOT EXECUTED`: Telefonia real pertence à Fase 8.
-27. `CUSTOMER_TRAFFIC = PROHIBITED` (invariante de segurança; escopo da Fase 10).
-28. `PRODUCTION_OPERATIONAL_PARAMETERS = FORMALLY_DEFERRED_TO_PHASE10_BY_HUMAN_DECISION` (Slice 006BR / DEC-038).
+18. `OUTBOUND_DOMAIN_MODEL = IMPLEMENTED` (`packages/database/src/schema/outbound.ts`: `outbound_campaigns` e `outbound_call_jobs`, DrizzleOutboundRepository, migration `0003_tiresome_nemesis.sql`).
+19. `OUTBOUND_JOB_ORCHESTRATION = IMPLEMENTED` (`packages/contracts/src/outbound/`: contratos, máquina de estados determinística, validação de transições).
+20. `OUTBOUND_WORKER_DISPATCH = IMPLEMENTED` (`apps/worker/src/outbound-call-dispatcher.ts`: claim atômico via `SKIP LOCKED`, política de retry exponencial delimitada, idempotência).
+21. `OUTBOUND_CALL_BOOTSTRAP = IMPLEMENTED` (`apps/voice/src/outbound-call-lifecycle-bootstrap-adapter.ts`: adapter desacoplado entre worker e CallLifecycleGateway com validação estrita de versão publicada).
+22. `OUTBOUND_API = NOT_IMPLEMENTED` (fatia offline focada no core de orquestração e worker).
+23. `CUSTOMER_TRANSCRIPT_PROVIDER_PROCESSING_GATE = NOT CLEARED`: Transmissão de transcrições de clientes para provedores externos proibida (invariante de segurança; tráfego real em produção é Fase 10).
+24. `ACTIVE_GUARDED = BLOCKED` (fail-closed no runtime; pendente DPA e parâmetros de produção).
+25. `PRODUCTION_SHADOW_MAX_CONCURRENCY = DEFERRED_TO_PHASE10` (Slice 006BR / DEC-038).
+26. `PRODUCTION_JEV_TIMEOUT_MS = DEFERRED_TO_PHASE10` (Slice 006BR / DEC-038).
+27. `PRODUCTION_ACTIVE_GUARDED_MAX_CONCURRENCY = DEFERRED_TO_PHASE10` (Slice 006BR / DEC-038).
+28. `MODEL_DRIFT_RUNTIME_GUARD = IMPLEMENTED / TESTED LOCALLY` (`expectedProviderModel = jev-1.13.0`).
+29. `PRODUCTION_RUNTIME_WIRING = NO`: Fiação de runtime em produção desautorizada.
+30. `REAL_CARRIER_DIALING = DEFERRED_PHASE8`: Telefonia real pertence à Fase 8.
+31. `PRODUCTION_OUTBOUND_DIALER = NOT_IMPLEMENTED`.
+32. `CUSTOMER_TRAFFIC = PROHIBITED` (invariante de segurança; escopo da Fase 10).
+33. `PRODUCTION_OPERATIONAL_PARAMETERS = FORMALLY_DEFERRED_TO_PHASE10_BY_HUMAN_DECISION` (Slice 006BR / DEC-038).
 
 ---
 
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- **Phase 7 Entry Status**: `OPEN` (`PHASE7_STATUS = OPEN`, `PHASE7_COMPLETION_ESTIMATE = 50%`, `PHASE7_BLOCKER_COUNT = 0`, `PHASE7_BLOCKERS = NONE`).
-- **Slice 007D (Deterministic Business Data Domain & Catalog Tools)**: Implementada offline e validada por testes focados; aguardando gate canônico final de remediação.
-- `007D_PR_READINESS = PENDING_FINAL_REMEDIATION_GATE`
-- `NEXT_ALLOWED_STEP = CREATE_007D_PR_ONLY_AFTER_AUTHORITATIVE_GATE_PASS`
-- `NEXT_ALLOWED_SLICE = 007E_ONLY_AFTER_007D_MERGE_AND_POST_MERGE_VERIFICATION`
-- **Planned Slice 007E**: `007E — Outbound Orchestration Core & Worker Call Dispatch`
+- **Phase 7 Status**: `OPEN` (`PHASE7_STATUS = OPEN`, `PHASE7_COMPLETION_ESTIMATE = 65%`, `PHASE7_BLOCKER_COUNT = 0`, `PHASE7_BLOCKERS = NONE`).
+- **Slice 007E (Outbound Orchestration Core & Worker Call Dispatch)**: Implementada offline; PR-readiness pendente de final authoritative gate (`007E_PR_READINESS = PENDING_FINAL_GATE`).
+- `NEXT_ALLOWED_STEP = CREATE_007E_PR_ONLY_AFTER_FINAL_GATE_PASS`
+- `NEXT_ALLOWED_SLICE = 007F_ONLY_AFTER_007E_MERGE_AND_POST_MERGE_VERIFICATION`
+- **Recommended Next Slice**: `007F — Outbound Campaign Management API & Batch Scheduling` (ou conforme backlog de governança).
 - `AUTHORIZATION_CONSUMED = YES` | `SECOND_LIVE_RUN_AUTHORIZED = NO` | `NEW_LIVE_AUTHORIZATION_CREATED = NO`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
 

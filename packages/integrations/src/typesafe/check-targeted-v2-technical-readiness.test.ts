@@ -96,49 +96,57 @@ describe('006BO no-network technical readiness preflight', () => {
     );
   });
 
-  it('F. inherited conflicting parent variable => preserves 006BN sanitized child behavior', async () => {
-    const parentTs = 'PARENT_CONFLICTING_TS';
-    const parentOa = 'PARENT_CONFLICTING_OA';
-    const prevTs = process.env.TYPESAFE_API_KEY;
-    const prevOa = process.env.OPENAI_API_KEY;
-    try {
-      process.env.TYPESAFE_API_KEY = parentTs;
-      process.env.OPENAI_API_KEY = parentOa;
+  it(
+    'F. inherited conflicting parent variable => preserves 006BN sanitized child behavior',
+    { timeout: 15000 },
+    async () => {
+      const parentTs = 'PARENT_CONFLICTING_TS';
+      const parentOa = 'PARENT_CONFLICTING_OA';
+      const prevTs = process.env.TYPESAFE_API_KEY;
+      const prevOa = process.env.OPENAI_API_KEY;
+      try {
+        process.env.TYPESAFE_API_KEY = parentTs;
+        process.env.OPENAI_API_KEY = parentOa;
 
+        await withTempSyntheticEnv(
+          'TYPESAFE_API_KEY=SYNTHETIC_FILE_TS\nOPENAI_API_KEY=SYNTHETIC_FILE_OA\n',
+          async (filePath) => {
+            const result = await checkTargetedV2TechnicalReadiness({ envFilePath: filePath });
+            expect(result.envSourceReady).toBe(true);
+            expect(result.technicalPrerequisitesReady).toBe(true);
+            expect(process.env.TYPESAFE_API_KEY).toBe(parentTs);
+            expect(process.env.OPENAI_API_KEY).toBe(parentOa);
+          },
+        );
+      } finally {
+        if (prevTs !== undefined) process.env.TYPESAFE_API_KEY = prevTs;
+        else delete process.env.TYPESAFE_API_KEY;
+        if (prevOa !== undefined) process.env.OPENAI_API_KEY = prevOa;
+        else delete process.env.OPENAI_API_KEY;
+      }
+    },
+  );
+
+  it(
+    'G & H. report and serialized results contain zero secret values, hashes, or fingerprints',
+    { timeout: 15000 },
+    async () => {
       await withTempSyntheticEnv(
-        'TYPESAFE_API_KEY=SYNTHETIC_FILE_TS\nOPENAI_API_KEY=SYNTHETIC_FILE_OA\n',
+        'TYPESAFE_API_KEY=SYNTHETIC_SECRET_ONE\nOPENAI_API_KEY=SYNTHETIC_SECRET_TWO\n',
         async (filePath) => {
           const result = await checkTargetedV2TechnicalReadiness({ envFilePath: filePath });
-          expect(result.envSourceReady).toBe(true);
-          expect(result.technicalPrerequisitesReady).toBe(true);
-          expect(process.env.TYPESAFE_API_KEY).toBe(parentTs);
-          expect(process.env.OPENAI_API_KEY).toBe(parentOa);
+          const serialized = JSON.stringify(result);
+          expect(serialized).not.toContain('SYNTHETIC_SECRET_ONE');
+          expect(serialized).not.toContain('SYNTHETIC_SECRET_TWO');
+          expect(serialized).not.toContain('SECRET');
+
+          const report = formatTechnicalReadinessReport(result);
+          expect(report).not.toContain('SYNTHETIC_SECRET_ONE');
+          expect(report).not.toContain('SYNTHETIC_SECRET_TWO');
         },
       );
-    } finally {
-      if (prevTs !== undefined) process.env.TYPESAFE_API_KEY = prevTs;
-      else delete process.env.TYPESAFE_API_KEY;
-      if (prevOa !== undefined) process.env.OPENAI_API_KEY = prevOa;
-      else delete process.env.OPENAI_API_KEY;
-    }
-  });
-
-  it('G & H. report and serialized results contain zero secret values, hashes, or fingerprints', async () => {
-    await withTempSyntheticEnv(
-      'TYPESAFE_API_KEY=SYNTHETIC_SECRET_ONE\nOPENAI_API_KEY=SYNTHETIC_SECRET_TWO\n',
-      async (filePath) => {
-        const result = await checkTargetedV2TechnicalReadiness({ envFilePath: filePath });
-        const serialized = JSON.stringify(result);
-        expect(serialized).not.toContain('SYNTHETIC_SECRET_ONE');
-        expect(serialized).not.toContain('SYNTHETIC_SECRET_TWO');
-        expect(serialized).not.toContain('SECRET');
-
-        const report = formatTechnicalReadinessReport(result);
-        expect(report).not.toContain('SYNTHETIC_SECRET_ONE');
-        expect(report).not.toContain('SYNTHETIC_SECRET_TWO');
-      },
-    );
-  });
+    },
+  );
 
   it('K. CLI argument parsing requires --env-file and rejects unrecognized arguments', () => {
     expect(() => parseTechnicalReadinessCliArgs([])).toThrow('MISSING_ENV_FILE_ARGUMENT');

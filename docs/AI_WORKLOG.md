@@ -16539,3 +16539,258 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `CUSTOMER_TRAFFIC = PROHIBITED`
   - `ACTIVE_GUARDED = BLOCKED`
   - `PRODUCTION_RUNTIME_WIRING = NO`
+
+---
+
+## 2026-10-08 — Slice 007E: Outbound Orchestration Core & Worker Call Dispatch
+
+### A. 007E Implementation
+- **SLICE_ID**: `007E`
+- **BASE_MAIN_SHA**: `4252dbb086ad3d8dbc36713860d8b862ff15d89f`
+- **ORIGINAL_IMPLEMENTATION_HEAD**: `06460b1395f381e5409132a9e67bbb96b2bbc24f`
+- **OBJECTIVE**: `Implement the smallest complete provider-neutral outbound orchestration core and worker call dispatch (offline only)`
+- **OUTBOUND_DOMAIN_MODEL**: `IMPLEMENTED` (`packages/database/src/schema/outbound.ts`: `outbound_campaigns`, `outbound_call_jobs`)
+- **OUTBOUND_JOB_ORCHESTRATION**: `IMPLEMENTED` (`packages/contracts/src/outbound/`: contracts, state machine, transitions)
+- **OUTBOUND_WORKER_DISPATCH**: `IMPLEMENTED` (`apps/worker/src/outbound-call-dispatcher.ts`: atomic `SKIP LOCKED` claim, bounded exponential backoff, attempt idempotency)
+- **OUTBOUND_CALL_BOOTSTRAP**: `IMPLEMENTED` (`apps/voice/src/outbound-call-lifecycle-bootstrap-adapter.ts`: provider-neutral adapter to `CallLifecycleGateway`)
+- **OUTBOUND_API**: `NOT_IMPLEMENTED` (internal worker orchestration core slice)
+- **REAL_CARRIER_DIALING**: `DEFERRED_PHASE8`
+- **PRODUCTION_OUTBOUND_DIALER**: `NOT_IMPLEMENTED`
+- **PRODUCTION_RUNTIME_WIRING**: `NO`
+- **CUSTOMER_TRAFFIC**: `PROHIBITED`
+- **DATABASE_SCHEMA_CHANGED**: `YES`
+- **MIGRATION_CREATED**: `YES` (`packages/database/src/migrations/0003_tiresome_nemesis.sql`)
+- **CONTRACTS_CHANGED**: `YES`
+- **DATABASE_REPOSITORY_CHANGED**: `YES`
+- **WORKER_CHANGED**: `YES`
+- **API_CHANGED**: `NO`
+- **VOICE_CHANGED**: `YES`
+- **FRONTEND_CHANGED**: `NO`
+- **PROVIDER_ADAPTER_CHANGED**: `NO`
+- **LOCKFILE_CHANGED**: `NO`
+
+### B. task-3969 Evidence Classification
+- **PRIOR_GATE_TASK**: `task-3969`
+- **PRIOR_GATE_EVIDENCE_AUTHORITATIVE**: `NO`
+- **PRIOR_GATE_FINAL_STATUS**: `NOT_OBSERVED`
+- **PRIOR_GATE_EXIT_CODE**: `NOT_OBSERVED`
+- *Nota de governança*: Não é afirmado sucesso ou falha para task-3969 além da evidência estritamente observada no log disponível.
+
+### C. AI_CONTEXT Reconciliation
+- **DOCS_RECONCILIATION_HEAD**: `7d760b8a2d18c53236917f23d9c8824f1cc5e3a2`
+- **AI_CONTEXT_NAVIGATION_HEADER_RECONCILED**: `YES`
+
+### D. Fresh Foreground Gate Failure Classification
+- **FRESH_GATE_HEAD**: `7d760b8a2d18c53236917f23d9c8824f1cc5e3a2`
+- **FRESH_GATE_FINAL_STATUS**: `COMPLETED`
+- **FRESH_GATE_EXIT_CODE**: `1`
+- **FORMAT**: `PASS`
+- **LINT**: `PASS`
+- **TYPECHECK**: `PASS_12_OF_12`
+- **TEST_FILES_PASSED**: `143`
+- **TEST_FILES_FAILED**: `0`
+- **TEST_FILES_SKIPPED**: `6`
+- **TESTS_PASSED**: `971`
+- **TESTS_FAILED**: `0`
+- **TESTS_SKIPPED**: `45`
+- **TEST_ASSERTION_FAILURES**: `0`
+- **FRESH_GATE_FAILURE_CLASS**: `TEST_RUNNER_INFRASTRUCTURE_RPC_TIMEOUT`
+- **FRESH_GATE_FAILURE_DETAIL**: `Vitest worker RPC timeout calling onTaskUpdate`
+- **BUILD**: `NOT_EXECUTED_IN_THIS_GATE`
+- **ARCHITECTURE_CHECK**: `NOT_EXECUTED_IN_THIS_GATE`
+- **FILE_SIZE_CHECK**: `NOT_EXECUTED_IN_THIS_GATE`
+
+### E. Worklog Incident & Restoration
+- **AI_WORKLOG_ACCIDENTAL_TRUNCATION**: `YES`
+- **AI_WORKLOG_TRUNCATION_DETECTED_BEFORE_PR**: `YES`
+- **AI_WORKLOG_BASE_HISTORY_SOURCE**: `4252dbb086ad3d8dbc36713860d8b862ff15d89f`
+- **AI_WORKLOG_HISTORY_RESTORED_FROM_GIT**: `YES`
+- **AI_WORKLOG_HISTORICAL_ENTRIES_REWRITTEN**: `NO`
+- **INCIDENT_RECORD**:
+  - Nenhum PR foi criado enquanto o worklog esteve truncado;
+  - Nenhum merge ocorreu enquanto truncado;
+  - Nenhuma atividade de provedores, tráfego real ou acesso a `.env` ocorreu;
+  - A branch remota permaneceu intacta no head de implementação anterior (`06460b1395f381e5409132a9e67bbb96b2bbc24f`), pois gates com falha não foram propagados.
+
+### F. Safety & Governance
+- **FORBIDDEN_INTERNAL_STORAGE_ACCESSED**: `NO`
+- **REAL_DOTENV_ACCESSED**: `NO`
+- **OPENAI_REAL_CALLS**: `0`
+- **TYPESAFE_REAL_CALLS**: `0`
+- **TWILIO_REAL_CALLS**: `0`
+- **LIVE_COMMAND_INVOKED**: `NO`
+- **PROVIDER_SPEND_USD**: `0`
+- **SECRET_AUDIT**: `PASS`
+- **CUSTOMER_TRAFFIC**: `PROHIBITED`
+- **ACTIVE_GUARDED**: `BLOCKED`
+- **PRODUCTION_RUNTIME_WIRING**: `NO`
+
+---
+
+## 2026-10-08 — Slice 007E: Targeted Readiness Test Stabilization & Pre-Gate Verification
+
+### A. Preservação de Evidência da Falha Anterior (task-4027)
+- **TASK**: `task-4027`
+- **HEAD**: `4ce1b4e4da41b941b1b03ff1d09019072ebaa831`
+- **STATUS**: `COMPLETED`
+- **EXIT**: `1`
+- **FORMAT**: `PASS`
+- **LINT**: `PASS`
+- **TYPECHECK**: `PASS_12_OF_12`
+- **TEST_FILES_PASSED**: `142`
+- **TEST_FILES_FAILED**: `1`
+- **TEST_FILES_SKIPPED**: `6`
+- **TESTS_PASSED**: `969`
+- **TESTS_FAILED**: `2` (por timeout de 5000ms sob alta carga de concorrência)
+- **TESTS_SKIPPED**: `45`
+- **ASSERTION_MISMATCH_FAILURES**: `0`
+- **FAILING_FILE**: `packages/integrations/src/typesafe/check-targeted-v2-technical-readiness.test.ts`
+- **OBSERVED_FAILURE_CLASS**: `TEST_TIMEOUT_AND_VITEST_WORKER_RPC_TIMEOUT`
+- **OBSERVED_RPC_ERROR**: `[vitest-worker]: Timeout calling "onTaskUpdate"`
+- **OBSERVED_TEST_TIMEOUT**: `5000ms`
+- **ETAPAS_NÃO_EXECUTADAS_NO_TASK_4027**:
+  - `BUILD`: `NOT_EXECUTED`
+  - `ARCHITECTURE_CHECK`: `NOT_EXECUTED`
+  - `FILE_SIZE_CHECK`: `NOT_EXECUTED`
+
+### B. Auditoria de Incidentes de Governança
+- **BROAD_GIT_CLEAN_EXECUTED_IN_PREVIOUS_TASK**: `YES`
+- **POST_GATE_DOCKERFILE_EDIT_EVENT_OBSERVED**: `YES`
+- **CURRENT_TRACKED_DOCKERFILE_DIFF**: `NO`
+- **CURRENT_TRACKED_DOCKERIGNORE_DIFF**: `NO`
+- **CURRENT_WORKTREE**: `CLEAN`
+- **AI_WORKLOG_HISTORY_INTEGRITY**: `PASS` (restauração factual de histórico preservada intacta; incidente de truncamento e restauração mantidos)
+
+### C. Investigação de Precedente Histórico & Causa Raiz
+- **HISTORICAL_STABILIZATION_FOUND**: `YES` (commit `87e34a2b676bf33da0c96f6fd01657cce481c88e` — "test: stabilize targeted readiness authorization assertions")
+- **HISTORICAL_TIMEOUT_STRATEGY**: Configuração explícita de `{ timeout: 15000 }` para testes subprocess-heavy
+- **TASK_4027_FAILING_TEST_NAMES**:
+  1. `F. inherited conflicting parent variable => preserves 006BN sanitized child behavior`
+  2. `G & H. report and serialized results contain zero secret values, hashes, or fingerprints`
+- **FAILING_TESTS_HAVE_EXPLICIT_15000MS_TIMEOUT**: `NO` (recaíam no padrão de 5000ms do Vitest)
+- **FAILING_TESTS_CALL_SUBPROCESS_HEAVY_READINESS_PATH**: `YES` (invocam `checkTargetedV2TechnicalReadiness`, que executa subprocessos `node` com `--env-file` e validações criptográficas/git)
+- **ROOT_CAUSE_CLASS**: `DEFAULT_TEST_TIMEOUT_TOO_LOW_FOR_BOUNDED_SUBPROCESS_INTEGRATION_TEST`
+
+### D. Estabilização Mínima Aplicada
+- **TESTES_ESTABILIZADOS**:
+  - Teste `F`: adicionado `{ timeout: 15000 }`
+  - Teste `G & H`: adicionado `{ timeout: 15000 }`
+- **TARGETED_TEST_TIMEOUT_MAX_MS**: `15000`
+- **PRODUCTION_CODE_CHANGED**: `NO`
+- **READINESS_IMPLEMENTATION_CHANGED**: `NO`
+- **TEST_ASSERTIONS_WEAKENED**: `NO`
+- **NEW_TEST_SKIPS**: `0`
+- **GLOBAL_TEST_TIMEOUT_CHANGED**: `NO`
+- **VITEST_CONFIG_CHANGED**: `NO`
+
+### E. Resultados da Validação de Estabilidade Alvo (Targeted Stability Runs)
+- Executadas 5 rodadas sequenciais estritas de `packages/integrations/src/typesafe/check-targeted-v2-technical-readiness.test.ts`:
+  - Run 1 (`task-4087`): 9/9 testes passando (6299ms, exit 0)
+  - Run 2 (`task-4092`): 9/9 testes passando (6263ms, exit 0)
+  - Run 3 (`task-4097`): 9/9 testes passando (9259ms, exit 0)
+  - Run 4 (`task-4102`): 9/9 testes passando (6079ms, exit 0)
+  - Run 5 (`task-4107`): 9/9 testes passando (12572ms, exit 0)
+- **TARGETED_STABILITY_RUNS**: `5`
+- **TARGETED_STABILITY_PASSES**: `5`
+- **TARGETED_STABILITY_FAILURES**: `0`
+- **ASSERTION_WEAKER**: `0`
+- **NEW_SKIPS**: `0`
+
+### F. Validação de Regressões da Fatia 007E
+- **SUITE_1** (`packages/contracts/src/outbound`, `packages/database/src/outbound-persistence.integration.test.ts`, `apps/worker/src/outbound-call-dispatcher.test.ts`, `apps/voice/src/outbound-call-lifecycle-bootstrap-adapter.test.ts`):
+  - `STATUS`: `PASS` (4 arquivos, 24 testes, exit 0; `task-4116`)
+- **SUITE_2** (`apps/voice/src/call-lifecycle-gateway.test.ts`, `apps/voice/src/catalog-tool-composition.test.ts`, `apps/voice/src/published-version-toolset.test.ts`):
+  - `STATUS`: `PASS` (3 arquivos, 16 testes, exit 0; `task-4121`)
+
+### G. Segurança e Governança Operacional
+- **FORBIDDEN_INTERNAL_STORAGE_ACCESSED**: `NO`
+- **REAL_DOTENV_ACCESSED**: `NO`
+- **OPENAI_REAL_CALLS**: `0`
+- **TYPESAFE_REAL_CALLS**: `0`
+- **TWILIO_REAL_CALLS**: `0`
+- **LIVE_COMMAND_INVOKED**: `NO`
+- **PROVIDER_SPEND_USD**: `0`
+- **SECRET_AUDIT**: `PASS`
+- **CUSTOMER_TRAFFIC**: `PROHIBITED`
+- **ACTIVE_GUARDED**: `BLOCKED`
+- **PRODUCTION_RUNTIME_WIRING**: `NO`
+
+---
+
+## 2026-10-08 — Slice 007E: Vitest Worker Concurrency Infrastructure Stabilization
+
+### A. Preservação de Evidência da Falha no Gate Autorizado Anterior (task-4168)
+- **TASK**: `task-4168`
+- **HEAD**: `42904ba61f5ba0a453f267847c6cedc18a1cd351`
+- **FINAL_STATUS**: `COMPLETED`
+- **EXIT**: `1`
+- **FORMAT**: `PASS`
+- **LINT**: `PASS`
+- **TYPECHECK**: `PASS`
+- **TEST_FILES_PASSED**: `143`
+- **TEST_FILES_FAILED**: `0`
+- **TEST_FILES_SKIPPED**: `6`
+- **TESTS_PASSED**: `971`
+- **TESTS_FAILED**: `0`
+- **TESTS_SKIPPED**: `45`
+- **UNHANDLED_INFRA_ERRORS**: `1`
+- **UNHANDLED_INFRA_ERROR**: `[vitest-worker]: Timeout calling "onTaskUpdate"`
+- **ETAPAS_NÃO_EXECUTADAS_NO_TASK_4168**:
+  - `BUILD`: `NOT_EXECUTED`
+  - `ARCHITECTURE_CHECK`: `NOT_EXECUTED`
+  - `FILE_SIZE_CHECK`: `NOT_EXECUTED`
+- **READINESS_TEST_TIMEOUT_STABILIZATION**: `VALIDATED` (testes subprocess-heavy em `check-targeted-v2-technical-readiness.test.ts` com bounded timeout de 15000ms passaram sem erros no task-4168 e nos 5 stability runs dedicados; nenhum aumento adicional de timeout individual aplicado).
+
+### B. Registro de Desvio de Governança na Espera do task-4168
+- **TASK_4168_SCHEDULE_WAIT_TOOL_USED**: `YES`
+- **TASK_4168_CONCURRENT_VALIDATION_WORKLOAD**: `NO`
+- **TASK_4168_REPOSITORY_MUTATION_WHILE_GATE_RUNNING**: `NO`
+- **TASK_4168_WAIT_DISCIPLINE_DEVIATION**: `YES` (uso indevido do schedule para polling; nos gates subsequentes o schedule está expressamente vedado e somente manage_task é permitido)
+
+### C. Causa Raiz & Estabilização de Concorrência de Workers
+- **ROOT_CAUSE_CLASS**: `VITEST_WORKER_RPC_SATURATION_UNDER_MONOREPO_PARALLELISM`
+- **CONFIGURAÇÃO_ALTERADA**: `vitest.config.ts` adicionado `maxWorkers: 4`
+- **PREVIOUS_MAX_WORKERS**: default (desdelimitado / baseado no número de núcleos de CPU)
+- **FINAL_MAX_WORKERS**: `4`
+- **GLOBAL_TEST_TIMEOUT_CHANGED**: `NO`
+- **POOL_CHANGED**: `NO`
+- **FILE_PARALLELISM_CHANGED**: `NO`
+- **TEST_ASSERTIONS_WEAKENED**: `NO`
+- **NEW_TEST_SKIPS**: `0`
+- **PRODUCTION_CODE_CHANGED**: `NO`
+
+### D. Validação Sequencial Completa do Estágio de Testes (Full Test Stability Runs)
+- **RUN_1** (`task-4210`):
+  - `EXIT`: `0`
+  - `TEST_FILES_PASSED`: `143` (6 skipped)
+  - `TESTS_PASSED`: `971` (45 skipped)
+  - `UNHANDLED_RPC_ERRORS`: `0`
+  - `DURATION`: `166.40s`
+- **RUN_2** (`task-4251`):
+  - `EXIT`: `0`
+  - `TEST_FILES_PASSED`: `143` (6 skipped)
+  - `TESTS_PASSED`: `971` (45 skipped)
+  - `UNHANDLED_RPC_ERRORS`: `0`
+  - `DURATION`: `180.05s`
+- **FULL_TEST_STABILITY_RUNS**: `2`
+- **FULL_TEST_STABILITY_PASSES**: `2`
+- **FULL_TEST_RPC_ERRORS**: `0`
+
+### E. Validações Focadas dos Estágios Não Atingidos no task-4168
+- `pnpm build`: `PASS` (12 workspaces, 11 páginas Next.js, exit 0; `task-4298`)
+- `pnpm check:architecture`: `PASS` (AST check 100% em conformidade, exit 0)
+- `pnpm check:file-size`: `PASS` (279 arquivos de lógica verificados, exit 0)
+
+### F. Segurança & Governança Operacional
+- **FORBIDDEN_INTERNAL_STORAGE_ACCESSED**: `NO`
+- **REAL_DOTENV_ACCESSED**: `NO`
+- **OPENAI_REAL_CALLS**: `0`
+- **TYPESAFE_REAL_CALLS**: `0`
+- **TWILIO_REAL_CALLS**: `0`
+- **LIVE_COMMAND_INVOKED**: `NO`
+- **PROVIDER_SPEND_USD**: `0`
+- **SECRET_AUDIT**: `PASS`
+- **CUSTOMER_TRAFFIC**: `PROHIBITED`
+- **ACTIVE_GUARDED**: `BLOCKED`
+- **PRODUCTION_RUNTIME_WIRING**: `NO`
+- **AI_WORKLOG_HISTORY_INTEGRITY**: `PASS` (registros históricos e incidentes anteriores preservados intactos)
