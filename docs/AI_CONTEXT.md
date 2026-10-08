@@ -3,15 +3,15 @@
 <!--
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
-LAST_REFRESHED_AT: 2026-10-07
-CONTEXT_BASE_MAIN_SHA: ceb23fda99006bb6e8160bdb372b191848468a00
+LAST_REFRESHED_AT: 2026-10-08
+CONTEXT_BASE_MAIN_SHA: 4252dbb086ad3d8dbc36713860d8b862ff15d89f
 CURRENT_PHASE: Phase 7 (OPEN)
-CURRENT_SLICE: Slice 007D — Deterministic Business Data Domain & Catalog Tools
-CONTEXT_UPDATE_BRANCH: feat/007d-business-catalog-tools
+CURRENT_SLICE: Slice 007E — Outbound Orchestration Core & Worker Call Dispatch
+CONTEXT_UPDATE_BRANCH: feat/007e-outbound-orchestration-core
 CONTEXT_UPDATE_PR: PENDING_MANUAL_CREATE
-LAST_MERGED_PR_AT_REFRESH: 104
-LAST_MERGE_SHA_AT_REFRESH: ceb23fda99006bb6e8160bdb372b191848468a00
-LAST_TESTED_CODE_SHA: ceb23fda99006bb6e8160bdb372b191848468a00
+LAST_MERGED_PR_AT_REFRESH: 105
+LAST_MERGE_SHA_AT_REFRESH: 4252dbb086ad3d8dbc36713860d8b862ff15d89f
+LAST_TESTED_CODE_SHA: 4252dbb086ad3d8dbc36713860d8b862ff15d89f
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
 AI_CONTEXT_HEADER_END
@@ -125,7 +125,7 @@ AI_CONTEXT_HEADER_END
 
 ## 6. Estado Atual da Evidência de Qualidade (Quality Gate Snapshot)
 
-- **Último `pnpm check` Global na Main**: `PASS` (observado no merge da PR #101 na branch `main` `70a118596032c2262c21ec477e4fec85ef38c8f6`: `FORMAT PASS`, `LINT PASS`, `TYPECHECK PASS 12/12`, `TEST PASS 867 passed / 45 skipped (125 arquivos passed / 6 skipped)`, `BUILD PASS 12/12`, `ARCHITECTURE PASS`, `FILE_SIZE PASS`).
+- **Último `pnpm check` Global na Main**: `PASS` (observado no merge da PR #104 na branch `main` `ceb23fda99006bb6e8160bdb372b191848468a00`: `FORMAT PASS`, `LINT PASS`, `TYPECHECK PASS 12/12`, `TEST PASS 919 passed / 45 skipped (134 arquivos passed / 6 skipped)`, `BUILD PASS 12/12`, `ARCHITECTURE PASS`, `FILE_SIZE PASS`).
 - **Último Gate Técnico da Fatia 007B**:
   - `FINAL_007B_TECHNICAL_GATE_TASK = task-2706`
   - `FINAL_007B_TECHNICAL_GATE_EXIT = 0`
@@ -138,10 +138,10 @@ AI_CONTEXT_HEADER_END
   - `007B_POST_MERGE_INTERNAL_STORAGE_VIOLATION = DOCUMENTED`
   - `007B_GOVERNANCE_RECONCILIATION_STATUS = PENDING_MERGE`
 - **Identificadores de HEAD & Semântica Não-Auto-Referencial**:
-  - `LAST_RECORDED_FULL_GATE_HEAD = 70a118596032c2262c21ec477e4fec85ef38c8f6`
+  - `LAST_RECORDED_FULL_GATE_HEAD = ceb23fda99006bb6e8160bdb372b191848468a00`
   - `LAST_RECORDED_FULL_GATE_STATUS = PASS`
   - `CURRENT_BRANCH_HEAD_SOURCE = QUERY_GIT_AT_RUNTIME`
-  - `LAST_CODE_BEARING_MAIN_SHA = 70a118596032c2262c21ec477e4fec85ef38c8f6`
+  - `LAST_CODE_BEARING_MAIN_SHA = ceb23fda99006bb6e8160bdb372b191848468a00`
   - *Nota*: `AI_CONTEXT.md` é conteúdo versionado e não pode conter o SHA do próprio commit que o modifica. O HEAD exato da branch corrente deve ser obtido do Git em runtime (`QUERY_GIT_AT_RUNTIME`). `LAST_RECORDED_FULL_GATE_HEAD` registra a evidência mais recente observada e durável quando este snapshot foi redigido, evitando loops infinitos de auto-referência.
 - **Contagens Canônicas de Testes (Local Slice 007B)**:
   - `TEST_FILES_PASSED = NOT_OBSERVED` (slice dev count: 129) | `TEST_FILES_FAILED = 0` | `TEST_FILES_SKIPPED = 6`
@@ -200,9 +200,9 @@ AI_CONTEXT_HEADER_END
 
 ### `NEXT_ALLOWED_STEP`:
 - **Phase 7 Status**: `OPEN` (`PHASE7_STATUS = OPEN`, `PHASE7_COMPLETION_ESTIMATE = 65%`, `PHASE7_BLOCKER_COUNT = 0`, `PHASE7_BLOCKERS = NONE`).
-- **Slice 007E (Outbound Orchestration Core & Worker Call Dispatch)**: Implementada offline e validada por testes automatizados (`007E_PR_READINESS = READY`).
-- `NEXT_ALLOWED_STEP = SUBMIT_007E_PR_FOR_REVIEW`
-- `NEXT_ALLOWED_SLICE = 007F`
+- **Slice 007E (Outbound Orchestration Core & Worker Call Dispatch)**: Implementada offline; PR-readiness pendente de fresh authoritative gate (`007E_PR_READINESS = PENDING_FRESH_GATE` até observação direta).
+- `NEXT_ALLOWED_STEP = SUBMIT_007E_PR_ONLY_AFTER_FRESH_AUTHORITATIVE_GATE_PASS`
+- `NEXT_ALLOWED_SLICE = 007F_ONLY_AFTER_007E_MERGE_AND_POST_MERGE_VERIFICATION`
 - **Recommended Next Slice**: `007F — Outbound Campaign Management API & Batch Scheduling` (ou conforme backlog de governança).
 - `AUTHORIZATION_CONSUMED = YES` | `SECOND_LIVE_RUN_AUTHORIZED = NO` | `NEW_LIVE_AUTHORIZATION_CREATED = NO`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
