@@ -6,3 +6,4 @@ export * from './catalog.js';
 export * from './audit.js';
 export * from './agents.js';
 export * from './outbound.js';
+export * from './knowledge.js';

@@ -22,6 +22,7 @@ export const knowledgeRetrievalQuerySchema = z
   })
   .strict();
 
+export type KnowledgeRetrievalQueryInput = z.input<typeof knowledgeRetrievalQuerySchema>;
 export type KnowledgeRetrievalQuery = z.infer<typeof knowledgeRetrievalQuerySchema>;
 
 export const knowledgeCitationSchema = z
@@ -53,7 +54,7 @@ export interface KnowledgeRetrievalResult {
 
 export interface KnowledgeRetrievalRequest {
   readonly scope: KnowledgeAccessScope;
-  readonly query: KnowledgeRetrievalQuery;
+  readonly query: KnowledgeRetrievalQueryInput;
 }
 
 export interface KnowledgeRetrievalPort {
