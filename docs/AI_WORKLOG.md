@@ -17084,3 +17084,32 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `VECTOR_DATABASE_REAL_CALLS = 0`
   - `LIVE_COMMAND_INVOKED = NO`
   - `PROVIDER_SPEND_USD = 0`
+
+---
+
+## 2026-10-08 — Slice 007H reconciliation: gate evidence & scope status correction
+
+- **SLICE_ID**: `007H` (reconciliation only; no new product slice)
+- **BASE_MAIN_SHA**: `dc181afb319b05642fe42859d08f38ae6110a1d8`
+- **ORIGINAL_IMPLEMENTATION_HEAD**: `d5f467ba73257ce03bc4f93421d45d7cc173a29b` (already pushed; history preserved, not amended)
+- **GATE_HISTORY_CLASSIFICATION**:
+  - `TASK_5761_FINAL_GATE_AUTHORITY = NO`
+  - `TASK_5761_COMPLETION_BEFORE_PUSH = NOT_OBSERVED`
+  - `TASK_5761_COMPLETION_OBSERVED_BEFORE_PUSH = NOT_OBSERVED`
+  - Chronology shows the canonical gate launched in background and the next visible operation was `git push`, with no intervening completion observed through supported task-management facilities. No claim is made that the gate failed; no claim is made that exit 0 was observed before push. Task-5761 is not reused as final authority.
+- **SCOPE_CORRECTIONS** (navigation snapshot only; implementation untouched):
+  - `KNOWLEDGE_BASE_DOMAIN = PARTIAL` (was overstated as unqualified `IMPLEMENTED`)
+  - `KNOWLEDGE_BASE_PERSISTENCE = IMPLEMENTED` (local schema + forward-only migration file; Supabase production migration NOT executed)
+  - `KNOWLEDGE_BASE_INGESTION_RUNTIME = IMPLEMENTED_LOCAL_TRUSTED_TEXT`
+  - `KNOWLEDGE_BASE_RETRIEVAL_RUNTIME = IMPLEMENTED_LEXICAL_OFFLINE`
+  - `SEMANTIC_VECTOR_RETRIEVAL = NOT_IMPLEMENTED`
+  - `REAL_EMBEDDING_PROVIDER = NOT_IMPLEMENTED`
+  - `PRODUCTION_RAG_GENERATION = NOT_IMPLEMENTED`
+  - `PHASE7_COMPLETION_ESTIMATE = 90% (feature-branch projection only)`; consolidated main value remains `83%` until merge.
+- **PENDING**:
+  - `NEW_AUTHORITATIVE_GATE = PENDING_ON_RECONCILIATION_HEAD` (fresh `pnpm install --frozen-lockfile && pnpm check` runs once on the docs-only reconciliation HEAD per protocol)
+- **SAFETY**:
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED = NO`
+  - `REAL_DOTENV_ACCESSED = NO`
+  - `REMOTE_SUPABASE_MIGRATION_EXECUTED = NO`
+  - `REAL_PROVIDER_CALLS = 0`
