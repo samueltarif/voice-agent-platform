@@ -17220,3 +17220,24 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `REAL_DOTENV_ACCESSED = NO`
   - `REMOTE_SUPABASE_MIGRATION_EXECUTED = NO`
   - `REAL_PROVIDER_CALLS = 0`
+
+---
+
+## 2026-10-09 — Slice 007I lint complexity fix-forward (no new slice)
+
+- **SLICE_ID**: `007I`
+- **FAILED_GATE_HEAD**: `b8949042adf57ee6d46dcd681977c7fd11aabbbc`
+- **FAILED_GATE_EXIT**: `1`
+- **FAILED_STAGE**: `LINT`
+- **FUNCTION**: `runVoiceKnowledgeHandoff`
+- **COMPLEXITY_BEFORE**: `10`
+- **COMPLEXITY_MAX**: `8`
+- **REFACTOR**: Extracted `parseHandoffQuery` helper (query trim + contract-schema validation) in `apps/voice/src/voice-knowledge-retrieval-coordinator.ts`; coordinator keeps scope resolution, single-attempt retrieval, sanitized errors, and envelope construction with identical fail-closed semantics. No new dependency, no eslint-disable, no config/threshold change.
+- **TARGETED_VALIDATION**: file-scoped ESLint PASS (complexity rule satisfied); 18/18 handoff tests PASS with unchanged assertions and zero skips; `check-architecture.mjs` PASS; `check-file-size.mjs` SUCESSO; Prettier check PASS on touched files.
+- **INVARIANTS_PRESERVED**: server-side scope binding, published agent/version authority, fail-closed rejections, bounded query/topK/context, no-results handling, single attempt, deterministic ordering, no tenant broadening, no provider calls, no production wiring.
+- **PENDING**: fresh canonical gate on the corrective commit HEAD.
+- **SAFETY**:
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED = NO`
+  - `REAL_DOTENV_ACCESSED = NO`
+  - `REMOTE_SUPABASE_MIGRATION_EXECUTED = NO`
+  - `REAL_PROVIDER_CALLS = 0`

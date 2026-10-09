@@ -1,4 +1,8 @@
-import { knowledgeRetrievalQuerySchema, type KnowledgeRetrievalPort } from '@voice-agent/contracts';
+import {
+  knowledgeRetrievalQuerySchema,
+  type KnowledgeRetrievalPort,
+  type KnowledgeRetrievalQuery,
+} from '@voice-agent/contracts';
 import {
   resolveVoiceKnowledgeScope,
   VoiceKnowledgeScopeError,
@@ -46,6 +50,28 @@ function reject(
   return { status: 'REJECTED', reason, message };
 }
 
+interface ParsedHandoffQuery {
+  readonly queryText: string;
+  readonly query: KnowledgeRetrievalQuery;
+}
+
+/**
+ * Validates caller query text and bounds against the contract schema.
+ * Returns undefined when the query must fail closed as INVALID_QUERY.
+ */
+function parseHandoffQuery(input: VoiceKnowledgeHandoffInput): ParsedHandoffQuery | undefined {
+  const queryText = input.queryText?.trim() ?? '';
+  const parsedQuery = knowledgeRetrievalQuerySchema.safeParse({
+    queryText,
+    ...(input.topK !== undefined ? { topK: input.topK } : {}),
+    ...(input.documentIds !== undefined ? { documentIds: [...input.documentIds] } : {}),
+  });
+  if (!parsedQuery.success || queryText.length === 0) {
+    return undefined;
+  }
+  return { queryText, query: parsedQuery.data };
+}
+
 /**
  * Offline voice knowledge handoff. Resolves a server-authorized scope from
  * trusted voice identity, runs one bounded retrieval, and returns an
@@ -69,25 +95,20 @@ export async function runVoiceKnowledgeHandoff(
     return reject('INVALID_TRUSTED_CONTEXT', 'Knowledge scope resolution failed.');
   }
 
-  const queryText = input.queryText?.trim() ?? '';
-  const parsedQuery = knowledgeRetrievalQuerySchema.safeParse({
-    queryText,
-    ...(input.topK !== undefined ? { topK: input.topK } : {}),
-    ...(input.documentIds !== undefined ? { documentIds: [...input.documentIds] } : {}),
-  });
-  if (!parsedQuery.success || queryText.length === 0) {
+  const parsed = parseHandoffQuery(input);
+  if (!parsed) {
     return reject('INVALID_QUERY', 'Knowledge query text and bounds failed validation.');
   }
 
   let result;
   try {
-    result = await options.retrievalPort.retrieve({ scope, query: parsedQuery.data });
+    result = await options.retrievalPort.retrieve({ scope, query: parsed.query });
   } catch {
     return reject('RETRIEVAL_FAILED', 'Knowledge retrieval failed without results.');
   }
 
   return {
     status: 'SUCCESS',
-    envelope: buildVoiceKnowledgeEnvelope(result.hits, queryText, result.truncated),
+    envelope: buildVoiceKnowledgeEnvelope(result.hits, parsed.queryText, result.truncated),
   };
 }
