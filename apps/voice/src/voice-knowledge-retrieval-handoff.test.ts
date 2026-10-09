@@ -5,10 +5,8 @@ import type {
   KnowledgeRetrievalRequest,
   KnowledgeRetrievalResult,
 } from '@voice-agent/contracts';
-import {
-  runVoiceKnowledgeHandoff,
-  type VoiceKnowledgeTrustedContext,
-} from './voice-knowledge-retrieval-coordinator.js';
+import { runVoiceKnowledgeHandoff } from './voice-knowledge-retrieval-coordinator.js';
+import type { VoiceKnowledgeTrustedContext } from './voice-knowledge-scope.js';
 import { VOICE_KNOWLEDGE_MAX_TOTAL_CHARS } from './voice-knowledge-context-envelope.js';
 
 const ORG_A = '11111111-1111-4111-8111-111111111111';

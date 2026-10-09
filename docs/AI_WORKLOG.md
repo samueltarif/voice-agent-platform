@@ -17241,3 +17241,26 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `REAL_DOTENV_ACCESSED = NO`
   - `REMOTE_SUPABASE_MIGRATION_EXECUTED = NO`
   - `REAL_PROVIDER_CALLS = 0`
+
+---
+
+## 2026-10-09 — Slice 007I typecheck TS2459 fix-forward (no new slice)
+
+- **SLICE_ID**: `007I`
+- **PREVIOUS_HEAD**: `4a891356aa3f70811f7d9eab2535786a2d5b115a`
+- **PREVIOUS_GATE_EXIT**: `2`
+- **PREVIOUS_GATE_FAILED_STAGE**: `TYPECHECK`
+- **ERROR_CODE**: `TS2459`
+- **ERROR_FILE**: `apps/voice/src/voice-knowledge-retrieval-handoff.test.ts`
+- **ERROR_TYPE**: `VoiceKnowledgeTrustedContext`
+- **CAUSE**: `TYPE_IMPORTED_FROM_MODULE_THAT_DOES_NOT_EXPORT_IT`
+- **ROOT_CAUSE_INSPECTION**: type declared and exported in `apps/voice/src/voice-knowledge-scope.ts` (`export interface`, YES); test imported it from `voice-knowledge-retrieval-coordinator.js`, which imports but does not re-export it; no public API contract requires a coordinator re-export.
+- **FIX**: test-only type import corrected to `import type { VoiceKnowledgeTrustedContext } from './voice-knowledge-scope.js'`; runtime import of `runVoiceKnowledgeHandoff` from the coordinator unchanged. No `any`, no ts-ignore/ts-nocheck, no assertion changes, no skips, no runtime/behavior change.
+- **TARGETED_VALIDATION**: `pnpm typecheck` 12/12 PASS; 18/18 handoff tests PASS unchanged; `pnpm lint` PASS; `pnpm format:check` PASS.
+- **INVARIANTS_PRESERVED**: trusted server-side scope binding, fail-closed semantics, untrusted envelope, structured-data authority, cross-tenant isolation, citation provenance; `PRODUCTION_RUNTIME_WIRING = NO`.
+- **PENDING**: fresh canonical gate on the corrective commit HEAD.
+- **SAFETY**:
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED = NO`
+  - `REAL_DOTENV_ACCESSED = NO`
+  - `REMOTE_SUPABASE_MIGRATION_EXECUTED = NO`
+  - `REAL_PROVIDER_CALLS = 0`
