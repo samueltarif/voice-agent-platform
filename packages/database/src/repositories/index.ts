@@ -26,5 +26,6 @@ export * from './knowledge-document-repository.js';
 export * from './knowledge-chunk-repository.js';
 export * from './knowledge-ingestion-types.js';
 export * from './knowledge-ingestion-service.js';
+export * from './knowledge-ingestion-resolution.js';
 export * from './knowledge-retrieval-scoring.js';
 export * from './knowledge-retrieval-service.js';

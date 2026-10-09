@@ -17113,3 +17113,47 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `REAL_DOTENV_ACCESSED = NO`
   - `REMOTE_SUPABASE_MIGRATION_EXECUTED = NO`
   - `REAL_PROVIDER_CALLS = 0`
+
+---
+
+## 2026-10-09 — Slice 007H: Concurrent Idempotency Fix-Forward (PR #110)
+
+- **SLICE_ID**: `007H` (fix-forward correction within Slice 007H; PR #110 preserved, not closed)
+- **BASE_MAIN_SHA**: `dc181afb319b05642fe42859d08f38ae6110a1d8`
+- **PREVIOUS_HEAD**: `bf6c7569ac39ce9c34a93933a2cc08be42ffaade`
+- **REVIEW_BLOCKER**:
+  - `PR_110_MERGE_READINESS = BLOCKED`
+  - `CONCURRENT_IDEMPOTENCY_REVIEW = FAIL`
+  - Historical foreground gate on `bf6c7569...` passed all checks, but did not resolve the concurrency defect identified during security review.
+- **ROOT_CAUSE**:
+  - `checkExistingDuplicate` operated as an un-isolated pre-transaction check querying by `contentIdentityValue` over a non-unique B-tree index.
+  - Under concurrent duplicate ingestion of identical content, concurrent requests both passed the check and inserted duplicate documents and chunks.
+  - Furthermore, indexing by content hash conflated document source identity with payload checksum, incorrectly preventing different sources from having identical text.
+- **IDENTITY_CONTRACT_RESOLUTION**:
+  - `IDEMPOTENCY_IDENTITY_KEY = (organization_id, source_type, source_locator)`
+  - `SOURCE_IDENTITY_SEMANTICS = Within a tenant organization, a source document is uniquely identified by its source_type and source_locator.`
+  - `SAME_CONTENT_DIFFERENT_SOURCE_POLICY = PERMIT_DISTINCT_DOCUMENTS (Different sources with identical content are legitimately independent).`
+  - `SAME_SOURCE_DIFFERENT_CONTENT_POLICY = REJECT_CONFLICT (Same source with altered content or title is deterministically rejected as a conflict).`
+- **DURABLE_CONCURRENCY_CORRECTION**:
+  - Added unique index `uniqueIndex('knowledge_docs_org_source_uidx').on(table.organizationId, table.sourceType, table.sourceLocator)` to `packages/database/src/schema/knowledge.ts`.
+  - Generated next forward-only Drizzle migration `0005_curly_reptil.sql` and snapshot `0005_snapshot.json`.
+  - Updated `insertKnowledgeDocument` with `onConflictDoNothing` on the composite key.
+  - Implemented race-safe resolution in `knowledge-ingestion-service.ts` and `knowledge-ingestion-resolution.ts`: winning transaction atomically creates document and chunks into READY; concurrent loser is blocked until commit, gracefully resolves winning document, verifies payload equivalence, and returns coherent chunks with `isIdempotentDuplicate: true` without exposing raw DB errors.
+- **EVIDENCE_AND_TESTS**:
+  - Forward-only migration 0005 applied and validated on local PostgreSQL container `voice-agent-postgres`.
+  - Added 3 concurrent PostgreSQL integration tests in `knowledge-persistence.integration.test.ts` (14/14 tests pass):
+    1. Concurrent identical ingestions -> exactly 1 durable document, 1 coherent chunk set, 0 orphaned chunks.
+    2. Concurrent conflicting ingestion -> deterministic conflict error, 0 raw 23505 leaks.
+    3. Multi-tenant and multi-source concurrency -> cross-tenant isolation and same-content/distinct-source independence preserved.
+  - Full test suite: 146 passed, 1013 tests passed, 0 failures.
+  - Zero changes to remote Supabase (`REMOTE_SUPABASE_MIGRATION_EXECUTED = NO`).
+- **SCOPE_STATUS**:
+  - `KNOWLEDGE_BASE_DOMAIN = PARTIAL`
+  - `PHASE7_MAIN_CONSOLIDATED = 83%`
+  - `PHASE7_FEATURE_PROJECTION = 90%`
+  - `007H_STATUS = OPEN (PR #110 fix-forward pending fresh authoritative gate and review)`
+- **SAFETY**:
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED = NO`
+  - `REAL_DOTENV_ACCESSED = NO`
+  - `REMOTE_SUPABASE_MIGRATION_EXECUTED = NO`
+  - `REAL_PROVIDER_CALLS = 0`

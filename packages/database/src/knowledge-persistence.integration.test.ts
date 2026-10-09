@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { inArray } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { createDatabaseConnection } from './client/connection.js';
 import { OrganizationRepository } from './repositories/organization-repository.js';
 import {
@@ -348,5 +348,134 @@ describe('Knowledge Base Persistence, Ingestion & Retrieval (007H Integration)',
 
     const docs = await listKnowledgeDocuments(db, orgAId);
     expect(docs.some((d) => d.title === rollbackTitle)).toBe(false);
+  });
+
+  it('12. handles concurrent identical ingestions safely: produces exactly one durable document and one chunk set without duplicates', async () => {
+    const rawText = `Texto concorrente idêntico para validação de corrida ${runId}.`;
+    const locator = `concurrent/identical-${runId}.md`;
+
+    const [res1, res2] = await Promise.all([
+      ingestKnowledgeDocument(db, {
+        organizationId: orgAId,
+        title: `Concorrência Idêntica ${runId}`,
+        source: { sourceType: 'POLICY', locator },
+        rawText,
+      }),
+      ingestKnowledgeDocument(db, {
+        organizationId: orgAId,
+        title: `Concorrência Idêntica ${runId}`,
+        source: { sourceType: 'POLICY', locator },
+        rawText,
+      }),
+    ]);
+
+    expect(res1.document.id).toBe(res2.document.id);
+    expect(res1.document.status).toBe('READY');
+    expect(res2.document.status).toBe('READY');
+
+    const duplicateFlags = [res1.isIdempotentDuplicate, res2.isIdempotentDuplicate];
+    expect(duplicateFlags).toContain(false);
+    expect(duplicateFlags).toContain(true);
+
+    const persistedDocs = await db
+      .select()
+      .from(knowledgeDocuments)
+      .where(
+        and(
+          eq(knowledgeDocuments.organizationId, orgAId),
+          eq(knowledgeDocuments.sourceLocator, locator),
+        ),
+      );
+    expect(persistedDocs).toHaveLength(1);
+
+    const persistedChunks = await getKnowledgeChunksByDocumentId(db, orgAId, res1.document.id);
+    expect(persistedChunks.length).toBe(res1.chunks.length);
+  });
+
+  it('13. handles concurrent conflicting ingestion deterministically without raw DB error leak', async () => {
+    const locator = `concurrent/conflicting-${runId}.md`;
+
+    const results = await Promise.allSettled([
+      ingestKnowledgeDocument(db, {
+        organizationId: orgAId,
+        title: `Título Original ${runId}`,
+        source: { sourceType: 'FAQ', locator },
+        rawText: `Conteúdo original ${runId}.`,
+      }),
+      ingestKnowledgeDocument(db, {
+        organizationId: orgAId,
+        title: `Título Divergente ${runId}`,
+        source: { sourceType: 'FAQ', locator },
+        rawText: `Conteúdo divergente ${runId}.`,
+      }),
+    ]);
+
+    const fulfilled = results.filter((r) => r.status === 'fulfilled');
+    const rejected = results.filter((r) => r.status === 'rejected');
+
+    expect(fulfilled).toHaveLength(1);
+    expect(rejected).toHaveLength(1);
+
+    const error = (rejected[0] as PromiseRejectedResult).reason as Error;
+    expect(error.message).toMatch(/Conflicting duplicate document/);
+    expect(error.message.includes('23505')).toBe(false);
+
+    const persistedDocs = await db
+      .select()
+      .from(knowledgeDocuments)
+      .where(
+        and(
+          eq(knowledgeDocuments.organizationId, orgAId),
+          eq(knowledgeDocuments.sourceLocator, locator),
+        ),
+      );
+    expect(persistedDocs).toHaveLength(1);
+  });
+
+  it('14. permits same source identity across different tenants and identical content across different sources', async () => {
+    const sharedLocator = `cross-tenant/shared-${runId}.md`;
+    const sharedText = `Texto idêntico compartilhado em múltiplas fontes ${runId}.`;
+
+    const [docOrgA, docOrgB] = await Promise.all([
+      ingestKnowledgeDocument(db, {
+        organizationId: orgAId,
+        title: `Doc Org A ${runId}`,
+        source: { sourceType: 'PRODUCT_MANUAL', locator: sharedLocator },
+        rawText: sharedText,
+      }),
+      ingestKnowledgeDocument(db, {
+        organizationId: orgBId,
+        title: `Doc Org B ${runId}`,
+        source: { sourceType: 'PRODUCT_MANUAL', locator: sharedLocator },
+        rawText: sharedText,
+      }),
+    ]);
+
+    expect(docOrgA.document.id).not.toBe(docOrgB.document.id);
+    expect(docOrgA.document.organizationId).toBe(orgAId);
+    expect(docOrgB.document.organizationId).toBe(orgBId);
+
+    const source1Locator = `multi-source/doc1-${runId}.md`;
+    const source2Locator = `multi-source/doc2-${runId}.md`;
+
+    const [doc1, doc2] = await Promise.all([
+      ingestKnowledgeDocument(db, {
+        organizationId: orgAId,
+        title: `Doc 1 ${runId}`,
+        source: { sourceType: 'FAQ', locator: source1Locator },
+        rawText: sharedText,
+      }),
+      ingestKnowledgeDocument(db, {
+        organizationId: orgAId,
+        title: `Doc 2 ${runId}`,
+        source: { sourceType: 'POLICY', locator: source2Locator },
+        rawText: sharedText,
+      }),
+    ]);
+
+    expect(doc1.document.id).not.toBe(doc2.document.id);
+    expect(doc1.document.source.locator).toBe(source1Locator);
+    expect(doc2.document.source.locator).toBe(source2Locator);
+    expect(doc1.document.contentIdentity?.value).toBe(doc2.document.contentIdentity?.value);
   });
 });

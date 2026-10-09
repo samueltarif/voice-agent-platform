@@ -58,6 +58,11 @@ export const knowledgeDocuments = pgTable(
       .notNull(),
   },
   (table) => [
+    uniqueIndex('knowledge_docs_org_source_uidx').on(
+      table.organizationId,
+      table.sourceType,
+      table.sourceLocator,
+    ),
     index('knowledge_docs_org_idx').on(table.organizationId),
     index('knowledge_docs_org_status_idx').on(table.organizationId, table.status),
     index('knowledge_docs_org_content_ident_idx').on(

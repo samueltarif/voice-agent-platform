@@ -13,7 +13,7 @@ import {
 } from './knowledge-text-normalizer.js';
 import { chunkKnowledgeText } from './knowledge-chunker.js';
 import {
-  getKnowledgeDocumentByContentIdentity,
+  getKnowledgeDocumentBySource,
   insertKnowledgeDocument,
   updateKnowledgeDocumentStatus,
 } from './knowledge-document-repository.js';
@@ -24,11 +24,16 @@ import {
 import type {
   IngestKnowledgeDocumentInput,
   IngestKnowledgeDocumentResult,
-  DuplicateCheckOptions,
   TransactionalIngestionOptions,
 } from './knowledge-ingestion-types.js';
+import {
+  isPostgresUniqueViolation,
+  resolveWinningConcurrentDocument,
+  verifyPayloadEquivalence,
+} from './knowledge-ingestion-resolution.js';
 
 export * from './knowledge-ingestion-types.js';
+export * from './knowledge-ingestion-resolution.js';
 
 function validateAndNormalize(input: IngestKnowledgeDocumentInput): {
   normalizedText: string;
@@ -52,31 +57,9 @@ function validateAndNormalize(input: IngestKnowledgeDocumentInput): {
   return { normalizedText, contentHash };
 }
 
-async function checkExistingDuplicate(
-  options: DuplicateCheckOptions,
-): Promise<IngestKnowledgeDocumentResult | null> {
-  const { db, orgId, contentHash, documentInput } = options;
-  const existing = await getKnowledgeDocumentByContentIdentity(db, orgId, contentHash);
-  if (!existing) return null;
-
-  const sameMetadata =
-    existing.title === documentInput.title &&
-    existing.source.locator === documentInput.source.locator &&
-    existing.source.sourceType === documentInput.source.sourceType;
-
-  if (!sameMetadata) {
-    throw new Error(
-      `Conflicting duplicate document content identity '${contentHash}' already exists with different title or source`,
-    );
-  }
-
-  const existingChunks = await getKnowledgeChunksByDocumentId(db, orgId, existing.id);
-  return { document: existing, chunks: existingChunks, isIdempotentDuplicate: true };
-}
-
 async function executeTransactionalIngestion(
   options: TransactionalIngestionOptions,
-): Promise<IngestKnowledgeDocumentResult> {
+): Promise<IngestKnowledgeDocumentResult | null> {
   const { db, input, documentInput, normalizedText } = options;
   const policy: KnowledgeChunkingPolicy = input.chunkingPolicy ?? {
     policyVersion: 'v1',
@@ -84,44 +67,51 @@ async function executeTransactionalIngestion(
     overlapChars: KNOWLEDGE_CHUNK_DEFAULT_OVERLAP_CHARS,
   };
 
-  return db.transaction(async (tx) => {
-    const doc = await insertKnowledgeDocument(tx, documentInput, {
-      initialStatus: 'PENDING',
-    });
+  try {
+    return await db.transaction(async (tx) => {
+      const doc = await insertKnowledgeDocument(tx, documentInput, {
+        initialStatus: 'PENDING',
+        onConflictDoNothing: true,
+      });
+      if (!doc) return null;
 
-    await updateKnowledgeDocumentStatus(tx, {
-      organizationId: input.organizationId,
-      documentId: doc.id,
-      nextStatus: 'PROCESSING',
-    });
-
-    const preparedChunks = chunkKnowledgeText({
-      text: normalizedText,
-      documentId: doc.id,
-      policy,
-    });
-
-    const insertedChunks = await insertKnowledgeChunks(
-      tx,
-      preparedChunks.map((c) => ({
+      await updateKnowledgeDocumentStatus(tx, {
         organizationId: input.organizationId,
         documentId: doc.id,
-        ordinal: c.ordinal,
-        text: c.text,
-        policyVersion: c.policyVersion,
-        contentIdentityValue: c.contentIdentityValue,
-        chunkIdentity: c.chunkIdentity,
-      })),
-    );
+        nextStatus: 'PROCESSING',
+      });
 
-    const readyDoc = await updateKnowledgeDocumentStatus(tx, {
-      organizationId: input.organizationId,
-      documentId: doc.id,
-      nextStatus: 'READY',
+      const preparedChunks = chunkKnowledgeText({
+        text: normalizedText,
+        documentId: doc.id,
+        policy,
+      });
+
+      const insertedChunks = await insertKnowledgeChunks(
+        tx,
+        preparedChunks.map((c) => ({
+          organizationId: input.organizationId,
+          documentId: doc.id,
+          ordinal: c.ordinal,
+          text: c.text,
+          policyVersion: c.policyVersion,
+          contentIdentityValue: c.contentIdentityValue,
+          chunkIdentity: c.chunkIdentity,
+        })),
+      );
+
+      const readyDoc = await updateKnowledgeDocumentStatus(tx, {
+        organizationId: input.organizationId,
+        documentId: doc.id,
+        nextStatus: 'READY',
+      });
+
+      return { document: readyDoc, chunks: insertedChunks, isIdempotentDuplicate: false };
     });
-
-    return { document: readyDoc, chunks: insertedChunks, isIdempotentDuplicate: false };
-  });
+  } catch (error: unknown) {
+    if (isPostgresUniqueViolation(error)) return null;
+    throw error;
+  }
 }
 
 export async function ingestKnowledgeDocument(
@@ -140,18 +130,34 @@ export async function ingestKnowledgeDocument(
     agentVersionId: input.agentVersionId,
   });
 
-  const duplicateResult = await checkExistingDuplicate({
-    db,
-    orgId: input.organizationId,
-    contentHash,
-    documentInput,
+  const existing = await getKnowledgeDocumentBySource(db, {
+    organizationId: input.organizationId,
+    sourceType: input.source.sourceType,
+    sourceLocator: input.source.locator,
   });
-  if (duplicateResult) return duplicateResult;
+  if (existing && existing.status === 'READY') {
+    verifyPayloadEquivalence(existing, input, contentHash);
+    const existingChunks = await getKnowledgeChunksByDocumentId(
+      db,
+      input.organizationId,
+      existing.id,
+    );
+    return { document: existing, chunks: existingChunks, isIdempotentDuplicate: true };
+  }
 
-  return executeTransactionalIngestion({
+  const result = await executeTransactionalIngestion({
     db,
     input,
     documentInput,
     normalizedText,
+  });
+
+  if (result) return result;
+
+  return resolveWinningConcurrentDocument({
+    db,
+    orgId: input.organizationId,
+    input,
+    contentHash,
   });
 }
