@@ -93,6 +93,16 @@ Este documento estabelece as fases sequenciais de implementação da plataforma.
 - Definição e implementação das tools disponíveis para agentes.
 - Versionamento de agentes: ciclo canônico DRAFT → PUBLISHED → ARCHIVED (supersedendo o ciclo anterior com TEST como status persistente; TEST é atividade pontual de validação — DEC-028 / ADR-009).
 - Knowledge Base: integração de dados estruturados (determinístico) e não estruturados (RAG — Pending Decision).
+- **Slice 007J — Knowledge Base API Management** *(Aprovado pelo operador humano em 2026-10-09)*:
+  - API HTTP autenticada e delimitada por tenant sob `/v1/knowledge/documents` em `apps/api`.
+  - Ingestão atômica e idempotente de texto estrito (`POST /v1/knowledge/documents`).
+  - Listagem com paginação delimitada e ordenação determinística (`GET /v1/knowledge/documents`).
+  - Consulta de metadados de documento com proteção anti-enumeração (`GET /v1/knowledge/documents/:documentId`).
+  - Arquivamento determinístico preservando ciclo de vida (`POST /v1/knowledge/documents/:documentId/archive`).
+  - Modelo de autorização RBAC dedicado (`knowledge.read`, `knowledge.ingest`, `knowledge.archive` — DEC-039).
+  - Segregação mandatória de autoridades: gestão humana RBAC vs. retrieval de agente publicado.
+  - Fora de escopo: upload binário/PDFs, web crawlers, object storage, embeddings/vetores, RAG em produção, telefonia e tráfego real.
+
 
 ---
 

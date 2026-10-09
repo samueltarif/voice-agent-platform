@@ -17264,3 +17264,59 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `REAL_DOTENV_ACCESSED = NO`
   - `REMOTE_SUPABASE_MIGRATION_EXECUTED = NO`
   - `REAL_PROVIDER_CALLS = 0`
+
+---
+
+## 2026-10-09 — Phase 7 Slice 007J: Knowledge Base API Management Implementation
+
+- **SLICE_ID**: `007J`
+- **TITLE**: `Knowledge Base API Management`
+- **HUMAN_APPROVAL_SOURCE**: `EXPLICIT_HUMAN_OPERATOR_APPROVAL_2026-10-09`
+- **PREVIOUS_SLICE**: `007I = CLOSED ON MAIN` (`f4c363960aed2aacc50fc4f87f34dfd0263efdc7`)
+- **PHASE7_STATUS**: `OPEN` (`PHASE7_MAIN_CONSOLIDATED = 93%`)
+- **BASE_MAIN_SHA**: `f4c363960aed2aacc50fc4f87f34dfd0263efdc7`
+- **FEATURE_BRANCH**: `feat/007j-knowledge-base-api-management`
+- **INITIAL_PREFLIGHT_BLOCKER**: `AUTHORIZATION_PREFLIGHT = BLOCKED` (`BLOCKER = KB_MANAGEMENT_PERMISSION_UNDEFINED`) — Halting prior to code modifications due to lack of approved RBAC permissions for Knowledge Base operations.
+- **HUMAN_RBAC_DECISION**: Dedicated permissions approved by human operator on 2026-10-09 (recorded as DEC-039 in `docs/DECISIONS_LOG.md`):
+  - Permissions: `knowledge.read`, `knowledge.ingest`, `knowledge.archive`
+  - Matrix:
+    - OWNER: `knowledge.read` = YES, `knowledge.ingest` = YES, `knowledge.archive` = YES
+    - ADMIN: `knowledge.read` = YES, `knowledge.ingest` = YES, `knowledge.archive` = YES
+    - MANAGER: `knowledge.read` = YES, `knowledge.ingest` = YES, `knowledge.archive` = NO
+    - OPERATOR: `knowledge.read` = NO, `knowledge.ingest` = NO, `knowledge.archive` = NO
+    - VIEWER: `knowledge.read` = NO, `knowledge.ingest` = NO, `knowledge.archive` = NO
+- **AUTHORITY_SEPARATION_INVARIANTS**:
+  - Human Management RBAC is 100% decoupled from Published Agent Retrieval Authority (`KnowledgeRetrievalPort`).
+  - Agent retrieval does NOT require human `knowledge.read` permission.
+  - Denying `knowledge.read` to an OPERATOR does NOT block an independently authorized published agent from retrieving knowledge.
+  - Published agent retrieval enforces its existing agent/version and collection scope.
+  - Publishing an agent does NOT grant organization-wide retrieval.
+  - Retrieved content cannot grant `knowledge.ingest` or `knowledge.archive` or invoke administrative endpoints.
+  - No management tools registered in agent tool registry (`NEW_AGENT_MANAGEMENT_TOOLS = NO`).
+  - No production voice composition activated (`PRODUCTION_VOICE_WIRING = NO`).
+- **IMPLEMENTATION_DETAILS**:
+  - `packages/contracts/src/knowledge/knowledge-management-contracts.ts`: Zod schemas for text ingestion body, bounded pagination listing query, document response DTO allowlist, and `KnowledgeRepositoryPort` interface.
+  - `packages/database/src/repositories/knowledge-repository.ts`: `DrizzleKnowledgeRepository` implementing `KnowledgeRepositoryPort` wrapping existing 007H ingestion, document, and status transition services.
+  - `apps/api/src/auth/knowledge-permissions.ts`: `KnowledgeManagementPermission` types, canonical role permissions matrix, and `hasKnowledgePermission` validator.
+  - `apps/api/src/auth/tenant-authorization.ts`: Updated `authorizeTenant` to dynamically enforce `KnowledgeManagementPermission` with server-side organization and membership re-validation.
+  - `apps/api/src/routes/knowledge-read-routes.ts`: `GET /v1/knowledge/documents` (bounded pagination, filters) and `GET /v1/knowledge/documents/:documentId` (anti-enumeration 404 on missing/cross-tenant).
+  - `apps/api/src/routes/knowledge-mutation-routes.ts`: `POST /v1/knowledge/documents` (atomic text ingestion, duplicate idempotency, conflict mapping to HTTP 409) and `POST /v1/knowledge/documents/:documentId/archive` (tenant-scoped lifecycle transition to `ARCHIVED`).
+  - `apps/api/src/http/response-mappers.ts`: Added `toKnowledgeDocumentDto` allowlist response mapper preventing leakage of internal traces or document content.
+  - `apps/api/src/app.ts` & `apps/api/src/server.ts`: Mounted `/v1/knowledge` and `/v1/knowledge/*` with `serviceAuthMiddleware(verifier)`, registered read and mutation routes, injected `DrizzleKnowledgeRepository`.
+- **TESTS_PERFORMED**:
+  - `apps/api/src/auth/knowledge-permissions.test.ts`: 2 unit tests verifying exact canonical RBAC matrix and rejection of invalid roles.
+  - `apps/api/src/http/knowledge-api.http.test.ts`: 17 offline HTTP integration tests covering authentication, expired assertions, inactive tenant/membership fail-closed, strict payload validation, conflict 409 mapping without SQL leakage, pagination, and anti-enumeration.
+  - `apps/api/src/http/knowledge-authority-separation.http.test.ts`: 15 regression tests verifying all 15 authority-separation requirements.
+  - Targeted Vitest: 3/3 test files passed, 34/34 tests passed.
+  - `check-file-size.mjs`: PASS (309 logic files verified, all production logic files <= 180 lines).
+  - `check-architecture.mjs`: PASS (all boundaries and architectural rules preserved).
+  - `pnpm lint`: PASS (0 errors, 0 warnings).
+  - `pnpm typecheck`: PASS (12/12 packages clean).
+  - `pnpm format:check`: PASS.
+- **SAFETY_AUDIT**:
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED = NO`
+  - `REAL_DOTENV_ACCESSED = NO`
+  - `REMOTE_SUPABASE_MIGRATION_EXECUTED = NO`
+  - `REAL_PROVIDER_CALLS = 0`
+  - `DATABASE_SCHEMA_CHANGED = NO`
+  - `MIGRATIONS_CREATED = NO`

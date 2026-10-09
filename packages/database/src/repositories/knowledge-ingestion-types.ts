@@ -1,28 +1,12 @@
 import type {
   CreateKnowledgeDocumentInput,
-  KnowledgeChunk,
-  KnowledgeChunkingPolicy,
-  KnowledgeDocument,
-  KnowledgeSourceReference,
+  IngestKnowledgeDocumentInput,
+  IngestKnowledgeDocumentResult,
 } from '@voice-agent/contracts';
+
 import type { DatabaseInstance } from '../client/connection.js';
 
-export interface IngestKnowledgeDocumentInput {
-  readonly organizationId: string;
-  readonly title: string;
-  readonly source: KnowledgeSourceReference;
-  readonly rawText: string;
-  readonly collection?: string | undefined;
-  readonly agentId?: string | undefined;
-  readonly agentVersionId?: string | undefined;
-  readonly chunkingPolicy?: KnowledgeChunkingPolicy | undefined;
-}
-
-export interface IngestKnowledgeDocumentResult {
-  readonly document: KnowledgeDocument;
-  readonly chunks: readonly KnowledgeChunk[];
-  readonly isIdempotentDuplicate: boolean;
-}
+export type { IngestKnowledgeDocumentInput, IngestKnowledgeDocumentResult };
 
 export interface DuplicateCheckOptions {
   readonly db: DatabaseInstance;
