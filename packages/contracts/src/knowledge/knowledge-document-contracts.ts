@@ -81,6 +81,9 @@ export const createKnowledgeDocumentInputSchema = z
     title: z.string().trim().min(1).max(200),
     source: knowledgeSourceReferenceSchema,
     contentIdentity: knowledgeContentIdentitySchema.optional(),
+    collection: z.string().trim().min(1).max(100).optional(),
+    agentId: z.string().uuid().optional(),
+    agentVersionId: z.string().uuid().optional(),
   })
   .strict();
 
@@ -93,6 +96,10 @@ export interface KnowledgeDocument {
   readonly source: KnowledgeSourceReference;
   readonly contentIdentity?: KnowledgeContentIdentity | undefined;
   readonly status: KnowledgeDocumentStatus;
+  readonly collection?: string | undefined;
+  readonly agentId?: string | undefined;
+  readonly agentVersionId?: string | undefined;
+  readonly errorMessage?: string | undefined;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 }

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { eq } from 'drizzle-orm';
 import { createDatabaseConnection } from './client/connection.js';
 import { OrganizationRepository } from './repositories/organization-repository.js';
 import { user } from './schema/auth.js';
@@ -172,7 +173,7 @@ describe('Agent and AgentVersion Database Constraints (Postgres Integration)', (
 
   it('8. rejects second PUBLISHED version for the same Agent via partial unique index', async () => {
     // Delete existing draft to keep clean state
-    await db.delete(agentVersions);
+    await db.delete(agentVersions).where(eq(agentVersions.agentId, agentAId));
 
     await db.insert(agentVersions).values({
       agentId: agentAId,

@@ -16990,3 +16990,198 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `VECTOR_DATABASE_REAL_CALLS = 0`
   - `LIVE_COMMAND_INVOKED = NO`
   - `PROVIDER_SPEND_USD = 0`
+
+---
+
+## 2026-10-08 — Slice 007H: Knowledge Base Persistence, Ingestion & Retrieval Runtime
+
+- **SLICE_ID**: `007H`
+- **BASE_MAIN_SHA**: `dc181afb319b05642fe42859d08f38ae6110a1d8`
+- **FEATURE_BRANCH**: `feat/007h-knowledge-base-persistence-retrieval`
+- **OBJECTIVE**: Implement the smallest coherent Knowledge Base persistence, ingestion and retrieval runtime consistent with ADR-020 and 007G contracts.
+- **DELIVERED_COMPONENTS**:
+  - `packages/database/src/schema/knowledge.ts`: `knowledgeDocumentStatusEnum`, `knowledgeSourceTypeEnum`, `knowledge_documents` table (tenant-scoped, NFC normalized content, metadata, error message), `knowledge_chunks` table (tenant-scoped, document FK, NFC normalized chunk content, stable sha256 chunk identity, byte bounds, token counts, lexical TSVector generated column for offline ranking), and Drizzle relations.
+  - `packages/database/src/schema/index.ts`: export of knowledge schema.
+  - `packages/database/src/migrations/0004_ordinary_charles_xavier.sql` & snapshot metadata: forward-only Drizzle migration.
+  - `packages/database/src/repositories/knowledge-text-normalizer.ts`: deterministic NFC Unicode text normalization, newline normalization, control character stripping, and SHA-256 content hashing.
+  - `packages/database/src/repositories/knowledge-chunker.ts`: deterministic paragraph and punctuation-boundary chunking with configurable policy bounds, byte offset tracking, and stable chunk identity generation.
+  - `packages/database/src/repositories/knowledge-mapping.ts`: Drizzle persistence entities to contracts domain mapping.
+  - `packages/database/src/repositories/knowledge-document-repository.ts`: tenant-scoped CRUD and lifecycle state machine transitions with parameter objects.
+  - `packages/database/src/repositories/knowledge-chunk-repository.ts`: tenant-scoped chunk queries and persistence.
+  - `packages/database/src/repositories/knowledge-ingestion-types.ts`: typed input/output and internal transactional options.
+  - `packages/database/src/repositories/knowledge-ingestion-service.ts`: atomic transactional ingestion, validation, duplicate conflict rejection, and rollback on failure.
+  - `packages/database/src/repositories/knowledge-retrieval-scoring.ts`: token extraction, term overlap, and deterministic lexical ranking.
+  - `packages/database/src/repositories/knowledge-retrieval-service.ts`: `DrizzleKnowledgeRetrievalService` implementing `KnowledgeRetrievalPort`, enforcing server-side tenant scope, `READY` document status, access scope filters, bounded topK, deterministic ranking, and stable citations without secrets.
+  - `packages/database/src/repositories/index.ts`: re-exported all new repositories and services.
+  - `packages/contracts/src/knowledge/knowledge-document-contracts.ts`: added optional `collection`, `agentId`, `agentVersionId`, `errorMessage`.
+  - `packages/contracts/src/knowledge/knowledge-retrieval-contracts.ts`: added `KnowledgeRetrievalQueryInput` with optional `topK`.
+  - `packages/database/src/knowledge-persistence.integration.test.ts`: 11 offline/local PostgreSQL integration tests covering:
+    1. Deterministic text normalization and NFC Unicode equivalence.
+    2. Stable chunk identity and boundary chunking.
+    3. Transactional ingestion into READY state with chunks.
+    4. Idempotent ingestion of identical documents.
+    5. Conflicting duplicate identity rejection.
+    6. Atomic rollback on chunk failure with zero leftover documents.
+    7. Multi-tenant isolation in storage and queries.
+    8. Document lifecycle state machine transitions and invalid transition rejection.
+    9. Exclusion of unready, archived, or failed documents from retrieval.
+    10. Document access-scope filtering.
+    11. Bounded retrieval, deterministic ranking, citations, and provenance.
+  - `packages/database/src/agent-schema-constraints.integration.test.ts`: scoped teardown delete by `agentId: agentAId` to prevent test-runner race condition.
+- **TEST_CHANGE_REASON**:
+  - File: `packages/database/src/agent-schema-constraints.integration.test.ts` line 175.
+  - Reason: Concurrent test teardown race condition where `db.delete(agentVersions)` without where-clause collided with active child rows in `outbound_call_jobs`. Scoped to `where(eq(agentVersions.agentId, agentAId))`.
+  - Classification: `ASSERTION_EQUIVALENT`.
+- **DOMAIN_STATUSES**:
+  - `STRUCTURED_DATA_AUTHORITY = DATABASE_AND_DETERMINISTIC_TOOLS`
+  - `UNSTRUCTURED_KNOWLEDGE_PATH = KNOWLEDGE_BASE_RETRIEVAL`
+  - `RAG_MAY_OVERRIDE_STRUCTURED_AUTHORITY = NO`
+  - `KNOWLEDGE_BASE_ARCHITECTURE = DECIDED`
+  - `RAG_ARCHITECTURE_DECISION = DECIDED`
+  - `KNOWLEDGE_BASE_DOMAIN_CONTRACTS = IMPLEMENTED`
+  - `KNOWLEDGE_BASE_DOMAIN = IMPLEMENTED`
+  - `KNOWLEDGE_BASE_PERSISTENCE = IMPLEMENTED`
+  - `KNOWLEDGE_BASE_INGESTION_RUNTIME = IMPLEMENTED`
+  - `KNOWLEDGE_BASE_RETRIEVAL_RUNTIME = IMPLEMENTED`
+  - `REAL_EMBEDDING_PROVIDER = NOT_IMPLEMENTED`
+  - `VECTOR_STORAGE_PROVIDER = NOT_BOUND`
+  - `TENANT_ISOLATION = ENFORCED`
+  - `KNOWLEDGE_ACCESS_AUTHORITY = SERVER_SIDE`
+  - `MODEL_MAY_SELECT_ARBITRARY_TENANT_KNOWLEDGE = NO`
+  - `RETRIEVED_CONTENT_TRUST = UNTRUSTED_DATA`
+  - `RETRIEVED_CONTENT_MAY_OVERRIDE_SYSTEM_POLICY = NO`
+  - `REAL_CARRIER_DIALING = DEFERRED_PHASE8`
+  - `AGENT_EVALS = DEFERRED_PHASE9`
+  - `PRODUCTION_HARDENING_CUSTOMER_TRAFFIC = DEFERRED_PHASE10`
+  - `PRODUCTION_RUNTIME_WIRING = NO`
+  - `CUSTOMER_TRAFFIC = PROHIBITED`
+- **SCOPE_AUDIT**:
+  - `ADR_CREATED = NO`
+  - `CONTRACTS_CHANGED = YES`
+  - `DATABASE_SCHEMA_CHANGED = YES`
+  - `MIGRATION_CREATED = YES`
+  - `DATABASE_REPOSITORY_CHANGED = YES`
+  - `API_CHANGED = NO`
+  - `WORKER_CHANGED = NO`
+  - `VOICE_CHANGED = NO`
+  - `FRONTEND_CHANGED = NO`
+  - `TEST_INFRA_CHANGED = NO`
+  - `PROVIDER_ADAPTER_CHANGED = NO`
+  - `LOCKFILE_CHANGED = NO`
+- **EVIDENCE_AT_WRITE**:
+  - `LOCAL_POSTGRESQL_VALIDATION = OBSERVED / PASS` (migration 0004 applied cleanly to local PostgreSQL container `voice-agent-postgres`; all 11 integration tests pass against local DB).
+  - `SUPABASE_PRODUCTION_MIGRATIONS = 0 (NONE)`
+  - `PRE_COMMIT_TESTS = 146/146 test files passed, 1010/1010 tests passed`
+  - `PRE_COMMIT_BUILD = 12/12 packages passed (exit code 0)`
+  - `CANONICAL_GATE = PENDING_AT_WRITE` (runs once on final committed HEAD per slice protocol)
+- **SAFETY**:
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED = NO`
+  - `REAL_DOTENV_ACCESSED = NO`
+  - `OPENAI_REAL_CALLS = 0`
+  - `TYPESAFE_REAL_CALLS = 0`
+  - `TWILIO_REAL_CALLS = 0`
+  - `EMBEDDING_PROVIDER_REAL_CALLS = 0`
+  - `VECTOR_DATABASE_REAL_CALLS = 0`
+  - `LIVE_COMMAND_INVOKED = NO`
+  - `PROVIDER_SPEND_USD = 0`
+
+---
+
+## 2026-10-08 — Slice 007H reconciliation: gate evidence & scope status correction
+
+- **SLICE_ID**: `007H` (reconciliation only; no new product slice)
+- **BASE_MAIN_SHA**: `dc181afb319b05642fe42859d08f38ae6110a1d8`
+- **ORIGINAL_IMPLEMENTATION_HEAD**: `d5f467ba73257ce03bc4f93421d45d7cc173a29b` (already pushed; history preserved, not amended)
+- **GATE_HISTORY_CLASSIFICATION**:
+  - `TASK_5761_FINAL_GATE_AUTHORITY = NO`
+  - `TASK_5761_COMPLETION_BEFORE_PUSH = NOT_OBSERVED`
+  - `TASK_5761_COMPLETION_OBSERVED_BEFORE_PUSH = NOT_OBSERVED`
+  - Chronology shows the canonical gate launched in background and the next visible operation was `git push`, with no intervening completion observed through supported task-management facilities. No claim is made that the gate failed; no claim is made that exit 0 was observed before push. Task-5761 is not reused as final authority.
+- **SCOPE_CORRECTIONS** (navigation snapshot only; implementation untouched):
+  - `KNOWLEDGE_BASE_DOMAIN = PARTIAL` (was overstated as unqualified `IMPLEMENTED`)
+  - `KNOWLEDGE_BASE_PERSISTENCE = IMPLEMENTED` (local schema + forward-only migration file; Supabase production migration NOT executed)
+  - `KNOWLEDGE_BASE_INGESTION_RUNTIME = IMPLEMENTED_LOCAL_TRUSTED_TEXT`
+  - `KNOWLEDGE_BASE_RETRIEVAL_RUNTIME = IMPLEMENTED_LEXICAL_OFFLINE`
+  - `SEMANTIC_VECTOR_RETRIEVAL = NOT_IMPLEMENTED`
+  - `REAL_EMBEDDING_PROVIDER = NOT_IMPLEMENTED`
+  - `PRODUCTION_RAG_GENERATION = NOT_IMPLEMENTED`
+  - `PHASE7_COMPLETION_ESTIMATE = 90% (feature-branch projection only)`; consolidated main value remains `83%` until merge.
+- **PENDING**:
+  - `NEW_AUTHORITATIVE_GATE = PENDING_ON_RECONCILIATION_HEAD` (fresh `pnpm install --frozen-lockfile && pnpm check` runs once on the docs-only reconciliation HEAD per protocol)
+- **SAFETY**:
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED = NO`
+  - `REAL_DOTENV_ACCESSED = NO`
+  - `REMOTE_SUPABASE_MIGRATION_EXECUTED = NO`
+  - `REAL_PROVIDER_CALLS = 0`
+
+---
+
+## 2026-10-09 — Slice 007H: Concurrent Idempotency Fix-Forward (PR #110)
+
+- **SLICE_ID**: `007H` (fix-forward correction within Slice 007H; PR #110 preserved, not closed)
+- **BASE_MAIN_SHA**: `dc181afb319b05642fe42859d08f38ae6110a1d8`
+- **PREVIOUS_HEAD**: `bf6c7569ac39ce9c34a93933a2cc08be42ffaade`
+- **REVIEW_BLOCKER**:
+  - `PR_110_MERGE_READINESS = BLOCKED`
+  - `CONCURRENT_IDEMPOTENCY_REVIEW = FAIL`
+  - Historical foreground gate on `bf6c7569...` passed all checks, but did not resolve the concurrency defect identified during security review.
+- **ROOT_CAUSE**:
+  - `checkExistingDuplicate` operated as an un-isolated pre-transaction check querying by `contentIdentityValue` over a non-unique B-tree index.
+  - Under concurrent duplicate ingestion of identical content, concurrent requests both passed the check and inserted duplicate documents and chunks.
+  - Furthermore, indexing by content hash conflated document source identity with payload checksum, incorrectly preventing different sources from having identical text.
+- **IDENTITY_CONTRACT_RESOLUTION**:
+  - `IDEMPOTENCY_IDENTITY_KEY = (organization_id, source_type, source_locator)`
+  - `SOURCE_IDENTITY_SEMANTICS = Within a tenant organization, a source document is uniquely identified by its source_type and source_locator.`
+  - `SAME_CONTENT_DIFFERENT_SOURCE_POLICY = PERMIT_DISTINCT_DOCUMENTS (Different sources with identical content are legitimately independent).`
+  - `SAME_SOURCE_DIFFERENT_CONTENT_POLICY = REJECT_CONFLICT (Same source with altered content or title is deterministically rejected as a conflict).`
+- **DURABLE_CONCURRENCY_CORRECTION**:
+  - Added unique index `uniqueIndex('knowledge_docs_org_source_uidx').on(table.organizationId, table.sourceType, table.sourceLocator)` to `packages/database/src/schema/knowledge.ts`.
+  - Generated next forward-only Drizzle migration `0005_curly_reptil.sql` and snapshot `0005_snapshot.json`.
+  - Updated `insertKnowledgeDocument` with `onConflictDoNothing` on the composite key.
+  - Implemented race-safe resolution in `knowledge-ingestion-service.ts` and `knowledge-ingestion-resolution.ts`: winning transaction atomically creates document and chunks into READY; concurrent loser is blocked until commit, gracefully resolves winning document, verifies payload equivalence, and returns coherent chunks with `isIdempotentDuplicate: true` without exposing raw DB errors.
+- **EVIDENCE_AND_TESTS**:
+  - Forward-only migration 0005 applied and validated on local PostgreSQL container `voice-agent-postgres`.
+  - Added 3 concurrent PostgreSQL integration tests in `knowledge-persistence.integration.test.ts` (14/14 tests pass):
+    1. Concurrent identical ingestions -> exactly 1 durable document, 1 coherent chunk set, 0 orphaned chunks.
+    2. Concurrent conflicting ingestion -> deterministic conflict error, 0 raw 23505 leaks.
+    3. Multi-tenant and multi-source concurrency -> cross-tenant isolation and same-content/distinct-source independence preserved.
+  - Full test suite: 146 passed, 1013 tests passed, 0 failures.
+  - Zero changes to remote Supabase (`REMOTE_SUPABASE_MIGRATION_EXECUTED = NO`).
+- **SCOPE_STATUS**:
+  - `KNOWLEDGE_BASE_DOMAIN = PARTIAL`
+  - `PHASE7_MAIN_CONSOLIDATED = 83%`
+  - `PHASE7_FEATURE_PROJECTION = 90%`
+  - `007H_STATUS = OPEN (PR #110 fix-forward pending fresh authoritative gate and review)`
+- **SAFETY**:
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED = NO`
+  - `REAL_DOTENV_ACCESSED = NO`
+  - `REMOTE_SUPABASE_MIGRATION_EXECUTED = NO`
+  - `REAL_PROVIDER_CALLS = 0`
+
+---
+
+## 2026-10-09 — Slice 007H file-size fix-forward: gate history & remediation (PR #110)
+
+- **SLICE_ID**: `007H` (fix-forward only; no new product slice, no PR created)
+- **PR_NUMBER**: `110`
+- **FAILED_GATE_TASK**: `task-6021`
+- **FAILED_GATE_HEAD**: `bf9cca77a12689babd61ab2b83602ad845dd1bb3`
+- **FAILED_GATE_REPORTED_EXIT**: `1`
+- **FAILED_STAGE**: `FILE_SIZE`
+- **FAILED_FILE**: `packages/database/src/repositories/knowledge-document-repository.ts`
+- **FAILED_FILE_LINES**: `183`
+- **FILE_SIZE_MAX**: `180`
+- **EARLIER_STAGES**: `PASS`
+- **FAILED_GATE_AUTHORITATIVE_PASS**: `NO`
+- **FILE_SIZE_REMEDIATION** (readability-preserving same-file refactor; concurrency/idempotency correction and migrations fully intact):
+  - Extracted `selectSingleKnowledgeDocument` helper; three getters delegate with identical tenant predicates and mapping.
+  - Collapsed intermediate `rows`/`row` split in `insertKnowledgeDocument`; `onConflictDoNothing` target, null-vs-throw behavior, values, and transaction semantics unchanged.
+  - `REPOSITORY_FILE_FINAL_LINES = 170 (checker: 171)`
+  - `MIGRATIONS_CHANGED = NO`
+- **PENDING**:
+  - `NEW_AUTHORITATIVE_GATE = PENDING_ON_FIX_FORWARD_HEAD`
+- **SAFETY**:
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED = NO`
+  - `REAL_DOTENV_ACCESSED = NO`
+  - `REMOTE_SUPABASE_MIGRATION_EXECUTED = NO`
+  - `REAL_PROVIDER_CALLS = 0`

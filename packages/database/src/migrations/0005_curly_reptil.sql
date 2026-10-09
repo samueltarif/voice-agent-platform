@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "knowledge_docs_org_source_uidx" ON "knowledge_documents" USING btree ("organization_id","source_type","source_locator");
