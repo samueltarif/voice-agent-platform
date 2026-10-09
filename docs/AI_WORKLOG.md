@@ -17157,3 +17157,31 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `REAL_DOTENV_ACCESSED = NO`
   - `REMOTE_SUPABASE_MIGRATION_EXECUTED = NO`
   - `REAL_PROVIDER_CALLS = 0`
+
+---
+
+## 2026-10-09 — Slice 007H file-size fix-forward: gate history & remediation (PR #110)
+
+- **SLICE_ID**: `007H` (fix-forward only; no new product slice, no PR created)
+- **PR_NUMBER**: `110`
+- **FAILED_GATE_TASK**: `task-6021`
+- **FAILED_GATE_HEAD**: `bf9cca77a12689babd61ab2b83602ad845dd1bb3`
+- **FAILED_GATE_REPORTED_EXIT**: `1`
+- **FAILED_STAGE**: `FILE_SIZE`
+- **FAILED_FILE**: `packages/database/src/repositories/knowledge-document-repository.ts`
+- **FAILED_FILE_LINES**: `183`
+- **FILE_SIZE_MAX**: `180`
+- **EARLIER_STAGES**: `PASS`
+- **FAILED_GATE_AUTHORITATIVE_PASS**: `NO`
+- **FILE_SIZE_REMEDIATION** (readability-preserving same-file refactor; concurrency/idempotency correction and migrations fully intact):
+  - Extracted `selectSingleKnowledgeDocument` helper; three getters delegate with identical tenant predicates and mapping.
+  - Collapsed intermediate `rows`/`row` split in `insertKnowledgeDocument`; `onConflictDoNothing` target, null-vs-throw behavior, values, and transaction semantics unchanged.
+  - `REPOSITORY_FILE_FINAL_LINES = 170 (checker: 171)`
+  - `MIGRATIONS_CHANGED = NO`
+- **PENDING**:
+  - `NEW_AUTHORITATIVE_GATE = PENDING_ON_FIX_FORWARD_HEAD`
+- **SAFETY**:
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED = NO`
+  - `REAL_DOTENV_ACCESSED = NO`
+  - `REMOTE_SUPABASE_MIGRATION_EXECUTED = NO`
+  - `REAL_PROVIDER_CALLS = 0`

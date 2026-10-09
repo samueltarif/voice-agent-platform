@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq, type SQLWrapper } from 'drizzle-orm';
 import {
   type CreateKnowledgeDocumentInput,
   type KnowledgeDocument,
@@ -9,6 +9,19 @@ import {
 import { knowledgeDocuments } from '../schema/knowledge.js';
 import type { DatabaseExecutor } from './database-executor.js';
 import { mapKnowledgeDocument } from './knowledge-mapping.js';
+
+async function selectSingleKnowledgeDocument(
+  db: DatabaseExecutor,
+  conditions: SQLWrapper[],
+): Promise<KnowledgeDocument | null> {
+  const [row] = await db
+    .select()
+    .from(knowledgeDocuments)
+    .where(and(...conditions))
+    .limit(1);
+
+  return row ? mapKnowledgeDocument(row) : null;
+}
 
 export interface InsertKnowledgeDocumentOptions {
   readonly initialStatus?: KnowledgeDocumentStatus | undefined;
@@ -36,7 +49,7 @@ export async function insertKnowledgeDocument(
     errorMessage: options.errorMessage,
   });
 
-  const rows = options.onConflictDoNothing
+  const [row] = options.onConflictDoNothing
     ? await baseInsert
         .onConflictDoNothing({
           target: [
@@ -48,7 +61,6 @@ export async function insertKnowledgeDocument(
         .returning()
     : await baseInsert.returning();
 
-  const row = rows[0];
   if (!row) {
     if (options.onConflictDoNothing) return null;
     throw new Error('Failed to insert knowledge document');
@@ -66,19 +78,11 @@ export async function getKnowledgeDocumentBySource(
   db: DatabaseExecutor,
   input: GetKnowledgeDocumentBySourceInput,
 ): Promise<KnowledgeDocument | null> {
-  const [row] = await db
-    .select()
-    .from(knowledgeDocuments)
-    .where(
-      and(
-        eq(knowledgeDocuments.organizationId, input.organizationId),
-        eq(knowledgeDocuments.sourceType, input.sourceType),
-        eq(knowledgeDocuments.sourceLocator, input.sourceLocator),
-      ),
-    )
-    .limit(1);
-
-  return row ? mapKnowledgeDocument(row) : null;
+  return selectSingleKnowledgeDocument(db, [
+    eq(knowledgeDocuments.organizationId, input.organizationId),
+    eq(knowledgeDocuments.sourceType, input.sourceType),
+    eq(knowledgeDocuments.sourceLocator, input.sourceLocator),
+  ]);
 }
 
 export async function getKnowledgeDocumentById(
@@ -86,18 +90,10 @@ export async function getKnowledgeDocumentById(
   organizationId: string,
   documentId: string,
 ): Promise<KnowledgeDocument | null> {
-  const [row] = await db
-    .select()
-    .from(knowledgeDocuments)
-    .where(
-      and(
-        eq(knowledgeDocuments.organizationId, organizationId),
-        eq(knowledgeDocuments.id, documentId),
-      ),
-    )
-    .limit(1);
-
-  return row ? mapKnowledgeDocument(row) : null;
+  return selectSingleKnowledgeDocument(db, [
+    eq(knowledgeDocuments.organizationId, organizationId),
+    eq(knowledgeDocuments.id, documentId),
+  ]);
 }
 
 export async function getKnowledgeDocumentByContentIdentity(
@@ -105,18 +101,10 @@ export async function getKnowledgeDocumentByContentIdentity(
   organizationId: string,
   contentIdentityValue: string,
 ): Promise<KnowledgeDocument | null> {
-  const [row] = await db
-    .select()
-    .from(knowledgeDocuments)
-    .where(
-      and(
-        eq(knowledgeDocuments.organizationId, organizationId),
-        eq(knowledgeDocuments.contentIdentityValue, contentIdentityValue),
-      ),
-    )
-    .limit(1);
-
-  return row ? mapKnowledgeDocument(row) : null;
+  return selectSingleKnowledgeDocument(db, [
+    eq(knowledgeDocuments.organizationId, organizationId),
+    eq(knowledgeDocuments.contentIdentityValue, contentIdentityValue),
+  ]);
 }
 
 export interface UpdateKnowledgeDocumentStatusInput {
