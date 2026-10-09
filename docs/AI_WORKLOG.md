@@ -17185,3 +17185,38 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `REAL_DOTENV_ACCESSED = NO`
   - `REMOTE_SUPABASE_MIGRATION_EXECUTED = NO`
   - `REAL_PROVIDER_CALLS = 0`
+
+---
+
+## 2026-10-09 — Slice 007I: Offline Voice Knowledge Retrieval Handoff
+
+- **SLICE_ID**: `007I`
+- **BASE_MAIN_SHA**: `10710bb46ec1fcef2943141e01c81f02cb327fb0`
+- **FEATURE_BRANCH**: `feat/007i-voice-knowledge-retrieval-handoff`
+- **PRIOR_007H**: `CLOSED ON MAIN` (PR #110 squash `10710bb`; post-merge gate `AUTHORITATIVE_PASS`; task-6142 preserved as `REPORTED_PASS_WITH_EVIDENCE_GAP`)
+- **OBJECTIVE**: Minimal offline-testable provider-neutral voice knowledge handoff: trusted voice/agent context -> server-authorized scope -> `KnowledgeRetrievalPort` -> bounded untrusted envelope -> offline consumption boundary. Inactive in production.
+- **DISCOVERY**:
+  - Trusted org context: `ToolExecutionContext.organizationId` (server-resolved).
+  - Published agent/version identity: `ToolExecutionContext.agentId/agentVersionId` + snapshot (`published-version-toolset.ts` pattern).
+  - No authoritative agent-to-knowledge binding persistence exists (snapshot v1 rejects knowledge fields; ADR-020 defers collection policy). Binding enforced from existing published identity: retrieval always agent-scoped, fail-closed without it. No new permission model invented; no schema created.
+  - Adapter precedent: `catalog-search-tool.ts` over injected ports; offline composition tests with fakes; staging-shadow precedent for non-production composition.
+- **DELIVERED_COMPONENTS**:
+  - `apps/voice/src/voice-knowledge-scope.ts`: server-side scope derivation from trusted identity; fail-closed `INVALID_TRUSTED_CONTEXT` / `MISSING_AGENT_BINDING`; collection accepted from server callers only.
+  - `apps/voice/src/voice-knowledge-context-envelope.ts`: bounded `UNTRUSTED_DATA` envelope (excerpt 500 / total 4000 chars, engineering defaults), stable citation IDs, deterministic ordering, upstream-truncation propagation.
+  - `apps/voice/src/voice-knowledge-retrieval-coordinator.ts`: single-attempt bounded handoff reusing `KnowledgeRetrievalPort`; sanitized `RETRIEVAL_FAILED`; no retries, no tenant broadening, no timeout interface on port (deferred); NOT registered in any production composition root.
+  - `apps/voice/src/voice-knowledge-retrieval-handoff.test.ts`: 18 offline tests (auth, isolation, binding, READY-only, no-results, errors, bounds, ordering, citations, injection inertness, override/escalation inertness, structured-authority precedence, no mutation, zero external deps).
+  - `apps/voice/src/index.ts`: export of the 3 new modules.
+- **AUTHORITY_INVARIANTS** (all preserved): `KNOWLEDGE_ACCESS_AUTHORITY = SERVER_SIDE`; `STRUCTURED_DATA_AUTHORITY = DATABASE_AND_DETERMINISTIC_TOOLS`; `RETRIEVED_CONTENT_TRUST = UNTRUSTED_DATA`; `RAG_MAY_OVERRIDE_STRUCTURED_DATA = NO`; `ACTIVE_GUARDED = BLOCKED`; `CUSTOMER_TRAFFIC = PROHIBITED`; `PRODUCTION_RUNTIME_WIRING = NO`.
+- **SCOPE_STATUS**:
+  - `OFFLINE_VOICE_KNOWLEDGE_HANDOFF = IMPLEMENTED_OFFLINE`
+  - `VOICE_KNOWLEDGE_PRODUCTION = NOT_ACTIVATED`
+  - `KNOWLEDGE_BASE_DOMAIN = PARTIAL`
+  - `DATABASE_SCHEMA_CHANGED = NO` | `MIGRATION_CREATED = NO` | `API_CHANGED = NO` | `WORKER_CHANGED = NO` | `FRONTEND_CHANGED = NO` | `PROVIDER_ADAPTER_CHANGED = NO` | `LOCKFILE_CHANGED = NO`
+- **EVIDENCE_AT_WRITE**:
+  - `NEW_HANDOFF_TESTS = 18/18 PASS` (project-scoped vitest run, development evidence only)
+  - `CANONICAL_GATE = PENDING_AT_WRITE` (runs once on final committed HEAD per slice protocol)
+- **SAFETY**:
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED = NO`
+  - `REAL_DOTENV_ACCESSED = NO`
+  - `REMOTE_SUPABASE_MIGRATION_EXECUTED = NO`
+  - `REAL_PROVIDER_CALLS = 0`

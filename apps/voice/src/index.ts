@@ -46,3 +46,6 @@ export * from './catalog-query-port.js';
 export * from './catalog-search-tool.js';
 export * from './catalog-item-detail-tool.js';
 export * from './outbound-call-lifecycle-bootstrap-adapter.js';
+export * from './voice-knowledge-scope.js';
+export * from './voice-knowledge-context-envelope.js';
+export * from './voice-knowledge-retrieval-coordinator.js';

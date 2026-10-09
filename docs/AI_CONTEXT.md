@@ -4,14 +4,14 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-08
-CONTEXT_BASE_MAIN_SHA: dc181afb319b05642fe42859d08f38ae6110a1d8
+CONTEXT_BASE_MAIN_SHA: 10710bb46ec1fcef2943141e01c81f02cb327fb0
 CURRENT_PHASE: Phase 7 (OPEN)
-CURRENT_SLICE: Slice 007H — Knowledge Base Persistence, Ingestion & Retrieval Runtime
-CONTEXT_UPDATE_BRANCH: feat/007h-knowledge-base-persistence-retrieval
+CURRENT_SLICE: Slice 007I — Offline Voice Knowledge Retrieval Handoff
+CONTEXT_UPDATE_BRANCH: feat/007i-voice-knowledge-retrieval-handoff
 CONTEXT_UPDATE_PR: NONE
-LAST_MERGED_PR_AT_REFRESH: 109
-LAST_MERGE_SHA_AT_REFRESH: dc181afb319b05642fe42859d08f38ae6110a1d8
-LAST_TESTED_CODE_SHA: dc181afb319b05642fe42859d08f38ae6110a1d8
+LAST_MERGED_PR_AT_REFRESH: 110
+LAST_MERGE_SHA_AT_REFRESH: 10710bb46ec1fcef2943141e01c81f02cb327fb0
+LAST_TESTED_CODE_SHA: 10710bb46ec1fcef2943141e01c81f02cb327fb0
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
 AI_CONTEXT_HEADER_END
@@ -156,7 +156,7 @@ AI_CONTEXT_HEADER_END
 ## 7. Bloqueios Atuais e Status de Prontidão (Current Blockers & Readiness)
 
 1. `PHASE6_STATUS = CLOSED` | `PHASE6_COMPLETION_ESTIMATE = 100%` | `PHASE6_BLOCKER_COUNT = 0` | `PHASE6_BLOCKERS = NONE` (concluída formalmente via PR #100 / DEC-038).
-2. `PHASE7_STATUS = OPEN` | `PHASE7_COMPLETION_ESTIMATE = 90%` | `PHASE7_BLOCKER_COUNT = 0` | `PHASE7_BLOCKERS = NONE`.
+2. `PHASE7_STATUS = OPEN` | `PHASE7_COMPLETION_ESTIMATE = 93%` | `PHASE7_BLOCKER_COUNT = 0` | `PHASE7_BLOCKERS = NONE`.
 3. `AGENT_DOMAIN_STATUS = IMPLEMENTED` (`packages/database`: schema e repositórios de agentes e lifecycle).
 4. `AGENT_VERSIONING_STATUS = IMPLEMENTED` (`packages/database`, `packages/contracts`: ciclo draft/publish/archive com imutabilidade de versões publicadas).
 5. `TOOL_CALLING_CONTRACT = IMPLEMENTED` (`packages/contracts/src/tools/`: `ToolInvocation`, `ToolExecutionContext`, `ToolExecutionResult`, `ToolDefinition`, `ToolPort`, `ToolRegistryPort`).
@@ -183,6 +183,8 @@ AI_CONTEXT_HEADER_END
 21. `KNOWLEDGE_BASE_INGESTION_RUNTIME = IMPLEMENTED_LOCAL_TRUSTED_TEXT` (`packages/database/src/repositories/knowledge-ingestion-service.ts`: ingestão transacional atômica de texto confiável local, normalização determinística NFC, identidade estável SHA-256, lifecycle).
 22. `KNOWLEDGE_BASE_RETRIEVAL_RUNTIME = IMPLEMENTED_LEXICAL_OFFLINE` (`packages/database/src/repositories/knowledge-retrieval-service.ts`: retrieval léxico offline limitado, filtragem de tenant e escopo de acesso no DB, ranking determinístico, proveniência e citações sem segredos).
 23. `SEMANTIC_VECTOR_RETRIEVAL = NOT_IMPLEMENTED` | `REAL_EMBEDDING_PROVIDER = NOT_IMPLEMENTED` | `VECTOR_STORAGE_PROVIDER = NOT_BOUND` | `PRODUCTION_RAG_GENERATION = NOT_IMPLEMENTED`.
+24. `VOICE_KNOWLEDGE_HANDOFF = IMPLEMENTED_OFFLINE` (`apps/voice/src/voice-knowledge-retrieval-coordinator.ts`: trusted scope binding, bounded retrieval, untrusted envelope; 18 offline tests; NOT registered in production composition).
+25. `VOICE_KNOWLEDGE_PRODUCTION = NOT_ACTIVATED` (no live routing/streaming/carrier changes; no RAG feature flag).
 18. `OUTBOUND_DOMAIN_MODEL = IMPLEMENTED` (`packages/database/src/schema/outbound.ts`: `outbound_campaigns` e `outbound_call_jobs`, DrizzleOutboundRepository, migration `0003_tiresome_nemesis.sql`).
 19. `OUTBOUND_JOB_ORCHESTRATION = IMPLEMENTED` (`packages/contracts/src/outbound/`: contratos, máquina de estados determinística, validação de transições).
 20. `OUTBOUND_WORKER_DISPATCH = IMPLEMENTED` (`apps/worker/src/outbound-call-dispatcher.ts`: claim atômico via `SKIP LOCKED`, política de retry exponencial delimitada, idempotência).
@@ -209,11 +211,12 @@ AI_CONTEXT_HEADER_END
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- **Phase 7 Status**: `OPEN` (`PHASE7_STATUS = OPEN`, `PHASE7_COMPLETION_ESTIMATE = 90% (feature-branch projection only)`, `PHASE7_BLOCKER_COUNT = 0`, `PHASE7_BLOCKERS = NONE`).
-- **Slice 007H — Knowledge Base Persistence, Ingestion & Retrieval Runtime**: `IMPLEMENTED / TESTED LOCALLY` (pending canonical gate on final HEAD).
-- `NEXT_ALLOWED_STEP = AUTOMATED_PR_REVIEW_AND_MERGE_007H`
+- **Phase 7 Status**: `OPEN` (`PHASE7_STATUS = OPEN`, `PHASE7_COMPLETION_ESTIMATE = 93% (feature-branch projection only)`, `PHASE7_BLOCKER_COUNT = 0`, `PHASE7_BLOCKERS = NONE`).
+- **Slice 007H — Knowledge Base Persistence, Ingestion & Retrieval Runtime**: `CLOSED ON MAIN` (PR #110 squash `10710bb`; post-merge gate `AUTHORITATIVE_PASS`).
+- **Slice 007I — Offline Voice Knowledge Retrieval Handoff**: `IMPLEMENTED / TESTED LOCALLY` (pending canonical gate on final HEAD).
+- `NEXT_ALLOWED_STEP = AUTOMATED_PR_REVIEW_AND_MERGE_007I`
 - `NEXT_ALLOWED_SLICE = NOT_YET_ALLOWED`
-- **Recommended Next Slice**: `007I — Knowledge Base Voice Runtime Integration / RAG Handoff` (ou conforme backlog de governança).
+- **Recommended Next Slice**: TBD por backlog de governança (candidatos: production RAG wiring sob revisão humana, ou Agent Evals Fase 9).
 - `AUTHORIZATION_CONSUMED = YES` | `SECOND_LIVE_RUN_AUTHORIZED = NO` | `NEW_LIVE_AUTHORIZATION_CREATED = NO`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
 
