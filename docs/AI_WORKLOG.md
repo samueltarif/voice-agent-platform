@@ -17533,3 +17533,13 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **PRECOMMIT**: format:check PASS, lint PASS, typecheck PASS (after restoring KnowledgeDocumentStatus import), architecture PASS, file-size PASS (162 + 33), targeted 30/30 PASS (16 final + 14 persistence)
 - **NEW_GATE_PENDING**: single canonical pnpm install --frozen-lockfile and pnpm check on NEW_RECOVERY_HEAD
 - **SAFETY**: NO dotenv, NO remote DB, NO production, NO providers, NO temp scripts, NO internal logs
+
+## 2026-10-13 - Slice 007J Post-Merge Closure on Main (PR #112, retrospective in 007K branch)
+
+- **SLICE**: 007J TECHNICALLY CLOSED ON MAIN | **PR**: #112 MERGED | **METHOD**: SQUASH
+- **SQUASH_SHA**: 2e6d90afb85c2dddf2a02c3f57cafeb262e22b59 | **PARENT_SHA**: f4c363960aed2aacc50fc4f87f34dfd0263efdc7
+- **POST_MERGE_GATE** (OpenCode-reported prior task, not rerun now): cmd FOREGROUND exit 0, FORMAT/LINT/TYPECHECK/TEST/BUILD/ARCHITECTURE/FILE_SIZE PASS, 156 files 1129 tests 0 failures 45 staging skips
+- **PRESERVED**: DEC-039, DEC-040, tenant isolation/idempotency, retrieval isolation, UNTRUSTED_DATA
+- **NO_REMOTE_MIGRATIONS**: 0 | **NO_PROVIDERS**: 0 | **NO_TRAFFIC**: PROHIBITED | **NO_RUNTIME_WIRING**: NO
+- **MERGE_DISCREPANCY**: multiple merge_pull_request invocations appeared in supplied tool list, only one squash merge confirmed (2e6d90a); transcripts not inspected
+- **NOTE**: retrospective append-only entry created on 007K feature branch, history otherwise unchanged
