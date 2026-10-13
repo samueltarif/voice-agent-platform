@@ -28,6 +28,7 @@ export * from './knowledge-ingestion-types.js';
 export * from './knowledge-ingestion-service.js';
 export * from './knowledge-ingestion-resolution.js';
 export * from './knowledge-agent-association.js';
+export * from './knowledge-version-lock.js';
 export * from './knowledge-retrieval-scoring.js';
 export * from './knowledge-retrieval-service.js';
 export * from './knowledge-repository.js';

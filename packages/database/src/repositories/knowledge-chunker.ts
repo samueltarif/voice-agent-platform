@@ -60,10 +60,12 @@ export function chunkKnowledgeText(input: ChunkKnowledgeTextInput): PreparedChun
 
     const chunkText = text.slice(start, end).trim();
     if (chunkText.length > 0) {
+      const prospectiveOrdinal = ordinal + 1;
+      const prospectiveAggregate = aggregateChars + chunkText.length;
+      assertGenerationCaps(prospectiveOrdinal, prospectiveAggregate);
       chunks.push(buildChunk({ documentId, policyVersion, ordinal, chunkText }));
-      ordinal++;
-      aggregateChars += chunkText.length;
-      assertGenerationCaps(ordinal, aggregateChars);
+      ordinal = prospectiveOrdinal;
+      aggregateChars = prospectiveAggregate;
     }
 
     if (end >= textLen) break;

@@ -1,6 +1,7 @@
 import {
   type CreateKnowledgeDocumentInput,
   createKnowledgeDocumentInputSchema,
+  toPolicyIdentity,
 } from '@voice-agent/contracts';
 import { NotFoundError } from '@voice-agent/errors';
 import type { DatabaseInstance } from '../client/connection.js';
@@ -31,6 +32,7 @@ import {
   AGENT_ASSOCIATION_NOT_FOUND_MESSAGE,
   validateAgentAssociation,
 } from './knowledge-agent-association.js';
+import { lockReferencedVersion } from './knowledge-version-lock.js';
 
 export * from './knowledge-ingestion-types.js';
 export * from './knowledge-ingestion-resolution.js';
@@ -42,9 +44,11 @@ async function executeTransactionalIngestion(
 
   try {
     return await db.transaction(async (tx) => {
+      await lockReferencedVersion(tx, input);
       const doc = await insertKnowledgeDocument(tx, documentInput, {
         initialStatus: 'PENDING',
         onConflictDoNothing: true,
+        policyIdentity: toPolicyIdentity(effectivePolicy),
       });
       if (!doc) return null;
 

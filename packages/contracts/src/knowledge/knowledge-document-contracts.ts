@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import type { KnowledgeChunkingPolicy } from './knowledge-chunk-contracts.js';
+
 export const KNOWLEDGE_SOURCE_TYPES = [
   'MANUAL_UPLOAD',
   'PRODUCT_MANUAL',
@@ -99,6 +101,7 @@ export interface KnowledgeDocument {
   readonly collection?: string | undefined;
   readonly agentId?: string | undefined;
   readonly agentVersionId?: string | undefined;
+  readonly chunkingPolicy?: KnowledgeChunkingPolicy | undefined;
   readonly errorMessage?: string | undefined;
   readonly createdAt: Date;
   readonly updatedAt: Date;

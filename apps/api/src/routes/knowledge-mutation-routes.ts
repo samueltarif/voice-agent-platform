@@ -1,10 +1,5 @@
 import { createRoute, type OpenAPIHono, z } from '@hono/zod-openapi';
-import {
-  BadRequestError,
-  ConflictError,
-  InvalidStateTransitionError,
-  NotFoundError,
-} from '@voice-agent/errors';
+import { AppError, InvalidStateTransitionError, NotFoundError } from '@voice-agent/errors';
 import {
   ingestKnowledgeDocumentHttpBodySchema,
   validateDocumentStatusTransition,
@@ -15,21 +10,7 @@ import { authorizeTenant } from '../auth/tenant-authorization.js';
 import { toKnowledgeDocumentDto } from '../http/response-mappers.js';
 
 function mapIngestionError(error: unknown): never {
-  if (error instanceof Error) {
-    if (
-      error.message.includes('Conflicting duplicate document') ||
-      error.message.includes('Concurrent knowledge document ingestion failed')
-    ) {
-      throw new ConflictError(error.message);
-    }
-    if (
-      error.message.includes('rawText must not be empty') ||
-      error.message.includes('rawText exceeds maximum length') ||
-      error.message.includes('empty after normalization')
-    ) {
-      throw new BadRequestError(error.message);
-    }
-  }
+  if (error instanceof AppError) throw error;
   throw error;
 }
 

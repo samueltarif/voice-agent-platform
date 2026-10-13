@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { generateKeyPair, exportJWK, SignJWT, type JWK } from 'jose';
+import { ConflictError } from '@voice-agent/errors';
 import { createApp } from '../app.js';
 import { ServiceAssertionVerifier } from '../auth/service-assertion-verifier.js';
 import { BootstrapAssertionVerifier } from '../auth/bootstrap-assertion-verifier.js';
@@ -54,12 +55,12 @@ describe('HTTP /v1 Knowledge Management API Suite', () => {
       input: IngestKnowledgeDocumentInput,
     ): Promise<IngestKnowledgeDocumentResult> {
       if (input.rawText.includes('TRIGGER_CONFLICT')) {
-        throw new Error(
+        throw new ConflictError(
           `Conflicting duplicate document content identity 'hash' already exists for source '${input.source.locator}' with different title or content`,
         );
       }
       if (input.rawText.includes('TRIGGER_CONCURRENT_FAIL')) {
-        throw new Error(
+        throw new ConflictError(
           'Concurrent knowledge document ingestion failed: existing document is in FAILED state',
         );
       }

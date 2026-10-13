@@ -1,21 +1,27 @@
 import {
   type IngestKnowledgeDocumentInput,
-  type KnowledgeChunk,
   type KnowledgeChunkingPolicy,
   type KnowledgeDocument,
   KNOWLEDGE_CHUNK_DEFAULT_MAX_CHARS,
   KNOWLEDGE_CHUNK_DEFAULT_OVERLAP_CHARS,
+  arePolicyIdentitiesEqual,
+  isUnknownPolicyIdentity,
   knowledgeChunkingPolicySchema,
+  toPolicyIdentity,
 } from '@voice-agent/contracts';
 import { ConflictError } from '@voice-agent/errors';
 import { getKnowledgeDocumentBySource } from './knowledge-document-repository.js';
 import { getKnowledgeChunksByDocumentId } from './knowledge-chunk-repository.js';
-import { chunkKnowledgeText } from './knowledge-chunker.js';
 import type {
   IngestKnowledgeDocumentResult,
   PayloadEquivalenceScope,
   ResolveWinningOptions,
 } from './knowledge-ingestion-types.js';
+
+const RELEVANT_KNOWLEDGE_FK_CONSTRAINTS = new Set([
+  'knowledge_documents_agent_id_agents_id_fk',
+  'knowledge_documents_agent_version_id_agent_versions_id_fk',
+]);
 
 export function resolveEffectiveChunkingPolicy(
   input: IngestKnowledgeDocumentInput,
@@ -39,46 +45,19 @@ function conflictFor(locator: string, detail: string): ConflictError {
   );
 }
 
-function verifyEffectivePolicyEquivalent(locator: string, scope: PayloadEquivalenceScope): void {
-  const { existingChunks, normalizedText, effectivePolicy } = scope;
-  const policyMismatch = existingChunks.some(
-    (chunk) => chunk.policyVersion !== effectivePolicy.policyVersion,
-  );
-  if (existingChunks.length === 0 || policyMismatch) {
-    throw conflictFor(locator, 'a different effective chunking policy');
-  }
-
-  const recomputed = chunkKnowledgeText({
-    text: normalizedText,
-    documentId: '__equivalence_check__',
-    policy: effectivePolicy,
-  });
-  const persisted = [...existingChunks].sort((a, b) => a.ordinal - b.ordinal);
-  assertChunkIdentitiesEqual(persisted, recomputed, locator);
-}
-
-function assertChunkIdentitiesEqual(
-  persisted: readonly KnowledgeChunk[],
-  recomputed: ReadonlyArray<{
-    readonly ordinal: number;
-    readonly text: string;
-    readonly contentIdentityValue: string;
-  }>,
+function verifyEffectivePolicyEquivalent(
+  existing: KnowledgeDocument,
+  effectivePolicy: KnowledgeChunkingPolicy,
   locator: string,
 ): void {
-  if (recomputed.length !== persisted.length) {
-    throw conflictFor(locator, 'a different effective chunking policy');
+  const stored = existing.chunkingPolicy;
+  if (!stored || isUnknownPolicyIdentity(stored)) {
+    throw conflictFor(locator, 'an unknown effective chunking policy');
   }
-  for (const [index, expected] of recomputed.entries()) {
-    const actual = persisted[index];
-    if (
-      !actual ||
-      actual.ordinal !== expected.ordinal ||
-      actual.contentIdentityValue !== expected.contentIdentityValue ||
-      actual.text !== expected.text
-    ) {
-      throw conflictFor(locator, 'a different effective chunking policy');
-    }
+  const incoming = toPolicyIdentity(effectivePolicy);
+  const persisted = toPolicyIdentity(stored);
+  if (!arePolicyIdentitiesEqual(persisted, incoming)) {
+    throw conflictFor(locator, 'a different effective chunking policy');
   }
 }
 
@@ -111,25 +90,31 @@ export function verifyPayloadEquivalence(
   ) {
     throw conflictFor(input.source.locator, 'a different agent version association');
   }
-  verifyEffectivePolicyEquivalent(input.source.locator, scope);
+  verifyEffectivePolicyEquivalent(existing, scope.effectivePolicy, input.source.locator);
+}
+
+function findDriverError(error: unknown, maxDepth: number): Record<string, unknown> | null {
+  let current: unknown = error;
+  for (let depth = 0; depth <= maxDepth; depth++) {
+    if (typeof current !== 'object' || current === null) return null;
+    const record = current as Record<string, unknown>;
+    if (typeof record.code === 'string') return record;
+    if (!('cause' in record)) return null;
+    current = record.cause;
+  }
+  return null;
 }
 
 export function isPostgresUniqueViolation(error: unknown): boolean {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'code' in error &&
-    (error as { code: unknown }).code === '23505'
-  );
+  const driver = findDriverError(error, 5);
+  return driver !== null && driver.code === '23505';
 }
 
 export function isPostgresForeignKeyViolation(error: unknown): boolean {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'code' in error &&
-    (error as { code: unknown }).code === '23503'
-  );
+  const driver = findDriverError(error, 5);
+  if (driver === null || driver.code !== '23503') return false;
+  const constraint = driver.constraint;
+  return typeof constraint === 'string' && RELEVANT_KNOWLEDGE_FK_CONSTRAINTS.has(constraint);
 }
 
 export async function resolveWinningConcurrentDocument(
@@ -157,7 +142,7 @@ export async function resolveWinningConcurrentDocument(
         return { document: winning, chunks, isIdempotentDuplicate: true };
       }
       if (winning.status === 'FAILED' || winning.status === 'ARCHIVED') {
-        throw new Error(
+        throw new ConflictError(
           `Concurrent knowledge document ingestion failed: existing document is in '${winning.status}' state`,
         );
       }
@@ -168,7 +153,7 @@ export async function resolveWinningConcurrentDocument(
     }
   }
 
-  throw new Error(
-    `Timed out waiting for concurrent ingestion of document source '${input.source.locator}' to become READY`,
+  throw new ConflictError(
+    `Concurrent knowledge document ingestion failed: timed out waiting for source '${input.source.locator}'`,
   );
 }

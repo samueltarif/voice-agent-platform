@@ -7,6 +7,11 @@ import type {
 import type { KnowledgeDocumentEntity, KnowledgeChunkEntity } from '../schema/knowledge.js';
 
 export function mapKnowledgeDocument(entity: KnowledgeDocumentEntity): KnowledgeDocument {
+  const hasPolicyIdentity =
+    typeof entity.chunkPolicyVersion === 'string' &&
+    entity.chunkPolicyVersion.length > 0 &&
+    typeof entity.chunkMaxChars === 'number' &&
+    typeof entity.chunkOverlapChars === 'number';
   return {
     id: entity.id,
     organizationId: entity.organizationId,
@@ -28,6 +33,15 @@ export function mapKnowledgeDocument(entity: KnowledgeDocumentEntity): Knowledge
     ...(entity.collection ? { collection: entity.collection } : {}),
     ...(entity.agentId ? { agentId: entity.agentId } : {}),
     ...(entity.agentVersionId ? { agentVersionId: entity.agentVersionId } : {}),
+    ...(hasPolicyIdentity
+      ? {
+          chunkingPolicy: {
+            policyVersion: entity.chunkPolicyVersion as string,
+            maxChunkChars: entity.chunkMaxChars as number,
+            overlapChars: entity.chunkOverlapChars as number,
+          },
+        }
+      : {}),
     ...(entity.errorMessage ? { errorMessage: entity.errorMessage } : {}),
     createdAt: entity.createdAt,
     updatedAt: entity.updatedAt,

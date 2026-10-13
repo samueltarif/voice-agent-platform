@@ -27,6 +27,9 @@ export interface InsertKnowledgeDocumentOptions {
   readonly initialStatus?: KnowledgeDocumentStatus | undefined;
   readonly errorMessage?: string | undefined;
   readonly onConflictDoNothing?: boolean | undefined;
+  readonly policyIdentity?:
+    | { policyVersion: string; maxChunkChars: number; overlapChars: number }
+    | undefined;
 }
 
 export async function insertKnowledgeDocument(
@@ -46,6 +49,9 @@ export async function insertKnowledgeDocument(
     collection: input.collection,
     agentId: input.agentId,
     agentVersionId: input.agentVersionId,
+    chunkPolicyVersion: options.policyIdentity?.policyVersion,
+    chunkMaxChars: options.policyIdentity?.maxChunkChars,
+    chunkOverlapChars: options.policyIdentity?.overlapChars,
     errorMessage: options.errorMessage,
   });
 
