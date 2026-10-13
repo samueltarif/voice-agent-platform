@@ -17543,3 +17543,14 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **NO_REMOTE_MIGRATIONS**: 0 | **NO_PROVIDERS**: 0 | **NO_TRAFFIC**: PROHIBITED | **NO_RUNTIME_WIRING**: NO
 - **MERGE_DISCREPANCY**: multiple merge_pull_request invocations appeared in supplied tool list, only one squash merge confirmed (2e6d90a); transcripts not inspected
 - **NOTE**: retrospective append-only entry created on 007K feature branch, history otherwise unchanged
+
+## 2026-10-13 - Slice 007K Stage A BFF Foundation (PR TBD, no push)
+
+- **SLICE**: 007K STAGE A | **HUMAN_AUTH**: YES | **CLAUDE_OWNS_VISUAL**: YES (27st MCP via human, OpenCode must not design UI)
+- **BASE_MAIN**: 2e6d90afb85c2dddf2a02c3f57cafeb262e22b59 | **BRANCH**: feat/007k-knowledge-base-studio-ui-bff | **DOC_COMMIT**: 95f7b0c (007J closure)
+- **SCOPE**: server BFF routes for existing 007J APIs only (list/get/ingest/archive), no schema/migration/api changes, no React UI
+- **BFF**: app/api/knowledge/documents/route.ts (GET list + POST ingest), documents/[documentId]/route.ts (GET), documents/[documentId]/archive/route.ts (POST), knowledge-error-response.ts (safe mapping), knowledge-request-parsers.ts (pure validation), lib/knowledge/knowledge-documents-client.ts (typed non-visual client)
+- **SECURITY**: Better Auth session + server org context, no client orgId trust, Ed25519 via existing TenantApiClient, same-origin + CSRF preserved, DEC-039 enforced server-side (OWNER/ADMIN full, MANAGER read+ingest, OPERATOR/VIEWER none), sanitized errors, bounded sizes via 007J contracts
+- **GAPS**: none blocking; all 4 backend capabilities existed (list/get/ingest/archive with pagination/filters); no invented filters
+- **TESTS**: 10/10 mocked BFF PASS (6 documents + 4 detail/archive, fakes labeled, no DB, no providers); precommit format/lint/typecheck/architecture/file-size ALL PASS
+- **NOT_DONE**: no React UI, no layout, no canonical pnpm check, no push, no PR; awaiting Claude design handoff via human
