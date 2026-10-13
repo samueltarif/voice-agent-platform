@@ -17509,3 +17509,16 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **SEMANTIC_CHECK**: Drizzle JSON parsed equality PASS for both files, TS diffs whitespace/layout only, 0006_wide_marauders.sql UNCHANGED
 - **NEW_GATE_PENDING**: single canonical pnpm install --frozen-lockfile and pnpm check on NEW_RECOVERY_HEAD, not yet executed
 - **SAFETY**: NO dotenv, NO remote DB, NO production, NO provider calls, NO temp scripts, NO internal log inspection
+
+## 2026-10-13 - Slice 007J Lint-Complexity Recovery (PR #112)
+
+- **SLICE/PR**: 007J PR #112 branch feat/007j-knowledge-base-api-management
+- **PREV_FAILED_HEAD**: 78df783dfb506f1cbbc4dd71882f61582523e360 | **PREV_GATE_EXIT**: 1 | **FORMAT**: PASS | **LINT**: FAIL | **OTHERS**: NOT_EXECUTED
+- **LINT_FINDINGS**: knowledge-document-repository.ts insertKnowledgeDocument complexity 11, knowledge-mapping.ts mapKnowledgeDocument complexity 12 (max 8)
+- **NO_PUSH_AFTER_FAILURE**: YES
+- **HUMAN_AUTH**: separate minimal complexity refactor, no schema/migration/policy/discard/auth/idempotency/SQL/contract/test-assertion changes, no lint suppressions
+- **REFACTOR**: extracted buildKnowledgeInsertValues + resolveMissingInsert in document-repository, hasDurablePolicyIdentity/toSourceReference/pickContentIdentity/pickScopeFields/pickPolicyField in mapping; preserved columns/values/defaults/null-vs-undefined/policy persistence/legacy UNKNOWN/transaction/return/error/conflict semantics and all mapped fields/optionality/timestamps/DTOs
+- **FOCUSED_CHECKS**: eslint 2 files PASS, prettier 2 files PASS, pnpm format:check PASS, pnpm lint PASS, pnpm typecheck 12/12 PASS
+- **TARGETED_TESTS**: 53/53 PASS (16 final + 14 persistence + 23 tenant-association)
+- **NEW_GATE_PENDING**: single canonical pnpm install --frozen-lockfile and pnpm check on NEW_RECOVERY_HEAD
+- **SAFETY**: NO dotenv, NO remote DB, NO production, NO providers, NO temp scripts, NO internal logs

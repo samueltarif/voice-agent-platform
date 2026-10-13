@@ -31,12 +31,11 @@ export interface InsertKnowledgeDocumentOptions {
     { policyVersion: string; maxChunkChars: number; overlapChars: number } | undefined;
 }
 
-export async function insertKnowledgeDocument(
-  db: DatabaseExecutor,
+function buildKnowledgeInsertValues(
   input: CreateKnowledgeDocumentInput,
-  options: InsertKnowledgeDocumentOptions = {},
-): Promise<KnowledgeDocument | null> {
-  const baseInsert = db.insert(knowledgeDocuments).values({
+  options: InsertKnowledgeDocumentOptions,
+) {
+  return {
     organizationId: input.organizationId,
     title: input.title,
     sourceType: input.source.sourceType,
@@ -52,7 +51,22 @@ export async function insertKnowledgeDocument(
     chunkMaxChars: options.policyIdentity?.maxChunkChars,
     chunkOverlapChars: options.policyIdentity?.overlapChars,
     errorMessage: options.errorMessage,
-  });
+  };
+}
+
+function resolveMissingInsert(options: InsertKnowledgeDocumentOptions): null {
+  if (options.onConflictDoNothing) return null;
+  throw new Error('Failed to insert knowledge document');
+}
+
+export async function insertKnowledgeDocument(
+  db: DatabaseExecutor,
+  input: CreateKnowledgeDocumentInput,
+  options: InsertKnowledgeDocumentOptions = {},
+): Promise<KnowledgeDocument | null> {
+  const baseInsert = db
+    .insert(knowledgeDocuments)
+    .values(buildKnowledgeInsertValues(input, options));
 
   const [row] = options.onConflictDoNothing
     ? await baseInsert
@@ -66,10 +80,7 @@ export async function insertKnowledgeDocument(
         .returning()
     : await baseInsert.returning();
 
-  if (!row) {
-    if (options.onConflictDoNothing) return null;
-    throw new Error('Failed to insert knowledge document');
-  }
+  if (!row) return resolveMissingInsert(options);
   return mapKnowledgeDocument(row);
 }
 
