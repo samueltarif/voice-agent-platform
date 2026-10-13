@@ -17522,3 +17522,14 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **TARGETED_TESTS**: 53/53 PASS (16 final + 14 persistence + 23 tenant-association)
 - **NEW_GATE_PENDING**: single canonical pnpm install --frozen-lockfile and pnpm check on NEW_RECOVERY_HEAD
 - **SAFETY**: NO dotenv, NO remote DB, NO production, NO providers, NO temp scripts, NO internal logs
+
+## 2026-10-13 - Slice 007J File-Size Recovery (PR #112)
+
+- **SLICE/PR**: 007J PR #112 branch feat/007j-knowledge-base-api-management
+- **PREV_FAILED_HEAD**: 876252417b660a207e4712a479c784407d824a9a | **PREV_GATE**: FORMAT/LINT/TYPECHECK/TEST/BUILD/ARCH PASS, FILE_SIZE FAIL (knowledge-document-repository.ts 187>180), EXIT 1
+- **NO_PUSH_AFTER_FAILURE**: YES
+- **HUMAN_AUTH**: separate minimal file-size refactor, no behavior/schema/migration/contract/test changes, optional ONE pure helper
+- **REFACTOR**: extracted pure buildKnowledgeInsertValues + InsertKnowledgeDocumentOptions to knowledge-document-values.ts (33 lines, no DB/side-effects); repository now 162 lines; preserved columns/values/nullability/policy/transaction/return/error/tenant/idempotency semantics
+- **PRECOMMIT**: format:check PASS, lint PASS, typecheck PASS (after restoring KnowledgeDocumentStatus import), architecture PASS, file-size PASS (162 + 33), targeted 30/30 PASS (16 final + 14 persistence)
+- **NEW_GATE_PENDING**: single canonical pnpm install --frozen-lockfile and pnpm check on NEW_RECOVERY_HEAD
+- **SAFETY**: NO dotenv, NO remote DB, NO production, NO providers, NO temp scripts, NO internal logs
