@@ -1,16 +1,11 @@
 import {
   type CreateKnowledgeDocumentInput,
-  type KnowledgeChunkingPolicy,
-  KNOWLEDGE_CHUNK_DEFAULT_MAX_CHARS,
-  KNOWLEDGE_CHUNK_DEFAULT_OVERLAP_CHARS,
   createKnowledgeDocumentInputSchema,
+  toPolicyIdentity,
 } from '@voice-agent/contracts';
+import { NotFoundError } from '@voice-agent/errors';
 import type { DatabaseInstance } from '../client/connection.js';
-import {
-  KNOWLEDGE_DOCUMENT_MAX_CHARS,
-  computeContentHash,
-  normalizeKnowledgeText,
-} from './knowledge-text-normalizer.js';
+import { validateAndNormalizeKnowledgeText } from './knowledge-text-normalizer.js';
 import { chunkKnowledgeText } from './knowledge-chunker.js';
 import {
   getKnowledgeDocumentBySource,
@@ -27,51 +22,33 @@ import type {
   TransactionalIngestionOptions,
 } from './knowledge-ingestion-types.js';
 import {
+  isPostgresForeignKeyViolation,
   isPostgresUniqueViolation,
+  resolveEffectiveChunkingPolicy,
   resolveWinningConcurrentDocument,
   verifyPayloadEquivalence,
 } from './knowledge-ingestion-resolution.js';
+import {
+  AGENT_ASSOCIATION_NOT_FOUND_MESSAGE,
+  validateAgentAssociation,
+} from './knowledge-agent-association.js';
+import { lockReferencedVersion } from './knowledge-version-lock.js';
 
 export * from './knowledge-ingestion-types.js';
 export * from './knowledge-ingestion-resolution.js';
 
-function validateAndNormalize(input: IngestKnowledgeDocumentInput): {
-  normalizedText: string;
-  contentHash: string;
-} {
-  if (typeof input.rawText !== 'string' || input.rawText.trim().length === 0) {
-    throw new Error('Knowledge document rawText must not be empty');
-  }
-  if (input.rawText.length > KNOWLEDGE_DOCUMENT_MAX_CHARS) {
-    throw new Error(
-      `Knowledge document rawText exceeds maximum length of ${KNOWLEDGE_DOCUMENT_MAX_CHARS} characters`,
-    );
-  }
-
-  const normalizedText = normalizeKnowledgeText(input.rawText);
-  if (normalizedText.length === 0) {
-    throw new Error('Knowledge document rawText is empty after normalization');
-  }
-
-  const contentHash = computeContentHash(normalizedText);
-  return { normalizedText, contentHash };
-}
-
 async function executeTransactionalIngestion(
   options: TransactionalIngestionOptions,
 ): Promise<IngestKnowledgeDocumentResult | null> {
-  const { db, input, documentInput, normalizedText } = options;
-  const policy: KnowledgeChunkingPolicy = input.chunkingPolicy ?? {
-    policyVersion: 'v1',
-    maxChunkChars: KNOWLEDGE_CHUNK_DEFAULT_MAX_CHARS,
-    overlapChars: KNOWLEDGE_CHUNK_DEFAULT_OVERLAP_CHARS,
-  };
+  const { db, input, documentInput, normalizedText, effectivePolicy } = options;
 
   try {
     return await db.transaction(async (tx) => {
+      await lockReferencedVersion(tx, input);
       const doc = await insertKnowledgeDocument(tx, documentInput, {
         initialStatus: 'PENDING',
         onConflictDoNothing: true,
+        policyIdentity: toPolicyIdentity(effectivePolicy),
       });
       if (!doc) return null;
 
@@ -84,7 +61,7 @@ async function executeTransactionalIngestion(
       const preparedChunks = chunkKnowledgeText({
         text: normalizedText,
         documentId: doc.id,
-        policy,
+        policy: effectivePolicy,
       });
 
       const insertedChunks = await insertKnowledgeChunks(
@@ -109,16 +86,47 @@ async function executeTransactionalIngestion(
       return { document: readyDoc, chunks: insertedChunks, isIdempotentDuplicate: false };
     });
   } catch (error: unknown) {
+    if (isPostgresForeignKeyViolation(error)) {
+      throw new NotFoundError(AGENT_ASSOCIATION_NOT_FOUND_MESSAGE);
+    }
     if (isPostgresUniqueViolation(error)) return null;
     throw error;
   }
+}
+
+async function ingestFreshDocument(
+  options: TransactionalIngestionOptions & { contentHash: string },
+): Promise<IngestKnowledgeDocumentResult> {
+  const { db, input, documentInput, normalizedText, contentHash, effectivePolicy } = options;
+  const result = await executeTransactionalIngestion({
+    db,
+    input,
+    documentInput,
+    normalizedText,
+    effectivePolicy,
+  });
+  if (result) return result;
+  return resolveWinningConcurrentDocument({
+    db,
+    orgId: input.organizationId,
+    input,
+    contentHash,
+    normalizedText,
+    effectivePolicy,
+  });
 }
 
 export async function ingestKnowledgeDocument(
   db: DatabaseInstance,
   input: IngestKnowledgeDocumentInput,
 ): Promise<IngestKnowledgeDocumentResult> {
-  const { normalizedText, contentHash } = validateAndNormalize(input);
+  const { normalizedText, contentHash } = validateAndNormalizeKnowledgeText(input.rawText);
+  const effectivePolicy = resolveEffectiveChunkingPolicy(input);
+  await validateAgentAssociation(db, {
+    organizationId: input.organizationId,
+    agentId: input.agentId,
+    agentVersionId: input.agentVersionId,
+  });
 
   const documentInput: CreateKnowledgeDocumentInput = createKnowledgeDocumentInputSchema.parse({
     organizationId: input.organizationId,
@@ -136,28 +144,26 @@ export async function ingestKnowledgeDocument(
     sourceLocator: input.source.locator,
   });
   if (existing && existing.status === 'READY') {
-    verifyPayloadEquivalence(existing, input, contentHash);
     const existingChunks = await getKnowledgeChunksByDocumentId(
       db,
       input.organizationId,
       existing.id,
     );
+    verifyPayloadEquivalence(existing, input, {
+      contentHash,
+      existingChunks,
+      normalizedText,
+      effectivePolicy,
+    });
     return { document: existing, chunks: existingChunks, isIdempotentDuplicate: true };
   }
 
-  const result = await executeTransactionalIngestion({
+  return ingestFreshDocument({
     db,
     input,
     documentInput,
     normalizedText,
-  });
-
-  if (result) return result;
-
-  return resolveWinningConcurrentDocument({
-    db,
-    orgId: input.organizationId,
-    input,
     contentHash,
+    effectivePolicy,
   });
 }

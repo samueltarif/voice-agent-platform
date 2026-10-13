@@ -2,6 +2,10 @@ import { ForbiddenError } from '@voice-agent/errors';
 import type { TenantRole } from '@voice-agent/contracts';
 import type { OrganizationRepository, MembershipRepository } from '@voice-agent/database';
 import { hasAgentPermission, type AgentPermission } from './agent-permissions.js';
+import {
+  hasKnowledgePermission,
+  type KnowledgeManagementPermission,
+} from './knowledge-permissions.js';
 
 export interface TenantContext {
   organizationId: string;
@@ -12,7 +16,7 @@ export interface TenantContext {
 export interface AuthorizeTenantOptions {
   sub: string;
   orgId: string;
-  requiredPermission: AgentPermission;
+  requiredPermission: AgentPermission | KnowledgeManagementPermission;
   organizationRepo: OrganizationRepository;
   membershipRepo: MembershipRepository;
 }
@@ -39,7 +43,12 @@ export async function authorizeTenant(options: AuthorizeTenantOptions): Promise<
   }
 
   // 3. Revalidate RBAC permission using role dynamically read from DB
-  const allowed = hasAgentPermission(membership.role as TenantRole, requiredPermission);
+  const allowed = requiredPermission.startsWith('knowledge.')
+    ? hasKnowledgePermission(
+        membership.role as TenantRole,
+        requiredPermission as KnowledgeManagementPermission,
+      )
+    : hasAgentPermission(membership.role as TenantRole, requiredPermission as AgentPermission);
   if (!allowed) {
     throw new ForbiddenError(
       `Tenant role '${membership.role}' does not have permission '${requiredPermission}'`,

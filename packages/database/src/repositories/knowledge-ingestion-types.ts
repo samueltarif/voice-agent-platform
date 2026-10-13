@@ -1,28 +1,14 @@
 import type {
   CreateKnowledgeDocumentInput,
+  IngestKnowledgeDocumentInput,
+  IngestKnowledgeDocumentResult,
   KnowledgeChunk,
   KnowledgeChunkingPolicy,
-  KnowledgeDocument,
-  KnowledgeSourceReference,
 } from '@voice-agent/contracts';
+
 import type { DatabaseInstance } from '../client/connection.js';
 
-export interface IngestKnowledgeDocumentInput {
-  readonly organizationId: string;
-  readonly title: string;
-  readonly source: KnowledgeSourceReference;
-  readonly rawText: string;
-  readonly collection?: string | undefined;
-  readonly agentId?: string | undefined;
-  readonly agentVersionId?: string | undefined;
-  readonly chunkingPolicy?: KnowledgeChunkingPolicy | undefined;
-}
-
-export interface IngestKnowledgeDocumentResult {
-  readonly document: KnowledgeDocument;
-  readonly chunks: readonly KnowledgeChunk[];
-  readonly isIdempotentDuplicate: boolean;
-}
+export type { IngestKnowledgeDocumentInput, IngestKnowledgeDocumentResult };
 
 export interface DuplicateCheckOptions {
   readonly db: DatabaseInstance;
@@ -36,6 +22,7 @@ export interface TransactionalIngestionOptions {
   readonly input: IngestKnowledgeDocumentInput;
   readonly documentInput: CreateKnowledgeDocumentInput;
   readonly normalizedText: string;
+  readonly effectivePolicy: KnowledgeChunkingPolicy;
 }
 
 export interface ResolveWinningOptions {
@@ -43,4 +30,13 @@ export interface ResolveWinningOptions {
   readonly orgId: string;
   readonly input: IngestKnowledgeDocumentInput;
   readonly contentHash: string;
+  readonly normalizedText: string;
+  readonly effectivePolicy: KnowledgeChunkingPolicy;
+}
+
+export interface PayloadEquivalenceScope {
+  readonly contentHash: string;
+  readonly existingChunks: readonly KnowledgeChunk[];
+  readonly normalizedText: string;
+  readonly effectivePolicy: KnowledgeChunkingPolicy;
 }

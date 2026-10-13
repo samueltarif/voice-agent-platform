@@ -1,10 +1,11 @@
 import { createHash } from 'node:crypto';
+import { BadRequestError } from '@voice-agent/errors';
 
 export const KNOWLEDGE_DOCUMENT_MAX_CHARS = 200_000;
 
 export function normalizeKnowledgeText(rawText: string): string {
   if (typeof rawText !== 'string') {
-    throw new Error('rawText must be a string');
+    throw new BadRequestError('Knowledge document rawText must be a string');
   }
 
   const nfc = rawText.normalize('NFC');
@@ -26,4 +27,26 @@ export function normalizeKnowledgeText(rawText: string): string {
 
 export function computeContentHash(text: string, algorithm = 'sha256'): string {
   return createHash(algorithm).update(text, 'utf8').digest('hex');
+}
+
+export function validateAndNormalizeKnowledgeText(rawText: unknown): {
+  normalizedText: string;
+  contentHash: string;
+} {
+  if (typeof rawText !== 'string' || rawText.trim().length === 0) {
+    throw new BadRequestError('Knowledge document rawText must not be empty');
+  }
+  if (rawText.length > KNOWLEDGE_DOCUMENT_MAX_CHARS) {
+    throw new BadRequestError(
+      `Knowledge document rawText exceeds maximum length of ${KNOWLEDGE_DOCUMENT_MAX_CHARS} characters`,
+    );
+  }
+
+  const normalizedText = normalizeKnowledgeText(rawText);
+  if (normalizedText.length === 0) {
+    throw new BadRequestError('Knowledge document rawText is empty after normalization');
+  }
+
+  const contentHash = computeContentHash(normalizedText);
+  return { normalizedText, contentHash };
 }

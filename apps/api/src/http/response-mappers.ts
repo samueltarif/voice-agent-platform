@@ -7,7 +7,10 @@ import type {
   OutboundCallJob,
   OutboundCampaignResponse,
   OutboundCallJobResponse,
+  KnowledgeDocument,
+  KnowledgeDocumentResponse,
 } from '@voice-agent/contracts';
+
 import type { Agent, AgentVersion } from '@voice-agent/database';
 
 export function toAgentMetadataDto(
@@ -80,5 +83,29 @@ export function toOutboundCallJobDto(job: OutboundCallJob): OutboundCallJobRespo
     callId: job.callId ?? null,
     createdAt: job.createdAt.toISOString(),
     updatedAt: job.updatedAt.toISOString(),
+  };
+}
+
+export function toKnowledgeDocumentDto(
+  doc: KnowledgeDocument,
+  isIdempotentDuplicate?: boolean,
+): KnowledgeDocumentResponse {
+  return {
+    id: doc.id,
+    organizationId: doc.organizationId,
+    title: doc.title,
+    source: {
+      sourceType: doc.source.sourceType,
+      locator: doc.source.locator,
+      ...(doc.source.sourceVersion ? { sourceVersion: doc.source.sourceVersion } : {}),
+    },
+    ...(doc.contentIdentity ? { contentIdentity: doc.contentIdentity } : {}),
+    status: doc.status,
+    collection: doc.collection ?? null,
+    agentId: doc.agentId ?? null,
+    agentVersionId: doc.agentVersionId ?? null,
+    ...(typeof isIdempotentDuplicate === 'boolean' ? { isIdempotentDuplicate } : {}),
+    createdAt: doc.createdAt.toISOString(),
+    updatedAt: doc.updatedAt.toISOString(),
   };
 }

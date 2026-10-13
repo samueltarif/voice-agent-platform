@@ -9,6 +9,10 @@ import {
 import { knowledgeDocuments } from '../schema/knowledge.js';
 import type { DatabaseExecutor } from './database-executor.js';
 import { mapKnowledgeDocument } from './knowledge-mapping.js';
+import {
+  buildKnowledgeInsertValues,
+  type InsertKnowledgeDocumentOptions,
+} from './knowledge-document-values.js';
 
 async function selectSingleKnowledgeDocument(
   db: DatabaseExecutor,
@@ -23,10 +27,11 @@ async function selectSingleKnowledgeDocument(
   return row ? mapKnowledgeDocument(row) : null;
 }
 
-export interface InsertKnowledgeDocumentOptions {
-  readonly initialStatus?: KnowledgeDocumentStatus | undefined;
-  readonly errorMessage?: string | undefined;
-  readonly onConflictDoNothing?: boolean | undefined;
+export type { InsertKnowledgeDocumentOptions };
+
+function resolveMissingInsert(options: InsertKnowledgeDocumentOptions): null {
+  if (options.onConflictDoNothing) return null;
+  throw new Error('Failed to insert knowledge document');
 }
 
 export async function insertKnowledgeDocument(
@@ -34,20 +39,9 @@ export async function insertKnowledgeDocument(
   input: CreateKnowledgeDocumentInput,
   options: InsertKnowledgeDocumentOptions = {},
 ): Promise<KnowledgeDocument | null> {
-  const baseInsert = db.insert(knowledgeDocuments).values({
-    organizationId: input.organizationId,
-    title: input.title,
-    sourceType: input.source.sourceType,
-    sourceLocator: input.source.locator,
-    sourceVersion: input.source.sourceVersion,
-    contentIdentityAlgorithm: input.contentIdentity?.algorithm,
-    contentIdentityValue: input.contentIdentity?.value,
-    status: options.initialStatus ?? 'PENDING',
-    collection: input.collection,
-    agentId: input.agentId,
-    agentVersionId: input.agentVersionId,
-    errorMessage: options.errorMessage,
-  });
+  const baseInsert = db
+    .insert(knowledgeDocuments)
+    .values(buildKnowledgeInsertValues(input, options));
 
   const [row] = options.onConflictDoNothing
     ? await baseInsert
@@ -61,10 +55,7 @@ export async function insertKnowledgeDocument(
         .returning()
     : await baseInsert.returning();
 
-  if (!row) {
-    if (options.onConflictDoNothing) return null;
-    throw new Error('Failed to insert knowledge document');
-  }
+  if (!row) return resolveMissingInsert(options);
   return mapKnowledgeDocument(row);
 }
 

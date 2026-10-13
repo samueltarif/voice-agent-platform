@@ -1,4 +1,11 @@
-import { buildStableChunkIdentity, type KnowledgeChunkingPolicy } from '@voice-agent/contracts';
+import {
+  buildStableChunkIdentity,
+  KNOWLEDGE_CHUNK_MAX_AGGREGATE_CHARS,
+  KNOWLEDGE_CHUNK_MAX_CHARS,
+  KNOWLEDGE_CHUNK_MAX_GENERATED_CHUNKS,
+  type KnowledgeChunkingPolicy,
+} from '@voice-agent/contracts';
+import { BadRequestError } from '@voice-agent/errors';
 import { computeContentHash } from './knowledge-text-normalizer.js';
 
 export interface PreparedChunk {
@@ -35,6 +42,7 @@ function findBoundary(text: string, start: number, end: number): number {
 
 export function chunkKnowledgeText(input: ChunkKnowledgeTextInput): PreparedChunk[] {
   const { text, documentId, policy } = input;
+  assertSafeChunkingPolicy(policy);
   const { policyVersion, maxChunkChars, overlapChars } = policy;
 
   if (!text || text.length === 0) {
@@ -43,40 +51,21 @@ export function chunkKnowledgeText(input: ChunkKnowledgeTextInput): PreparedChun
 
   const chunks: PreparedChunk[] = [];
   const textLen = text.length;
+  let aggregateChars = 0;
   let start = 0;
   let ordinal = 0;
 
   while (start < textLen) {
-    let end = start + maxChunkChars;
-
-    if (end < textLen) {
-      const boundaryStart = Math.max(start + maxChunkChars - overlapChars, start + 1);
-      const chosen = findBoundary(text, boundaryStart, end);
-      if (chosen > start) {
-        end = chosen;
-      }
-    } else {
-      end = textLen;
-    }
+    const end = computeChunkEnd({ text, textLen, start, maxChunkChars, overlapChars });
 
     const chunkText = text.slice(start, end).trim();
     if (chunkText.length > 0) {
-      const chunkHash = computeContentHash(chunkText);
-      const chunkIdentity = buildStableChunkIdentity({
-        documentId,
-        policyVersion,
-        ordinal,
-        contentIdentityValue: chunkHash,
-      });
-
-      chunks.push({
-        ordinal,
-        text: chunkText,
-        policyVersion,
-        contentIdentityValue: chunkHash,
-        chunkIdentity,
-      });
-      ordinal++;
+      const prospectiveOrdinal = ordinal + 1;
+      const prospectiveAggregate = aggregateChars + chunkText.length;
+      assertGenerationCaps(prospectiveOrdinal, prospectiveAggregate);
+      chunks.push(buildChunk({ documentId, policyVersion, ordinal, chunkText }));
+      ordinal = prospectiveOrdinal;
+      aggregateChars = prospectiveAggregate;
     }
 
     if (end >= textLen) break;
@@ -84,4 +73,86 @@ export function chunkKnowledgeText(input: ChunkKnowledgeTextInput): PreparedChun
   }
 
   return chunks;
+}
+
+function computeChunkEnd(options: {
+  text: string;
+  textLen: number;
+  start: number;
+  maxChunkChars: number;
+  overlapChars: number;
+}): number {
+  const { text, textLen, start, maxChunkChars, overlapChars } = options;
+  const end = start + maxChunkChars;
+  if (end >= textLen) return textLen;
+  const boundaryStart = Math.max(start + maxChunkChars - overlapChars, start + 1);
+  const chosen = findBoundary(text, boundaryStart, end);
+  return chosen > start ? chosen : end;
+}
+
+function buildChunk(options: {
+  documentId: string;
+  policyVersion: string;
+  ordinal: number;
+  chunkText: string;
+}): PreparedChunk {
+  const { documentId, policyVersion, ordinal, chunkText } = options;
+  const chunkHash = computeContentHash(chunkText);
+  return {
+    ordinal,
+    text: chunkText,
+    policyVersion,
+    contentIdentityValue: chunkHash,
+    chunkIdentity: buildStableChunkIdentity({
+      documentId,
+      policyVersion,
+      ordinal,
+      contentIdentityValue: chunkHash,
+    }),
+  };
+}
+
+function assertGenerationCaps(ordinal: number, aggregateChars: number): void {
+  if (ordinal > KNOWLEDGE_CHUNK_MAX_GENERATED_CHUNKS) {
+    throw new BadRequestError(
+      `Knowledge chunking stopped: too many chunks (limit ${KNOWLEDGE_CHUNK_MAX_GENERATED_CHUNKS}) for document`,
+    );
+  }
+  if (aggregateChars > KNOWLEDGE_CHUNK_MAX_AGGREGATE_CHARS) {
+    throw new BadRequestError(
+      `Knowledge chunking stopped: aggregate chunk characters exceed ${KNOWLEDGE_CHUNK_MAX_AGGREGATE_CHARS}`,
+    );
+  }
+}
+
+function assertSafeChunkingPolicy(policy: KnowledgeChunkingPolicy): void {
+  if (
+    !policy ||
+    typeof policy.policyVersion !== 'string' ||
+    policy.policyVersion.trim().length === 0
+  ) {
+    throw new BadRequestError('Knowledge chunking policy version must not be empty');
+  }
+  assertChunkSizeBounds(policy.maxChunkChars);
+  assertOverlapBounds(policy.overlapChars, policy.maxChunkChars);
+}
+
+function assertChunkSizeBounds(maxChunkChars: number): void {
+  if (
+    !Number.isInteger(maxChunkChars) ||
+    maxChunkChars <= 0 ||
+    maxChunkChars > KNOWLEDGE_CHUNK_MAX_CHARS
+  ) {
+    throw new BadRequestError(
+      `Knowledge chunk maxChunkChars ${maxChunkChars} exceeds maximum allowed ${KNOWLEDGE_CHUNK_MAX_CHARS}`,
+    );
+  }
+}
+
+function assertOverlapBounds(overlapChars: number, maxChunkChars: number): void {
+  if (!Number.isInteger(overlapChars) || overlapChars < 0 || overlapChars * 2 > maxChunkChars) {
+    throw new BadRequestError(
+      `Knowledge chunk overlapChars ${overlapChars} must not exceed 50% of maxChunkChars ${maxChunkChars}`,
+    );
+  }
 }

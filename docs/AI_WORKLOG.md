@@ -17264,3 +17264,272 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `REAL_DOTENV_ACCESSED = NO`
   - `REMOTE_SUPABASE_MIGRATION_EXECUTED = NO`
   - `REAL_PROVIDER_CALLS = 0`
+
+---
+
+## 2026-10-09 — Phase 7 Slice 007J: Knowledge Base API Management Implementation
+
+- **SLICE_ID**: `007J`
+- **TITLE**: `Knowledge Base API Management`
+- **HUMAN_APPROVAL_SOURCE**: `EXPLICIT_HUMAN_OPERATOR_APPROVAL_2026-10-09`
+- **PREVIOUS_SLICE**: `007I = CLOSED ON MAIN` (`f4c363960aed2aacc50fc4f87f34dfd0263efdc7`)
+- **PHASE7_STATUS**: `OPEN` (`PHASE7_MAIN_CONSOLIDATED = 93%`)
+- **BASE_MAIN_SHA**: `f4c363960aed2aacc50fc4f87f34dfd0263efdc7`
+- **FEATURE_BRANCH**: `feat/007j-knowledge-base-api-management`
+- **INITIAL_PREFLIGHT_BLOCKER**: `AUTHORIZATION_PREFLIGHT = BLOCKED` (`BLOCKER = KB_MANAGEMENT_PERMISSION_UNDEFINED`) — Halting prior to code modifications due to lack of approved RBAC permissions for Knowledge Base operations.
+- **HUMAN_RBAC_DECISION**: Dedicated permissions approved by human operator on 2026-10-09 (recorded as DEC-039 in `docs/DECISIONS_LOG.md`):
+  - Permissions: `knowledge.read`, `knowledge.ingest`, `knowledge.archive`
+  - Matrix:
+    - OWNER: `knowledge.read` = YES, `knowledge.ingest` = YES, `knowledge.archive` = YES
+    - ADMIN: `knowledge.read` = YES, `knowledge.ingest` = YES, `knowledge.archive` = YES
+    - MANAGER: `knowledge.read` = YES, `knowledge.ingest` = YES, `knowledge.archive` = NO
+    - OPERATOR: `knowledge.read` = NO, `knowledge.ingest` = NO, `knowledge.archive` = NO
+    - VIEWER: `knowledge.read` = NO, `knowledge.ingest` = NO, `knowledge.archive` = NO
+- **AUTHORITY_SEPARATION_INVARIANTS**:
+  - Human Management RBAC is 100% decoupled from Published Agent Retrieval Authority (`KnowledgeRetrievalPort`).
+  - Agent retrieval does NOT require human `knowledge.read` permission.
+  - Denying `knowledge.read` to an OPERATOR does NOT block an independently authorized published agent from retrieving knowledge.
+  - Published agent retrieval enforces its existing agent/version and collection scope.
+  - Publishing an agent does NOT grant organization-wide retrieval.
+  - Retrieved content cannot grant `knowledge.ingest` or `knowledge.archive` or invoke administrative endpoints.
+  - No management tools registered in agent tool registry (`NEW_AGENT_MANAGEMENT_TOOLS = NO`).
+  - No production voice composition activated (`PRODUCTION_VOICE_WIRING = NO`).
+- **IMPLEMENTATION_DETAILS**:
+  - `packages/contracts/src/knowledge/knowledge-management-contracts.ts`: Zod schemas for text ingestion body, bounded pagination listing query, document response DTO allowlist, and `KnowledgeRepositoryPort` interface.
+  - `packages/database/src/repositories/knowledge-repository.ts`: `DrizzleKnowledgeRepository` implementing `KnowledgeRepositoryPort` wrapping existing 007H ingestion, document, and status transition services.
+  - `apps/api/src/auth/knowledge-permissions.ts`: `KnowledgeManagementPermission` types, canonical role permissions matrix, and `hasKnowledgePermission` validator.
+  - `apps/api/src/auth/tenant-authorization.ts`: Updated `authorizeTenant` to dynamically enforce `KnowledgeManagementPermission` with server-side organization and membership re-validation.
+  - `apps/api/src/routes/knowledge-read-routes.ts`: `GET /v1/knowledge/documents` (bounded pagination, filters) and `GET /v1/knowledge/documents/:documentId` (anti-enumeration 404 on missing/cross-tenant).
+  - `apps/api/src/routes/knowledge-mutation-routes.ts`: `POST /v1/knowledge/documents` (atomic text ingestion, duplicate idempotency, conflict mapping to HTTP 409) and `POST /v1/knowledge/documents/:documentId/archive` (tenant-scoped lifecycle transition to `ARCHIVED`).
+  - `apps/api/src/http/response-mappers.ts`: Added `toKnowledgeDocumentDto` allowlist response mapper preventing leakage of internal traces or document content.
+  - `apps/api/src/app.ts` & `apps/api/src/server.ts`: Mounted `/v1/knowledge` and `/v1/knowledge/*` with `serviceAuthMiddleware(verifier)`, registered read and mutation routes, injected `DrizzleKnowledgeRepository`.
+- **TESTS_PERFORMED**:
+  - `apps/api/src/auth/knowledge-permissions.test.ts`: 2 unit tests verifying exact canonical RBAC matrix and rejection of invalid roles.
+  - `apps/api/src/http/knowledge-api.http.test.ts`: 17 offline HTTP integration tests covering authentication, expired assertions, inactive tenant/membership fail-closed, strict payload validation, conflict 409 mapping without SQL leakage, pagination, and anti-enumeration.
+  - `apps/api/src/http/knowledge-authority-separation.http.test.ts`: 15 regression tests verifying all 15 authority-separation requirements.
+  - Targeted Vitest: 3/3 test files passed, 34/34 tests passed.
+  - `check-file-size.mjs`: PASS (309 logic files verified, all production logic files <= 180 lines).
+  - `check-architecture.mjs`: PASS (all boundaries and architectural rules preserved).
+  - `pnpm lint`: PASS (0 errors, 0 warnings).
+  - `pnpm typecheck`: PASS (12/12 packages clean).
+  - `pnpm format:check`: PASS.
+- **SAFETY_AUDIT**:
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED = NO`
+  - `REAL_DOTENV_ACCESSED = NO`
+  - `REMOTE_SUPABASE_MIGRATION_EXECUTED = NO`
+  - `REAL_PROVIDER_CALLS = 0`
+  - `DATABASE_SCHEMA_CHANGED = NO`
+  - `MIGRATIONS_CREATED = NO`
+
+---
+
+## 2026-10-13 — Slice 007J reconciliation: canonical gate evidence & fix-forward
+
+- **SLICE_ID**: `007J` (reconciliation and quality gate evidence recovery only; no new product slice)
+- **BASE_MAIN_SHA**: `f4c363960aed2aacc50fc4f87f34dfd0263efdc7`
+- **FEATURE_BRANCH**: `feat/007j-knowledge-base-api-management`
+- **ORIGINAL_IMPLEMENTATION_HEAD**: `bc00fbb75aea6c960828c4597421ef4b375a6210`
+- **PREVIOUS_PUSH_PERFORMED**: `YES` (remote ref `origin/feat/007j-knowledge-base-api-management` was pushed at `bc00fbb`)
+- **HISTORICAL_GATE_CLASSIFICATION**:
+  - `HISTORICAL_TASK_ID`: `bb05c8e7-4d06-4532-8e02-c8f542e34fb3/task-6611`
+  - `HISTORICAL_REPORTED_EXIT_CODE`: `0`
+  - `HISTORICAL_REPORTED_STAGES`: `ALL_PASS`
+  - `HISTORICAL_GATE_STATUS`: `REPORTED_PASS_WITH_EVIDENCE_GAP`
+  - `HISTORICAL_GATE_AUTHORITATIVE`: `NO`
+  - `EVIDENCE_GAP_RATIONALE`: The supplied execution chronology from 2026-10-09 launched the canonical gate in background, but did not demonstrate direct completion observation via supported task-management facilities before a subsequent Vitest command and Git push. No functional defect is established, and no technical failure is asserted; however, per canonical governance rules, unobserved background completion cannot serve as authoritative gate evidence.
+- **GOVERNANCE_CORRECTION_AND_AUTHORIZATION**:
+  - `FIX_FORWARD_TYPE`: Documentation-only reconciliation followed by a fresh independent canonical quality gate.
+  - `NEW_AUTHORITATIVE_GATE_AUTHORIZED`: `YES` (`cmd /c "pnpm install --frozen-lockfile && pnpm check"` to run once on the new committed HEAD).
+  - `CODE_CHANGES`: `NONE` (no new implementation, no route changes, no schema modifications, no RBAC alterations).
+  - `RBAC_DECISION_PRESERVED`: `DEC-039` fully intact.
+  - `NEW_TESTS_PRESERVED`: 34 tests in `apps/api` fully intact.
+- **SCOPE_STATUS**:
+  - `007J_STATUS`: `RECONCILIATION_IN_PROGRESS`
+  - `PHASE7_STATUS`: `OPEN`
+  - `PHASE7_MAIN_CONSOLIDATED`: `93%`
+  - `STRUCTURED_DATA_AUTHORITY`: `DATABASE_AND_DETERMINISTIC_TOOLS`
+  - `RETRIEVED_CONTENT_TRUST`: `UNTRUSTED_DATA`
+  - `PRODUCTION_RUNTIME_WIRING`: `NO`
+  - `CUSTOMER_TRAFFIC`: `PROHIBITED`
+- **SAFETY**:
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED`: `NO`
+  - `REAL_DOTENV_ACCESSED`: `NO`
+  - `REMOTE_SUPABASE_MIGRATION_EXECUTED`: `NO`
+  - `REAL_PROVIDER_CALLS`: `0`
+  - `DATABASE_SCHEMA_CHANGED`: `NO`
+  - `MIGRATIONS_CREATED`: `NO`
+
+---
+
+## 2026-10-13 — Slice 007J: Local PostgreSQL gate failure triage & recovery authorization
+
+- **SLICE_ID**: `007J` (local infrastructure failure record & gate recovery authorization; no new product slice)
+- **BASE_MAIN_SHA**: `f4c363960aed2aacc50fc4f87f34dfd0263efdc7`
+- **FEATURE_BRANCH**: `feat/007j-knowledge-base-api-management`
+- **FAILED_GATE_COMMIT_HEAD**: `e91a32bcf0944a704d2775ea8bdd8c3f9c0258ea`
+- **FAILED_GATE_TASK_ID**: `b645a0fb-3c8a-475b-9cb0-007833a9fc7e/task-49`
+- **FAILED_GATE_REPORTED_EXIT_CODE**: `1`
+- **FAILED_GATE_REPORTED_STAGES**:
+  - `FORMAT`: `PASS`
+  - `LINT`: `PASS`
+  - `TYPECHECK`: `PASS`
+  - `TEST`: `FAIL` (14 test files failed, 136 passed, 6 skipped / 1 test failed, 950 passed, 159 skipped)
+  - `BUILD`: `NOT_EXECUTED`
+  - `ARCHITECTURE`: `NOT_EXECUTED`
+  - `FILE_SIZE`: `NOT_EXECUTED`
+- **ROOT_CAUSE_EVIDENCE**:
+  - Observed error: `connect ECONNREFUSED 127.0.0.1:5432` / `connect ECONNREFUSED ::1:5432` across database integration test suites in `packages/database`.
+  - At the time of execution of task-49 (11:16:50Z to 11:19:51Z), the local PostgreSQL container `voice-agent-postgres` was stopped.
+  - Inspection proved container start time was `2026-10-13T11:23:07.885Z`, approximately 3 minutes after task-49 finished.
+  - The previous wait-discipline evidence showed unobserved completion before subsequent commands (`PREVIOUS_GATE_WAIT_DISCIPLINE_EVIDENCE = NOT_DEMONSTRATED_IN_SUPPLIED_CHRONOLOGY`).
+  - Technical result preserved: `PREVIOUS_GATE_TECHNICAL_RESULT = FAIL`.
+- **CURRENT_LOCAL_DATABASE_STATUS**:
+  - `DOCKER_DAEMON_STATUS`: `RUNNING`
+  - `POSTGRES_CONTAINER`: `voice-agent-postgres`
+  - `POSTGRES_CONTAINER_STATE`: `RUNNING_HEALTHY`
+  - `LOCAL_PORT_5432_CONNECTIVITY`: `ACCESSIBLE` (IPv4/IPv6 verified)
+  - `LOCAL_DATABASE`: `voice_agent_dev`
+  - `LOCAL_TABLE_COUNT`: `19` (verified present in persistent volume `voice_agent_postgres_data`)
+  - `LOCAL_MIGRATIONS_APPLIED`: `6` (all forward-only migrations 0000 to 0005 confirmed in `drizzle.__drizzle_migrations`)
+  - `DATABASE_BOOTSTRAP_REQUIRED`: `NO`
+  - `LOCAL_MIGRATIONS_REQUIRED`: `NO`
+- **RECOVERY_AUTHORIZATION**:
+  - New explicit authorization granted by human operator on 2026-10-13 to run exactly one fresh authoritative canonical gate (`cmd /c "pnpm install --frozen-lockfile && pnpm check"`) on the new committed documentation HEAD.
+  - No functional code changes required (`CODE_FILES_CHANGED = 0`).
+  - No test file changes required (`TEST_FILES_CHANGED = 0`).
+  - No provider calls or remote Supabase migrations authorized (`REAL_PROVIDER_CALLS = 0`, `REMOTE_SUPABASE_MIGRATION_EXECUTED = NO`).
+- **SCOPE_STATUS**:
+  - `007J_STATUS`: `RECOVERY_GATE_AUTHORIZED`
+  - `PHASE7_STATUS`: `OPEN`
+  - `PHASE7_MAIN_CONSOLIDATED`: `93%`
+  - `PRODUCTION_RUNTIME_WIRING`: `NO`
+  - `CUSTOMER_TRAFFIC`: `PROHIBITED`
+- **SAFETY**:
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED`: `NO`
+  - `REAL_DOTENV_ACCESSED`: `NO`
+  - `REMOTE_SUPABASE_MIGRATION_EXECUTED`: `NO`
+  - `REAL_PROVIDER_CALLS`: `0`
+  - `DATABASE_SCHEMA_CHANGED`: `NO`
+  - `MIGRATIONS_CREATED`: `NO`
+
+---
+
+## 2026-10-13 — Slice 007J: Task-107 gate evidence audit & chronology recovery authorization
+
+- **SLICE_ID**: `007J` (gate wait-chronology reconciliation & recovery; no new product slice)
+- **BASE_MAIN_SHA**: `f4c363960aed2aacc50fc4f87f34dfd0263efdc7`
+- **FEATURE_BRANCH**: `feat/007j-knowledge-base-api-management`
+- **HISTORICAL_GATE_TASK**: `b645a0fb-3c8a-475b-9cb0-007833a9fc7e/task-107`
+- **HISTORICAL_GATE_HEAD**: `bc41a03dbf76c87d2892b22bd724075f03ddd060`
+- **TASK107_TECHNICAL_RESULT**: `REPORTED_PASS`
+- **TASK107_AUTHORITATIVE**: `NO`
+- **TASK107_EVIDENCE_GAP**: `WAIT_CHRONOLOGY`
+- **OBSERVED_EVIDENCE**:
+  - `manage_task` query later confirmed task status `DONE`.
+  - System reactive message reported command termination with exit code `0`.
+  - All seven stages reported PASS (format, lint, typecheck, test, build, architecture, file-size).
+  - Last stage (`file-size-check`) verified 309 production logic files conforming to length limits.
+  - However, completion confirmation via explicit `manage_task` tool invocation before subsequent Git commands was not demonstrated in the public tool-call chronology.
+  - Task-107 is not classified as a test failure, and no concurrent workload is asserted.
+- **RECOVERY_AUTHORIZATION**:
+  - One fresh authoritative canonical gate (`cmd /c "pnpm install --frozen-lockfile && pnpm check"`) explicitly authorized by human operator on 2026-10-13 on the new documentation HEAD.
+  - Strict wait discipline enforced: if backgrounded, the immediate next tool interaction prior to any Git or file command must be `manage_task` observing completion.
+  - No functional code changes permitted (`CODE_FILES_CHANGED = 0`).
+  - No test file changes permitted (`TEST_FILES_CHANGED = 0`).
+  - No provider calls or remote database operations (`REAL_PROVIDER_CALLS = 0`, `REMOTE_SUPABASE_MIGRATION_EXECUTED = NO`).
+- **SCOPE_STATUS**:
+  - `007J_STATUS`: `CHRONOLOGY_RECOVERY_IN_PROGRESS`
+  - `PHASE7_STATUS`: `OPEN`
+  - `PHASE7_MAIN_CONSOLIDATED`: `93%`
+  - `PRODUCTION_RUNTIME_WIRING`: `NO`
+  - `CUSTOMER_TRAFFIC`: `PROHIBITED`
+- **SAFETY**:
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED`: `NO`
+  - `REAL_DOTENV_ACCESSED`: `NO`
+  - `REMOTE_SUPABASE_MIGRATION_EXECUTED`: `NO`
+  - `REAL_PROVIDER_CALLS`: `0`
+  - `DATABASE_SCHEMA_CHANGED`: `NO`
+  - `MIGRATIONS_CREATED`: `NO`
+---
+
+## 2026-10-13 — 007J Security Corrective Implementation (PR #112)
+
+- **SLICE/PR**: `007J`, PR #112 (`feat/007j-knowledge-base-api-management`).
+- **ORIGINAL_REVIEWED_SHA**: `f01d1b46b5f8fbdca82aad2f0dcca9ed73f1a2e9` (base main `f4c363960aed2aacc50fc4f87f34dfd0263efdc7`).
+- **INDEPENDENT_FINDINGS**: Codex confirmou 4 bloqueadores; Antigravity confirmou; aprovação de segurança anterior SUPERSEDED → decisão formal `CHANGES_REQUIRED`.
+  - HIGH-1: referências de tenant inseguras na ingestão (agentId/agentVersionId sem validação de escopo).
+  - HIGH-2: amplificação de recursos no chunking (overlap ~100% permitido, sem teto de chunks/agregado).
+  - MEDIUM-3: equivalência de idempotência incompleta (só título + hash).
+  - MEDIUM-4: asserções de regressão fracas (403/404 intercambiáveis, tautologias, fakes fabricando resultado).
+- **TDD**: 20 testes de regressão escritos primeiro e observados FALHANDO antes das correções (5 HIGH-2 + 15 HIGH-1/MEDIUM-3).
+- **FIXES**:
+  - HIGH-1: novo `knowledge-agent-association.ts` valida agentId/agentVersionId contra `AgentRepository`/`AgentVersionRepository` com `organizationId` confiável; versionId exige agentId (400 fail-closed); estrangeiro/diferente/inexistente → 404 uniforme sem oráculo; violação FK 23503 mapeada para 404 na fronteira de persistência.
+  - HIGH-2: `knowledge-chunk-contracts.ts` agora impõe `maxChunkChars <= 8000` e `overlapChars <= 50%` (piso 100 preservado; defaults 2000/200 intactos); `knowledge-chunker.ts` aplica as mesmas salvaguardas + tetos `maxGeneratedChunks = 1000` e `maxAggregateChunkChars = 400000`, tudo fail-closed via `BadRequestError`.
+  - MEDIUM-3: `verifyPayloadEquivalence` estendida (collection, sourceVersion, agentId, agentVersionId, policyVersion persistido + recomputação determinística comparada) com `ConflictError` tipado (mensagem title/content idêntica à anterior); caminho concorrente reutiliza a mesma verificação.
+  - MEDIUM-4: teste 7 exige 404 estrito com memberships válidas nas duas orgs; matriz DEC-039 completa (15 combinações) via funções reais; testes 9–12 sem tautologias (provas estruturais reais + cobertura de enforcement no pacote database); testes 14/15 viraram checagens estáticas reais (sem fiação do handoff na composição de voz; sem SDKs de provider nas rotas de knowledge); nova suíte HTTP de integração com repositórios reais (`knowledge-isolation.integration.test.ts`, 9 testes) + independência de retrieval de agente publicado com serviço real (4 testes).
+- **FILES_CHANGED**: `apps/api/src/http/knowledge-authority-separation.http.test.ts`, `apps/api/src/integration/knowledge-isolation.integration.test.ts` (novo), `packages/contracts/src/knowledge/knowledge-chunk-contracts.ts`, `packages/database/src/repositories/knowledge-agent-association.ts` (novo), `knowledge-chunker.ts`, `knowledge-ingestion-resolution.ts`, `knowledge-ingestion-service.ts`, `knowledge-ingestion-types.ts`, `knowledge-text-normalizer.ts`, `repositories/index.ts`, `packages/database/src/knowledge-chunker.test.ts` (novo), `packages/database/src/knowledge-tenant-association.integration.test.ts` (novo).
+- **TARGETED_TESTS**: 114/114 passando (9 chunker + 23 tenant-association + 14 persistence + 9 contracts + 17 knowledge-api + 15 authority + 9 isolation + 18 voice-handoff); typecheck contracts/database/api PASS; eslint PASS nos arquivos tocados; limites de arquivo (≤180) e complexidade (≤8) respeitados.
+- **DECISÕES**: piso `minChunkChars = 256` sugerido NÃO adotado como novo campo (mudança de forma de contrato; piso 100 existente preservado; tetos de contagem/agregado cobrem a amplificação); nenhum campo novo persistido (comparação de policy usa valores efetivos persistidos + recomputação determinística, sem migração).
+- **REMAINING_RISKS**: nenhuma migração autorizada — deriva numérica de policy sob mesma `policyVersion` só é detectável via recomputação (implementado); janela TOCTOU validação→insert coberta por mapeamento FK→404.
+- **SAFETY**: `DATABASE_SCHEMA_CHANGED = NO`; `MIGRATIONS_CREATED = NO`; `REAL_PROVIDER_CALLS = 0`; `REMOTE_SUPABASE_MIGRATIONS = 0`; `DEC-039` preservado; `VOICE_PRODUCTION_WIRING = NO`; `RBAC_DEC039_PRESERVED = YES`; `AGENT_RETRIEVAL_INDEPENDENCE = PRESERVED`.
+- **FULL_GATE**: pendente no momento deste commit (será executado uma única vez após o commit, antes do push).
+
+
+## 2026-10-13 - Slice 007J Final Security Correction (PR #112, Human-Authorized A+B)
+
+- **SLICE_ID**: 007J | **PR**: #112 | **BRANCH**: feat/007j-knowledge-base-api-management | **START_HEAD**: c7dd6e179b676161aecc3bddeda70e3e2bd728c8 | **BASE_MAIN**: f4c363960aed2aacc50fc4f87f34dfd0263efdc7
+- **ORIGINAL_CODEX_FINDINGS**: HIGH-1 insecure tenant refs, HIGH-2 chunking amplification, MEDIUM-3 incomplete idempotency, MEDIUM-4 weak assertions (prior slice, already fixed in c7dd6e1)
+- **ANTIGRAVITY_RECONCILIATION_1**: confirmed 4 blockers, CHANGES_REQUIRED, no new scope
+- **LATEST_CODEX_RESIDUAL**: (1) chunk-content equivalence mistaken for policy identity on short text, (2) top-level-only FK code 23503 overbroad + wrapped misses, (3) message.includes marker forgery + SQL disclosure, (4) draft discard SET NULL widens retrieval + TOCTOU, (5) chunk caps checked after hashing/allocating excess
+- **ANTIGRAVITY_RECONCILIATION_2**: confirmed residuals, requires durable policy identity + transactional discard guard, no remote/production scope
+- **HUMAN_APPROVAL**: DECISION A (single local additive migration 0006, historic UNKNOWN stays NULL, no backfill) + DECISION B (fail-closed transactional draft-discard guard with row locking) ONLY for 007J, recorded as DEC-040; no remote/prod/provider/customer scope
+- **MIGRATION_0006**: 0006_wide_marauders.sql ADD COLUMN chunk_policy_version text + chunk_max_chars integer + chunk_overlap_chars integer (all NULLABLE), journal + 0006_snapshot.json consistent, applied locally via drizzle-kit migrate to voice-agent-postgres ONLY; REMOTE_MIGRATIONS=0
+- **DESIGN_A**: KnowledgeDocument.chunkingPolicy optional, mapKnowledgeDocument round-trips NULL as undefined (legacy UNKNOWN), insertKnowledgeDocument persists toPolicyIdentity(effectivePolicy) atomically with doc+chunks, verifyPayloadEquivalence compares stored vs incoming via arePolicyIdentitiesEqual (exact v/max/overlap), legacy UNKNOWN fails closed 409, explicit vs implicit defaults normalize via zod, concurrent path reuses same check
+- **DESIGN_B**: AgentDraftDiscardService.assertNoActiveKnowledge checks org+version + status!=ARCHIVED FOR UPDATE inside same txn after version FOR UPDATE; ingest locks referenced version FOR UPDATE before insert; discard-wins blocks ingestion to 404, ingestion-wins blocks discard to 409; archived-only discards succeed and stay ARCHIVED (READY-only retrieval unaffected); cross-tenant filtered by org
+- **DESIGN_N1**: findDriverError walks cause chain max 5, isPostgresForeignKeyViolation requires code 23503 AND constraint in {knowledge_documents_agent_id_agents_id_fk, knowledge_documents_agent_version_id_agent_versions_id_fk}; isPostgresUniqueViolation walks chain for 23505; unknown DB stays 500 sanitized
+- **DESIGN_N2**: removed message.includes mapping in knowledge-mutation-routes.ts, now instanceof AppError passthrough; text-normalizer throws BadRequestError typed; concurrent FAILED/ARCHIVED/timeout throw ConflictError typed; error-handler sanitizes non-AppError to 500 without SQL/params
+- **DESIGN_N4**: chunkKnowledgeText checks prospective ordinal/aggregate via assertGenerationCaps BEFORE buildChunk hashing/allocating; caps preserved (8000, 50pct, 1000, 400000), defaults 2000/200 and floor 100 preserved, deterministic boundaries unchanged
+- **FILES_CHANGED**: schema/knowledge.ts, contracts/knowledge-policy-identity.ts(NEW), contracts/knowledge-document-contracts.ts, contracts/index.ts, database/migrations/0006_wide_marauders.sql(NEW)+meta/0006_snapshot.json+_journal.json, repositories/knowledge-mapping.ts, knowledge-document-repository.ts, knowledge-version-lock.ts(NEW), knowledge-ingestion-resolution.ts, knowledge-ingestion-service.ts, knowledge-text-normalizer.ts, knowledge-chunker.ts, agent-draft-discard-service.ts, api/routes/knowledge-mutation-routes.ts, api/http/knowledge-api.http.test.ts (typed ConflictError), docs/DECISIONS_LOG.md (DEC-040)
+- **NEW_TESTS**: database/knowledge-007j-final.integration.test.ts (16 tests A1-A8+N1+B1-B6), api/http/knowledge-error-disclosure.http.test.ts (4 tests N2), database/knowledge-chunker-ordering.test.ts (3 tests N4) = 23 new
+- **TEST_CHANGE_REASON**: knowledge-api.http.test.ts fake now throws typed ConflictError (not generic marker Error) for TRIGGER_CONFLICT/CONCURRENT_FAIL; classification ASSERTION_STRONGER (same 409 expectation, now requires typed error, prevents forgery); no ASSERTION_WEAKER, no new skips
+- **RED_OBSERVED_FAILING**: RED-1 identical-chunks-different-policy resolved as duplicate (not 409), RED-2 wrapped FK false, RED-3 unrelated FK true, RED-4 discard succeeded with READY (not fail-closed), RED-5 bare 23503 true + malformed true, RED-N2 marker DB error mapped to 409 (not 500), RED-N4 hash calls 1001 (not 1000); total 7 failing across 3 files before fix
+- **GREEN_OBSERVED_PASSING**: final 16/16 + disclosure 4/4 + ordering 3/3 + existing 55 (tenant/persistence/chunker/contracts) + 17 api-http + 15 authority + 9 isolation + 9 lifecycle = all targeted PASS; no OOM workload
+- **HISTORICAL_POLICY**: legacy rows NULL remain valid and retrievable if READY; unknown never treated as equivalent; fail-closed 409 stable
+- **RESIDUAL_RISKS**: concurrent phantom limited by version-row serialization (bounded deterministic tests, no broad tenant locks, no deadlock observed); FK constraint names pinned to current migration (rename would need code update); aggregate/count caps are engineering defaults, not constitutional
+- **SAFETY**: FORBIDDEN_INTERNAL_STORAGE_ACCESSED=NO, REAL_DOTENV_ACCESSED=NO, REMOTE_SUPABASE_MIGRATION=NO, REAL_PROVIDER_CALLS=0, CUSTOMER_TRAFFIC=PROHIBITED, PRODUCTION_RUNTIME_WIRING=NO, DEC039_PRESERVED=YES, RETRIEVAL_INDEPENDENCE=PRESERVED, SECRET_AUDIT=PENDING_TRACKED_DIFF
+- **FULL_GATE**: PENDING_AT_WRITE (single canonical pnpm install --frozen-lockfile and pnpm check runs once on NEW_FINAL_HEAD before push, not yet executed)
+
+## 2026-10-13 - Slice 007J Format-Only Gate Recovery (PR #112)
+
+- **SLICE/PR**: 007J PR #112 branch feat/007j-knowledge-base-api-management
+- **FAILED_HEAD**: 63d37e411c9c68678148d5f2cdc97469709175f0 | **FAILED_GATE_EXIT**: 1 | **FAILED_STAGE**: FORMAT | **LATER_STAGES**: LINT/TYPECHECK/TEST/BUILD/ARCHITECTURE/FILE_SIZE NOT_EXECUTED
+- **FORMAT_FILES**: knowledge-error-disclosure.http.test.ts, knowledge-007j-final.integration.test.ts, knowledge-chunker-ordering.test.ts, _journal.json, 0006_snapshot.json, agent-draft-discard-service.ts, knowledge-document-repository.ts
+- **NO_PUSH_AFTER_FAILURE**: YES (remote feature stayed c7dd6e1, main stayed f4c3639)
+- **HUMAN_AUTH**: separate explicit format-only recovery, no amend/rebase, no logic/assertion/migration-SQL changes
+- **SEMANTIC_CHECK**: Drizzle JSON parsed equality PASS for both files, TS diffs whitespace/layout only, 0006_wide_marauders.sql UNCHANGED
+- **NEW_GATE_PENDING**: single canonical pnpm install --frozen-lockfile and pnpm check on NEW_RECOVERY_HEAD, not yet executed
+- **SAFETY**: NO dotenv, NO remote DB, NO production, NO provider calls, NO temp scripts, NO internal log inspection
+
+## 2026-10-13 - Slice 007J Lint-Complexity Recovery (PR #112)
+
+- **SLICE/PR**: 007J PR #112 branch feat/007j-knowledge-base-api-management
+- **PREV_FAILED_HEAD**: 78df783dfb506f1cbbc4dd71882f61582523e360 | **PREV_GATE_EXIT**: 1 | **FORMAT**: PASS | **LINT**: FAIL | **OTHERS**: NOT_EXECUTED
+- **LINT_FINDINGS**: knowledge-document-repository.ts insertKnowledgeDocument complexity 11, knowledge-mapping.ts mapKnowledgeDocument complexity 12 (max 8)
+- **NO_PUSH_AFTER_FAILURE**: YES
+- **HUMAN_AUTH**: separate minimal complexity refactor, no schema/migration/policy/discard/auth/idempotency/SQL/contract/test-assertion changes, no lint suppressions
+- **REFACTOR**: extracted buildKnowledgeInsertValues + resolveMissingInsert in document-repository, hasDurablePolicyIdentity/toSourceReference/pickContentIdentity/pickScopeFields/pickPolicyField in mapping; preserved columns/values/defaults/null-vs-undefined/policy persistence/legacy UNKNOWN/transaction/return/error/conflict semantics and all mapped fields/optionality/timestamps/DTOs
+- **FOCUSED_CHECKS**: eslint 2 files PASS, prettier 2 files PASS, pnpm format:check PASS, pnpm lint PASS, pnpm typecheck 12/12 PASS
+- **TARGETED_TESTS**: 53/53 PASS (16 final + 14 persistence + 23 tenant-association)
+- **NEW_GATE_PENDING**: single canonical pnpm install --frozen-lockfile and pnpm check on NEW_RECOVERY_HEAD
+- **SAFETY**: NO dotenv, NO remote DB, NO production, NO providers, NO temp scripts, NO internal logs
+
+## 2026-10-13 - Slice 007J File-Size Recovery (PR #112)
+
+- **SLICE/PR**: 007J PR #112 branch feat/007j-knowledge-base-api-management
+- **PREV_FAILED_HEAD**: 876252417b660a207e4712a479c784407d824a9a | **PREV_GATE**: FORMAT/LINT/TYPECHECK/TEST/BUILD/ARCH PASS, FILE_SIZE FAIL (knowledge-document-repository.ts 187>180), EXIT 1
+- **NO_PUSH_AFTER_FAILURE**: YES
+- **HUMAN_AUTH**: separate minimal file-size refactor, no behavior/schema/migration/contract/test changes, optional ONE pure helper
+- **REFACTOR**: extracted pure buildKnowledgeInsertValues + InsertKnowledgeDocumentOptions to knowledge-document-values.ts (33 lines, no DB/side-effects); repository now 162 lines; preserved columns/values/nullability/policy/transaction/return/error/tenant/idempotency semantics
+- **PRECOMMIT**: format:check PASS, lint PASS, typecheck PASS (after restoring KnowledgeDocumentStatus import), architecture PASS, file-size PASS (162 + 33), targeted 30/30 PASS (16 final + 14 persistence)
+- **NEW_GATE_PENDING**: single canonical pnpm install --frozen-lockfile and pnpm check on NEW_RECOVERY_HEAD
+- **SAFETY**: NO dotenv, NO remote DB, NO production, NO providers, NO temp scripts, NO internal logs

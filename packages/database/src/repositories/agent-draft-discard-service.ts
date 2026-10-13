@@ -1,7 +1,8 @@
-import { and, eq } from 'drizzle-orm';
-import { InvalidStateTransitionError, NotFoundError } from '@voice-agent/errors';
+import { and, eq, ne } from 'drizzle-orm';
+import { ConflictError, InvalidStateTransitionError, NotFoundError } from '@voice-agent/errors';
 import type { DatabaseInstance } from '../client/connection.js';
 import { agentVersions } from '../schema/agents.js';
+import { knowledgeDocuments } from '../schema/knowledge.js';
 import { auditLogs } from '../schema/audit.js';
 
 export interface DiscardDraftInput {
@@ -10,6 +11,29 @@ export interface DiscardDraftInput {
   versionId: string;
   actorId: string;
   at?: Date;
+}
+
+async function assertNoActiveKnowledge(
+  tx: Parameters<Parameters<DatabaseInstance['transaction']>[0]>[0],
+  input: DiscardDraftInput,
+): Promise<void> {
+  const [blocking] = await tx
+    .select({ id: knowledgeDocuments.id })
+    .from(knowledgeDocuments)
+    .where(
+      and(
+        eq(knowledgeDocuments.organizationId, input.organizationId),
+        eq(knowledgeDocuments.agentVersionId, input.versionId),
+        ne(knowledgeDocuments.status, 'ARCHIVED'),
+      ),
+    )
+    .limit(1)
+    .for('update');
+  if (blocking) {
+    throw new ConflictError(
+      `Cannot discard draft version '${input.versionId}': non-archived knowledge documents remain attached`,
+    );
+  }
 }
 
 export class AgentDraftDiscardService {
@@ -44,6 +68,8 @@ export class AgentDraftDiscardService {
           `Cannot discard version '${input.versionId}': version has historical published timestamp`,
         );
       }
+
+      await assertNoActiveKnowledge(tx, input);
 
       await tx.delete(agentVersions).where(eq(agentVersions.id, input.versionId));
 

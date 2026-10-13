@@ -3,15 +3,15 @@
 <!--
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
-LAST_REFRESHED_AT: 2026-10-08
-CONTEXT_BASE_MAIN_SHA: 10710bb46ec1fcef2943141e01c81f02cb327fb0
+LAST_REFRESHED_AT: 2026-10-09
+CONTEXT_BASE_MAIN_SHA: f4c363960aed2aacc50fc4f87f34dfd0263efdc7
 CURRENT_PHASE: Phase 7 (OPEN)
-CURRENT_SLICE: Slice 007I — Offline Voice Knowledge Retrieval Handoff
-CONTEXT_UPDATE_BRANCH: feat/007i-voice-knowledge-retrieval-handoff
+CURRENT_SLICE: Slice 007J — Knowledge Base API Management
+CONTEXT_UPDATE_BRANCH: feat/007j-knowledge-base-api-management
 CONTEXT_UPDATE_PR: NONE
-LAST_MERGED_PR_AT_REFRESH: 110
-LAST_MERGE_SHA_AT_REFRESH: 10710bb46ec1fcef2943141e01c81f02cb327fb0
-LAST_TESTED_CODE_SHA: 10710bb46ec1fcef2943141e01c81f02cb327fb0
+LAST_MERGED_PR_AT_REFRESH: 111
+LAST_MERGE_SHA_AT_REFRESH: f4c363960aed2aacc50fc4f87f34dfd0263efdc7
+LAST_TESTED_CODE_SHA: f4c363960aed2aacc50fc4f87f34dfd0263efdc7
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
 AI_CONTEXT_HEADER_END
@@ -211,14 +211,16 @@ AI_CONTEXT_HEADER_END
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- **Phase 7 Status**: `OPEN` (`PHASE7_STATUS = OPEN`, `PHASE7_COMPLETION_ESTIMATE = 93% (feature-branch projection only)`, `PHASE7_BLOCKER_COUNT = 0`, `PHASE7_BLOCKERS = NONE`).
+- **Phase 7 Status**: `OPEN` (`PHASE7_STATUS = OPEN`, `PHASE7_MAIN_CONSOLIDATED = 93%`, `PHASE7_BLOCKER_COUNT = 0`, `PHASE7_BLOCKERS = NONE`).
 - **Slice 007H — Knowledge Base Persistence, Ingestion & Retrieval Runtime**: `CLOSED ON MAIN` (PR #110 squash `10710bb`; post-merge gate `AUTHORITATIVE_PASS`).
-- **Slice 007I — Offline Voice Knowledge Retrieval Handoff**: `IMPLEMENTED / TESTED LOCALLY` (pending canonical gate on final HEAD).
-- `NEXT_ALLOWED_STEP = AUTOMATED_PR_REVIEW_AND_MERGE_007I`
+- **Slice 007I — Offline Voice Knowledge Retrieval Handoff**: `CLOSED ON MAIN` (PR #111 squash `f4c3639`; post-merge gate `AUTHORITATIVE_PASS`).
+- **Slice 007J — Knowledge Base API Management**: `IMPLEMENTED / TESTED LOCALLY` on `feat/007j-knowledge-base-api-management`.
+- `NEXT_ALLOWED_STEP = FORMAL_PR_REVIEW_007J`
 - `NEXT_ALLOWED_SLICE = NOT_YET_ALLOWED`
-- **Recommended Next Slice**: TBD por backlog de governança (candidatos: production RAG wiring sob revisão humana, ou Agent Evals Fase 9).
+- **Recommended Next Slice**: TBD por backlog de governança (após merge de 007J).
 - `AUTHORIZATION_CONSUMED = YES` | `SECOND_LIVE_RUN_AUTHORIZED = NO` | `NEW_LIVE_AUTHORIZATION_CREATED = NO`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
+
 
 ### `NOT_YET_ALLOWED`:
 - Transmissão de dados reais de clientes para provedores externos.

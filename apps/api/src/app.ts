@@ -10,7 +10,10 @@ import { registerAgentDraftRoutes } from './routes/agent-draft-routes.js';
 import { registerMeOrganizationRoutes } from './routes/me-organization-routes.js';
 import { registerOutboundCampaignRoutes } from './routes/outbound-campaign-routes.js';
 import { registerOutboundBatchRoutes } from './routes/outbound-batch-routes.js';
+import { registerKnowledgeReadRoutes } from './routes/knowledge-read-routes.js';
+import { registerKnowledgeMutationRoutes } from './routes/knowledge-mutation-routes.js';
 import { serviceAuthMiddleware } from './auth/service-auth-middleware.js';
+
 import { bootstrapAuthMiddleware } from './auth/bootstrap-auth-middleware.js';
 
 function registerOpenApiDocs(app: OpenAPIHono): void {
@@ -58,6 +61,8 @@ export function createApp(deps: ApiDependencies): OpenAPIHono {
   app.use('/v1/agents/*', serviceAuthMiddleware(deps.verifier));
   app.use('/v1/campaigns', serviceAuthMiddleware(deps.verifier));
   app.use('/v1/campaigns/*', serviceAuthMiddleware(deps.verifier));
+  app.use('/v1/knowledge', serviceAuthMiddleware(deps.verifier));
+  app.use('/v1/knowledge/*', serviceAuthMiddleware(deps.verifier));
 
   // 5. Asymmetric bootstrap authentication for user-scoped routes
   app.use('/v1/me/*', bootstrapAuthMiddleware(deps.bootstrapVerifier));
@@ -70,6 +75,8 @@ export function createApp(deps: ApiDependencies): OpenAPIHono {
   registerMeOrganizationRoutes(app, deps);
   registerOutboundCampaignRoutes(app, deps);
   registerOutboundBatchRoutes(app, deps);
+  registerKnowledgeReadRoutes(app, deps);
+  registerKnowledgeMutationRoutes(app, deps);
 
   // 6. Global error handler & not found handler with canonical error envelopes
   app.onError(createApiErrorHandler(deps.logger));

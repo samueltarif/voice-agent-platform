@@ -50,6 +50,9 @@ export const knowledgeDocuments = pgTable(
     agentVersionId: uuid('agent_version_id').references(() => agentVersions.id, {
       onDelete: 'set null',
     }),
+    chunkPolicyVersion: text('chunk_policy_version'),
+    chunkMaxChars: integer('chunk_max_chars'),
+    chunkOverlapChars: integer('chunk_overlap_chars'),
     errorMessage: text('error_message'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true })

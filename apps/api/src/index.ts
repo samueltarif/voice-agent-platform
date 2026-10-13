@@ -3,7 +3,9 @@ export * from './composition/agent-dependencies.js';
 export * from './auth/service-assertion-verifier.js';
 export * from './auth/service-auth-middleware.js';
 export * from './auth/agent-permissions.js';
+export * from './auth/knowledge-permissions.js';
 export * from './auth/tenant-authorization.js';
+
 export * from './http/request-id.js';
 export * from './http/error-handler.js';
 export * from './http/response-mappers.js';
