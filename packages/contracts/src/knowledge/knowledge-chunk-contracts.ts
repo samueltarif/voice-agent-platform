@@ -9,16 +9,39 @@ export const knowledgeChunkIdSchema = z.string().uuid();
 export const KNOWLEDGE_CHUNK_DEFAULT_MAX_CHARS = 2000;
 export const KNOWLEDGE_CHUNK_DEFAULT_OVERLAP_CHARS = 200;
 
+// Safety bounds (007J HIGH-2): deterministic, fail-closed resource limits.
+// The schema floor (min 100) predates this change and is preserved; the new
+// finite maximum, overlap ratio and generation caps close the amplification
+// surface for direct chunker callers as well (see knowledge-chunker.ts).
+export const KNOWLEDGE_CHUNK_MAX_CHARS = 8000;
+export const KNOWLEDGE_CHUNK_MAX_OVERLAP_NUMERATOR = 1;
+export const KNOWLEDGE_CHUNK_MAX_OVERLAP_DENOMINATOR = 2;
+export const KNOWLEDGE_CHUNK_MAX_GENERATED_CHUNKS = 1000;
+export const KNOWLEDGE_CHUNK_MAX_AGGREGATE_CHARS = 400_000;
+
 export const knowledgeChunkingPolicySchema = z
   .object({
     policyVersion: z.string().trim().min(1).max(50),
-    maxChunkChars: z.number().int().min(100).default(KNOWLEDGE_CHUNK_DEFAULT_MAX_CHARS),
+    maxChunkChars: z
+      .number()
+      .int()
+      .min(100)
+      .max(KNOWLEDGE_CHUNK_MAX_CHARS)
+      .default(KNOWLEDGE_CHUNK_DEFAULT_MAX_CHARS),
     overlapChars: z.number().int().min(0).default(KNOWLEDGE_CHUNK_DEFAULT_OVERLAP_CHARS),
   })
   .strict()
   .refine((policy) => policy.overlapChars < policy.maxChunkChars, {
     message: 'overlapChars must be smaller than maxChunkChars',
-  });
+  })
+  .refine(
+    (policy) =>
+      policy.overlapChars * KNOWLEDGE_CHUNK_MAX_OVERLAP_DENOMINATOR <=
+      policy.maxChunkChars * KNOWLEDGE_CHUNK_MAX_OVERLAP_NUMERATOR,
+    {
+      message: 'overlapChars must not exceed 50% of maxChunkChars',
+    },
+  );
 
 export type KnowledgeChunkingPolicy = z.infer<typeof knowledgeChunkingPolicySchema>;
 

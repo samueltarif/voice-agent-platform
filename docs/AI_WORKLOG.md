@@ -17450,3 +17450,26 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `REAL_PROVIDER_CALLS`: `0`
   - `DATABASE_SCHEMA_CHANGED`: `NO`
   - `MIGRATIONS_CREATED`: `NO`
+---
+
+## 2026-10-13 — 007J Security Corrective Implementation (PR #112)
+
+- **SLICE/PR**: `007J`, PR #112 (`feat/007j-knowledge-base-api-management`).
+- **ORIGINAL_REVIEWED_SHA**: `f01d1b46b5f8fbdca82aad2f0dcca9ed73f1a2e9` (base main `f4c363960aed2aacc50fc4f87f34dfd0263efdc7`).
+- **INDEPENDENT_FINDINGS**: Codex confirmou 4 bloqueadores; Antigravity confirmou; aprovação de segurança anterior SUPERSEDED → decisão formal `CHANGES_REQUIRED`.
+  - HIGH-1: referências de tenant inseguras na ingestão (agentId/agentVersionId sem validação de escopo).
+  - HIGH-2: amplificação de recursos no chunking (overlap ~100% permitido, sem teto de chunks/agregado).
+  - MEDIUM-3: equivalência de idempotência incompleta (só título + hash).
+  - MEDIUM-4: asserções de regressão fracas (403/404 intercambiáveis, tautologias, fakes fabricando resultado).
+- **TDD**: 20 testes de regressão escritos primeiro e observados FALHANDO antes das correções (5 HIGH-2 + 15 HIGH-1/MEDIUM-3).
+- **FIXES**:
+  - HIGH-1: novo `knowledge-agent-association.ts` valida agentId/agentVersionId contra `AgentRepository`/`AgentVersionRepository` com `organizationId` confiável; versionId exige agentId (400 fail-closed); estrangeiro/diferente/inexistente → 404 uniforme sem oráculo; violação FK 23503 mapeada para 404 na fronteira de persistência.
+  - HIGH-2: `knowledge-chunk-contracts.ts` agora impõe `maxChunkChars <= 8000` e `overlapChars <= 50%` (piso 100 preservado; defaults 2000/200 intactos); `knowledge-chunker.ts` aplica as mesmas salvaguardas + tetos `maxGeneratedChunks = 1000` e `maxAggregateChunkChars = 400000`, tudo fail-closed via `BadRequestError`.
+  - MEDIUM-3: `verifyPayloadEquivalence` estendida (collection, sourceVersion, agentId, agentVersionId, policyVersion persistido + recomputação determinística comparada) com `ConflictError` tipado (mensagem title/content idêntica à anterior); caminho concorrente reutiliza a mesma verificação.
+  - MEDIUM-4: teste 7 exige 404 estrito com memberships válidas nas duas orgs; matriz DEC-039 completa (15 combinações) via funções reais; testes 9–12 sem tautologias (provas estruturais reais + cobertura de enforcement no pacote database); testes 14/15 viraram checagens estáticas reais (sem fiação do handoff na composição de voz; sem SDKs de provider nas rotas de knowledge); nova suíte HTTP de integração com repositórios reais (`knowledge-isolation.integration.test.ts`, 9 testes) + independência de retrieval de agente publicado com serviço real (4 testes).
+- **FILES_CHANGED**: `apps/api/src/http/knowledge-authority-separation.http.test.ts`, `apps/api/src/integration/knowledge-isolation.integration.test.ts` (novo), `packages/contracts/src/knowledge/knowledge-chunk-contracts.ts`, `packages/database/src/repositories/knowledge-agent-association.ts` (novo), `knowledge-chunker.ts`, `knowledge-ingestion-resolution.ts`, `knowledge-ingestion-service.ts`, `knowledge-ingestion-types.ts`, `knowledge-text-normalizer.ts`, `repositories/index.ts`, `packages/database/src/knowledge-chunker.test.ts` (novo), `packages/database/src/knowledge-tenant-association.integration.test.ts` (novo).
+- **TARGETED_TESTS**: 114/114 passando (9 chunker + 23 tenant-association + 14 persistence + 9 contracts + 17 knowledge-api + 15 authority + 9 isolation + 18 voice-handoff); typecheck contracts/database/api PASS; eslint PASS nos arquivos tocados; limites de arquivo (≤180) e complexidade (≤8) respeitados.
+- **DECISÕES**: piso `minChunkChars = 256` sugerido NÃO adotado como novo campo (mudança de forma de contrato; piso 100 existente preservado; tetos de contagem/agregado cobrem a amplificação); nenhum campo novo persistido (comparação de policy usa valores efetivos persistidos + recomputação determinística, sem migração).
+- **REMAINING_RISKS**: nenhuma migração autorizada — deriva numérica de policy sob mesma `policyVersion` só é detectável via recomputação (implementado); janela TOCTOU validação→insert coberta por mapeamento FK→404.
+- **SAFETY**: `DATABASE_SCHEMA_CHANGED = NO`; `MIGRATIONS_CREATED = NO`; `REAL_PROVIDER_CALLS = 0`; `REMOTE_SUPABASE_MIGRATIONS = 0`; `DEC-039` preservado; `VOICE_PRODUCTION_WIRING = NO`; `RBAC_DEC039_PRESERVED = YES`; `AGENT_RETRIEVAL_INDEPENDENCE = PRESERVED`.
+- **FULL_GATE**: pendente no momento deste commit (será executado uma única vez após o commit, antes do push).
