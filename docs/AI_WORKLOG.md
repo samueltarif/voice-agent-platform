@@ -17358,3 +17358,56 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `REAL_PROVIDER_CALLS`: `0`
   - `DATABASE_SCHEMA_CHANGED`: `NO`
   - `MIGRATIONS_CREATED`: `NO`
+
+---
+
+## 2026-10-13 — Slice 007J: Local PostgreSQL gate failure triage & recovery authorization
+
+- **SLICE_ID**: `007J` (local infrastructure failure record & gate recovery authorization; no new product slice)
+- **BASE_MAIN_SHA**: `f4c363960aed2aacc50fc4f87f34dfd0263efdc7`
+- **FEATURE_BRANCH**: `feat/007j-knowledge-base-api-management`
+- **FAILED_GATE_COMMIT_HEAD**: `e91a32bcf0944a704d2775ea8bdd8c3f9c0258ea`
+- **FAILED_GATE_TASK_ID**: `b645a0fb-3c8a-475b-9cb0-007833a9fc7e/task-49`
+- **FAILED_GATE_REPORTED_EXIT_CODE**: `1`
+- **FAILED_GATE_REPORTED_STAGES**:
+  - `FORMAT`: `PASS`
+  - `LINT`: `PASS`
+  - `TYPECHECK`: `PASS`
+  - `TEST`: `FAIL` (14 test files failed, 136 passed, 6 skipped / 1 test failed, 950 passed, 159 skipped)
+  - `BUILD`: `NOT_EXECUTED`
+  - `ARCHITECTURE`: `NOT_EXECUTED`
+  - `FILE_SIZE`: `NOT_EXECUTED`
+- **ROOT_CAUSE_EVIDENCE**:
+  - Observed error: `connect ECONNREFUSED 127.0.0.1:5432` / `connect ECONNREFUSED ::1:5432` across database integration test suites in `packages/database`.
+  - At the time of execution of task-49 (11:16:50Z to 11:19:51Z), the local PostgreSQL container `voice-agent-postgres` was stopped.
+  - Inspection proved container start time was `2026-10-13T11:23:07.885Z`, approximately 3 minutes after task-49 finished.
+  - The previous wait-discipline evidence showed unobserved completion before subsequent commands (`PREVIOUS_GATE_WAIT_DISCIPLINE_EVIDENCE = NOT_DEMONSTRATED_IN_SUPPLIED_CHRONOLOGY`).
+  - Technical result preserved: `PREVIOUS_GATE_TECHNICAL_RESULT = FAIL`.
+- **CURRENT_LOCAL_DATABASE_STATUS**:
+  - `DOCKER_DAEMON_STATUS`: `RUNNING`
+  - `POSTGRES_CONTAINER`: `voice-agent-postgres`
+  - `POSTGRES_CONTAINER_STATE`: `RUNNING_HEALTHY`
+  - `LOCAL_PORT_5432_CONNECTIVITY`: `ACCESSIBLE` (IPv4/IPv6 verified)
+  - `LOCAL_DATABASE`: `voice_agent_dev`
+  - `LOCAL_TABLE_COUNT`: `19` (verified present in persistent volume `voice_agent_postgres_data`)
+  - `LOCAL_MIGRATIONS_APPLIED`: `6` (all forward-only migrations 0000 to 0005 confirmed in `drizzle.__drizzle_migrations`)
+  - `DATABASE_BOOTSTRAP_REQUIRED`: `NO`
+  - `LOCAL_MIGRATIONS_REQUIRED`: `NO`
+- **RECOVERY_AUTHORIZATION**:
+  - New explicit authorization granted by human operator on 2026-10-13 to run exactly one fresh authoritative canonical gate (`cmd /c "pnpm install --frozen-lockfile && pnpm check"`) on the new committed documentation HEAD.
+  - No functional code changes required (`CODE_FILES_CHANGED = 0`).
+  - No test file changes required (`TEST_FILES_CHANGED = 0`).
+  - No provider calls or remote Supabase migrations authorized (`REAL_PROVIDER_CALLS = 0`, `REMOTE_SUPABASE_MIGRATION_EXECUTED = NO`).
+- **SCOPE_STATUS**:
+  - `007J_STATUS`: `RECOVERY_GATE_AUTHORIZED`
+  - `PHASE7_STATUS`: `OPEN`
+  - `PHASE7_MAIN_CONSOLIDATED`: `93%`
+  - `PRODUCTION_RUNTIME_WIRING`: `NO`
+  - `CUSTOMER_TRAFFIC`: `PROHIBITED`
+- **SAFETY**:
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED`: `NO`
+  - `REAL_DOTENV_ACCESSED`: `NO`
+  - `REMOTE_SUPABASE_MIGRATION_EXECUTED`: `NO`
+  - `REAL_PROVIDER_CALLS`: `0`
+  - `DATABASE_SCHEMA_CHANGED`: `NO`
+  - `MIGRATIONS_CREATED`: `NO`
