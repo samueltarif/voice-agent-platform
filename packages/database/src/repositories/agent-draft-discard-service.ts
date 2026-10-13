@@ -1,9 +1,5 @@
 import { and, eq, ne } from 'drizzle-orm';
-import {
-  ConflictError,
-  InvalidStateTransitionError,
-  NotFoundError,
-} from '@voice-agent/errors';
+import { ConflictError, InvalidStateTransitionError, NotFoundError } from '@voice-agent/errors';
 import type { DatabaseInstance } from '../client/connection.js';
 import { agentVersions } from '../schema/agents.js';
 import { knowledgeDocuments } from '../schema/knowledge.js';

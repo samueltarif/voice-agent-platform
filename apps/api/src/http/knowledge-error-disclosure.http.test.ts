@@ -27,7 +27,12 @@ describe('007J N2 typed error mapping (no substring forgery)', () => {
       findOrganizationById: async () => ({ id: orgId, status: 'ACTIVE' }),
     } as unknown as OrganizationRepository;
     const mockMembershipRepo = {
-      findMembership: async () => ({ organizationId: orgId, userId: sub, role: 'OWNER', status: 'ACTIVE' }),
+      findMembership: async () => ({
+        organizationId: orgId,
+        userId: sub,
+        role: 'OWNER',
+        status: 'ACTIVE',
+      }),
     } as unknown as MembershipRepository;
     const poisonedRepo = {
       async ingestDocument(input: { title: string; source: { locator: string }; rawText: string }) {
@@ -102,7 +107,13 @@ describe('007J N2 typed error mapping (no substring forgery)', () => {
     const { importJWK } = await import('jose');
     const key = await importJWK(privateJwk, 'EdDSA');
     const now = Math.floor(Date.now() / 1000);
-    return new SignJWT({ sub, orgId, iss: 'voice-agent:web', aud: 'voice-agent:api', jti: `n2f-${Math.random()}` })
+    return new SignJWT({
+      sub,
+      orgId,
+      iss: 'voice-agent:web',
+      aud: 'voice-agent:api',
+      jti: `n2f-${Math.random()}`,
+    })
       .setProtectedHeader({ alg: 'EdDSA', kid, typ: 'JWT' })
       .setIssuedAt(now)
       .setExpirationTime(now + 30)

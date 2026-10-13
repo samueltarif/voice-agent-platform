@@ -29,9 +29,9 @@ describe('007J N4 chunk caps checked before work (ordering + exact limits)', () 
     const exactText = 'a'.repeat(100 * 1000);
     const exact = chunkKnowledgeText({ text: exactText, documentId: DOC_ID, policy });
     expect(exact).toHaveLength(1000);
-    expect(() =>
-      chunkKnowledgeText({ text: `${exactText}a`, documentId: DOC_ID, policy }),
-    ).toThrow(/too many chunks/i);
+    expect(() => chunkKnowledgeText({ text: `${exactText}a`, documentId: DOC_ID, policy })).toThrow(
+      /too many chunks/i,
+    );
   });
 
   it('accepts exact aggregate limit and rejects aggregate-plus-one', () => {
@@ -40,8 +40,8 @@ describe('007J N4 chunk caps checked before work (ordering + exact limits)', () 
     const exact = chunkKnowledgeText({ text: exactText, documentId: DOC_ID, policy });
     const total = exact.reduce((sum, c) => sum + c.text.length, 0);
     expect(total).toBeLessThanOrEqual(KNOWLEDGE_CHUNK_MAX_AGGREGATE_CHARS);
-    expect(() =>
-      chunkKnowledgeText({ text: `${exactText}c`, documentId: DOC_ID, policy }),
-    ).toThrow(/aggregate/i);
+    expect(() => chunkKnowledgeText({ text: `${exactText}c`, documentId: DOC_ID, policy })).toThrow(
+      /aggregate/i,
+    );
   });
 });

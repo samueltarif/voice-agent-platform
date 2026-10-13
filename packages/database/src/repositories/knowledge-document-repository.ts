@@ -28,8 +28,7 @@ export interface InsertKnowledgeDocumentOptions {
   readonly errorMessage?: string | undefined;
   readonly onConflictDoNothing?: boolean | undefined;
   readonly policyIdentity?:
-    | { policyVersion: string; maxChunkChars: number; overlapChars: number }
-    | undefined;
+    { policyVersion: string; maxChunkChars: number; overlapChars: number } | undefined;
 }
 
 export async function insertKnowledgeDocument(

@@ -82,8 +82,12 @@ describe('007J Final Security Invariants (Decision A/B + N1)', () => {
     try {
       if (createdOrgIds.length > 0) {
         await db.delete(auditLogs).where(inArray(auditLogs.organizationId, createdOrgIds));
-        await db.delete(knowledgeChunks).where(inArray(knowledgeChunks.organizationId, createdOrgIds));
-        await db.delete(knowledgeDocuments).where(inArray(knowledgeDocuments.organizationId, createdOrgIds));
+        await db
+          .delete(knowledgeChunks)
+          .where(inArray(knowledgeChunks.organizationId, createdOrgIds));
+        await db
+          .delete(knowledgeDocuments)
+          .where(inArray(knowledgeDocuments.organizationId, createdOrgIds));
         await db.delete(agentVersions).where(inArray(agentVersions.organizationId, createdOrgIds));
         await db.delete(agents).where(inArray(agents.organizationId, createdOrgIds));
         await db.delete(organizations).where(inArray(organizations.id, createdOrgIds));
@@ -161,7 +165,8 @@ describe('007J Final Security Invariants (Decision A/B + N1)', () => {
     const locator = `fin/a4-${runId}.md`;
     const paragraphs = Array.from(
       { length: 12 },
-      (_, i) => `Paragrafo ${i} procedimentos operacionais extensos para multiplos chunks ${runId}.`,
+      (_, i) =>
+        `Paragrafo ${i} procedimentos operacionais extensos para multiplos chunks ${runId}.`,
     );
     const rawText = paragraphs.join('\n\n');
     await ingestKnowledgeDocument(db, {
@@ -287,7 +292,10 @@ describe('007J Final Security Invariants (Decision A/B + N1)', () => {
   });
 
   it('N1 direct relevant FK maps, unrelated does not, malformed safe', () => {
-    const direct = { code: '23503', constraint: 'knowledge_documents_agent_version_id_agent_versions_id_fk' };
+    const direct = {
+      code: '23503',
+      constraint: 'knowledge_documents_agent_version_id_agent_versions_id_fk',
+    };
     expect(isPostgresForeignKeyViolation(direct)).toBe(true);
     const wrapped = new Error('w') as Error & { cause?: unknown };
     (wrapped as { cause: unknown }).cause = {
@@ -298,7 +306,9 @@ describe('007J Final Security Invariants (Decision A/B + N1)', () => {
     expect(isPostgresForeignKeyViolation({ code: '23503', constraint: 'other_fkey' })).toBe(false);
     expect(isPostgresForeignKeyViolation({ code: '23503' })).toBe(false);
     expect(isPostgresForeignKeyViolation(null)).toBe(false);
-    expect(() => isPostgresForeignKeyViolation({ cause: { cause: { code: 23503 } } })).not.toThrow();
+    expect(() =>
+      isPostgresForeignKeyViolation({ cause: { cause: { code: 23503 } } }),
+    ).not.toThrow();
   });
 
   it('N1 ghost association stays 404 without SQL leak', async () => {
@@ -335,12 +345,22 @@ describe('007J Final Security Invariants (Decision A/B + N1)', () => {
       agentVersionId: draft.id,
     });
     await expect(
-      discardService.discardDraft({ organizationId: orgId, agentId: agent.id, versionId: draft.id, actorId: userId }),
+      discardService.discardDraft({
+        organizationId: orgId,
+        agentId: agent.id,
+        versionId: draft.id,
+        actorId: userId,
+      }),
     ).rejects.toThrow();
     const [doc] = await db
       .select()
       .from(knowledgeDocuments)
-      .where(and(eq(knowledgeDocuments.organizationId, orgId), eq(knowledgeDocuments.agentVersionId, draft.id)))
+      .where(
+        and(
+          eq(knowledgeDocuments.organizationId, orgId),
+          eq(knowledgeDocuments.agentVersionId, draft.id),
+        ),
+      )
       .limit(1);
     expect(doc?.agentVersionId).toBe(draft.id);
   });
@@ -370,7 +390,12 @@ describe('007J Final Security Invariants (Decision A/B + N1)', () => {
       { initialStatus: 'PENDING' },
     );
     await expect(
-      discardService.discardDraft({ organizationId: orgId, agentId: agent.id, versionId: draft.id, actorId: userId }),
+      discardService.discardDraft({
+        organizationId: orgId,
+        agentId: agent.id,
+        versionId: draft.id,
+        actorId: userId,
+      }),
     ).rejects.toThrow();
   });
 
@@ -429,7 +454,12 @@ describe('007J Final Security Invariants (Decision A/B + N1)', () => {
     expect(res.success).toBe(true);
     const retrieval = new DrizzleKnowledgeRetrievalService(db);
     const result = await retrieval.retrieve({
-      scope: { organizationId: orgId, agentId: agent.id, agentVersionId: draft.id, collection: `b4col-${runId}` },
+      scope: {
+        organizationId: orgId,
+        agentId: agent.id,
+        agentVersionId: draft.id,
+        collection: `b4col-${runId}`,
+      },
       query: { queryText: `B4 archived term ${runId}` },
     });
     expect(result.hits).toHaveLength(0);
@@ -457,7 +487,12 @@ describe('007J Final Security Invariants (Decision A/B + N1)', () => {
         agentId: agent.id,
         agentVersionId: draft.id,
       }),
-      discardService.discardDraft({ organizationId: orgId, agentId: agent.id, versionId: draft.id, actorId: userId }),
+      discardService.discardDraft({
+        organizationId: orgId,
+        agentId: agent.id,
+        versionId: draft.id,
+        actorId: userId,
+      }),
     ]);
     const fulfilled = settled.filter((s) => s.status === 'fulfilled');
     const rejected = settled.filter((s) => s.status === 'rejected');
@@ -465,7 +500,12 @@ describe('007J Final Security Invariants (Decision A/B + N1)', () => {
     const docs = await db
       .select()
       .from(knowledgeDocuments)
-      .where(and(eq(knowledgeDocuments.organizationId, orgId), eq(knowledgeDocuments.agentVersionId, draft.id)));
+      .where(
+        and(
+          eq(knowledgeDocuments.organizationId, orgId),
+          eq(knowledgeDocuments.agentVersionId, draft.id),
+        ),
+      );
     const readyDocs = docs.filter((d) => d.status !== 'ARCHIVED');
     if (readyDocs.length > 0) {
       const versions = await db.select().from(agentVersions).where(eq(agentVersions.id, draft.id));
@@ -488,7 +528,12 @@ describe('007J Final Security Invariants (Decision A/B + N1)', () => {
       createdBy: userId,
     });
     await expect(
-      discardService.discardDraft({ organizationId: orgBId, agentId: agent.id, versionId: draft.id, actorId: userId }),
+      discardService.discardDraft({
+        organizationId: orgBId,
+        agentId: agent.id,
+        versionId: draft.id,
+        actorId: userId,
+      }),
     ).rejects.toThrow(NotFoundError);
   });
 });

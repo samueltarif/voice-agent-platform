@@ -17498,3 +17498,14 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **RESIDUAL_RISKS**: concurrent phantom limited by version-row serialization (bounded deterministic tests, no broad tenant locks, no deadlock observed); FK constraint names pinned to current migration (rename would need code update); aggregate/count caps are engineering defaults, not constitutional
 - **SAFETY**: FORBIDDEN_INTERNAL_STORAGE_ACCESSED=NO, REAL_DOTENV_ACCESSED=NO, REMOTE_SUPABASE_MIGRATION=NO, REAL_PROVIDER_CALLS=0, CUSTOMER_TRAFFIC=PROHIBITED, PRODUCTION_RUNTIME_WIRING=NO, DEC039_PRESERVED=YES, RETRIEVAL_INDEPENDENCE=PRESERVED, SECRET_AUDIT=PENDING_TRACKED_DIFF
 - **FULL_GATE**: PENDING_AT_WRITE (single canonical pnpm install --frozen-lockfile and pnpm check runs once on NEW_FINAL_HEAD before push, not yet executed)
+
+## 2026-10-13 - Slice 007J Format-Only Gate Recovery (PR #112)
+
+- **SLICE/PR**: 007J PR #112 branch feat/007j-knowledge-base-api-management
+- **FAILED_HEAD**: 63d37e411c9c68678148d5f2cdc97469709175f0 | **FAILED_GATE_EXIT**: 1 | **FAILED_STAGE**: FORMAT | **LATER_STAGES**: LINT/TYPECHECK/TEST/BUILD/ARCHITECTURE/FILE_SIZE NOT_EXECUTED
+- **FORMAT_FILES**: knowledge-error-disclosure.http.test.ts, knowledge-007j-final.integration.test.ts, knowledge-chunker-ordering.test.ts, _journal.json, 0006_snapshot.json, agent-draft-discard-service.ts, knowledge-document-repository.ts
+- **NO_PUSH_AFTER_FAILURE**: YES (remote feature stayed c7dd6e1, main stayed f4c3639)
+- **HUMAN_AUTH**: separate explicit format-only recovery, no amend/rebase, no logic/assertion/migration-SQL changes
+- **SEMANTIC_CHECK**: Drizzle JSON parsed equality PASS for both files, TS diffs whitespace/layout only, 0006_wide_marauders.sql UNCHANGED
+- **NEW_GATE_PENDING**: single canonical pnpm install --frozen-lockfile and pnpm check on NEW_RECOVERY_HEAD, not yet executed
+- **SAFETY**: NO dotenv, NO remote DB, NO production, NO provider calls, NO temp scripts, NO internal log inspection
