@@ -7,6 +7,7 @@ import { TenantApiClient } from '../../../../lib/api/tenant-api-client.js';
 import { mapKnowledgeBffError } from '../knowledge-error-response.js';
 import { parseIngestBody, parseListQuery, toListPath } from '../knowledge-request-parsers.js';
 import { isSameOriginRequest } from '../../agents/is-same-origin-request.js';
+import { checkKnowledgeOrgConsistency } from '../knowledge-org-consistency.js';
 
 type OrgContext = Awaited<ReturnType<typeof getServerOrganizationContext>>;
 
@@ -33,6 +34,19 @@ function hasReadPermission(role: string): boolean {
 
 function hasIngestPermission(role: string): boolean {
   return role === 'OWNER' || role === 'ADMIN' || role === 'MANAGER';
+}
+
+function authorizeRead(req: NextRequest, context: ActiveOrganizationContext): NextResponse | null {
+  if (!hasReadPermission(context.role)) return denyForbidden();
+  return checkKnowledgeOrgConsistency(req, context.slug);
+}
+
+function authorizeIngest(
+  req: NextRequest,
+  context: ActiveOrganizationContext,
+): NextResponse | null {
+  if (!hasIngestPermission(context.role)) return denyForbidden();
+  return checkKnowledgeOrgConsistency(req, context.slug);
 }
 
 interface ExecuteListOptions {
@@ -65,7 +79,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const result = await getServerOrganizationContext(requestId ? { requestId } : {});
   const blocked = checkAccess(result);
   if (blocked) return blocked;
-  if (!hasReadPermission(result.context!.role)) return denyForbidden();
+  const denied = authorizeRead(req, result.context!);
+  if (denied) return denied;
   const parsed = parseListQuery(req);
   if (!parsed.ok) return parsed.response;
   return executeListRequest({
@@ -107,7 +122,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const result = await getServerOrganizationContext(requestId ? { requestId } : {});
   const blocked = checkAccess(result);
   if (blocked) return blocked;
-  if (!hasIngestPermission(result.context!.role)) return denyForbidden();
+  const denied = authorizeIngest(req, result.context!);
+  if (denied) return denied;
   const parsed = await parseIngestBody(req);
   if (!parsed.ok) return parsed.response;
   return executeIngestRequest({

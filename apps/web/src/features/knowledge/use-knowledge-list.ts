@@ -1,12 +1,10 @@
 import * as React from 'react';
-import {
-  fetchKnowledgeDocuments,
-  type KnowledgeBffError,
-} from '../../lib/knowledge/knowledge-documents-client';
+import { fetchKnowledgeDocuments } from '../../lib/knowledge/knowledge-documents-client';
 import { KNOWLEDGE_LIMITS } from './knowledge-labels';
 import type { KnowledgeFilters } from './knowledge-document-list-types';
 import type { KnowledgeDocumentResponse } from '@voice-agent/contracts';
-import { kindFromStatus, type KnowledgeErrorKind } from './knowledge-error-state';
+import type { KnowledgeErrorKind } from './knowledge-error-state';
+import { failureOf, kindFromFailure, type KnowledgeFailure } from './knowledge-failure';
 import { createKnowledgeRequestSequence } from './knowledge-request-sequence';
 
 export interface KnowledgeListRequest {
@@ -15,18 +13,17 @@ export interface KnowledgeListRequest {
   readonly signal?: AbortSignal | undefined;
 }
 
-function statusOf(e: unknown): number {
-  const status = (e as KnowledgeBffError)?.status;
-  return typeof status === 'number' ? status : 0;
-}
-
 type PageResultOkTrue = {
   readonly settled: true;
   readonly ok: true;
   readonly documents: KnowledgeDocumentResponse[];
   readonly status: number;
 };
-type PageResultOkFalse = { readonly settled: true; readonly ok: false; readonly status: number };
+type PageResultOkFalse = {
+  readonly settled: true;
+  readonly ok: false;
+  readonly failure: KnowledgeFailure;
+};
 type PageResult = { readonly settled: false } | PageResultOkTrue | PageResultOkFalse;
 
 function buildListQuery(offset: number, filters: KnowledgeFilters) {
@@ -48,15 +45,22 @@ function isTicketStale(options?: FetchPageOptions): boolean {
   return Boolean(options && !options.isCurrent(options.ticket));
 }
 
+interface PageTarget {
+  readonly orgSlug: string;
+  readonly offset: number;
+  readonly filters: KnowledgeFilters;
+}
+
 async function fetchKnowledgePage(
-  offset: number,
-  filters: KnowledgeFilters,
+  target: PageTarget,
   options?: FetchPageOptions,
 ): Promise<PageResult> {
   if (isTicketStale(options)) return { settled: false };
   try {
+    const { orgSlug, offset, filters } = target;
     const query = buildListQuery(offset, filters);
     const r = await fetchKnowledgeDocuments(
+      orgSlug,
       query,
       options?.signal ? { signal: options.signal } : undefined,
     );
@@ -64,7 +68,7 @@ async function fetchKnowledgePage(
     return { settled: true, ok: true, documents: r.documents, status: 200 };
   } catch (error) {
     if (isTicketStale(options)) return { settled: false };
-    return { settled: true, ok: false, status: statusOf(error) };
+    return { settled: true, ok: false, failure: failureOf(error) };
   }
 }
 
@@ -77,7 +81,7 @@ interface PageResultHandlers {
 function applyPageResult(result: PageResult, handlers: PageResultHandlers): void {
   if (!result.settled) return;
   handlers.setIsLoading(false);
-  handlers.setLoadError(result.ok ? null : kindFromStatus(result.status));
+  handlers.setLoadError(result.ok ? null : kindFromFailure(result.failure));
   if (result.ok) handlers.setDocuments(result.documents);
 }
 
@@ -113,14 +117,11 @@ export interface KnowledgeListQuery {
 }
 
 function useKnowledgeListQueryInner(
+  orgSlug: string,
   canRead: boolean,
   createSequence: () => ReturnType<typeof createKnowledgeRequestSequence>,
 ) {
-  const sequenceRef = React.useRef<ReturnType<typeof createKnowledgeRequestSequence> | null>(null);
-  if (!sequenceRef.current) {
-    sequenceRef.current = createSequence();
-  }
-  const sequence = sequenceRef.current;
+  const [sequence] = React.useState(createSequence);
   const [documents, setDocuments] = React.useState<KnowledgeDocumentResponse[]>([]);
   const [isLoading, setIsLoading] = React.useState(canRead);
   const [loadError, setLoadError] = React.useState<KnowledgeErrorKind | null>(null);
@@ -136,16 +137,19 @@ function useKnowledgeListQueryInner(
       const ticket = sequence.next();
       const targetOffset = request?.offset ?? offset;
       const targetFilters = request?.filters ?? filters;
-      const result = await fetchKnowledgePage(targetOffset, targetFilters, {
-        signal: request?.signal,
-        ticket,
-        isCurrent: (t: number) => sequence.isCurrent(t),
-      });
+      const result = await fetchKnowledgePage(
+        { orgSlug, offset: targetOffset, filters: targetFilters },
+        {
+          signal: request?.signal,
+          ticket,
+          isCurrent: (t: number) => sequence.isCurrent(t),
+        },
+      );
       if (sequence.isCurrent(ticket)) {
         applyPageResult(result, { setIsLoading, setLoadError, setDocuments });
       }
     },
-    [sequence, offset, filters],
+    [sequence, orgSlug, offset, filters],
   );
 
   useListAutoFetch({ canRead, offset, filters, handleFetchPage });
@@ -166,6 +170,6 @@ function useKnowledgeListQueryInner(
   } as const;
 }
 
-export function useKnowledgeListQuery(canRead: boolean) {
-  return useKnowledgeListQueryInner(canRead, createKnowledgeRequestSequence);
+export function useKnowledgeListQuery(orgSlug: string, canRead: boolean) {
+  return useKnowledgeListQueryInner(orgSlug, canRead, createKnowledgeRequestSequence);
 }

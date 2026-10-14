@@ -35,7 +35,7 @@ export default async function KnowledgePage({ params }: KnowledgePageProps) {
       currentOrg={activeOrg}
       organizations={orgResult.availableOrganizations}
     >
-      <KnowledgeStudio role={activeOrg.role} />
+      <KnowledgeStudio orgSlug={activeOrg.slug} role={activeOrg.role} />
     </TenantShell>
   );
 }

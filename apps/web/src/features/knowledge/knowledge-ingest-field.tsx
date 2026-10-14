@@ -15,7 +15,7 @@ export function IngestField({ id, label, required, error, hint, children }: Inge
       <label htmlFor={id} className="text-xs font-semibold text-foreground">
         {label}{' '}
         {required ? (
-          <span className="text-destructive" aria-hidden="true">
+          <span className="text-rose-700 dark:text-rose-300" aria-hidden="true">
             *
           </span>
         ) : (
@@ -29,7 +29,7 @@ export function IngestField({ id, label, required, error, hint, children }: Inge
         </p>
       )}
       {error && (
-        <p id={`${id}-error`} role="alert" className="text-[11px] text-destructive">
+        <p id={`${id}-error`} role="alert" className="text-[11px] text-rose-700 dark:text-rose-300">
           {error}
         </p>
       )}

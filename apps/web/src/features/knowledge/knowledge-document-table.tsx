@@ -42,7 +42,10 @@ function RowActions({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem className="text-destructive gap-2" onSelect={() => onArchive(doc)}>
+        <DropdownMenuItem
+          className="text-rose-700 dark:text-rose-300 gap-2"
+          onSelect={() => onArchive(doc)}
+        >
           <Archive className="h-4 w-4" /> Arquivar
         </DropdownMenuItem>
       </DropdownMenuContent>
@@ -92,7 +95,7 @@ export function KnowledgeDocumentTable({
   readonly onArchive: (d: KnowledgeDocumentResponse) => void;
 }) {
   return (
-    <div className="hidden md:block rounded-lg border border-border/70 bg-card overflow-hidden shadow-xs">
+    <div className="hidden lg:block rounded-lg border border-border/70 bg-card overflow-hidden shadow-xs">
       <Table aria-label="Documentos da base de conhecimento">
         <DocumentTableHead canArchive={canArchive} />
         <TableBody>
@@ -120,7 +123,7 @@ export function KnowledgeDocumentTable({
                 {d.agentId ? (
                   <span className="font-mono">{d.agentId.slice(0, 8)}…</span>
                 ) : (
-                  'Toda a organização'
+                  'Sem agente associado'
                 )}
               </TableCell>
               <TableCell className="text-right font-mono text-xs text-muted-foreground">

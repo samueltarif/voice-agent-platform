@@ -34,7 +34,7 @@ function locatorError(locator: string): string | undefined {
 }
 
 function rawTextError(rawText: string): string | undefined {
-  if (rawText.length === 0) return 'Informe o conteúdo do documento.';
+  if (rawText.trim().length === 0) return 'Informe o conteúdo do documento.';
   if (rawText.length > KNOWLEDGE_LIMITS.rawText)
     return `Máximo de ${KNOWLEDGE_LIMITS.rawText.toLocaleString('pt-BR')} caracteres.`;
   return undefined;
@@ -46,7 +46,7 @@ function collectionError(collection: string): string | undefined {
   return undefined;
 }
 
-// Espelha ingestKnowledgeDocumentHttpBodySchema (title/locator/collection com trim; rawText sem trim).
+// Espelha ingestKnowledgeDocumentHttpBodySchema (title/locator/collection com trim; rawText sem trim, mas sem aceitar só espaços).
 export function validateKnowledgeForm(v: KnowledgeFormValues): KnowledgeFieldErrors {
   const title = titleError(v.title);
   const sourceType = sourceTypeError(v.sourceType);

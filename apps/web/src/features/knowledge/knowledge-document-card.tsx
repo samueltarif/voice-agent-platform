@@ -34,7 +34,7 @@ export function KnowledgeDocumentCard({
           <Button
             variant="ghost"
             size="sm"
-            className="min-h-[44px] gap-2 text-destructive"
+            className="min-h-[44px] gap-2 text-rose-700 dark:text-rose-300"
             onClick={() => onArchive(doc)}
           >
             <Archive className="h-4 w-4" />

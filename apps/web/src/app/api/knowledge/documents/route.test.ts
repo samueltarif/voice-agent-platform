@@ -20,7 +20,11 @@ function authedOrg(role = 'OWNER') {
 function sameOrigin(url: string, method: string, body?: unknown): NextRequest {
   return new NextRequest(url, {
     method,
-    headers: { host: 'localhost:3000', origin: 'http://localhost:3000' },
+    headers: {
+      host: 'localhost:3000',
+      origin: 'http://localhost:3000',
+      'x-knowledge-org-slug': 'org-a',
+    },
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
 }

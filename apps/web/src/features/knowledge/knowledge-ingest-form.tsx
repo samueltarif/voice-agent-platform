@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@voice-agent/ui';
 import type { KnowledgeSourceType } from '@voice-agent/contracts';
 import { createIngestFieldBindings } from './ingest-field-bindings';
+import { focusFirstInvalidField } from './focus-first-invalid-field';
 import { IngestContentFields, IngestIdentityFields } from './knowledge-ingest-fields';
 import { IngestSuccessPanel } from './knowledge-ingest-success';
 import {
@@ -9,7 +10,8 @@ import {
   type KnowledgeFieldErrors,
   type KnowledgeFormValues,
 } from './validate-knowledge-form';
-import { KnowledgeErrorState, kindFromStatus } from './knowledge-error-state';
+import { KnowledgeErrorState } from './knowledge-error-state';
+import { kindFromFailure, type KnowledgeFailure } from './knowledge-failure';
 
 const EMPTY: KnowledgeFormValues = {
   title: '',
@@ -21,7 +23,7 @@ const EMPTY: KnowledgeFormValues = {
 
 export type IngestSubmitResult =
   | { readonly ok: true; readonly isIdempotentDuplicate: boolean }
-  | { readonly ok: false; readonly status: number };
+  | { readonly ok: false; readonly status: number; readonly code?: string | undefined };
 
 interface Props {
   readonly isOpen: boolean;
@@ -41,7 +43,7 @@ export function KnowledgeIngestForm({ isOpen, onOpenChange, onSubmit }: Props) {
   });
   const [errors, setErrors] = React.useState<KnowledgeFieldErrors>({});
   const [submitting, setSubmitting] = React.useState(false);
-  const [failStatus, setFailStatus] = React.useState<number | undefined>();
+  const [failure, setFailure] = React.useState<KnowledgeFailure | undefined>();
   const [success, setSuccess] = React.useState<null | { duplicate: boolean }>(null);
   const bindings = createIngestFieldBindings({ values, errors, submitting, setValues });
   async function handleSubmit(e: React.FormEvent) {
@@ -49,14 +51,14 @@ export function KnowledgeIngestForm({ isOpen, onOpenChange, onSubmit }: Props) {
     if (submitting) return;
     const found = validateKnowledgeForm(values);
     setErrors(found);
-    if (Object.keys(found).length > 0) return;
+    if (focusFirstInvalidField(found)) return;
     setSubmitting(true);
     try {
       const r = await onSubmit({ ...values, sourceType: values.sourceType as KnowledgeSourceType });
       if (r.ok) setSuccess({ duplicate: r.isIdempotentDuplicate });
-      else setFailStatus(r.status);
+      else setFailure({ status: r.status, code: r.code });
     } catch {
-      setFailStatus(0);
+      setFailure({ status: 0 });
     } finally {
       setSubmitting(false);
     }
@@ -95,8 +97,8 @@ export function KnowledgeIngestForm({ isOpen, onOpenChange, onSubmit }: Props) {
             className="space-y-4 py-4"
             aria-busy={submitting}
           >
-            {failStatus !== undefined && (
-              <KnowledgeErrorState kind={kindFromStatus(failStatus)} compact />
+            {failure !== undefined && (
+              <KnowledgeErrorState kind={kindFromFailure(failure)} compact />
             )}
             <IngestIdentityFields bindings={bindings} />
             <IngestContentFields bindings={bindings} onCancel={() => onOpenChange(false)} />

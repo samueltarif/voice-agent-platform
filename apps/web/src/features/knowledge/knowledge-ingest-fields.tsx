@@ -106,7 +106,7 @@ export function IngestContentFields({
           {...fieldA11y('rawText')}
         />
         <p
-          className={`text-[11px] text-right ${values.rawText.length > KNOWLEDGE_LIMITS.rawText ? 'text-destructive' : 'text-muted-foreground'}`}
+          className={`text-[11px] text-right ${values.rawText.length > KNOWLEDGE_LIMITS.rawText ? 'text-rose-700 dark:text-rose-300' : 'text-muted-foreground'}`}
         >
           {values.rawText.length.toLocaleString('pt-BR')} /{' '}
           {KNOWLEDGE_LIMITS.rawText.toLocaleString('pt-BR')}

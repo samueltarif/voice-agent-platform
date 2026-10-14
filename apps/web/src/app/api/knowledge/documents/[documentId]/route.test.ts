@@ -23,7 +23,11 @@ function authedOrg(role = 'OWNER') {
 function getReq(url: string, method = 'GET'): NextRequest {
   return new NextRequest(url, {
     method,
-    headers: { host: 'localhost:3000', origin: 'http://localhost:3000' },
+    headers: {
+      host: 'localhost:3000',
+      origin: 'http://localhost:3000',
+      'x-knowledge-org-slug': 'org-a',
+    },
   });
 }
 

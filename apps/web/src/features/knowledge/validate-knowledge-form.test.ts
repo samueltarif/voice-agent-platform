@@ -55,3 +55,15 @@ describe('validateKnowledgeForm (mirrors BFF contract)', () => {
     expect(validateKnowledgeForm({ ...VALID, collection: '   ' })).toEqual({});
   });
 });
+
+describe('validateKnowledgeForm whitespace-only content (F-S6)', () => {
+  it('rejects content made only of spaces, tabs and newlines', () => {
+    expect(validateKnowledgeForm({ ...VALID, rawText: ' \n\t  ' }).rawText).toBe(
+      'Informe o conteúdo do documento.',
+    );
+  });
+
+  it('keeps accepting content with surrounding whitespace', () => {
+    expect(validateKnowledgeForm({ ...VALID, rawText: '  texto  ' })).toEqual({});
+  });
+});

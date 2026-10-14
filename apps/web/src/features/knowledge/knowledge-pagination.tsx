@@ -6,10 +6,12 @@ import { KNOWLEDGE_LIMITS } from './knowledge-labels';
 export function KnowledgePagination({
   offset,
   hasNext,
+  disabled = false,
   onPageChange,
 }: {
   readonly offset: number;
   readonly hasNext: boolean;
+  readonly disabled?: boolean;
   readonly onPageChange: (nextOffset: number) => void;
 }) {
   const page = Math.floor(offset / KNOWLEDGE_LIMITS.pageSize) + 1;
@@ -21,7 +23,7 @@ export function KnowledgePagination({
           variant="outline"
           size="sm"
           className="min-h-[44px] gap-1 text-xs"
-          disabled={offset === 0}
+          disabled={disabled || offset === 0}
           onClick={() => onPageChange(Math.max(0, offset - KNOWLEDGE_LIMITS.pageSize))}
         >
           <ChevronLeft className="h-4 w-4" />
@@ -31,7 +33,7 @@ export function KnowledgePagination({
           variant="outline"
           size="sm"
           className="min-h-[44px] gap-1 text-xs"
-          disabled={!hasNext}
+          disabled={disabled || !hasNext}
           onClick={() => onPageChange(offset + KNOWLEDGE_LIMITS.pageSize)}
         >
           Próxima

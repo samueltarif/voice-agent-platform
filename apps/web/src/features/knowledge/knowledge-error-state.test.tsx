@@ -35,3 +35,12 @@ describe('KnowledgeErrorState (fixed safe copy, never server text)', () => {
     expect(conflictHtml).not.toContain('Tentar novamente');
   });
 });
+
+describe('KnowledgeErrorState org-changed', () => {
+  it('asks the user to reload when the active organization changed in another tab', () => {
+    const html = renderToString(React.createElement(KnowledgeErrorState, { kind: 'org-changed' }));
+    expect(html).toContain('kb-error-org-changed');
+    expect(html).toContain('Organização alterada');
+    expect(html).toContain('Recarregar página');
+  });
+});

@@ -32,7 +32,9 @@ describe('KnowledgeArchiveDialog', () => {
     expect(html).toContain('kb-confirm-archive');
     expect(html).toContain('Confirmar arquivamento');
     expect(html).toContain('Cancelar');
-    expect(html).toContain('não pode ser reativado');
+    expect(html).toContain('será marcado como arquivado');
+    expect(html).toContain('não pode ser desfeita por esta tela');
+    expect(html).not.toContain('deixa de ser usado');
   });
 
   it('disables both actions while the archive request is pending', () => {
@@ -50,5 +52,16 @@ describe('KnowledgeArchiveDialog', () => {
     expect(html).toContain('kb-archive-dialog');
     expect(html).toContain('Algo deu errado');
     expect(html).toContain('Confirmar arquivamento');
+  });
+});
+
+describe('KnowledgeArchiveDialog 409 (F-U2)', () => {
+  it('uses archive-specific copy instead of the duplicate-document conflict message', () => {
+    const html = renderToString(
+      React.createElement(KnowledgeArchiveDialog, { ...baseProps, errorStatus: 409 }),
+    );
+    expect(html).toContain('kb-error-archive-conflict');
+    expect(html).toContain('arquivamento não é possível');
+    expect(html).not.toContain('origem ou conteúdo equivalente');
   });
 });

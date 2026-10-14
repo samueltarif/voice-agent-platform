@@ -18,7 +18,9 @@ export type KnowledgeErrorKind =
   | 'not-found'
   | 'conflict'
   | 'internal'
-  | 'no-permission';
+  | 'no-permission'
+  | 'org-changed'
+  | 'archive-conflict';
 
 export function kindFromStatus(status: number | undefined): KnowledgeErrorKind {
   switch (status) {
@@ -46,6 +48,7 @@ interface ErrorCopy {
   readonly text: string;
   readonly retry?: boolean;
   readonly login?: boolean;
+  readonly reload?: boolean;
 }
 
 // Copy fixa e segura: nunca repassa mensagem técnica do servidor.
@@ -89,6 +92,17 @@ const COPY: Record<KnowledgeErrorKind, ErrorCopy> = {
     text: 'Ocorreu um erro inesperado. Tente novamente em instantes.',
     retry: true,
   },
+  'archive-conflict': {
+    icon: AlertCircle,
+    title: 'Arquivamento indisponível',
+    text: 'O estado deste documento mudou e o arquivamento não é possível. Atualize a lista.',
+  },
+  'org-changed': {
+    icon: AlertCircle,
+    title: 'Organização alterada',
+    text: 'A organização ativa mudou em outra aba. Recarregue a página para continuar com os dados corretos.',
+    reload: true,
+  },
   'no-permission': {
     icon: Lock,
     title: 'Acesso restrito',
@@ -123,6 +137,15 @@ export function KnowledgeErrorState({ kind, onRetry, loginHref = '/login', compa
         {c.retry && onRetry && (
           <Button size="sm" variant="outline" className="min-h-[44px] text-xs" onClick={onRetry}>
             Tentar novamente
+          </Button>
+        )}
+        {c.reload && (
+          <Button
+            size="sm"
+            className="min-h-[44px] text-xs"
+            onClick={() => window.location.reload()}
+          >
+            Recarregar página
           </Button>
         )}
         {c.login && (

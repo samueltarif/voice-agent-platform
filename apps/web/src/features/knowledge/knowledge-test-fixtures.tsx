@@ -21,6 +21,7 @@ export interface RenderKnowledgeListOptions {
   readonly filters?: KnowledgeFilters;
   readonly isLoading?: boolean;
   readonly canArchive?: boolean;
+  readonly offset?: number;
 }
 
 interface ResolvedListOptions {
@@ -28,6 +29,7 @@ interface ResolvedListOptions {
   readonly filters: KnowledgeFilters;
   readonly isLoading: boolean;
   readonly canArchive: boolean;
+  readonly offset: number;
 }
 
 const DEFAULT_RENDER_OPTIONS: ResolvedListOptions = {
@@ -35,6 +37,7 @@ const DEFAULT_RENDER_OPTIONS: ResolvedListOptions = {
   filters: KNOWLEDGE_TEST_FILTERS,
   isLoading: false,
   canArchive: true,
+  offset: 0,
 };
 
 function resolveRenderOptions(
@@ -62,7 +65,7 @@ export function renderKnowledgeList(
   filtersArg?: KnowledgeFilters,
   optionsArg?: { isLoading?: boolean; canArchive?: boolean },
 ): string {
-  const { documents, filters, isLoading, canArchive } = resolveRenderOptions(
+  const { documents, filters, isLoading, canArchive, offset } = resolveRenderOptions(
     docsOrOptions,
     filtersArg,
     optionsArg,
@@ -72,7 +75,7 @@ export function renderKnowledgeList(
       documents,
       isLoading,
       filters,
-      offset: 0,
+      offset,
       canIngest: true,
       canArchive,
       onFiltersChange: () => {},

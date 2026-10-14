@@ -10,13 +10,26 @@ import { KnowledgeDocumentList } from './knowledge-document-list';
 import { KnowledgeIngestForm } from './knowledge-ingest-form';
 import { KnowledgeArchiveDialog } from './knowledge-archive-dialog';
 import { KnowledgeErrorState } from './knowledge-error-state';
+import type { KnowledgeFailure } from './knowledge-failure';
+import { handleDialogCloseAutoFocus, useListFocusTarget } from './knowledge-list-focus';
 
-export function KnowledgeStudio({ role }: { readonly role: TenantRole | string }) {
+function archiveErrorProps(error: KnowledgeFailure | undefined) {
+  return { errorStatus: error?.status, errorCode: error?.code };
+}
+
+export function KnowledgeStudio({
+  orgSlug,
+  role,
+}: {
+  readonly orgSlug: string;
+  readonly role: TenantRole | string;
+}) {
   const canRead = canReadKnowledge(role);
   const canIngest = canIngestKnowledge(role);
   const canArchive = canArchiveKnowledge(role);
-  const list = useKnowledgeListQuery(canRead);
-  const mutations = useKnowledgeMutations(list.reload, list.currentQuery);
+  const list = useKnowledgeListQuery(orgSlug, canRead);
+  const focusTarget = useListFocusTarget();
+  const mutations = useKnowledgeMutations(orgSlug, list.reload, list.currentQuery);
 
   if (!canRead) return <KnowledgeErrorState kind="no-permission" />;
 
@@ -36,18 +49,20 @@ export function KnowledgeStudio({ role }: { readonly role: TenantRole | string }
       {list.loadError ? (
         <KnowledgeErrorState kind={list.loadError} onRetry={() => void list.reload()} />
       ) : (
-        <KnowledgeDocumentList
-          documents={list.documents}
-          isLoading={list.isLoading}
-          filters={list.filters}
-          offset={list.offset}
-          canIngest={canIngest}
-          canArchive={canArchive}
-          onFiltersChange={list.setFilters}
-          onPageChange={list.setOffset}
-          onAdd={() => mutations.setIngestOpen(true)}
-          onArchive={(d) => mutations.openArchiveTarget(d)}
-        />
+        <div ref={focusTarget.ref} tabIndex={-1} className="outline-none">
+          <KnowledgeDocumentList
+            documents={list.documents}
+            isLoading={list.isLoading}
+            filters={list.filters}
+            offset={list.offset}
+            canIngest={canIngest}
+            canArchive={canArchive}
+            onFiltersChange={list.setFilters}
+            onPageChange={list.setOffset}
+            onAdd={() => mutations.setIngestOpen(true)}
+            onArchive={(d) => mutations.openArchiveTarget(d)}
+          />
+        </div>
       )}
 
       {canIngest && (
@@ -62,10 +77,11 @@ export function KnowledgeStudio({ role }: { readonly role: TenantRole | string }
           isOpen={mutations.target !== null}
           documentTitle={mutations.target?.title ?? ''}
           isPending={mutations.archiving}
-          errorStatus={mutations.archiveError}
+          {...archiveErrorProps(mutations.archiveError)}
           onOpenChange={(o) => {
             if (!o) mutations.setTarget(null);
           }}
+          onCloseAutoFocus={(e) => handleDialogCloseAutoFocus(e, focusTarget.restoreFocus)}
           onConfirm={() => void mutations.handleArchive()}
         />
       )}

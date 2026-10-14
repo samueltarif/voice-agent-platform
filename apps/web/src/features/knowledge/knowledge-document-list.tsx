@@ -66,6 +66,22 @@ function EmptyState({
   );
 }
 
+function EmptyPageState({ onBack }: { readonly onBack: () => void }) {
+  return (
+    <Card className="border-border/60 shadow-xs" data-testid="kb-empty-page">
+      <CardContent className="flex flex-col items-center py-16 px-4 text-center">
+        <h3 className="text-base font-semibold text-foreground mb-1">Não há mais documentos</h3>
+        <p className="text-xs sm:text-sm text-muted-foreground max-w-sm mb-6">
+          Esta página está vazia. Volte para a página anterior para ver os documentos.
+        </p>
+        <Button size="sm" variant="outline" className="min-h-[44px] text-xs" onClick={onBack}>
+          Voltar à página anterior
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
 function LoadingRows() {
   return (
     <div
@@ -101,8 +117,12 @@ export function KnowledgeDocumentList(props: ListProps) {
   return (
     <div className="space-y-4">
       <KnowledgeFilterBar filters={filters} onChange={onFiltersChange} />
-      {isLoading ? (
+      {isLoading && documents.length === 0 ? (
         <LoadingRows />
+      ) : documents.length === 0 && offset > 0 ? (
+        <EmptyPageState
+          onBack={() => onPageChange(Math.max(0, offset - KNOWLEDGE_LIMITS.pageSize))}
+        />
       ) : documents.length === 0 ? (
         <EmptyState
           filtered={filtered}
@@ -111,13 +131,13 @@ export function KnowledgeDocumentList(props: ListProps) {
           onClear={() => onFiltersChange({ status: '', collection: '' })}
         />
       ) : (
-        <>
+        <div className="space-y-4" aria-busy={isLoading}>
           <KnowledgeDocumentTable
             documents={documents}
             canArchive={canArchive}
             onArchive={onArchive}
           />
-          <ul className="md:hidden space-y-3" aria-label="Documentos da base de conhecimento">
+          <ul className="lg:hidden space-y-3" aria-label="Documentos da base de conhecimento">
             {documents.map((d) => (
               <KnowledgeDocumentCard
                 key={d.id}
@@ -127,8 +147,13 @@ export function KnowledgeDocumentList(props: ListProps) {
               />
             ))}
           </ul>
-          <KnowledgePagination offset={offset} hasNext={hasNext} onPageChange={onPageChange} />
-        </>
+          <KnowledgePagination
+            offset={offset}
+            hasNext={hasNext}
+            disabled={isLoading}
+            onPageChange={onPageChange}
+          />
+        </div>
       )}
     </div>
   );

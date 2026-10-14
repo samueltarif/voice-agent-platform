@@ -8,7 +8,7 @@ describe('KnowledgeDocumentList', () => {
     expect(html).toContain('Pronto');
     expect(html).toContain('Política');
     expect(html).toContain('suporte');
-    expect(html).toContain('Toda a organização');
+    expect(html).toContain('Sem agente associado');
     expect(html).toContain('13/10/2026');
     expect(html).toContain('kb-row-22222222-2222-2222-2222-222222222222');
     expect(html).toContain('kb-card-22222222-2222-2222-2222-222222222222');
@@ -21,7 +21,7 @@ describe('KnowledgeDocumentList', () => {
       canArchive: false,
     });
     expect(html).toContain('aaaaaaaa');
-    expect(html).not.toContain('Toda a organização');
+    expect(html).not.toContain('Sem agente associado');
   });
 
   it('hides archive actions when canArchive is false (MANAGER view)', () => {
@@ -65,5 +65,41 @@ describe('KnowledgeDocumentList', () => {
     const partialHtml = renderKnowledgeList({ documents: [KNOWLEDGE_TEST_DOC], canArchive: false });
     expect(partialHtml).toContain('Página');
     expect(partialHtml).toContain('disabled');
+  });
+});
+
+describe('KnowledgeDocumentList reload and terminal page (F-A1, pagination)', () => {
+  const full = Array.from({ length: 20 }, (_, i) => ({ ...KNOWLEDGE_TEST_DOC, id: `doc-${i}` }));
+
+  it('keeps the list mounted with aria-busy and disabled pagination while reloading', () => {
+    const html = renderKnowledgeList({ documents: full, isLoading: true, canArchive: false });
+    expect(html).not.toContain('kb-loading');
+    expect(html).toContain('kb-row-doc-0');
+    expect(html).toContain('aria-busy="true"');
+    const nav = html.slice(html.indexOf('<nav'));
+    expect(nav.match(/disabled=""/g)).toHaveLength(2);
+  });
+
+  it('is not busy once loaded', () => {
+    expect(renderKnowledgeList({ documents: full, canArchive: false })).toContain(
+      'aria-busy="false"',
+    );
+  });
+
+  it('shows a page-specific empty state beyond the first page, not an empty organization', () => {
+    const html = renderKnowledgeList({ documents: [], canArchive: false, offset: 20 });
+    expect(html).toContain('kb-empty-page');
+    expect(html).toContain('Voltar à página anterior');
+    expect(html).not.toContain('Nenhum documento cadastrado ainda');
+    expect(html).not.toContain('kb-empty"');
+  });
+
+  it('uses cards below lg and the table from lg up, with accessible rose contrast', () => {
+    const html = renderKnowledgeList();
+    expect(html).toContain('hidden lg:block');
+    expect(html).toContain('lg:hidden');
+    expect(html).not.toContain('md:hidden');
+    expect(html).toContain('text-rose-700');
+    expect(html).not.toContain('text-destructive');
   });
 });

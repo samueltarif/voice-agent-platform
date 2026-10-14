@@ -4,6 +4,7 @@ import type {
   ListKnowledgeDocumentsQuery,
 } from '@voice-agent/contracts';
 import { knowledgeDocumentResponseSchema } from '@voice-agent/contracts';
+import { knowledgeOrgHeaders } from './knowledge-org-header';
 
 export type KnowledgeBffListQuery = ListKnowledgeDocumentsQuery;
 
@@ -59,16 +60,29 @@ function toListSearchParams(query: KnowledgeBffListQuery): string {
 }
 
 export async function fetchKnowledgeDocuments(
+  orgSlug: string,
   query: KnowledgeBffListQuery = {},
   init?: RequestInit,
 ): Promise<{ documents: KnowledgeBffDocument[] }> {
-  const res = await fetch(`${BFF_BASE}${toListSearchParams(query)}`, { ...init, method: 'GET' });
+  const res = await fetch(`${BFF_BASE}${toListSearchParams(query)}`, {
+    ...init,
+    method: 'GET',
+    headers: { ...(init?.headers ?? {}), ...knowledgeOrgHeaders(orgSlug) },
+  });
   const payload = await parseBffResponse(res);
   if (!res.ok) throw normalizeKnowledgeBffError(res.status, payload);
-  return payload as { documents: KnowledgeBffDocument[] };
+  const documents = (payload as { documents?: unknown } | null)?.documents;
+  if (!Array.isArray(documents)) {
+    throw normalizeKnowledgeBffError(502, {
+      error: 'Resposta inválida do servidor.',
+      code: 'INVALID_RESPONSE',
+    });
+  }
+  return { documents: documents as KnowledgeBffDocument[] };
 }
 
 export async function ingestKnowledgeDocument(
+  orgSlug: string,
   input: KnowledgeBffIngestInput,
   init?: RequestInit,
 ): Promise<unknown> {
@@ -81,7 +95,11 @@ export async function ingestKnowledgeDocument(
   const res = await fetch(BFF_BASE, {
     ...init,
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(init?.headers ?? {}),
+      ...knowledgeOrgHeaders(orgSlug),
+    },
     body: JSON.stringify(body),
   });
   const payload = await parseBffResponse(res);
@@ -90,12 +108,14 @@ export async function ingestKnowledgeDocument(
 }
 
 export async function archiveKnowledgeDocument(
+  orgSlug: string,
   documentId: string,
   init?: RequestInit,
 ): Promise<unknown> {
   const res = await fetch(`${BFF_BASE}/${documentId}/archive`, {
     ...init,
     method: 'POST',
+    headers: { ...(init?.headers ?? {}), ...knowledgeOrgHeaders(orgSlug) },
   });
   const payload = await parseBffResponse(res);
   if (!res.ok) throw normalizeKnowledgeBffError(res.status, payload);

@@ -16,7 +16,7 @@ export function KnowledgeStudioHeader({
           Base de Conhecimento
         </h2>
         <p className="text-xs sm:text-sm text-muted-foreground">
-          Documentos de referência usados pelos agentes da organização.
+          Documentos de referência da organização.
         </p>
       </div>
       {canIngest && (

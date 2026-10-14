@@ -11,31 +11,41 @@ vi.mock('../../lib/knowledge/knowledge-documents-client', async (importOriginal)
 
 describe('KnowledgeStudio (permissions + safe states)', () => {
   it('renders restricted state for OPERATOR (server-side role gate happens before any fetch)', () => {
-    const html = renderToString(React.createElement(KnowledgeStudio, { role: 'OPERATOR' }));
+    const html = renderToString(
+      React.createElement(KnowledgeStudio, { orgSlug: 'org-a', role: 'OPERATOR' }),
+    );
     expect(html).toContain('Acesso restrito');
     expect(html).toContain('kb-error-no-permission');
     expect(html).not.toContain('Adicionar conhecimento');
   });
 
   it('renders restricted state for VIEWER', () => {
-    const html = renderToString(React.createElement(KnowledgeStudio, { role: 'VIEWER' }));
+    const html = renderToString(
+      React.createElement(KnowledgeStudio, { orgSlug: 'org-a', role: 'VIEWER' }),
+    );
     expect(html).toContain('Acesso restrito');
   });
 
   it('shows the ingest entry point for OWNER during initial load', () => {
-    const html = renderToString(React.createElement(KnowledgeStudio, { role: 'OWNER' }));
+    const html = renderToString(
+      React.createElement(KnowledgeStudio, { orgSlug: 'org-a', role: 'OWNER' }),
+    );
     expect(html).toContain('Base de Conhecimento');
     expect(html).toContain('Adicionar conhecimento');
     expect(html).toContain('kb-loading');
   });
 
   it('shows the ingest entry point for MANAGER', () => {
-    const html = renderToString(React.createElement(KnowledgeStudio, { role: 'MANAGER' }));
+    const html = renderToString(
+      React.createElement(KnowledgeStudio, { orgSlug: 'org-a', role: 'MANAGER' }),
+    );
     expect(html).toContain('Adicionar conhecimento');
   });
 
   it('announces async feedback through a polite live region', () => {
-    const html = renderToString(React.createElement(KnowledgeStudio, { role: 'ADMIN' }));
+    const html = renderToString(
+      React.createElement(KnowledgeStudio, { orgSlug: 'org-a', role: 'ADMIN' }),
+    );
     expect(html).toContain('aria-live="polite"');
   });
 });

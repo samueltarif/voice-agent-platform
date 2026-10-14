@@ -17605,3 +17605,78 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `DATABASE_SCHEMA_CHANGED`: `NO`
   - `MIGRATIONS_CREATED`: `NO`
   - `SECRET_AUDIT`: `PASS`
+
+## 2026-10-14 — Slice 007K — Correção F-S2 (integridade de troca de organização) — Claude
+
+- **BASE**: branch `feat/007k-knowledge-base-studio-ui-bff`, HEAD `9a4d790988ac848ebe60fbb89d2f6c6f386e1b3e` (sem commit nesta entrada; alterações apenas no worktree).
+- **AUTORIZAÇÃO**: autorização humana explícita para ler/alterar arquivos do repositório; escritor exclusivo confirmado (Antigravity e OpenCode parados). Priorização do humano: F-S2. F-S1 e F-S4 não alterados por falta de defeito comprovado (alterações iniciais revertidas antes de qualquer entrega).
+- **DEFEITO F-S2 (CONFIRMADO)**: a organização ativa vem de cookie compartilhado entre abas; uma aba com a tela da organização A podia, após troca para B em outra aba, enviar leitura/ingestão/arquivamento que o BFF executava na organização B. Autorização/RBAC não eram contornados; era integridade de dados entre abas.
+- **CORREÇÃO**: a UI envia `x-knowledge-org-slug` (slug exibido) em listagem, ingestão e arquivamento; o BFF compara com a organização ativa resolvida no servidor, após a checagem de papel (RBAC inalterado) e antes de qualquer chamada à API interna: ausente/ inválido → 400 `ORG_CONTEXT_REQUIRED`; divergente → 409 `ORG_CONTEXT_MISMATCH`. A UI mostra o estado "Organização alterada" com botão "Recarregar página". O `orgSlug` vem da página servidor (`page.tsx`) até o cliente.
+- **ARQUIVOS NOVOS**: `lib/knowledge/knowledge-org-header.ts`, `app/api/knowledge/knowledge-org-consistency.ts`, `features/knowledge/knowledge-failure.ts` e testes `knowledge-org-consistency.test.ts`, `knowledge-documents-client.test.ts`, `knowledge-failure.test.ts`.
+- **ARQUIVOS ALTERADOS**: rotas BFF `documents/route.ts`, `[documentId]/route.ts`, `[documentId]/archive/route.ts`; `knowledge-documents-client.ts`; `use-knowledge-list.ts`; `use-knowledge-mutations.ts`; `knowledge-studio.tsx`; `knowledge-archive-dialog.tsx`; `knowledge-ingest-form.tsx`; `knowledge-error-state.tsx`; `page.tsx`; testes existentes ajustados (cabeçalho nos helpers, prop `orgSlug`).
+- **TESTES NOVOS**: 4 rotas × (org igual encaminha; org divergente 409 sem chamada interna; header ausente/inválido 400; origem cruzada 403 sem resolver organização) + MANAGER continua 403 no arquivamento; cliente envia o header nas 3 operações e expõe `code`; mapeamento `ORG_CONTEXT_MISMATCH` → `org-changed`; estado de erro com recarregar.
+- **VERIFICAÇÃO (cópia Linux isolada, NÃO é o gate canônico)**: vitest focado (BFF, lib, features, app/orgs) 19 arquivos/106 testes PASS; `tsc --noEmit` (apps/web) PASS; eslint nos diretórios alterados PASS; prettier nos arquivos alterados PASS; `check:architecture` PASS; `check:file-size` PASS. `vitest run apps/web/src` completo: falhas somente em 2 testes de integração que exigem PostgreSQL local (ECONNREFUSED 127.0.0.1:5432), alheios a esta mudança.
+- **NÃO EXECUTADO**: format:check/lint/typecheck/test/build do monorepo no Windows; gate canônico; commit; push.
+- **PENDENTE (não tratado nesta entrada)**: F-U1, F-U2, F-A1, F-A2, F-A4, F-A5, F-S6, F-S7, tratamento de última página vazia (confirmados na auditoria, adiados por priorização do humano); F-A6/F-A8 NOT_VERIFIED.
+- **SAFETY**: FORBIDDEN_INTERNAL_STORAGE_ACCESSED=NO; REAL_DOTENV_ACCESSED=NO; REMOTE_MIGRATIONS=0; REAL_PROVIDER_CALLS=0; SCHEMA_CHANGED=NO; ACTIVE_GUARDED=BLOCKED; CUSTOMER_TRAFFIC=PROHIBITED; PRODUCTION_RUNTIME_WIRING=NO.
+
+## 2026-10-14 — Slice 007K — Correções finais de UX/acessibilidade (sem commit) — Claude
+
+- **BASE**: branch `feat/007k-knowledge-base-studio-ui-bff`, HEAD `9a4d790988ac848ebe60fbb89d2f6c6f386e1b3e`; correção F-S2 da entrada anterior preservada e ainda não commitada. Escritor exclusivo confirmado pelo humano (Antigravity/OpenCode parados); verificado apenas que HEAD e lista de arquivos alterados não mudaram desde a entrega anterior.
+- **CORRIGIDO (UX)**: F-U1 copy factual ("Documentos de referência da organização.", "Sem agente associado", "O documento será marcado como arquivado. Esta ação não pode ser desfeita por esta tela."); F-U2 409 no arquivamento → estado `archive-conflict` com mensagem própria (409 na ingestão continua "conflict"); página vazia além da primeira → estado "Não há mais documentos" com "Voltar à página anterior" (não descreve página 2+ como organização vazia).
+- **CORRIGIDO (A11y)**: F-A1 lista mantida montada com `aria-busy` e paginação desabilitada durante recarga (skeleton só sem dados); F-A2 `onCloseAutoFocus` do diálogo com `preventDefault()` e foco no contêiner estável da lista (`tabIndex={-1}`); F-A4 foco no 1º campo inválido (ordem visual), `aria-required` nos obrigatórios, hint em `aria-describedby` (substituído pelo erro quando inválido); F-A5 `text-rose-700 dark:text-rose-300` (paleta do `Badge danger`) em erro de campo, asterisco, contador excedido e "Arquivar" (menu e cartão), sem alterar tokens globais.
+- **CORRIGIDO (validação/robustez)**: F-S6 conteúdo só com espaços recusado na UI; F-S7 cliente rejeita resposta de listagem sem `documents` array (status 502, `INVALID_RESPONSE`, estado "Algo deu errado") em vez de quebrar.
+- **RESPONSIVO**: cartões abaixo de `lg` e tabela de `lg` para cima (antes `md`). Alteração apenas de classes; renderização NÃO verificada em navegador.
+- **ASSERÇÕES ALTERADAS (copy nova, não enfraquecidas)**: `knowledge-document-list.test.tsx` ('Toda a organização' → 'Sem agente associado', duas ocorrências) e `knowledge-archive-dialog.test.tsx` ('não pode ser reativado' → copy nova + ausência da copy antiga).
+- **TESTES NOVOS**: `knowledge-form-a11y.test.ts`, `knowledge-list-focus.test.ts`; acréscimos em `validate-knowledge-form.test.ts`, `knowledge-failure.test.ts`, `knowledge-archive-dialog.test.tsx`, `knowledge-document-list.test.tsx`, `knowledge-documents-client.test.ts`; fixture `renderKnowledgeList` aceita `offset`.
+- **VERIFICAÇÃO (cópia Linux isolada, NÃO é gate canônico)**: vitest focado (BFF, lib, features, app/orgs) 21 arquivos/123 testes PASS; `tsc --noEmit` (apps/web) PASS; eslint em `apps/web/src` PASS; prettier nos arquivos alterados PASS; `check:architecture` PASS; `check:file-size` PASS. `vitest run apps/web/src` completo: 59 arquivos PASS e 2 FAIL por falta de PostgreSQL local (ECONNREFUSED 127.0.0.1:5432), alheios à mudança. Dependências já estavam instaladas na cópia antes da instrução de não instalar; nada foi instalado depois.
+- **NÃO VERIFICADO**: foco/Radix e layout em navegador real (testes cobrem a lógica e o HTML renderizado, não o comportamento do Radix); format:check/lint/typecheck/test/build do monorepo e gate canônico no Windows.
+- **NÃO EXECUTADO**: gate canônico; commit; push. PR #113 aberto; merge não autorizado.
+- **SAFETY**: FORBIDDEN_INTERNAL_STORAGE_ACCESSED=NO; REAL_DOTENV_ACCESSED=NO; MIGRATIONS=0; REAL_PROVIDER_CALLS=0; SCHEMA_CHANGED=NO; ACTIVE_GUARDED=BLOCKED; CUSTOMER_TRAFFIC=PROHIBITED; PRODUCTION_RUNTIME_WIRING=NO.
+
+## 2026-10-14 — Slice 007K — Windows Validation, Final Commit and Canonical Gate (Antigravity)
+
+- **SLICE_ID**: `007K` (Knowledge Base Studio UI & BFF Integration — Final Validation & Commit)
+- **EXECUTOR**: `ANTIGRAVITY` (human authorized Windows executor; exclusive repository writer confirmed; Claude Code and OpenCode stopped)
+- **BASE_MAIN_SHA**: `2e6d90afb85c2dddf2a02c3f57cafeb262e22b59`
+- **STARTING_HEAD**: `9a4d790988ac848ebe60fbb89d2f6c6f386e1b3e`
+- **FEATURE_BRANCH**: `feat/007k-knowledge-base-studio-ui-bff`
+- **EXISTING_PR**: `#113` (`https://github.com/samueltarif/voice-agent-platform/pull/113`)
+- **AUDIT_FILES_RELOCATION**:
+  - `007k-auditoria-seguranca-ux-a11y.md` moved to `D:/007k-recovery-backups/007k-auditoria-seguranca-ux-a11y.md` (SHA256 `61690199ED18B4BE8EDE70A7C25CF0F64EC56838C11595E8198AD83376F9EF1A` verified, original removed)
+  - `007k-pos-gate-auditoria-codigo-real.md` moved to `D:/007k-recovery-backups/007k-pos-gate-auditoria-codigo-real.md` (SHA256 `47CA693026E6D49CAAD753E3971ECB26CB8AAB73C689B331578310DBDD27140F` verified, original removed)
+- **GIT_INTEGRITY**:
+  - Stale locks preserved safely under `.git/`: `stale-head-lock-claude-20261014`, `stale-orig-head-lock-claude-20261014`, `stale-branch-ref-lock-claude-20261014`.
+  - Non-destructive git integrity verified; normal branch ref updated without corruption.
+- **VALIDATIONS_CONFIRMED**:
+  - F-S2: Multi-tab organization consistency via `x-knowledge-org-slug` header and 409 mismatch handling.
+  - F-U1: Factual copy replacing unsupported organization-wide/live agent retrieval claims.
+  - F-U2: Archive-specific messaging for HTTP 409 conflict.
+  - F-A1: List preserved with `aria-busy` and keyboard focus preserved across pagination reloads.
+  - F-A2: Focus safely restored to stable list container on dialog close.
+  - F-A4: Visual-order focus on first invalid form input, `aria-required`, and accessible validation hints.
+  - F-A5: WCAG contrast improvements for destructive/error text using existing palette tokens.
+  - F-S6: Whitespace-only document content rejected fail-closed at UI validation layer.
+  - F-S7: Non-array list responses safely handled without crashing (502 `INVALID_RESPONSE`).
+  - Terminal-page empty state ("Não há mais documentos" with previous page navigation).
+  - Responsive design: mobile/tablet cards below `lg`, data table at `lg+`.
+  - DEC-039 RBAC: server-side verified and preserved across all BFF endpoints.
+- **STANDALONE_CHECKS_PASS**:
+  - `pnpm check:file-size`: `PASS` (350 production logic files compliant <= 180 lines, 0 errors).
+  - `pnpm format:check`: `PASS` (All matched files use Prettier code style).
+  - `pnpm lint`: `PASS` (0 errors, 0 warnings).
+  - `pnpm typecheck`: `PASS` (12/12 packages successful).
+  - `pnpm check:architecture`: `PASS` (All boundaries and architectural directives respected).
+  - `pnpm build`: `PASS` (12/12 packages built successfully).
+  - `pnpm test`: `PASS` (173 files passed, 1231 tests passed, 0 failed, 45 staging skipped).
+- **CANONICAL_GATE**: `PENDING_AT_COMMIT` (single canonical `cmd /c "pnpm install --frozen-lockfile && pnpm check"` on committed HEAD).
+- **SAFETY**:
+  - `ACTIVE_GUARDED`: `BLOCKED`
+  - `CUSTOMER_TRAFFIC`: `PROHIBITED`
+  - `PRODUCTION_RUNTIME_WIRING`: `NO`
+  - `REAL_PROVIDER_CALLS`: `0`
+  - `REMOTE_MIGRATIONS`: `0`
+  - `DATABASE_SCHEMA_CHANGED`: `NO`
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED`: `NO`
+  - `REAL_DOTENV_ACCESSED`: `NO`
+  - `SECRET_AUDIT`: `PASS`

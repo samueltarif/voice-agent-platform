@@ -5,6 +5,7 @@ import { getInternalApiClient } from '../../../../../lib/api/api-client-factory.
 import { TenantApiClient } from '../../../../../lib/api/tenant-api-client.js';
 import { mapKnowledgeBffError } from '../../knowledge-error-response.js';
 import { isSameOriginRequest } from '../../../agents/is-same-origin-request.js';
+import { checkKnowledgeOrgConsistency } from '../../knowledge-org-consistency.js';
 
 type OrgContext = Awaited<ReturnType<typeof getServerOrganizationContext>>;
 
@@ -72,6 +73,8 @@ export async function GET(
   const result = await getServerOrganizationContext(requestId ? { requestId } : {});
   const blocked = checkReadAccess(result);
   if (blocked) return blocked;
+  const mismatch = checkKnowledgeOrgConsistency(req, result.context!.slug);
+  if (mismatch) return mismatch;
   return executeDetailFetch({
     context: result.context!,
     userId: result.user!.id,
