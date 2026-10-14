@@ -4,6 +4,7 @@ import * as React from 'react';
 import { usePathname } from 'next/navigation';
 import {
   Activity,
+  BookOpen,
   Bot,
   ChevronLeft,
   ChevronRight,
@@ -111,11 +112,7 @@ export function DesktopSidebar({ currentOrg }: DesktopSidebarProps = {}) {
   const { sidebarCollapsed, toggleSidebar } = useUiPreferences();
 
   const navItems: readonly SidebarNavItem[] = React.useMemo(() => {
-    const agentsHref = currentOrg?.slug ? `/orgs/${currentOrg.slug}/agents` : '#';
-    const isAgentsActive = currentOrg?.slug
-      ? pathname.startsWith(`/orgs/${currentOrg.slug}/agents`)
-      : false;
-
+    const slug = currentOrg?.slug;
     return [
       {
         title: 'Dashboard',
@@ -128,11 +125,19 @@ export function DesktopSidebar({ currentOrg }: DesktopSidebarProps = {}) {
       { title: 'Leads', href: '#', icon: Users, badge: 'Em breve', disabled: true },
       {
         title: 'Agente IA',
-        href: agentsHref,
+        href: slug ? `/orgs/${slug}/agents` : '#',
         icon: Bot,
-        active: isAgentsActive,
-        disabled: !currentOrg?.slug,
-        ...(currentOrg?.slug ? {} : { badge: 'Em breve' }),
+        active: slug ? pathname.startsWith(`/orgs/${slug}/agents`) : false,
+        disabled: !slug,
+        ...(slug ? {} : { badge: 'Em breve' }),
+      },
+      {
+        title: 'Base de Conhecimento',
+        href: slug ? `/orgs/${slug}/knowledge` : '#',
+        icon: BookOpen,
+        active: slug ? pathname.startsWith(`/orgs/${slug}/knowledge`) : false,
+        disabled: !slug,
+        ...(slug ? {} : { badge: 'Em breve' }),
       },
       { title: 'Configurações', href: '#', icon: Settings, badge: 'Em breve', disabled: true },
     ];

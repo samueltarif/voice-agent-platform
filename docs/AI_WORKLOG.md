@@ -17554,3 +17554,54 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **GAPS**: none blocking; all 4 backend capabilities existed (list/get/ingest/archive with pagination/filters); no invented filters
 - **TESTS**: 10/10 mocked BFF PASS (6 documents + 4 detail/archive, fakes labeled, no DB, no providers); precommit format/lint/typecheck/architecture/file-size ALL PASS
 - **NOT_DONE**: no React UI, no layout, no canonical pnpm check, no push, no PR; awaiting Claude design handoff via human
+
+---
+
+## 2026-10-14 — Slice 007K Stage B Technical Recovery (Antigravity Exclusive Executor)
+
+- **SLICE_ID**: `007K` (Stage B — Knowledge Base Studio UI & BFF Integration)
+- **EXECUTOR**: `ANTIGRAVITY` (human authorized technical recovery; exclusive repository writer confirmed; OpenCode stopped)
+- **BASE_MAIN_SHA**: `2e6d90afb85c2dddf2a02c3f57cafeb262e22b59`
+- **STAGE_A_HEAD**: `69fba4712ff1a4460a79f15d0ffb55beba57915b`
+- **FEATURE_BRANCH**: `feat/007k-knowledge-base-studio-ui-bff`
+- **BACKUP_RELOCATION**:
+  - `SOURCE`: `D:/voice-agent-platform-git/original-knowledge-ingest-form.tsx`
+  - `DESTINATION`: `D:/007k-recovery-backups/original-knowledge-ingest-form.tsx` (outside repository root)
+  - `SHA256`: `E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855` (0 bytes, preserved identically)
+  - `BACKUP_SHA256_VERIFIED`: `YES`
+  - `BACKUP_SOURCE_REMOVED`: `YES`
+- **REPRODUCED_FAILURES**:
+  - 6 failing tests in `knowledge-document-list.test.tsx` (`TypeError: documents.map is not a function`).
+  - 3 failing tests in `knowledge-ingest-form.test.tsx` (`ReferenceError: React is not defined`).
+  - 2 blocked test suites due to `await` outside async in `use-knowledge-list.ts`.
+  - Multiple TypeScript type errors in `validate-knowledge-form.ts`, `use-knowledge-list.ts`, `knowledge-request-sequence.test.ts`.
+  - File length exceedance (> 180 lines) in `knowledge-ingest-fields.tsx` (190 lines), `desktop-sidebar.tsx` (182 lines), `mobile-menu-drawer.tsx` (214 lines).
+  - Incomplete dummy mutation hook `use-knowledge-mutations.ts` with disabled eslint.
+- **RESOLVED_FAILURES**:
+  - `renderKnowledgeList` in `knowledge-test-fixtures.tsx` refactored to support options object with default fallback (`DEFAULT_RENDER_OPTIONS`), resolving all 6 document list tests.
+  - Added `import * as React from 'react';` to JSX components, eliminating `React is not defined`.
+  - Fixed `use-knowledge-list.ts`: restored `async` keyword, added parameter objects (`AutoFetchOptions`), extracted modular helper functions (`isTicketStale`, `buildListQuery`, `applyPageResult`, `useListAutoFetch`).
+  - Resolved all TypeScript errors: added `status: 200` to ok response type, widened form source type safely, unpacked sequence ticket arrays cleanly.
+  - Resolved file length limits (all files <= 180 lines): extracted `IngestField` (45 lines) into `knowledge-ingest-field.tsx` (reducing `knowledge-ingest-fields.tsx` to 146 lines); extracted `MobileMenuPreferences` (47 lines) into `mobile-menu-preferences.tsx` (reducing `mobile-menu-drawer.tsx` to 168 lines); inlined nav items in `desktop-sidebar.tsx` (reducing to 169 lines). Verified via `pnpm check:file-size` (345 files, 0 errors).
+  - Fully implemented domain mutation hook `use-knowledge-mutations.ts` with real API calls to BFF routes (`ingestKnowledgeDocument`, `archiveKnowledgeDocument`), toast notifications, and modular handlers (`useIngestHandler`, `useArchiveHandler`).
+- **CLAUDE_LAYOUT_PRESERVED**: `YES` (Knowledge Base Studio layout, header, filters, search, responsive table/card views, modal drawer, pagination, empty/error states).
+- **DEC039_RBAC_PRESERVED**: `YES` (`OWNER`/`ADMIN` full access, `MANAGER` read/ingest, `OPERATOR`/`VIEWER` blocked with unauthorized state).
+- **BFF_CONTRACT_INTEGRITY**: `PASS` (exact Stage A BFF endpoints `/api/knowledge/documents`, `/api/knowledge/documents/[documentId]`, `/api/knowledge/documents/[documentId]/archive` consumed with typed client).
+- **TARGETED_TESTS**: 66/66 passing (53 knowledge feature tests + 13 shell & BFF tests).
+- **PRECOMMIT_CHECKS**:
+  - `pnpm format:check`: `PASS` (exit 0)
+  - `pnpm lint`: `PASS` (exit 0, 0 errors, 0 warnings)
+  - `pnpm typecheck`: `PASS` (exit 0, 12 packages)
+  - `pnpm test`: `PASS` (exit 0, 168 files passed, 1192 tests passed, 0 failed, 45 skipped)
+  - `pnpm build`: `PASS` (exit 0, 12 packages built)
+  - `pnpm check:architecture`: `PASS` (exit 0)
+  - `pnpm check:file-size`: `PASS` (exit 0, 345 files checked)
+- **CANONICAL_GATE**: `PENDING_AT_COMMIT` (single canonical `cmd /c "pnpm install --frozen-lockfile && pnpm check"` will be executed immediately on the committed HEAD).
+- **SAFETY**:
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED`: `NO`
+  - `REAL_DOTENV_ACCESSED`: `NO`
+  - `REMOTE_SUPABASE_MIGRATIONS`: `0`
+  - `REAL_PROVIDER_CALLS`: `0`
+  - `DATABASE_SCHEMA_CHANGED`: `NO`
+  - `MIGRATIONS_CREATED`: `NO`
+  - `SECRET_AUDIT`: `PASS`
