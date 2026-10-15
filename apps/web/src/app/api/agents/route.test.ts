@@ -29,6 +29,22 @@ describe('GET /api/agents (BFF Tenant Proxy)', () => {
     expect(data.error).toContain('Origem da requisição não autorizada');
   });
 
+  it('rejects spoofed x-forwarded-host input with 403', async () => {
+    const req = new NextRequest('http://localhost:3000/api/agents', {
+      method: 'GET',
+      headers: {
+        host: 'localhost:3000',
+        origin: 'http://attacker.com',
+        'x-forwarded-host': 'attacker.com',
+      },
+    });
+
+    const res = await GET(req);
+    expect(res.status).toBe(403);
+    const data = await res.json();
+    expect(data.error).toContain('Origem da requisição não autorizada');
+  });
+
   it('returns 401 when session is unauthenticated', async () => {
     vi.mocked(getServerOrganizationContext).mockResolvedValueOnce({
       status: 'UNAUTHENTICATED',
@@ -107,6 +123,21 @@ describe('POST /api/agents (BFF Tenant Proxy)', () => {
     const req = new NextRequest('http://localhost:3000/api/agents', {
       method: 'POST',
       headers: { host: 'localhost:3000', origin: 'http://evil.com' },
+      body: JSON.stringify({ name: 'Test', slug: 'test' }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(403);
+  });
+
+  it('rejects spoofed x-forwarded-host input with 403', async () => {
+    const req = new NextRequest('http://localhost:3000/api/agents', {
+      method: 'POST',
+      headers: {
+        host: 'localhost:3000',
+        origin: 'http://evil.com',
+        'x-forwarded-host': 'evil.com',
+      },
       body: JSON.stringify({ name: 'Test', slug: 'test' }),
     });
 

@@ -17680,3 +17680,63 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED`: `NO`
   - `REAL_DOTENV_ACCESSED`: `NO`
   - `SECRET_AUDIT`: `PASS`
+
+## 2026-10-15 — Slice 007K — Targeted Security and Concurrency Recovery (PR #113) — Antigravity
+
+- **SLICE_ID**: `007K` (Knowledge Base Studio UI & BFF Integration — Targeted Security and Concurrency Recovery)
+- **EXECUTOR**: `ANTIGRAVITY` (Windows executor authorized for PR #113 remediation; exclusive write access confirmed; Claude Code and OpenCode stopped; Kiro reviewer in read-only mode)
+- **BASE_MAIN_SHA**: `2e6d90afb85c2dddf2a02c3f57cafeb262e22b59`
+- **STARTING_HEAD**: `1ec37b27161320b4fef1c45ddba593f1d5fc7f57`
+- **FEATURE_BRANCH**: `feat/007k-knowledge-base-studio-ui-bff`
+- **EXISTING_PR**: `#113` (`https://github.com/samueltarif/voice-agent-platform/pull/113`)
+
+### 1. Issue A — Archive Concurrency Remediation
+- **ROOT_CAUSE**: `updateKnowledgeDocumentStatus` in `packages/database/src/repositories/knowledge-document-repository.ts` previously executed a `SELECT` followed by unconditional `UPDATE ... WHERE organizationId AND id`. Two concurrent archive requests could both observe `READY` and both report success without conflict.
+- **REMEDIATION**:
+  - Guarded transition contract: updated `isValidDocumentStatusTransition` in `packages/contracts/src/knowledge/knowledge-document-contracts.ts` so `ARCHIVED` is terminal (`from === 'ARCHIVED'` returns `false`, preventing `ARCHIVED -> ARCHIVED` transition).
+  - Optimistic concurrency: `updateKnowledgeDocumentStatus` now updates conditionally matching observed status: `WHERE organizationId = $org AND id = $docId AND status = $currentStatus`.
+  - Zero updated rows handling: re-reads document with `getKnowledgeDocumentById`. If missing -> throws `NotFoundError`. If present -> calls `assertValidDocumentTransition(latest.status, nextStatus)` and throws `ConflictError`.
+  - Tenant isolation and invariants strictly preserved.
+- **TESTS**:
+  - `packages/contracts/src/knowledge/knowledge-contracts.test.ts`: verified `ARCHIVED -> ARCHIVED` transition rejection.
+  - `packages/database/src/knowledge-archive-concurrency.integration.test.ts` (new integration test):
+    1. Concurrent archive requests: `Promise.allSettled` demonstrates 1 fulfilled (`ARCHIVED`) and 1 rejected (`InvalidStateTransitionError` / mapped to conflict), final status `ARCHIVED`.
+    2. Tenant isolation: cross-tenant archive attempt rejected with `NotFoundError` and document remains untouched.
+    3. Sequential invalid transitions: subsequent archive attempts on archived document rejected with `InvalidStateTransitionError`; `ARCHIVED -> READY` rejected with `InvalidStateTransitionError`.
+
+### 2. Issue B — X-Forwarded-Host Trust & CSRF Hardening
+- **ROOT_CAUSE**: `apps/web/src/app/api/agents/is-same-origin-request.ts` used `x-forwarded-host ?? host` without trust boundaries, allowing untrusted callers to spoof `X-Forwarded-Host` and bypass CSRF checks.
+- **REMEDIATION**:
+  - Replaced blind fallback with a fail-closed trusted-host policy:
+    1. Rejects immediately if `sec-fetch-site === 'cross-site'`.
+    2. Missing origin allowed only for same-origin navigations (`!fetchSite || fetchSite === 'same-origin' || fetchSite === 'same-site'`).
+    3. Validates origin format and protocols (`http:`, `https:` only).
+    4. When `X-Forwarded-Host` is present: parses client host (first element of comma-separated list), checks against trusted hosts whitelist derived from `BETTER_AUTH_URL`, `NEXT_PUBLIC_APP_URL`, `APP_URL`, optional `TRUSTED_HOSTS`, and localhost in development/test. If untrusted or spoofed -> fails closed (returns `false`).
+    5. When `X-Forwarded-Host` is absent: verifies `originHost === host`.
+  - Decomposed helper functions to satisfy cyclomatic complexity (<= 8) and nesting depth (<= 3).
+- **TESTS**:
+  - `apps/web/src/app/api/agents/is-same-origin-request.test.ts` (14 unit tests): covers legitimate direct same-origin, legitimate HTTPS, cross-origin host mismatch, `sec-fetch-site: cross-site`, spoofed `X-Forwarded-Host`, trusted `X-Forwarded-Host`, comma-separated client host, malformed origins, non-http protocols, and missing origins.
+  - `apps/web/src/app/api/agents/route.test.ts`: added negative tests for spoofed `X-Forwarded-Host` on GET and POST `/api/agents` (returns HTTP 403).
+  - `apps/web/src/app/api/knowledge/knowledge-org-consistency.test.ts`: added negative tests for spoofed `X-Forwarded-Host` across all Knowledge BFF routes (`list`, `create`, `delete`, `archive`), verifying 403 rejection before any API work.
+
+### 3. Verification & Compliance
+- **STANDALONE_CHECKS**:
+  - `pnpm format:check`: `PASS` (Exit Code 0)
+  - `pnpm lint`: `PASS` (Exit Code 0, 0 errors, 0 warnings)
+  - `pnpm typecheck`: `PASS` (Exit Code 0, 12/12 packages)
+  - `pnpm test`: `PASS` (Exit Code 0, 175 files passed, 1254 passed, 45 skipped in staging network files)
+  - `pnpm build`: `PASS` (Exit Code 0, all packages and Next.js production build)
+  - `pnpm check:architecture`: `PASS` (Exit Code 0, AST boundaries respected)
+  - `pnpm check:file-size`: `PASS` (Exit Code 0, all 350 production logic files <= 180 lines)
+- **DEPLOYMENT_PROXY_TRUST**: `NOT_VERIFIED` (Fails closed: reverse-proxy forwarded hosts are only trusted when matching configured canonical URL / trusted hosts)
+- **SAFETY**:
+  - `ACTIVE_GUARDED`: `BLOCKED`
+  - `CUSTOMER_TRAFFIC`: `PROHIBITED`
+  - `PRODUCTION_RUNTIME_WIRING`: `NO`
+  - `REAL_PROVIDER_CALLS`: `0`
+  - `REMOTE_MIGRATIONS`: `0`
+  - `DATABASE_SCHEMA_CHANGED`: `NO`
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED`: `NO`
+  - `REAL_DOTENV_ACCESSED`: `NO`
+  - `SECRET_AUDIT`: `PASS`
+

@@ -38,8 +38,12 @@ describe('Knowledge Base domain contracts (007G)', () => {
     expect(isValidDocumentStatusTransition('READY', 'PROCESSING')).toBe(false);
     expect(isValidDocumentStatusTransition('FAILED', 'READY')).toBe(false);
     expect(isValidDocumentStatusTransition('ARCHIVED', 'READY')).toBe(false);
+    expect(isValidDocumentStatusTransition('ARCHIVED', 'ARCHIVED')).toBe(false);
     expect(isValidDocumentStatusTransition('READY', 'FAILED')).toBe(false);
     expect(() => validateDocumentStatusTransition('PENDING', 'READY')).toThrow(
+      /Invalid knowledge document status transition/,
+    );
+    expect(() => validateDocumentStatusTransition('ARCHIVED', 'ARCHIVED')).toThrow(
       /Invalid knowledge document status transition/,
     );
   });

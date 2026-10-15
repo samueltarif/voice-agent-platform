@@ -44,6 +44,7 @@ export function isValidDocumentStatusTransition(
   from: KnowledgeDocumentStatus,
   to: KnowledgeDocumentStatus,
 ): boolean {
+  if (from === 'ARCHIVED') return false;
   if (from === to) return true;
   const allowed = DOCUMENT_TRANSITIONS[from];
   return allowed ? allowed.has(to) : false;

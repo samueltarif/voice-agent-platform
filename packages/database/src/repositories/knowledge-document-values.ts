@@ -1,4 +1,21 @@
-import type { CreateKnowledgeDocumentInput, KnowledgeDocumentStatus } from '@voice-agent/contracts';
+import {
+  type CreateKnowledgeDocumentInput,
+  type KnowledgeDocumentStatus,
+  validateDocumentStatusTransition,
+} from '@voice-agent/contracts';
+import { InvalidStateTransitionError } from '@voice-agent/errors';
+
+export function assertValidDocumentTransition(
+  from: KnowledgeDocumentStatus,
+  to: KnowledgeDocumentStatus,
+): void {
+  try {
+    validateDocumentStatusTransition(from, to);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Invalid state transition';
+    throw new InvalidStateTransitionError(msg);
+  }
+}
 
 export interface InsertKnowledgeDocumentOptions {
   readonly initialStatus?: KnowledgeDocumentStatus | undefined;

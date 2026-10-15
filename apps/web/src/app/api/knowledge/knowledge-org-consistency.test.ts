@@ -95,6 +95,17 @@ describe('knowledge BFF organization consistency (F-S2) and origin (F-S3)', () =
       expect(serverOrgContext.getServerOrganizationContext).not.toHaveBeenCalled();
       expect(mockTenantRequest).not.toHaveBeenCalled();
     });
+
+    it(`${name}: rejects spoofed x-forwarded-host requests with 403 before any org or API work`, async () => {
+      const res = await run({
+        origin: 'https://evil.example',
+        'x-forwarded-host': 'evil.example',
+        'x-knowledge-org-slug': 'org-a',
+      });
+      expect(res.status).toBe(403);
+      expect(serverOrgContext.getServerOrganizationContext).not.toHaveBeenCalled();
+      expect(mockTenantRequest).not.toHaveBeenCalled();
+    });
   }
 
   it('does not let the header bypass RBAC: MANAGER archive stays 403 on matching org', async () => {

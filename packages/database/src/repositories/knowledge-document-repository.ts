@@ -1,18 +1,21 @@
 import { and, asc, desc, eq, type SQLWrapper } from 'drizzle-orm';
+import { ConflictError, NotFoundError } from '@voice-agent/errors';
 import {
   type CreateKnowledgeDocumentInput,
   type KnowledgeDocument,
   type KnowledgeDocumentStatus,
   type KnowledgeSourceType,
-  validateDocumentStatusTransition,
 } from '@voice-agent/contracts';
 import { knowledgeDocuments } from '../schema/knowledge.js';
 import type { DatabaseExecutor } from './database-executor.js';
 import { mapKnowledgeDocument } from './knowledge-mapping.js';
 import {
+  assertValidDocumentTransition,
   buildKnowledgeInsertValues,
   type InsertKnowledgeDocumentOptions,
 } from './knowledge-document-values.js';
+
+export type { InsertKnowledgeDocumentOptions };
 
 async function selectSingleKnowledgeDocument(
   db: DatabaseExecutor,
@@ -23,11 +26,8 @@ async function selectSingleKnowledgeDocument(
     .from(knowledgeDocuments)
     .where(and(...conditions))
     .limit(1);
-
   return row ? mapKnowledgeDocument(row) : null;
 }
-
-export type { InsertKnowledgeDocumentOptions };
 
 function resolveMissingInsert(options: InsertKnowledgeDocumentOptions): null {
   if (options.onConflictDoNothing) return null;
@@ -111,11 +111,9 @@ export async function updateKnowledgeDocumentStatus(
 ): Promise<KnowledgeDocument> {
   const { organizationId, documentId, nextStatus, errorMessage } = input;
   const current = await getKnowledgeDocumentById(db, organizationId, documentId);
-  if (!current) {
-    throw new Error(`Knowledge document '${documentId}' not found for tenant`);
-  }
+  if (!current) throw new NotFoundError(`Knowledge document '${documentId}' not found for tenant`);
 
-  validateDocumentStatusTransition(current.status, nextStatus);
+  assertValidDocumentTransition(current.status, nextStatus);
 
   const [updated] = await db
     .update(knowledgeDocuments)
@@ -124,11 +122,20 @@ export async function updateKnowledgeDocumentStatus(
       and(
         eq(knowledgeDocuments.organizationId, organizationId),
         eq(knowledgeDocuments.id, documentId),
+        eq(knowledgeDocuments.status, current.status),
       ),
     )
     .returning();
 
-  if (!updated) throw new Error('Failed to update knowledge document status');
+  if (!updated) {
+    const latest = await getKnowledgeDocumentById(db, organizationId, documentId);
+    if (!latest) throw new NotFoundError(`Knowledge document '${documentId}' not found for tenant`);
+    assertValidDocumentTransition(latest.status, nextStatus);
+    throw new ConflictError(
+      `Knowledge document '${documentId}' concurrently changed from '${current.status}' to '${latest.status}'`,
+    );
+  }
+
   return mapKnowledgeDocument(updated);
 }
 
