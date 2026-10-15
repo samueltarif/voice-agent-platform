@@ -17740,3 +17740,108 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `REAL_DOTENV_ACCESSED`: `NO`
   - `SECRET_AUDIT`: `PASS`
 
+## 2026-10-15 — Slice 007K — Post-Merge Closure & Validation on Main (PR #113) — Antigravity
+
+- **SLICE_ID**: `007K` (Knowledge Base Studio UI & BFF Integration — Post-Merge Closure)
+- **PR_NUMBER**: `#113` (`https://github.com/samueltarif/voice-agent-platform/pull/113`)
+- **TARGET_BRANCH**: `main`
+- **MERGE_METHOD**: `SQUASH`
+- **SQUASH_SHA**: `e8055e93e9f78fd15da5760cec60fe4e1bdbfbcb`
+- **BASE_MAIN_SHA**: `2e6d90afb85c2dddf2a02c3f57cafeb262e22b59`
+- **FEATURE_HEAD**: `5e2e09c456f1c093cc2af67b08131a8f837a96cd`
+- **POSTMERGE_GATE**: `EXIT CODE 0` | `SEVEN STAGES PASS`
+  - `pnpm format:check`: `PASS`
+  - `pnpm lint`: `PASS`
+  - `pnpm typecheck`: `PASS`
+  - `pnpm test`: `PASS`
+  - `pnpm build`: `PASS`
+  - `pnpm check:architecture`: `PASS`
+  - `pnpm check:file-size`: `PASS`
+- **TEST_RESULTS**:
+  - `TEST_FILES_PASSED`: 175
+  - `TESTS_PASSED`: 1254
+  - `TESTS_FAILED`: 0
+  - `TESTS_SKIPPED`: 45 (staging tests activated exclusively via `APP_ENV=staging` and `STAGING_SMOKE_TESTS=true`)
+- **DELIVERED_SCOPE**:
+  - Knowledge Base Studio UI & BFF integration in `apps/web`.
+  - BFF endpoints under `/api/knowledge-documents` (GET list, POST ingest, GET detail, POST archive) with short-lived asymmetric Ed25519 service assertion headers to `apps/api`.
+  - Knowledge Base tab in Agent Studio with document table view (desktop), mobile/tablet card grid, pagination with bounded limits, accessible dialogs with focus management.
+  - Optimistic concurrency control via `If-Match` / `ETag` and database conditional updates (`WHERE status = $currentStatus`).
+  - Fail-closed reverse-proxy CSRF hardening validating `X-Forwarded-Host` against trusted origin domains.
+  - Multi-tab organization consistency enforcement (`x-knowledge-org-slug`).
+- **DEFERRED_CAPABILITIES**:
+  - Semantic vector embeddings, vector storage and pgvector integration.
+  - Real embedding provider integrations and production RAG generation.
+  - Binary document ingestion (PDF, DOCX) and web crawlers.
+  - Production deployment of Knowledge Base APIs and BFF.
+  - Real browser visual QA (deferred; tested via synthetic unit/integration tests).
+- **SAFETY**:
+  - `ACTIVE_GUARDED`: `BLOCKED`
+  - `CUSTOMER_TRAFFIC`: `PROHIBITED`
+  - `PRODUCTION_RUNTIME_WIRING`: `NO`
+  - `REAL_PROVIDER_CALLS`: `0`
+  - `REMOTE_MIGRATIONS`: `0`
+  - `DATABASE_SCHEMA_CHANGED`: `NO`
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED`: `NO`
+  - `REAL_DOTENV_ACCESSED`: `NO`
+  - `SECRET_AUDIT`: `PASS`
+
+## 2026-10-15 — Slice 007L — Governance Closure and Phase 8 Readiness — Antigravity
+
+- **SLICE_ID**: `007L` (Governance Closure and Phase 8 Readiness)
+- **EXECUTOR**: `ANTIGRAVITY` (Windows executor authorized for Slice 007L documentation and governance closure)
+- **BASE_MAIN_SHA**: `e8055e93e9f78fd15da5760cec60fe4e1bdbfbcb`
+- **BRANCH**: `docs/007l-phase7-closure-readiness`
+- **SCOPE**: `DOCUMENTATION AND GOVERNANCE ONLY` (no production code, no new dependencies, no migrations, no database access, no secrets access)
+- **FILES_CHANGED**:
+  - `docs/AI_WORKLOG.md` (append-only retrospective for 007K post-merge closure and 007L execution entry)
+  - `docs/AI_CONTEXT.md` (reconciled merged status of 007J/007K on main, updated Quality Gate to 007K post-merge gate on main `e8055e93e9f78fd15da5760cec60fe4e1bdbfbcb`, removed stale 007J next-step instructions, set Phase 7 status to `PENDING_007L_POSTMERGE_CLOSURE`, removed invented percentages)
+  - `docs/ROADMAP.md` (recorded Slices 007K and 007L under Phase 7, detailed delivered vs deferred scope across Phase 7, documented pending human decisions for Phase 8, preserved Phase 7 status as pending formal closure until 007L is merged and validated on main)
+  - `docs/AGENT_STUDIO.md` (reconciled historical status of Slice 005D as implemented and merged across sub-slices 005D-A to 005D-C2, PRs #13, #15, #17, #18, #19, #20, #21; updated architectural decisions table and handoff implementation status with Phase 7 toolset config 007C, draft discard 007I, and knowledge base UI/BFF 007K)
+- **PHASE7_DELIVERED_SCOPE**:
+  - Universal tool execution engine (`ToolExecutionEngine`), `InMemoryToolRegistry`, and published version toolset resolution context.
+  - Deterministic catalog business data domain, repository, search tool, and item detail tool.
+  - Agent Studio toolset configuration UI and typed JSONB snapshot persistence.
+  - Outbound campaigns domain, batch scheduling API, worker call dispatcher with atomic `SKIP LOCKED`, and voice bootstrap adapter.
+  - Call handoff deterministic state machine and offline contracts.
+  - Knowledge Base domain, neutral contracts, persistence (migrations 0004 & 0006), trusted NFC text ingestion, and bounded lexical retrieval.
+  - Agent version draft discard endpoint (`POST /v1/agents/:agentId/versions/draft/discard`) preserving published version immutability (DEC-040).
+  - Knowledge Base REST API under `/v1/knowledge/documents` with dedicated RBAC (`knowledge.read`, `knowledge.ingest`, `knowledge.archive` — DEC-039).
+  - Agent Studio Knowledge Base UI and Next.js BFF with Ed25519 service assertions, optimistic concurrency (`If-Match`/`ETag` + conditional update), fail-closed CSRF forwarded host defense, and multi-tab tenant slug consistency.
+- **PHASE7_DEFERRED_SCOPE**:
+  - Semantic vector retrieval, embedding models, and vector database storage.
+  - Production RAG generation wiring and prompt augmentation in live calls.
+  - Binary document parsing (PDF, DOCX) and web crawlers.
+  - Real carrier dialing and telephony integration (Phase 8).
+  - Real browser visual QA (deferred / test runner mocked).
+  - Staging/production deployments of Knowledge Base API and outbound services.
+- **PHASE7_FORMAL_CLOSURE**: `PENDING_POSTMERGE_VALIDATION` (formal closure of Phase 7 requires merge of PR for 007L and canonical post-merge gate validation on main).
+- **PHASE8_PENDING_DECISIONS**:
+  - Telephony provider selection (Twilio vs alternative carrier).
+  - Provider spending limits and hard budget caps.
+  - Call recording object storage provider (S3, Cloudflare R2, GCS).
+  - Legal recording compliance and consent framework (DEC-024 / LGPD / GDPR).
+  - SIP/PSTN/WebRTC human handoff topology.
+  - Staging public webhook infrastructure and domain.
+- **STANDALONE_CHECKS**:
+  - `pnpm format:check`: `PASS` (All matched files use Prettier code style)
+  - `pnpm lint`: `PASS` (0 errors, 0 warnings)
+  - `pnpm typecheck`: `PASS` (12/12 packages successful)
+  - `pnpm test`: `PASS` (175 test files passed, 1254 passed, 45 skipped in staging network files)
+  - `pnpm build`: `PASS` (12/12 packages successful, Next.js production build clean)
+  - `pnpm check:architecture`: `PASS` (AST architecture and boundaries respected)
+  - `pnpm check:file-size`: `PASS` (350 production logic files <= 180 lines, 33 advisories)
+- **CANONICAL_GATE**: `PENDING_ON_COMMITTED_HEAD` (canonical `cmd /c "pnpm install --frozen-lockfile && pnpm check"` on committed SHA)
+- **SAFETY**:
+  - `ACTIVE_GUARDED`: `BLOCKED`
+  - `CUSTOMER_TRAFFIC`: `PROHIBITED`
+  - `PRODUCTION_RUNTIME_WIRING`: `NO`
+  - `REAL_PROVIDER_CALLS`: `0`
+  - `REMOTE_MIGRATIONS`: `0`
+  - `DATABASE_SCHEMA_CHANGED`: `NO`
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED`: `NO`
+  - `REAL_DOTENV_ACCESSED`: `NO`
+  - `SECRET_AUDIT`: `PASS`
+
+
+

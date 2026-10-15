@@ -88,30 +88,60 @@ Este documento estabelece as fases sequenciais de implementação da plataforma.
 
 ---
 
-### 🤖 FASE 7 — Agente IA e Tools
+### 🤖 FASE 7 — Agente IA e Tools *(Pendente de Validação Pós-Merge da Fatia 007L)*
 - API Core e orquestração outbound (`apps/api`).
 - Definição e implementação das tools disponíveis para agentes.
 - Versionamento de agentes: ciclo canônico DRAFT → PUBLISHED → ARCHIVED (supersedendo o ciclo anterior com TEST como status persistente; TEST é atividade pontual de validação — DEC-028 / ADR-009).
-- Knowledge Base: integração de dados estruturados (determinístico) e não estruturados (RAG — Pending Decision).
-- **Slice 007J — Knowledge Base API Management** *(Aprovado pelo operador humano em 2026-10-09)*:
-  - API HTTP autenticada e delimitada por tenant sob `/v1/knowledge/documents` em `apps/api`.
-  - Ingestão atômica e idempotente de texto estrito (`POST /v1/knowledge/documents`).
-  - Listagem com paginação delimitada e ordenação determinística (`GET /v1/knowledge/documents`).
-  - Consulta de metadados de documento com proteção anti-enumeração (`GET /v1/knowledge/documents/:documentId`).
-  - Arquivamento determinístico preservando ciclo de vida (`POST /v1/knowledge/documents/:documentId/archive`).
-  - Modelo de autorização RBAC dedicado (`knowledge.read`, `knowledge.ingest`, `knowledge.archive` — DEC-039).
-  - Segregação mandatória de autoridades: gestão humana RBAC vs. retrieval de agente publicado.
-  - Fora de escopo: upload binário/PDFs, web crawlers, object storage, embeddings/vetores, RAG em produção, telefonia e tráfego real.
+- Knowledge Base: integração de dados estruturados (determinístico) e não estruturados (RAG — arquitetura definida via ADR-020; vetores e embeddings deferidos).
+- **Fatiamento Sequencial da Fase 7**:
+  - [x] **Slice 007A — Universal Tool Execution Engine & Runtime Context** (PR #94 / Merged): Motor universal `ToolExecutionEngine`, `InMemoryToolRegistry`, isolamento de contexto e validação via Zod.
+  - [x] **Slice 007B — Catalog Business Data Domain & Deterministic Tools** (PR #95 / Merged): Schema `catalog_items` (migration `0002_silent_squadron_sinister.sql`), `CatalogRepository`, `CatalogSearchTool` e `CatalogItemDetailTool`.
+  - [x] **Slice 007C — Agent Studio Toolset Configuration** (PR #96 / Merged): Edição de ferramentas autorizadas no Agent Studio (`apps/web`), snapshot JSONB tipado em `agent_versions.configuration`.
+  - [x] **Slice 007D — Outbound Campaigns Domain, Worker Dispatcher & Scheduling** (PR #105 / Merged): Schema `outbound_campaigns` e `outbound_call_jobs` (migration `0003_tiresome_nemesis.sql`), rotas `/v1/campaigns`, dispatcher atômico com `SKIP LOCKED` e bootstrap de chamadas de voz.
+  - [x] **Slice 007E — Call Handoff State Machine & Offline Contracts** (PR #106 / Merged): Máquina de estados determinística de handoff humano e contratos offline de transferência.
+  - [x] **Slice 007F — Knowledge Base Domain & Neutral Contracts** (PR #108 / Merged): Contratos de documentos, chunks, escopos de acesso e portas de retrieval neutras em `packages/contracts`.
+  - [x] **Slice 007G / 007H — Knowledge Base Persistence, Ingestion & Retrieval Runtime** (PR #110 / Merged): Schemas `knowledge_documents` e `knowledge_chunks` (migrations `0004_ordinary_charles_xavier.sql` e `0006_peaceful_thunderbolt.sql`), `KnowledgeDocumentRepository`, ingestão atômica de texto confiável local com normalização NFC e hashing SHA-256, e retrieval léxico offline delimitado por tenant.
+  - [x] **Slice 007I — Agent Version Draft Discard & Published Version Lock** (PR #107 / Merged / DEC-040) e **Offline Voice Knowledge Handoff** (PR #111 / Merged): Rota `POST /v1/agents/:agentId/versions/draft/discard` preservando imutabilidade de versões publicadas, e coordenador offline `VoiceKnowledgeRetrievalCoordinator`.
+  - [x] **Slice 007J — Knowledge Base API Management** (PR #112 / Merged / DEC-039): Rotas REST autenticadas `/v1/knowledge/documents` (POST ingest, GET list, GET detail, POST archive) com autorização RBAC dedicada (`knowledge.read`, `knowledge.ingest`, `knowledge.archive`), paginação delimitada e proteção anti-enumeração.
+  - [x] **Slice 007K — Knowledge Base Studio UI & BFF** (PR #113 / Merged): Interface web completa no Agent Studio (`apps/web`), rotas BFF `/api/knowledge-documents` com asserções criptográficas Ed25519 de curta duração, controle de concorrência otimista (`If-Match`/`ETag` e update atômico condicional), proteção CSRF fail-closed para `X-Forwarded-Host`, consistência multi-aba via `x-knowledge-org-slug` e interface acessível e responsiva.
+  - [ ] **Slice 007L — Governance Closure & Phase 8 Readiness** *(Em andamento — Reconciliação documental e governança; formalmente pendente de validação canônica pós-merge na main)*.
 
+- **Escopo Entregue na Fase 7**:
+  - Motor universal de ferramentas e resolução de toolset por versão publicada;
+  - Domínio de catálogo determinístico, ferramentas de busca e detalhe de itens;
+  - Campanhas outbound com agendamento em lote e despacho atômico assíncrono;
+  - Máquina de estados determinística de handoff para operador humano e contratos offline;
+  - Descarte seguro de rascunhos de versão mantendo integridade e imutabilidade de versões publicadas (DEC-040);
+  - Persistência e repositórios de base de conhecimento com migrações versionadas (0004 e 0006);
+  - Ingestão atômica de texto estrito NFC e busca léxica offline delimitada por tenant;
+  - API HTTP autenticada com RBAC estrito (`knowledge.*`) e segregação de autoridade (gestão humana vs. retrieval do agente);
+  - Interface do Agent Studio com gerenciamento de documentos e rotas BFF com asserções assimétricas Ed25519 e blindagem CSRF.
+
+- **Capacidades Explicitamente Deferidas (Fora do Escopo da Fase 7)**:
+  - Busca vetorial semântica e embeddings reais (`pgvector`, modelos de embedding pagos ou dedicados);
+  - Ativação de RAG em runtime de produção e injeção em prompts de chamadas reais;
+  - Ingestão de binários (PDFs, DOCX), arquivos de áudio e raspadores web (crawlers);
+  - Conexão telefônica real e discagem por carriers (escopo estrito da Fase 8);
+  - Integração com sistemas de CRM e calendários externos (escopo estrito da Fase 8);
+  - Testes visuais E2E reais de navegador (deferidos; suíte executada com fakes/mocks);
+  - Deploys de staging/produção para a nova API de Knowledge Base e novos serviços.
 
 ---
 
 ### 📞 FASE 8 — Telefonia Real
-- Integração com provedor de telefonia real (Pending Decision).
+- Integração com provedor de telefonia real (Pending Human Decision).
 - Recepção de chamadas receptivas (inbound) com DIDs dedicados.
 - **Call Recording & Storage**: Ingestão e upload de gravações para object storage com acesso autenticado/temporário e isolamento por tenant.
 - **Conexão Real de Transbordo**: Bridging de linha telefônica e transferência SIP/WebSockets para operadores humanos.
 - Implementação de adaptadores para CRM e Calendário.
+
+#### Decisões Humanas Pendentes para a Fase 8 (Não decididas pelo agente):
+1. **Escolha do Provedor de Telefonia**: Seleção do carrier/fornecedor (ex.: Twilio, Telnyx, Plivo ou terminação SIP direta). O agente não decide em nome do operador.
+2. **Tetos Orçamentários e Limites de Gasto**: Definição expressa de limites financeiros rígidos no provedor antes de qualquer discagem externa.
+3. **Provedor de Armazenamento de Gravações**: Seleção de serviço de object storage em nuvem (ex.: AWS S3, Cloudflare R2, Google Cloud Storage).
+4. **Conformidade Jurídica de Gravações**: Definição das políticas de aviso de gravação, consentimento explícito do interlocutor e prazos de retenção (DEC-024 / LGPD / GDPR).
+5. **Topologia de Transbordo Humano**: Definição da arquitetura de conexão humana (SIP Trunk, transferência PSTN ou softphone WebRTC no navegador).
+6. **Infraestrutura de Webhooks para Staging**: Definição do domínio público, terminação TLS e validação de assinaturas de webhook recebidas do provedor telefônico.
 
 ---
 
