@@ -1,6 +1,6 @@
 # Agent Studio — Conceito, Componentes e Versionamento (AGENT_STUDIO.md)
 
-> **Status**: Slices 005B e 005C Implementados e Validados em Neon Staging (005B Staging Validated; 005C Staging Validated) — Slice 005D Pendente (NOT STARTED)
+> **Status**: Slices 005B, 005C e 005D (sub-fatias 005D-A a 005D-C2) Implementados e Mesclados na Main (PRs #13, #15, #17, #18, #19, #20, #21), e expandidos na Fase 7 com Toolset Configuration (007C / PR #96), Draft Discard (007I / PR #107) e Knowledge Base Studio UI & BFF (007K / PR #113)
 > **Fase de Planejamento**: FASE 5 (Domínios Base & Agent Studio)
 > **Data de Criação**: 21 de Setembro de 2026
 > **Data de Aceitação Arquitetural**: 23 de Setembro de 2026 (Aprovação Humana Formal)
@@ -8,7 +8,7 @@
 Este documento formaliza o conceito de **Agent Studio** como subsistema central da plataforma, definindo os agregados de domínio (`Agent` e `AgentVersion`), o ciclo de vida formal, as regras de publicação e integridade, e o escopo de evolução por fases.
 
 > [!IMPORTANT]
-> **ARCHITECTURE ACCEPTED vs IMPLEMENTED**: A arquitetura de domínio, versionamento, persistência e invariantes de integridade do Agent Studio foram formalmente aceitas via **DEC-028** e **ADR-009** (Aprovação Humana em 2026-09-23). A implementação técnica ocorre de forma particionada: Slice 005B (`packages/database` e `packages/contracts`: IMPLEMENTED / STAGING VALIDATED), Slice 005C (`apps/api` e internal service auth: **IMPLEMENTED / LOCAL + NEON STAGING INTEGRATION VALIDATED**; **Internal Service Auth**: STAGING CRYPTOGRAPHIC BOUNDARY VALIDATED; **Neon**: DATA/AUTHZ INTEGRATION VALIDATED; **API Deployment**: NOT DEPLOYED; **Production**: NOT PROVISIONED / UNTOUCHED; **Browser E2E**: NOT CLAIMED) e Slice 005D (`apps/web` UI: NOT STARTED). Nenhuma implementação prévia deve ser presumida antes da conclusão dos respectivos slices.
+> **ARCHITECTURE ACCEPTED vs IMPLEMENTED**: A arquitetura de domínio, versionamento, persistência e invariantes de integridade do Agent Studio foram formalmente aceitas via **DEC-028** e **ADR-009** (Aprovação Humana em 2026-09-23). A implementação técnica foi entregue de forma particionada: Slice 005B (`packages/database` e `packages/contracts`: **IMPLEMENTED / STAGING VALIDATED**), Slice 005C (`apps/api` e internal service auth: **IMPLEMENTED / LOCAL + NEON STAGING INTEGRATION VALIDATED**; **Internal Service Auth**: STAGING CRYPTOGRAPHIC BOUNDARY VALIDATED; **Neon**: DATA/AUTHZ INTEGRATION VALIDATED; **API Deployment**: NOT DEPLOYED; **Production**: NOT PROVISIONED / UNTOUCHED) e Slice 005D (`apps/web` UI: **IMPLEMENTED / MERGED** em sub-fatias 005D-A a 005D-C2, PRs #13, #15, #17, #18, #19, #20, #21), com subsequentes extensões na Fase 7 para Toolset Configuration (007C / PR #96), Draft Discard (007I / PR #107) e Knowledge Base Studio UI & BFF (007K / PR #113).
 
 ---
 
@@ -299,8 +299,8 @@ O agente de voz deve ser capaz de:
 - Falha técnica persistente (tool unavailable).
 
 ### 6.3. Status de Implementação
-**Status: Requisito Documentado — Não implementado.**
-A implementação ocorrerá nas fases de Motor de Voz (FASE 6) e Telefonia Real (FASE 8) do roadmap.
+**Status: Protocolo e Máquina de Estados Offline Implementados (Fase 6 / Slice 007E) — Conexão Telefônica Real Deferida para Fase 8.**
+A máquina de estados determinística (`NONE` → `REQUESTED` → `SELLER_NOTIFIED` → `SELLER_READY` → `AI_PREPARING` → `READY_TO_JOIN` → `HUMAN_CONNECTED` → `AI_DETACHED`) e contratos offline foram implementados nas Fases 6 e 7. A integração com bridging de telefonia real ocorrerá na Fase 8.
 
 ---
 
@@ -313,8 +313,11 @@ A implementação ocorrerá nas fases de Motor de Voz (FASE 6) e Telefonia Real 
 | **Formato de Persistência (Metadados + JSONB)** | **Decided / Accepted** | DEC-028 / ADR-009 (Opção C: Relacional + JSONB) |
 | **Biblioteca de Validação de Schema (Zod)** | **Decided / Accepted** | DEC-028 / ADR-009 (`packages/contracts`, instalação no Slice 005B) |
 | **APIs HTTP, OpenAPI 3.1.0 e Internal Service Auth (005C)** | **IMPLEMENTED LOCAL / INTEGRATION TESTED** | DEC-029 / ADR-010 / DEC-031 / ADR-012 |
-| **Interface do Agent Studio (Web UI) (005D)** | **NOT STARTED** | FASE 5 (Slice 005D) |
-| **Provider de síntese de voz (VoiceConfig)** | **Deferred Fase 6** | Motor de Voz (FASE 6) |
-| **Execução Real de Tools** | **Deferred Fase 7** | Agente IA e Tools (FASE 7) |
-| **Estratégia de RAG para Knowledge Base** | **Deferred Fase 7** | Agente IA e Tools (FASE 7) |
+| **Interface do Agent Studio (Web UI) (005D)** | **IMPLEMENTED / MERGED** | FASE 5 (Slices 005D-A a 005D-C2, PRs #13, #15, #17, #18, #19, #20, #21) |
+| **Configuração de Toolset no Agent Studio (007C)** | **IMPLEMENTED / MERGED** | FASE 7 (Slice 007C / PR #96) |
+| **Descarte de Draft & Trava de Versão Publicada (007I)** | **IMPLEMENTED / MERGED** | FASE 7 (Slice 007I / PR #107 / DEC-040) |
+| **Knowledge Base Studio UI & BFF (007K)** | **IMPLEMENTED / MERGED** | FASE 7 (Slice 007K / PR #113) |
+| **Provider de síntese de voz (VoiceConfig)** | **Abstração Implementada / Runtime Real Deferido Fase 8** | Motor de Voz (FASE 6 / FASE 8) |
+| **Execução Real de Tools** | **Motor Universal Implementado (Offline)** | Agente IA e Tools (FASE 7 — Slices 007A, 007B, 007D) |
+| **Knowledge Base (Ingestão Texto Local & Retrieval Léxico)** | **Implementado Offline / RAG Vetorial Deferido** | Agente IA e Tools (FASE 7 — Slices 007F, 007H, 007J, 007K) |
 | **Framework de Agent Evals** | **Pending Decision** | Observabilidade e Evals (FASE 9) |
