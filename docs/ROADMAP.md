@@ -88,7 +88,7 @@ Este documento estabelece as fases sequenciais de implementação da plataforma.
 
 ---
 
-### 🤖 FASE 7 — Agente IA e Tools *(Pendente de Validação Pós-Merge da Fatia 007L)*
+### 🤖 FASE 7 — Agente IA e Tools *(Concluída e Validada na Main — Fechamento Formalizado por Aceitação Humana)*
 - API Core e orquestração outbound (`apps/api`).
 - Definição e implementação das tools disponíveis para agentes.
 - Versionamento de agentes: ciclo canônico DRAFT → PUBLISHED → ARCHIVED (supersedendo o ciclo anterior com TEST como status persistente; TEST é atividade pontual de validação — DEC-028 / ADR-009).
@@ -104,7 +104,7 @@ Este documento estabelece as fases sequenciais de implementação da plataforma.
   - [x] **Slice 007I — Agent Version Draft Discard & Published Version Lock** (PR #107 / Merged / DEC-040) e **Offline Voice Knowledge Handoff** (PR #111 / Merged): Rota `POST /v1/agents/:agentId/versions/draft/discard` preservando imutabilidade de versões publicadas, e coordenador offline `VoiceKnowledgeRetrievalCoordinator`.
   - [x] **Slice 007J — Knowledge Base API Management** (PR #112 / Merged / DEC-039): Rotas REST autenticadas `/v1/knowledge/documents` (POST ingest, GET list, GET detail, POST archive) com autorização RBAC dedicada (`knowledge.read`, `knowledge.ingest`, `knowledge.archive`), paginação delimitada e proteção anti-enumeração.
   - [x] **Slice 007K — Knowledge Base Studio UI & BFF** (PR #113 / Merged): Interface web completa no Agent Studio (`apps/web`), rotas BFF `/api/knowledge-documents` com asserções criptográficas Ed25519 de curta duração, controle de concorrência otimista (`If-Match`/`ETag` e update atômico condicional), proteção CSRF fail-closed para `X-Forwarded-Host`, consistência multi-aba via `x-knowledge-org-slug` e interface acessível e responsiva.
-  - [ ] **Slice 007L — Governance Closure & Phase 8 Readiness** *(Em andamento — Reconciliação documental e governança; formalmente pendente de validação canônica pós-merge na main)*.
+  - [x] **Slice 007L — Governance Closure & Phase 8 Readiness** (PR #114 / Merged na Main em 461f37e / Post-Merge Gate PASS): Reconciliação documental completa de governança, histórico factual de 007K e 005D atualizado, Phase 7 formalmente concluída por aceitação humana formal (DEC-041).
 
 - **Escopo Entregue na Fase 7**:
   - Motor universal de ferramentas e resolução de toolset por versão publicada;
@@ -128,16 +128,44 @@ Este documento estabelece as fases sequenciais de implementação da plataforma.
 
 ---
 
-### 📞 FASE 8 — Telefonia Real
-- Integração com provedor de telefonia real (Pending Human Decision).
-- Recepção de chamadas receptivas (inbound) com DIDs dedicados.
+### 📞 FASE 8 — Telefonia Real *(Proposta de Planejamento e Arquitetura Aberta)*
+- Integração com provedor de telefonia real (Pendente de Decisão Humana Formal).
+- Recepção de chamadas receptivas (inbound) com DIDs dedicados e resolução por organização.
 - **Call Recording & Storage**: Ingestão e upload de gravações para object storage com acesso autenticado/temporário e isolamento por tenant.
 - **Conexão Real de Transbordo**: Bridging de linha telefônica e transferência SIP/WebSockets para operadores humanos.
 - Implementação de adaptadores para CRM e Calendário.
 
-#### Decisões Humanas Pendentes para a Fase 8 (Não decididas pelo agente):
+#### Fatiamento Sequencial Proposto para a Fase 8:
+- [ ] **Slice 008A — Phase 8 Architecture Foundation, Port Definitions & Webhook Security Ingress (Planning & Foundation)**:
+  - Formalização documental e arquitetural das Portas de integração: `TelephonyProviderPort`, `RecordingStoragePort`, `HumanHandoffBridgingPort`.
+  - Design e especificações do Webhook Ingress seguro para staging (validação de assinaturas criptográficas/HMAC, prevenção contra replay, resolução de tenant por DID).
+  - Isolamento orçamentário mandatório e definição de Hard Budget Caps.
+- [ ] **Slice 008B — Real Telephony Provider Adapter & Inbound Gateway Execution**:
+  - Implementação concreta do adapter do carrier selecionado (ex.: Twilio / Telnyx) em `packages/integrations` (mantendo o core estritamente provider-neutral).
+  - Gateway de entrada de chamadas (`InboundCallGateway`) mapeando DIDs para `organizationId` e versão publicada ativa do agente (`agentVersionStatus === 'PUBLISHED'`).
+  - Suíte de testes offline e integração com simuladores antes de qualquer chamada real.
+- [ ] **Slice 008C — Call Recording Ingestion & Tenant-Isolated Object Storage**:
+  - Implementação do adapter de Object Storage (S3 / Cloudflare R2 / GCS) em `packages/integrations`.
+  - Ingestão de áudio pós-chamada com isolamento estrito por tenant (`/recordings/:orgId/:callId.wav`).
+  - Emissão de URLs assinadas de curta duração (`signed URLs`) para reprodução autorizada no Agent Studio (`apps/web`).
+  - Implementação do aviso mandatório de gravação e conformidade jurídica (DEC-024 / LGPD).
+- [ ] **Slice 008D — Live Human Handoff Bridging**:
+  - Conexão da máquina de estados determinística (Slice 007E / 006BQ) com o bridging telefônico real (SIP Refer, PSTN transfer ou WebRTC bridge).
+  - Notificação de operador humano, transferência supervisionada e fallback fail-closed em caso de indisponibilidade de atendente.
+- [ ] **Slice 008E — Outbound Live Carrier Dialer Integration**:
+  - Conexão do dispatcher assíncrono de campanhas (Slice 007D) com a porta de discagem do carrier real.
+  - Controle rígido de concorrência e rate-limiting por tenant.
+  - Detecção de secretária eletrônica (AMD) e handoff para o runtime de voz.
+- [ ] **Slice 008F — External Business Adapters (CRM & Calendar)**:
+  - Implementação de adapters provider-neutral para sincronização de contatos, agendamento de eventos e envio de resumos de chamada pós-atendimento.
+- [ ] **Slice 008G — Staging Telephony Validation, Security Audit & Phase 8 Closure**:
+  - Testes controlados em ambiente de staging com números de teste e créditos orçamentários delimitados.
+  - Auditoria completa de custos de carrier, latência de ponta a ponta e segurança de webhooks.
+  - Fechamento formal da Fase 8.
+
+#### Decisões Humanas Prévias Obrigatórias (Aguardando deliberação do operador antes da implementação):
 1. **Escolha do Provedor de Telefonia**: Seleção do carrier/fornecedor (ex.: Twilio, Telnyx, Plivo ou terminação SIP direta). O agente não decide em nome do operador.
-2. **Tetos Orçamentários e Limites de Gasto**: Definição expressa de limites financeiros rígidos no provedor antes de qualquer discagem externa.
+2. **Tetos Orçamentários e Limites de Gasto**: Definição expressa de limites financeiros rígidos no provedor antes de qualquer discagem externa (ex.: limite máximo de $20 USD em staging).
 3. **Provedor de Armazenamento de Gravações**: Seleção de serviço de object storage em nuvem (ex.: AWS S3, Cloudflare R2, Google Cloud Storage).
 4. **Conformidade Jurídica de Gravações**: Definição das políticas de aviso de gravação, consentimento explícito do interlocutor e prazos de retenção (DEC-024 / LGPD / GDPR).
 5. **Topologia de Transbordo Humano**: Definição da arquitetura de conexão humana (SIP Trunk, transferência PSTN ou softphone WebRTC no navegador).
