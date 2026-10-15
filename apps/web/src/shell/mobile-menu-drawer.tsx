@@ -2,10 +2,9 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { Activity, Bot, Moon, Radio, Settings, Shield, Sun, Users } from 'lucide-react';
+import { Activity, BookOpen, Bot, Radio, Settings, Shield, Users } from 'lucide-react';
 import {
   Badge,
-  Button,
   Separator,
   Sheet,
   SheetContent,
@@ -13,13 +12,51 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@voice-agent/ui';
-import { useUiPreferences } from '../preferences/ui-preferences-context';
 import type { OrganizationSummary } from './organization-switcher';
+import { MobileMenuPreferences } from './mobile-menu-preferences';
 
 interface MobileMenuDrawerProps {
   readonly open: boolean;
   readonly onOpenChange: (open: boolean) => void;
   readonly currentOrg?: OrganizationSummary | null | undefined;
+}
+
+function OrgModuleLink({
+  slug,
+  segment,
+  label,
+  icon,
+  onOpenChange,
+}: {
+  readonly slug?: string | undefined;
+  readonly segment: string;
+  readonly label: string;
+  readonly icon: React.ReactNode;
+  readonly onOpenChange: (open: boolean) => void;
+}) {
+  if (!slug) {
+    return (
+      <div className="flex items-center justify-between p-2 rounded-md hover:bg-accent text-sm text-muted-foreground">
+        <span className="flex items-center gap-2">
+          {icon} {label}
+        </span>
+        <Badge variant="outline" className="text-[10px]">
+          Em breve
+        </Badge>
+      </div>
+    );
+  }
+  return (
+    <Link
+      href={`/orgs/${slug}/${segment}`}
+      onClick={() => onOpenChange(false)}
+      className="flex items-center justify-between p-2 rounded-md hover:bg-accent text-sm text-foreground"
+    >
+      <span className="flex items-center gap-2">
+        <span className="text-primary flex items-center">{icon}</span> {label}
+      </span>
+    </Link>
+  );
 }
 
 function MobileMenuModules({
@@ -50,26 +87,20 @@ function MobileMenuModules({
           Em breve
         </Badge>
       </div>
-      {currentOrg?.slug ? (
-        <Link
-          href={`/orgs/${currentOrg.slug}/agents`}
-          onClick={() => onOpenChange(false)}
-          className="flex items-center justify-between p-2 rounded-md hover:bg-accent text-sm text-foreground"
-        >
-          <span className="flex items-center gap-2">
-            <Bot className="h-4 w-4 text-primary" /> Agente IA
-          </span>
-        </Link>
-      ) : (
-        <div className="flex items-center justify-between p-2 rounded-md hover:bg-accent text-sm text-muted-foreground">
-          <span className="flex items-center gap-2">
-            <Bot className="h-4 w-4" /> Agente IA
-          </span>
-          <Badge variant="outline" className="text-[10px]">
-            Em breve
-          </Badge>
-        </div>
-      )}
+      <OrgModuleLink
+        slug={currentOrg?.slug}
+        segment="agents"
+        label="Agente IA"
+        icon={<Bot className="h-4 w-4" />}
+        onOpenChange={onOpenChange}
+      />
+      <OrgModuleLink
+        slug={currentOrg?.slug}
+        segment="knowledge"
+        label="Base de Conhecimento"
+        icon={<BookOpen className="h-4 w-4" />}
+        onOpenChange={onOpenChange}
+      />
       <div className="flex items-center justify-between p-2 rounded-md hover:bg-accent text-sm text-muted-foreground">
         <span className="flex items-center gap-2">
           <Settings className="h-4 w-4" /> Configurações
@@ -77,47 +108,6 @@ function MobileMenuModules({
         <Badge variant="outline" className="text-[10px]">
           Em breve
         </Badge>
-      </div>
-    </div>
-  );
-}
-
-function MobileMenuPreferences() {
-  const { theme, setTheme, density, setDensity } = useUiPreferences();
-
-  return (
-    <div className="space-y-3 px-1">
-      <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-        Preferências Visuais
-      </span>
-      <div className="flex items-center justify-between">
-        <span className="text-sm text-foreground">Tema</span>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          className="gap-2 text-xs min-h-[44px]"
-        >
-          {theme === 'dark' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-          {theme === 'dark' ? 'Escuro' : 'Claro'}
-        </Button>
-      </div>
-
-      <div className="flex items-center justify-between">
-        <span className="text-sm text-foreground">Densidade</span>
-        <div className="flex gap-1">
-          {(['compact', 'default', 'comfortable'] as const).map((d) => (
-            <Button
-              key={d}
-              variant={density === d ? 'default' : 'outline'}
-              size="sm"
-              className="h-8 text-xs px-2"
-              onClick={() => setDensity(d)}
-            >
-              {d === 'compact' ? 'C' : d === 'default' ? 'D' : 'E'}
-            </Button>
-          ))}
-        </div>
       </div>
     </div>
   );
