@@ -6,6 +6,7 @@ export interface SuccessorAttemptScope {
   readonly organizationId: string;
   readonly jobId: string;
   readonly maxAttempts: number;
+  readonly attemptId?: string | undefined;
 }
 
 export type SuccessorAttemptBlockReason =
@@ -14,7 +15,8 @@ export type SuccessorAttemptBlockReason =
   | 'OUTCOME_UNKNOWN_BLOCKS_REDIAL'
   | 'ACTIVE_ATTEMPT_IN_PROGRESS'
   | 'MAX_ATTEMPTS_REACHED'
-  | 'PREVIOUS_ATTEMPT_NOT_RETRYABLE';
+  | 'PREVIOUS_ATTEMPT_NOT_RETRYABLE'
+  | 'ATTEMPT_ID_ALREADY_EXISTS';
 
 export type SuccessorAttemptDecision =
   | { readonly allowed: true; readonly nextAttemptNumber: number }
@@ -45,6 +47,23 @@ function isConsistent(sorted: readonly OutboundAttempt[]): boolean {
   return sequential && ids.size === sorted.length;
 }
 
+function checkAttemptHistoryEligibility(
+  sorted: readonly OutboundAttempt[],
+  maxAttempts: number,
+): SuccessorAttemptBlockReason | null {
+  if (sorted.some((a) => UNRESOLVED_OUTCOME_ATTEMPT_STATES.has(a.state))) {
+    return 'OUTCOME_UNKNOWN_BLOCKS_REDIAL';
+  }
+  if (sorted.some((a) => !RETRY_SAFE_STATES.has(a.state) && !isEndedOrCanceled(a.state))) {
+    return 'ACTIVE_ATTEMPT_IN_PROGRESS';
+  }
+  if (sorted.length >= maxAttempts) return 'MAX_ATTEMPTS_REACHED';
+  if (sorted.some((a) => !RETRY_SAFE_STATES.has(a.state))) {
+    return 'PREVIOUS_ATTEMPT_NOT_RETRYABLE';
+  }
+  return null;
+}
+
 /**
  * Decide se uma nova tentativa (NOVO id e NOVO attemptNumber) pode ser criada
  * para o job. Histórico anterior nunca é sobrescrito. Um desfecho desconhecido
@@ -62,15 +81,12 @@ export function evaluateSuccessorAttempt(
   const sorted = [...history].sort((a, b) => a.attemptNumber - b.attemptNumber);
   if (!isConsistent(sorted)) return blocked('HISTORY_INCONSISTENT');
 
-  if (sorted.some((a) => UNRESOLVED_OUTCOME_ATTEMPT_STATES.has(a.state))) {
-    return blocked('OUTCOME_UNKNOWN_BLOCKS_REDIAL');
+  if (scope.attemptId && sorted.some((a) => a.id === scope.attemptId)) {
+    return blocked('ATTEMPT_ID_ALREADY_EXISTS');
   }
-  if (sorted.some((a) => !RETRY_SAFE_STATES.has(a.state) && !isEndedOrCanceled(a.state))) {
-    return blocked('ACTIVE_ATTEMPT_IN_PROGRESS');
-  }
-  if (sorted.length >= scope.maxAttempts) return blocked('MAX_ATTEMPTS_REACHED');
-  if (sorted.some((a) => !RETRY_SAFE_STATES.has(a.state))) {
-    return blocked('PREVIOUS_ATTEMPT_NOT_RETRYABLE');
-  }
+
+  const blockReason = checkAttemptHistoryEligibility(sorted, scope.maxAttempts);
+  if (blockReason) return blocked(blockReason);
+
   return { allowed: true, nextAttemptNumber: sorted.length + 1 };
 }

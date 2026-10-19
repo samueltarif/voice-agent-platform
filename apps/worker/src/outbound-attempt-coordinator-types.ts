@@ -33,9 +33,11 @@ export interface AttemptRef {
   readonly attemptId: string;
 }
 
+export type PrepareAttemptBlockReason = SuccessorAttemptBlockReason;
+
 export type PrepareAttemptResult =
   | { readonly kind: 'PREPARED'; readonly attempt: OutboundAttempt }
-  | { readonly kind: 'BLOCKED'; readonly reason: SuccessorAttemptBlockReason };
+  | { readonly kind: 'BLOCKED'; readonly reason: PrepareAttemptBlockReason };
 
 export type StepResult = ApplyOutboundAttemptEventResult | { readonly kind: 'NOT_FOUND' };
 

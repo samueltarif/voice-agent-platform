@@ -105,4 +105,10 @@ describe('evaluateSuccessorAttempt', () => {
     expect(evaluateSuccessorAttempt(reversed, scope)).toMatchObject({ allowed: false });
     expect(JSON.stringify(list)).toBe(snapshot);
   });
+
+  it('rejects attemptId that already exists in history', () => {
+    const [first] = history('ORIGINATION_REJECTED');
+    const result = evaluateSuccessorAttempt([first!], { ...scope, attemptId: first!.id });
+    expect(result).toEqual({ allowed: false, reason: 'ATTEMPT_ID_ALREADY_EXISTS' });
+  });
 });

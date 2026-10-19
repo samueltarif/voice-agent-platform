@@ -7,9 +7,16 @@ import type {
   TelephonyReconciliationResult,
 } from '@voice-agent/contracts';
 
-/** Passo roteirizado: um resultado neutro ou uma falha simulada de transporte. */
-export type FakeOriginationStep = TelephonyOriginationResult | { readonly kind: 'THROW' };
-export type FakeReconciliationStep = TelephonyReconciliationResult | { readonly kind: 'THROW' };
+/** Passo roteirizado: um resultado neutro, falha simulada ou controle assíncrono (deferred). */
+export type FakeOriginationStep =
+  | TelephonyOriginationResult
+  | { readonly kind: 'THROW' }
+  | { readonly kind: 'DEFERRED'; readonly promise: Promise<TelephonyOriginationResult> };
+
+export type FakeReconciliationStep =
+  | TelephonyReconciliationResult
+  | { readonly kind: 'THROW' }
+  | { readonly kind: 'DEFERRED'; readonly promise: Promise<TelephonyReconciliationResult> };
 
 /**
  * Fake determinístico e 100% offline: sem sockets, HTTP ou SDK. Registra cada
@@ -39,6 +46,7 @@ export class InMemoryTelephonyOriginationPort
       providerReference: 'fake-ref',
     };
     if (step.kind === 'THROW') throw new Error('simulated transport failure');
+    if (step.kind === 'DEFERRED') return await step.promise;
     return step;
   }
 
@@ -46,6 +54,7 @@ export class InMemoryTelephonyOriginationPort
     this.reconciliations.push(request);
     const step = this.reconciliationSteps.shift() ?? { kind: 'INCONCLUSIVE' };
     if (step.kind === 'THROW') throw new Error('simulated reconciliation failure');
+    if (step.kind === 'DEFERRED') return await step.promise;
     return step;
   }
 }

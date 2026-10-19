@@ -39,6 +39,9 @@ export class OutboundAttemptOriginationCoordinator {
 
   async prepareAttempt(input: PrepareAttemptInput): Promise<PrepareAttemptResult> {
     const { store } = this.deps;
+    if (store.get(input.organizationId, input.attemptId) !== null) {
+      return { kind: 'BLOCKED', reason: 'ATTEMPT_ID_ALREADY_EXISTS' };
+    }
     const history = store.listByJob(input.organizationId, input.jobId);
     const decision = evaluateSuccessorAttempt(history, input);
     if (!decision.allowed) return { kind: 'BLOCKED', reason: decision.reason };
@@ -54,7 +57,9 @@ export class OutboundAttemptOriginationCoordinator {
       jobIdempotencyKey: input.jobIdempotencyKey,
       createdAt: this.deps.now().toISOString(),
     });
-    store.save(created);
+    if (!store.insertIfAbsent(created)) {
+      return { kind: 'BLOCKED', reason: 'ATTEMPT_ID_ALREADY_EXISTS' };
+    }
     const intent = await this.step(input, 'INTENT_RECORDED');
     if (intent.kind !== 'APPLIED') throw new Error('Attempt intent could not be recorded.');
     return { kind: 'PREPARED', attempt: intent.attempt };
@@ -102,7 +107,7 @@ export class OutboundAttemptOriginationCoordinator {
 
   async reconcile(ref: AttemptRef): Promise<StepResult> {
     const requested = await this.step(ref, 'RECONCILIATION_REQUESTED');
-    if (requested.kind === 'NOT_FOUND' || requested.kind === 'REJECTED') return requested;
+    if (requested.kind !== 'APPLIED') return requested;
     const result = await this.queryReconciliation(requested.attempt);
     const outcome = reconciliationEventOf(result);
     return this.step(ref, outcome.type, outcome.extra);
@@ -118,7 +123,7 @@ export class OutboundAttemptOriginationCoordinator {
     const attempt = this.deps.store.get(input.organizationId, input.attemptId);
     if (!attempt) return { kind: 'NOT_FOUND' };
     const result = applyOutboundAttemptEvent(attempt, input.event);
-    if (result.kind === 'APPLIED') this.deps.store.save(result.attempt);
+    if (result.kind === 'APPLIED') this.deps.store.update(result.attempt);
     return result;
   }
 
