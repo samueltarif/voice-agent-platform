@@ -4,14 +4,14 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-15
-CONTEXT_BASE_MAIN_SHA: e8055e93e9f78fd15da5760cec60fe4e1bdbfbcb
-CURRENT_PHASE: Phase 7 (PENDING_007L_POSTMERGE_CLOSURE)
-CURRENT_SLICE: Slice 007L — Governance Closure and Phase 8 Readiness
-CONTEXT_UPDATE_BRANCH: docs/007l-phase7-closure-readiness
+CONTEXT_BASE_MAIN_SHA: 461f37eb9b23750ed7fea28e3cec1d88d335cf94
+CURRENT_PHASE: Phase 8 (PLANNING_AND_HUMAN_DECISIONS_IN_PROGRESS)
+CURRENT_SLICE: Slice 008A — Phase 8 Planning & Architecture Foundation
+CONTEXT_UPDATE_BRANCH: docs/008a-phase7-closure-and-phase8-planning
 CONTEXT_UPDATE_PR: NONE
-LAST_MERGED_PR_AT_REFRESH: 113
-LAST_MERGE_SHA_AT_REFRESH: e8055e93e9f78fd15da5760cec60fe4e1bdbfbcb
-LAST_TESTED_CODE_SHA: e8055e93e9f78fd15da5760cec60fe4e1bdbfbcb
+LAST_MERGED_PR_AT_REFRESH: 114
+LAST_MERGE_SHA_AT_REFRESH: 461f37eb9b23750ed7fea28e3cec1d88d335cf94
+LAST_TESTED_CODE_SHA: 461f37eb9b23750ed7fea28e3cec1d88d335cf94
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
 AI_CONTEXT_HEADER_END
@@ -125,14 +125,14 @@ AI_CONTEXT_HEADER_END
 
 ## 6. Estado Atual da Evidência de Qualidade (Quality Gate Snapshot)
 
-- **Último `pnpm check` Global na Main**: `PASS` (observado no merge da PR #113 / 007K post-merge na branch `main` `e8055e93e9f78fd15da5760cec60fe4e1bdbfbcb`: exit 0; 7 estágios aprovados; 175 arquivos de teste / 1254 testes aprovados / 0 falhas / 45 testes de staging pulados).
+- **Último `pnpm check` Global na Main**: `PASS` (observado no merge da PR #114 / 007L post-merge na branch `main` `461f37eb9b23750ed7fea28e3cec1d88d335cf94`: exit 0; 7 estágios aprovados; 175 arquivos de teste / 1254 testes aprovados / 0 falhas / 45 testes de staging pulados).
 - **Identificadores de HEAD & Semântica Não-Auto-Referencial**:
-  - `LAST_RECORDED_FULL_GATE_HEAD = e8055e93e9f78fd15da5760cec60fe4e1bdbfbcb`
+  - `LAST_RECORDED_FULL_GATE_HEAD = 461f37eb9b23750ed7fea28e3cec1d88d335cf94`
   - `LAST_RECORDED_FULL_GATE_STATUS = PASS`
   - `CURRENT_BRANCH_HEAD_SOURCE = QUERY_GIT_AT_RUNTIME`
   - `LAST_CODE_BEARING_MAIN_SHA = e8055e93e9f78fd15da5760cec60fe4e1bdbfbcb`
   - *Nota*: `AI_CONTEXT.md` é conteúdo versionado e não pode conter o SHA do próprio commit que o modifica. O HEAD exato da branch corrente deve ser obtido do Git em runtime (`QUERY_GIT_AT_RUNTIME`). `LAST_RECORDED_FULL_GATE_HEAD` registra a evidência mais recente observada e durável quando este snapshot foi redigido, evitando loops infinitos de auto-referência.
-- **Contagens Canônicas de Testes (Post-Merge Main PR #113)**:
+- **Contagens Canônicas de Testes (Post-Merge Main PR #114)**:
   - `TEST_FILES_PASSED = 175` | `TEST_FILES_FAILED = 0` | `TEST_FILES_SKIPPED = 3`
   - `TESTS_PASSED = 1254` | `TESTS_FAILED = 0` | `TESTS_SKIPPED = 45`
 - **Regressão de Asserções**: `ASSERTION_WEAKER = 0`, `NEW_SKIPS = 0`.
@@ -145,7 +145,7 @@ AI_CONTEXT_HEADER_END
 ## 7. Bloqueios Atuais e Status de Prontidão (Current Blockers & Readiness)
 
 1. `PHASE6_STATUS = CLOSED` | `PHASE6_BLOCKER_COUNT = 0` | `PHASE6_BLOCKERS = NONE` (concluída formalmente via PR #100 / DEC-038).
-2. `PHASE7_STATUS = PENDING_007L_POSTMERGE_CLOSURE` | `PHASE7_BLOCKER_COUNT = 0` | `PHASE7_BLOCKERS = NONE`.
+2. `PHASE7_STATUS = CLOSED` | `PHASE7_BLOCKER_COUNT = 0` | `PHASE7_BLOCKERS = NONE` (concluída formalmente e validada na main via PR #114 / DEC-041).
 3. `AGENT_DOMAIN_STATUS = IMPLEMENTED` (`packages/database`: schema e repositórios de agentes e lifecycle).
 4. `AGENT_VERSIONING_STATUS = IMPLEMENTED` (`packages/database`, `packages/contracts`: ciclo draft/publish/archive com imutabilidade de versões publicadas).
 5. `TOOL_CALLING_CONTRACT = IMPLEMENTED` (`packages/contracts/src/tools/`: `ToolInvocation`, `ToolExecutionContext`, `ToolExecutionResult`, `ToolDefinition`, `ToolPort`, `ToolRegistryPort`).
@@ -203,11 +203,10 @@ AI_CONTEXT_HEADER_END
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- **Phase 7 Status**: `PENDING_007L_POSTMERGE_CLOSURE` (`PHASE7_BLOCKER_COUNT = 0`, `PHASE7_BLOCKERS = NONE`).
-- **Slices 007A a 007K**: `CLOSED ON MAIN` (PRs #94, #95, #96, #105, #106, #107, #108, #110, #111, #112, #113 mescladas na main; última validação canônica pós-merge em `e8055e93e9f78fd15da5760cec60fe4e1bdbfbcb` com 175 arquivos / 1254 testes PASS).
-- **Slice 007L — Governance Closure and Phase 8 Readiness**: `IN PROGRESS` na branch `docs/007l-phase7-closure-readiness`.
-- `NEXT_ALLOWED_STEP = COMPLETE_007L_GOVERNANCE_RECONCILIATION_AND_OPEN_PR`
-- `NEXT_ALLOWED_SLICE = PHASE_8_PENDING_HUMAN_DECISIONS_AND_AUTHORIZATION`
+- **Phase 7 Status**: `CLOSED ON MAIN` (PRs #94 a #114 mescladas na main; validação canônica pós-merge em `461f37eb9b23750ed7fea28e3cec1d88d335cf94` com 175 arquivos / 1254 testes PASS; fechamento formal aceito pelo operador humano via DEC-041).
+- **Phase 8 Status**: `PLANNING_PROPOSAL_OPEN` (proposta de fatiamento sequencial 008A a 008G sob revisão do operador humano).
+- `NEXT_ALLOWED_STEP = HUMAN_DELIBERATION_ON_PHASE8_DECISIONS_AND_PLANNING_PR`
+- `NEXT_ALLOWED_SLICE = 008A_PLANNING_ONLY` (qualquer implementação concreta de telefonia bloqueada até deliberação das decisões humanas).
 - `AUTHORIZATION_CONSUMED = YES` | `SECOND_LIVE_RUN_AUTHORIZED = NO` | `NEW_LIVE_AUTHORIZATION_CREATED = NO`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
 
