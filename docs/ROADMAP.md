@@ -260,16 +260,19 @@ A ordem histórica 008A–008G postergava o dialer outbound para o Slice 008E, c
   - **Critérios de Aceitação**: Portas implementadas, suite de testes passando, `pnpm check` = exit 0, zero dependências externas.
   - **Riscos**: Acoplamento prematuro a conceitos específicos da Twilio ou Millis (mitigado por revisão provider-neutral).
 
-- [ ] **Slice 008-OF2 — Persistência Operacional e Números Twilio**:
-  - **Objetivo**: Modelar e persistir o vínculo de números gerenciados Twilio a organizações, separando jobs de tentativas individuais.
+- [ ] **Slice 008-OF2 — Persistência Operacional, Sessões, Eventos e Números Twilio**:
+  - **Objetivo**: Estabelecer a fundação completa de persistência durável para o ciclo de vida outbound, mapeando números Twilio e separando explicitamente jobs, tentativas, sessões e eventos.
   - **Escopo**:
-    - Migration aditiva versionada: tabela `organization_phone_numbers` (`organizationId`, `e164Number`, `twilioPhoneNumberSid`, `status: ACTIVE | RELEASED`).
-    - Migration aditiva versionada: tabela `call_attempts` (`jobId`, `organizationId`, `attemptNumber`, `providerCallId`, `status`, `startedAt`, `endedAt`, `error`).
-    - Repositórios com isolamento estrito multi-tenant.
+    - Planejamento de migration aditiva versionada para tabela `organization_phone_numbers` (`organizationId`, `e164Number`, `twilioPhoneNumberSid`, `status: ACTIVE | RELEASED`).
+    - Planejamento de migration aditiva versionada para tabela `call_attempts` (`id`, `jobId`, `organizationId`, `attemptNumber`, `providerCallId`, `status: PENDING | DISPATCHED | OUTCOME_UNKNOWN | FAILED | COMPLETED`, timestamps, erro).
+    - Planejamento de migration aditiva versionada para tabela `call_sessions` (`callId`, `organizationId`, `agentId`, `agentVersionId`, `runtimeState`, `currentAttemptId`, `startedAt`, `endedAt`, `failureReason`), garantindo associação inequívoca Tentativa ↔ Sessão ↔ Provedor.
+    - Planejamento de migration aditiva versionada para tabela `call_events` (`id`, `organizationId`, `callId`, `providerCallId`, `eventType`, `payloadHash`, `receivedAt`, `processedAt`), fornecendo a fundação durável para deduplicação, tratamento de eventos fora de ordem e reconciliação pós-crash.
+    - Repositórios com isolamento estrito multi-tenant e queries tipadas.
+    - *Nota*: Nenhuma migration é criada nesta tarefa de planejamento documental.
   - **Dependências**: Conclusão da Slice 008-OF1.
   - **Arquivos Prováveis**: `packages/database/src/schema/`, `packages/database/src/repositories/`.
-  - **Testes Offline**: Testes de persistência em PostgreSQL local (Docker) validando integridade referencial, índices e isolamento por tenant.
-  - **Critérios de Aceitação**: Migrations aplicadas e testadas localmente, zero queries raw em controllers, rollback documentado.
+  - **Testes Offline**: Testes de persistência em PostgreSQL local (Docker) validando integridade referencial, foreign keys compostas por tenant, índices únicos e isolamento estrito entre organizações.
+  - **Critérios de Aceitação**: Schemas aditivos e repositórios testados localmente; modelo durável capaz de representar tentativas e sessões independentes; zero queries raw em controllers; isolamento multi-tenant comprovado.
   - **Riscos**: Colisão de números entre tenants (mitigado por unique index em `e164Number`).
 
 - [ ] **Slice 008-OF3 — Quotas, Concorrência e Orçamento (Hard Budget Caps)**:
@@ -286,18 +289,19 @@ A ordem histórica 008A–008G postergava o dialer outbound para o Slice 008E, c
   - **Riscos**: Deadlock em concorrência de saldo (mitigado por transações ordenadas e curtas).
 
 - [ ] **Slice 008-OF4 — Webhooks e Integração de Ferramentas Offline**:
-  - **Objetivo**: Construir a recepção segura de eventos e despacho de ferramentas determinísticas para a plataforma conversacional.
+  - **Objetivo**: Construir a recepção segura de eventos e despacho de ferramentas determinísticas para a plataforma conversacional, consumindo as tabelas de sessão e eventos da Slice 008-OF2.
   - **Escopo**:
     - Endpoints de webhook em `apps/api` para status de chamada e acionamento de ferramentas.
-    - Mecanismo de autenticação fail-closed simulado (sem presumir HMAC; token/header verificado).
-    - Resolução server-side autoritativa de organização baseada no identificador interno.
-    - Proteção contra replay, eventos fora de ordem e entrega duplicada.
+    - Mecanismo de autenticação fail-closed simulado (sem presumir HMAC; token/header verificado conforme contrato oficial a ser homologado).
+    - Resolução server-side autoritativa de organização baseada no `callId` / sessão durável, prevenindo injeção de parâmetros de tenant em payloads externos.
+    - Lógica de deduplicação e ordenação de eventos consumindo a tabela `call_events` da 008-OF2 (idempotência por hash de payload e transições monotônicas de estado).
     - Despacho determinístico para o `ToolExecutionEngine` existente em `apps/voice`.
+    - Política de timeout tecnicamente neutra: timeout interno configurável para execução de ferramentas; valor definitivo dependente do contrato oficial da Millis AI; fail-closed quando o limite for excedido; sem presunção de SLA ou timeout oficial não verificado.
   - **Dependências**: Conclusão das Slices 008-OF1 a 008-OF3.
   - **Arquivos Prováveis**: `apps/api/src/routes/`, `apps/voice/src/tool-execution-engine.ts`.
-  - **Testes Offline**: Testes HTTP simulando payloads forjados, eventos fora de ordem, requisições repetidas e timeouts controlados.
-  - **Critérios de Aceitação**: Rejeição 401/403 comprovada para dados não autenticados, resolução de tenant inviolável.
-  - **Riscos**: Timeouts de rede em execução de ferramentas (mitigado por limite rígido de execução de 2s).
+  - **Testes Offline**: Testes HTTP simulando payloads forjados, eventos fora de ordem, requisições repetidas, simulações de timeout interno, cancelamento e falha de execução.
+  - **Critérios de Aceitação**: Rejeição 401/403 comprovada para dados não autenticados; deduplicação efetiva de eventos repetidos; resolução de tenant inviolável; tratamento fail-closed de timeout interno comprovado em testes automatizados.
+  - **Riscos**: Latência de rede externa na resposta de ferramentas (mitigado por timeout interno configurável e cancelamento assíncrono).
 
 - [ ] **Slice 008-OF5 — Integração Twilio + Millis com Simuladores E2E**:
   - **Objetivo**: Desenvolver os adaptadores concretos de integração desacoplados em `packages/integrations` com simuladores de ponta a ponta.
@@ -315,15 +319,21 @@ A ordem histórica 008A–008G postergava o dialer outbound para o Slice 008E, c
 - [ ] **Slice 008-OF6 — Homologação Controlada em Staging (1 Chamada Real)**:
   - **Objetivo**: Comprovar a integração real com uma única chamada supervisionada de teste em staging, mediante autorização humana expressa.
   - **Escopo**:
-    - Validação de pré-requisitos: número Twilio provisionado, créditos delimitados, número de destino autorizado.
-    - Execução de 1 chamada de teste para telefone autorizado do operador humano.
-    - Verificação de latência, áudio, execução de ferramenta real, encerramento e liquidação no ledger.
-  - **Bloqueios Obrigatórios**:
-    - Autorização humana formal separada.
-    - `HARD_BUDGET_CAP` aprovado pelo operador.
-    - `CUSTOMER_TRAFFIC = PROHIBITED`.
-  - **Dependências**: Conclusão e validação estrita das Slices 008-OF1 a 008-OF5.
-  - **Critérios de Aceitação**: Relatório factual de execução com logs sanitizados e confirmação de sucesso de ponta a ponta.
+    - Execução supervisionada de 1 única chamada de teste para telefone autorizado pertencente ao operador humano.
+    - Verificação de latência, áudio, execução de 1 ferramenta real, encerramento e liquidação no ledger financeiro.
+  - **Bloqueios Obrigatórios Anteriores a Qualquer Teste Real (Nenhum considerado satisfeito apenas pela conclusão das slices offline)**:
+    1. Compatibilidade técnica outbound Twilio + Millis AI para prefixos brasileiros (+55) formalmente comprovada.
+    2. Disponibilidade e elegibilidade de número Twilio apropriado (+55 móvel ou fixo) com documentação regulatória aprovada no console Twilio.
+    3. Contratos oficiais e modelo de autenticação de webhooks da Millis AI formalmente homologados.
+    4. Reconciliação financeira e ledger operacional funcional com comprovação em testes offline prévios.
+    5. Hard budget cap formalmente aprovado e fixado pelo operador humano (o valor ilustrativo de US$ 20 não constitui autorização).
+    6. Verificação de conformidade regulatória (Anatel / telemarketing / 0303) e jurídica (LGPD / consentimento de gravação) aplicável.
+    7. Infraestrutura de staging segregada e segura com terminação TLS e FQDN público verificado.
+    8. Número de destino de teste expressamente autorizado e pertencente ao operador humano.
+    9. Autorização humana adicional, específica e prévia para compra de número, carga de créditos e disparo da chamada.
+  - **Salvaguardas Preservadas**: `CUSTOMER_TRAFFIC = PROHIBITED`, `ACTIVE_GUARDED = BLOCKED`, `PRODUCTION_RUNTIME_WIRING = NO`, `REAL_PROVIDER_CALLS = 0`, `PURCHASE_OF_PHONE_NUMBERS = 0`.
+  - **Dependências**: Conclusão e validação estrita das Slices 008-OF1 a 008-OF5 e liberação explícita de todos os bloqueios obrigatórios acima.
+  - **Critérios de Aceitação**: Relatório factual de execução com logs sanitizados (dados telefônicos mascarados, sem PII) e confirmação de sucesso de ponta a ponta.
 
 ---
 

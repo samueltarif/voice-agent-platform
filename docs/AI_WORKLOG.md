@@ -18081,3 +18081,29 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 
 
 
+## 2026-10-19 — Fase 8 — Ajustes Técnicos Finais e Preparação de PR do Planejamento OUTBOUND_FIRST — Antigravity
+
+- **SLICE_ID**: `008-PROPOSAL-OUTBOUND-FIRST-FINAL-REVIEW` (Phase 8 Architecture & Reslicing Proposal — Technical Adjustments & PR Preparation)
+- **EXECUTOR**: `ANTIGRAVITY` (Windows executor autorizado pelo proprietário humano para correções documentais controladas e publicação de PR)
+- **BASE_MAIN_SHA**: `6b6af0e85b52b62054aec5598f00e754c4f1f28f`
+- **FEATURE_BRANCH**: `docs/phase8-outbound-first-reslicing-proposal`
+- **SCOPE**: `DOCUMENTATION AND GOVERNANCE ONLY` (ajuste de neutralidade de timeout na 008-OF4, consolidação de persistência durável na 008-OF2 e explicitação dos 9 bloqueios mandatórios na 008-OF6)
+- **FILES_CHANGED**:
+  - `docs/ROADMAP.md`: Ajuste da política de timeout na Slice 008-OF4 para neutralidade técnica; consolidação da responsabilidade de persistência durável (`call_sessions` e `call_events`) na Slice 008-OF2; fortalecimento dos pré-requisitos de staging na Slice 008-OF6 com catálogo explícito de 9 bloqueios obrigatórios prévios a qualquer chamada real.
+  - `docs/AI_WORKLOG.md`: Este registro cronológico append-only.
+- **CORRECTIONS_APPLIED**:
+  1. *Correção de Timeout na Slice 008-OF4*: Removida a referência arbitrária a limite rígido de 2s. Adotada política tecnicamente neutra: timeout interno configurável para execução de ferramentas; valor definitivo dependente do contrato oficial da Millis AI a ser homologado; testes offline cobrindo timeout, cancelamento e falha; comportamento fail-closed em caso de estouro; e proibição de presunção de SLA ou timeout oficial não verificado.
+  2. *Ownership de Persistência Durável (008-OF2 vs 008-OF4)*: Atribuída formalmente à Slice 008-OF2 a fundação de persistência durável: mapeamento de números Twilio (`organization_phone_numbers`), tentativas de chamada (`call_attempts`), identidade e estado da sessão (`call_sessions`) com vínculo Tentativa ↔ Sessão ↔ Provedor, e eventos brutos (`call_events`) com hash de payload para deduplicação, ordenação e reconciliação pós-crash. A Slice 008-OF4 permanece responsável pela ingestão de webhooks, autenticação e despacho determinístico consumindo o modelo de dados da 008-OF2. Zero migrations criadas nesta fase documental.
+  3. *Fortalecimento dos Pré-Requisitos da Slice 008-OF6*: Explicitação de 9 bloqueios mandatórios anteriores a qualquer teste real em staging (compatibilidade +55 Twilio + Millis comprovada, elegibilidade de número Twilio, homologação de contratos/webhooks Millis, reconciliação financeira funcional, hard budget cap aprovado pelo operador, conformidade regulatória/LGPD, infraestrutura TLS/FQDN segregada, número de destino expressamente autorizado do operador e autorização humana adicional e específica para compras/créditos/chamadas). Esclarecido formalmente que nenhuma dessas condições é suprida pelo término das slices offline.
+  4. *Governança DEC-043*: Mantida a DEC-043 estritamente no status `PROPOSED / PENDING_HUMAN_APPROVAL`, sem registro como decisão aprovada em `DECISIONS_LOG.md` e sem substituição das slices históricas na `main` sem aprovação humana. Preservada integralmente a DEC-042 ativa na `main`.
+- **SAFETY**:
+  - `ACTIVE_GUARDED`: `BLOCKED`
+  - `CUSTOMER_TRAFFIC`: `PROHIBITED`
+  - `PRODUCTION_RUNTIME_WIRING`: `NO`
+  - `REAL_PROVIDER_CALLS`: `0`
+  - `PURCHASE_OF_PHONE_NUMBERS`: `0`
+  - `REMOTE_MIGRATIONS`: `0`
+  - `DATABASE_SCHEMA_CHANGED`: `NO`
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED`: `NO`
+  - `REAL_DOTENV_ACCESSED`: `NO`
+  - `SECRET_AUDIT`: `PASS`
