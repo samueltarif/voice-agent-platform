@@ -146,54 +146,206 @@ Este documento estabelece as fases sequenciais de implementação da plataforma.
   - Regras regulatórias brasileiras de telecomunicações.
   - Transferência de chamadas para humanos.
 
-#### Priorização de Outbound e Dependências entre Inbound/Outbound:
-- **Prioridade Inicial do Produto**: O objetivo central e prioritário da plataforma no lançamento é a realização de **chamadas outbound** (campanhas de voz ativas, discagem automatizada por tenant via Twilio e atendimento conversacional com Millis AI).
-- **Dependência Identificada no Planejamento Atual (008A–008G)**: O fatiamento proposto originalmente estruturou a recepção inbound no Slice 008B e a integração de discagem outbound no Slice 008E. Essa ordenação estabelece uma dependência sequencial implícita que posterga o fluxo principal de outbound.
-- **Diretriz de Preservação e Não-Renumeração**: A numeração sequencial das slices (008A a 008G) e seus contratos de implementação são **preservados sem alterações nesta tarefa documental**, mantendo a estabilidade dos identificadores.
-- **Pendência Registrada para Deliberação Humana Posterior**: Registra-se formalmente a necessidade de deliberação humana para repriorizar ou refatiar a sequência de execução da Fase 8 (por exemplo, antecipando o dialer outbound antes de inbound ou isolando o core de transporte para outbound imediato), a ser deliberada antes de qualquer implementação de código executável.
-
-#### Fatiamento Sequencial Proposto para a Fase 8:
+#### 1. Fatiamento Histórico Original da Fase 8 (Baseline de Referência 008A–008G)
 - [ ] **Slice 008A — Phase 8 Architecture Foundation, Port Definitions & Webhook Security Ingress (Planning & Foundation)**:
   - Formalização documental e arquitetural das Portas de integração: `TelephonyProviderPort`, `RecordingStoragePort`, `HumanHandoffBridgingPort`.
-  - Design e especificações de segurança do Webhook Ingress para staging:
-    - Verificação de segurança específica por provedor (sem assumir assinaturas HMAC para Millis AI sem evidência oficial; suporte comprovado para assinatura Twilio `X-Twilio-Signature`).
-    - Autenticação criptográfica quando oficialmente suportada pelo provedor.
-    - Proteção estrita contra replay e duplicidade de eventos (idempotência, timestamps e event IDs).
-    - Resolução server-side autoritativa da organização (`organizationId`), prevenindo injeção de parâmetros arbitrários de tenant em payloads externos.
-    - Rejeição fail-closed (HTTP 401/403) de eventos não autenticados, adulterados ou malformados.
-    - Bloqueio fail-closed de qualquer integração real até confirmação formal dos contratos e modelos de autenticação de webhooks do provedor.
+  - Design e especificações de segurança do Webhook Ingress para staging (Twilio `X-Twilio-Signature`; Millis classificada como `NOT_VERIFIED`).
   - Isolamento orçamentário mandatório e definição de Hard Budget Caps.
 - [ ] **Slice 008B — Real Telephony Provider Adapter & Inbound Gateway Execution**:
   - Implementação concreta do adapter do carrier selecionado (Twilio) em `packages/integrations` (mantendo o core estritamente provider-neutral).
-  - Gateway de entrada de chamadas (`InboundCallGateway`) mapeando DIDs para `organizationId` e versão publicada ativa do agente (`agentVersionStatus === 'PUBLISHED'`).
-  - Suíte de testes offline e integração com simuladores antes de qualquer chamada real.
+  - Gateway de entrada de chamadas (`InboundCallGateway`) mapeando DIDs para `organizationId` e versão publicada ativa do agente.
 - [ ] **Slice 008C — Call Recording Ingestion & Tenant-Isolated Object Storage**:
   - Implementação do adapter de Object Storage (Cloudflare R2 planejado) em `packages/integrations`.
-  - Ingestão de áudio pós-chamada com isolamento estrito por tenant (`/recordings/:orgId/:callId.wav`).
-  - Emissão de URLs assinadas de curta duração (`signed URLs`) para reprodução autorizada no Agent Studio (`apps/web`).
-  - Implementação do aviso mandatório de gravação e conformidade jurídica (DEC-024 / LGPD).
+  - Ingestão de áudio pós-chamada com isolamento estrito por tenant e signed URLs.
 - [ ] **Slice 008D — Live Human Handoff Bridging**:
-  - Conexão da máquina de estados determinística (Slice 007E / 006BQ) com o bridging telefônico real (SIP Refer, PSTN transfer ou WebRTC bridge).
-  - Notificação de operador humano, transferência supervisionada e fallback fail-closed em caso de indisponibilidade de atendente.
+  - Conexão da máquina de estados determinística (Slice 007E / 006BQ) com o bridging telefônico real.
 - [ ] **Slice 008E — Outbound Live Carrier Dialer Integration**:
   - Conexão do dispatcher assíncrono de campanhas (Slice 007D) com a porta de discagem do carrier real.
-  - Controle rígido de concorrência e rate-limiting por tenant.
-  - Detecção de secretária eletrônica (AMD) e handoff para o runtime de voz.
+  - Concorrência, rate-limiting e detecção de secretária eletrônica (AMD).
 - [ ] **Slice 008F — External Business Adapters (CRM & Calendar)**:
-  - Implementação de adapters provider-neutral para sincronização de contatos, agendamento de eventos e envio de resumos de chamada pós-atendimento.
+  - Adapters provider-neutral para sincronização de contatos, eventos e resumos pós-chamada.
 - [ ] **Slice 008G — Staging Telephony Validation, Security Audit & Phase 8 Closure**:
   - Testes controlados em ambiente de staging com números de teste e créditos orçamentários delimitados.
-  - Auditoria completa de custos de carrier, latência de ponta a ponta e segurança de webhooks.
-  - Fechamento formal da Fase 8.
 
-#### Decisões Humanas da Fase 8 (Status de Deliberação):
-1. **Escolha do Provedor de Telefonia**: **DECIDIDO (DEC-042)** — Twilio selecionada exclusivamente com números gerenciados pela plataforma. BYON formalmente cancelado. Compras de números exigem autorização humana separada (`PURCHASE_OF_PHONE_NUMBERS = 0`).
-2. **Plataforma Conversacional de Voz**: **DECIDIDO (DEC-042)** — Millis AI selecionada para conversação em tempo real (STT, LLM, TTS). Contratos de webhook e autenticação classificados como `NOT_VERIFIED`.
-3. **Tetos Orçamentários e Limites de Gasto**: **PENDENTE** — Definição expressa de limites financeiros rígidos no provedor antes de qualquer discagem externa (ex.: limite máximo de $20 USD em staging).
-4. **Provedor de Armazenamento de Gravações**: **CANDIDATO SELECIONADO PARA PLANEJAMENTO (DEC-042)** — Cloudflare R2 planejado para armazenamento privado pós-chamada; setup, políticas jurídicas e retenção permanecem pendentes.
-5. **Conformidade Jurídica de Gravações**: **PENDENTE** — Definição das políticas de aviso de gravação, consentimento explícito do interlocutor e prazos de retenção (DEC-024 / LGPD / GDPR).
-6. **Topologia de Transbordo Humano**: **PENDENTE** — Definição da arquitetura de conexão humana (SIP Trunk, transferência PSTN ou softphone WebRTC no navegador).
-7. **Infraestrutura de Webhooks para Staging**: **PENDENTE** — Definição do domínio público, terminação TLS e validação de assinaturas de webhook recebidas do provedor telefônico e da Millis AI.
+---
+
+#### 2. Proposta Refinada de Fatiamento Técnico OUTBOUND_FIRST (PROPOSED / PENDING_HUMAN_APPROVAL)
+
+> **Status da Proposta**: `PROPOSED / PENDING_HUMAN_APPROVAL` (Elaborada em 2026-10-19 sob diretriz `OUTBOUND_FIRST` da DEC-042; aguardando deliberação humana formal para substituição oficial da ordem de execução).
+
+##### A. Justificativa Técnica do Refatiamento
+A ordem histórica 008A–008G postergava o dialer outbound para o Slice 008E, condicionando-o à construção prévia de recepção inbound (008B), storage de gravações (008C) e transbordo humano (008D). Como o objetivo central prioritário da plataforma no lançamento é a realização de **chamadas ativas outbound** (DEC-042), esta proposta antecipa os componentes essenciais de discagem e adia funcionalidades não-bloqueantes para após a validação do fluxo principal.
+
+##### B. Princípios Arquiteturais e Ajustes Mandatórios da Proposta
+
+1. **Autoridade Única de Originação (Provider-Neutral)**:
+   - A interface de comando (`TelephonyOriginationPort`) permanece estritamente neutra em relação a provedores.
+   - Foram avaliadas as duas opções de acionamento:
+     - **Opção A (Millis-Led)**: Plataforma aciona Millis AI, que utiliza a infraestrutura/número Twilio configurado.
+     - **Opção B (Twilio-Led)**: Plataforma inicia a chamada na Twilio e conecta o áudio à Millis AI por integração de mídia suportada.
+   - Ambas as opções permanecem classificadas como **`PROVIDER-UNVERIFIED`** para operação real no Brasil (+55).
+   - O projeto **não** assume `TwilioOutboundOriginationAdapter` como implementação definitiva obrigatória antes de o operador selecionar formalmente a opção.
+   - **Invariante Mandatória**: **Uma única autoridade de originação por tentativa de discagem**. É terminantemente proibido disparar comandos concorrentes para Twilio e Millis para o mesmo destinatário.
+
+2. **Separação Explícita de Entidades de Estado Durável**:
+   - Os schemas existentes (`outbound_campaigns` e `outbound_call_jobs`) não devem acumular responsabilidades de execução em tempo real. A persistência operacional separa explicitamente:
+     - *Job de Campanha* (`outbound_call_jobs`): intenção de agendamento e destinatário.
+     - *Tentativa de Discagem* (`call_attempts`): registro monotônico de cada disparo (1, 2, 3), timestamp e resultado isolado da tentativa.
+     - *Sessão de Chamada* (`call_sessions`): estado em tempo real da chamada em andamento.
+     - *Referências Externas* (`provider_call_id`, `provider_leg_id`): identificadores duráveis atribuídos pelos provedores externos.
+     - *Eventos Recebidos* (`call_events`): log auditável e idempotente de webhooks e transições.
+     - *Custos e Liquidações* (`outbound_budget_ledgers`): controle de reservas pré-chamada e liquidação pós-chamada.
+
+3. **Recuperação de Crash e Proteção contra Rediscagem Cega**:
+   - Cenário de falha considerado: Worker persistiu a intenção de discagem -> enviou comando externo ao provedor -> provedor iniciou a chamada -> worker sofreu crash/reinício antes de registrar a resposta.
+   - **Protocolo de Recuperação**: Na recuperação, tentativas sem desfecho conhecido entram em estado transitório `OUTCOME_UNKNOWN` / `PENDING_RECONCILIATION`.
+   - É **proibida a rediscagem cega imediata** (evitando múltiplas chamadas simultâneas ao mesmo cliente).
+   - O worker executa reconciliação idempotente consultando o provedor ou aguarda webhooks de encerramento com timeout delimitado antes de liberar nova tentativa.
+   - A chave de idempotência interna (`idempotencyKey`) não é tratada como garantia suficiente de deduplicação sem validação contratual do provedor.
+
+4. **Orçamento, Quotas e Governança Financeira Fail-Closed**:
+   - A premissa de *até 50 tentativas outbound por tenant/dia* é estritamente uma **referência de dimensionamento inicial de planejamento**, não um limite implementado nem uma autorização de chamadas reais.
+   - O valor de US$ 20 para staging é meramente ilustrativo, pendente de teto formal aprovado.
+   - O plano exige:
+     - Hard budget caps por tenant e global;
+     - Limite de duração máxima por chamada com corte automático de segurança;
+     - Reserva conservadora atômica de saldo estimado antes de emitir a ordem de discagem;
+     - Separação contábil estrita entre custos de carrier (Twilio) e custos conversacionais (Millis AI);
+     - Reconciliação tardia e estorno de saldos reservados não consumidos na finalização da chamada;
+     - Limites rígidos de concorrência por organização (`max_concurrent_calls`) e retries por contato;
+     - **Princípio Fail-Closed**: Se o saldo ou os limites não puderem ser confirmados atomicamente, a discagem é terminantemente bloqueada.
+
+5. **Segurança de Webhooks e Contratos da Millis AI**:
+   - Proibida a presunção de suporte a HMAC, payloads específicos, URLs ou timeout de 2 segundos para a Millis AI sem contratos oficiais validados.
+   - Toda integração futura exigirá autenticação formal comprovada, resolução de `organizationId` exclusivamente server-side, proteção contra replay e eventos duplicados, e rejeição fail-closed (HTTP 401/403).
+   - Webhooks públicos permanecem bloqueados até a homologação em staging.
+
+6. **Elegibilidade de Contatos e Legislação Brasileira**:
+   - Janelas de discagem são tratadas como **política configurável do tenant dependente de validação regulatória**, e não como regra universal aprovada (o intervalo 09h–20h BRT não constitui autorização legal universal).
+   - Permanecem catalogados como **`NOT_VERIFIED`**: aplicabilidade das normas da Anatel sobre telemarketing ativo, prefixo 0303, regras de chamadas curtas (abaixo de 3 segundos), identificação de número de origem e consentimento de gravação (LGPD).
+
+---
+
+##### C. Tabela de Correspondência entre Slices Históricas e Proposta Nova
+
+| ID Original | Escopo Original | Novo ID Proposto | Novo Escopo Priorizado (Outbound-First) | Status na Nova Ordem |
+| :---: | :--- | :---: | :--- | :--- |
+| **008A** | Fundação Geral & Ingress Webhooks | **008-OF1** | **Contratos e Ciclo de Vida Outbound Provider-Neutral** | Slice 1 (Imediata / Offline) |
+| **008E** (parte) | Persistência de Discador | **008-OF2** | **Persistência Operacional e Números Twilio** | Slice 2 (Offline / Migrations) |
+| **008A / 008E** | Quotas e Limites de Discagem | **008-OF3** | **Quotas, Concorrência e Orçamento (Hard Budget)** | Slice 3 (Offline / Guardrails) |
+| **008A** (refinado) | Webhook Ingress | **008-OF4** | **Webhooks e Integração de Ferramentas Offline** | Slice 4 (Offline / Fakes) |
+| **008E** (conclusão) | Integração Real de Carrier | **008-OF5** | **Integração Twilio + Millis com Simuladores E2E** | Slice 5 (Offline / Adapters) |
+| **008G** | Staging Validation | **008-OF6** | **Homologação Controlada em Staging (1 Chamada Real)** | Slice 6 (Live sob autorização) |
+| **008B** | Adapter Telefônico & Inbound Gateway | **008-POST1** | *Recepção Telefônica Inbound* | Postergada (Pós-Outbound MVP) |
+| **008C** | Call Recording Ingestion & R2 | **008-POST2** | *Ingestão de Gravações Privadas em R2* | Postergada (Pós-Outbound MVP) |
+| **008D** | Human Handoff Bridging ao Vivo | **008-POST3** | *Transbordo Telefônico para Operador Humano* | Postergada (Pós-Outbound MVP) |
+| **008F** | CRM & Calendar Integrations | **008-POST4** | *Integrações com CRM e Calendário* | Postergada (Pós-Outbound MVP) |
+
+*Nota de Preservação*: Nenhuma capacidade funcional existente foi removida ou descartada. As slices `008-POST1` a `008-POST4` mantêm seus requisitos preservados e serão executadas sequencialmente após a estabilização do MVP outbound.
+
+---
+
+##### D. Detalhamento Sequencial das Slices Outbound-First
+
+- [ ] **Slice 008-OF1 — Contratos e Ciclo de Vida Outbound Provider-Neutral (Fundação)**:
+  - **Objetivo**: Definir portas de originação, estados de tentativa e ciclo de vida de chamadas outbound sem acoplamento a fornecedores e sem migrations prematuras.
+  - **Escopo**:
+    - Porta `TelephonyOriginationPort` e tipos em `packages/contracts/src/telephony/`.
+    - Máquina de estados de tentativas com suporte a estados transitórios (`OUTCOME_UNKNOWN`) e desfechos determinísticos.
+    - Fakes e simuladores offline em memória para testes do ciclo de vida.
+    - Zero migrations nesta slice (nenhuma dependência de banco novo).
+  - **Dependências**: Nenhuma (executável imediatamente sobre a base atual da `main`).
+  - **Arquivos Prováveis**: `packages/contracts/src/telephony/`, `apps/worker/src/`, `apps/voice/src/`.
+  - **Testes Offline**: Testes unitários de transição de estado, validação de inputs e simulações de fluxo de chamada.
+  - **Critérios de Aceitação**: Portas implementadas, suite de testes passando, `pnpm check` = exit 0, zero dependências externas.
+  - **Riscos**: Acoplamento prematuro a conceitos específicos da Twilio ou Millis (mitigado por revisão provider-neutral).
+
+- [ ] **Slice 008-OF2 — Persistência Operacional e Números Twilio**:
+  - **Objetivo**: Modelar e persistir o vínculo de números gerenciados Twilio a organizações, separando jobs de tentativas individuais.
+  - **Escopo**:
+    - Migration aditiva versionada: tabela `organization_phone_numbers` (`organizationId`, `e164Number`, `twilioPhoneNumberSid`, `status: ACTIVE | RELEASED`).
+    - Migration aditiva versionada: tabela `call_attempts` (`jobId`, `organizationId`, `attemptNumber`, `providerCallId`, `status`, `startedAt`, `endedAt`, `error`).
+    - Repositórios com isolamento estrito multi-tenant.
+  - **Dependências**: Conclusão da Slice 008-OF1.
+  - **Arquivos Prováveis**: `packages/database/src/schema/`, `packages/database/src/repositories/`.
+  - **Testes Offline**: Testes de persistência em PostgreSQL local (Docker) validando integridade referencial, índices e isolamento por tenant.
+  - **Critérios de Aceitação**: Migrations aplicadas e testadas localmente, zero queries raw em controllers, rollback documentado.
+  - **Riscos**: Colisão de números entre tenants (mitigado por unique index em `e164Number`).
+
+- [ ] **Slice 008-OF3 — Quotas, Concorrência e Orçamento (Hard Budget Caps)**:
+  - **Objetivo**: Implementar travas financeiras atômicas e de concorrência antes da autorização de qualquer discagem.
+  - **Escopo**:
+    - Tabela e repositório de ledger: `outbound_budget_ledgers` (saldo, reserva pendente, consumo consolidado).
+    - Reserva atômica idempotente pré-chamada com estorno pós-chamada.
+    - Limite de chamadas simultâneas por organização (`max_concurrent_calls`).
+    - Verificação de quota diária (premissa de planejamento delimitada) e bloqueio fail-closed.
+  - **Dependências**: Conclusão das Slices 008-OF1 e 008-OF2.
+  - **Arquivos Prováveis**: `packages/database/src/`, `apps/worker/src/outbound-call-dispatcher.ts`.
+  - **Testes Offline**: Testes de alta concorrência simulando esgotamento de saldo, saturação de concorrência e tentativa de discagem duplicada.
+  - **Critérios de Aceitação**: Impossibilidade comprovada de saldo negativo em testes de estresse, fail-closed verificado.
+  - **Riscos**: Deadlock em concorrência de saldo (mitigado por transações ordenadas e curtas).
+
+- [ ] **Slice 008-OF4 — Webhooks e Integração de Ferramentas Offline**:
+  - **Objetivo**: Construir a recepção segura de eventos e despacho de ferramentas determinísticas para a plataforma conversacional.
+  - **Escopo**:
+    - Endpoints de webhook em `apps/api` para status de chamada e acionamento de ferramentas.
+    - Mecanismo de autenticação fail-closed simulado (sem presumir HMAC; token/header verificado).
+    - Resolução server-side autoritativa de organização baseada no identificador interno.
+    - Proteção contra replay, eventos fora de ordem e entrega duplicada.
+    - Despacho determinístico para o `ToolExecutionEngine` existente em `apps/voice`.
+  - **Dependências**: Conclusão das Slices 008-OF1 a 008-OF3.
+  - **Arquivos Prováveis**: `apps/api/src/routes/`, `apps/voice/src/tool-execution-engine.ts`.
+  - **Testes Offline**: Testes HTTP simulando payloads forjados, eventos fora de ordem, requisições repetidas e timeouts controlados.
+  - **Critérios de Aceitação**: Rejeição 401/403 comprovada para dados não autenticados, resolução de tenant inviolável.
+  - **Riscos**: Timeouts de rede em execução de ferramentas (mitigado por limite rígido de execução de 2s).
+
+- [ ] **Slice 008-OF5 — Integração Twilio + Millis com Simuladores E2E**:
+  - **Objetivo**: Desenvolver os adaptadores concretos de integração desacoplados em `packages/integrations` com simuladores de ponta a ponta.
+  - **Escopo**:
+    - Adaptador concreto de originação conforme a opção de autoridade aprovada pelo operador.
+    - Adaptador de conversação Millis AI conectando ferramentas determinísticas e controle de sessão.
+    - Simuladores offline robustos (`FakeTwilioOriginationSimulator`, `FakeMillisConversationSimulator`).
+    - Preservação integral e intocada do código existente de Twilio ConversationRelay.
+  - **Dependências**: Conclusão das Slices 008-OF1 a 008-OF4.
+  - **Arquivos Prováveis**: `packages/integrations/src/`, `apps/worker/src/`.
+  - **Testes Offline**: Suíte de testes E2E executada 100% offline simulando desde a criação da campanha até a finalização e reconciliação da chamada.
+  - **Critérios de Aceitação**: Fluxo ponta a ponta aprovado localmente, classificação formal de adaptadores como `PROVIDER-UNVERIFIED`.
+  - **Riscos**: Incompatibilidade entre simulador e comportamento real dos provedores (mitigado por isolamento rígido em adapters).
+
+- [ ] **Slice 008-OF6 — Homologação Controlada em Staging (1 Chamada Real)**:
+  - **Objetivo**: Comprovar a integração real com uma única chamada supervisionada de teste em staging, mediante autorização humana expressa.
+  - **Escopo**:
+    - Validação de pré-requisitos: número Twilio provisionado, créditos delimitados, número de destino autorizado.
+    - Execução de 1 chamada de teste para telefone autorizado do operador humano.
+    - Verificação de latência, áudio, execução de ferramenta real, encerramento e liquidação no ledger.
+  - **Bloqueios Obrigatórios**:
+    - Autorização humana formal separada.
+    - `HARD_BUDGET_CAP` aprovado pelo operador.
+    - `CUSTOMER_TRAFFIC = PROHIBITED`.
+  - **Dependências**: Conclusão e validação estrita das Slices 008-OF1 a 008-OF5.
+  - **Critérios de Aceitação**: Relatório factual de execução com logs sanitizados e confirmação de sucesso de ponta a ponta.
+
+---
+
+#### 3. Proposta de Decisão Formal DEC-043 (PROPOSED / PENDING_HUMAN_APPROVAL)
+*Para deliberação e eventual aprovação formal do operador humano:*
+- **Título**: DEC-043 — Adoção da Estrutura Outbound-First, Separação de Entidades Duráveis e Governança de Originação Única.
+- **Resumo**: Formalizar a substituição da sequência 008A–008G pela ordem 008-OF1 a 008-OF6, postergando Inbound, R2, Handoff e CRM para após a validação do dialer outbound, estabelecendo as entidades duráveis de tentativas e ledger financeiro com autoridade de originação única e fail-closed.
+
+---
+
+#### 4. Decisões Humanas Pendentes da Fase 8 (Status de Deliberação):
+1. **Aprovação do Fatiamento Outbound-First**: **PENDENTE** — Deliberação sobre a substituição da sequência original pela ordem 008-OF1 a 008-OF6 e eventual formalização da DEC-043.
+2. **Seleção da Autoridade de Discagem (Opção A vs Opção B)**: **PENDENTE** — Escolha entre Millis-Led ou Twilio-Led para guiar o adaptador da Slice 008-OF5.
+3. **Tetos Orçamentários e Limites Financeiros**: **PENDENTE** — Fixação formal de limites rígidos em USD antes de qualquer discagem externa em staging.
+4. **Verificação de Números BR (+55) na Twilio**: **PENDENTE** — Confirmação de disponibilidade e exigências regulatórias no console Twilio.
+5. **Homologação dos Contratos da Millis AI**: **PENDENTE** — Validação oficial dos modelos de webhook e autenticação fornecidos pela Millis AI.
+6. **Diretrizes Regulatórias (Anatel / 0303 / Horários)**: **PENDENTE** — Definição da política de discagem, horários permitidos e conformidade regulatória brasileira.
+7. **Política Jurídica de Gravações**: **PENDENTE** — Definição das políticas de aviso de gravação e retenção para o Slice 008-POST2.
+8. **Topologia de Transbordo Humano**: **PENDENTE** — Definição da arquitetura de conexão humana para o Slice 008-POST3.
+9. **Infraestrutura de Ingress para Staging**: **PENDENTE** — FQDN e TLS para recepção de webhooks no servidor de staging.
+
+---
 
 ---
 

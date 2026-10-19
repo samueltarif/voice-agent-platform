@@ -18045,6 +18045,36 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `REAL_DOTENV_ACCESSED`: `NO`
   - `SECRET_AUDIT`: `PASS`
 
+## 2026-10-19 — Fase 8 — Proposta Refinada de Fatiamento Técnico OUTBOUND_FIRST — Antigravity
+
+- **SLICE_ID**: `008-PROPOSAL-OUTBOUND-FIRST` (Phase 8 Architecture & Reslicing Proposal — Outbound-First Technical Plan)
+- **EXECUTOR**: `ANTIGRAVITY` (Windows executor autorizado pelo proprietário humano para refinamento de governança documental)
+- **BASE_MAIN_SHA**: `6b6af0e85b52b62054aec5598f00e754c4f1f28f`
+- **FEATURE_BRANCH**: `docs/phase8-outbound-first-reslicing-proposal`
+- **SCOPE**: `DOCUMENTATION AND GOVERNANCE ONLY` (refinamento do fatiamento da Fase 8 para OUTBOUND_FIRST, correspondência com 008A–008G, tratamento de autoridade de originação, separação de entidades duráveis, protocolo de recuperação de crash, governança de orçamento e proposta de DEC-043)
+- **FILES_CHANGED**:
+  - `docs/ROADMAP.md`: Inclusão da Seção 2 com a proposta detalhada 008-OF1 a 008-OF6, preservação do fatiamento histórico de referência 008A–008G, tabela de correspondência, postergação explícita sem perda de capacidades (008-POST1 a 008-POST4) e proposta de formalização da DEC-043 (`PROPOSED / PENDING_HUMAN_APPROVAL`).
+  - `docs/AI_CONTEXT.md`: Atualização do cabeçalho de navegação, sincronização do Quality Gate Snapshot para a evidência do pós-merge da PR #116 no SHA `6b6af0e85b52b62054aec5598f00e754c4f1f28f` (`LAST_RECORDED_FULL_GATE_HEAD = 6b6af0e85b52b62054aec5598f00e754c4f1f28f`), atualização do status OUTBOUND_FIRST e alinhamento do `NEXT_ALLOWED_STEP`.
+  - `docs/AI_WORKLOG.md`: Este registro cronológico append-only.
+- **PROPOSAL_HIGHLIGHTS**:
+  1. *Autoridade Única de Originação*: Porta agnóstica `TelephonyOriginationPort`; comparação entre Opção A (Millis-Led) e Opção B (Twilio-Led), ambas `PROVIDER-UNVERIFIED`; sem acoplamento prévio a adaptadores Twilio; invariante de uma única autoridade de originação por tentativa.
+  2. *Separação Explícita de Entidades Duráveis*: Divisão entre Job de Campanha (`outbound_call_jobs`), Tentativa de Discagem (`call_attempts`), Sessão de Chamada (`call_sessions`), Referência Externa (`provider_call_id`), Eventos (`call_events`) e Ledger Financeiro (`outbound_budget_ledgers`).
+  3. *Recuperação de Crash e Proteção contra Rediscagem Cega*: Estado `OUTCOME_UNKNOWN` / `PENDING_RECONCILIATION` para tentativas sem desfecho após falha do worker; reconciliação idempotente com provedores e proibição estrita de rediscagem cega.
+  4. *Orçamento, Quotas e Governança Fail-Closed*: Premissa de 50 tentativas/dia classificada apenas como referência de planejamento; hard budget caps tenant e global, duração máxima, reserva prévia atômica, separação de custos carrier vs LLM, liquidação tardia e bloqueio fail-closed.
+  5. *Segurança e Contratos Millis AI*: Sem presunção de assinaturas HMAC; fakes/contratos internos primeiro; autenticação comprovada, resolução de tenant server-side e webhooks públicos bloqueados.
+  6. *Elegibilidade e Legislação*: Janelas de discagem como política configurável; catálogo NOT_VERIFIED preservado para Anatel, 0303, chamadas curtas e consentimento de gravação.
+- **SAFETY**:
+  - `ACTIVE_GUARDED`: `BLOCKED`
+  - `CUSTOMER_TRAFFIC`: `PROHIBITED`
+  - `PRODUCTION_RUNTIME_WIRING`: `NO`
+  - `REAL_PROVIDER_CALLS`: `0`
+  - `PURCHASE_OF_PHONE_NUMBERS`: `0`
+  - `REMOTE_MIGRATIONS`: `0`
+  - `DATABASE_SCHEMA_CHANGED`: `NO`
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED`: `NO`
+  - `REAL_DOTENV_ACCESSED`: `NO`
+  - `SECRET_AUDIT`: `PASS`
+
 
 
 

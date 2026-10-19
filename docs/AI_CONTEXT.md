@@ -4,14 +4,14 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-19
-CONTEXT_BASE_MAIN_SHA: 5d2f897cb412c918631cfcc5f84dabe02d4a70a4
-CURRENT_PHASE: Phase 8 (TELEPHONY_FOUNDATION_AND_DEC042_FORMALIZED)
-CURRENT_SLICE: Slice 008A — Phase 8 Architecture Foundation & DEC-042 Governance
-CONTEXT_UPDATE_BRANCH: docs/phase8-dec042-twilio-managed-numbers
+CONTEXT_BASE_MAIN_SHA: 6b6af0e85b52b62054aec5598f00e754c4f1f28f
+CURRENT_PHASE: Phase 8 (OUTBOUND_FIRST_RESLICING_PROPOSAL_IN_PROGRESS)
+CURRENT_SLICE: 008-PROPOSAL — Phase 8 Outbound-First Technical Reslicing Proposal
+CONTEXT_UPDATE_BRANCH: docs/phase8-outbound-first-reslicing-proposal
 CONTEXT_UPDATE_PR: NONE
-LAST_MERGED_PR_AT_REFRESH: 115
-LAST_MERGE_SHA_AT_REFRESH: 5d2f897cb412c918631cfcc5f84dabe02d4a70a4
-LAST_TESTED_CODE_SHA: 5d2f897cb412c918631cfcc5f84dabe02d4a70a4
+LAST_MERGED_PR_AT_REFRESH: 116
+LAST_MERGE_SHA_AT_REFRESH: 6b6af0e85b52b62054aec5598f00e754c4f1f28f
+LAST_TESTED_CODE_SHA: 6b6af0e85b52b62054aec5598f00e754c4f1f28f
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
 AI_CONTEXT_HEADER_END
@@ -125,14 +125,14 @@ AI_CONTEXT_HEADER_END
 
 ## 6. Estado Atual da Evidência de Qualidade (Quality Gate Snapshot)
 
-- **Último `pnpm check` Global na Main**: `PASS` (observado no merge da PR #115 / 008A post-merge na branch `main` `5d2f897cb412c918631cfcc5f84dabe02d4a70a4`: exit 0; 7 estágios aprovados; 175 arquivos de teste / 1254 testes aprovados / 0 falhas / 45 testes de staging pulados; evidência factual local observada pelo executor, não CI remoto independente).
+- **Último `pnpm check` Global na Main**: `PASS` (observado no merge da PR #116 / 008A post-merge na branch `main` `6b6af0e85b52b62054aec5598f00e754c4f1f28f`: exit 0; 7 estágios aprovados; 175 arquivos de teste / 1254 testes aprovados / 0 falhas / 45 testes de staging pulados; evidência factual local observada pelo executor, não CI remoto independente).
 - **Identificadores de HEAD & Semântica Não-Auto-Referencial**:
-  - `LAST_RECORDED_FULL_GATE_HEAD = 5d2f897cb412c918631cfcc5f84dabe02d4a70a4`
+  - `LAST_RECORDED_FULL_GATE_HEAD = 6b6af0e85b52b62054aec5598f00e754c4f1f28f`
   - `LAST_RECORDED_FULL_GATE_STATUS = PASS`
   - `CURRENT_BRANCH_HEAD_SOURCE = QUERY_GIT_AT_RUNTIME`
   - `LAST_CODE_BEARING_MAIN_SHA = e8055e93e9f78fd15da5760cec60fe4e1bdbfbcb`
   - *Nota*: `AI_CONTEXT.md` é conteúdo versionado e não pode conter o SHA do próprio commit que o modifica. O HEAD exato da branch corrente deve ser obtido do Git em runtime (`QUERY_GIT_AT_RUNTIME`). `LAST_RECORDED_FULL_GATE_HEAD` registra a evidência mais recente observada e durável quando este snapshot foi redigido, evitando loops infinitos de auto-referência.
-- **Contagens Canônicas de Testes (Post-Merge Main PR #115)**:
+- **Contagens Canônicas de Testes (Post-Merge Main PR #116)**:
   - `TEST_FILES_PASSED = 175` | `TEST_FILES_FAILED = 0` | `TEST_FILES_SKIPPED = 6`
   - `TESTS_PASSED = 1254` | `TESTS_FAILED = 0` | `TESTS_SKIPPED = 45`
 - **Regressão de Asserções**: `ASSERTION_WEAKER = 0`, `NEW_SKIPS = 0`.
@@ -201,17 +201,17 @@ AI_CONTEXT_HEADER_END
 50. `PHASE8_CONVERSATION_PLATFORM = MILLIS_AI_SELECTED` (DEC-042: plataforma conversacional em tempo real selecionada para outbound; contratos de webhook/auth `NOT_VERIFIED`).
 51. `PHASE8_TARGET_STACK_RECONCILIATION = COMPLETE` (DEC-042: Hostinger VPS planejada para hosting, Supabase planejado para PostgreSQL gerenciado futuro, Cloudflare R2 planejado para gravações privadas; zero provisionamento executado).
 52. `PHASE8_NOT_VERIFIED_ITEMS = ENFORCED` (disponibilidade números BR, integração Twilio+Millis no BR, contratos webhook/auth Millis, cobrança tentativas sem atendimento, tarifas fixo/móvel/0303, regras regulatórias, transferência para humanos: todos `NOT_VERIFIED`).
-53. `PHASE8_PRODUCT_PRIORITY = OUTBOUND_FIRST` (o produto prioriza chamadas outbound; eventual refatiamento sequencial de 008A–008G para inverter dependências inbound/outbound permanece como pendência formal para deliberação humana; segurança de webhooks fail-closed sem presunção não-comprovada de assinaturas HMAC para Millis AI).
+53. `PHASE8_PRODUCT_PRIORITY = OUTBOUND_FIRST` (o produto prioriza chamadas outbound; proposta técnica refinada 008-OF1 a 008-OF6 formulada em `docs/ROADMAP.md` aguardando deliberação humana formal DEC-043; postergação de inbound, R2, handoff e CRM para pós-MVP outbound sem perda de capacidades; autoridade única de originação agnóstica; separação estrita de entidades duráveis de tentativas e ledger de custos; segurança de webhooks fail-closed sem presunção de assinaturas HMAC para Millis AI).
 
 ---
 
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- **Phase 7 Status**: `CLOSED ON MAIN` (PRs #94 a #115 mescladas na main; validação canônica pós-merge em `5d2f897cb412c918631cfcc5f84dabe02d4a70a4` com 175 arquivos / 1254 testes PASS; fechamento formal aceito pelo operador humano via DEC-041).
-- **Phase 8 Status**: `TELEPHONY_FOUNDATION_AND_DEC042_FORMALIZED` (decisão humana DEC-042 formalizada documentando números gerenciados Twilio, Millis AI, divisão de responsabilidades e catálogo NOT_VERIFIED).
-- `NEXT_ALLOWED_STEP = HUMAN_REVIEW_OF_DEC042_DOCUMENTATION_BRANCH`
-- `NEXT_ALLOWED_SLICE = 008A_PORT_DEFINITIONS_AND_WEBHOOK_INGRESS_DESIGN` (qualquer implementação de código, compra de números ou chamada real permanece bloqueada).
+- **Phase 7 Status**: `CLOSED ON MAIN` (PRs #94 a #115 mescladas na main; fechamento formal aceito pelo operador humano via DEC-041).
+- **Phase 8 Status**: `OUTBOUND_FIRST_RESLICING_PROPOSAL_IN_PROGRESS` (decisão DEC-042 incorporada na main na PR #116; proposta de refatiamento 008-OF1 a 008-OF6 e proposta de DEC-043 formalizadas para deliberação do operador humano).
+- `NEXT_ALLOWED_STEP = HUMAN_REVIEW_OF_OUTBOUND_FIRST_RESLICING_PROPOSAL_BRANCH`
+- `NEXT_ALLOWED_SLICE = 008_OF1_CONTRACTS_AND_OUTBOUND_LIFECYCLE` (após aprovação humana expressa do refatiamento da Fase 8).
 - `PURCHASE_OF_PHONE_NUMBERS = 0` | `REAL_PROVIDER_CALLS = 0` | `CUSTOMER_TRAFFIC = PROHIBITED` | `ACTIVE_GUARDED = BLOCKED`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
 
