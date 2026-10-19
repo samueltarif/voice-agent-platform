@@ -17992,6 +17992,35 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `REAL_DOTENV_ACCESSED`: `NO`
   - `SECRET_AUDIT`: `PASS`
 
+## 2026-10-19 — Fase 8 — Revisão Final de Consistência Documental da DEC-042 — Antigravity
+
+- **SLICE_ID**: `008A-DEC042-CONSISTENCY` (Phase 8 Architecture Foundation & Governance — Consistency Review)
+- **EXECUTOR**: `ANTIGRAVITY` (Windows executor autorizado pelo proprietário humano para correções documentais locais)
+- **FEATURE_BRANCH**: `docs/phase8-dec042-twilio-managed-numbers`
+- **SCOPE**: `DOCUMENTATION AND GOVERNANCE ONLY`
+- **FILES_CHANGED**:
+  - `docs/AI_CONTEXT.md`: Correção da descrição do subsistema API de `Fastify/Node` para `Hono/Node.js` (refletindo o código real em `apps/api`), e inclusão do ponto 53 formalizando a prioridade inicial de outbound do produto.
+  - `docs/ROADMAP.md`: Revisão do Slice 008A para evitar presunção não-comprovada de assinaturas HMAC na Millis AI; especificação de autenticação de webhooks fail-closed, proteção contra replay, resolução server-side de tenant e bloqueio até confirmação de contrato oficial; e formalização da prioridade de chamadas outbound como objetivo central do produto com registro da pendência para deliberação humana sobre eventual refatiamento.
+  - `docs/AI_WORKLOG.md`: Este registro cronológico append-only.
+- **CORRECTIONS_APPLIED**:
+  1. *Correção 1 — Framework da API*: Retificada a referência factual no `docs/AI_CONTEXT.md` para `Hono/Node.js` (`@hono/node-server` e `@hono/zod-openapi` verificados no código de `apps/api`).
+  2. *Correção 2 — Segurança dos Webhooks*: Retirada a presunção não-comprovada de suporte a HMAC para a Millis AI no Slice 008A do `docs/ROADMAP.md`. Documentada abordagem rigorosa de segurança fail-closed por provedor: autenticação criptográfica suportada (Twilio `X-Twilio-Signature` já validada; Millis classificada como `NOT_VERIFIED`), proteção contra replay/duplicidade, resolução server-side de tenant e bloqueio fail-closed de integrações reais até confirmação dos contratos.
+  3. *Correção 3 — Priorização de Outbound*: Documentado explicitamente que o objetivo central inicial do produto é a realização de chamadas outbound. Identificada a dependência sequencial implícita no fatiamento original (inbound no 008B vs dialer outbound no 008E). Preservada a numeração e contratos existentes sem churn, e registrada a pendência de deliberação humana formal para repriorização sequencial das slices.
+- **PRESERVATION_OF_DEC042**:
+  - Mantidos integralmente: `TWILIO_MANAGED_NUMBERS_ONLY`, cancelamento formal de BYON, Twilio para telefonia, Millis AI para conversação, Hostinger VPS/Supabase/Cloudflare R2 como planejamento futuro, catálogo completo de pendências `NOT_VERIFIED` e compra de números bloqueada (`PURCHASE_OF_PHONE_NUMBERS = 0`).
+- **SAFETY**:
+  - `ACTIVE_GUARDED`: `BLOCKED`
+  - `CUSTOMER_TRAFFIC`: `PROHIBITED`
+  - `PRODUCTION_RUNTIME_WIRING`: `NO`
+  - `REAL_PROVIDER_CALLS`: `0`
+  - `PURCHASE_OF_PHONE_NUMBERS`: `0`
+  - `REMOTE_MIGRATIONS`: `0`
+  - `DATABASE_SCHEMA_CHANGED`: `NO`
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED`: `NO`
+  - `REAL_DOTENV_ACCESSED`: `NO`
+  - `SECRET_AUDIT`: `PASS`
+
+
 
 
 

@@ -146,17 +146,29 @@ Este documento estabelece as fases sequenciais de implementação da plataforma.
   - Regras regulatórias brasileiras de telecomunicações.
   - Transferência de chamadas para humanos.
 
+#### Priorização de Outbound e Dependências entre Inbound/Outbound:
+- **Prioridade Inicial do Produto**: O objetivo central e prioritário da plataforma no lançamento é a realização de **chamadas outbound** (campanhas de voz ativas, discagem automatizada por tenant via Twilio e atendimento conversacional com Millis AI).
+- **Dependência Identificada no Planejamento Atual (008A–008G)**: O fatiamento proposto originalmente estruturou a recepção inbound no Slice 008B e a integração de discagem outbound no Slice 008E. Essa ordenação estabelece uma dependência sequencial implícita que posterga o fluxo principal de outbound.
+- **Diretriz de Preservação e Não-Renumeração**: A numeração sequencial das slices (008A a 008G) e seus contratos de implementação são **preservados sem alterações nesta tarefa documental**, mantendo a estabilidade dos identificadores.
+- **Pendência Registrada para Deliberação Humana Posterior**: Registra-se formalmente a necessidade de deliberação humana para repriorizar ou refatiar a sequência de execução da Fase 8 (por exemplo, antecipando o dialer outbound antes de inbound ou isolando o core de transporte para outbound imediato), a ser deliberada antes de qualquer implementação de código executável.
+
 #### Fatiamento Sequencial Proposto para a Fase 8:
 - [ ] **Slice 008A — Phase 8 Architecture Foundation, Port Definitions & Webhook Security Ingress (Planning & Foundation)**:
   - Formalização documental e arquitetural das Portas de integração: `TelephonyProviderPort`, `RecordingStoragePort`, `HumanHandoffBridgingPort`.
-  - Design e especificações do Webhook Ingress seguro para staging (validação de assinaturas criptográficas/HMAC, prevenção contra replay, resolução de tenant por DID).
+  - Design e especificações de segurança do Webhook Ingress para staging:
+    - Verificação de segurança específica por provedor (sem assumir assinaturas HMAC para Millis AI sem evidência oficial; suporte comprovado para assinatura Twilio `X-Twilio-Signature`).
+    - Autenticação criptográfica quando oficialmente suportada pelo provedor.
+    - Proteção estrita contra replay e duplicidade de eventos (idempotência, timestamps e event IDs).
+    - Resolução server-side autoritativa da organização (`organizationId`), prevenindo injeção de parâmetros arbitrários de tenant em payloads externos.
+    - Rejeição fail-closed (HTTP 401/403) de eventos não autenticados, adulterados ou malformados.
+    - Bloqueio fail-closed de qualquer integração real até confirmação formal dos contratos e modelos de autenticação de webhooks do provedor.
   - Isolamento orçamentário mandatório e definição de Hard Budget Caps.
 - [ ] **Slice 008B — Real Telephony Provider Adapter & Inbound Gateway Execution**:
-  - Implementação concreta do adapter do carrier selecionado (ex.: Twilio / Telnyx) em `packages/integrations` (mantendo o core estritamente provider-neutral).
+  - Implementação concreta do adapter do carrier selecionado (Twilio) em `packages/integrations` (mantendo o core estritamente provider-neutral).
   - Gateway de entrada de chamadas (`InboundCallGateway`) mapeando DIDs para `organizationId` e versão publicada ativa do agente (`agentVersionStatus === 'PUBLISHED'`).
   - Suíte de testes offline e integração com simuladores antes de qualquer chamada real.
 - [ ] **Slice 008C — Call Recording Ingestion & Tenant-Isolated Object Storage**:
-  - Implementação do adapter de Object Storage (S3 / Cloudflare R2 / GCS) em `packages/integrations`.
+  - Implementação do adapter de Object Storage (Cloudflare R2 planejado) em `packages/integrations`.
   - Ingestão de áudio pós-chamada com isolamento estrito por tenant (`/recordings/:orgId/:callId.wav`).
   - Emissão de URLs assinadas de curta duração (`signed URLs`) para reprodução autorizada no Agent Studio (`apps/web`).
   - Implementação do aviso mandatório de gravação e conformidade jurídica (DEC-024 / LGPD).
