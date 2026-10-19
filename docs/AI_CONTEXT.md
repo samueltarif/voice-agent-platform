@@ -125,15 +125,15 @@ AI_CONTEXT_HEADER_END
 
 ## 6. Estado Atual da Evidência de Qualidade (Quality Gate Snapshot)
 
-- **Último `pnpm check` Global na Main**: `PASS` (observado no merge da PR #114 / 007L post-merge na branch `main` `461f37eb9b23750ed7fea28e3cec1d88d335cf94`: exit 0; 7 estágios aprovados; 175 arquivos de teste / 1254 testes aprovados / 0 falhas / 45 testes de staging pulados).
+- **Último `pnpm check` Global na Main**: `PASS` (observado no merge da PR #115 / 008A post-merge na branch `main` `5d2f897cb412c918631cfcc5f84dabe02d4a70a4`: exit 0; 7 estágios aprovados; 175 arquivos de teste / 1254 testes aprovados / 0 falhas / 45 testes de staging pulados; evidência factual local observada pelo executor, não CI remoto independente).
 - **Identificadores de HEAD & Semântica Não-Auto-Referencial**:
-  - `LAST_RECORDED_FULL_GATE_HEAD = 461f37eb9b23750ed7fea28e3cec1d88d335cf94`
+  - `LAST_RECORDED_FULL_GATE_HEAD = 5d2f897cb412c918631cfcc5f84dabe02d4a70a4`
   - `LAST_RECORDED_FULL_GATE_STATUS = PASS`
   - `CURRENT_BRANCH_HEAD_SOURCE = QUERY_GIT_AT_RUNTIME`
   - `LAST_CODE_BEARING_MAIN_SHA = e8055e93e9f78fd15da5760cec60fe4e1bdbfbcb`
   - *Nota*: `AI_CONTEXT.md` é conteúdo versionado e não pode conter o SHA do próprio commit que o modifica. O HEAD exato da branch corrente deve ser obtido do Git em runtime (`QUERY_GIT_AT_RUNTIME`). `LAST_RECORDED_FULL_GATE_HEAD` registra a evidência mais recente observada e durável quando este snapshot foi redigido, evitando loops infinitos de auto-referência.
-- **Contagens Canônicas de Testes (Post-Merge Main PR #114)**:
-  - `TEST_FILES_PASSED = 175` | `TEST_FILES_FAILED = 0` | `TEST_FILES_SKIPPED = 3`
+- **Contagens Canônicas de Testes (Post-Merge Main PR #115)**:
+  - `TEST_FILES_PASSED = 175` | `TEST_FILES_FAILED = 0` | `TEST_FILES_SKIPPED = 6`
   - `TESTS_PASSED = 1254` | `TESTS_FAILED = 0` | `TESTS_SKIPPED = 45`
 - **Regressão de Asserções**: `ASSERTION_WEAKER = 0`, `NEW_SKIPS = 0`.
 - **Verificação Arquitetural**: `SUCESSO: Todas as fronteiras e regras arquiteturais respeitadas.`
