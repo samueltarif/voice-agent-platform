@@ -18045,9 +18045,92 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `REAL_DOTENV_ACCESSED`: `NO`
   - `SECRET_AUDIT`: `PASS`
 
+## 2026-10-19 — Fase 8 — Proposta Refinada de Fatiamento Técnico OUTBOUND_FIRST — Antigravity
+
+- **SLICE_ID**: `008-PROPOSAL-OUTBOUND-FIRST` (Phase 8 Architecture & Reslicing Proposal — Outbound-First Technical Plan)
+- **EXECUTOR**: `ANTIGRAVITY` (Windows executor autorizado pelo proprietário humano para refinamento de governança documental)
+- **BASE_MAIN_SHA**: `6b6af0e85b52b62054aec5598f00e754c4f1f28f`
+- **FEATURE_BRANCH**: `docs/phase8-outbound-first-reslicing-proposal`
+- **SCOPE**: `DOCUMENTATION AND GOVERNANCE ONLY` (refinamento do fatiamento da Fase 8 para OUTBOUND_FIRST, correspondência com 008A–008G, tratamento de autoridade de originação, separação de entidades duráveis, protocolo de recuperação de crash, governança de orçamento e proposta de DEC-043)
+- **FILES_CHANGED**:
+  - `docs/ROADMAP.md`: Inclusão da Seção 2 com a proposta detalhada 008-OF1 a 008-OF6, preservação do fatiamento histórico de referência 008A–008G, tabela de correspondência, postergação explícita sem perda de capacidades (008-POST1 a 008-POST4) e proposta de formalização da DEC-043 (`PROPOSED / PENDING_HUMAN_APPROVAL`).
+  - `docs/AI_CONTEXT.md`: Atualização do cabeçalho de navegação, sincronização do Quality Gate Snapshot para a evidência do pós-merge da PR #116 no SHA `6b6af0e85b52b62054aec5598f00e754c4f1f28f` (`LAST_RECORDED_FULL_GATE_HEAD = 6b6af0e85b52b62054aec5598f00e754c4f1f28f`), atualização do status OUTBOUND_FIRST e alinhamento do `NEXT_ALLOWED_STEP`.
+  - `docs/AI_WORKLOG.md`: Este registro cronológico append-only.
+- **PROPOSAL_HIGHLIGHTS**:
+  1. *Autoridade Única de Originação*: Porta agnóstica `TelephonyOriginationPort`; comparação entre Opção A (Millis-Led) e Opção B (Twilio-Led), ambas `PROVIDER-UNVERIFIED`; sem acoplamento prévio a adaptadores Twilio; invariante de uma única autoridade de originação por tentativa.
+  2. *Separação Explícita de Entidades Duráveis*: Divisão entre Job de Campanha (`outbound_call_jobs`), Tentativa de Discagem (`call_attempts`), Sessão de Chamada (`call_sessions`), Referência Externa (`provider_call_id`), Eventos (`call_events`) e Ledger Financeiro (`outbound_budget_ledgers`).
+  3. *Recuperação de Crash e Proteção contra Rediscagem Cega*: Estado `OUTCOME_UNKNOWN` / `PENDING_RECONCILIATION` para tentativas sem desfecho após falha do worker; reconciliação idempotente com provedores e proibição estrita de rediscagem cega.
+  4. *Orçamento, Quotas e Governança Fail-Closed*: Premissa de 50 tentativas/dia classificada apenas como referência de planejamento; hard budget caps tenant e global, duração máxima, reserva prévia atômica, separação de custos carrier vs LLM, liquidação tardia e bloqueio fail-closed.
+  5. *Segurança e Contratos Millis AI*: Sem presunção de assinaturas HMAC; fakes/contratos internos primeiro; autenticação comprovada, resolução de tenant server-side e webhooks públicos bloqueados.
+  6. *Elegibilidade e Legislação*: Janelas de discagem como política configurável; catálogo NOT_VERIFIED preservado para Anatel, 0303, chamadas curtas e consentimento de gravação.
+- **SAFETY**:
+  - `ACTIVE_GUARDED`: `BLOCKED`
+  - `CUSTOMER_TRAFFIC`: `PROHIBITED`
+  - `PRODUCTION_RUNTIME_WIRING`: `NO`
+  - `REAL_PROVIDER_CALLS`: `0`
+  - `PURCHASE_OF_PHONE_NUMBERS`: `0`
+  - `REMOTE_MIGRATIONS`: `0`
+  - `DATABASE_SCHEMA_CHANGED`: `NO`
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED`: `NO`
+  - `REAL_DOTENV_ACCESSED`: `NO`
+  - `SECRET_AUDIT`: `PASS`
 
 
 
 
 
 
+
+## 2026-10-19 — Fase 8 — Ajustes Técnicos Finais e Preparação de PR do Planejamento OUTBOUND_FIRST — Antigravity
+
+- **SLICE_ID**: `008-PROPOSAL-OUTBOUND-FIRST-FINAL-REVIEW` (Phase 8 Architecture & Reslicing Proposal — Technical Adjustments & PR Preparation)
+- **EXECUTOR**: `ANTIGRAVITY` (Windows executor autorizado pelo proprietário humano para correções documentais controladas e publicação de PR)
+- **BASE_MAIN_SHA**: `6b6af0e85b52b62054aec5598f00e754c4f1f28f`
+- **FEATURE_BRANCH**: `docs/phase8-outbound-first-reslicing-proposal`
+- **SCOPE**: `DOCUMENTATION AND GOVERNANCE ONLY` (ajuste de neutralidade de timeout na 008-OF4, consolidação de persistência durável na 008-OF2 e explicitação dos 9 bloqueios mandatórios na 008-OF6)
+- **FILES_CHANGED**:
+  - `docs/ROADMAP.md`: Ajuste da política de timeout na Slice 008-OF4 para neutralidade técnica; consolidação da responsabilidade de persistência durável (`call_sessions` e `call_events`) na Slice 008-OF2; fortalecimento dos pré-requisitos de staging na Slice 008-OF6 com catálogo explícito de 9 bloqueios obrigatórios prévios a qualquer chamada real.
+  - `docs/AI_WORKLOG.md`: Este registro cronológico append-only.
+- **CORRECTIONS_APPLIED**:
+  1. *Correção de Timeout na Slice 008-OF4*: Removida a referência arbitrária a limite rígido de 2s. Adotada política tecnicamente neutra: timeout interno configurável para execução de ferramentas; valor definitivo dependente do contrato oficial da Millis AI a ser homologado; testes offline cobrindo timeout, cancelamento e falha; comportamento fail-closed em caso de estouro; e proibição de presunção de SLA ou timeout oficial não verificado.
+  2. *Ownership de Persistência Durável (008-OF2 vs 008-OF4)*: Atribuída formalmente à Slice 008-OF2 a fundação de persistência durável: mapeamento de números Twilio (`organization_phone_numbers`), tentativas de chamada (`call_attempts`), identidade e estado da sessão (`call_sessions`) com vínculo Tentativa ↔ Sessão ↔ Provedor, e eventos brutos (`call_events`) com hash de payload para deduplicação, ordenação e reconciliação pós-crash. A Slice 008-OF4 permanece responsável pela ingestão de webhooks, autenticação e despacho determinístico consumindo o modelo de dados da 008-OF2. Zero migrations criadas nesta fase documental.
+  3. *Fortalecimento dos Pré-Requisitos da Slice 008-OF6*: Explicitação de 9 bloqueios mandatórios anteriores a qualquer teste real em staging (compatibilidade +55 Twilio + Millis comprovada, elegibilidade de número Twilio, homologação de contratos/webhooks Millis, reconciliação financeira funcional, hard budget cap aprovado pelo operador, conformidade regulatória/LGPD, infraestrutura TLS/FQDN segregada, número de destino expressamente autorizado do operador e autorização humana adicional e específica para compras/créditos/chamadas). Esclarecido formalmente que nenhuma dessas condições é suprida pelo término das slices offline.
+  4. *Governança DEC-043*: Mantida a DEC-043 estritamente no status `PROPOSED / PENDING_HUMAN_APPROVAL`, sem registro como decisão aprovada em `DECISIONS_LOG.md` e sem substituição das slices históricas na `main` sem aprovação humana. Preservada integralmente a DEC-042 ativa na `main`.
+- **SAFETY**:
+  - `ACTIVE_GUARDED`: `BLOCKED`
+  - `CUSTOMER_TRAFFIC`: `PROHIBITED`
+  - `PRODUCTION_RUNTIME_WIRING`: `NO`
+  - `REAL_PROVIDER_CALLS`: `0`
+  - `PURCHASE_OF_PHONE_NUMBERS`: `0`
+  - `REMOTE_MIGRATIONS`: `0`
+  - `DATABASE_SCHEMA_CHANGED`: `NO`
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED`: `NO`
+  - `REAL_DOTENV_ACCESSED`: `NO`
+  - `SECRET_AUDIT`: `PASS`
+
+## 2026-10-19 — Fase 8 — Refinamento de Idempotência e Deduplicação de Webhooks da PR #117 — Antigravity
+
+- **SLICE_ID**: `008-PROPOSAL-OUTBOUND-FIRST-IDEMPOTENCY-REFINEMENT` (Phase 8 Architecture & Reslicing Proposal — Outbound Webhook Idempotency & Deduplication Policy Refinement)
+- **EXECUTOR**: `ANTIGRAVITY` (Windows executor autorizado pelo proprietário humano para correção documental direcionada da PR #117)
+- **BASE_MAIN_SHA**: `6b6af0e85b52b62054aec5598f00e754c4f1f28f`
+- **FEATURE_BRANCH**: `docs/phase8-outbound-first-reslicing-proposal`
+- **SCOPE**: `DOCUMENTATION AND GOVERNANCE ONLY` (refinamento da política de deduplicação de eventos, idempotência de efeitos de negócio e persistência de `call_events` na PR #117)
+- **FILES_CHANGED**:
+  - `docs/ROADMAP.md`: Refinamento da política de deduplicação nas seções 2.B, 008-OF2 e 008-OF4 para priorizar identificadores oficiais estáveis (`providerEventId`), relegar `payloadHash` a evidência auxiliar, exigir estratégia determinística para ausência de IDs, separar deduplicação de entrega vs ordenação monotônica vs idempotência de efeitos de negócio, garantir que eventos ambíguos não provoquem nova discagem nem liquidação duplicada, minimizar PII e manter mecanismos de provedores classificados como `PROVIDER-UNVERIFIED`.
+  - `docs/AI_WORKLOG.md`: Este registro cronológico append-only.
+- **CORRECTIONS_APPLIED**:
+  1. *Refinamento de call_events na Slice 008-OF2*: Especificada a inclusão de `providerEventId` e `provider` na tabela planejada; documentado que `payloadHash` é evidência auxiliar de integridade de transporte e replay, não garantia única de identidade de negócio; estrita vinculação da identidade do evento ao provedor, à conta autorizada (`organizationId`) e à sessão/tentativa durável; minimização de dados pessoais (PII) nos metadados persistidos; e separação conceitual entre deduplicação de entrega, ordenação de eventos e idempotência de efeitos de negócio.
+  2. *Refinamento de Webhooks e Despacho na Slice 008-OF4*: Priorização de identificadores estáveis oficiais fornecidos pelo provedor quando verificados contratualmente; exigência de estratégia determinística composta (provedor + tenant + tentativa/sessão + tipo + transição) quando não houver ID estável confiável, sem presumir campos inexistentes; preservação estrita de transições monotônicas de estado (sem regressão de estados terminais); garantia de que eventos repetidos não provocam liquidação financeira duplicada no ledger nem efeitos de ciclo de vida; quarentena fail-closed para eventos ambíguos sem rediscagem nem estorno/liquidação duplicada; e classificação dos mecanismos do provedor como `PROVIDER-UNVERIFIED` até homologação com contratos oficiais.
+  3. *Invariante de Implementação*: Zero migrations criadas, zero endpoints criados, zero código alterado.
+  4. *Governança Preservada*: DEC-042 ativa na `main`; DEC-043 mantida como `PROPOSED / PENDING_HUMAN_APPROVAL`; sequência 008-OF1 a 008-OF6 como proposta; 9 bloqueios mandatórios de staging preservados; autoridade de originação A/B pendente; hard budget cap sem valor aprovado.
+- **SAFETY**:
+  - `ACTIVE_GUARDED`: `BLOCKED`
+  - `CUSTOMER_TRAFFIC`: `PROHIBITED`
+  - `PRODUCTION_RUNTIME_WIRING`: `NO`
+  - `REAL_PROVIDER_CALLS`: `0`
+  - `PURCHASE_OF_PHONE_NUMBERS`: `0`
+  - `REMOTE_MIGRATIONS`: `0`
+  - `DATABASE_SCHEMA_CHANGED`: `NO`
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED`: `NO`
+  - `REAL_DOTENV_ACCESSED`: `NO`
+  - `SECRET_AUDIT`: `PASS`
