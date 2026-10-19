@@ -18213,3 +18213,38 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `SECRET_AUDIT`: `PASS`
 
 
+## 2026-10-19 — Fase 8 — Slice 008-OF1: Contratos e Ciclo de Vida Outbound Provider-Neutral (Implementação Offline) — Claude Code
+
+- **SLICE_ID**: `008-OF1` (Phase 8 Outbound-First — Fundação Técnica; DEC-043)
+- **EXECUTOR**: `CLAUDE_CODE` (clone em ambiente de nuvem; o shell do computador do operador não estava disponível nesta sessão)
+- **BASE_MAIN_SHA**: `5076b0ca8abf1fb06826ddbfea0208e1a6e218a1` (PR #118 mesclada; `main` local == `origin/main` == SHA esperado; worktree limpo antes de editar)
+- **FEATURE_BRANCH**: `feat/phase8-008-of1-outbound-lifecycle-contracts`
+- **STATUS**: `IMPLEMENTED_TESTED_OFFLINE / AGUARDANDO REVISÃO HUMANA INDEPENDENTE`. A slice NÃO está concluída, aprovada nem mesclada. Autor e executor do gate são o mesmo agente: um novo SHA exige revisão independente antes de qualquer decisão de merge.
+- **AUDITORIA_DE_REUSO**:
+  - `OutboundCallJobStatus` (`packages/contracts/src/outbound/outbound-job-status.ts`) modela o JOB de campanha; `CallSessionState` (`apps/voice/src/call-session-state-machine.ts`) modela a sessão conversacional runtime. Nenhuma das duas modela a TENTATIVA de discagem: por isso a máquina de tentativas é uma extensão compatível e separada, sem alterar as existentes.
+  - `OutboundCallBootstrapPort` permanece intacto (bootstrap offline de sessão no gateway de ciclo de vida). `TelephonyOriginationPort` é nova e distinta (intenção de originar uma tentativa externa).
+  - O formato da chave de idempotência local reutiliza `<chave-do-job>-att-<n>` já usado por `OutboundCallDispatcher`.
+  - Adapter Twilio ConversationRelay não foi tocado.
+- **ARQUIVOS_CRIADOS**:
+  - `packages/contracts/src/telephony/`: `e164-destination.ts`, `outbound-attempt-state.ts`, `outbound-attempt-event.ts`, `outbound-attempt.ts`, `telephony-origination-port.ts`, `outbound-attempt-transitions.ts`, `outbound-attempt-event-guards.ts`, `outbound-attempt-event-effects.ts`, `apply-outbound-attempt-event.ts`, `evaluate-successor-attempt.ts`, `outbound-attempt-fixtures.ts`, `index.ts` + 4 arquivos de teste.
+  - `apps/worker/src/` (offline, não exportados no índice, sem fiação ativa): `in-memory-telephony-origination-port.ts`, `in-memory-outbound-attempt-store.ts`, `outbound-attempt-event-factory.ts`, `outbound-attempt-event-mapping.ts`, `outbound-attempt-coordinator-types.ts`, `outbound-attempt-origination-coordinator.ts` + 2 arquivos de teste.
+- **ARQUIVOS_ALTERADOS**: `packages/contracts/src/index.ts` (1 linha de export), `docs/ROADMAP.md`, `docs/AI_CONTEXT.md`, `docs/AI_WORKLOG.md`.
+- **MODELO_DE_ESTADOS**: `CREATED → ORIGINATION_PENDING → ORIGINATION_SENT → ORIGINATION_ACCEPTED → CLOSED`; desvios `ORIGINATION_REJECTED` (terminal), `OUTCOME_UNKNOWN ⇄ RECONCILIATION_PENDING` (não terminais, bloqueiam rediscagem), `NOT_ORIGINATED` (terminal, prova de não-origem), `CANCELED` (terminal, só antes do envio). Máquina pura e determinística (`applyOutboundAttemptEvent`), com resultados `APPLIED | DUPLICATE | STALE | REJECTED`.
+- **INVARIANTES_COBERTAS**: (A) autoridade única de originação por tentativa; (B) evento repetido por `eventId` não gera transição; (C) estados terminais não retornam a ativos; (D) falha após envio vira `OUTCOME_UNKNOWN`, não "falha"; (E) `OUTCOME_UNKNOWN` bloqueia rediscagem; (F) timeout de reconciliação mantém bloqueio e exige revisão manual; (G) eventos de outro tenant/tentativa/job/sessão são rejeitados antes de qualquer outra checagem; (H) nova tentativa tem novo id/número e nunca sobrescreve histórico (`evaluateSuccessorAttempt` falha fechado, inclusive após `CLOSED`/`CANCELED`).
+- **TESTES_NOVOS**: 80 (contracts 58; worker 22), cobrindo transições válidas/inválidas, terminais, resultado desconhecido, crash entre envio e confirmação com "worker reiniciado" sobre o mesmo store, reconciliação confirmada/inconclusiva/expirada, duplicados e atrasados, isolamento entre organizações, correlação tentativa/job/sessão, dupla autoridade, validação de inputs e guarda estática "sem rede/sem SDK/sem env/sem provedor".
+- **GATE_CANONICO** (`pnpm install --frozen-lockfile && pnpm check`; base `5076b0c` + árvore 008-OF1): exit code `0`; 7 estágios PASS (format:check, lint, typecheck 12/12, test, build, architecture-check, file-size-check); `181` arquivos de teste aprovados, `6` ignorados; `1334` testes aprovados, `0` falhos, `45` ignorados (staging). Baseline anterior `1254` aprovados (+80 = testes novos).
+- **TRANSPARENCIA_DE_EXECUCAO**: (1) um primeiro gate falhou no typecheck por defeito do ambiente de nuvem (placeholder do binário nativo do pnpm gerenciado), contornado com um wrapper fora do repositório; (2) um gate seguinte falhou apenas nos testes de integração que exigem o PostgreSQL local do repositório (`localhost:5432`): foi iniciado um PostgreSQL 16 descartável e local no container, aplicando as migrations já existentes `0000`–`0006` (nenhuma migration nova, nenhum banco remoto); (3) um gate falhou no `file-size-check` (coordenador com 220 linhas > 180): o arquivo foi dividido por responsabilidade, sem alterar allowlist. Zero migrations, zero alterações em `pnpm-lock.yaml`, nenhum `approve-builds`.
+- **LIMITACOES**: apenas offline; `PROVIDER-UNVERIFIED`. A chave de idempotência local protege efeitos internos e NÃO é garantia exactly-once perante o exterior. Persistência durável, recuperação após reinício real do banco, tabelas `call_attempts`/`call_sessions`/`call_events`/`organization_phone_numbers`, quotas/ledger, webhooks, adapters Millis/Twilio e reconciliação agendada pertencem às slices 008-OF2 a 008-OF5.
+- **GOVERNANCE_PRESERVATION**: DEC-042 e DEC-043 não foram alteradas; DEC-044 não foi criada; a Fase 8 não está concluída; Twilio/Millis não foram homologadas.
+- **SAFETY**:
+  - `ACTIVE_GUARDED`: `BLOCKED`
+  - `CUSTOMER_TRAFFIC`: `PROHIBITED`
+  - `PRODUCTION_RUNTIME_WIRING`: `NO`
+  - `REAL_PROVIDER_CALLS`: `0`
+  - `PURCHASE_OF_PHONE_NUMBERS`: `0`
+  - `REMOTE_MIGRATIONS`: `0`
+  - `DATABASE_SCHEMA_CHANGED`: `NO`
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED`: `NO`
+  - `REAL_DOTENV_ACCESSED`: `NO`
+  - `SECRET_AUDIT`: `PASS`
+

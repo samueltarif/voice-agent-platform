@@ -248,6 +248,7 @@ A ordem histórica 008A–008G postergava o dialer outbound para o Slice 008E, c
 ##### D. Detalhamento Sequencial das Slices Outbound-First
 
 - [ ] **Slice 008-OF1 — Contratos e Ciclo de Vida Outbound Provider-Neutral (Fundação)**:
+  - **Status Real**: `IMPLEMENTED_TESTED_OFFLINE / EM REVISÃO HUMANA` — implementação offline aberta em PR própria (branch `feat/phase8-008-of1-outbound-lifecycle-contracts`); NÃO concluída até aprovação e merge. Contratos em `packages/contracts/src/telephony/`; coordenador e fakes offline em `apps/worker/src/`; zero migrations, zero adapters Twilio/Millis, zero chamadas reais (`PROVIDER-UNVERIFIED`). Persistência e recuperação após reinício real permanecem na 008-OF2.
   - **Objetivo**: Definir portas de originação, estados de tentativa e ciclo de vida de chamadas outbound sem acoplamento a fornecedores e sem migrations prematuras.
   - **Escopo**:
     - Porta `TelephonyOriginationPort` e tipos em `packages/contracts/src/telephony/`.
