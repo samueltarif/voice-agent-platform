@@ -18134,3 +18134,82 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED`: `NO`
   - `REAL_DOTENV_ACCESSED`: `NO`
   - `SECRET_AUDIT`: `PASS`
+
+## 2026-10-19 — Fase 8 — Formalização da DEC-043 e Reconciliação do Outbound-First com MVP de Produto — Antigravity
+
+- **SLICE_ID**: `008-DEC043-PRODUCT-MVP-ALIGNMENT` (Phase 8 Architecture & Governance — DEC-043 Formalization and Outbound-First Product MVP Reconciliation)
+- **EXECUTOR**: `ANTIGRAVITY` (Windows executor autorizado pelo proprietário humano para formalização documental da DEC-043 e auditoria factual do inventário de produto)
+- **BASE_MAIN_SHA**: `0422133bbb71abf73cc9ade85c76ae9532bbc854` (post-merge PR #117)
+- **FEATURE_BRANCH**: `docs/phase8-dec043-product-mvp-alignment`
+- **SCOPE**: `CONTROLLED DOCUMENTATION / CODE-BACKED PRODUCT AUDIT / GOVERNANCE PR` (formalização da DEC-043 aprovada pelo operador humano; adição da trilha funcional de MVP outbound 008-MVP1 a 008-MVP4; segregação estrita entre Gate A [homologação técnica em staging de 1 chamada] e Gate B [prontidão de piloto comercial]; preservação de capacidades futuras no backlog; auditoria factual do inventário com referências de código; reconciliação de dependências e versões instaladas)
+- **FILES_CHANGED**:
+  - `docs/DECISIONS_LOG.md`: Formalização da DEC-043 (Seção 1, item 55) com data de aprovação humana em 2026-10-19; atualização da tabela de decisões pendentes na Seção 2 (DEC-043 de PENDING para APPROVED; preservadas como PENDING as decisões operacionais de originação Millis vs Twilio, pricing/budget cap e compras de números).
+  - `docs/ROADMAP.md`: Atualização do status da Fase 8 para `APPROVED (DEC-043)`; inclusão da Trilha Funcional de MVP Outbound (008-MVP1 a 008-MVP4) na Seção 2.E; inclusão da Matriz de Dependências Cruzadas na Seção 2.F; segregação formal de dois gates distintos na Seção 2.G (Gate A — Verificação Técnica em Staging vs Gate B — Prontidão de Piloto Comercial com clientes); preservação do Backlog Futuro na Seção 2.H (008-POST1 a 008-POST4 e backlog estratégico de produto como `PROPOSED` / `FUTURE_CANDIDATE`); formalização da DEC-043 na Seção 3; atualização do quadro de decisões pendentes na Seção 4; correção factual de versões de dependências (Next.js 15.2, TypeScript ^5.7.3, Vitest ^3.0.5).
+  - `docs/AI_CONTEXT.md`: Atualização do cabeçalho de navegação (SHA base `0422133bbb71abf73cc9ade85c76ae9532bbc854`, PR #117, branch `docs/phase8-dec043-product-mvp-alignment`), correção factual da versão de Next.js (`15.2`), sincronização do Quality Gate Snapshot para a evidência do pós-merge da PR #117, atualização do item 53, adição do item 54 (`DEC_043_STATUS = APPROVED_BY_HUMAN`) e alinhamento do `NEXT_ALLOWED_STEP`.
+  - `docs/AI_WORKLOG.md`: Este registro cronológico append-only.
+- **DECISION_AND_ROADMAP_ALIGNMENT**:
+  1. *Formalização da DEC-043*: Registrada a aprovação expressa do proprietário humano: (1) Manter OUTBOUND_FIRST como prioridade; (2) Manter o fatiamento técnico 008-OF1 a 008-OF6; (3) Acrescentar trilha funcional para o MVP outbound (008-MVP1 a 008-MVP4); (4) Segregar homologação técnica de 1 chamada da liberação comercial do SaaS; (5) Preservar funcionalidades avançadas sem descartá-las.
+  2. *Exclusões Expressas da DEC-043*: A decisão formalizada expressamente NÃO seleciona: originação Millis-led versus Twilio-led; tarifas/preços ou orçamento exato de staging; compra de números; credenciais/contratos da Millis; gateway de pagamento; política jurídica definitiva de telemarketing; ativação de produção; e liberação de tráfego de clientes.
+  3. *Trilha Funcional de MVP Outbound*:
+     - `008-MVP1 — Contacts, Audiences, Suppression and Eligibility`: persistência multi-tenant de contatos, importação CSV inicial, validação telefônica, deduplicação, listas de supressão/opt-out, bloqueio de inelegíveis e políticas de horário dependentes de caso de uso.
+     - `008-MVP2 — Campaign Management UI and Operations`: UI web no painel para criação, edição, seleção de agente publicado, associação de listas, agendamento, pausa/cancelamento e monitoramento de campanhas consumindo a API existente.
+     - `008-MVP3 — Published Agent to Millis Runtime Mapping`: mapeamento seguro de snapshot de agente publicado para a sessão conversacional da Millis com autoridade de tenant e isolamento server-side.
+     - `008-MVP4 — Call Outcomes, Monitoring and Operational Visibility`: visibilidade e auditoria de resultados reais de chamadas, associação durável campanha ↔ contato ↔ tentativa ↔ agente, métricas operacionais e transparência de custos.
+  4. *Segregação de Gates*:
+     - `Gate A — Technical Staging Verification (008-OF6)`: 9 bloqueios mandatórios estritos preservados; prova técnica de fiação limitada em 1 chamada.
+     - `Gate B — Commercial Pilot Readiness`: gate de produto separado para tráfego piloto com clientes; exige contatos/supressão operacionais, fluxo de campanhas utilizável, resolução de agente comprovada, ledger de custos auditável e aprovação humana explícita.
+  5. *Auditoria Factual do Inventário de Produto*: Classificação precisa das capacidades com referências de código:
+     - `IMPLEMENTED_AND_USER_ACCESSIBLE`: Agent Studio Draft Editor (`apps/web/.../agent-draft-editor.tsx`), Knowledge Base UI (`apps/web/.../knowledge-base-tab.tsx`), Autenticação de Usuário (`apps/web/.../sign-in-card.tsx`).
+     - `IMPLEMENTED_API_ONLY`: API de Campanhas Outbound (`apps/api/.../campaigns-endpoints.ts`), Agendamento em Lote (`apps/api/.../campaigns-endpoints.ts`), Gestão de Documentos KB (`apps/api/.../knowledge-documents-endpoints.ts`).
+     - `IMPLEMENTED_TESTED_OFFLINE`: Dispatcher de Outbound Jobs (`apps/worker/.../outbound-call-dispatcher.ts`), CallSession State Machine (`apps/voice/.../call-session.ts`), Tool Execution Engine (`apps/voice/.../tool-execution-engine.ts`), Tools de Horário e Catálogo (`apps/voice/...`), Conversational Orchestrator (`apps/voice/.../conversation-orchestrator.ts`).
+     - `UI_MOCK_OR_STATIC`: Dashboard KPIs (`apps/web/.../dashboard-content.tsx`), Histórico de Chamadas UI (`apps/web/src/app/calls/page.tsx`), Plataforma / Operações Globais (`apps/web/src/app/platform/page.tsx`).
+     - `PARTIAL`: Integração Twilio (validação HMAC e TwiML offline vs carrier real `PROVIDER-UNVERIFIED`).
+     - `PLANNED_NOT_IMPLEMENTED`: Millis AI adapter, Integração CRM (HubSpot/Salesforce/RD Station), Integração Calendário (Google/Outlook), WhatsApp pós-chamada, Gravação Cloudflare R2, Gateway de Pagamento / PIX, Gestão Comercial e Billing.
+     - `PROVIDER_UNVERIFIED`: Telefonia Twilio no Brasil (+55), Plataforma Millis AI e modelos conversacionais em tráfego telefônico real.
+- **SAFETY**:
+  - `ACTIVE_GUARDED`: `BLOCKED`
+  - `CUSTOMER_TRAFFIC`: `PROHIBITED`
+  - `PRODUCTION_RUNTIME_WIRING`: `NO`
+  - `REAL_PROVIDER_CALLS`: `0`
+  - `PURCHASE_OF_PHONE_NUMBERS`: `0`
+  - `REMOTE_MIGRATIONS`: `0`
+  - `DATABASE_SCHEMA_CHANGED`: `NO`
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED`: `NO`
+  - `REAL_DOTENV_ACCESSED`: `NO`
+  - `SECRET_AUDIT`: `PASS`
+
+## 2026-10-19 — Fase 8 — Revisão Final de Consistência e Governança da PR #118 — Antigravity
+
+- **SLICE_ID**: `008-DEC043-CONSISTENCY-REVIEW-PR118` (Phase 8 Architecture & Governance — PR #118 Governance Consistency Review)
+- **EXECUTOR**: `ANTIGRAVITY` (Windows executor autorizado pelo proprietário humano para revisão direcionada e correções documentais da PR #118)
+- **BASE_MAIN_SHA**: `0422133bbb71abf73cc9ade85c76ae9532bbc854` (post-merge PR #117)
+- **FEATURE_BRANCH**: `docs/phase8-dec043-product-mvp-alignment`
+- **PR_NUMBER**: `#118` (open, clean, não mesclada)
+- **SCOPE**: `TARGETED DOCUMENTATION CORRECTION / EXISTING PR ONLY` (ajuste da introdução do DECISIONS_LOG para categorizar decisões aprovadas vs seleções para planejamento vs pendências reais; resolução do escopo de transcrições conversacionais no Gate B e na Slice 008-MVP4; sincronização do AI_CONTEXT para refletir PR #118 aberta; registro detalhado e transparente das execuções do quality gate)
+- **FILES_CHANGED**:
+  - `docs/DECISIONS_LOG.md`: Ajustada a introdução da Seção 2 para categorizar formalmente: (1) Decisões já aprovadas (`Decided`); (2) Seleções para planejamento (`Selected for Planning / Candidate`), dependentes de homologação e autorização explícita; (3) Decisões efetivamente pendentes (`Pending Decision`).
+  - `docs/ROADMAP.md`: Ajustado o critério 4 do Gate B (Commercial Pilot Readiness Gate) para exigir desfechos operacionais (disposition tags), métricas e custos reais auditáveis no Dashboard; adicionada nota explícita na Slice 008-MVP4 e no Gate B esclarecendo que transcrições textuais integrais e dados conversacionais possuem governança própria de privacidade/LGPD e retenção, permanecendo no backlog futuro sem constituir pré-requisito implícito do piloto básico de MVP outbound; adicionada capacidade de armazenamento e visualização de transcrições no backlog futuro (Seção 2.H).
+  - `docs/AI_CONTEXT.md`: Atualizado o cabeçalho para `CONTEXT_UPDATE_PR: 118` e alinhado o `NEXT_ALLOWED_STEP` para revisão humana e autorização explícita de merge da PR #118.
+  - `docs/AI_WORKLOG.md`: Este registro cronológico append-only.
+- **QUALITY_GATE_EXECUTION_TRANSPARENCY**:
+  - *Tentativa Intermediária 1 (task-891)*: Executado `cmd /c "pnpm install --frozen-lockfile && pnpm check"`. Ocorreu timeout de 5000ms no teste `src/typesafe/check-targeted-v2-technical-readiness.test.ts > 006BO no-network technical readiness preflight > E. model / config mismatch => technical readiness NO` devido a concorrência e fila de I/O em disco no Windows durante execução paralela massiva. Resultado factual: 1 teste falho por timeout, 174 arquivos aprovados, 1253 testes aprovados, exit code 1.
+  - *Investigação e Diagnóstico*: O teste afetado executa verificações de freeze contra múltiplos arquivos em disco. Foi reexecutado isoladamente (`pnpm --filter @voice-agent/integrations test src/typesafe/check-targeted-v2-technical-readiness.test.ts`), passando em 34s com exit code 0 sem qualquer alteração de código ou teste.
+  - *Tentativa Intermediária 2 (task-901)*: Executada a suíte de testes completa do repositório (`pnpm test`), completando em 160.42s com exit code 0 (175 arquivos aprovados, 1254 testes aprovados, 0 falhas, 45 testes de staging pulados).
+  - *Gate Canônico Final 3 (task-905)*: Executado `cmd /c "pnpm install --frozen-lockfile && pnpm check"` no SHA `cb27724464bcd86efaef67059be3960835a7026c`. Todos os 7 estágios completaram com sucesso e exit code 0 (format:check PASS, lint PASS, typecheck PASS, test PASS com 1254 testes, build PASS, architecture-check PASS, file-size-check PASS).
+- **GOVERNANCE_PRESERVATION**:
+  - DEC-042 preservada.
+  - DEC-043 preservada: sequenciamento 008-OF1 a 008-OF6, trilha funcional 008-MVP1 a 008-MVP4, segregação Gate A (técnico) e Gate B (comercial), e backlog futuro sem descarte.
+  - Pendências preservadas: originação A/B, contratos Millis, números brasileiros, budget cap/tarifas, regulação Anatel/0303, compras e chamadas reais.
+- **SAFETY**:
+  - `ACTIVE_GUARDED`: `BLOCKED`
+  - `CUSTOMER_TRAFFIC`: `PROHIBITED`
+  - `PRODUCTION_RUNTIME_WIRING`: `NO`
+  - `REAL_PROVIDER_CALLS`: `0`
+  - `PURCHASE_OF_PHONE_NUMBERS`: `0`
+  - `REMOTE_MIGRATIONS`: `0`
+  - `DATABASE_SCHEMA_CHANGED`: `NO`
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED`: `NO`
+  - `REAL_DOTENV_ACCESSED`: `NO`
+  - `SECRET_AUDIT`: `PASS`
+
+
