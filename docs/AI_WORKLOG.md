@@ -18178,3 +18178,38 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `REAL_DOTENV_ACCESSED`: `NO`
   - `SECRET_AUDIT`: `PASS`
 
+## 2026-10-19 — Fase 8 — Revisão Final de Consistência e Governança da PR #118 — Antigravity
+
+- **SLICE_ID**: `008-DEC043-CONSISTENCY-REVIEW-PR118` (Phase 8 Architecture & Governance — PR #118 Governance Consistency Review)
+- **EXECUTOR**: `ANTIGRAVITY` (Windows executor autorizado pelo proprietário humano para revisão direcionada e correções documentais da PR #118)
+- **BASE_MAIN_SHA**: `0422133bbb71abf73cc9ade85c76ae9532bbc854` (post-merge PR #117)
+- **FEATURE_BRANCH**: `docs/phase8-dec043-product-mvp-alignment`
+- **PR_NUMBER**: `#118` (open, clean, não mesclada)
+- **SCOPE**: `TARGETED DOCUMENTATION CORRECTION / EXISTING PR ONLY` (ajuste da introdução do DECISIONS_LOG para categorizar decisões aprovadas vs seleções para planejamento vs pendências reais; resolução do escopo de transcrições conversacionais no Gate B e na Slice 008-MVP4; sincronização do AI_CONTEXT para refletir PR #118 aberta; registro detalhado e transparente das execuções do quality gate)
+- **FILES_CHANGED**:
+  - `docs/DECISIONS_LOG.md`: Ajustada a introdução da Seção 2 para categorizar formalmente: (1) Decisões já aprovadas (`Decided`); (2) Seleções para planejamento (`Selected for Planning / Candidate`), dependentes de homologação e autorização explícita; (3) Decisões efetivamente pendentes (`Pending Decision`).
+  - `docs/ROADMAP.md`: Ajustado o critério 4 do Gate B (Commercial Pilot Readiness Gate) para exigir desfechos operacionais (disposition tags), métricas e custos reais auditáveis no Dashboard; adicionada nota explícita na Slice 008-MVP4 e no Gate B esclarecendo que transcrições textuais integrais e dados conversacionais possuem governança própria de privacidade/LGPD e retenção, permanecendo no backlog futuro sem constituir pré-requisito implícito do piloto básico de MVP outbound; adicionada capacidade de armazenamento e visualização de transcrições no backlog futuro (Seção 2.H).
+  - `docs/AI_CONTEXT.md`: Atualizado o cabeçalho para `CONTEXT_UPDATE_PR: 118` e alinhado o `NEXT_ALLOWED_STEP` para revisão humana e autorização explícita de merge da PR #118.
+  - `docs/AI_WORKLOG.md`: Este registro cronológico append-only.
+- **QUALITY_GATE_EXECUTION_TRANSPARENCY**:
+  - *Tentativa Intermediária 1 (task-891)*: Executado `cmd /c "pnpm install --frozen-lockfile && pnpm check"`. Ocorreu timeout de 5000ms no teste `src/typesafe/check-targeted-v2-technical-readiness.test.ts > 006BO no-network technical readiness preflight > E. model / config mismatch => technical readiness NO` devido a concorrência e fila de I/O em disco no Windows durante execução paralela massiva. Resultado factual: 1 teste falho por timeout, 174 arquivos aprovados, 1253 testes aprovados, exit code 1.
+  - *Investigação e Diagnóstico*: O teste afetado executa verificações de freeze contra múltiplos arquivos em disco. Foi reexecutado isoladamente (`pnpm --filter @voice-agent/integrations test src/typesafe/check-targeted-v2-technical-readiness.test.ts`), passando em 34s com exit code 0 sem qualquer alteração de código ou teste.
+  - *Tentativa Intermediária 2 (task-901)*: Executada a suíte de testes completa do repositório (`pnpm test`), completando em 160.42s com exit code 0 (175 arquivos aprovados, 1254 testes aprovados, 0 falhas, 45 testes de staging pulados).
+  - *Gate Canônico Final 3 (task-905)*: Executado `cmd /c "pnpm install --frozen-lockfile && pnpm check"` no SHA `cb27724464bcd86efaef67059be3960835a7026c`. Todos os 7 estágios completaram com sucesso e exit code 0 (format:check PASS, lint PASS, typecheck PASS, test PASS com 1254 testes, build PASS, architecture-check PASS, file-size-check PASS).
+- **GOVERNANCE_PRESERVATION**:
+  - DEC-042 preservada.
+  - DEC-043 preservada: sequenciamento 008-OF1 a 008-OF6, trilha funcional 008-MVP1 a 008-MVP4, segregação Gate A (técnico) e Gate B (comercial), e backlog futuro sem descarte.
+  - Pendências preservadas: originação A/B, contratos Millis, números brasileiros, budget cap/tarifas, regulação Anatel/0303, compras e chamadas reais.
+- **SAFETY**:
+  - `ACTIVE_GUARDED`: `BLOCKED`
+  - `CUSTOMER_TRAFFIC`: `PROHIBITED`
+  - `PRODUCTION_RUNTIME_WIRING`: `NO`
+  - `REAL_PROVIDER_CALLS`: `0`
+  - `PURCHASE_OF_PHONE_NUMBERS`: `0`
+  - `REMOTE_MIGRATIONS`: `0`
+  - `DATABASE_SCHEMA_CHANGED`: `NO`
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED`: `NO`
+  - `REAL_DOTENV_ACCESSED`: `NO`
+  - `SECRET_AUDIT`: `PASS`
+
+

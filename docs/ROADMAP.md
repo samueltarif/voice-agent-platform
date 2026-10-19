@@ -406,6 +406,7 @@ Esta trilha paralela e rastreável define as capacidades de produto indispensáv
     - Painel de métricas operacionais reais no Dashboard (substituição dos dados mockados atuais por dados persistidos reais).
     - Apresentação de custos reais incorridos: segregação entre custos de telefonia (Twilio) e custos conversacionais (Millis AI) conforme dados verificáveis do ledger.
     - Trilha de auditoria e logs sanitizados de chamadas (sem exposição de PII desnecessária).
+    - *Nota sobre Transcrições Conversacionais*: Transcrições textuais integrais e armazenamento de dados conversacionais são tratadas como capacidade sujeita a modelagem própria de persistência, autorização de acesso, retenção e conformidade jurídica/LGPD, preservadas no planejamento futuro e NÃO constituindo pré-requisito da Slice 008-MVP4 nem do MVP básico. Não confundir transcrição textual com gravação de áudio (objeto da Slice 008-POST2 / DEC-024).
   - **Dependências**: Slices 008-OF2, 008-OF4, 008-MVP1 e 008-MVP2.
   - **Arquivos Prováveis**: `apps/web/src/app/calls/`, `apps/web/src/features/calls/`, `apps/api/src/routes/calls-routes.ts`.
   - **Testes Offline**: Testes de queries de histórico, agregação de custos e renderização de tabelas e detalhes de chamada.
@@ -474,11 +475,12 @@ graph TD
      1. Gestão de contatos, audiências e listas de supressão operacionais e testadas (008-MVP1).
      2. Fluxo completo de criação e controle de campanhas realizável via painel web sem API direta (008-MVP2).
      3. Associação consistente e imutável de agente publicado com a sessão da Millis AI (008-MVP3).
-     4. Resultados de chamadas, transcrições e extrato real de custos auditáveis no Dashboard (008-MVP4).
+     4. Resultados de chamadas, desfechos operacionais (disposition tags), métricas e extrato real de custos auditáveis no Dashboard (008-MVP4).
      5. Isolamento estrito de dados entre tenants comprovado em auditoria de segurança.
      6. Procedimentos de suporte operacional, tratamento de erros e monitoramento estabelecidos.
      7. Conformidade jurídica e regulatória bilateral (termos de uso, LGPD, regras de discagem).
      8. **Aprovação humana expressa e formal do operador** para início de piloto.
+   - *Esclarecimento sobre Transcrições e Gravações no Piloto*: O piloto comercial básico exige auditoria de desfechos operacionais (tags de resultado, status de atendimento, métricas de duração e custos reais incorridos). Transcrições textuais integrais e gravações de áudio (DEC-024) não são pré-requisitos bloqueantes do piloto básico, permanecendo sujeitas a governança própria de privacidade/LGPD, infraestrutura de retenção e autorização jurídica prévia.
 
 ---
 
@@ -493,6 +495,7 @@ Todas as funcionalidades e integrações avançadas permanecem integralmente pre
    - `008-POST4` (antigo 008F): *Integrações com CRM (HubSpot, Salesforce, Pipedrive, RD Station) e Calendário (Google Calendar, Outlook)*.
 
 2. **Candidatos Futuros Adicionais (Backlog Estratégico)**:
+   - *Armazenamento e Visualização de Transcrições Conversacionais*: persistência durável de transcripts, anonimização/mascaramento de PII, controle de retenção e visualização no painel, sujeitas a base legal e consentimento aplicáveis.
    - *Disparo de Mensagens WhatsApp Pós-Chamada*: envio automatizado de links de pagamento, PIX ou resumos de propostas comerciais.
    - *Gateway de Pagamentos / Faturamento SaaS Recorrente*: integração com Stripe/Asaas para cobrança automatizada de planos e recarga de créditos.
    - *Simulador Interativo de Voz no Navegador*: playground no Agent Studio para testes de voz e áudio antes da publicação.

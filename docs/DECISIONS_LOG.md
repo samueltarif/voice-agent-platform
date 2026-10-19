@@ -56,9 +56,14 @@ Data de Registro Inicial: 21 de Setembro de 2026.
 
 ---
 
-## 2. Decisões Técnicas Pendentes (Pending Human Decisions)
+## 2. Quadro de Decisões Técnicas, Seleções de Planejamento e Pendências (Architecture & Technology Status)
 
-Nenhuma das tecnologias e fornecedores abaixo foi selecionada de forma definitiva. Agentes de IA **não devem** assumir dependências concretas até aprovação explícita.
+Este quadro consolida o estado de governança tecnológica do projeto, distinguindo categoricamente:
+1. **Decisões Já Aprovadas (`Decided`)**: Tecnologias formalmente aprovadas por decisões humanas registradas (PostgreSQL 16, Drizzle ORM, Better Auth, Hono, Zod, Next.js 15.2, Ed25519 e o sequenciamento em duas trilhas da Fase 8 via DEC-043).
+2. **Seleções para Planejamento (`Selected for Planning / Candidate`)**: Fornecedores selecionados pelo operador como direção de planejamento (Twilio com números gerenciados exclusivamente para outbound, Millis AI para conversação em tempo real, Cloudflare R2 para mídias privadas, Hostinger VPS para hospedagem e Supabase Postgres para ambiente futuro — DEC-042), que permanecem estritamente dependentes de homologação técnica e autorização explícita para compras e provisionamento (`PROVIDER-UNVERIFIED`).
+3. **Decisões Efetivamente Pendentes (`Pending Decision`)**: Tópicos de arquitetura e infraestrutura ainda abertos a deliberação formal (autoridade de originação A/B, linguagem do Voice Engine em produção, cache/filas em tempo real, gateway de pagamentos e políticas definitivas de tarifação e telecomunicações).
+
+Agentes de IA **não devem** assumir dependências concretas de produção, fiação de runtime ou compras para itens em planejamento ou pendentes até aprovação humana explícita.
 
 | Tópico | Candidatos em Avaliação | Status |
 | :--- | :--- | :--- |

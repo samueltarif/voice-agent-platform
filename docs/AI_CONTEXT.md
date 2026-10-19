@@ -8,7 +8,7 @@ CONTEXT_BASE_MAIN_SHA: 0422133bbb71abf73cc9ade85c76ae9532bbc854
 CURRENT_PHASE: Phase 8 (OUTBOUND_FIRST_TWO_TRACK_PLANNING)
 CURRENT_SLICE: DEC-043 Formalization & Product MVP Alignment
 CONTEXT_UPDATE_BRANCH: docs/phase8-dec043-product-mvp-alignment
-CONTEXT_UPDATE_PR: NONE
+CONTEXT_UPDATE_PR: 118
 LAST_MERGED_PR_AT_REFRESH: 117
 LAST_MERGE_SHA_AT_REFRESH: 0422133bbb71abf73cc9ade85c76ae9532bbc854
 LAST_TESTED_CODE_SHA: 0422133bbb71abf73cc9ade85c76ae9532bbc854
@@ -210,9 +210,9 @@ AI_CONTEXT_HEADER_END
 
 ### `NEXT_ALLOWED_STEP`:
 - **Phase 7 Status**: `CLOSED ON MAIN` (PRs #94 a #115 mescladas na main; fechamento formal aceito pelo operador humano via DEC-041).
-- **Phase 8 Status**: `OUTBOUND_FIRST_TWO_TRACK_PLANNING` (decisão DEC-042 e DEC-043 formalizadas; fatiamento técnico 008-OF1 a 008-OF6 e trilha funcional 008-MVP1 a 008-MVP4 reconciliados; branch `docs/phase8-dec043-product-mvp-alignment` em revisão).
-- `NEXT_ALLOWED_STEP = HUMAN_REVIEW_OF_DEC043_PRODUCT_MVP_ALIGNMENT_PR`
-- `NEXT_ALLOWED_SLICE = 008_OF1_CONTRACTS_AND_OUTBOUND_LIFECYCLE` (somente sob autorização explícita separada após merge da DEC-043).
+- **Phase 8 Status**: `OUTBOUND_FIRST_TWO_TRACK_PLANNING` (decisões DEC-042 e DEC-043 formalizadas; fatiamento técnico 008-OF1 a 008-OF6 e trilha funcional 008-MVP1 a 008-MVP4 reconciliados; PR #118 aberta na branch `docs/phase8-dec043-product-mvp-alignment` aguardando revisão e autorização explícita de merge).
+- `NEXT_ALLOWED_STEP = HUMAN_REVIEW_AND_EXPLICIT_MERGE_AUTHORIZATION_OF_PR_118`
+- `NEXT_ALLOWED_SLICE = 008_OF1_CONTRACTS_AND_OUTBOUND_LIFECYCLE` (somente sob autorização explícita separada após merge da PR #118).
 - `PURCHASE_OF_PHONE_NUMBERS = 0` | `REAL_PROVIDER_CALLS = 0` | `CUSTOMER_TRAFFIC = PROHIBITED` | `ACTIVE_GUARDED = BLOCKED`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
 
