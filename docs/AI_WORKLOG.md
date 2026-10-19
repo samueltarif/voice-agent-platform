@@ -17914,6 +17914,140 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `REAL_DOTENV_ACCESSED`: `NO`
   - `SECRET_AUDIT`: `PASS`
 
+## 2026-10-19 — Slice 008A — Post-Merge Closure & Quality Gate Validation on Main (PR #115) — Antigravity
+
+- **SLICE_ID**: `008A-POSTMERGE-CLOSE` (Phase 7 Closure Formalization & Phase 8 Planning — PR #115 Post-Merge Synchronization)
+- **PR_NUMBER**: `#115` (`https://github.com/samueltarif/voice-agent-platform/pull/115`)
+- **TARGET_BRANCH**: `main`
+- **MERGE_METHOD**: `SQUASH`
+- **SQUASH_SHA**: `5d2f897cb412c918631cfcc5f84dabe02d4a70a4`
+- **BASE_MAIN_SHA**: `461f37eb9b23750ed7fea28e3cec1d88d335cf94`
+- **FEATURE_HEAD**: `fefe6f914419761edc347209800e5914dc81d7f0`
+- **POSTMERGE_GATE**: `EXIT CODE 0` | `SEVEN STAGES PASS` (observado na branch `main` sincronizada no commit squash `5d2f897cb412c918631cfcc5f84dabe02d4a70a4`: `cmd /c "pnpm install --frozen-lockfile && pnpm check"`)
+  - `pnpm format:check`: `PASS`
+  - `pnpm lint`: `PASS`
+  - `pnpm typecheck`: `PASS` (12/12 pacotes bem-sucedidos)
+  - `pnpm test`: `PASS` (175 arquivos de teste aprovados / 1254 testes aprovados / 0 falhas / 45 testes de staging pulados)
+  - `pnpm build`: `PASS` (12/12 pacotes compilados com sucesso, Next.js build limpo)
+  - `pnpm check:architecture`: `PASS` (todas as regras de fronteira respeitadas via AST)
+  - `pnpm check:file-size`: `PASS` (350 arquivos de lógica <= 180 linhas, 33 avisos legítimos)
+- **POSTMERGE_DIFF**: Exclusivamente os 4 arquivos de governança incorporados (+123 / -23), zero alteração em código de produção ou persistência.
+- **SAFETY**:
+  - `ACTIVE_GUARDED`: `BLOCKED`
+  - `CUSTOMER_TRAFFIC`: `PROHIBITED`
+  - `PRODUCTION_RUNTIME_WIRING`: `NO`
+  - `REAL_PROVIDER_CALLS`: `0`
+  - `REMOTE_MIGRATIONS`: `0`
+  - `DATABASE_SCHEMA_CHANGED`: `NO`
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED`: `NO`
+  - `REAL_DOTENV_ACCESSED`: `NO`
+  - `SECRET_AUDIT`: `PASS`
+
+## 2026-10-19 — Fase 8 — Formalização da Decisão Humana DEC-042 (Twilio-Managed Numbers Only & Millis AI) — Antigravity
+
+- **SLICE_ID**: `008A-DEC042` (Phase 8 Architecture Foundation & Governance — Twilio Managed Numbers Policy Formalization)
+- **EXECUTOR**: `ANTIGRAVITY` (Windows executor autorizado pelo proprietário humano para registro de governança)
+- **BASE_MAIN_SHA**: `5d2f897cb412c918631cfcc5f84dabe02d4a70a4`
+- **FEATURE_BRANCH**: `docs/phase8-dec042-twilio-managed-numbers`
+- **SCOPE**: `DOCUMENTATION AND GOVERNANCE ONLY` (registro formal da DEC-042, cancelamento de BYON, seleção de provedores para planejamento, divisão de responsabilidades e catálogo NOT_VERIFIED)
+- **FILES_CHANGED**:
+  - `docs/DECISIONS_LOG.md`: inclusão da decisão formal `DEC-042` e atualização da tabela de decisões técnicas pendentes (Twilio Managed Numbers, Millis AI, Cloudflare R2, Supabase Postgres, Hostinger VPS).
+  - `docs/ROADMAP.md`: atualização da Fase 8 com a política de números gerenciados Twilio, cancelamento de BYON, divisão arquitetural em 3 camadas e catálogo de pendências `NOT_VERIFIED`.
+  - `docs/AI_CONTEXT.md`: atualização de metadados de cabeçalho, inclusão dos pontos 49 a 52 na seção de status e alinhamento do `NEXT_ALLOWED_STEP`.
+  - `docs/AI_WORKLOG.md`: registro cronológico append-only para o pós-merge da PR #115 e a formalização da DEC-042.
+- **DECISION_RECORD**: `DEC-042` — `TWILIO_MANAGED_NUMBERS_ONLY`
+- **HUMAN_OPERATOR**: Proprietário humano do projeto
+- **KEY_DECISION_OUTCOMES**:
+  1. *Adoção Exclusiva de Números Twilio*: A versão inicial da Voice Agent Platform utilizará exclusivamente números fornecidos e gerenciados pela Twilio para chamadas outbound.
+  2. *Cancelamento de BYON*: O requisito de utilização direta de números externos existentes dos clientes está formalmente cancelado. Números de Claro, Vivo, TIM ou fixo tradicional não serão usados diretamente como caller ID de saída. Portabilidade e conexões SIP de terceiros ficam fora do escopo inicial.
+  3. *Provedores Selecionados para Planejamento*:
+     - **Telefonia / Transporte**: Twilio (originação, transporte e números gerenciados).
+     - **Conversação de Voz em Tempo Real**: Millis AI (STT, LLM, TTS, configuração de agentes e funções externas).
+     - **Armazenamento Privado de Arquivos/Gravações**: Cloudflare R2 (planejado para gravações privadas pós-chamada; política jurídica/retenção pendentes).
+     - **Banco de Dados Gerenciado Futuro**: Supabase Postgres (planejado para ambiente futuro; PostgreSQL 16 Docker local atual e Neon staging permanecem vigentes).
+     - **Hospedagem Futura**: Hostinger VPS (planejada para hospedagem futura; zero provisionamento executado).
+  4. *Divisão Arquitetural de Responsabilidades*:
+     - **Voice Agent Platform**: Multi-tenancy, isolamento estrito entre organizações, Agent Studio, Knowledge Base, CRM e tools, campanhas outbound, agendamento de jobs, quotas comerciais, billing e controle financeiro.
+     - **Twilio**: Infraestrutura telefônica, originação de chamadas, alocação de números gerenciados e transporte de áudio.
+     - **Millis AI**: Orquestração conversacional em tempo real, reconhecimento de fala (STT), geração de linguagem (LLM), síntese de voz (TTS) e despacho de chamadas de webhook/ferramentas.
+  5. *Preservação de Código Offline*: O código existente de integração com Twilio ConversationRelay em `packages/integrations` permanece intacto e inativo (não há presunção de fiação simultânea ou dupla cobrança).
+  6. *Catálogo Factual de Itens `NOT_VERIFIED`*:
+     - Disponibilidade de números brasileiros Twilio.
+     - Viabilidade técnica real de integração outbound Twilio + Millis no Brasil (+55).
+     - Contratos de webhooks e mecanismos de autenticação da Millis AI.
+     - Cobranças tarifárias por tentativas de discagem sem atendimento.
+     - Tarifas efetivas por minuto para chamadas fixas, móveis e prefixo 0303.
+     - Conformidade regulatória brasileira de telecomunicações.
+     - Mecanismo e topologia de transferência de chamadas para atendentes humanos.
+  7. *Gestão Financeira e Compras de Números*: Provisionamento, cancelamento e custos de números devem ser contabilizados por organização. Qualquer compra de número telefônico exigirá autorização humana prévia e explícita (`PURCHASE_OF_PHONE_NUMBERS = 0`).
+- **SAFETY**:
+  - `ACTIVE_GUARDED`: `BLOCKED`
+  - `CUSTOMER_TRAFFIC`: `PROHIBITED`
+  - `PRODUCTION_RUNTIME_WIRING`: `NO`
+  - `REAL_PROVIDER_CALLS`: `0`
+  - `PURCHASE_OF_PHONE_NUMBERS`: `0`
+  - `REMOTE_MIGRATIONS`: `0`
+  - `DATABASE_SCHEMA_CHANGED`: `NO`
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED`: `NO`
+  - `REAL_DOTENV_ACCESSED`: `NO`
+  - `SECRET_AUDIT`: `PASS`
+
+## 2026-10-19 — Fase 8 — Revisão Final de Consistência Documental da DEC-042 — Antigravity
+
+- **SLICE_ID**: `008A-DEC042-CONSISTENCY` (Phase 8 Architecture Foundation & Governance — Consistency Review)
+- **EXECUTOR**: `ANTIGRAVITY` (Windows executor autorizado pelo proprietário humano para correções documentais locais)
+- **FEATURE_BRANCH**: `docs/phase8-dec042-twilio-managed-numbers`
+- **SCOPE**: `DOCUMENTATION AND GOVERNANCE ONLY`
+- **FILES_CHANGED**:
+  - `docs/AI_CONTEXT.md`: Correção da descrição do subsistema API de `Fastify/Node` para `Hono/Node.js` (refletindo o código real em `apps/api`), e inclusão do ponto 53 formalizando a prioridade inicial de outbound do produto.
+  - `docs/ROADMAP.md`: Revisão do Slice 008A para evitar presunção não-comprovada de assinaturas HMAC na Millis AI; especificação de autenticação de webhooks fail-closed, proteção contra replay, resolução server-side de tenant e bloqueio até confirmação de contrato oficial; e formalização da prioridade de chamadas outbound como objetivo central do produto com registro da pendência para deliberação humana sobre eventual refatiamento.
+  - `docs/AI_WORKLOG.md`: Este registro cronológico append-only.
+- **CORRECTIONS_APPLIED**:
+  1. *Correção 1 — Framework da API*: Retificada a referência factual no `docs/AI_CONTEXT.md` para `Hono/Node.js` (`@hono/node-server` e `@hono/zod-openapi` verificados no código de `apps/api`).
+  2. *Correção 2 — Segurança dos Webhooks*: Retirada a presunção não-comprovada de suporte a HMAC para a Millis AI no Slice 008A do `docs/ROADMAP.md`. Documentada abordagem rigorosa de segurança fail-closed por provedor: autenticação criptográfica suportada (Twilio `X-Twilio-Signature` já validada; Millis classificada como `NOT_VERIFIED`), proteção contra replay/duplicidade, resolução server-side de tenant e bloqueio fail-closed de integrações reais até confirmação dos contratos.
+  3. *Correção 3 — Priorização de Outbound*: Documentado explicitamente que o objetivo central inicial do produto é a realização de chamadas outbound. Identificada a dependência sequencial implícita no fatiamento original (inbound no 008B vs dialer outbound no 008E). Preservada a numeração e contratos existentes sem churn, e registrada a pendência de deliberação humana formal para repriorização sequencial das slices.
+- **PRESERVATION_OF_DEC042**:
+  - Mantidos integralmente: `TWILIO_MANAGED_NUMBERS_ONLY`, cancelamento formal de BYON, Twilio para telefonia, Millis AI para conversação, Hostinger VPS/Supabase/Cloudflare R2 como planejamento futuro, catálogo completo de pendências `NOT_VERIFIED` e compra de números bloqueada (`PURCHASE_OF_PHONE_NUMBERS = 0`).
+- **SAFETY**:
+  - `ACTIVE_GUARDED`: `BLOCKED`
+  - `CUSTOMER_TRAFFIC`: `PROHIBITED`
+  - `PRODUCTION_RUNTIME_WIRING`: `NO`
+  - `REAL_PROVIDER_CALLS`: `0`
+  - `PURCHASE_OF_PHONE_NUMBERS`: `0`
+  - `REMOTE_MIGRATIONS`: `0`
+  - `DATABASE_SCHEMA_CHANGED`: `NO`
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED`: `NO`
+  - `REAL_DOTENV_ACCESSED`: `NO`
+  - `SECRET_AUDIT`: `PASS`
+
+## 2026-10-19 — Fase 8 — Sincronização do Quality Gate Snapshot para a PR #115 — Antigravity
+
+- **SLICE_ID**: `008A-DEC042-GATE-SNAPSHOT-SYNC` (Phase 8 Architecture Foundation & Governance — Quality Gate Snapshot Reconciliation)
+- **EXECUTOR**: `ANTIGRAVITY` (Windows executor autorizado pelo proprietário humano para reconciliação documental)
+- **FEATURE_BRANCH**: `docs/phase8-dec042-twilio-managed-numbers`
+- **SCOPE**: `DOCUMENTATION AND GOVERNANCE ONLY`
+- **FILES_CHANGED**:
+  - `docs/AI_CONTEXT.md`: Atualização da Seção 6 (Quality Gate Snapshot) para referenciar a evidência factual durável do pós-merge da PR #115 no SHA `5d2f897cb412c918631cfcc5f84dabe02d4a70a4` (`LAST_RECORDED_FULL_GATE_HEAD = 5d2f897cb412c918631cfcc5f84dabe02d4a70a4`, exit 0, 7 estágios PASS, 175 arquivos aprovados, 1254 testes PASS, 0 falhas, 45 skips de staging, 6 arquivos pulados na ausência de credenciais staging; sem declaração de CI remoto independente).
+  - `docs/AI_WORKLOG.md`: Este registro cronológico append-only.
+- **SNAPSHOT_RECONCILIATION**:
+  - Atualizada a identificação da evidência mais recente observada na `main`, substituindo a menção defasada à PR #114 por PR #115 no SHA `5d2f897cb412c918631cfcc5f84dabe02d4a70a4`.
+  - Preservada a semântica não-auto-referencial: `LAST_RECORDED_FULL_GATE_HEAD` aponta exclusivamente para o HEAD anterior da `main` no qual o gate completo foi executado e comprovado, sem incluir SHAs da branch corrente ou do commit em preparação.
+  - Resultados históricos preservados integralmente sem adulteração retroativa.
+- **SAFETY**:
+  - `ACTIVE_GUARDED`: `BLOCKED`
+  - `CUSTOMER_TRAFFIC`: `PROHIBITED`
+  - `PRODUCTION_RUNTIME_WIRING`: `NO`
+  - `REAL_PROVIDER_CALLS`: `0`
+  - `PURCHASE_OF_PHONE_NUMBERS`: `0`
+  - `REMOTE_MIGRATIONS`: `0`
+  - `DATABASE_SCHEMA_CHANGED`: `NO`
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED`: `NO`
+  - `REAL_DOTENV_ACCESSED`: `NO`
+  - `SECRET_AUDIT`: `PASS`
+
+
+
+
 
 
 
