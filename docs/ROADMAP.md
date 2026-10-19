@@ -193,7 +193,7 @@ A ordem histórica 008A–008G postergava o dialer outbound para o Slice 008E, c
      - *Tentativa de Discagem* (`call_attempts`): registro monotônico de cada disparo (1, 2, 3), timestamp e resultado isolado da tentativa.
      - *Sessão de Chamada* (`call_sessions`): estado em tempo real da chamada em andamento.
      - *Referências Externas* (`provider_call_id`, `provider_leg_id`): identificadores duráveis atribuídos pelos provedores externos.
-     - *Eventos Recebidos* (`call_events`): log auditável e idempotente de webhooks e transições.
+     - *Eventos Recebidos* (`call_events`): log auditável de webhooks e transições, com separação explícita entre deduplicação de entrega de rede, ordenação de máquina de estados e idempotência de efeitos de negócio, e minimização de dados pessoais.
      - *Custos e Liquidações* (`outbound_budget_ledgers`): controle de reservas pré-chamada e liquidação pós-chamada.
 
 3. **Recuperação de Crash e Proteção contra Rediscagem Cega**:
@@ -217,7 +217,7 @@ A ordem histórica 008A–008G postergava o dialer outbound para o Slice 008E, c
 
 5. **Segurança de Webhooks e Contratos da Millis AI**:
    - Proibida a presunção de suporte a HMAC, payloads específicos, URLs ou timeout de 2 segundos para a Millis AI sem contratos oficiais validados.
-   - Toda integração futura exigirá autenticação formal comprovada, resolução de `organizationId` exclusivamente server-side, proteção contra replay e eventos duplicados, e rejeição fail-closed (HTTP 401/403).
+   - Toda integração futura exigirá autenticação formal comprovada, resolução de `organizationId` exclusivamente server-side, priorização de identificadores oficiais estáveis do provedor (com estratégia determinística para ausência de IDs confiáveis e `payloadHash` como evidência auxiliar), proteção contra replay, eventos duplicados e eventos ambíguos, preservação de transições monotônicas sem efeitos colaterais financeiros duplicados, e rejeição fail-closed (HTTP 401/403).
    - Webhooks públicos permanecem bloqueados até a homologação em staging.
 
 6. **Elegibilidade de Contatos e Legislação Brasileira**:
@@ -266,13 +266,18 @@ A ordem histórica 008A–008G postergava o dialer outbound para o Slice 008E, c
     - Planejamento de migration aditiva versionada para tabela `organization_phone_numbers` (`organizationId`, `e164Number`, `twilioPhoneNumberSid`, `status: ACTIVE | RELEASED`).
     - Planejamento de migration aditiva versionada para tabela `call_attempts` (`id`, `jobId`, `organizationId`, `attemptNumber`, `providerCallId`, `status: PENDING | DISPATCHED | OUTCOME_UNKNOWN | FAILED | COMPLETED`, timestamps, erro).
     - Planejamento de migration aditiva versionada para tabela `call_sessions` (`callId`, `organizationId`, `agentId`, `agentVersionId`, `runtimeState`, `currentAttemptId`, `startedAt`, `endedAt`, `failureReason`), garantindo associação inequívoca Tentativa ↔ Sessão ↔ Provedor.
-    - Planejamento de migration aditiva versionada para tabela `call_events` (`id`, `organizationId`, `callId`, `providerCallId`, `eventType`, `payloadHash`, `receivedAt`, `processedAt`), fornecendo a fundação durável para deduplicação, tratamento de eventos fora de ordem e reconciliação pós-crash.
+    - Planejamento de migration aditiva versionada para tabela `call_events` (`id`, `organizationId`, `callId`, `provider`, `providerCallId`, `providerEventId`, `eventType`, `payloadHash`, `receivedAt`, `processedAt`):
+      - Identidade do evento associada estritamente ao provedor, à conta autorizada (`organizationId`) e à sessão/tentativa correspondente.
+      - Priorização de identificadores oficiais estáveis fornecidos pelo provedor (`providerEventId`), quando contratualmente verificados (`PROVIDER-UNVERIFIED` até homologação formal).
+      - `payloadHash` como evidência auxiliar de integridade de transporte e replay, e não como garantia única de identidade de negócio.
+      - Minimização de dados pessoais (PII): armazenamento estrito de metadados operacionais e identificadores técnicos necessários para auditoria, ordenação e reconciliação.
+      - Separação conceitual durável entre: (a) deduplicação de entrega na borda, (b) ordenação monotônica de eventos e (c) idempotência de efeitos de negócio.
     - Repositórios com isolamento estrito multi-tenant e queries tipadas.
     - *Nota*: Nenhuma migration é criada nesta tarefa de planejamento documental.
   - **Dependências**: Conclusão da Slice 008-OF1.
   - **Arquivos Prováveis**: `packages/database/src/schema/`, `packages/database/src/repositories/`.
   - **Testes Offline**: Testes de persistência em PostgreSQL local (Docker) validando integridade referencial, foreign keys compostas por tenant, índices únicos e isolamento estrito entre organizações.
-  - **Critérios de Aceitação**: Schemas aditivos e repositórios testados localmente; modelo durável capaz de representar tentativas e sessões independentes; zero queries raw em controllers; isolamento multi-tenant comprovado.
+  - **Critérios de Aceitação**: Schemas aditivos e repositórios testados localmente; modelo durável capaz de representar tentativas, sessões e eventos com rastreabilidade auditável e minimização de dados; zero queries raw em controllers; isolamento multi-tenant comprovado.
   - **Riscos**: Colisão de números entre tenants (mitigado por unique index em `e164Number`).
 
 - [ ] **Slice 008-OF3 — Quotas, Concorrência e Orçamento (Hard Budget Caps)**:
@@ -294,13 +299,18 @@ A ordem histórica 008A–008G postergava o dialer outbound para o Slice 008E, c
     - Endpoints de webhook em `apps/api` para status de chamada e acionamento de ferramentas.
     - Mecanismo de autenticação fail-closed simulado (sem presumir HMAC; token/header verificado conforme contrato oficial a ser homologado).
     - Resolução server-side autoritativa de organização baseada no `callId` / sessão durável, prevenindo injeção de parâmetros de tenant em payloads externos.
-    - Lógica de deduplicação e ordenação de eventos consumindo a tabela `call_events` da 008-OF2 (idempotência por hash de payload e transições monotônicas de estado).
+    - Política de deduplicação, ordenação e idempotência em camadas consumindo `call_events` da 008-OF2:
+      - *Deduplicação de Entrega*: Priorização de identificadores oficiais estáveis fornecidos pelo provedor (`providerEventId`), quando contratualmente verificados; quando ausente event ID confiável, adoção de estratégia determinística composta (provedor + tenant + tentativa/sessão + tipo de evento + transição de estado) documentada, testada e compatível com o contrato real do provedor, sem presumir campos inexistentes; `payloadHash` como evidência auxiliar de integridade.
+      - *Ordenação e Monotonicidade*: Preservação estrita de transições monotônicas de estado (rejeição de regressão de estados terminais por eventos atrasados ou fora de ordem).
+      - *Idempotência de Efeitos de Negócio*: Garantia de que eventos repetidos não provocam efeitos colaterais financeiros duplicados no ledger nem alterações repetidas de ciclo de vida.
+      - *Tratamento de Eventos Ambíguos*: Eventos sem correspondência inequívoca ou com dados conflitantes entram em quarentena/log auditável e **nunca** provocam nova discagem nem liquidação financeira duplicada.
+      - *Mecanismos do Provedor*: Mantidos como `PROVIDER-UNVERIFIED` até homologação com contratos oficiais (sem suposição de schemas oficiais da Millis AI).
     - Despacho determinístico para o `ToolExecutionEngine` existente em `apps/voice`.
     - Política de timeout tecnicamente neutra: timeout interno configurável para execução de ferramentas; valor definitivo dependente do contrato oficial da Millis AI; fail-closed quando o limite for excedido; sem presunção de SLA ou timeout oficial não verificado.
   - **Dependências**: Conclusão das Slices 008-OF1 a 008-OF3.
   - **Arquivos Prováveis**: `apps/api/src/routes/`, `apps/voice/src/tool-execution-engine.ts`.
-  - **Testes Offline**: Testes HTTP simulando payloads forjados, eventos fora de ordem, requisições repetidas, simulações de timeout interno, cancelamento e falha de execução.
-  - **Critérios de Aceitação**: Rejeição 401/403 comprovada para dados não autenticados; deduplicação efetiva de eventos repetidos; resolução de tenant inviolável; tratamento fail-closed de timeout interno comprovado em testes automatizados.
+  - **Testes Offline**: Testes HTTP simulando payloads forjados, eventos duplicados exatos, entrega repetida com e sem `providerEventId`, eventos fora de ordem, eventos ambíguos (comprovando zero rediscagem e zero efeito financeiro duplicado), simulações de timeout interno, cancelamento e falha de execução.
+  - **Critérios de Aceitação**: Rejeição 401/403 comprovada para dados não autenticados; deduplicação efetiva e idempotência de efeitos de negócio comprovadas; preservação de transições monotônicas; resolução de tenant inviolável; tratamento fail-closed de timeout interno e de eventos ambíguos comprovado em testes automatizados.
   - **Riscos**: Latência de rede externa na resposta de ferramentas (mitigado por timeout interno configurável e cancelamento assíncrono).
 
 - [ ] **Slice 008-OF5 — Integração Twilio + Millis com Simuladores E2E**:

@@ -18107,3 +18107,30 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED`: `NO`
   - `REAL_DOTENV_ACCESSED`: `NO`
   - `SECRET_AUDIT`: `PASS`
+
+## 2026-10-19 — Fase 8 — Refinamento de Idempotência e Deduplicação de Webhooks da PR #117 — Antigravity
+
+- **SLICE_ID**: `008-PROPOSAL-OUTBOUND-FIRST-IDEMPOTENCY-REFINEMENT` (Phase 8 Architecture & Reslicing Proposal — Outbound Webhook Idempotency & Deduplication Policy Refinement)
+- **EXECUTOR**: `ANTIGRAVITY` (Windows executor autorizado pelo proprietário humano para correção documental direcionada da PR #117)
+- **BASE_MAIN_SHA**: `6b6af0e85b52b62054aec5598f00e754c4f1f28f`
+- **FEATURE_BRANCH**: `docs/phase8-outbound-first-reslicing-proposal`
+- **SCOPE**: `DOCUMENTATION AND GOVERNANCE ONLY` (refinamento da política de deduplicação de eventos, idempotência de efeitos de negócio e persistência de `call_events` na PR #117)
+- **FILES_CHANGED**:
+  - `docs/ROADMAP.md`: Refinamento da política de deduplicação nas seções 2.B, 008-OF2 e 008-OF4 para priorizar identificadores oficiais estáveis (`providerEventId`), relegar `payloadHash` a evidência auxiliar, exigir estratégia determinística para ausência de IDs, separar deduplicação de entrega vs ordenação monotônica vs idempotência de efeitos de negócio, garantir que eventos ambíguos não provoquem nova discagem nem liquidação duplicada, minimizar PII e manter mecanismos de provedores classificados como `PROVIDER-UNVERIFIED`.
+  - `docs/AI_WORKLOG.md`: Este registro cronológico append-only.
+- **CORRECTIONS_APPLIED**:
+  1. *Refinamento de call_events na Slice 008-OF2*: Especificada a inclusão de `providerEventId` e `provider` na tabela planejada; documentado que `payloadHash` é evidência auxiliar de integridade de transporte e replay, não garantia única de identidade de negócio; estrita vinculação da identidade do evento ao provedor, à conta autorizada (`organizationId`) e à sessão/tentativa durável; minimização de dados pessoais (PII) nos metadados persistidos; e separação conceitual entre deduplicação de entrega, ordenação de eventos e idempotência de efeitos de negócio.
+  2. *Refinamento de Webhooks e Despacho na Slice 008-OF4*: Priorização de identificadores estáveis oficiais fornecidos pelo provedor quando verificados contratualmente; exigência de estratégia determinística composta (provedor + tenant + tentativa/sessão + tipo + transição) quando não houver ID estável confiável, sem presumir campos inexistentes; preservação estrita de transições monotônicas de estado (sem regressão de estados terminais); garantia de que eventos repetidos não provocam liquidação financeira duplicada no ledger nem efeitos de ciclo de vida; quarentena fail-closed para eventos ambíguos sem rediscagem nem estorno/liquidação duplicada; e classificação dos mecanismos do provedor como `PROVIDER-UNVERIFIED` até homologação com contratos oficiais.
+  3. *Invariante de Implementação*: Zero migrations criadas, zero endpoints criados, zero código alterado.
+  4. *Governança Preservada*: DEC-042 ativa na `main`; DEC-043 mantida como `PROPOSED / PENDING_HUMAN_APPROVAL`; sequência 008-OF1 a 008-OF6 como proposta; 9 bloqueios mandatórios de staging preservados; autoridade de originação A/B pendente; hard budget cap sem valor aprovado.
+- **SAFETY**:
+  - `ACTIVE_GUARDED`: `BLOCKED`
+  - `CUSTOMER_TRAFFIC`: `PROHIBITED`
+  - `PRODUCTION_RUNTIME_WIRING`: `NO`
+  - `REAL_PROVIDER_CALLS`: `0`
+  - `PURCHASE_OF_PHONE_NUMBERS`: `0`
+  - `REMOTE_MIGRATIONS`: `0`
+  - `DATABASE_SCHEMA_CHANGED`: `NO`
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED`: `NO`
+  - `REAL_DOTENV_ACCESSED`: `NO`
+  - `SECRET_AUDIT`: `PASS`
