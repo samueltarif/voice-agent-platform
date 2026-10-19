@@ -3,15 +3,15 @@
 <!--
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
-LAST_REFRESHED_AT: 2026-10-15
-CONTEXT_BASE_MAIN_SHA: 461f37eb9b23750ed7fea28e3cec1d88d335cf94
-CURRENT_PHASE: Phase 8 (PLANNING_AND_HUMAN_DECISIONS_IN_PROGRESS)
-CURRENT_SLICE: Slice 008A — Phase 8 Planning & Architecture Foundation
-CONTEXT_UPDATE_BRANCH: docs/008a-phase7-closure-and-phase8-planning
+LAST_REFRESHED_AT: 2026-10-19
+CONTEXT_BASE_MAIN_SHA: 5d2f897cb412c918631cfcc5f84dabe02d4a70a4
+CURRENT_PHASE: Phase 8 (TELEPHONY_FOUNDATION_AND_DEC042_FORMALIZED)
+CURRENT_SLICE: Slice 008A — Phase 8 Architecture Foundation & DEC-042 Governance
+CONTEXT_UPDATE_BRANCH: docs/phase8-dec042-twilio-managed-numbers
 CONTEXT_UPDATE_PR: NONE
-LAST_MERGED_PR_AT_REFRESH: 114
-LAST_MERGE_SHA_AT_REFRESH: 461f37eb9b23750ed7fea28e3cec1d88d335cf94
-LAST_TESTED_CODE_SHA: 461f37eb9b23750ed7fea28e3cec1d88d335cf94
+LAST_MERGED_PR_AT_REFRESH: 115
+LAST_MERGE_SHA_AT_REFRESH: 5d2f897cb412c918631cfcc5f84dabe02d4a70a4
+LAST_TESTED_CODE_SHA: 5d2f897cb412c918631cfcc5f84dabe02d4a70a4
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
 AI_CONTEXT_HEADER_END
@@ -197,17 +197,21 @@ AI_CONTEXT_HEADER_END
 46. `PRODUCTION_OPERATIONAL_PARAMETERS = FORMALLY_DEFERRED_TO_PHASE10_BY_HUMAN_DECISION` (Slice 006BR / DEC-038).
 47. `AGENT_EVALS = DEFERRED_PHASE9` (avaliações de agentes pertencem estritamente à Fase 9; nenhuma infraestrutura de evals implementada).
 48. `PRODUCTION_HARDENING_CUSTOMER_TRAFFIC = DEFERRED_PHASE10` (hardening de produção e tráfego de clientes pertencem estritamente à Fase 10).
+49. `PHASE8_TELEPHONY_POLICY = TWILIO_MANAGED_NUMBERS_ONLY` (DEC-042: números telefônicos exclusivamente fornecidos/gerenciados pela Twilio para outbound; BYON cancelado; compras exigem autorização humana separada `PURCHASE_OF_PHONE_NUMBERS = 0`).
+50. `PHASE8_CONVERSATION_PLATFORM = MILLIS_AI_SELECTED` (DEC-042: plataforma conversacional em tempo real selecionada para outbound; contratos de webhook/auth `NOT_VERIFIED`).
+51. `PHASE8_TARGET_STACK_RECONCILIATION = COMPLETE` (DEC-042: Hostinger VPS planejada para hosting, Supabase planejado para PostgreSQL gerenciado futuro, Cloudflare R2 planejado para gravações privadas; zero provisionamento executado).
+52. `PHASE8_NOT_VERIFIED_ITEMS = ENFORCED` (disponibilidade números BR, integração Twilio+Millis no BR, contratos webhook/auth Millis, cobrança tentativas sem atendimento, tarifas fixo/móvel/0303, regras regulatórias, transferência para humanos: todos `NOT_VERIFIED`).
 
 ---
 
 ## 8. Próximo Passo Permitido & Ações Proibidas
 
 ### `NEXT_ALLOWED_STEP`:
-- **Phase 7 Status**: `CLOSED ON MAIN` (PRs #94 a #114 mescladas na main; validação canônica pós-merge em `461f37eb9b23750ed7fea28e3cec1d88d335cf94` com 175 arquivos / 1254 testes PASS; fechamento formal aceito pelo operador humano via DEC-041).
-- **Phase 8 Status**: `PLANNING_PROPOSAL_OPEN` (proposta de fatiamento sequencial 008A a 008G sob revisão do operador humano).
-- `NEXT_ALLOWED_STEP = HUMAN_DELIBERATION_ON_PHASE8_DECISIONS_AND_PLANNING_PR`
-- `NEXT_ALLOWED_SLICE = 008A_PLANNING_ONLY` (qualquer implementação concreta de telefonia bloqueada até deliberação das decisões humanas).
-- `AUTHORIZATION_CONSUMED = YES` | `SECOND_LIVE_RUN_AUTHORIZED = NO` | `NEW_LIVE_AUTHORIZATION_CREATED = NO`.
+- **Phase 7 Status**: `CLOSED ON MAIN` (PRs #94 a #115 mescladas na main; validação canônica pós-merge em `5d2f897cb412c918631cfcc5f84dabe02d4a70a4` com 175 arquivos / 1254 testes PASS; fechamento formal aceito pelo operador humano via DEC-041).
+- **Phase 8 Status**: `TELEPHONY_FOUNDATION_AND_DEC042_FORMALIZED` (decisão humana DEC-042 formalizada documentando números gerenciados Twilio, Millis AI, divisão de responsabilidades e catálogo NOT_VERIFIED).
+- `NEXT_ALLOWED_STEP = HUMAN_REVIEW_OF_DEC042_DOCUMENTATION_BRANCH`
+- `NEXT_ALLOWED_SLICE = 008A_PORT_DEFINITIONS_AND_WEBHOOK_INGRESS_DESIGN` (qualquer implementação de código, compra de números ou chamada real permanece bloqueada).
+- `PURCHASE_OF_PHONE_NUMBERS = 0` | `REAL_PROVIDER_CALLS = 0` | `CUSTOMER_TRAFFIC = PROHIBITED` | `ACTIVE_GUARDED = BLOCKED`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
 
 ### `NOT_YET_ALLOWED`:
@@ -215,7 +219,7 @@ AI_CONTEXT_HEADER_END
 - Ativação de `ACTIVE_GUARDED` no runtime de produção.
 - Modificação de políticas congeladas ou reutilização do holdout de pesquisa.
 - Fiação em runtime de produção (`apps/voice`).
-- Real telephony / carrier dialing (Fase 8).
+- Compra de números telefônicos ou chamadas reais de carrier (Fase 8).
 
 
 ---

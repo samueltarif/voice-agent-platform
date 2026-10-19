@@ -128,12 +128,23 @@ Este documento estabelece as fases sequenciais de implementação da plataforma.
 
 ---
 
-### 📞 FASE 8 — Telefonia Real *(Proposta de Planejamento e Arquitetura Aberta)*
-- Integração com provedor de telefonia real (Pendente de Decisão Humana Formal).
-- Recepção de chamadas receptivas (inbound) com DIDs dedicados e resolução por organização.
-- **Call Recording & Storage**: Ingestão e upload de gravações para object storage com acesso autenticado/temporário e isolamento por tenant.
-- **Conexão Real de Transbordo**: Bridging de linha telefônica e transferência SIP/WebSockets para operadores humanos.
-- Implementação de adaptadores para CRM e Calendário.
+### 📞 FASE 8 — Telefonia Real *(Arquitetura e Planejamento Formalizados — DEC-042)*
+- **Provedor de Telefonia**: Twilio selecionada formalmente (DEC-042) exclusivamente com números gerenciados para originação outbound. Suporte a BYON (Bring Your Own Number) formalmente cancelado.
+- **Plataforma Conversacional de Voz**: Millis AI selecionada (DEC-042) para conversação em tempo real (STT, LLM, TTS, configuração de agentes e funções externas).
+- **Código Offline Preservado**: Integração com Twilio ConversationRelay preservada intacta em `packages/integrations` (inativa; sem fiação em produção).
+- **Divisão Arquitetural de Responsabilidades (DEC-042)**:
+  - **Voice Agent Platform**: Multi-tenancy, Agent Studio, Knowledge Base, CRM e tools, campanhas outbound, agendamento de jobs, quotas, billing e controle financeiro.
+  - **Twilio**: Telefonia, originação de chamadas, números gerenciados, transporte telefônico.
+  - **Millis AI**: Conversação em tempo real, STT, LLM, TTS, configuração de agentes, webhooks e funções externas conforme contratos oficiais validados.
+- **Outras Escolhas de Planejamento Reconciliadas**: Hostinger VPS (hospedagem futura planejada), Supabase (PostgreSQL gerenciado futuro planejado), Cloudflare R2 (armazenamento de arquivos e gravações privadas planejado).
+- **Itens Classificados Obrigatoriamente como `NOT_VERIFIED`**:
+  - Disponibilidade de números brasileiros Twilio.
+  - Possibilidade real de integração outbound Twilio + Millis no Brasil.
+  - Contratos de webhooks e mecanismo de autenticação da Millis.
+  - Cobranças por tentativas sem atendimento.
+  - Tarifas efetivas para fixo, celular e prefixo 0303.
+  - Regras regulatórias brasileiras de telecomunicações.
+  - Transferência de chamadas para humanos.
 
 #### Fatiamento Sequencial Proposto para a Fase 8:
 - [ ] **Slice 008A — Phase 8 Architecture Foundation, Port Definitions & Webhook Security Ingress (Planning & Foundation)**:
@@ -163,13 +174,14 @@ Este documento estabelece as fases sequenciais de implementação da plataforma.
   - Auditoria completa de custos de carrier, latência de ponta a ponta e segurança de webhooks.
   - Fechamento formal da Fase 8.
 
-#### Decisões Humanas Prévias Obrigatórias (Aguardando deliberação do operador antes da implementação):
-1. **Escolha do Provedor de Telefonia**: Seleção do carrier/fornecedor (ex.: Twilio, Telnyx, Plivo ou terminação SIP direta). O agente não decide em nome do operador.
-2. **Tetos Orçamentários e Limites de Gasto**: Definição expressa de limites financeiros rígidos no provedor antes de qualquer discagem externa (ex.: limite máximo de $20 USD em staging).
-3. **Provedor de Armazenamento de Gravações**: Seleção de serviço de object storage em nuvem (ex.: AWS S3, Cloudflare R2, Google Cloud Storage).
-4. **Conformidade Jurídica de Gravações**: Definição das políticas de aviso de gravação, consentimento explícito do interlocutor e prazos de retenção (DEC-024 / LGPD / GDPR).
-5. **Topologia de Transbordo Humano**: Definição da arquitetura de conexão humana (SIP Trunk, transferência PSTN ou softphone WebRTC no navegador).
-6. **Infraestrutura de Webhooks para Staging**: Definição do domínio público, terminação TLS e validação de assinaturas de webhook recebidas do provedor telefônico.
+#### Decisões Humanas da Fase 8 (Status de Deliberação):
+1. **Escolha do Provedor de Telefonia**: **DECIDIDO (DEC-042)** — Twilio selecionada exclusivamente com números gerenciados pela plataforma. BYON formalmente cancelado. Compras de números exigem autorização humana separada (`PURCHASE_OF_PHONE_NUMBERS = 0`).
+2. **Plataforma Conversacional de Voz**: **DECIDIDO (DEC-042)** — Millis AI selecionada para conversação em tempo real (STT, LLM, TTS). Contratos de webhook e autenticação classificados como `NOT_VERIFIED`.
+3. **Tetos Orçamentários e Limites de Gasto**: **PENDENTE** — Definição expressa de limites financeiros rígidos no provedor antes de qualquer discagem externa (ex.: limite máximo de $20 USD em staging).
+4. **Provedor de Armazenamento de Gravações**: **CANDIDATO SELECIONADO PARA PLANEJAMENTO (DEC-042)** — Cloudflare R2 planejado para armazenamento privado pós-chamada; setup, políticas jurídicas e retenção permanecem pendentes.
+5. **Conformidade Jurídica de Gravações**: **PENDENTE** — Definição das políticas de aviso de gravação, consentimento explícito do interlocutor e prazos de retenção (DEC-024 / LGPD / GDPR).
+6. **Topologia de Transbordo Humano**: **PENDENTE** — Definição da arquitetura de conexão humana (SIP Trunk, transferência PSTN ou softphone WebRTC no navegador).
+7. **Infraestrutura de Webhooks para Staging**: **PENDENTE** — Definição do domínio público, terminação TLS e validação de assinaturas de webhook recebidas do provedor telefônico e da Millis AI.
 
 ---
 
