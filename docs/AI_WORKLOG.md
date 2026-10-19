@@ -18134,3 +18134,47 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED`: `NO`
   - `REAL_DOTENV_ACCESSED`: `NO`
   - `SECRET_AUDIT`: `PASS`
+
+## 2026-10-19 — Fase 8 — Formalização da DEC-043 e Reconciliação do Outbound-First com MVP de Produto — Antigravity
+
+- **SLICE_ID**: `008-DEC043-PRODUCT-MVP-ALIGNMENT` (Phase 8 Architecture & Governance — DEC-043 Formalization and Outbound-First Product MVP Reconciliation)
+- **EXECUTOR**: `ANTIGRAVITY` (Windows executor autorizado pelo proprietário humano para formalização documental da DEC-043 e auditoria factual do inventário de produto)
+- **BASE_MAIN_SHA**: `0422133bbb71abf73cc9ade85c76ae9532bbc854` (post-merge PR #117)
+- **FEATURE_BRANCH**: `docs/phase8-dec043-product-mvp-alignment`
+- **SCOPE**: `CONTROLLED DOCUMENTATION / CODE-BACKED PRODUCT AUDIT / GOVERNANCE PR` (formalização da DEC-043 aprovada pelo operador humano; adição da trilha funcional de MVP outbound 008-MVP1 a 008-MVP4; segregação estrita entre Gate A [homologação técnica em staging de 1 chamada] e Gate B [prontidão de piloto comercial]; preservação de capacidades futuras no backlog; auditoria factual do inventário com referências de código; reconciliação de dependências e versões instaladas)
+- **FILES_CHANGED**:
+  - `docs/DECISIONS_LOG.md`: Formalização da DEC-043 (Seção 1, item 55) com data de aprovação humana em 2026-10-19; atualização da tabela de decisões pendentes na Seção 2 (DEC-043 de PENDING para APPROVED; preservadas como PENDING as decisões operacionais de originação Millis vs Twilio, pricing/budget cap e compras de números).
+  - `docs/ROADMAP.md`: Atualização do status da Fase 8 para `APPROVED (DEC-043)`; inclusão da Trilha Funcional de MVP Outbound (008-MVP1 a 008-MVP4) na Seção 2.E; inclusão da Matriz de Dependências Cruzadas na Seção 2.F; segregação formal de dois gates distintos na Seção 2.G (Gate A — Verificação Técnica em Staging vs Gate B — Prontidão de Piloto Comercial com clientes); preservação do Backlog Futuro na Seção 2.H (008-POST1 a 008-POST4 e backlog estratégico de produto como `PROPOSED` / `FUTURE_CANDIDATE`); formalização da DEC-043 na Seção 3; atualização do quadro de decisões pendentes na Seção 4; correção factual de versões de dependências (Next.js 15.2, TypeScript ^5.7.3, Vitest ^3.0.5).
+  - `docs/AI_CONTEXT.md`: Atualização do cabeçalho de navegação (SHA base `0422133bbb71abf73cc9ade85c76ae9532bbc854`, PR #117, branch `docs/phase8-dec043-product-mvp-alignment`), correção factual da versão de Next.js (`15.2`), sincronização do Quality Gate Snapshot para a evidência do pós-merge da PR #117, atualização do item 53, adição do item 54 (`DEC_043_STATUS = APPROVED_BY_HUMAN`) e alinhamento do `NEXT_ALLOWED_STEP`.
+  - `docs/AI_WORKLOG.md`: Este registro cronológico append-only.
+- **DECISION_AND_ROADMAP_ALIGNMENT**:
+  1. *Formalização da DEC-043*: Registrada a aprovação expressa do proprietário humano: (1) Manter OUTBOUND_FIRST como prioridade; (2) Manter o fatiamento técnico 008-OF1 a 008-OF6; (3) Acrescentar trilha funcional para o MVP outbound (008-MVP1 a 008-MVP4); (4) Segregar homologação técnica de 1 chamada da liberação comercial do SaaS; (5) Preservar funcionalidades avançadas sem descartá-las.
+  2. *Exclusões Expressas da DEC-043*: A decisão formalizada expressamente NÃO seleciona: originação Millis-led versus Twilio-led; tarifas/preços ou orçamento exato de staging; compra de números; credenciais/contratos da Millis; gateway de pagamento; política jurídica definitiva de telemarketing; ativação de produção; e liberação de tráfego de clientes.
+  3. *Trilha Funcional de MVP Outbound*:
+     - `008-MVP1 — Contacts, Audiences, Suppression and Eligibility`: persistência multi-tenant de contatos, importação CSV inicial, validação telefônica, deduplicação, listas de supressão/opt-out, bloqueio de inelegíveis e políticas de horário dependentes de caso de uso.
+     - `008-MVP2 — Campaign Management UI and Operations`: UI web no painel para criação, edição, seleção de agente publicado, associação de listas, agendamento, pausa/cancelamento e monitoramento de campanhas consumindo a API existente.
+     - `008-MVP3 — Published Agent to Millis Runtime Mapping`: mapeamento seguro de snapshot de agente publicado para a sessão conversacional da Millis com autoridade de tenant e isolamento server-side.
+     - `008-MVP4 — Call Outcomes, Monitoring and Operational Visibility`: visibilidade e auditoria de resultados reais de chamadas, associação durável campanha ↔ contato ↔ tentativa ↔ agente, métricas operacionais e transparência de custos.
+  4. *Segregação de Gates*:
+     - `Gate A — Technical Staging Verification (008-OF6)`: 9 bloqueios mandatórios estritos preservados; prova técnica de fiação limitada em 1 chamada.
+     - `Gate B — Commercial Pilot Readiness`: gate de produto separado para tráfego piloto com clientes; exige contatos/supressão operacionais, fluxo de campanhas utilizável, resolução de agente comprovada, ledger de custos auditável e aprovação humana explícita.
+  5. *Auditoria Factual do Inventário de Produto*: Classificação precisa das capacidades com referências de código:
+     - `IMPLEMENTED_AND_USER_ACCESSIBLE`: Agent Studio Draft Editor (`apps/web/.../agent-draft-editor.tsx`), Knowledge Base UI (`apps/web/.../knowledge-base-tab.tsx`), Autenticação de Usuário (`apps/web/.../sign-in-card.tsx`).
+     - `IMPLEMENTED_API_ONLY`: API de Campanhas Outbound (`apps/api/.../campaigns-endpoints.ts`), Agendamento em Lote (`apps/api/.../campaigns-endpoints.ts`), Gestão de Documentos KB (`apps/api/.../knowledge-documents-endpoints.ts`).
+     - `IMPLEMENTED_TESTED_OFFLINE`: Dispatcher de Outbound Jobs (`apps/worker/.../outbound-call-dispatcher.ts`), CallSession State Machine (`apps/voice/.../call-session.ts`), Tool Execution Engine (`apps/voice/.../tool-execution-engine.ts`), Tools de Horário e Catálogo (`apps/voice/...`), Conversational Orchestrator (`apps/voice/.../conversation-orchestrator.ts`).
+     - `UI_MOCK_OR_STATIC`: Dashboard KPIs (`apps/web/.../dashboard-content.tsx`), Histórico de Chamadas UI (`apps/web/src/app/calls/page.tsx`), Plataforma / Operações Globais (`apps/web/src/app/platform/page.tsx`).
+     - `PARTIAL`: Integração Twilio (validação HMAC e TwiML offline vs carrier real `PROVIDER-UNVERIFIED`).
+     - `PLANNED_NOT_IMPLEMENTED`: Millis AI adapter, Integração CRM (HubSpot/Salesforce/RD Station), Integração Calendário (Google/Outlook), WhatsApp pós-chamada, Gravação Cloudflare R2, Gateway de Pagamento / PIX, Gestão Comercial e Billing.
+     - `PROVIDER_UNVERIFIED`: Telefonia Twilio no Brasil (+55), Plataforma Millis AI e modelos conversacionais em tráfego telefônico real.
+- **SAFETY**:
+  - `ACTIVE_GUARDED`: `BLOCKED`
+  - `CUSTOMER_TRAFFIC`: `PROHIBITED`
+  - `PRODUCTION_RUNTIME_WIRING`: `NO`
+  - `REAL_PROVIDER_CALLS`: `0`
+  - `PURCHASE_OF_PHONE_NUMBERS`: `0`
+  - `REMOTE_MIGRATIONS`: `0`
+  - `DATABASE_SCHEMA_CHANGED`: `NO`
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED`: `NO`
+  - `REAL_DOTENV_ACCESSED`: `NO`
+  - `SECRET_AUDIT`: `PASS`
+

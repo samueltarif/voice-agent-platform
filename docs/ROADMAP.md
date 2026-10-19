@@ -169,9 +169,9 @@ Este documento estabelece as fases sequenciais de implementação da plataforma.
 
 ---
 
-#### 2. Proposta Refinada de Fatiamento Técnico OUTBOUND_FIRST (PROPOSED / PENDING_HUMAN_APPROVAL)
+#### 2. Planejamento Outbound-First em Duas Trilhas: Fundação Técnica e MVP Funcional (DEC-043)
 
-> **Status da Proposta**: `PROPOSED / PENDING_HUMAN_APPROVAL` (Elaborada em 2026-10-19 sob diretriz `OUTBOUND_FIRST` da DEC-042; aguardando deliberação humana formal para substituição oficial da ordem de execução).
+> **Status do Planejamento**: `APPROVED (DEC-043) / IMPLEMENTATION_PENDING_SEPARATE_AUTHORIZATION` (Aprovado formalmente pelo operador humano em 2026-10-19; estabelece a prioridade `OUTBOUND_FIRST`, o sequenciamento técnico `008-OF1` a `008-OF6`, a trilha funcional `008-MVP1` a `008-MVP4` e a segregação estrita entre homologação técnica em staging e prontidão de piloto comercial).
 
 ##### A. Justificativa Técnica do Refatiamento
 A ordem histórica 008A–008G postergava o dialer outbound para o Slice 008E, condicionando-o à construção prévia de recepção inbound (008B), storage de gravações (008C) e transbordo humano (008D). Como o objetivo central prioritário da plataforma no lançamento é a realização de **chamadas ativas outbound** (DEC-042), esta proposta antecipa os componentes essenciais de discagem e adia funcionalidades não-bloqueantes para após a validação do fluxo principal.
@@ -347,15 +347,172 @@ A ordem histórica 008A–008G postergava o dialer outbound para o Slice 008E, c
 
 ---
 
-#### 3. Proposta de Decisão Formal DEC-043 (PROPOSED / PENDING_HUMAN_APPROVAL)
-*Para deliberação e eventual aprovação formal do operador humano:*
-- **Título**: DEC-043 — Adoção da Estrutura Outbound-First, Separação de Entidades Duráveis e Governança de Originação Única.
-- **Resumo**: Formalizar a substituição da sequência 008A–008G pela ordem 008-OF1 a 008-OF6, postergando Inbound, R2, Handoff e CRM para após a validação do dialer outbound, estabelecendo as entidades duráveis de tentativas e ledger financeiro com autoridade de originação única e fail-closed.
+##### E. Trilha Funcional de MVP Outbound (008-MVP1 a 008-MVP4)
+
+Esta trilha paralela e rastreável define as capacidades de produto indispensáveis para que a plataforma seja operada por clientes em um piloto comercial, segregando a entrega de software utilizável da infraestrutura básica de telefonia:
+
+- [ ] **Slice 008-MVP1 — Contatos, Audiência, Supressão e Elegibilidade**:
+  - **Objetivo**: Permitir que o cliente gerencie seus destinatários de campanhas com isolamento multi-tenant, validação estrita e conformidade regulatória prévia.
+  - **Escopo**:
+    - Modelagem e persistência de contatos permanentes (`tenant_contacts`) isolados por `organizationId`.
+    - Agrupamento em listas e audiências segmentadas (`contact_lists`, `contact_list_members`).
+    - Mecanismo de importação inicial via arquivos CSV com mapeamento flexível de colunas (Nome, Telefone, Variáveis customizadas).
+    - Validação e higienização determinística de números telefônicos (+55 padrão E.164, móvel e fixo).
+    - Deduplicação determinística de contatos por organização.
+    - Gestão de listas de supressão (*Não Perturbe* / Procon / opt-out) e bloqueio fail-closed de números inelegíveis.
+    - Registro de evidências de consentimento e base legal quando aplicável.
+    - Definição de janelas e políticas de horários de contato configuráveis por tenant (sem presumir regra legal universal).
+    - *Nota de Escopo*: Importação Excel, enriquecimento de leads e campos dinâmicos complexos ficam diferidos para fases posteriores.
+  - **Dependências**: Slices 008-OF2 (persistência de números/sessões) e 008-OF3 (quotas e limites).
+  - **Arquivos Prováveis**: `packages/database/src/schema/contacts.ts`, `apps/api/src/routes/contacts-routes.ts`.
+  - **Testes Offline**: Testes de validação de números telefônicos brasileiros, importação CSV em lote, bloqueio por lista de supressão e isolamento de tenant.
+  - **Critérios de Aceitação**: Importação de CSV validada com relatório de linhas rejeitadas; impossibilidade comprovada de inclusão de número suprimido em jobs de campanha; zero vazamento entre tenants.
+
+- [ ] **Slice 008-MVP2 — Interface de Gestão de Campanhas e Operações**:
+  - **Objetivo**: Permitir ao cliente criar, operar, pausar e acompanhar campanhas outbound diretamente pelo painel web, eliminando a dependência de chamadas diretas de API.
+  - **Escopo**:
+    - Interface visual em `apps/web` para criação, edição e monitoramento de campanhas (`outbound_campaigns`).
+    - Seleção e vinculação de agente publicado ativo (`agentVersionId`) com checagem de integridade.
+    - Associação de listas de contatos homologadas da Slice 008-MVP1.
+    - Configuração de agendamento (`scheduledAt`) e limites operacionais de discagem (cadência e concorrência).
+    - Controles operacionais no painel: Iniciar, Pausar, Retomar e Cancelar campanha.
+    - Acompanhamento do progresso real da lista (leads totais, conectados, em andamento, concluídos e falhos), substituindo dados mockados.
+    - Tratamento amigável e exibição de falhas operacionais com mensagens compreensíveis (sem expor stack traces ou erros brutos).
+  - **Dependências**: Slice 008-MVP1 (contatos/listas), Slices 008-OF2 e 008-OF3, e rotas existentes de campanhas em `apps/api`.
+  - **Arquivos Prováveis**: `apps/web/src/app/orgs/[orgSlug]/campaigns/`, `apps/web/src/features/campaigns/`.
+  - **Testes Offline**: Testes de componentes React, formulários com Zod, e integração BFF/API para mutações de campanha.
+  - **Critérios de Aceitação**: Fluxo completo de criação e disparo de campanha realizável 100% via UI web; feedback visual de progresso e status.
+
+- [ ] **Slice 008-MVP3 — Mapeamento do Agente Publicado para o Runtime Millis**:
+  - **Objetivo**: Garantir que a configuração aprovada no Agent Studio seja injetada com fidelidade no runtime da Millis AI no momento da chamada, preservando autoridade server-side e isolamento de tenant.
+  - **Escopo**:
+    - Mapeamento determinístico entre `organizationId`, agente interno, versão publicada ativa e a configuração conversacional da chamada.
+    - Snapshot imutável da configuração autorizada na origem da chamada (persona, regras, catálogo de tools, horário).
+    - Resolução server-side autoritativa de contexto, credenciais e ferramentas (proibido clientes manipularem API keys da Millis no painel).
+    - Isolamento estrito entre tenants na execução conversacional da Millis.
+    - Preservação de estabilidade: se um agente for alterado ou arquivado após o disparo, chamadas em andamento mantêm seu snapshot original imutável.
+    - Política de provisionamento e rotação de credenciais da Millis sob autoridade exclusiva da plataforma.
+  - **Dependências**: Slices 008-OF1 (lifecycle provider-neutral) e 008-OF5 (adaptador Millis offline).
+  - **Arquivos Prováveis**: `apps/voice/src/`, `packages/integrations/src/millis/`.
+  - **Testes Offline**: Testes de serialização de snapshot, injeção de prompt com regras canônicas, e simulação de concorrência com versão publicada.
+  - **Critérios de Aceitação**: Configuração do agente refletida fidedignamente no payload do simulador Millis; zero vazamento de prompts ou chaves entre tenants.
+
+- [ ] **Slice 008-MVP4 — Resultados de Chamadas, Monitoramento e Visibilidade Operacional**:
+  - **Objetivo**: Fornecer ao cliente visibilidade operacional completa e auditável sobre o resultado de cada ligação e campanha no Dashboard.
+  - **Escopo**:
+    - Histórico durável persistido consumindo `call_sessions` e `call_events` da 008-OF2.
+    - Associação unívoca: Chamada ↔ Campanha ↔ Contato ↔ Agente Publicado ↔ Tentativa.
+    - Classificação auditável de desfechos de chamada (*disposition tags*: Atendida, Ocupado, Caixa Postal/AMD, Sem Interesse, Sucesso/Convertida, Falha Técnica).
+    - Painel de métricas operacionais reais no Dashboard (substituição dos dados mockados atuais por dados persistidos reais).
+    - Apresentação de custos reais incorridos: segregação entre custos de telefonia (Twilio) e custos conversacionais (Millis AI) conforme dados verificáveis do ledger.
+    - Trilha de auditoria e logs sanitizados de chamadas (sem exposição de PII desnecessária).
+  - **Dependências**: Slices 008-OF2, 008-OF4, 008-MVP1 e 008-MVP2.
+  - **Arquivos Prováveis**: `apps/web/src/app/calls/`, `apps/web/src/features/calls/`, `apps/api/src/routes/calls-routes.ts`.
+  - **Testes Offline**: Testes de queries de histórico, agregação de custos e renderização de tabelas e detalhes de chamada.
+  - **Critérios de Aceitação**: Histórico real exibido no painel sem mocks; custos segregados coerentes com o ledger financeiro; zero mocks nas telas de chamadas do tenant.
 
 ---
 
-#### 4. Decisões Humanas Pendentes da Fase 8 (Status de Deliberação):
-1. **Aprovação do Fatiamento Outbound-First**: **PENDENTE** — Deliberação sobre a substituição da sequência original pela ordem 008-OF1 a 008-OF6 e eventual formalização da DEC-043.
+##### F. Matriz de Dependências Cruzadas entre Trilhas Técnica (OF) e Funcional (MVP)
+
+A execução das trilhas permite paralelismo controlado, preservando a coerência das camadas:
+
+| Slice | Descrição | Dependências Técnicas Obrigatórias | Desbloqueia / Habilita |
+| :---: | :--- | :--- | :--- |
+| **008-OF1** | Contratos e Lifecycle Provider-Neutral | Nenhuma (inicia imediatamente sobre `main`) | 008-OF2, 008-MVP3 |
+| **008-OF2** | Persistência de Números, Tentativas, Sessões e Eventos | 008-OF1 | 008-OF3, 008-OF4, 008-MVP1, 008-MVP4 |
+| **008-OF3** | Quotas, Concorrência e Orçamento (Hard Budget) | 008-OF1, 008-OF2 | 008-OF4, 008-MVP1 |
+| **008-OF4** | Webhooks e Integração de Ferramentas Offline | 008-OF1 a 008-OF3 | 008-OF5, 008-MVP4 |
+| **008-OF5** | Integração Twilio + Millis com Simuladores E2E | 008-OF1 a 008-OF4 | 008-OF6, 008-MVP3 |
+| **008-OF6** | Homologação Controlada em Staging (1 Chamada Real) | 008-OF1 a 008-OF5 + 9 Bloqueios de Staging | **Gate A (Técnico)** |
+| **008-MVP1** | Contatos, Audiência, Supressão e Elegibilidade | 008-OF2, 008-OF3 | 008-MVP2 |
+| **008-MVP2** | Interface de Gestão de Campanhas e Operações | 008-MVP1, APIs de Campanha existentes | 008-MVP4, Gate B |
+| **008-MVP3** | Mapeamento do Agente Publicado para o Runtime Millis | 008-OF1, 008-OF5 | Gate B |
+| **008-MVP4** | Resultados de Chamadas, Monitoramento e Dashboard | 008-OF2, 008-OF4, 008-MVP1, 008-MVP2 | **Gate B (Comercial)** |
+
+---
+
+##### G. Segregação Estrita de Gates Finais (Técnico vs. Comercial)
+
+A plataforma formaliza a separação entre a comprovação técnica de conectividade e a autorização de operação comercial com clientes:
+
+```mermaid
+graph TD
+    subgraph "Trilha Técnica (Telecom & Runtime)"
+        OF1[008-OF1 Contratos] --> OF2[008-OF2 Persistência]
+        OF2 --> OF3[008-OF3 Quotas/Budget]
+        OF3 --> OF4[008-OF4 Webhooks/Tools]
+        OF4 --> OF5[008-OF5 Simuladores E2E]
+        OF5 --> GATE_A{Gate A: Homologação Staging<br/>008-OF6 - 1 Chamada Real}
+    end
+
+    subgraph "Trilha Funcional (Produto & Operação)"
+        OF2 -.-> MVP1[008-MVP1 Contatos & Supressão]
+        OF3 -.-> MVP1
+        MVP1 --> MVP2[008-MVP2 UI de Campanhas]
+        OF5 -.-> MVP3[008-MVP3 Mapping Agente-Millis]
+        OF4 -.-> MVP4[008-MVP4 Resultados & Dashboard]
+        MVP2 --> MVP4
+    end
+
+    GATE_A -.->|Apenas valida conectividade| GATE_B{Gate B: Piloto Comercial<br/>Prontidão de Produto SaaS}
+    MVP3 --> GATE_B
+    MVP4 --> GATE_B
+
+    classDef gate fill:#f9f,stroke:#333,stroke-width:2px;
+    class GATE_A,GATE_B gate;
+```
+
+1. **Gate A — Homologação Técnica em Staging (Slice 008-OF6)**:
+   - **Objetivo**: Provar a viabilidade técnica estrita do pipeline de transporte telefônico, streaming de mídia e recepção de webhooks executando **1 única chamada supervisionada de teste** para telefone de teste expressamente autorizado do operador.
+   - **Bloqueios Obrigatórios**: Satisfação integral dos 9 bloqueios técnicos já catalogados (compatibilidade +55, número elegível com documentação aprovada, contratos de webhook homologados, ledger funcional, hard budget aprovado, conformidade regulatória/LGPD, staging TLS segregado, telefone de destino do operador, autorização humana adicional para gastos).
+   - **Limitação de Escopo**: O sucesso do Gate A comprova apenas que a infraestrutura técnica funciona; **NÃO autoriza uso por clientes, lançamento comercial nem dispensa a trilha funcional**.
+
+2. **Gate B — Prontidão para Piloto Comercial (Commercial Pilot Readiness Gate)**:
+   - **Objetivo**: Autorizar a entrada de clientes reais selecionados em regime de piloto supervisionado.
+   - **Critérios Mandatórios**:
+     1. Gestão de contatos, audiências e listas de supressão operacionais e testadas (008-MVP1).
+     2. Fluxo completo de criação e controle de campanhas realizável via painel web sem API direta (008-MVP2).
+     3. Associação consistente e imutável de agente publicado com a sessão da Millis AI (008-MVP3).
+     4. Resultados de chamadas, transcrições e extrato real de custos auditáveis no Dashboard (008-MVP4).
+     5. Isolamento estrito de dados entre tenants comprovado em auditoria de segurança.
+     6. Procedimentos de suporte operacional, tratamento de erros e monitoramento estabelecidos.
+     7. Conformidade jurídica e regulatória bilateral (termos de uso, LGPD, regras de discagem).
+     8. **Aprovação humana expressa e formal do operador** para início de piloto.
+
+---
+
+##### H. Backlog Futuro Preservado (Pós-MVP Outbound)
+
+Todas as funcionalidades e integrações avançadas permanecem integralmente preservadas no planejamento arquitetural, catalogadas como `PROPOSED` ou `FUTURE_CANDIDATE` para execução sequencial após a estabilização do MVP outbound:
+
+1. **Slices Técnicas Postergadas (Preservação 008A–008G)**:
+   - `008-POST1` (antigo 008B): *Recepção Telefônica Inbound e Gateway de Entrada*.
+   - `008-POST2` (antigo 008C): *Ingestão de Gravações Privadas em Cloudflare R2 com URLs Pré-assinadas*.
+   - `008-POST3` (antigo 008D): *Transbordo Telefônico ao Vivo para Operador Humano (Live Call Bridging / SIP Conference)*.
+   - `008-POST4` (antigo 008F): *Integrações com CRM (HubSpot, Salesforce, Pipedrive, RD Station) e Calendário (Google Calendar, Outlook)*.
+
+2. **Candidatos Futuros Adicionais (Backlog Estratégico)**:
+   - *Disparo de Mensagens WhatsApp Pós-Chamada*: envio automatizado de links de pagamento, PIX ou resumos de propostas comerciais.
+   - *Gateway de Pagamentos / Faturamento SaaS Recorrente*: integração com Stripe/Asaas para cobrança automatizada de planos e recarga de créditos.
+   - *Simulador Interativo de Voz no Navegador*: playground no Agent Studio para testes de voz e áudio antes da publicação.
+   - *Playbook Visual Avançado*: editor visual no-code de árvores de decisão e fluxos conversacionais ramificados.
+   - *Clonagem e Rollback Facilitado de Agentes*: duplicação com 1 clique e reversão instantânea de versões em produção.
+   - *Analytics Conversacional Avançado*: extração automatizada de sentimentos, objeções de vendas e evals de qualidade (Fase 9).
+   - *Webhooks Customizados de Saída para Clientes*: disparo de eventos JSON para ERPs e sistemas proprietários de clientes.
+
+---
+
+#### 3. Formalização da Decisão DEC-043 (Aprovada em 2026-10-19)
+
+- **Título**: DEC-043 — Phase 8 Outbound-First Technical and Product MVP Sequencing.
+- **Aprovação Humana**: Registrada e vigente formalmente em [docs/DECISIONS_LOG.md](DECISIONS_LOG.md).
+- **Conteúdo Central**: Adoção da ordem técnica `008-OF1` a `008-OF6`, instituição da trilha funcional `008-MVP1` a `008-MVP4`, segregação entre Gate A (Técnico) e Gate B (Comercial), e preservação de todas as capacidades avançadas para o backlog pós-outbound.
+
+---
+
+#### 4. Decisões Humanas Pendentes da Fase 8 (Status de Deliberação Atualizado):
+1. **Fatiamento e Sequenciamento Outbound-First**: **APROVADO (DEC-043)** — Formalizada a estrutura em duas trilhas e a segregação de gates.
 2. **Seleção da Autoridade de Discagem (Opção A vs Opção B)**: **PENDENTE** — Escolha entre Millis-Led ou Twilio-Led para guiar o adaptador da Slice 008-OF5.
 3. **Tetos Orçamentários e Limites Financeiros**: **PENDENTE** — Fixação formal de limites rígidos em USD antes de qualquer discagem externa em staging.
 4. **Verificação de Números BR (+55) na Twilio**: **PENDENTE** — Confirmação de disponibilidade e exigências regulatórias no console Twilio.
