@@ -3,15 +3,15 @@
 <!--
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
-LAST_REFRESHED_AT: 2026-10-19
-CONTEXT_BASE_MAIN_SHA: 5076b0ca8abf1fb06826ddbfea0208e1a6e218a1
+LAST_REFRESHED_AT: 2026-10-20
+CONTEXT_BASE_MAIN_SHA: fb82e40da61006c798860b1bb9c320ed255b1cde
 CURRENT_PHASE: Phase 8 (OUTBOUND_FIRST_TWO_TRACK_PLANNING)
-CURRENT_SLICE: 008-OF1 Provider-Neutral Outbound Lifecycle (offline, em revisão)
-CONTEXT_UPDATE_BRANCH: feat/phase8-008-of1-outbound-lifecycle-contracts
-CONTEXT_UPDATE_PR: 119
-LAST_MERGED_PR_AT_REFRESH: 118
-LAST_MERGE_SHA_AT_REFRESH: 5076b0ca8abf1fb06826ddbfea0208e1a6e218a1
-LAST_TESTED_CODE_SHA: 0422133bbb71abf73cc9ade85c76ae9532bbc854
+CURRENT_SLICE: 008-OF1 Post-Merge Gate Timeout Stabilization
+CONTEXT_UPDATE_BRANCH: fix/phase8-postmerge-gate-timeout-stabilization
+CONTEXT_UPDATE_PR: 120
+LAST_MERGED_PR_AT_REFRESH: 119
+LAST_MERGE_SHA_AT_REFRESH: fb82e40da61006c798860b1bb9c320ed255b1cde
+LAST_TESTED_CODE_SHA: QUERY_GIT_AT_RUNTIME
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
 AI_CONTEXT_HEADER_END
@@ -125,16 +125,14 @@ AI_CONTEXT_HEADER_END
 
 ## 6. Estado Atual da Evidência de Qualidade (Quality Gate Snapshot)
 
-- **Último `pnpm check` Global na Main**: `PASS` (observado no merge da PR #117 / 008-OF proposal post-merge na branch `main` `0422133bbb71abf73cc9ade85c76ae9532bbc854`: exit 0; 7 estágios aprovados; 175 arquivos de teste / 1254 testes aprovados / 0 falhas / 45 testes de staging pulados; evidência factual local observada pelo executor, não CI remoto independente).
+- **Último `pnpm check` Global na Main**: `BLOCKED_WITH_EVIDENCE` (observado no merge da PR #119 no commit `fb82e40da61006c798860b1bb9c320ed255b1cde`: exit code 1 no estágio 4 por timeout de 5000ms no teste preexistente da Fase 6 `packages/integrations/src/typesafe/check-targeted-v2-technical-readiness.test.ts > C. dataset hash mismatch => technical readiness NO` sob carga de 4 workers do Vitest no Windows; todos os 94 testes da 008-OF1 passaram). O gate PASS ainda NÃO é atribuível à `main` enquanto a PR #120 não for mesclada.
+- **Gate Canônico na Branch da PR #120 (`fix/phase8-postmerge-gate-timeout-stabilization`)**: `PASS` (após aplicar `{ timeout: 30000 }` aos testes A, C e E de `check-targeted-v2-technical-readiness.test.ts`, o comando `cmd /c "pnpm install --frozen-lockfile && pnpm check"` terminou com exit code 0; 7 estágios aprovados; 181 arquivos de teste aprovados / 1348 testes aprovados / 0 falhas / 45 testes de staging pulados).
 - **Identificadores de HEAD & Semântica Não-Auto-Referencial**:
-  - `LAST_RECORDED_FULL_GATE_HEAD = 0422133bbb71abf73cc9ade85c76ae9532bbc854`
-  - `LAST_RECORDED_FULL_GATE_STATUS = PASS`
+  - `LAST_RECORDED_FULL_GATE_HEAD = QUERY_GIT_AT_RUNTIME`
+  - `LAST_RECORDED_FULL_GATE_STATUS = PASS (na branch da PR #120)`
   - `CURRENT_BRANCH_HEAD_SOURCE = QUERY_GIT_AT_RUNTIME`
-  - `LAST_CODE_BEARING_MAIN_SHA = e8055e93e9f78fd15da5760cec60fe4e1bdbfbcb`
+  - `LAST_CODE_BEARING_MAIN_SHA = fb82e40da61006c798860b1bb9c320ed255b1cde`
   - *Nota*: `AI_CONTEXT.md` é conteúdo versionado e não pode conter o SHA do próprio commit que o modifica. O HEAD exato da branch corrente deve ser obtido do Git em runtime (`QUERY_GIT_AT_RUNTIME`). `LAST_RECORDED_FULL_GATE_HEAD` registra a evidência mais recente observada e durável quando este snapshot foi redigido, evitando loops infinitos de auto-referência.
-- **Contagens Canônicas de Testes (Post-Merge Main PR #117)**:
-  - `TEST_FILES_PASSED = 175` | `TEST_FILES_FAILED = 0` | `TEST_FILES_SKIPPED = 6`
-  - `TESTS_PASSED = 1254` | `TESTS_FAILED = 0` | `TESTS_SKIPPED = 45`
 - **Regressão de Asserções**: `ASSERTION_WEAKER = 0`, `NEW_SKIPS = 0`.
 - **Verificação Arquitetural**: `SUCESSO: Todas as fronteiras e regras arquiteturais respeitadas.`
 - **Verificação de Tamanho de Arquivos**: `SUCESSO: Todos os arquivos de logica estao em conformidade (check:file-size = PASS).`
@@ -210,10 +208,12 @@ AI_CONTEXT_HEADER_END
 
 ### `NEXT_ALLOWED_STEP`:
 - **Phase 7 Status**: `CLOSED ON MAIN` (PRs #94 a #115 mescladas na main; fechamento formal aceito pelo operador humano via DEC-041).
-- **Phase 8 Status**: `OUTBOUND_FIRST_TWO_TRACK_PLANNING` (DEC-042 e DEC-043 na `main` via PR #118, SHA `5076b0c`). A Slice `008-OF1` foi IMPLEMENTADA OFFLINE na branch `feat/phase8-008-of1-outbound-lifecycle-contracts` e aguarda revisão humana independente: ela NÃO está concluída, aprovada nem mesclada.
-- `008-OF1` (estado real): contratos provider-neutral em `packages/contracts/src/telephony/` (porta `TelephonyOriginationPort`, porta de reconciliação, destino E.164, máquina pura de estados de tentativa com `OUTCOME_UNKNOWN`) + coordenador/fakes offline em `apps/worker/src/` (não exportados no índice, não ligados a dispatcher ativo). Zero migrations, zero tabelas, zero adapters Twilio/Millis, zero chamadas reais. Status de evidência: `TESTED` offline; `PROVIDER-UNVERIFIED`.
-- `NEXT_ALLOWED_STEP = HUMAN_REVIEW_OF_008_OF1_PR` (revisão independente do diff; sem merge sem autorização explícita).
-- `NEXT_ALLOWED_SLICE = 008_OF2_PERSISTENCE` (somente após aprovação e merge da 008-OF1 e autorização explícita separada; migrations exigem autorização própria).
+- **Phase 8 Status**: `OUTBOUND_FIRST_TWO_TRACK_PLANNING` (DEC-042 e DEC-043 na `main`).
+- **008-OF1 Status**: `MERGED ON MAIN AS OFFLINE IMPLEMENTATION` (incorporada à `main` via PR #119 no commit `fb82e40da61006c798860b1bb9c320ed255b1cde`). Contratos provider-neutral em `packages/contracts/src/telephony/` e coordenador/fakes offline em `apps/worker/src/`. Zero migrations, zero tabelas adicionais, zero adapters Twilio/Millis em runtime de produção, zero chamadas reais. Status de evidência: `TESTED` offline; `PROVIDER-UNVERIFIED`.
+- **Quality Gate Pós-Merge PR #119**: `FAILED_INITIALLY` no HEAD da main `fb82e40da61006c798860b1bb9c320ed255b1cde` devido a timeout de 5000ms em teste preexistente de benchmark da Fase 6 (`check-targeted-v2-technical-readiness.test.ts`).
+- **PR #120 Status**: `OPEN / PENDING HUMAN REVIEW & EXPLICIT MERGE DECISION` (branch `fix/phase8-postmerge-gate-timeout-stabilization`). Estabiliza timeouts dos testes A, C e E com `{ timeout: 30000 }`. Quality gate canônico passou com `PASS` (exit code 0) na branch.
+- `NEXT_ALLOWED_STEP = HUMAN_REVIEW_AND_DECISION_OF_PR_120` (revisão independente da PR #120; proibido merge sem autorização humana explícita).
+- `NEXT_ALLOWED_SLICE = 008_OF2_PERSISTENCE` (permanece NÃO iniciada; somente após aprovação e merge da PR #120 e autorização explícita separada do operador; migrations exigem autorização própria).
 - `PURCHASE_OF_PHONE_NUMBERS = 0` | `REAL_PROVIDER_CALLS = 0` | `CUSTOMER_TRAFFIC = PROHIBITED` | `ACTIVE_GUARDED = BLOCKED`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
 

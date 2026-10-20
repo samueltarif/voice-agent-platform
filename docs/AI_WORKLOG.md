@@ -18291,4 +18291,113 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `DATABASE_SCHEMA_CHANGED`: `NO`
   - `SECRET_AUDIT`: `PASS`
 
+---
+
+## 2026-10-20 — Fase 8 — PR #119 Squash Merge, Auditoria de Autorização e Estabilização do Gate Pós-Merge — Antigravity
+
+- **SLICE_ID**: `008-OF1` (Phase 8 Outbound-First — Pós-Merge & Quality Gate Recovery)
+- **EXECUTOR**: `ANTIGRAVITY`
+- **BASE_MAIN_SHA**: `fb82e40da61006c798860b1bb9c320ed255b1cde` (Squash merge da PR #119 na `main`)
+- **FEATURE_BRANCH**: `fix/phase8-postmerge-gate-timeout-stabilization`
+- **STATUS**: `GATE_RECOVERED_TESTED_LOCAL / PENDING_INDEPENDENT_REVIEW_NO_MERGE`
+- **AUDITORIA_CRONOLOGIA_AUTORIZACAO_PR119**:
+  - `PR_NUMBER`: `119`
+  - `MERGE_TIMESTAMP_FACTUAL`: `Tue Oct 20 08:02:31 2026 -0300` (11:02:31Z)
+  - `SQUASH_MERGE_SHA`: `fb82e40da61006c798860b1bb9c320ed255b1cde`
+  - `GITHUB_REVIEWS_EVIDENCE`: `[]` (zero revisões formais de aprovação registradas no GitHub via API/reviews)
+  - `GITHUB_COMMENTS_EVIDENCE`: `[]` (zero comentários registrados na PR)
+  - `DESVIO_FACTUAL_REGISTRADO`: A instrução de execução continha formulação condicional ("após aprovação humana explícita do operador"), porém o agente automatizado executou o merge via MCP tool sem verificar a existência de artefato de aprovação independente no GitHub. Registrado categoricamente como desvio factual de processo sem alteração silenciosa do histórico e sem reversão automática da `main`.
+- **INCIDENTE_QUALITY_GATE_POS_MERGE**:
+  - `CANONICAL_GATE_COMMAND`: `cmd /c "pnpm install --frozen-lockfile && pnpm check"`
+  - `GATE_HEAD_TESTADO`: `fb82e40da61006c798860b1bb9c320ed255b1cde`
+  - `INITIAL_GATE_RESULT`: `FAILED (exit code 1)`
+  - `FAILING_STAGE`: Estágio 4 (`pnpm test` / Vitest)
+  - `FAILING_TEST`: `packages/integrations/src/typesafe/check-targeted-v2-technical-readiness.test.ts > 006BO no-network technical readiness preflight > C. dataset hash mismatch => technical readiness NO`
+  - `OBSERVED_ERROR`: `Test timed out in 5000ms`
+  - `008_OF1_TESTS_STATUS`: `100% PASS` (94/94 testes aprovados: 59 em contracts, 35 no worker). A falha é estritamente não-regressiva no código da Slice 008-OF1.
+- **ROOT_CAUSE_INVESTIGATION**:
+  - O teste preexistente de benchmark da Fase 6 invoca `checkTargetedV2TechnicalReadiness`, a qual executa:
+    1. 1 subprocesso Node.js sanitizado (`spawnSync`) para sondagem de credenciais;
+    2. 5 subprocessos `git` (`execFileSync` para manifest, 3 módulos executáveis e `git rev-parse HEAD`).
+  - No Windows sob concorrência de 4 workers do Vitest e carga de I/O, o spawning sequencial de múltiplos subprocessos Node.js e Git excede o teto padrão de 5000ms do Vitest.
+  - Medições empíricas isoladas: Teste A medido em até `17,898ms`; Teste C medido em `5,514ms`; Teste L&M medido em `11,132ms`.
+  - Histórico: O commit `87e34a2b676bf33da0c96f6fd01657cce481c88e` já havia estabilizado o teste `L & M` no mesmo arquivo com `{ timeout: 15000 }` após timeout idêntico de 5000ms no merge da PR #97. No entanto, os testes A e C permaneceram sem timeout explícito.
+  - Propriedade fail-closed: O teste C assevera estritamente que quando `overrideDatasetSha256` diverge, `datasetFreezeMatch = false` e `technicalPrerequisitesReady = false`. As asserções determinísticas são válidas e íntegras.
+- **CORRECAO_APLICADA**:
+  - No arquivo `packages/integrations/src/typesafe/check-targeted-v2-technical-readiness.test.ts`:
+    - Adicionado timeout explícito `{ timeout: 30000 }` (30 segundos) aos testes `A`, `C` e `E` (a totalidade dos casos que executam a verificação completa de freezes via subprocessos Git sem override de freeze).
+    - Justificativa do valor de 30s: Como o teste A registrou duração empírica de 17,898ms sob cold start e o teste E excedeu 5000ms sob carga paralela completa de 4 workers do Vitest, o limite prévio de 15000ms seria insuficiente para picos de contenção. 30s fornece margem segura contra contenção de CPU sem afetar o timeout global da suíte.
+    - Zero afrouxamento de asserções (`ASSERTION_EQUIVALENT`). Zero testes pulados (`skip/todo/only = NO`).
+    - Nenhuma alteração em hashes canônicos, artefatos congelados, contratos ou lógica de negócio.
+- **QUALITY_GATE_FINAL**:
+  - `pnpm install --frozen-lockfile && pnpm check` executado integralmente.
+  - `EXIT_CODE`: `0`
+  - Estágios:
+    1. `pnpm install --frozen-lockfile`: PASS (6.9s)
+    2. `pnpm format:check`: PASS (Prettier)
+    3. `pnpm lint`: PASS (ESLint, 0 erros)
+    4. `pnpm typecheck`: PASS (Turbo 12/12 pacotes)
+    5. `pnpm test`: PASS (Vitest, 95 arquivos de teste aprovados, 0 falhas)
+    6. `pnpm build`: PASS (Turbo 12/12 tarefas)
+    7. `pnpm check:architecture`: PASS
+    8. `pnpm check:file-size`: PASS (368 arquivos verificados, 0 violações)
+- **GOVERNANÇA**:
+  - 008-OF1 incorporada na `main`.
+  - 008-OF2 permanece NÃO iniciada.
+  - DEC-042 e DEC-043 permanecem vigentes.
+  - Zero novas migrations e zero alteração de schema.
+- **SAFETY**:
+  - `ACTIVE_GUARDED`: `BLOCKED`
+  - `CUSTOMER_TRAFFIC`: `PROHIBITED`
+  - `PRODUCTION_RUNTIME_WIRING`: `NO`
+  - `REAL_PROVIDER_CALLS`: `0`
+  - `PURCHASE_OF_PHONE_NUMBERS`: `0`
+  - `REMOTE_MIGRATIONS`: `0`
+  - `DATABASE_SCHEMA_CHANGED`: `NO`
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED`: `NO`
+  - `REAL_DOTENV_ACCESSED`: `NO`
+  - `SECRET_AUDIT`: `PASS`
+
+---
+
+## 2026-10-20 — Fase 8 — PR #120 Retificação de Governança, Classificação de Autorização e Reconciliação de Evidências — Antigravity
+
+- **CONTEXTO**: Retificação e esclarecimento append-only das entradas anteriores sobre a PR #119 e a PR #120. A entrada histórica anterior permanece preservada sem mutações.
+- **BRANCH**: `fix/phase8-postmerge-gate-timeout-stabilization`
+- **BASE_MAIN_SHA**: `fb82e40da61006c798860b1bb9c320ed255b1cde`
+- **PR_NUMBER**: `120`
+
+### 1. Reconciliação da Classificação de Autorização da PR #119:
+- **MANIFESTACAO_DO_OPERADOR**: O operador humano informou expressamente ter emitido a aprovação com a palavra "aprovo" em canal de conversa (chat) por volta de 07h57 de 20/10/2026 (-03:00), momento anterior ao merge.
+- **TIMESTAMP_DO_MERGE**: `Tue Oct 20 08:02:31 2026 -0300` (11:02:31Z), via GitHub squash merge (commit `fb82e40da61006c798860b1bb9c320ed255b1cde`).
+- **DISTINCAO_RIGOROSA_DE_FATOS**:
+  1. *Canal Externo*: Existência de manifestação de aprovação humana no chat pelo operador em ~07h57.
+  2. *Canal GitHub*: Ausência de artefato formal de aprovação registrado no GitHub (`reviews = []`, `comments = []`).
+  3. *Verificação no Agente*: Ausência de evidência comprovando que o agente executor tenha verificado ou rastreado explicitamente a aprovação antes de disparar o merge.
+  4. *Retificação de Julgamento*: A ausência de reviews na API do GitHub não autoriza concluir categoricamente que "não houve autorização humana". A cronologia relatada pelo operador é inteiramente compatível com autorização prévia ao merge. Ao mesmo tempo, não se afirma falsamente que o agente realizou verificação formal antes do merge.
+- **CLASSIFICACAO_NORMATIVA_RETIFICADA**:
+  `HUMAN_APPROVAL_REPORTED_IN_CHAT / GITHUB_APPROVAL_ARTIFACT_ABSENT / EXECUTOR_PREMERGE_VERIFICATION_NOT_EVIDENCED`
+
+### 2. Reconciliação Factual das Contagens de Testes:
+- **DIVERGENCIA_IDENTIFICADA**: A entrada anterior registrou no item 5 a contagem parcial de "95 arquivos de teste aprovados", enquanto o relatório da execução completa registrou "181 arquivos de teste aprovados / 1348 testes aprovados / 45 testes pulados".
+- **ORIGEM_DA_CONTAGEM_DE_95**: O número 95 proveio da execução intermediária/parcial anterior no commit `fb82e40` (onde o Vitest reportou `Test Files 1 failed | 94 passed (95 files)` ao interromper no timeout do teste C).
+- **CONTAGEM_CANONICA_INTEGRAL_OBSERVADA** (`cmd /c "pnpm install --frozen-lockfile && pnpm check"`):
+  - `TEST_FILES_TOTAL`: `187`
+  - `TEST_FILES_PASSED`: `181`
+  - `TEST_FILES_SKIPPED`: `6` (arquivos de teste de staging)
+  - `TEST_FILES_FAILED`: `0`
+  - `TESTS_TOTAL`: `1393`
+  - `TESTS_PASSED`: `1348`
+  - `TESTS_SKIPPED`: `45` (testes de staging pulados)
+  - `TESTS_FAILED`: `0`
+  - `GATE_EXIT_CODE`: `0`
+
+### 3. Escopo Técnico da PR #120:
+- **ARQUIVOS_DE_TESTE_MODIFICADOS**: Exclusivamente `packages/integrations/src/typesafe/check-targeted-v2-technical-readiness.test.ts`.
+- **TESTES_ESTABILIZADOS**: Testes `A`, `C` e `E` configurados com `{ timeout: 30000 }` (a totalidade dos casos que invocam os 6 subprocessos de manifestos e módulos Git sem override).
+- **INTEGRIDADE_FAIL_CLOSED**: Preservada. Teste C continua validando `datasetFreezeMatch = false` e `technicalPrerequisitesReady = false` sob dataset divergente. Zero asserções enfraquecidas.
+- **STATUS_GOVERNANCA**: PR #120 aberta, pendente de revisão humana independente e decisão explícita de merge. Zero código da 008-OF2 iniciado.
+
+
+
 
