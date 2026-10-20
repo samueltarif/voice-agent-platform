@@ -17,6 +17,7 @@ import type {
   PayloadEquivalenceScope,
   ResolveWinningOptions,
 } from './knowledge-ingestion-types.js';
+import { findDriverError } from './postgres-driver-error.js';
 
 const RELEVANT_KNOWLEDGE_FK_CONSTRAINTS = new Set([
   'knowledge_documents_agent_id_agents_id_fk',
@@ -91,18 +92,6 @@ export function verifyPayloadEquivalence(
     throw conflictFor(input.source.locator, 'a different agent version association');
   }
   verifyEffectivePolicyEquivalent(existing, scope.effectivePolicy, input.source.locator);
-}
-
-function findDriverError(error: unknown, maxDepth: number): Record<string, unknown> | null {
-  let current: unknown = error;
-  for (let depth = 0; depth <= maxDepth; depth++) {
-    if (typeof current !== 'object' || current === null) return null;
-    const record = current as Record<string, unknown>;
-    if (typeof record.code === 'string') return record;
-    if (!('cause' in record)) return null;
-    current = record.cause;
-  }
-  return null;
 }
 
 export function isPostgresUniqueViolation(error: unknown): boolean {
