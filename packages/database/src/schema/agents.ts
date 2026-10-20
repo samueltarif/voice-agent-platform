@@ -77,6 +77,7 @@ export const agentVersions = pgTable(
       name: 'agent_versions_agent_org_fk',
     }).onDelete('restrict'),
     uniqueIndex('agent_versions_agent_version_uidx').on(table.agentId, table.versionNumber),
+    unique('agent_versions_id_agent_org_unique').on(table.id, table.agentId, table.organizationId),
     uniqueIndex('agent_versions_single_draft_uidx')
       .on(table.agentId)
       .where(sql`${table.status} = 'DRAFT'`),
