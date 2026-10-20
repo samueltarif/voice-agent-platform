@@ -4,25 +4,21 @@ import type {
   TelephonyOriginationResult,
   TelephonyReconciliationResult,
 } from '@voice-agent/contracts';
-import { createDatabaseConnection } from './client/connection.js';
 import { DrizzleCallAttemptRepository } from './repositories/call-attempt-repository.js';
 import { DrizzleCallEventTrailRepository } from './repositories/call-event-trail-repository.js';
 import { buildInternalAttemptEvent } from './repositories/durable-attempt-event-factory.js';
 import { DurableOutboundOriginationRunner } from './repositories/durable-outbound-origination-runner.js';
 import {
-  LOCAL_TEST_DATABASE_URL,
-  assertLocalDatabaseUrl,
-  countDurableOutboundLeftovers,
   createDurableOutboundFixture,
   createExtraJob,
-  destroyDurableOutboundFixture,
   type DurableOutboundFixture,
 } from './test-support/durable-outbound-fixtures.js';
+import { createDisposableTestDatabase } from './test-support/disposable-test-database.js';
 
-assertLocalDatabaseUrl(LOCAL_TEST_DATABASE_URL);
+const tdb = await createDisposableTestDatabase('durable-outbound-runner');
 
 describe('008-OF2 durable lifecycle runner with offline fakes (PostgreSQL)', () => {
-  const { db, pool } = createDatabaseConnection({ connectionString: LOCAL_TEST_DATABASE_URL });
+  const db = tdb.db;
   const attempts = new DrizzleCallAttemptRepository(db);
   const trail = new DrizzleCallEventTrailRepository(db);
   const now = new Date('2026-10-20T12:00:00.000Z');
@@ -57,12 +53,7 @@ describe('008-OF2 durable lifecycle runner with offline fakes (PostgreSQL)', () 
   });
 
   afterAll(async () => {
-    try {
-      await destroyDurableOutboundFixture(db, fx);
-      expect(await countDurableOutboundLeftovers(db, fx)).toBe(0);
-    } finally {
-      await pool.end();
-    }
+    await tdb.drop();
   });
 
   async function preparedOn(destinationPhone?: string) {

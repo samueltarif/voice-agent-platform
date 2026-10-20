@@ -47,3 +47,4 @@ export * from './durable-outbound-origination-runner.js';
 export * from './call-attempt-queries.js';
 export * from './durable-attempt-row-access.js';
 export * from './organization-phone-number-types.js';
+export * from './durable-session-binding-guard.js';

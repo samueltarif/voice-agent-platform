@@ -6,3 +6,4 @@ export * from './telephony-origination-port.js';
 export * from './apply-outbound-attempt-event.js';
 export * from './evaluate-successor-attempt.js';
 export * from './port-result-events.js';
+export * from './outbound-attempt-event-guards.js';

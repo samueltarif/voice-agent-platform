@@ -24,7 +24,9 @@ export const callEventApplicationResultEnum = pgEnum(
 export const callEventSourceEnum = pgEnum('call_event_source', ['INTERNAL', 'PROVIDER']);
 
 /**
- * Trilha append-only (UPDATE bloqueado por trigger). Identidade de negócio =
+ * Trilha append-only: UPDATE, DELETE e TRUNCATE bloqueados por trigger e
+ * nenhuma FK em cascata (exclusão de tentativa/sessão/organização com
+ * trilha é recusada). Retenção/eliminação exige procedimento futuro aprovado. Identidade de negócio =
  * `event_id`; `fingerprint` detecta replay com conteúdo divergente;
  * `payload_hash` é evidência auxiliar opcional, nunca identidade. `sequence`
  * dá a ordem efetiva de persistência; `occurred_at` é o horário declarado.
@@ -38,7 +40,7 @@ export const callEvents = pgTable(
     eventId: uuid('event_id').notNull(),
     organizationId: uuid('organization_id')
       .notNull()
-      .references(() => organizations.id, { onDelete: 'cascade' }),
+      .references(() => organizations.id, { onDelete: 'restrict' }),
     attemptId: uuid('attempt_id'),
     callSessionId: uuid('call_session_id'),
     source: callEventSourceEnum('source').notNull().default('INTERNAL'),
@@ -61,12 +63,12 @@ export const callEvents = pgTable(
       columns: [table.attemptId, table.organizationId],
       foreignColumns: [callAttempts.id, callAttempts.organizationId],
       name: 'call_events_attempt_org_fk',
-    }).onDelete('cascade'),
+    }).onDelete('restrict'),
     foreignKey({
       columns: [table.callSessionId, table.organizationId],
       foreignColumns: [callSessions.id, callSessions.organizationId],
       name: 'call_events_session_org_fk',
-    }).onDelete('cascade'),
+    }).onDelete('restrict'),
     uniqueIndex('call_events_event_id_uidx').on(table.eventId),
     uniqueIndex('call_events_sequence_uidx').on(table.sequence),
     index('call_events_org_attempt_seq_idx').on(

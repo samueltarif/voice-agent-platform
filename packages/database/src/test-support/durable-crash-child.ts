@@ -4,7 +4,7 @@ import { createDatabaseConnection, type DatabaseInstance } from '../client/conne
 import { callAttempts } from '../schema/call-attempts.js';
 import { DrizzleCallAttemptRepository } from '../repositories/call-attempt-repository.js';
 import { completeOriginationInTransaction } from '../repositories/call-attempt-claims.js';
-import { assertLocalDatabaseUrl, LOCAL_TEST_DATABASE_URL } from './durable-outbound-fixtures.js';
+import { assertDisposableDatabaseUrl, DISPOSABLE_DB_URL_ENV } from './disposable-test-database.js';
 
 /**
  * Processo-filho REAL para testes de crash (008-OF2). Executa passos duráveis
@@ -168,11 +168,9 @@ async function run(db: DatabaseInstance, repo: DrizzleCallAttemptRepository): Pr
   await step();
 }
 
-assertLocalDatabaseUrl(LOCAL_TEST_DATABASE_URL);
-const { db, pool } = createDatabaseConnection({
-  connectionString: LOCAL_TEST_DATABASE_URL,
-  maxConnections: 2,
-});
+const databaseUrl = process.env[DISPOSABLE_DB_URL_ENV] ?? '';
+assertDisposableDatabaseUrl(databaseUrl);
+const { db, pool } = createDatabaseConnection({ connectionString: databaseUrl, maxConnections: 2 });
 run(db, new DrizzleCallAttemptRepository(db))
   .then(() => emit({ done: true }))
   .finally(() => pool.end());

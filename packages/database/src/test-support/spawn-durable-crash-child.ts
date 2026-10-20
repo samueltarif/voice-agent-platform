@@ -1,6 +1,7 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { DISPOSABLE_DB_URL_ENV } from './disposable-test-database.js';
 
 const CHILD_SCRIPT = join(import.meta.dirname, 'durable-crash-child.ts');
 const LOADER = pathToFileURL(join(import.meta.dirname, 'typescript-source-loader.mjs')).href;
@@ -21,7 +22,10 @@ function parseLines(raw: string): Record<string, unknown>[] {
 }
 
 /** Inicia um processo Node REAL e independente, conectado ao mesmo PostgreSQL local. */
-export function runDurableCrashChild(args: Record<string, unknown>): Promise<ChildRun> {
+export function runDurableCrashChild(
+  args: Record<string, unknown>,
+  databaseUrl: string,
+): Promise<ChildRun> {
   const child = spawn(
     process.execPath,
     [
@@ -32,7 +36,10 @@ export function runDurableCrashChild(args: Record<string, unknown>): Promise<Chi
       CHILD_SCRIPT,
       JSON.stringify(args),
     ],
-    { stdio: ['ignore', 'pipe', 'pipe'], env: process.env },
+    {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: { ...process.env, [DISPOSABLE_DB_URL_ENV]: databaseUrl },
+    },
   );
   live.add(child);
   let stdout = '';

@@ -1,5 +1,5 @@
 {
-  "id": "cfb39ae6-bfba-48d0-8570-b2ce1e4df5b1",
+  "id": "f50440ef-8406-4b4c-bcf0-3a241cf92144",
   "prevId": "c8ac4391-bf7c-4dce-bad9-554f0916049f",
   "version": "7",
   "dialect": "postgresql",
@@ -3182,7 +3182,7 @@
           "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
           "columnsTo": ["id"],
-          "onDelete": "cascade",
+          "onDelete": "restrict",
           "onUpdate": "no action"
         },
         "call_attempts_job_org_fk": {
@@ -3212,12 +3212,12 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "call_attempts_session_org_fk": {
-          "name": "call_attempts_session_org_fk",
+        "call_attempts_session_binding_fk": {
+          "name": "call_attempts_session_binding_fk",
           "tableFrom": "call_attempts",
           "tableTo": "call_sessions",
-          "columnsFrom": ["call_session_id", "organization_id"],
-          "columnsTo": ["id", "organization_id"],
+          "columnsFrom": ["call_session_id", "organization_id", "id"],
+          "columnsTo": ["id", "organization_id", "current_attempt_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3378,7 +3378,7 @@
           "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
           "columnsTo": ["id"],
-          "onDelete": "cascade",
+          "onDelete": "restrict",
           "onUpdate": "no action"
         },
         "call_sessions_attempt_org_fk": {
@@ -3406,6 +3406,11 @@
           "name": "call_sessions_id_org_unique",
           "nullsNotDistinct": false,
           "columns": ["id", "organization_id"]
+        },
+        "call_sessions_id_org_attempt_unique": {
+          "name": "call_sessions_id_org_attempt_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id", "organization_id", "current_attempt_id"]
         }
       },
       "policies": {},
@@ -3654,7 +3659,7 @@
           "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
           "columnsTo": ["id"],
-          "onDelete": "cascade",
+          "onDelete": "restrict",
           "onUpdate": "no action"
         },
         "call_events_attempt_org_fk": {
@@ -3663,7 +3668,7 @@
           "tableTo": "call_attempts",
           "columnsFrom": ["attempt_id", "organization_id"],
           "columnsTo": ["id", "organization_id"],
-          "onDelete": "cascade",
+          "onDelete": "restrict",
           "onUpdate": "no action"
         },
         "call_events_session_org_fk": {
@@ -3672,7 +3677,7 @@
           "tableTo": "call_sessions",
           "columnsFrom": ["call_session_id", "organization_id"],
           "columnsTo": ["id", "organization_id"],
-          "onDelete": "cascade",
+          "onDelete": "restrict",
           "onUpdate": "no action"
         }
       },

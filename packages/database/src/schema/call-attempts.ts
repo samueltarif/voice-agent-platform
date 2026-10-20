@@ -33,7 +33,7 @@ export const callAttempts = pgTable(
     id: uuid('id').primaryKey(),
     organizationId: uuid('organization_id')
       .notNull()
-      .references(() => organizations.id, { onDelete: 'cascade' }),
+      .references(() => organizations.id, { onDelete: 'restrict' }),
     jobId: uuid('job_id').notNull(),
     campaignId: uuid('campaign_id'),
     attemptNumber: integer('attempt_number').notNull(),
@@ -75,10 +75,14 @@ export const callAttempts = pgTable(
       foreignColumns: [agentVersions.id, agentVersions.agentId, agentVersions.organizationId],
       name: 'call_attempts_agent_version_org_fk',
     }).onDelete('no action'),
+    /**
+     * Vínculo bidirecional coerente: a sessão referenciada precisa ser do mesmo
+     * tenant E apontar de volta para ESTA tentativa (current_attempt_id = id).
+     */
     foreignKey({
-      columns: [table.callSessionId, table.organizationId],
-      foreignColumns: [callSessions.id, callSessions.organizationId],
-      name: 'call_attempts_session_org_fk',
+      columns: [table.callSessionId, table.organizationId, table.id],
+      foreignColumns: [callSessions.id, callSessions.organizationId, callSessions.currentAttemptId],
+      name: 'call_attempts_session_binding_fk',
     }).onDelete('no action'),
     unique('call_attempts_id_org_unique').on(table.id, table.organizationId),
     uniqueIndex('call_attempts_job_number_uidx').on(

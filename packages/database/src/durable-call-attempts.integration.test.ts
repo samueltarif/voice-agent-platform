@@ -1,23 +1,19 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createDatabaseConnection } from './client/connection.js';
 import { DrizzleCallAttemptRepository } from './repositories/call-attempt-repository.js';
 import { DrizzleCallEventTrailRepository } from './repositories/call-event-trail-repository.js';
 import { buildInternalAttemptEvent } from './repositories/durable-attempt-event-factory.js';
 import {
-  LOCAL_TEST_DATABASE_URL,
-  assertLocalDatabaseUrl,
-  countDurableOutboundLeftovers,
   createDurableOutboundFixture,
-  destroyDurableOutboundFixture,
   type DurableOutboundFixture,
   type TenantFixture,
 } from './test-support/durable-outbound-fixtures.js';
+import { createDisposableTestDatabase } from './test-support/disposable-test-database.js';
 
-assertLocalDatabaseUrl(LOCAL_TEST_DATABASE_URL);
+const tdb = await createDisposableTestDatabase('durable-call-attempts');
 
 describe('008-OF2 durable call attempts (PostgreSQL)', () => {
-  const { db, pool } = createDatabaseConnection({ connectionString: LOCAL_TEST_DATABASE_URL });
+  const db = tdb.db;
   const attempts = new DrizzleCallAttemptRepository(db);
   const trail = new DrizzleCallEventTrailRepository(db);
   const now = new Date('2026-10-20T12:00:00.000Z');
@@ -28,12 +24,7 @@ describe('008-OF2 durable call attempts (PostgreSQL)', () => {
   });
 
   afterAll(async () => {
-    try {
-      await destroyDurableOutboundFixture(db, fx);
-      expect(await countDurableOutboundLeftovers(db, fx)).toBe(0);
-    } finally {
-      await pool.end();
-    }
+    await tdb.drop();
   });
 
   function prepare(tenant: TenantFixture, attemptId: string = randomUUID()) {

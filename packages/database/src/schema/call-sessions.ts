@@ -33,7 +33,7 @@ export const callSessions = pgTable(
     id: uuid('id').primaryKey(),
     organizationId: uuid('organization_id')
       .notNull()
-      .references(() => organizations.id, { onDelete: 'cascade' }),
+      .references(() => organizations.id, { onDelete: 'restrict' }),
     agentId: uuid('agent_id').notNull(),
     agentVersionId: uuid('agent_version_id').notNull(),
     currentAttemptId: uuid('current_attempt_id'),
@@ -58,6 +58,11 @@ export const callSessions = pgTable(
       name: 'call_sessions_agent_version_org_fk',
     }).onDelete('no action'),
     unique('call_sessions_id_org_unique').on(table.id, table.organizationId),
+    unique('call_sessions_id_org_attempt_unique').on(
+      table.id,
+      table.organizationId,
+      table.currentAttemptId,
+    ),
     /** Uma tentativa pertence a no máximo uma sessão. */
     uniqueIndex('call_sessions_attempt_uidx')
       .on(table.organizationId, table.currentAttemptId)

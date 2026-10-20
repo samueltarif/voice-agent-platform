@@ -1,24 +1,20 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createDatabaseConnection } from './client/connection.js';
 import { DrizzleCallAttemptRepository } from './repositories/call-attempt-repository.js';
 import { DrizzleCallEventTrailRepository } from './repositories/call-event-trail-repository.js';
 import { DurableOutboundOriginationRunner } from './repositories/durable-outbound-origination-runner.js';
 import {
-  LOCAL_TEST_DATABASE_URL,
-  assertLocalDatabaseUrl,
-  countDurableOutboundLeftovers,
   createDurableOutboundFixture,
   createExtraJob,
-  destroyDurableOutboundFixture,
   type DurableOutboundFixture,
 } from './test-support/durable-outbound-fixtures.js';
+import { createDisposableTestDatabase } from './test-support/disposable-test-database.js';
 import {
   killLiveCrashChildren,
   runDurableCrashChild,
 } from './test-support/spawn-durable-crash-child.js';
 
-assertLocalDatabaseUrl(LOCAL_TEST_DATABASE_URL);
+const tdb = await createDisposableTestDatabase('durable-crash-recovery');
 
 const T0 = '2026-10-20T12:00:00.000Z';
 const AFTER_LEASE = '2026-10-20T12:10:00.000Z';
@@ -29,7 +25,7 @@ const AFTER_LEASE = '2026-10-20T12:10:00.000Z';
  * sem nenhuma memória compartilhada com o processo que caiu.
  */
 describe('008-OF2 crash recovery with separate Node processes', { timeout: 120_000 }, () => {
-  const { db, pool } = createDatabaseConnection({ connectionString: LOCAL_TEST_DATABASE_URL });
+  const db = tdb.db;
   const attempts = new DrizzleCallAttemptRepository(db);
   const trail = new DrizzleCallEventTrailRepository(db);
   let fx: DurableOutboundFixture;
@@ -40,12 +36,7 @@ describe('008-OF2 crash recovery with separate Node processes', { timeout: 120_0
 
   afterAll(async () => {
     killLiveCrashChildren();
-    try {
-      await destroyDurableOutboundFixture(db, fx);
-      expect(await countDurableOutboundLeftovers(db, fx)).toBe(0);
-    } finally {
-      await pool.end();
-    }
+    await tdb.drop();
   });
 
   async function scenario(mode: string, extra: Record<string, unknown> = {}) {
@@ -53,17 +44,20 @@ describe('008-OF2 crash recovery with separate Node processes', { timeout: 120_0
       (extra.jobId as string | undefined) ??
       (await createExtraJob(db, { tenant: fx.tenantA, tag: mode }));
     const attemptId = (extra.attemptId as string | undefined) ?? randomUUID();
-    const run = await runDurableCrashChild({
-      mode,
-      organizationId: fx.tenantA.organizationId,
-      agentId: fx.tenantA.agentId,
-      agentVersionId: fx.tenantA.agentVersionId,
-      jobId,
-      attemptId,
-      nowIso: T0,
-      ownerId: `worker-${mode}`,
-      ...extra,
-    });
+    const run = await runDurableCrashChild(
+      {
+        mode,
+        organizationId: fx.tenantA.organizationId,
+        agentId: fx.tenantA.agentId,
+        agentVersionId: fx.tenantA.agentVersionId,
+        jobId,
+        attemptId,
+        nowIso: T0,
+        ownerId: `worker-${mode}`,
+        ...extra,
+      },
+      tdb.url,
+    );
     return {
       run,
       jobId,
@@ -77,16 +71,19 @@ describe('008-OF2 crash recovery with separate Node processes', { timeout: 120_0
   const finished = (lines: Record<string, unknown>[]) => lines.some((l) => l.done === true);
 
   function recoverIn(ownerId: string) {
-    return runDurableCrashChild({
-      mode: 'recover',
-      organizationId: fx.tenantA.organizationId,
-      jobId: randomUUID(),
-      attemptId: randomUUID(),
-      agentId: fx.tenantA.agentId,
-      agentVersionId: fx.tenantA.agentVersionId,
-      nowIso: AFTER_LEASE,
-      ownerId,
-    });
+    return runDurableCrashChild(
+      {
+        mode: 'recover',
+        organizationId: fx.tenantA.organizationId,
+        jobId: randomUUID(),
+        attemptId: randomUUID(),
+        agentId: fx.tenantA.agentId,
+        agentVersionId: fx.tenantA.agentVersionId,
+        nowIso: AFTER_LEASE,
+        ownerId,
+      },
+      tdb.url,
+    );
   }
 
   it('A/B: a crash before or during the first write leaves nothing persisted', async () => {

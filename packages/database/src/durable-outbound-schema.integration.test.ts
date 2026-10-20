@@ -3,20 +3,16 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createDatabaseConnection } from './client/connection.js';
 import { runMigrations } from './client/migrate.js';
 import { classifyPostgresFailure } from './repositories/outbound-persistence-errors.js';
 import {
-  LOCAL_TEST_DATABASE_URL,
-  assertLocalDatabaseUrl,
-  countDurableOutboundLeftovers,
   createDurableOutboundFixture,
-  destroyDurableOutboundFixture,
   type DurableOutboundFixture,
   type TenantFixture,
 } from './test-support/durable-outbound-fixtures.js';
+import { createDisposableTestDatabase } from './test-support/disposable-test-database.js';
 
-assertLocalDatabaseUrl(LOCAL_TEST_DATABASE_URL);
+const tdb = await createDisposableTestDatabase('durable-outbound-schema');
 
 const MIGRATION = readFileSync(
   join(import.meta.dirname, 'migrations', '0007_durable_outbound_persistence.sql'),
@@ -33,35 +29,11 @@ async function failureOf(work: Promise<unknown>) {
 }
 
 describe('008-OF2 migration on a brand-new disposable database', () => {
-  const dbName = `of2_migration_${randomUUID().replace(/-/g, '').slice(0, 12)}`;
-  const admin = createDatabaseConnection({
-    connectionString: LOCAL_TEST_DATABASE_URL,
-    maxConnections: 1,
-  });
-  const freshUrl = (() => {
-    const url = new URL(LOCAL_TEST_DATABASE_URL);
-    url.pathname = `/${dbName}`;
-    return url.toString();
-  })();
-
-  beforeAll(async () => {
-    assertLocalDatabaseUrl(freshUrl);
-    await admin.db.execute(sql.raw(`CREATE DATABASE "${dbName}"`));
-  });
-
-  afterAll(async () => {
-    try {
-      await admin.db.execute(sql.raw(`DROP DATABASE IF EXISTS "${dbName}" WITH (FORCE)`));
-    } finally {
-      await admin.pool.end();
-    }
-  });
-
   it('applies all migrations (0000–0007) from empty and is idempotent on re-run', async () => {
-    await runMigrations({ connectionString: freshUrl });
-    await runMigrations({ connectionString: freshUrl });
-    const fresh = createDatabaseConnection({ connectionString: freshUrl, maxConnections: 1 });
-    try {
+    // `tdb` foi criado vazio e migrado do zero; a nova execução prova idempotência.
+    await runMigrations({ connectionString: tdb.url });
+    const fresh = tdb;
+    {
       const tables = await fresh.db.execute<{ name: string }>(sql`
         SELECT tablename AS name FROM pg_tables WHERE schemaname = 'public'
           AND tablename IN ('organization_phone_numbers','call_attempts','call_sessions','call_events')
@@ -74,21 +46,19 @@ describe('008-OF2 migration on a brand-new disposable database', () => {
       ]);
       const triggers = await fresh.db.execute<{ total: string }>(sql`
         SELECT count(*)::text AS total FROM pg_trigger WHERE NOT tgisinternal
-          AND tgname IN ('call_events_append_only','call_attempts_identity_guard',
+          AND tgname IN ('call_events_append_only','call_events_no_truncate','call_attempts_identity_guard',
                          'call_sessions_identity_guard','organization_phone_numbers_identity_guard')`);
-      expect(triggers.rows[0]?.total).toBe('4');
+      expect(triggers.rows[0]?.total).toBe('5');
       const applied = await fresh.db.execute<{ total: string }>(
         sql`SELECT count(*)::text AS total FROM drizzle.__drizzle_migrations`,
       );
       expect(applied.rows[0]?.total).toBe('8');
-    } finally {
-      await fresh.pool.end();
     }
   });
 
   it('is additive: no DROP, RENAME, TRUNCATE or column type change on legacy tables', () => {
     expect(MIGRATION).not.toMatch(/\bDROP\s+(TABLE|COLUMN|TYPE|CONSTRAINT|INDEX)\b/i);
-    expect(MIGRATION).not.toMatch(/\bRENAME\b|\bTRUNCATE\b|ALTER\s+COLUMN/i);
+    expect(MIGRATION).not.toMatch(/\bRENAME\b|^\s*TRUNCATE\b|ALTER\s+COLUMN/im);
     const legacyAlters =
       MIGRATION.match(
         /ALTER TABLE "(agent_versions|outbound_call_jobs|outbound_campaigns)"[^;]*/g,
@@ -101,7 +71,7 @@ describe('008-OF2 migration on a brand-new disposable database', () => {
 });
 
 describe('008-OF2 database-level guarantees (raw SQL, bypassing repositories)', () => {
-  const { db, pool } = createDatabaseConnection({ connectionString: LOCAL_TEST_DATABASE_URL });
+  const db = tdb.db;
   let fx: DurableOutboundFixture;
 
   beforeAll(async () => {
@@ -109,12 +79,7 @@ describe('008-OF2 database-level guarantees (raw SQL, bypassing repositories)', 
   });
 
   afterAll(async () => {
-    try {
-      await destroyDurableOutboundFixture(db, fx);
-      expect(await countDurableOutboundLeftovers(db, fx)).toBe(0);
-    } finally {
-      await pool.end();
-    }
+    await tdb.drop();
   });
 
   function rawAttempt(

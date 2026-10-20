@@ -1,6 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 import {
   applyOutboundAttemptEvent,
+  checkCorrelation,
   outboundAttemptEventSchema,
   type OutboundAttemptEvent,
   type OutboundAttemptRejectionReason,
@@ -9,6 +10,7 @@ import { callAttempts, type CallAttemptEntity } from '../schema/call-attempts.js
 import type { DatabaseExecutor } from './database-executor.js';
 import { attemptStateColumns, type DurableAttemptRecord } from './call-attempt-mapping.js';
 import { insertAttemptEvent } from './call-event-store.js';
+import { checkSessionBinding } from './durable-session-binding-guard.js';
 import {
   classifyKnownEvent,
   fenceViolated,
@@ -98,10 +100,20 @@ async function persistIfNeeded(
   return row;
 }
 
+function authorityViolation(
+  row: CallAttemptEntity,
+  input: ApplyAttemptEventInput,
+): 'FENCED' | 'VERSION_CONFLICT' | null {
+  if (fenceViolated(row, input.fence)) return 'FENCED';
+  const expected = input.expectedStateVersion;
+  return expected !== undefined && expected !== row.stateVersion ? 'VERSION_CONFLICT' : null;
+}
+
 /**
- * Transação equivalente a: lock → fence/versão → identidade do evento →
- * FSM canônica → mutação + trilha de auditoria. Deve rodar DENTRO de uma
- * transação: estado e trilha nunca divergem.
+ * Precedência (revisão PR #121): parse → correlação canônica da 008-OF1
+ * (tenant/tentativa/job/sessão) → identidade do evento já registrado →
+ * autoridade (fencing/versão) → vínculo de sessão → FSM → persistência
+ * atômica de estado + trilha. Deve rodar DENTRO de uma transação.
  */
 export async function applyAttemptEventInTransaction(
   executor: DatabaseExecutor,
@@ -110,15 +122,15 @@ export async function applyAttemptEventInTransaction(
   const row = await lockAttemptRow(executor, input);
   if (!row) return { kind: 'NOT_FOUND' };
   const record = await loadRecord(executor, row);
-  if (fenceViolated(row, input.fence)) return { kind: 'FENCED', record };
-  const versionMismatch =
-    input.expectedStateVersion !== undefined && input.expectedStateVersion !== row.stateVersion;
-  if (versionMismatch) return { kind: 'VERSION_CONFLICT', record };
   const parsed = outboundAttemptEventSchema.safeParse(input.event);
   if (!parsed.success) return { kind: 'REJECTED', record, reason: 'INVALID_EVENT' };
+  const scopeViolation = checkCorrelation(record.attempt, parsed.data);
+  if (scopeViolation) return { kind: 'REJECTED', record, reason: scopeViolation };
   const known = await classifyKnownEvent(executor, row, parsed.data);
   if (known === 'EVENT_ID_CONFLICT') return { kind: 'EVENT_ID_CONFLICT' };
   if (known === 'DUPLICATE') return { kind: 'DUPLICATE', record };
+  const authority = authorityViolation(row, input);
+  if (authority) return { kind: authority, record };
   return applyNewEvent(executor, { row, record, event: parsed.data, input });
 }
 
@@ -132,7 +144,10 @@ async function applyNewEvent(
   },
 ): Promise<DurableApplyOutcome> {
   const { row, record, event, input } = ctx;
-  const result = applyOutboundAttemptEvent(record.attempt, event);
+  const bindingViolation = await checkSessionBinding(executor, { row, event });
+  const result: ReturnType<typeof applyOutboundAttemptEvent> = bindingViolation
+    ? { kind: 'REJECTED', attempt: record.attempt, reason: bindingViolation }
+    : applyOutboundAttemptEvent(record.attempt, event);
   if (result.kind === 'DUPLICATE') return { kind: 'DUPLICATE', record };
   if (result.kind === 'REJECTED' && UNRECORDED_REASONS.has(result.reason)) {
     return { kind: 'REJECTED', record, reason: result.reason };

@@ -1,27 +1,9 @@
 import { randomUUID } from 'node:crypto';
-import { inArray, sql } from 'drizzle-orm';
 import type { DatabaseInstance } from '../client/connection.js';
 import { OrganizationRepository } from '../repositories/organization-repository.js';
 import { DrizzleOutboundRepository } from '../repositories/outbound-repository.js';
 import { agents, agentVersions } from '../schema/agents.js';
 import { user } from '../schema/auth.js';
-import { organizations } from '../schema/organizations.js';
-import { outboundCallJobs, outboundCampaigns } from '../schema/outbound.js';
-
-/** Banco local descartável: 'localhost'/'127.0.0.1'/'::1' apenas (fail-closed). */
-export const LOCAL_TEST_DATABASE_URL =
-  process.env.TEST_DATABASE_URL ||
-  process.env.DATABASE_URL ||
-  'postgresql://postgres:postgres@localhost:5432/voice_agent_dev';
-
-const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
-
-export function assertLocalDatabaseUrl(connectionString: string): void {
-  const host = new URL(connectionString).hostname;
-  if (!LOCAL_HOSTS.has(host)) {
-    throw new Error('Refusing to run durable outbound tests against a non-local database.');
-  }
-}
 
 export interface TenantFixture {
   readonly organizationId: string;
@@ -114,45 +96,11 @@ export async function createDurableOutboundFixture(
   return { runId, userId, tenantA, tenantB };
 }
 
-/** Teardown escopado ao runId; sessão↔tentativa removidas no MESMO statement. */
-export async function destroyDurableOutboundFixture(
-  db: DatabaseInstance,
-  fixture: DurableOutboundFixture,
-): Promise<void> {
-  const orgIds = [fixture.tenantA.organizationId, fixture.tenantB.organizationId];
-  await db.execute(sql`
-    WITH removed_sessions AS (
-      DELETE FROM call_sessions WHERE organization_id IN (${sql.join(orgIds, sql`, `)})
-    )
-    DELETE FROM call_attempts WHERE organization_id IN (${sql.join(orgIds, sql`, `)})
-  `);
-  await db.execute(
-    sql`DELETE FROM organization_phone_numbers WHERE organization_id IN (${sql.join(orgIds, sql`, `)})`,
-  );
-  await db.delete(outboundCallJobs).where(inArray(outboundCallJobs.organizationId, orgIds));
-  await db.delete(outboundCampaigns).where(inArray(outboundCampaigns.organizationId, orgIds));
-  await db.delete(agentVersions).where(inArray(agentVersions.organizationId, orgIds));
-  await db.delete(agents).where(inArray(agents.organizationId, orgIds));
-  await db.delete(organizations).where(inArray(organizations.id, orgIds));
-  await db.delete(user).where(inArray(user.id, [fixture.userId]));
-}
-
-/** Prova de zero resíduos após o teardown. */
-export async function countDurableOutboundLeftovers(
-  db: DatabaseInstance,
-  fixture: DurableOutboundFixture,
-): Promise<number> {
-  const orgIds = [fixture.tenantA.organizationId, fixture.tenantB.organizationId];
-  const result = await db.execute<{ total: string }>(sql`
-    SELECT (
-      (SELECT count(*) FROM call_events WHERE organization_id IN (${sql.join(orgIds, sql`, `)})) +
-      (SELECT count(*) FROM call_attempts WHERE organization_id IN (${sql.join(orgIds, sql`, `)})) +
-      (SELECT count(*) FROM call_sessions WHERE organization_id IN (${sql.join(orgIds, sql`, `)})) +
-      (SELECT count(*) FROM organizations WHERE id IN (${sql.join(orgIds, sql`, `)}))
-    )::text AS total
-  `);
-  return Number(result.rows[0]?.total ?? '0');
-}
+/**
+ * Fixtures sintéticas criadas DENTRO de um banco descartável por suíte
+ * (`disposable-test-database.ts`); o descarte é o DROP do banco inteiro, sem
+ * DELETEs na trilha de auditoria.
+ */
 
 /** Job adicional do tenant (cada cenário de crash usa um job próprio). */
 export async function createExtraJob(

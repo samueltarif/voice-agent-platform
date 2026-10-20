@@ -80,6 +80,7 @@ CREATE TABLE "call_sessions" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "call_sessions_id_org_unique" UNIQUE("id","organization_id"),
+	CONSTRAINT "call_sessions_id_org_attempt_unique" UNIQUE("id","organization_id","current_attempt_id"),
 	CONSTRAINT "call_sessions_state_version_chk" CHECK ("call_sessions"."state_version" > 0),
 	CONSTRAINT "call_sessions_ended_chk" CHECK (("call_sessions"."runtime_state" IN ('ENDED', 'FAILED')) = ("call_sessions"."ended_at" IS NOT NULL)),
 	CONSTRAINT "call_sessions_failure_reason_chk" CHECK ("call_sessions"."failure_reason" IS NULL OR char_length("call_sessions"."failure_reason") <= 200)
@@ -115,7 +116,7 @@ CREATE TABLE "call_events" (
 --> statement-breakpoint
 ALTER TABLE "organization_phone_numbers" ADD CONSTRAINT "organization_phone_numbers_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;
 --> statement-breakpoint
-ALTER TABLE "call_attempts" ADD CONSTRAINT "call_attempts_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "call_attempts" ADD CONSTRAINT "call_attempts_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE restrict ON UPDATE no action;
 --> statement-breakpoint
 ALTER TABLE "call_attempts" ADD CONSTRAINT "call_attempts_job_org_fk" FOREIGN KEY ("job_id","organization_id") REFERENCES "public"."outbound_call_jobs"("id","organization_id") ON DELETE no action ON UPDATE no action;
 --> statement-breakpoint
@@ -123,19 +124,19 @@ ALTER TABLE "call_attempts" ADD CONSTRAINT "call_attempts_campaign_org_fk" FOREI
 --> statement-breakpoint
 ALTER TABLE "call_attempts" ADD CONSTRAINT "call_attempts_agent_version_org_fk" FOREIGN KEY ("agent_version_id","agent_id","organization_id") REFERENCES "public"."agent_versions"("id","agent_id","organization_id") ON DELETE no action ON UPDATE no action;
 --> statement-breakpoint
-ALTER TABLE "call_attempts" ADD CONSTRAINT "call_attempts_session_org_fk" FOREIGN KEY ("call_session_id","organization_id") REFERENCES "public"."call_sessions"("id","organization_id") ON DELETE no action ON UPDATE no action;
+ALTER TABLE "call_attempts" ADD CONSTRAINT "call_attempts_session_binding_fk" FOREIGN KEY ("call_session_id","organization_id","id") REFERENCES "public"."call_sessions"("id","organization_id","current_attempt_id") ON DELETE no action ON UPDATE no action;
 --> statement-breakpoint
-ALTER TABLE "call_sessions" ADD CONSTRAINT "call_sessions_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "call_sessions" ADD CONSTRAINT "call_sessions_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE restrict ON UPDATE no action;
 --> statement-breakpoint
 ALTER TABLE "call_sessions" ADD CONSTRAINT "call_sessions_attempt_org_fk" FOREIGN KEY ("current_attempt_id","organization_id") REFERENCES "public"."call_attempts"("id","organization_id") ON DELETE no action ON UPDATE no action;
 --> statement-breakpoint
 ALTER TABLE "call_sessions" ADD CONSTRAINT "call_sessions_agent_version_org_fk" FOREIGN KEY ("agent_version_id","agent_id","organization_id") REFERENCES "public"."agent_versions"("id","agent_id","organization_id") ON DELETE no action ON UPDATE no action;
 --> statement-breakpoint
-ALTER TABLE "call_events" ADD CONSTRAINT "call_events_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "call_events" ADD CONSTRAINT "call_events_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE restrict ON UPDATE no action;
 --> statement-breakpoint
-ALTER TABLE "call_events" ADD CONSTRAINT "call_events_attempt_org_fk" FOREIGN KEY ("attempt_id","organization_id") REFERENCES "public"."call_attempts"("id","organization_id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "call_events" ADD CONSTRAINT "call_events_attempt_org_fk" FOREIGN KEY ("attempt_id","organization_id") REFERENCES "public"."call_attempts"("id","organization_id") ON DELETE restrict ON UPDATE no action;
 --> statement-breakpoint
-ALTER TABLE "call_events" ADD CONSTRAINT "call_events_session_org_fk" FOREIGN KEY ("call_session_id","organization_id") REFERENCES "public"."call_sessions"("id","organization_id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "call_events" ADD CONSTRAINT "call_events_session_org_fk" FOREIGN KEY ("call_session_id","organization_id") REFERENCES "public"."call_sessions"("id","organization_id") ON DELETE restrict ON UPDATE no action;
 --> statement-breakpoint
 CREATE UNIQUE INDEX "organization_phone_numbers_e164_uidx" ON "organization_phone_numbers" USING btree ("e164_number");
 --> statement-breakpoint
@@ -160,12 +161,13 @@ CREATE UNIQUE INDEX "call_events_sequence_uidx" ON "call_events" USING btree ("s
 CREATE INDEX "call_events_org_attempt_seq_idx" ON "call_events" USING btree ("organization_id","attempt_id","sequence");
 --> statement-breakpoint
 CREATE INDEX "call_events_org_session_seq_idx" ON "call_events" USING btree ("organization_id","call_session_id","sequence");--> statement-breakpoint
-CREATE OR REPLACE FUNCTION "call_events_block_update"() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION "call_events_block_mutation"() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
-  RAISE EXCEPTION 'call_events is append-only' USING ERRCODE = 'P0001';
+  RAISE EXCEPTION 'call_events is append-only (% blocked)', TG_OP USING ERRCODE = 'P0001';
 END;
 $$;--> statement-breakpoint
-CREATE TRIGGER "call_events_append_only" BEFORE UPDATE ON "call_events" FOR EACH ROW EXECUTE FUNCTION "call_events_block_update"();--> statement-breakpoint
+CREATE TRIGGER "call_events_append_only" BEFORE UPDATE OR DELETE ON "call_events" FOR EACH ROW EXECUTE FUNCTION "call_events_block_mutation"();--> statement-breakpoint
+CREATE TRIGGER "call_events_no_truncate" BEFORE TRUNCATE ON "call_events" FOR EACH STATEMENT EXECUTE FUNCTION "call_events_block_mutation"();--> statement-breakpoint
 CREATE OR REPLACE FUNCTION "call_attempts_guard_identity"() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
   IF NEW.id <> OLD.id OR NEW.organization_id <> OLD.organization_id OR NEW.job_id <> OLD.job_id

@@ -3,24 +3,21 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createDatabaseConnection } from './client/connection.js';
 import { DrizzleCallAttemptRepository } from './repositories/call-attempt-repository.js';
 import {
-  LOCAL_TEST_DATABASE_URL,
-  assertLocalDatabaseUrl,
-  countDurableOutboundLeftovers,
   createDurableOutboundFixture,
-  destroyDurableOutboundFixture,
   type DurableOutboundFixture,
   type TenantFixture,
 } from './test-support/durable-outbound-fixtures.js';
+import { createDisposableTestDatabase } from './test-support/disposable-test-database.js';
 
-assertLocalDatabaseUrl(LOCAL_TEST_DATABASE_URL);
+const tdb = await createDisposableTestDatabase('durable-call-attempts-concurrency');
 
 /**
  * Concorrência real: dois pools independentes (= dois processos de worker do
  * ponto de vista do PostgreSQL) disparados com Promise.all após uma barreira.
  */
 describe('008-OF2 real PostgreSQL concurrency', () => {
-  const left = createDatabaseConnection({ connectionString: LOCAL_TEST_DATABASE_URL });
-  const right = createDatabaseConnection({ connectionString: LOCAL_TEST_DATABASE_URL });
+  const left = { db: tdb.db };
+  const right = createDatabaseConnection({ connectionString: tdb.url });
   const repoL = new DrizzleCallAttemptRepository(left.db);
   const repoR = new DrizzleCallAttemptRepository(right.db);
   const t0 = new Date('2026-10-20T12:00:00.000Z');
@@ -31,12 +28,8 @@ describe('008-OF2 real PostgreSQL concurrency', () => {
   });
 
   afterAll(async () => {
-    try {
-      await destroyDurableOutboundFixture(left.db, fx);
-      expect(await countDurableOutboundLeftovers(left.db, fx)).toBe(0);
-    } finally {
-      await Promise.all([left.pool.end(), right.pool.end()]);
-    }
+    await right.pool.end();
+    await tdb.drop();
   });
 
   async function barrier<T>(tasks: Array<() => Promise<T>>): Promise<T[]> {
