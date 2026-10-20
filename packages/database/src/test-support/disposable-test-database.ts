@@ -2,18 +2,24 @@ import { randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import { createDatabaseConnection, type DatabaseInstance } from '../client/connection.js';
 import { runMigrations } from '../client/migrate.js';
+import { collectTestDatabaseEvidence } from './collect-test-database-evidence.js';
+import {
+  evaluateTestTargetEvidence,
+  isDisposableDatabaseName,
+  isLoopbackHost,
+  resolveTestAdminUrl,
+  type TestTargetEvidence,
+} from './test-database-target-evidence.js';
 
 /**
- * Banco PostgreSQL DESCARTÁVEL por suíte (008-OF2). Nunca usa `DATABASE_URL`:
- * o servidor administrativo vem só de `TEST_DATABASE_URL` ou do padrão local
- * do repositório, e toda DDL/limpeza acontece numa base nova, criada por este
- * processo com nome único `of2_test_<hex>` e removida inteira ao final.
+ * Banco PostgreSQL DESCARTÁVEL por suíte (008-OF2). Antes de QUALQUER DDL, o
+ * destino precisa ser comprovado local e descartável (guarda pura +
+ * evidências do servidor e, em Docker Desktop/WSL2, do container autorizado).
+ * Só bases `of2_test_<hex>` criadas por ESTE processo podem ser removidas.
  * Nenhuma connection string é impressa.
  */
-const ADMIN_URL =
-  process.env.TEST_DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/postgres';
-const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
-const NAME_PATTERN = /^of2_test_[0-9a-f]{12}$/;
+const ADMIN_URL = resolveTestAdminUrl(process.env);
+const createdByThisRun = new Set<string>();
 export const DISPOSABLE_DB_URL_ENV = 'DURABLE_OUTBOUND_DISPOSABLE_DATABASE_URL';
 
 export interface DisposableTestDatabase {
@@ -23,21 +29,29 @@ export interface DisposableTestDatabase {
   drop(): Promise<void>;
 }
 
-export function assertLocalDatabaseUrl(connectionString: string): void {
-  if (!LOCAL_HOSTS.has(new URL(connectionString).hostname)) {
-    throw new Error('Refusing to run durable outbound tests against a non-local database.');
+export interface DisposableDatabaseOptions {
+  /** Injeção apenas para testes da própria guarda. */
+  readonly collectEvidence?: ((db: DatabaseInstance) => Promise<TestTargetEvidence>) | undefined;
+}
+
+export function assertDisposableDatabaseUrl(url: string): void {
+  const parsed = new URL(url);
+  if (!isLoopbackHost(parsed.hostname) || !isDisposableDatabaseName(parsed.pathname.slice(1))) {
+    throw new Error('Refusing a database that was not created as disposable for this test run.');
   }
 }
 
-/** Prova adicional pelo próprio servidor: o endereço da conexão é loopback (ou socket). */
-async function assertLoopbackServer(db: DatabaseInstance): Promise<void> {
-  const result = await db.execute<{ addr: string | null }>(
-    sql`SELECT host(inet_server_addr()) AS addr`,
-  );
-  const addr = result.rows[0]?.addr ?? null;
-  if (addr !== null && addr !== '127.0.0.1' && addr !== '::1') {
-    throw new Error('Refusing to use a PostgreSQL server that is not on loopback.');
+async function proveTarget(db: DatabaseInstance, options: DisposableDatabaseOptions) {
+  const evidence = options.collectEvidence
+    ? await options.collectEvidence(db)
+    : await collectTestDatabaseEvidence({ adminUrl: ADMIN_URL, db });
+  const decision = evaluateTestTargetEvidence(evidence);
+  if (!decision.accepted) {
+    throw new Error(
+      `Refusing unproven PostgreSQL test target (${decision.reason}); no DDL executed.`,
+    );
   }
+  return decision.mode;
 }
 
 function withDatabase(url: string, name: string): string {
@@ -46,20 +60,21 @@ function withDatabase(url: string, name: string): string {
   return target.toString();
 }
 
-export function assertDisposableDatabaseUrl(url: string): void {
-  assertLocalDatabaseUrl(url);
-  if (!NAME_PATTERN.test(new URL(url).pathname.slice(1))) {
-    throw new Error('Refusing a database that was not created as disposable for this test run.');
+export async function createDisposableTestDatabase(
+  _tag: string,
+  options: DisposableDatabaseOptions = {},
+): Promise<DisposableTestDatabase> {
+  if (!isLoopbackHost(new URL(ADMIN_URL).hostname)) {
+    throw new Error(
+      'Refusing unproven PostgreSQL test target (CLIENT_HOST_NOT_LOOPBACK); no DDL executed.',
+    );
   }
-}
-
-export async function createDisposableTestDatabase(tag: string): Promise<DisposableTestDatabase> {
-  assertLocalDatabaseUrl(ADMIN_URL);
   const admin = createDatabaseConnection({ connectionString: ADMIN_URL, maxConnections: 1 });
   const name = `of2_test_${randomUUID().replace(/-/g, '').slice(0, 12)}`;
   try {
-    await assertLoopbackServer(admin.db);
+    await proveTarget(admin.db, options);
     await admin.db.execute(sql.raw(`CREATE DATABASE "${name}"`));
+    createdByThisRun.add(name);
   } finally {
     await admin.pool.end();
   }
@@ -67,9 +82,14 @@ export async function createDisposableTestDatabase(tag: string): Promise<Disposa
   assertDisposableDatabaseUrl(url);
   await runMigrations({ connectionString: url });
   const { db, pool } = createDatabaseConnection({ connectionString: url, maxConnections: 6 });
-  await assertLoopbackServer(db);
-  void tag;
   return { name, url, db, drop: () => dropDisposable({ name, close: () => pool.end() }) };
+}
+
+/** Só remove bases descartáveis criadas por ESTE processo (nunca bases alheias). */
+export function assertDroppableByThisRun(name: string): void {
+  if (!isDisposableDatabaseName(name) || !createdByThisRun.has(name)) {
+    throw new Error('Refusing to drop a database not created by this test run.');
+  }
 }
 
 async function dropDisposable(input: {
@@ -77,8 +97,7 @@ async function dropDisposable(input: {
   readonly close: () => Promise<void>;
 }) {
   await input.close();
-  if (!NAME_PATTERN.test(input.name))
-    throw new Error('Refusing to drop a non-disposable database.');
+  assertDroppableByThisRun(input.name);
   const admin = createDatabaseConnection({ connectionString: ADMIN_URL, maxConnections: 1 });
   try {
     await admin.db.execute(sql.raw(`DROP DATABASE IF EXISTS "${input.name}" WITH (FORCE)`));
@@ -86,6 +105,7 @@ async function dropDisposable(input: {
       sql`SELECT 1 FROM pg_database WHERE datname = ${input.name}`,
     );
     if (left.rows.length > 0) throw new Error('Disposable database still present after drop.');
+    createdByThisRun.delete(input.name);
   } finally {
     await admin.pool.end();
   }

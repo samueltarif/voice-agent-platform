@@ -18446,3 +18446,23 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **WINDOWS**: `WINDOWS_VALIDATION_NOT_EXECUTED` (sem ambiente Windows nesta sessão). Revisão estática: `process.execPath` + args em array, loader via `pathToFileURL`, `process.kill(..., 'SIGKILL')` (TerminateProcess no Windows) com asserção por marcador e não por sinal, limpeza de filhos órfãos. Comando para o operador antes do merge, com PostgreSQL 16 local ativo (`docker compose up -d`): `cmd /c "pnpm install --frozen-lockfile && pnpm check"` e, focado, `pnpm exec vitest run --project @voice-agent/database packages/database/src/durable-crash-recovery.process.integration.test.ts`.
 - **GATE_CANONICO** (Linux, Node v22.22.0, pnpm 12.5.1): exit code `0`; 7/7 estágios PASS; `190` arquivos aprovados, `6` ignorados; `1406` testes aprovados, `0` falhos, `45` ignorados (+9 regressões).
 - **SAFETY**: `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `REAL_DOTENV_ACCESSED = NO` | `SECRET_AUDIT = PASS`.
+
+## 2026-10-20 — Fase 8 — PR #121 (008-OF2): Correção da Guarda de Banco de Teste para Windows/Docker Desktop — Claude Code
+
+- **ESCOPO**: `TARGETED BUGFIX / FAIL-CLOSED / TDD / EXISTING PR ONLY` sobre o HEAD `1d4377003b7e2cf6b6150ff8b89b85d7e89c1606` (base `main` `6d02868`). PR #121 continua ABERTA e sem merge; regras de negócio da 008-OF2 e migration `0007` inalteradas.
+- **CAUSA-RAIZ**: a guarda exigia `inet_server_addr()` em loopback. Com Docker Desktop/WSL2 (`wslrelay.exe`), o cliente usa `localhost:5432`, mas o servidor dentro do container enxerga o IP de bridge (ex.: `172.18.0.2`), e as sete suítes PostgreSQL abortavam antes de rodar no gate Windows 11 / Node 24.20.0 (exit code 1).
+- **CORREÇÃO (fail-closed, sem afrouxar)**: guarda pura `evaluateTestTargetEvidence` com dois modos:
+  - `DIRECT_LOOPBACK`, igual ao comportamento anterior;
+  - `DOCKER_LOCAL_CONTAINER`, que exige `docker inspect` do container autorizado (`voice-agent-postgres` ou `VOICE_AGENT_TEST_PG_CONTAINER`): em execução, imagem `postgres:16*`, label compose `postgres`, porta `5432/tcp` publicada SOMENTE em loopback e igual à porta do cliente, IP do container igual ao IP visto pelo servidor, e o mesmo `system_identifier` do cluster lido via `docker exec ... pg_control_system()` e pela conexão.
+  - Em ambos os modos: cliente em loopback, servidor PostgreSQL 16 e papel com `CREATEDB` (ou superuser).
+  - Não aceita: endereço RFC 1918 por si só, `localhost` por si só, booleano de ambiente nem `DATABASE_URL`.
+  - Falha de verificação aborta ANTES de qualquer `CREATE DATABASE`, migration ou limpeza.
+  - Remoção restrita a bases `of2_test_<hex>` registradas por este processo.
+  - Docker CLI usado apenas no harness de testes.
+- **INFRA LOCAL**: `docker-compose.yml` passa a publicar o PostgreSQL somente em `127.0.0.1` (antes em todas as interfaces). É requisito da guarda e reduz exposição. No Windows, recriar o container: `docker compose up -d --force-recreate postgres`.
+- **TESTES**: 21 novos.
+  - 18 puros: 14 da guarda, cobrindo os casos 1–9 e 12, e 4 de parsing/coleta com saída de Docker SIMULADA.
+  - 3 de integração REAL com PostgreSQL local: evidência real aceita, caso 10 (zero DDL quando a verificação falha) e caso 11 (limpeza restrita).
+  - `DOCKER_INTEGRATION_NOT_EXECUTED`: não há daemon Docker neste ambiente, então o caminho Docker foi testado apenas com saída sintética.
+- **GATE_CANONICO** (Linux, Node v22.22.0, pnpm 12.5.1): ver bloco de relatório da PR. `WINDOWS_VALIDATION_NOT_EXECUTED`: a revalidação independente no Windows 11 / Node 24 é obrigatória antes de qualquer autorização de merge.
+- **SAFETY**: `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `SECRET_AUDIT = PASS`.
