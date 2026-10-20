@@ -3,15 +3,15 @@
 <!--
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
-LAST_REFRESHED_AT: 2026-10-19
-CONTEXT_BASE_MAIN_SHA: 5076b0ca8abf1fb06826ddbfea0208e1a6e218a1
+LAST_REFRESHED_AT: 2026-10-20
+CONTEXT_BASE_MAIN_SHA: fb82e40da61006c798860b1bb9c320ed255b1cde
 CURRENT_PHASE: Phase 8 (OUTBOUND_FIRST_TWO_TRACK_PLANNING)
-CURRENT_SLICE: 008-OF1 Provider-Neutral Outbound Lifecycle (offline, em revisão)
-CONTEXT_UPDATE_BRANCH: feat/phase8-008-of1-outbound-lifecycle-contracts
-CONTEXT_UPDATE_PR: 119
-LAST_MERGED_PR_AT_REFRESH: 118
-LAST_MERGE_SHA_AT_REFRESH: 5076b0ca8abf1fb06826ddbfea0208e1a6e218a1
-LAST_TESTED_CODE_SHA: 0422133bbb71abf73cc9ade85c76ae9532bbc854
+CURRENT_SLICE: 008-OF1 Post-Merge Gate Timeout Stabilization
+CONTEXT_UPDATE_BRANCH: fix/phase8-postmerge-gate-timeout-stabilization
+CONTEXT_UPDATE_PR: PENDING
+LAST_MERGED_PR_AT_REFRESH: 119
+LAST_MERGE_SHA_AT_REFRESH: fb82e40da61006c798860b1bb9c320ed255b1cde
+LAST_TESTED_CODE_SHA: QUERY_GIT_AT_RUNTIME
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
 AI_CONTEXT_HEADER_END
@@ -125,16 +125,14 @@ AI_CONTEXT_HEADER_END
 
 ## 6. Estado Atual da Evidência de Qualidade (Quality Gate Snapshot)
 
-- **Último `pnpm check` Global na Main**: `PASS` (observado no merge da PR #117 / 008-OF proposal post-merge na branch `main` `0422133bbb71abf73cc9ade85c76ae9532bbc854`: exit 0; 7 estágios aprovados; 175 arquivos de teste / 1254 testes aprovados / 0 falhas / 45 testes de staging pulados; evidência factual local observada pelo executor, não CI remoto independente).
+- **Último `pnpm check` Global na Main**: `BLOCKED_WITH_EVIDENCE` inicialmente no merge da PR #119 (`fb82e40da61006c798860b1bb9c320ed255b1cde`: 1347 passed, 45 skipped, 1 timeout após 5000ms no teste preexistente da Fase 6 `packages/integrations/src/typesafe/check-targeted-v2-technical-readiness.test.ts > C. dataset hash mismatch => technical readiness NO` sob carga de 4 workers do Vitest no Windows; todos os 94 testes da 008-OF1 passaram).
+- **Estabilização de Timeout Pós-Merge**: Na branch `fix/phase8-postmerge-gate-timeout-stabilization`, os testes A, C e E de `packages/integrations/src/typesafe/check-targeted-v2-technical-readiness.test.ts` foram configurados com `{ timeout: 30000 }` (empiricamente justificado pela medição de até 17,898ms no teste A). O quality gate canônico completo (`cmd /c "pnpm install --frozen-lockfile && pnpm check"`) foi executado e passou integralmente (`exit code 0`, 7 estágios aprovados).
 - **Identificadores de HEAD & Semântica Não-Auto-Referencial**:
-  - `LAST_RECORDED_FULL_GATE_HEAD = 0422133bbb71abf73cc9ade85c76ae9532bbc854`
+  - `LAST_RECORDED_FULL_GATE_HEAD = QUERY_GIT_AT_RUNTIME`
   - `LAST_RECORDED_FULL_GATE_STATUS = PASS`
   - `CURRENT_BRANCH_HEAD_SOURCE = QUERY_GIT_AT_RUNTIME`
-  - `LAST_CODE_BEARING_MAIN_SHA = e8055e93e9f78fd15da5760cec60fe4e1bdbfbcb`
+  - `LAST_CODE_BEARING_MAIN_SHA = fb82e40da61006c798860b1bb9c320ed255b1cde`
   - *Nota*: `AI_CONTEXT.md` é conteúdo versionado e não pode conter o SHA do próprio commit que o modifica. O HEAD exato da branch corrente deve ser obtido do Git em runtime (`QUERY_GIT_AT_RUNTIME`). `LAST_RECORDED_FULL_GATE_HEAD` registra a evidência mais recente observada e durável quando este snapshot foi redigido, evitando loops infinitos de auto-referência.
-- **Contagens Canônicas de Testes (Post-Merge Main PR #117)**:
-  - `TEST_FILES_PASSED = 175` | `TEST_FILES_FAILED = 0` | `TEST_FILES_SKIPPED = 6`
-  - `TESTS_PASSED = 1254` | `TESTS_FAILED = 0` | `TESTS_SKIPPED = 45`
 - **Regressão de Asserções**: `ASSERTION_WEAKER = 0`, `NEW_SKIPS = 0`.
 - **Verificação Arquitetural**: `SUCESSO: Todas as fronteiras e regras arquiteturais respeitadas.`
 - **Verificação de Tamanho de Arquivos**: `SUCESSO: Todos os arquivos de logica estao em conformidade (check:file-size = PASS).`

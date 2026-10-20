@@ -23,29 +23,33 @@ function withTempSyntheticEnv(content: string, testFn: (filePath: string) => Pro
 }
 
 describe('006BO no-network technical readiness preflight', () => {
-  it('A. valid synthetic env + all canonical freezes/config match => TECHNICAL_PREREQUISITES_READY = true', async () => {
-    await withTempSyntheticEnv(
-      'TYPESAFE_API_KEY=SYNTHETIC_VALID_TS\nOPENAI_API_KEY=SYNTHETIC_VALID_OA\n',
-      async (filePath) => {
-        const result = await checkTargetedV2TechnicalReadiness({ envFilePath: filePath });
-        expect(result.envSourceReady).toBe(true);
-        expect(result.datasetFreezeMatch).toBe(true);
-        expect(result.liveExecutableFreezeMatch).toBe(true);
-        expect(result.studyConfigurationMatch).toBe(true);
-        expect(result.technicalPrerequisitesReady).toBe(true);
-        expect(result.liveAuthorizationEvaluated).toBe(false);
-        expect(result.liveAuthorizationGrantedByThisTool).toBe(false);
+  it(
+    'A. valid synthetic env + all canonical freezes/config match => TECHNICAL_PREREQUISITES_READY = true',
+    { timeout: 30000 },
+    async () => {
+      await withTempSyntheticEnv(
+        'TYPESAFE_API_KEY=SYNTHETIC_VALID_TS\nOPENAI_API_KEY=SYNTHETIC_VALID_OA\n',
+        async (filePath) => {
+          const result = await checkTargetedV2TechnicalReadiness({ envFilePath: filePath });
+          expect(result.envSourceReady).toBe(true);
+          expect(result.datasetFreezeMatch).toBe(true);
+          expect(result.liveExecutableFreezeMatch).toBe(true);
+          expect(result.studyConfigurationMatch).toBe(true);
+          expect(result.technicalPrerequisitesReady).toBe(true);
+          expect(result.liveAuthorizationEvaluated).toBe(false);
+          expect(result.liveAuthorizationGrantedByThisTool).toBe(false);
 
-        const report = formatTechnicalReadinessReport(result);
-        expect(report).toContain('TECHNICAL_PREREQUISITES_READY = YES');
-        expect(report).toContain('LIVE_AUTHORIZATION_EVALUATED = NO');
-        expect(report).toContain('LIVE_AUTHORIZATION_GRANTED_BY_THIS_TOOL = NO');
-        expect(report).not.toContain('LIVE_READY = YES');
-        expect(report).not.toContain('AUTHORIZED = YES');
-        expect(report).not.toContain('SAFE_TO_DISPATCH = YES');
-      },
-    );
-  });
+          const report = formatTechnicalReadinessReport(result);
+          expect(report).toContain('TECHNICAL_PREREQUISITES_READY = YES');
+          expect(report).toContain('LIVE_AUTHORIZATION_EVALUATED = NO');
+          expect(report).toContain('LIVE_AUTHORIZATION_GRANTED_BY_THIS_TOOL = NO');
+          expect(report).not.toContain('LIVE_READY = YES');
+          expect(report).not.toContain('AUTHORIZED = YES');
+          expect(report).not.toContain('SAFE_TO_DISPATCH = YES');
+        },
+      );
+    },
+  );
 
   it('B. env source not ready => technical readiness NO', async () => {
     const missingPath = resolve(tempFixtureDir, 'missing-file.env');
@@ -54,7 +58,7 @@ describe('006BO no-network technical readiness preflight', () => {
     expect(result.technicalPrerequisitesReady).toBe(false);
   });
 
-  it('C. dataset hash mismatch => technical readiness NO', async () => {
+  it('C. dataset hash mismatch => technical readiness NO', { timeout: 30000 }, async () => {
     await withTempSyntheticEnv(
       'TYPESAFE_API_KEY=SYNTHETIC_VALID_TS\nOPENAI_API_KEY=SYNTHETIC_VALID_OA\n',
       async (filePath) => {
@@ -82,7 +86,7 @@ describe('006BO no-network technical readiness preflight', () => {
     );
   });
 
-  it('E. model / config mismatch => technical readiness NO', async () => {
+  it('E. model / config mismatch => technical readiness NO', { timeout: 30000 }, async () => {
     await withTempSyntheticEnv(
       'TYPESAFE_API_KEY=SYNTHETIC_VALID_TS\nOPENAI_API_KEY=SYNTHETIC_VALID_OA\n',
       async (filePath) => {
