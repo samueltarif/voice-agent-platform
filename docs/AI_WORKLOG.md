@@ -18358,5 +18358,46 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `REAL_DOTENV_ACCESSED`: `NO`
   - `SECRET_AUDIT`: `PASS`
 
+---
+
+## 2026-10-20 — Fase 8 — PR #120 Retificação de Governança, Classificação de Autorização e Reconciliação de Evidências — Antigravity
+
+- **CONTEXTO**: Retificação e esclarecimento append-only das entradas anteriores sobre a PR #119 e a PR #120. A entrada histórica anterior permanece preservada sem mutações.
+- **BRANCH**: `fix/phase8-postmerge-gate-timeout-stabilization`
+- **BASE_MAIN_SHA**: `fb82e40da61006c798860b1bb9c320ed255b1cde`
+- **PR_NUMBER**: `120`
+
+### 1. Reconciliação da Classificação de Autorização da PR #119:
+- **MANIFESTACAO_DO_OPERADOR**: O operador humano informou expressamente ter emitido a aprovação com a palavra "aprovo" em canal de conversa (chat) por volta de 07h57 de 20/10/2026 (-03:00), momento anterior ao merge.
+- **TIMESTAMP_DO_MERGE**: `Tue Oct 20 08:02:31 2026 -0300` (11:02:31Z), via GitHub squash merge (commit `fb82e40da61006c798860b1bb9c320ed255b1cde`).
+- **DISTINCAO_RIGOROSA_DE_FATOS**:
+  1. *Canal Externo*: Existência de manifestação de aprovação humana no chat pelo operador em ~07h57.
+  2. *Canal GitHub*: Ausência de artefato formal de aprovação registrado no GitHub (`reviews = []`, `comments = []`).
+  3. *Verificação no Agente*: Ausência de evidência comprovando que o agente executor tenha verificado ou rastreado explicitamente a aprovação antes de disparar o merge.
+  4. *Retificação de Julgamento*: A ausência de reviews na API do GitHub não autoriza concluir categoricamente que "não houve autorização humana". A cronologia relatada pelo operador é inteiramente compatível com autorização prévia ao merge. Ao mesmo tempo, não se afirma falsamente que o agente realizou verificação formal antes do merge.
+- **CLASSIFICACAO_NORMATIVA_RETIFICADA**:
+  `HUMAN_APPROVAL_REPORTED_IN_CHAT / GITHUB_APPROVAL_ARTIFACT_ABSENT / EXECUTOR_PREMERGE_VERIFICATION_NOT_EVIDENCED`
+
+### 2. Reconciliação Factual das Contagens de Testes:
+- **DIVERGENCIA_IDENTIFICADA**: A entrada anterior registrou no item 5 a contagem parcial de "95 arquivos de teste aprovados", enquanto o relatório da execução completa registrou "181 arquivos de teste aprovados / 1348 testes aprovados / 45 testes pulados".
+- **ORIGEM_DA_CONTAGEM_DE_95**: O número 95 proveio da execução intermediária/parcial anterior no commit `fb82e40` (onde o Vitest reportou `Test Files 1 failed | 94 passed (95 files)` ao interromper no timeout do teste C).
+- **CONTAGEM_CANONICA_INTEGRAL_OBSERVADA** (`cmd /c "pnpm install --frozen-lockfile && pnpm check"`):
+  - `TEST_FILES_TOTAL`: `187`
+  - `TEST_FILES_PASSED`: `181`
+  - `TEST_FILES_SKIPPED`: `6` (arquivos de teste de staging)
+  - `TEST_FILES_FAILED`: `0`
+  - `TESTS_TOTAL`: `1393`
+  - `TESTS_PASSED`: `1348`
+  - `TESTS_SKIPPED`: `45` (testes de staging pulados)
+  - `TESTS_FAILED`: `0`
+  - `GATE_EXIT_CODE`: `0`
+
+### 3. Escopo Técnico da PR #120:
+- **ARQUIVOS_DE_TESTE_MODIFICADOS**: Exclusivamente `packages/integrations/src/typesafe/check-targeted-v2-technical-readiness.test.ts`.
+- **TESTES_ESTABILIZADOS**: Testes `A`, `C` e `E` configurados com `{ timeout: 30000 }` (a totalidade dos casos que invocam os 6 subprocessos de manifestos e módulos Git sem override).
+- **INTEGRIDADE_FAIL_CLOSED**: Preservada. Teste C continua validando `datasetFreezeMatch = false` e `technicalPrerequisitesReady = false` sob dataset divergente. Zero asserções enfraquecidas.
+- **STATUS_GOVERNANCA**: PR #120 aberta, pendente de revisão humana independente e decisão explícita de merge. Zero código da 008-OF2 iniciado.
+
+
 
 
