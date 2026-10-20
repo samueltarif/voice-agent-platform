@@ -18401,3 +18401,34 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 
 
 
+
+## 2026-10-20 — Fase 8 — Slice 008-OF2: Persistência Durável Outbound e Recuperação Pós-Crash (Implementação Offline) — Claude Code
+
+- **SLICE_ID**: `008-OF2` (Phase 8 Outbound-First — Fundação Técnica; DEC-043)
+- **EXECUTOR**: `CLAUDE_CODE` (clone em ambiente de nuvem; o shell do computador do operador não estava disponível nesta sessão)
+- **AUTORIZAÇÃO HUMANA**: implementação offline explícita da 008-OF2 (branch separada, schemas PostgreSQL/Drizzle, migrations versionadas, repositories transacionais, testes e execução de migrations SOMENTE em banco local descartável). Merge, migrations remotas, deploy, compras, chamadas reais e integrações ativas NÃO autorizados.
+- **BASE_MAIN_SHA**: `6d02868d80aa281a623fb70a4fd8919c17ecd1cb` (PR #120; `origin/main` == SHA esperado; worktree limpo; nenhuma PR aberta).
+- **FEATURE_BRANCH**: `feat/phase8-008-of2-durable-outbound-persistence`
+- **STATUS**: `IMPLEMENTED_TESTED_OFFLINE / AGUARDANDO REVISÃO HUMANA INDEPENDENTE`. Não concluída, não aprovada, não mesclada.
+- **ARQUITETURA**: job (`outbound_call_jobs`) ≠ tentativa (`call_attempts`) ≠ sessão (`call_sessions`) ≠ evento (`call_events`) ≠ cobrança (inexistente nesta slice). Estado persistido = FSM canônica da 008-OF1 (enum `call_attempt_state` com os 10 estados). Aplicação durável de evento em transação única: lock `FOR UPDATE` → fencing/CAS → identidade do evento (`event_id` + fingerprint) → `applyOutboundAttemptEvent` → mutação + linha de auditoria.
+- **MIGRATION**: `packages/database/src/migrations/0007_durable_outbound_persistence.sql` (+ snapshot/journal gerados por `drizzle-kit generate`; `drizzle-kit check` OK). Aditiva: 4 tabelas, 5 enums, 3 UNIQUE compostas novas em tabelas existentes (`agent_versions`, `outbound_call_jobs`, `outbound_campaigns`) exclusivamente para suportar FKs compostas por tenant (reordenadas antes das FKs no SQL gerado), 4 triggers (append-only de `call_events`; identidade/estado terminal imutáveis em tentativas, sessões e números). Nenhum DROP/RENAME/ALTER COLUMN. Rollback/compensação: em banco descartável, recriar a base; em ambiente persistente futuro, migration de contração separada exigiria autorização própria.
+- **BANCO UTILIZADO**: PostgreSQL 16 local, efêmero, ouvindo apenas em loopback (`127.0.0.1`), cluster recriado do zero; testes recusam qualquer host não local (`assertLocalDatabaseUrl`); um teste cria uma base nova descartável, aplica 0000–0007 duas vezes e a remove.
+- **GARANTIAS NO BANCO**: FKs compostas (tentativa→job/campanha/versão de agente do MESMO tenant; sessão→tentativa; evento→tentativa/sessão); UNIQUE de identidade, número por job, chave de idempotência por tenant, `event_id` global, E.164 global e SID; índice parcial "no máximo uma tentativa não terminal por job"; CHECKs de E.164, fingerprint, correlação obrigatória e coerência de `released_at`/`ended_at`.
+- **CONCORRÊNCIA E AUTORIDADE**: preparação de sucessora serializada por `FOR UPDATE` no job; claim de envio só a partir de `ORIGINATION_PENDING` com `SEND_STARTED` gravado na mesma transação antes da porta; fencing token monotônico + lease; finalização exige dono e token; recuperação com `FOR UPDATE SKIP LOCKED`; lease expirado após o envio NUNCA reabre o envio. Nenhuma transação aberta durante efeito externo.
+- **RECUPERAÇÃO PÓS-CRASH**: cenários A–J executados com processos Node REAIS e separados (morte por SIGKILL), conectados ao mesmo PostgreSQL; verificação/recuperação em outros processos. Resultado: falhas antes/durante a primeira escrita não deixam resíduo; pré-envio permanece seguro; toda queda após `SEND_STARTED` (inclusive aceite aplicado e não commitado) vira `OUTCOME_UNKNOWN` com novo fencing; dois recuperadores concorrentes não compartilham trabalho; escritor antigo é barrado (`FENCED`); reconciliação interrompida só é retomada após o lease; reinícios repetidos não alteram nada nem rediscam.
+- **TESTES NOVOS**: 49 (46 em `packages/database`: 35 contra PostgreSQL real + 11 puros; 3 em `packages/contracts`). Executor de processos-filho usa apenas recursos nativos do Node (`--experimental-transform-types` + hook de resolução em `test-support`), sem dependência nova.
+- **FALHAS ENCONTRADAS E SOLUÇÕES**: (1) FKs compostas falhariam porque o SQL gerado criava as UNIQUE de suporte depois das FKs — reordenadas; (2) inferência circular de tipos entre `call_attempts` e `call_sessions` — tipo de retorno explícito do extra-config; (3) **defeito real detectado por teste de processo**: a retomada de um claim de reconciliação expirado retornava CLAIMED sem persistir o novo dono/fencing (persistência em STALE não estava ligada) — corrigido e coberto por teste de regressão; (4) limites de tamanho/parâmetros — divisão por responsabilidade; (5) ambiente de nuvem: wrapper do pnpm gerenciado fora do repositório e PostgreSQL local descartável.
+- **REFATORAÇÕES COMPATÍVEIS**: transições de `CallSessionState` movidas para `@voice-agent/contracts` (voz delega; comportamento idêntico); mapeamento resultado-de-porta→evento movido para contracts e reexportado pelo worker; extração de `findDriverError` para `postgres-driver-error.ts` (knowledge reutiliza).
+- **GATE_CANONICO** (`pnpm install --frozen-lockfile && pnpm check`): exit code `0`; 7/7 estágios PASS; `189` arquivos aprovados, `6` ignorados; `1397` testes aprovados, `0` falhos, `45` ignorados (staging). Baseline da `main` 1348 → +49.
+- **LIMITAÇÕES**: sem exactly-once perante o exterior; `twilio_phone_number_sid` é metadata não verificada; `providerEventId` não é identidade confiável (`PROVIDER-UNVERIFIED`); trigger de append-only bloqueia UPDATE mas permite DELETE em cascata para retenção/teardown; RELEASED é terminal e o mesmo E.164 não pode ser reatribuído a outro tenant sem decisão humana.
+- **SAFETY**:
+  - `ACTIVE_GUARDED`: `BLOCKED`
+  - `CUSTOMER_TRAFFIC`: `PROHIBITED`
+  - `PRODUCTION_RUNTIME_WIRING`: `NO`
+  - `REAL_PROVIDER_CALLS`: `0`
+  - `PURCHASE_OF_PHONE_NUMBERS`: `0`
+  - `REMOTE_MIGRATIONS`: `0`
+  - `DATABASE_SCHEMA_CHANGED`: `YES (local descartável apenas; migration 0007 aditiva em revisão)`
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED`: `NO`
+  - `REAL_DOTENV_ACCESSED`: `NO`
+  - `SECRET_AUDIT`: `PASS`

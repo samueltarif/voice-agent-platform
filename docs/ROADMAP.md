@@ -262,6 +262,7 @@ A ordem histórica 008A–008G postergava o dialer outbound para o Slice 008E, c
   - **Riscos**: Acoplamento prematuro a conceitos específicos da Twilio ou Millis (mitigado por revisão provider-neutral).
 
 - [ ] **Slice 008-OF2 — Persistência Operacional, Sessões, Eventos e Números Twilio**:
+  - **Status Real**: `IMPLEMENTED_TESTED_OFFLINE / EM REVISÃO HUMANA` — implementação offline em PR própria (branch `feat/phase8-008-of2-durable-outbound-persistence`); NÃO concluída até aprovação e merge. Migration aditiva `0007` aplicada apenas em PostgreSQL local descartável; estados persistidos = FSM canônica da 008-OF1 (sem simplificação para `PENDING/DISPATCHED/FAILED/COMPLETED`). Zero migrations remotas, zero chamadas reais, zero compra de números (`PROVIDER-UNVERIFIED`).
   - **Objetivo**: Estabelecer a fundação completa de persistência durável para o ciclo de vida outbound, mapeando números Twilio e separando explicitamente jobs, tentativas, sessões e eventos.
   - **Escopo**:
     - Planejamento de migration aditiva versionada para tabela `organization_phone_numbers` (`organizationId`, `e164Number`, `twilioPhoneNumberSid`, `status: ACTIVE | RELEASED`).

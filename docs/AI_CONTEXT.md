@@ -4,13 +4,13 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-20
-CONTEXT_BASE_MAIN_SHA: fb82e40da61006c798860b1bb9c320ed255b1cde
+CONTEXT_BASE_MAIN_SHA: 6d02868d80aa281a623fb70a4fd8919c17ecd1cb
 CURRENT_PHASE: Phase 8 (OUTBOUND_FIRST_TWO_TRACK_PLANNING)
-CURRENT_SLICE: 008-OF1 Post-Merge Gate Timeout Stabilization
-CONTEXT_UPDATE_BRANCH: fix/phase8-postmerge-gate-timeout-stabilization
-CONTEXT_UPDATE_PR: 120
-LAST_MERGED_PR_AT_REFRESH: 119
-LAST_MERGE_SHA_AT_REFRESH: fb82e40da61006c798860b1bb9c320ed255b1cde
+CURRENT_SLICE: 008-OF2 Durable Outbound Persistence (offline, em revisão)
+CONTEXT_UPDATE_BRANCH: feat/phase8-008-of2-durable-outbound-persistence
+CONTEXT_UPDATE_PR: PENDING_NUMBER_ASSIGNED_ON_OPEN
+LAST_MERGED_PR_AT_REFRESH: 120
+LAST_MERGE_SHA_AT_REFRESH: 6d02868d80aa281a623fb70a4fd8919c17ecd1cb
 LAST_TESTED_CODE_SHA: QUERY_GIT_AT_RUNTIME
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
@@ -32,7 +32,7 @@ AI_CONTEXT_HEADER_END
 | **API** | `IMPLEMENTED` | `apps/api` (Hono/Node.js, rotas de drafts, lifecycle com validação de toolset canônico, auth interna com service token/Ed25519, gerenciamento de campanhas outbound /v1/campaigns e agendamento em lote de jobs, descarte de rascunho de versão DEC-040, e API REST de documentos de base de conhecimento /v1/knowledge/documents com RBAC DEC-039) |
 | **Voice** | `PARTIAL` | `apps/voice` (Motor universal de execução de tools `ToolExecutionEngine`, registro `InMemoryToolRegistry`, adapters `OperatingHoursTool`/`CatalogSearchTool`/`CatalogItemDetailTool` e resolução de toolset de versão publicada `resolvePublishedVersionToolset` implementados/testados offline; coordenador de retrieval `VoiceKnowledgeRetrievalCoordinator` offline; Orquestrador com roteamento supervisionado offline, coordenador dedicado `GuardedTurnRoutingCoordinator`, despacho determinístico, entrega estática de segurança offline, ownership OPTION_B, blindagem DISPATCH_ATTEMPTED -> NO_OPENAI_FALLBACK, single-owner Jev evaluation e tratamento qualificado de interrupção H4/H5 implementados/testados offline; streaming OpenAI; AuxiliaryTurnShadowObserver integrado non-blocking; handler determinístico `agent.operating_hours` integrado offline; fiação em runtime de produção: NÃO; tráfego real: NÃO) |
 | **Worker** | `IMPLEMENTED` | `apps/worker` (Fundação de background tasks, processamento de filas assíncronas, dispatcher atômico de chamadas outbound `outbound-call-dispatcher` com `SKIP LOCKED`; 008-OF1: coordenador offline de ciclo de vida de tentativas `outbound-attempt-origination-coordinator` com fakes em memória, sem fiação ativa) |
-| **Database** | `IMPLEMENTED` | `packages/database` (PostgreSQL 16, Drizzle ORM, multi-tenancy, schemas comerciais, de auditoria, `agent_versions.configuration` com preservação snapshot de toolset, `catalog_items` tenant-scoped com `CatalogRepository`, `outbound_campaigns`/`outbound_call_jobs`, e `knowledge_documents`/`knowledge_chunks` com migrations `0004_ordinary_charles_xavier.sql` e `0006_peaceful_thunderbolt.sql`) |
+| **Database** | `IMPLEMENTED` | `packages/database` (PostgreSQL 16, Drizzle ORM, multi-tenancy, schemas comerciais, de auditoria, `agent_versions.configuration` com preservação snapshot de toolset, `catalog_items` tenant-scoped com `CatalogRepository`, `outbound_campaigns`/`outbound_call_jobs`, e `knowledge_documents`/`knowledge_chunks` com migrations `0004_ordinary_charles_xavier.sql` e `0006_peaceful_thunderbolt.sql`; 008-OF2 em revisão: `organization_phone_numbers`/`call_attempts`/`call_sessions`/`call_events` via migration `0007_durable_outbound_persistence.sql`, somente local) |
 
 ---
 
@@ -210,10 +210,10 @@ AI_CONTEXT_HEADER_END
 - **Phase 7 Status**: `CLOSED ON MAIN` (PRs #94 a #115 mescladas na main; fechamento formal aceito pelo operador humano via DEC-041).
 - **Phase 8 Status**: `OUTBOUND_FIRST_TWO_TRACK_PLANNING` (DEC-042 e DEC-043 na `main`).
 - **008-OF1 Status**: `MERGED ON MAIN AS OFFLINE IMPLEMENTATION` (incorporada à `main` via PR #119 no commit `fb82e40da61006c798860b1bb9c320ed255b1cde`). Contratos provider-neutral em `packages/contracts/src/telephony/` e coordenador/fakes offline em `apps/worker/src/`. Zero migrations, zero tabelas adicionais, zero adapters Twilio/Millis em runtime de produção, zero chamadas reais. Status de evidência: `TESTED` offline; `PROVIDER-UNVERIFIED`.
-- **Quality Gate Pós-Merge PR #119**: `FAILED_INITIALLY` no HEAD da main `fb82e40da61006c798860b1bb9c320ed255b1cde` devido a timeout de 5000ms em teste preexistente de benchmark da Fase 6 (`check-targeted-v2-technical-readiness.test.ts`).
-- **PR #120 Status**: `OPEN / PENDING HUMAN REVIEW & EXPLICIT MERGE DECISION` (branch `fix/phase8-postmerge-gate-timeout-stabilization`). Estabiliza timeouts dos testes A, C e E com `{ timeout: 30000 }`. Quality gate canônico passou com `PASS` (exit code 0) na branch.
-- `NEXT_ALLOWED_STEP = HUMAN_REVIEW_AND_DECISION_OF_PR_120` (revisão independente da PR #120; proibido merge sem autorização humana explícita).
-- `NEXT_ALLOWED_SLICE = 008_OF2_PERSISTENCE` (permanece NÃO iniciada; somente após aprovação e merge da PR #120 e autorização explícita separada do operador; migrations exigem autorização própria).
+- **PR #120 Status**: `MERGED ON MAIN` (squash `6d02868`; estabilização de timeouts e reconciliação pós-merge; gate da `main` reportado: 181 arquivos de teste, 1.348 testes aprovados, 45 ignorados, 0 falhas, exit code 0).
+- **008-OF2 Status**: `IMPLEMENTED_TESTED_OFFLINE / EM REVISÃO HUMANA` na branch `feat/phase8-008-of2-durable-outbound-persistence` (autorização humana explícita para implementação offline). Migration aditiva `0007_durable_outbound_persistence` (tabelas `organization_phone_numbers`, `call_attempts`, `call_sessions`, `call_events`; FKs compostas por tenant; triggers de append-only e identidade imutável) executada SOMENTE em PostgreSQL 16 local descartável. Repositories transacionais, claims com lease/fencing, recuperação pós-crash testada com processos Node separados. Sem fiação a dispatcher/runtime, sem webhooks, sem adapters reais.
+- `NEXT_ALLOWED_STEP = INDEPENDENT_REVIEW_OF_008_OF2_PR` (proibido merge sem autorização humana explícita; migrations remotas exigem autorização própria).
+- `NEXT_ALLOWED_SLICE = NONE_UNTIL_008_OF2_DECISION` (008-OF3 só após aprovação/merge da 008-OF2 e autorização separada).
 - `PURCHASE_OF_PHONE_NUMBERS = 0` | `REAL_PROVIDER_CALLS = 0` | `CUSTOMER_TRAFFIC = PROHIBITED` | `ACTIVE_GUARDED = BLOCKED`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
 
