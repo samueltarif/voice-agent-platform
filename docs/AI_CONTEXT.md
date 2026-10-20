@@ -8,7 +8,7 @@ CONTEXT_BASE_MAIN_SHA: 6d02868d80aa281a623fb70a4fd8919c17ecd1cb
 CURRENT_PHASE: Phase 8 (OUTBOUND_FIRST_TWO_TRACK_PLANNING)
 CURRENT_SLICE: 008-OF2 Durable Outbound Persistence (offline, em revisão)
 CONTEXT_UPDATE_BRANCH: feat/phase8-008-of2-durable-outbound-persistence
-CONTEXT_UPDATE_PR: PENDING_NUMBER_ASSIGNED_ON_OPEN
+CONTEXT_UPDATE_PR: 121
 LAST_MERGED_PR_AT_REFRESH: 120
 LAST_MERGE_SHA_AT_REFRESH: 6d02868d80aa281a623fb70a4fd8919c17ecd1cb
 LAST_TESTED_CODE_SHA: QUERY_GIT_AT_RUNTIME
@@ -211,8 +211,8 @@ AI_CONTEXT_HEADER_END
 - **Phase 8 Status**: `OUTBOUND_FIRST_TWO_TRACK_PLANNING` (DEC-042 e DEC-043 na `main`).
 - **008-OF1 Status**: `MERGED ON MAIN AS OFFLINE IMPLEMENTATION` (incorporada à `main` via PR #119 no commit `fb82e40da61006c798860b1bb9c320ed255b1cde`). Contratos provider-neutral em `packages/contracts/src/telephony/` e coordenador/fakes offline em `apps/worker/src/`. Zero migrations, zero tabelas adicionais, zero adapters Twilio/Millis em runtime de produção, zero chamadas reais. Status de evidência: `TESTED` offline; `PROVIDER-UNVERIFIED`.
 - **PR #120 Status**: `MERGED ON MAIN` (squash `6d02868`; estabilização de timeouts e reconciliação pós-merge; gate da `main` reportado: 181 arquivos de teste, 1.348 testes aprovados, 45 ignorados, 0 falhas, exit code 0).
-- **008-OF2 Status**: `IMPLEMENTED_TESTED_OFFLINE / EM REVISÃO HUMANA` na branch `feat/phase8-008-of2-durable-outbound-persistence` (autorização humana explícita para implementação offline). Migration aditiva `0007_durable_outbound_persistence` (tabelas `organization_phone_numbers`, `call_attempts`, `call_sessions`, `call_events`; FKs compostas por tenant; triggers de append-only e identidade imutável) executada SOMENTE em PostgreSQL 16 local descartável. Repositories transacionais, claims com lease/fencing, recuperação pós-crash testada com processos Node separados. Sem fiação a dispatcher/runtime, sem webhooks, sem adapters reais.
-- `NEXT_ALLOWED_STEP = INDEPENDENT_REVIEW_OF_008_OF2_PR` (proibido merge sem autorização humana explícita; migrations remotas exigem autorização própria).
+- **008-OF2 Status**: `IMPLEMENTED_TESTED_OFFLINE / EM REVISÃO HUMANA` — PR #121 ABERTA e em revisão (não mesclada), com correções da revisão independente (trilha append-only também contra DELETE/TRUNCATE/cascatas, correlação de tenant antes da identidade do evento, vínculo sessão↔tentativa por FK composta, banco de teste descartável por suíte; `WINDOWS_VALIDATION_NOT_EXECUTED`) — branch `feat/phase8-008-of2-durable-outbound-persistence` (autorização humana explícita para implementação offline). Migration aditiva `0007_durable_outbound_persistence` (tabelas `organization_phone_numbers`, `call_attempts`, `call_sessions`, `call_events`; FKs compostas por tenant; triggers de append-only e identidade imutável) executada SOMENTE em PostgreSQL 16 local descartável. Repositories transacionais, claims com lease/fencing, recuperação pós-crash testada com processos Node separados. Sem fiação a dispatcher/runtime, sem webhooks, sem adapters reais.
+- `NEXT_ALLOWED_STEP = INDEPENDENT_REVIEW_AND_WINDOWS_GATE_OF_PR_121` (proibido merge sem autorização humana explícita; migrations remotas exigem autorização própria).
 - `NEXT_ALLOWED_SLICE = NONE_UNTIL_008_OF2_DECISION` (008-OF3 só após aprovação/merge da 008-OF2 e autorização separada).
 - `PURCHASE_OF_PHONE_NUMBERS = 0` | `REAL_PROVIDER_CALLS = 0` | `CUSTOMER_TRAFFIC = PROHIBITED` | `ACTIVE_GUARDED = BLOCKED`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
