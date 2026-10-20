@@ -18213,3 +18213,82 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `SECRET_AUDIT`: `PASS`
 
 
+## 2026-10-19 — Fase 8 — Slice 008-OF1: Contratos e Ciclo de Vida Outbound Provider-Neutral (Implementação Offline) — Claude Code
+
+- **SLICE_ID**: `008-OF1` (Phase 8 Outbound-First — Fundação Técnica; DEC-043)
+- **EXECUTOR**: `CLAUDE_CODE` (clone em ambiente de nuvem; o shell do computador do operador não estava disponível nesta sessão)
+- **BASE_MAIN_SHA**: `5076b0ca8abf1fb06826ddbfea0208e1a6e218a1` (PR #118 mesclada; `main` local == `origin/main` == SHA esperado; worktree limpo antes de editar)
+- **FEATURE_BRANCH**: `feat/phase8-008-of1-outbound-lifecycle-contracts`
+- **STATUS**: `IMPLEMENTED_TESTED_OFFLINE / AGUARDANDO REVISÃO HUMANA INDEPENDENTE`. A slice NÃO está concluída, aprovada nem mesclada. Autor e executor do gate são o mesmo agente: um novo SHA exige revisão independente antes de qualquer decisão de merge.
+- **AUDITORIA_DE_REUSO**:
+  - `OutboundCallJobStatus` (`packages/contracts/src/outbound/outbound-job-status.ts`) modela o JOB de campanha; `CallSessionState` (`apps/voice/src/call-session-state-machine.ts`) modela a sessão conversacional runtime. Nenhuma das duas modela a TENTATIVA de discagem: por isso a máquina de tentativas é uma extensão compatível e separada, sem alterar as existentes.
+  - `OutboundCallBootstrapPort` permanece intacto (bootstrap offline de sessão no gateway de ciclo de vida). `TelephonyOriginationPort` é nova e distinta (intenção de originar uma tentativa externa).
+  - O formato da chave de idempotência local reutiliza `<chave-do-job>-att-<n>` já usado por `OutboundCallDispatcher`.
+  - Adapter Twilio ConversationRelay não foi tocado.
+- **ARQUIVOS_CRIADOS**:
+  - `packages/contracts/src/telephony/`: `e164-destination.ts`, `outbound-attempt-state.ts`, `outbound-attempt-event.ts`, `outbound-attempt.ts`, `telephony-origination-port.ts`, `outbound-attempt-transitions.ts`, `outbound-attempt-event-guards.ts`, `outbound-attempt-event-effects.ts`, `apply-outbound-attempt-event.ts`, `evaluate-successor-attempt.ts`, `outbound-attempt-fixtures.ts`, `index.ts` + 4 arquivos de teste.
+  - `apps/worker/src/` (offline, não exportados no índice, sem fiação ativa): `in-memory-telephony-origination-port.ts`, `in-memory-outbound-attempt-store.ts`, `outbound-attempt-event-factory.ts`, `outbound-attempt-event-mapping.ts`, `outbound-attempt-coordinator-types.ts`, `outbound-attempt-origination-coordinator.ts` + 2 arquivos de teste.
+- **ARQUIVOS_ALTERADOS**: `packages/contracts/src/index.ts` (1 linha de export), `docs/ROADMAP.md`, `docs/AI_CONTEXT.md`, `docs/AI_WORKLOG.md`.
+- **MODELO_DE_ESTADOS**: `CREATED → ORIGINATION_PENDING → ORIGINATION_SENT → ORIGINATION_ACCEPTED → CLOSED`; desvios `ORIGINATION_REJECTED` (terminal), `OUTCOME_UNKNOWN ⇄ RECONCILIATION_PENDING` (não terminais, bloqueiam rediscagem), `NOT_ORIGINATED` (terminal, prova de não-origem), `CANCELED` (terminal, só antes do envio). Máquina pura e determinística (`applyOutboundAttemptEvent`), com resultados `APPLIED | DUPLICATE | STALE | REJECTED`.
+- **INVARIANTES_COBERTAS**: (A) autoridade única de originação por tentativa; (B) evento repetido por `eventId` não gera transição; (C) estados terminais não retornam a ativos; (D) falha após envio vira `OUTCOME_UNKNOWN`, não "falha"; (E) `OUTCOME_UNKNOWN` bloqueia rediscagem; (F) timeout de reconciliação mantém bloqueio e exige revisão manual; (G) eventos de outro tenant/tentativa/job/sessão são rejeitados antes de qualquer outra checagem; (H) nova tentativa tem novo id/número e nunca sobrescreve histórico (`evaluateSuccessorAttempt` falha fechado, inclusive após `CLOSED`/`CANCELED`).
+- **TESTES_NOVOS**: 80 (contracts 58; worker 22), cobrindo transições válidas/inválidas, terminais, resultado desconhecido, crash entre envio e confirmação com "worker reiniciado" sobre o mesmo store, reconciliação confirmada/inconclusiva/expirada, duplicados e atrasados, isolamento entre organizações, correlação tentativa/job/sessão, dupla autoridade, validação de inputs e guarda estática "sem rede/sem SDK/sem env/sem provedor".
+- **GATE_CANONICO** (`pnpm install --frozen-lockfile && pnpm check`; base `5076b0c` + árvore 008-OF1): exit code `0`; 7 estágios PASS (format:check, lint, typecheck 12/12, test, build, architecture-check, file-size-check); `181` arquivos de teste aprovados, `6` ignorados; `1334` testes aprovados, `0` falhos, `45` ignorados (staging). Baseline anterior `1254` aprovados (+80 = testes novos).
+- **TRANSPARENCIA_DE_EXECUCAO**: (1) um primeiro gate falhou no typecheck por defeito do ambiente de nuvem (placeholder do binário nativo do pnpm gerenciado), contornado com um wrapper fora do repositório; (2) um gate seguinte falhou apenas nos testes de integração que exigem o PostgreSQL local do repositório (`localhost:5432`): foi iniciado um PostgreSQL 16 descartável e local no container, aplicando as migrations já existentes `0000`–`0006` (nenhuma migration nova, nenhum banco remoto); (3) um gate falhou no `file-size-check` (coordenador com 220 linhas > 180): o arquivo foi dividido por responsabilidade, sem alterar allowlist. Zero migrations, zero alterações em `pnpm-lock.yaml`, nenhum `approve-builds`.
+- **LIMITACOES**: apenas offline; `PROVIDER-UNVERIFIED`. A chave de idempotência local protege efeitos internos e NÃO é garantia exactly-once perante o exterior. Persistência durável, recuperação após reinício real do banco, tabelas `call_attempts`/`call_sessions`/`call_events`/`organization_phone_numbers`, quotas/ledger, webhooks, adapters Millis/Twilio e reconciliação agendada pertencem às slices 008-OF2 a 008-OF5.
+- **GOVERNANCE_PRESERVATION**: DEC-042 e DEC-043 não foram alteradas; DEC-044 não foi criada; a Fase 8 não está concluída; Twilio/Millis não foram homologadas.
+- **SAFETY**:
+  - `ACTIVE_GUARDED`: `BLOCKED`
+  - `CUSTOMER_TRAFFIC`: `PROHIBITED`
+  - `PRODUCTION_RUNTIME_WIRING`: `NO`
+  - `REAL_PROVIDER_CALLS`: `0`
+  - `PURCHASE_OF_PHONE_NUMBERS`: `0`
+  - `REMOTE_MIGRATIONS`: `0`
+  - `DATABASE_SCHEMA_CHANGED`: `NO`
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED`: `NO`
+  - `REAL_DOTENV_ACCESSED`: `NO`
+  - `SECRET_AUDIT`: `PASS`
+
+
+## 2026-10-19 — Fase 8 — Slice 008-OF1: Correção de Sobrescrita de Identidade e Endurecimento de Concorrência Offline — Antigravity
+
+- **SLICE_ID**: `008-OF1` (Phase 8 Outbound-First — Fundação Técnica; DEC-043)
+- **EXECUTOR**: `ANTIGRAVITY` (revisão independente externa do patch `PR119_CODE_REVIEW.patch` e bugfix direcionado)
+- **BASE_MAIN_SHA**: `5076b0ca8abf1fb06826ddbfea0208e1a6e218a1`
+- **FEATURE_BRANCH**: `feat/phase8-008-of1-outbound-lifecycle-contracts`
+- **STATUS**: `REVISED_AND_HARDENED / PENDING_INDEPENDENT_REVIEW`. PR #119 aberta; merge expressamente proibido sem autorização humana explícita.
+- **ROOT_CAUSE_ANALYSIS**:
+  1. *Sobrescrita de attemptId*: `InMemoryOutboundAttemptStore.save()` utilizava `Map.set()` sem verificação de existência, permitindo sobrescrever uma tentativa de outro job (ou do mesmo job) caso o `attemptId` coincidisse. Além disso, `prepareAttempt()` avaliava apenas o histórico por `jobId`, não prevenindo colisões de `attemptId` entre jobs distintos do mesmo tenant.
+  2. *Reconciliação indevida*: `OutboundAttemptOriginationCoordinator.reconcile()` consultava a porta externa sempre que `requested.kind` não fosse `NOT_FOUND` nem `REJECTED`, disparando requisições ao provedor mesmo quando o evento de reconciliação era `STALE` ou `DUPLICATE` (ex.: após `CLOSED`, `NOT_ORIGINATED` ou reconciliações simultâneas).
+- **CORRECOES_APLICADAS**:
+  1. `apps/worker/src/in-memory-outbound-attempt-store.ts`: Substituição de `save()` por `insertIfAbsent(attempt: OutboundAttempt): boolean` e `update(attempt: OutboundAttempt): boolean`. Inserção recusa colisões de `(organizationId, attemptId)`. Atualização valida estritamente a imutabilidade dos campos de identidade (`id`, `organizationId`, `jobId`, `attemptNumber`, `agentId`, `agentVersionId`, `idempotencyKey`), lançando erro em caso de mutação.
+  2. `apps/worker/src/outbound-attempt-origination-coordinator.ts`: Verificação prévia de colisão em `prepareAttempt()` com motivo tipado `ATTEMPT_ID_ALREADY_EXISTS`; uso de `insertIfAbsent()` e `update()`; em `reconcile()`, verificação estrita `if (requested.kind !== 'APPLIED') return requested;`, impedindo chamadas externas em tentativas já resolvidas (`CLOSED`, `NOT_ORIGINATED`) ou concorrentes.
+  3. `packages/contracts/src/telephony/evaluate-successor-attempt.ts`: Inclusão de `attemptId?: string` no escopo e novo motivo de bloqueio tipado `ATTEMPT_ID_ALREADY_EXISTS`.
+  4. `apps/worker/src/in-memory-telephony-origination-port.ts`: Adicionado suporte a passos `DEFERRED` (`Promise<TelephonyOriginationResult>`) para testes de concorrência e condições de corrida sem timing externo ou sleeps.
+- **TESTES_DE_REGRESSAO_ADICIONADOS** (14 novos testes; total da 008-OF1: 94 testes):
+  - TDD Cenário A: Preparar job J2 reutilizando `attemptId` de job J1 em `OUTCOME_UNKNOWN` é bloqueado com `ATTEMPT_ID_ALREADY_EXISTS`; estado e histórico de J1 preservados; zero originations adicionais.
+  - TDD Cenário B: Tentativa sucessora para J1 reutilizando o mesmo `attemptId` é bloqueada; tentativa original preservada.
+  - TDD Cenário C: Tentativa de colisão enquanto originação anterior está pendente no fake (deferred) é bloqueada; resolução da porta atualiza exclusivamente a tentativa original.
+  - Integridade de Store: `update()` recusa tentativas inexistentes e lança erro em caso de mutação de identidade.
+  - Concorrência A: Duas chamadas simultâneas `originate()` com mesmo `attemptId` invocam a porta exatamente 1 vez; segunda retorna `ALREADY_PROCESSED`.
+  - Concorrência B: Dois coordenadores com mesmo store e mesma autoridade invocam a porta no máximo 1 vez.
+  - Concorrência C: Dois coordenadores com autoridades distintas rejeitam a segunda invocação com `AUTHORITY_CONFLICT`.
+  - Concorrência D: Duas preparações simultâneas para o mesmo job com IDs distintos preparam exatamente uma tentativa; segunda é bloqueada com `ACTIVE_ATTEMPT_IN_PROGRESS`.
+  - Concorrência E: Originação pendente seguida de tentativa de reutilização de ID é bloqueada.
+  - Reconciliação Hardened: `reconcile()` após `CLOSED` retorna `STALE` e zero chamadas ao fake.
+  - Reconciliação Hardened: `reconcile()` após `NOT_ORIGINATED` retorna `STALE` e zero chamadas ao fake.
+  - Reconciliação Hardened: Duas chamadas concorrentes a `reconcile()` consultam a porta no máximo 1 vez.
+  - Reconciliação Hardened: Fechamento recebido enquanto a reconciliação está pendente mantém o estado `CLOSED`.
+- **LIMITACOES_FORMALIZADAS**:
+  - *Destinatário e Elegibilidade*: A Slice 008-OF1 valida unicamente o formato sintático E.164 (`e164-destination.ts`). Não comprova nem autoriza elegibilidade de destinatário contra jobs persistidos. Resolução server-side de destinatários, supressão de contatos e autorização pertencem à trilha 008-MVP1.
+  - *Persistência e Concorrência Inter-Processos*: A proteção implementada garante atomicidade e unicidade estrita dentro do runtime de processo / store em memória. Unicidade durável multi-instância e transacional via PostgreSQL pertencem à Slice 008-OF2.
+- **SAFETY**:
+  - `ACTIVE_GUARDED`: `BLOCKED`
+  - `CUSTOMER_TRAFFIC`: `PROHIBITED`
+  - `PRODUCTION_RUNTIME_WIRING`: `NO`
+  - `REAL_PROVIDER_CALLS`: `0`
+  - `PURCHASE_OF_PHONE_NUMBERS`: `0`
+  - `REMOTE_MIGRATIONS`: `0`
+  - `DATABASE_SCHEMA_CHANGED`: `NO`
+  - `SECRET_AUDIT`: `PASS`
+
+

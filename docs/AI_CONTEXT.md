@@ -4,13 +4,13 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-19
-CONTEXT_BASE_MAIN_SHA: 0422133bbb71abf73cc9ade85c76ae9532bbc854
+CONTEXT_BASE_MAIN_SHA: 5076b0ca8abf1fb06826ddbfea0208e1a6e218a1
 CURRENT_PHASE: Phase 8 (OUTBOUND_FIRST_TWO_TRACK_PLANNING)
-CURRENT_SLICE: DEC-043 Formalization & Product MVP Alignment
-CONTEXT_UPDATE_BRANCH: docs/phase8-dec043-product-mvp-alignment
-CONTEXT_UPDATE_PR: 118
-LAST_MERGED_PR_AT_REFRESH: 117
-LAST_MERGE_SHA_AT_REFRESH: 0422133bbb71abf73cc9ade85c76ae9532bbc854
+CURRENT_SLICE: 008-OF1 Provider-Neutral Outbound Lifecycle (offline, em revisão)
+CONTEXT_UPDATE_BRANCH: feat/phase8-008-of1-outbound-lifecycle-contracts
+CONTEXT_UPDATE_PR: 119
+LAST_MERGED_PR_AT_REFRESH: 118
+LAST_MERGE_SHA_AT_REFRESH: 5076b0ca8abf1fb06826ddbfea0208e1a6e218a1
 LAST_TESTED_CODE_SHA: 0422133bbb71abf73cc9ade85c76ae9532bbc854
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
@@ -31,7 +31,7 @@ AI_CONTEXT_HEADER_END
 | **Web** | `IMPLEMENTED` | `apps/web` (Next.js 15.2; Dashboard, Settings, Agent Studio Draft Editor integrado com seção de configuração de ferramentas canônicas incluindo catálogo; aba Knowledge Base integrada com BFF `/api/knowledge-documents`, asserções assimétricas Ed25519, concorrência otimista `If-Match`/`ETag`, consistência de slug de tenant e blindagem CSRF fail-closed; UI 005D implementada e mesclada na main) |
 | **API** | `IMPLEMENTED` | `apps/api` (Hono/Node.js, rotas de drafts, lifecycle com validação de toolset canônico, auth interna com service token/Ed25519, gerenciamento de campanhas outbound /v1/campaigns e agendamento em lote de jobs, descarte de rascunho de versão DEC-040, e API REST de documentos de base de conhecimento /v1/knowledge/documents com RBAC DEC-039) |
 | **Voice** | `PARTIAL` | `apps/voice` (Motor universal de execução de tools `ToolExecutionEngine`, registro `InMemoryToolRegistry`, adapters `OperatingHoursTool`/`CatalogSearchTool`/`CatalogItemDetailTool` e resolução de toolset de versão publicada `resolvePublishedVersionToolset` implementados/testados offline; coordenador de retrieval `VoiceKnowledgeRetrievalCoordinator` offline; Orquestrador com roteamento supervisionado offline, coordenador dedicado `GuardedTurnRoutingCoordinator`, despacho determinístico, entrega estática de segurança offline, ownership OPTION_B, blindagem DISPATCH_ATTEMPTED -> NO_OPENAI_FALLBACK, single-owner Jev evaluation e tratamento qualificado de interrupção H4/H5 implementados/testados offline; streaming OpenAI; AuxiliaryTurnShadowObserver integrado non-blocking; handler determinístico `agent.operating_hours` integrado offline; fiação em runtime de produção: NÃO; tráfego real: NÃO) |
-| **Worker** | `IMPLEMENTED` | `apps/worker` (Fundação de background tasks, processamento de filas assíncronas, dispatcher atômico de chamadas outbound `outbound-call-dispatcher` com `SKIP LOCKED`) |
+| **Worker** | `IMPLEMENTED` | `apps/worker` (Fundação de background tasks, processamento de filas assíncronas, dispatcher atômico de chamadas outbound `outbound-call-dispatcher` com `SKIP LOCKED`; 008-OF1: coordenador offline de ciclo de vida de tentativas `outbound-attempt-origination-coordinator` com fakes em memória, sem fiação ativa) |
 | **Database** | `IMPLEMENTED` | `packages/database` (PostgreSQL 16, Drizzle ORM, multi-tenancy, schemas comerciais, de auditoria, `agent_versions.configuration` com preservação snapshot de toolset, `catalog_items` tenant-scoped com `CatalogRepository`, `outbound_campaigns`/`outbound_call_jobs`, e `knowledge_documents`/`knowledge_chunks` com migrations `0004_ordinary_charles_xavier.sql` e `0006_peaceful_thunderbolt.sql`) |
 
 ---
@@ -210,9 +210,10 @@ AI_CONTEXT_HEADER_END
 
 ### `NEXT_ALLOWED_STEP`:
 - **Phase 7 Status**: `CLOSED ON MAIN` (PRs #94 a #115 mescladas na main; fechamento formal aceito pelo operador humano via DEC-041).
-- **Phase 8 Status**: `OUTBOUND_FIRST_TWO_TRACK_PLANNING` (decisões DEC-042 e DEC-043 formalizadas; fatiamento técnico 008-OF1 a 008-OF6 e trilha funcional 008-MVP1 a 008-MVP4 reconciliados; PR #118 aberta na branch `docs/phase8-dec043-product-mvp-alignment` aguardando revisão e autorização explícita de merge).
-- `NEXT_ALLOWED_STEP = HUMAN_REVIEW_AND_EXPLICIT_MERGE_AUTHORIZATION_OF_PR_118`
-- `NEXT_ALLOWED_SLICE = 008_OF1_CONTRACTS_AND_OUTBOUND_LIFECYCLE` (somente sob autorização explícita separada após merge da PR #118).
+- **Phase 8 Status**: `OUTBOUND_FIRST_TWO_TRACK_PLANNING` (DEC-042 e DEC-043 na `main` via PR #118, SHA `5076b0c`). A Slice `008-OF1` foi IMPLEMENTADA OFFLINE na branch `feat/phase8-008-of1-outbound-lifecycle-contracts` e aguarda revisão humana independente: ela NÃO está concluída, aprovada nem mesclada.
+- `008-OF1` (estado real): contratos provider-neutral em `packages/contracts/src/telephony/` (porta `TelephonyOriginationPort`, porta de reconciliação, destino E.164, máquina pura de estados de tentativa com `OUTCOME_UNKNOWN`) + coordenador/fakes offline em `apps/worker/src/` (não exportados no índice, não ligados a dispatcher ativo). Zero migrations, zero tabelas, zero adapters Twilio/Millis, zero chamadas reais. Status de evidência: `TESTED` offline; `PROVIDER-UNVERIFIED`.
+- `NEXT_ALLOWED_STEP = HUMAN_REVIEW_OF_008_OF1_PR` (revisão independente do diff; sem merge sem autorização explícita).
+- `NEXT_ALLOWED_SLICE = 008_OF2_PERSISTENCE` (somente após aprovação e merge da 008-OF1 e autorização explícita separada; migrations exigem autorização própria).
 - `PURCHASE_OF_PHONE_NUMBERS = 0` | `REAL_PROVIDER_CALLS = 0` | `CUSTOMER_TRAFFIC = PROHIBITED` | `ACTIVE_GUARDED = BLOCKED`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
 
