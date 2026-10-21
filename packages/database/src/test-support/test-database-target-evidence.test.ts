@@ -16,6 +16,7 @@ function direct(overrides: Partial<TestTargetEvidence> = {}): TestTargetEvidence
     serverVersionNum: 160015,
     systemIdentifier: SYSID,
     canCreateDatabase: true,
+    localFileProof: 'VERIFIED',
     docker: null,
     ...overrides,
   };
@@ -29,6 +30,7 @@ function dockerized(
     serverAddress: '172.18.0.2',
     docker: {
       kind: 'INSPECTED',
+      endpoint: 'npipe:////./pipe/dockerDesktopLinuxEngine',
       authorizedName: 'voice-agent-postgres',
       name: 'voice-agent-postgres',
       running: true,
@@ -50,6 +52,45 @@ describe('test target guard (pure, no I/O)', () => {
       mode: 'DIRECT_LOOPBACK',
     });
     expect(evaluateTestTargetEvidence(direct({ serverAddress: null })).accepted).toBe(true);
+  });
+
+  it('P0-A. REJECT localhost + loopback server WITHOUT local-filesystem proof (e.g. SSH tunnel to a remote server)', () => {
+    const tunnel = direct({ localFileProof: 'UNAVAILABLE' });
+    expect(evaluateTestTargetEvidence(tunnel)).toMatchObject({
+      accepted: false,
+      reason: 'SERVER_NOT_PROVEN_LOCAL',
+    });
+    expect(evaluateTestTargetEvidence(direct({ localFileProof: 'MISMATCH' }))).toMatchObject({
+      accepted: false,
+      reason: 'SERVER_NOT_PROVEN_LOCAL',
+    });
+    expect(
+      evaluateTestTargetEvidence(direct({ serverAddress: null, localFileProof: 'UNAVAILABLE' }))
+        .accepted,
+    ).toBe(false);
+  });
+
+  it.each([
+    'unix:///var/run/docker.sock',
+    'unix:///Users/dev/.docker/run/docker.sock',
+    'npipe:////./pipe/docker_engine',
+    'npipe:////./pipe/dockerDesktopLinuxEngine',
+  ])('P0-B. ACCEPT local Docker endpoint %s', (endpoint) => {
+    expect(evaluateTestTargetEvidence(dockerized({ endpoint })).accepted).toBe(true);
+  });
+
+  it.each([
+    'ssh://dev@build-box',
+    'tcp://10.0.0.7:2376',
+    'tcp://127.0.0.1:2375',
+    'tcp://localhost:2376',
+    'npipe:////build-server/pipe/docker_engine',
+    '',
+  ])('P0-B. REJECT remote or unverifiable Docker endpoint %j', (endpoint) => {
+    expect(evaluateTestTargetEvidence(dockerized({ endpoint }))).toMatchObject({
+      accepted: false,
+      reason: 'DOCKER_ENDPOINT_NOT_LOCAL',
+    });
   });
 
   it('2. ACCEPT an identified local PostgreSQL 16 container seen through a bridge IP', () => {

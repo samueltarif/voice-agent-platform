@@ -18,6 +18,7 @@ const INSPECT = JSON.stringify([
 describe('Docker evidence parsing and collection (pure, simulated CLI output)', () => {
   it('parses inspect output into correlated evidence that the guard accepts', () => {
     const docker = parseDockerInspect(INSPECT, {
+      endpoint: 'npipe:////./pipe/dockerDesktopLinuxEngine',
       authorizedName: 'voice-agent-postgres',
       systemIdentifier: '42',
     });
@@ -34,6 +35,7 @@ describe('Docker evidence parsing and collection (pure, simulated CLI output)', 
       serverVersionNum: 160004,
       systemIdentifier: '42',
       canCreateDatabase: true,
+      localFileProof: 'UNAVAILABLE',
       docker,
     });
     expect(decision).toEqual({ accepted: true, mode: 'DOCKER_LOCAL_CONTAINER' });
@@ -42,6 +44,7 @@ describe('Docker evidence parsing and collection (pure, simulated CLI output)', 
   it('the default compose publication on all interfaces (0.0.0.0) is rejected', () => {
     const open = INSPECT.replace('"HostIp":"127.0.0.1"', '"HostIp":"0.0.0.0"');
     const docker = parseDockerInspect(open, {
+      endpoint: 'npipe:////./pipe/dockerDesktopLinuxEngine',
       authorizedName: 'voice-agent-postgres',
       systemIdentifier: '42',
     });
@@ -52,16 +55,29 @@ describe('Docker evidence parsing and collection (pure, simulated CLI output)', 
       serverVersionNum: 160004,
       systemIdentifier: '42',
       canCreateDatabase: true,
+      localFileProof: 'UNAVAILABLE',
       docker,
     });
     expect(decision).toMatchObject({ accepted: false, reason: 'PUBLISHED_PORT_MISMATCH' });
   });
 
   it('garbage, empty or failing Docker CLI yields UNAVAILABLE (never acceptance)', async () => {
-    expect(parseDockerInspect('not json', { authorizedName: 'x', systemIdentifier: '1' })).toEqual({
+    expect(
+      parseDockerInspect('not json', {
+        endpoint: 'unix:///var/run/docker.sock',
+        authorizedName: 'x',
+        systemIdentifier: '1',
+      }),
+    ).toEqual({
       kind: 'UNAVAILABLE',
     });
-    expect(parseDockerInspect('[]', { authorizedName: 'x', systemIdentifier: '1' })).toEqual({
+    expect(
+      parseDockerInspect('[]', {
+        endpoint: 'unix:///var/run/docker.sock',
+        authorizedName: 'x',
+        systemIdentifier: '1',
+      }),
+    ).toEqual({
       kind: 'UNAVAILABLE',
     });
     const failing = await collectDockerEvidence({
@@ -72,21 +88,79 @@ describe('Docker evidence parsing and collection (pure, simulated CLI output)', 
     expect(failing).toEqual({ kind: 'UNAVAILABLE' });
   });
 
-  it('reads the cluster identity INSIDE the authorized container via docker exec', async () => {
+  it('pins the verified LOCAL endpoint (-H) and reads the cluster identity inside the container', async () => {
     const calls: string[][] = [];
     const evidence = await collectDockerEvidence({
       runner: async (args) => {
         calls.push([...args]);
-        return args[0] === 'inspect' ? INSPECT : '42\n';
+        if (args[0] === 'context') return 'npipe:////./pipe/dockerDesktopLinuxEngine\n';
+        return args.includes('inspect') ? INSPECT : '42\n';
       },
       authorizedName: 'voice-agent-postgres',
       user: 'postgres',
+      env: {},
     });
-    expect(evidence).toMatchObject({ kind: 'INSPECTED', systemIdentifier: '42' });
-    expect(calls.map((c) => c.slice(0, 2))).toEqual([
-      ['inspect', 'voice-agent-postgres'],
-      ['exec', 'voice-agent-postgres'],
+    expect(evidence).toMatchObject({
+      kind: 'INSPECTED',
+      systemIdentifier: '42',
+      endpoint: 'npipe:////./pipe/dockerDesktopLinuxEngine',
+    });
+    expect(calls.map((c) => c.slice(0, 4))).toEqual([
+      ['context', 'inspect', '--format', '{{.Endpoints.docker.Host}}'],
+      ['-H', 'npipe:////./pipe/dockerDesktopLinuxEngine', 'inspect', 'voice-agent-postgres'],
+      ['-H', 'npipe:////./pipe/dockerDesktopLinuxEngine', 'exec', 'voice-agent-postgres'],
     ]);
     expect(calls.flat().join(' ')).not.toMatch(/password|PGPASSWORD/i);
+  });
+
+  it.each([
+    [{ DOCKER_HOST: 'ssh://dev@build-box' }, ''],
+    [{ DOCKER_HOST: 'tcp://127.0.0.1:2375', DOCKER_TLS_VERIFY: '1' }, ''],
+    [{}, 'tcp://10.0.0.7:2376'],
+    [{ DOCKER_CONTEXT: 'remote-builder' }, 'ssh://ci@runner'],
+  ])(
+    'P0-B. remote daemon (env %j / context %j) never yields usable evidence',
+    async (env, contextHost) => {
+      const calls: string[][] = [];
+      const evidence = await collectDockerEvidence({
+        runner: async (args) => {
+          calls.push([...args]);
+          return args[0] === 'context' ? contextHost : INSPECT;
+        },
+        authorizedName: 'voice-agent-postgres',
+        user: 'postgres',
+        env,
+      });
+      expect(evidence).toEqual({ kind: 'UNAVAILABLE' });
+      expect(calls.some((c) => c.includes('inspect') && c[0] !== 'context')).toBe(false);
+    },
+  );
+
+  it('P0-B. DOCKER_HOST takes precedence over the context (as the CLI does)', async () => {
+    const calls: string[][] = [];
+    await collectDockerEvidence({
+      runner: async (args) => {
+        calls.push([...args]);
+        return args.includes('inspect') ? INSPECT : '42';
+      },
+      authorizedName: 'voice-agent-postgres',
+      user: 'postgres',
+      env: { DOCKER_HOST: 'unix:///var/run/docker.sock' },
+    });
+    expect(calls[0]?.slice(0, 2)).toEqual(['-H', 'unix:///var/run/docker.sock']);
+    expect(calls.some((c) => c[0] === 'context')).toBe(false);
+  });
+
+  it('P0-B. an unreadable context (inconsistent metadata) is UNAVAILABLE', async () => {
+    const evidence = await collectDockerEvidence({
+      runner: async (args) => {
+        if (args[0] === 'context') throw new Error('context not found');
+        return INSPECT;
+      },
+      authorizedName: 'voice-agent-postgres',
+      user: 'postgres',
+      env: {},
+    });
+    expect(evidence).toEqual({ kind: 'UNAVAILABLE' });
   });
 });

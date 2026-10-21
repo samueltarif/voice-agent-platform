@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import { afterAll, describe, expect, it } from 'vitest';
 import { createDatabaseConnection } from '../client/connection.js';
 import { collectTestDatabaseEvidence } from './collect-test-database-evidence.js';
+import { proveLocalFilesystem } from './local-target-provenance.js';
 import {
   assertDroppableByThisRun,
   createDisposableTestDatabase,
@@ -31,7 +32,24 @@ describe('disposable test database guard against the real local PostgreSQL', () 
     const evidence = await collectTestDatabaseEvidence({ adminUrl, db: admin.db });
     expect(evidence.serverVersionNum).toBeGreaterThanOrEqual(160000);
     expect(evidence.canCreateDatabase).toBe(true);
-    expect(evaluateTestTargetEvidence(evidence).accepted).toBe(true);
+    expect(evidence.localFileProof).toBe('VERIFIED');
+    expect(evaluateTestTargetEvidence(evidence)).toEqual({
+      accepted: true,
+      mode: 'DIRECT_LOOPBACK',
+    });
+  });
+
+  it('P0-A. the local-filesystem proof is a real round trip through the server', async () => {
+    expect(await proveLocalFilesystem(admin.db)).toBe('VERIFIED');
+  });
+
+  it('P1. a migration failure after CREATE DATABASE leaves no orphan and keeps the original cause', async () => {
+    const before = await disposableCount();
+    const original = new Error('induced migration failure');
+    await expect(
+      createDisposableTestDatabase('guard', { runMigrationsFn: () => Promise.reject(original) }),
+    ).rejects.toBe(original);
+    expect(await disposableCount()).toBe(before);
   });
 
   it('10. a failed verification executes zero DDL (no database is created)', async () => {
@@ -43,6 +61,7 @@ describe('disposable test database guard against the real local PostgreSQL', () 
       serverVersionNum: 160015,
       systemIdentifier: '1',
       canCreateDatabase: true,
+      localFileProof: 'UNAVAILABLE' as const,
       docker: { kind: 'UNAVAILABLE' as const },
     });
     await expect(

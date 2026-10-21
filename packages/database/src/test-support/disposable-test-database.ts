@@ -32,6 +32,8 @@ export interface DisposableTestDatabase {
 export interface DisposableDatabaseOptions {
   /** Injeção apenas para testes da própria guarda. */
   readonly collectEvidence?: ((db: DatabaseInstance) => Promise<TestTargetEvidence>) | undefined;
+  /** Injeção apenas para o teste de falha induzida de migration. */
+  readonly runMigrationsFn?: ((options: { connectionString: string }) => Promise<void>) | undefined;
 }
 
 export function assertDisposableDatabaseUrl(url: string): void {
@@ -78,11 +80,36 @@ export async function createDisposableTestDatabase(
   } finally {
     await admin.pool.end();
   }
+  return openMigratedOrCleanUp({ name, options });
+}
+
+/**
+ * P1 — qualquer falha APÓS o CREATE DATABASE remove a base recém-criada.
+ * A causa original é sempre a que se propaga; se a limpeza também falhar,
+ * ambas são reportadas juntas (AggregateError, original primeiro).
+ */
+async function openMigratedOrCleanUp(input: {
+  readonly name: string;
+  readonly options: DisposableDatabaseOptions;
+}): Promise<DisposableTestDatabase> {
+  const { name, options } = input;
   const url = withDatabase(ADMIN_URL, name);
-  assertDisposableDatabaseUrl(url);
-  await runMigrations({ connectionString: url });
-  const { db, pool } = createDatabaseConnection({ connectionString: url, maxConnections: 6 });
-  return { name, url, db, drop: () => dropDisposable({ name, close: () => pool.end() }) };
+  try {
+    assertDisposableDatabaseUrl(url);
+    await (options.runMigrationsFn ?? runMigrations)({ connectionString: url });
+    const { db, pool } = createDatabaseConnection({ connectionString: url, maxConnections: 6 });
+    return { name, url, db, drop: () => dropDisposable({ name, close: () => pool.end() }) };
+  } catch (original) {
+    try {
+      await dropDisposable({ name, close: async () => undefined });
+    } catch (cleanupError) {
+      throw new AggregateError(
+        [original, cleanupError],
+        'Disposable database setup failed and cleanup failed.',
+      );
+    }
+    throw original;
+  }
 }
 
 /** Só remove bases descartáveis criadas por ESTE processo (nunca bases alheias). */

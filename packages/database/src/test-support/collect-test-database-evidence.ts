@@ -1,10 +1,17 @@
 import { execFile } from 'node:child_process';
 import { sql } from 'drizzle-orm';
 import type { DatabaseInstance } from '../client/connection.js';
-import type {
-  DockerEvidence,
-  DockerPortBinding,
-  TestTargetEvidence,
+import {
+  pinnedDockerRunner,
+  proveLocalFilesystem,
+  readSystemIdentifier,
+  resolveDockerEndpoint,
+} from './local-target-provenance.js';
+import {
+  isLocalDockerEndpoint,
+  type DockerEvidence,
+  type DockerPortBinding,
+  type TestTargetEvidence,
 } from './test-database-target-evidence.js';
 
 /** Executa o Docker CLI (APENAS no harness de testes). */
@@ -43,13 +50,17 @@ function addressesOf(record: InspectRecord): string[] {
 }
 
 /** Converte a saída de `docker inspect` (JSON) em evidência; qualquer desvio → UNAVAILABLE. */
-function toEvidence(
-  record: InspectRecord,
-  input: { readonly authorizedName: string; readonly systemIdentifier: string | null },
-): DockerEvidence {
+interface InspectContext {
+  readonly endpoint: string;
+  readonly authorizedName: string;
+  readonly systemIdentifier: string | null;
+}
+
+function toEvidence(record: InspectRecord, input: InspectContext): DockerEvidence {
   const config = record.Config ?? {};
   return {
     kind: 'INSPECTED',
+    endpoint: input.endpoint,
     authorizedName: input.authorizedName,
     name: (record.Name ?? '').replace(/^\//, ''),
     running: record.State?.Running === true,
@@ -62,10 +73,7 @@ function toEvidence(
 }
 
 /** Converte a saída de `docker inspect` (JSON) em evidência; qualquer desvio → UNAVAILABLE. */
-export function parseDockerInspect(
-  json: string,
-  input: { readonly authorizedName: string; readonly systemIdentifier: string | null },
-): DockerEvidence {
+export function parseDockerInspect(json: string, input: InspectContext): DockerEvidence {
   try {
     const [record] = JSON.parse(json) as InspectRecord[];
     return record ? toEvidence(record, input) : { kind: 'UNAVAILABLE' };
@@ -78,10 +86,19 @@ export async function collectDockerEvidence(input: {
   readonly runner: DockerRunner;
   readonly authorizedName: string;
   readonly user: string;
+  readonly env?: Readonly<Record<string, string | undefined>> | undefined;
 }): Promise<DockerEvidence> {
   try {
-    const inspect = await input.runner(['inspect', input.authorizedName]);
-    const sysid = await input.runner([
+    const endpoint = await resolveDockerEndpoint({
+      runner: input.runner,
+      env: input.env ?? process.env,
+    });
+    const pinned = isLocalDockerEndpoint(endpoint)
+      ? pinnedDockerRunner(input.runner, endpoint)
+      : null;
+    if (!pinned) return { kind: 'UNAVAILABLE' };
+    const inspect = await pinned(['inspect', input.authorizedName]);
+    const sysid = await pinned([
       'exec',
       input.authorizedName,
       'psql',
@@ -93,20 +110,13 @@ export async function collectDockerEvidence(input: {
       'SELECT system_identifier FROM pg_control_system()',
     ]);
     const systemIdentifier = sysid.trim() || null;
-    return parseDockerInspect(inspect, { authorizedName: input.authorizedName, systemIdentifier });
+    return parseDockerInspect(inspect, {
+      endpoint,
+      authorizedName: input.authorizedName,
+      systemIdentifier,
+    });
   } catch {
     return { kind: 'UNAVAILABLE' };
-  }
-}
-
-async function readSystemIdentifier(db: DatabaseInstance): Promise<string | null> {
-  try {
-    const result = await db.execute<{ sysid: string }>(
-      sql`SELECT system_identifier::text AS sysid FROM pg_control_system()`,
-    );
-    return result.rows[0]?.sysid ?? null;
-  } catch {
-    return null;
   }
 }
 
@@ -141,7 +151,8 @@ export async function collectTestDatabaseEvidence(input: {
 }): Promise<TestTargetEvidence> {
   const url = new URL(input.adminUrl);
   const facts = await readServerFacts(input.db);
-  const docker = isLoopbackServer(facts.serverAddress)
+  const loopback = isLoopbackServer(facts.serverAddress);
+  const docker = loopback
     ? null
     : await collectDockerEvidence({
         runner: input.runner ?? runDockerCli,
@@ -153,6 +164,7 @@ export async function collectTestDatabaseEvidence(input: {
     clientHost: url.hostname,
     clientPort: Number(url.port) || 5432,
     systemIdentifier: await readSystemIdentifier(input.db),
+    localFileProof: loopback ? await proveLocalFilesystem(input.db) : 'UNAVAILABLE',
     docker,
   };
 }

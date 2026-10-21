@@ -18466,3 +18466,22 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `DOCKER_INTEGRATION_NOT_EXECUTED`: não há daemon Docker neste ambiente, então o caminho Docker foi testado apenas com saída sintética.
 - **GATE_CANONICO** (Linux, Node v22.22.0, pnpm 12.5.1): ver bloco de relatório da PR. `WINDOWS_VALIDATION_NOT_EXECUTED`: a revalidação independente no Windows 11 / Node 24 é obrigatória antes de qualquer autorização de merge.
 - **SAFETY**: `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `SECRET_AUDIT = PASS`.
+
+## 2026-10-21 — Fase 8 — PR #121 (008-OF2): Endurecimento da Proveniência do Destino de Teste — Claude Code
+
+- **ESCOPO**: `TARGETED SECURITY FIX / EXISTING PR / NO MERGE` sobre o HEAD `17b21ea19178c993d4b1fe8d98f4068561a018f2` (base `main` `6d02868`, sem avanço). Domínio da 008-OF2 inalterado: FSM, migration `0007`, repositories, fencing/recovery e trilha append-only. Só o harness de testes mudou.
+- **P0-A (túnel SSH)**: `DIRECT_LOOPBACK` passou a exigir prova de sistema de arquivos local. O teste grava um nonce aleatório no disco local (`/tmp`, ou `os.tmpdir()` no Windows) e o servidor precisa lê-lo com `pg_read_file`. Um túnel para servidor remoto não enxerga o arquivo, e o destino é rejeitado com `SERVER_NOT_PROVEN_LOCAL`. Isso vale também para socket Unix. Não há flag de bypass.
+- **P0-B (daemon Docker remoto)**:
+  - O endpoint efetivo do daemon é resolvido como a CLI faz: `DOCKER_HOST` tem precedência; senão, o contexto atual (`DOCKER_CONTEXT` ou a configuração), lido com `docker context inspect`.
+  - Só são aceitos `unix:///...` e `npipe:////./pipe/...`. SSH, TCP (inclusive `127.0.0.1`) e TLS são rejeitados com `DOCKER_ENDPOINT_NOT_LOCAL`.
+  - O endpoint verificado é fixado com `-H` em todo `inspect`/`exec`.
+  - A correlação por `system_identifier`, IP do container e porta publicada foi mantida.
+- **P1 (órfão após falha de migration)**: qualquer falha após `CREATE DATABASE` remove a base recém-criada. A remoção continua restrita a nomes descartáveis registrados pelo processo. A causa original é propagada intacta; se a limpeza também falhar, as duas são reportadas juntas em `AggregateError`, com a original primeiro.
+- **TESTES (TDD)**:
+  - 7 regressões puras ficaram vermelhas antes da correção: túnel aceito e endpoints remotos aceitos.
+  - Novos testes puros: 4 endpoints locais legítimos, 6 endpoints remotos ou não verificáveis, contexto e `DOCKER_HOST` remotos, precedência de `DOCKER_HOST` e contexto ilegível.
+  - Integração REAL com PostgreSQL local: o nonce faz a ida e volta pelo servidor (`VERIFIED`) e a falha induzida de migration não deixa base residual.
+  - Docker não foi executado (sem daemon neste ambiente); a saída do Docker foi simulada.
+- **LIMITAÇÃO RESIDUAL DOCUMENTADA**: um socket Unix ou named pipe local que seja ele próprio encaminhado (túnel deliberado de socket) não é distinguível pela CLI. Ainda assim, a aceitação exige a correlação completa com a porta publicada no loopback local, o IP visto pelo servidor e o `system_identifier`, o que só acontece com encaminhamento duplo e intencional.
+- **GATE**: ver relatório da PR. `WINDOWS_VALIDATION_NOT_EXECUTED`; a revalidação independente no Windows 11 / Node 24 continua obrigatória.
+- **SAFETY**: `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `SECRET_AUDIT = PASS`.
