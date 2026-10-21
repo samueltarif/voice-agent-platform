@@ -28,6 +28,9 @@ function dockerized(
 ) {
   return direct({
     serverAddress: '172.18.0.2',
+    // O host NÃO vê o arquivo do container: a prova do modo Docker é a
+    // identidade do container, nunca o nonce do sistema de arquivos local.
+    localFileProof: 'UNAVAILABLE',
     docker: {
       kind: 'INSPECTED',
       endpoint: 'npipe:////./pipe/dockerDesktopLinuxEngine',

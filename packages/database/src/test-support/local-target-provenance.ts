@@ -34,23 +34,24 @@ export async function proveLocalFilesystem(
 }
 
 /**
- * P0-B — endpoint do daemon Docker EFETIVAMENTE usado pela CLI: `DOCKER_HOST`
- * (que tem precedência) ou o contexto atual (`DOCKER_CONTEXT`/configuração),
- * lido com `docker context inspect`. Vazio/erro → '' (não local).
+ * P0-B — endpoint do daemon Docker EFETIVAMENTE usado pela CLI, respeitando a
+ * precedência real (`-H` > `DOCKER_HOST` > `DOCKER_CONTEXT` > contexto atual):
+ * `DOCKER_HOST` vence e nunca consulta contexto; `DOCKER_CONTEXT` é inspecionado
+ * pelo NOME explícito (nunca pelo contexto "atual", que pode divergir).
+ * `DOCKER_TLS_VERIFY` não vazio indica daemon TLS, cuja localidade não é
+ * comprovável → '' (fail-closed). Vazio/erro → '' (não local).
  */
 export async function resolveDockerEndpoint(input: {
   readonly runner: DockerCli;
   readonly env: Readonly<Record<string, string | undefined>>;
 }): Promise<string> {
-  const fromEnv = input.env.DOCKER_HOST?.trim();
-  if (fromEnv) return fromEnv;
+  if (input.env.DOCKER_TLS_VERIFY?.trim()) return '';
+  const fromHost = input.env.DOCKER_HOST?.trim();
+  if (fromHost) return fromHost;
+  const contextName = input.env.DOCKER_CONTEXT?.trim();
+  const target = contextName ? ['context', 'inspect', contextName] : ['context', 'inspect'];
   try {
-    const out = await input.runner([
-      'context',
-      'inspect',
-      '--format',
-      '{{.Endpoints.docker.Host}}',
-    ]);
+    const out = await input.runner([...target, '--format', '{{.Endpoints.docker.Host}}']);
     return out.trim();
   } catch {
     return '';

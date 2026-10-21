@@ -34,6 +34,24 @@ export interface DisposableDatabaseOptions {
   readonly collectEvidence?: ((db: DatabaseInstance) => Promise<TestTargetEvidence>) | undefined;
   /** Injeção apenas para o teste de falha induzida de migration. */
   readonly runMigrationsFn?: ((options: { connectionString: string }) => Promise<void>) | undefined;
+  /**
+   * Injeção apenas para os testes da guarda comprovarem, pelo NOME exato, que
+   * nenhuma base foi criada. Qualquer valor fora de `of2_test_<12 hex>` é
+   * recusado ANTES de qualquer DDL.
+   */
+  readonly databaseName?: string | undefined;
+}
+
+function resolveDatabaseName(options: DisposableDatabaseOptions): string {
+  if (options.databaseName === undefined) {
+    return `of2_test_${randomUUID().replace(/-/g, '').slice(0, 12)}`;
+  }
+  if (!isDisposableDatabaseName(options.databaseName)) {
+    throw new Error(
+      'Refusing an injected database name that is not disposable (of2_test_<12 hex>).',
+    );
+  }
+  return options.databaseName;
 }
 
 export function assertDisposableDatabaseUrl(url: string): void {
@@ -66,13 +84,13 @@ export async function createDisposableTestDatabase(
   _tag: string,
   options: DisposableDatabaseOptions = {},
 ): Promise<DisposableTestDatabase> {
+  const name = resolveDatabaseName(options);
   if (!isLoopbackHost(new URL(ADMIN_URL).hostname)) {
     throw new Error(
       'Refusing unproven PostgreSQL test target (CLIENT_HOST_NOT_LOOPBACK); no DDL executed.',
     );
   }
   const admin = createDatabaseConnection({ connectionString: ADMIN_URL, maxConnections: 1 });
-  const name = `of2_test_${randomUUID().replace(/-/g, '').slice(0, 12)}`;
   try {
     await proveTarget(admin.db, options);
     await admin.db.execute(sql.raw(`CREATE DATABASE "${name}"`));

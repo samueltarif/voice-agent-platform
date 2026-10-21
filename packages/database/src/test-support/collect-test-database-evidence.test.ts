@@ -151,6 +151,87 @@ describe('Docker evidence parsing and collection (pure, simulated CLI output)', 
     expect(calls.some((c) => c[0] === 'context')).toBe(false);
   });
 
+  it('P0-B. a local DOCKER_HOST wins over a diverging remote DOCKER_CONTEXT', async () => {
+    const calls: string[][] = [];
+    const evidence = await collectDockerEvidence({
+      runner: async (args) => {
+        calls.push([...args]);
+        return args.includes('inspect') ? INSPECT : '42\n';
+      },
+      authorizedName: 'voice-agent-postgres',
+      user: 'postgres',
+      env: {
+        DOCKER_HOST: 'npipe:////./pipe/dockerDesktopLinuxEngine',
+        DOCKER_CONTEXT: 'remote-builder',
+      },
+    });
+    expect(evidence).toMatchObject({
+      kind: 'INSPECTED',
+      endpoint: 'npipe:////./pipe/dockerDesktopLinuxEngine',
+    });
+    expect(calls.some((c) => c[0] === 'context')).toBe(false);
+    expect(calls.every((c) => c[0] === '-H')).toBe(true);
+  });
+
+  it('P0-B. a remote DOCKER_HOST is never rescued by a local DOCKER_CONTEXT', async () => {
+    const calls: string[][] = [];
+    const evidence = await collectDockerEvidence({
+      runner: async (args) => {
+        calls.push([...args]);
+        return 'npipe:////./pipe/dockerDesktopLinuxEngine\n';
+      },
+      authorizedName: 'voice-agent-postgres',
+      user: 'postgres',
+      env: { DOCKER_HOST: 'ssh://dev@build-box', DOCKER_CONTEXT: 'desktop-linux' },
+    });
+    expect(evidence).toEqual({ kind: 'UNAVAILABLE' });
+    expect(calls).toEqual([]);
+  });
+
+  it('P0-B. inspects DOCKER_CONTEXT by explicit name and pins its endpoint', async () => {
+    const calls: string[][] = [];
+    const evidence = await collectDockerEvidence({
+      runner: async (args) => {
+        calls.push([...args]);
+        if (args[0] === 'context') return 'npipe:////./pipe/dockerDesktopLinuxEngine\n';
+        return args.includes('inspect') ? INSPECT : '42\n';
+      },
+      authorizedName: 'voice-agent-postgres',
+      user: 'postgres',
+      env: { DOCKER_CONTEXT: 'desktop-linux' },
+    });
+    expect(evidence).toMatchObject({
+      kind: 'INSPECTED',
+      endpoint: 'npipe:////./pipe/dockerDesktopLinuxEngine',
+    });
+    expect(calls[0]).toEqual([
+      'context',
+      'inspect',
+      'desktop-linux',
+      '--format',
+      '{{.Endpoints.docker.Host}}',
+    ]);
+    expect(calls[1]?.slice(0, 2)).toEqual(['-H', 'npipe:////./pipe/dockerDesktopLinuxEngine']);
+  });
+
+  it('P0-B. DOCKER_TLS_VERIFY (TLS daemon) is fail-closed even with a local socket', async () => {
+    const calls: string[][] = [];
+    const evidence = await collectDockerEvidence({
+      runner: async (args) => {
+        calls.push([...args]);
+        return INSPECT;
+      },
+      authorizedName: 'voice-agent-postgres',
+      user: 'postgres',
+      env: {
+        DOCKER_HOST: 'npipe:////./pipe/dockerDesktopLinuxEngine',
+        DOCKER_TLS_VERIFY: '1',
+      },
+    });
+    expect(evidence).toEqual({ kind: 'UNAVAILABLE' });
+    expect(calls).toEqual([]);
+  });
+
   it('P0-B. an unreadable context (inconsistent metadata) is UNAVAILABLE', async () => {
     const evidence = await collectDockerEvidence({
       runner: async (args) => {
