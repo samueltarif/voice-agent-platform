@@ -7,3 +7,7 @@ export * from './audit.js';
 export * from './agents.js';
 export * from './outbound.js';
 export * from './knowledge.js';
+export * from './organization-phone-numbers.js';
+export * from './call-attempts.js';
+export * from './call-sessions.js';
+export * from './call-events.js';

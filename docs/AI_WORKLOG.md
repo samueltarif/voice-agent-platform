@@ -18401,3 +18401,107 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 
 
 
+
+## 2026-10-20 — Fase 8 — Slice 008-OF2: Persistência Durável Outbound e Recuperação Pós-Crash (Implementação Offline) — Claude Code
+
+- **SLICE_ID**: `008-OF2` (Phase 8 Outbound-First — Fundação Técnica; DEC-043)
+- **EXECUTOR**: `CLAUDE_CODE` (clone em ambiente de nuvem; o shell do computador do operador não estava disponível nesta sessão)
+- **AUTORIZAÇÃO HUMANA**: implementação offline explícita da 008-OF2 (branch separada, schemas PostgreSQL/Drizzle, migrations versionadas, repositories transacionais, testes e execução de migrations SOMENTE em banco local descartável). Merge, migrations remotas, deploy, compras, chamadas reais e integrações ativas NÃO autorizados.
+- **BASE_MAIN_SHA**: `6d02868d80aa281a623fb70a4fd8919c17ecd1cb` (PR #120; `origin/main` == SHA esperado; worktree limpo; nenhuma PR aberta).
+- **FEATURE_BRANCH**: `feat/phase8-008-of2-durable-outbound-persistence`
+- **STATUS**: `IMPLEMENTED_TESTED_OFFLINE / AGUARDANDO REVISÃO HUMANA INDEPENDENTE`. Não concluída, não aprovada, não mesclada.
+- **ARQUITETURA**: job (`outbound_call_jobs`) ≠ tentativa (`call_attempts`) ≠ sessão (`call_sessions`) ≠ evento (`call_events`) ≠ cobrança (inexistente nesta slice). Estado persistido = FSM canônica da 008-OF1 (enum `call_attempt_state` com os 10 estados). Aplicação durável de evento em transação única: lock `FOR UPDATE` → fencing/CAS → identidade do evento (`event_id` + fingerprint) → `applyOutboundAttemptEvent` → mutação + linha de auditoria.
+- **MIGRATION**: `packages/database/src/migrations/0007_durable_outbound_persistence.sql` (+ snapshot/journal gerados por `drizzle-kit generate`; `drizzle-kit check` OK). Aditiva: 4 tabelas, 5 enums, 3 UNIQUE compostas novas em tabelas existentes (`agent_versions`, `outbound_call_jobs`, `outbound_campaigns`) exclusivamente para suportar FKs compostas por tenant (reordenadas antes das FKs no SQL gerado), 4 triggers (append-only de `call_events`; identidade/estado terminal imutáveis em tentativas, sessões e números). Nenhum DROP/RENAME/ALTER COLUMN. Rollback/compensação: em banco descartável, recriar a base; em ambiente persistente futuro, migration de contração separada exigiria autorização própria.
+- **BANCO UTILIZADO**: PostgreSQL 16 local, efêmero, ouvindo apenas em loopback (`127.0.0.1`), cluster recriado do zero; testes recusam qualquer host não local (`assertLocalDatabaseUrl`); um teste cria uma base nova descartável, aplica 0000–0007 duas vezes e a remove.
+- **GARANTIAS NO BANCO**: FKs compostas (tentativa→job/campanha/versão de agente do MESMO tenant; sessão→tentativa; evento→tentativa/sessão); UNIQUE de identidade, número por job, chave de idempotência por tenant, `event_id` global, E.164 global e SID; índice parcial "no máximo uma tentativa não terminal por job"; CHECKs de E.164, fingerprint, correlação obrigatória e coerência de `released_at`/`ended_at`.
+- **CONCORRÊNCIA E AUTORIDADE**: preparação de sucessora serializada por `FOR UPDATE` no job; claim de envio só a partir de `ORIGINATION_PENDING` com `SEND_STARTED` gravado na mesma transação antes da porta; fencing token monotônico + lease; finalização exige dono e token; recuperação com `FOR UPDATE SKIP LOCKED`; lease expirado após o envio NUNCA reabre o envio. Nenhuma transação aberta durante efeito externo.
+- **RECUPERAÇÃO PÓS-CRASH**: cenários A–J executados com processos Node REAIS e separados (morte por SIGKILL), conectados ao mesmo PostgreSQL; verificação/recuperação em outros processos. Resultado: falhas antes/durante a primeira escrita não deixam resíduo; pré-envio permanece seguro; toda queda após `SEND_STARTED` (inclusive aceite aplicado e não commitado) vira `OUTCOME_UNKNOWN` com novo fencing; dois recuperadores concorrentes não compartilham trabalho; escritor antigo é barrado (`FENCED`); reconciliação interrompida só é retomada após o lease; reinícios repetidos não alteram nada nem rediscam.
+- **TESTES NOVOS**: 49 (46 em `packages/database`: 35 contra PostgreSQL real + 11 puros; 3 em `packages/contracts`). Executor de processos-filho usa apenas recursos nativos do Node (`--experimental-transform-types` + hook de resolução em `test-support`), sem dependência nova.
+- **FALHAS ENCONTRADAS E SOLUÇÕES**: (1) FKs compostas falhariam porque o SQL gerado criava as UNIQUE de suporte depois das FKs — reordenadas; (2) inferência circular de tipos entre `call_attempts` e `call_sessions` — tipo de retorno explícito do extra-config; (3) **defeito real detectado por teste de processo**: a retomada de um claim de reconciliação expirado retornava CLAIMED sem persistir o novo dono/fencing (persistência em STALE não estava ligada) — corrigido e coberto por teste de regressão; (4) limites de tamanho/parâmetros — divisão por responsabilidade; (5) ambiente de nuvem: wrapper do pnpm gerenciado fora do repositório e PostgreSQL local descartável.
+- **REFATORAÇÕES COMPATÍVEIS**: transições de `CallSessionState` movidas para `@voice-agent/contracts` (voz delega; comportamento idêntico); mapeamento resultado-de-porta→evento movido para contracts e reexportado pelo worker; extração de `findDriverError` para `postgres-driver-error.ts` (knowledge reutiliza).
+- **GATE_CANONICO** (`pnpm install --frozen-lockfile && pnpm check`): exit code `0`; 7/7 estágios PASS; `189` arquivos aprovados, `6` ignorados; `1397` testes aprovados, `0` falhos, `45` ignorados (staging). Baseline da `main` 1348 → +49.
+- **LIMITAÇÕES**: sem exactly-once perante o exterior; `twilio_phone_number_sid` é metadata não verificada; `providerEventId` não é identidade confiável (`PROVIDER-UNVERIFIED`); trigger de append-only bloqueia UPDATE mas permite DELETE em cascata para retenção/teardown; RELEASED é terminal e o mesmo E.164 não pode ser reatribuído a outro tenant sem decisão humana.
+- **SAFETY**:
+  - `ACTIVE_GUARDED`: `BLOCKED`
+  - `CUSTOMER_TRAFFIC`: `PROHIBITED`
+  - `PRODUCTION_RUNTIME_WIRING`: `NO`
+  - `REAL_PROVIDER_CALLS`: `0`
+  - `PURCHASE_OF_PHONE_NUMBERS`: `0`
+  - `REMOTE_MIGRATIONS`: `0`
+  - `DATABASE_SCHEMA_CHANGED`: `YES (local descartável apenas; migration 0007 aditiva em revisão)`
+  - `FORBIDDEN_INTERNAL_STORAGE_ACCESSED`: `NO`
+  - `REAL_DOTENV_ACCESSED`: `NO`
+  - `SECRET_AUDIT`: `PASS`
+
+## 2026-10-20 — Fase 8 — PR #121 (008-OF2): Correções da Revisão Independente — Claude Code
+
+- **ESCOPO**: `TARGETED HARDENING / TDD / EXISTING PR ONLY` na branch `feat/phase8-008-of2-durable-outbound-persistence` (HEAD anterior `8ec1915c9006e303f16dd5bc1614e7f229611135`; base `main` `6d02868d80aa281a623fb70a4fd8919c17ecd1cb`, sem divergência). PR #121 permanece ABERTA, sem merge.
+- **TDD**: 9 testes de regressão (`durable-review-regressions.integration.test.ts`) escritos ANTES das correções; 8 falharam no código anterior (DELETE/TRUNCATE aceitos na trilha; exclusão de pai apagava a trilha em cascata; `EVENT_ID_CONFLICT` antes da rejeição de tenant; vínculo cruzado sessão↔tentativa aceito; sessão inexistente gerava erro técnico; SQL direto aceitava vínculo cruzado; corrida de vínculo; referência opaca divergente aceita). O 9º (duplicata legítima/conflito de conteúdo) já passava e foi mantido.
+- **CAUSAS-RAIZ E CORREÇÕES**:
+  - *P0-1 (trilha deletável)*: trigger cobria só UPDATE e as FKs de `call_events` eram `ON DELETE CASCADE`. Agora trigger `BEFORE UPDATE OR DELETE` + `BEFORE TRUNCATE`; FKs de `call_events` → `RESTRICT`; FKs de organização em `call_attempts`/`call_sessions`/`call_events` → `RESTRICT`. Política: trilha imutável; retenção/eliminação legítima exige procedimento futuro com decisão humana; descarte de teste = `DROP DATABASE` da base descartável (sem DELETE na trilha).
+  - *P0-2 (precedência)*: a identidade global do `event_id` era consultada antes da correlação. Nova ordem: parse → `checkCorrelation` canônica da 008-OF1 (agora exportada por `@voice-agent/contracts`) → identidade do evento → autoridade (fencing/versão) → vínculo de sessão → FSM → persistência atômica.
+  - *P0-3 (vínculo sessão↔tentativa)*: a FK só validava tenant. Nova FK composta `call_attempts(call_session_id, organization_id, id) → call_sessions(id, organization_id, current_attempt_id)` (+ UNIQUE de suporte) e guarda transacional que trava a sessão (`FOR UPDATE`) e exige `current_attempt_id = tentativa`, mesmo tenant, existência, e referência opaca coerente (`PROVIDER_REFERENCE_CONFLICT`), sem criar sessões fictícias.
+  - *P1 (banco de teste)*: removido o fallback para `DATABASE_URL`. Cada suíte cria sua própria base `of2_test_<hex>` no servidor local (`TEST_DATABASE_URL` ou padrão local), prova loopback por `inet_server_addr()` e hostname antes da primeira migration e só remove bases com esse padrão criadas pelo próprio processo; falha explícita (sem skip) se não for local.
+- **MIGRATION**: `0007` regenerada por `drizzle-kit generate` (journal/snapshot coerentes; `drizzle-kit check` OK), continua aditiva e aplicada apenas em PostgreSQL 16 local descartável.
+- **WINDOWS**: `WINDOWS_VALIDATION_NOT_EXECUTED` (sem ambiente Windows nesta sessão). Revisão estática: `process.execPath` + args em array, loader via `pathToFileURL`, `process.kill(..., 'SIGKILL')` (TerminateProcess no Windows) com asserção por marcador e não por sinal, limpeza de filhos órfãos. Comando para o operador antes do merge, com PostgreSQL 16 local ativo (`docker compose up -d`): `cmd /c "pnpm install --frozen-lockfile && pnpm check"` e, focado, `pnpm exec vitest run --project @voice-agent/database packages/database/src/durable-crash-recovery.process.integration.test.ts`.
+- **GATE_CANONICO** (Linux, Node v22.22.0, pnpm 12.5.1): exit code `0`; 7/7 estágios PASS; `190` arquivos aprovados, `6` ignorados; `1406` testes aprovados, `0` falhos, `45` ignorados (+9 regressões).
+- **SAFETY**: `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `REAL_DOTENV_ACCESSED = NO` | `SECRET_AUDIT = PASS`.
+
+## 2026-10-20 — Fase 8 — PR #121 (008-OF2): Correção da Guarda de Banco de Teste para Windows/Docker Desktop — Claude Code
+
+- **ESCOPO**: `TARGETED BUGFIX / FAIL-CLOSED / TDD / EXISTING PR ONLY` sobre o HEAD `1d4377003b7e2cf6b6150ff8b89b85d7e89c1606` (base `main` `6d02868`). PR #121 continua ABERTA e sem merge; regras de negócio da 008-OF2 e migration `0007` inalteradas.
+- **CAUSA-RAIZ**: a guarda exigia `inet_server_addr()` em loopback. Com Docker Desktop/WSL2 (`wslrelay.exe`), o cliente usa `localhost:5432`, mas o servidor dentro do container enxerga o IP de bridge (ex.: `172.18.0.2`), e as sete suítes PostgreSQL abortavam antes de rodar no gate Windows 11 / Node 24.20.0 (exit code 1).
+- **CORREÇÃO (fail-closed, sem afrouxar)**: guarda pura `evaluateTestTargetEvidence` com dois modos:
+  - `DIRECT_LOOPBACK`, igual ao comportamento anterior;
+  - `DOCKER_LOCAL_CONTAINER`, que exige `docker inspect` do container autorizado (`voice-agent-postgres` ou `VOICE_AGENT_TEST_PG_CONTAINER`): em execução, imagem `postgres:16*`, label compose `postgres`, porta `5432/tcp` publicada SOMENTE em loopback e igual à porta do cliente, IP do container igual ao IP visto pelo servidor, e o mesmo `system_identifier` do cluster lido via `docker exec ... pg_control_system()` e pela conexão.
+  - Em ambos os modos: cliente em loopback, servidor PostgreSQL 16 e papel com `CREATEDB` (ou superuser).
+  - Não aceita: endereço RFC 1918 por si só, `localhost` por si só, booleano de ambiente nem `DATABASE_URL`.
+  - Falha de verificação aborta ANTES de qualquer `CREATE DATABASE`, migration ou limpeza.
+  - Remoção restrita a bases `of2_test_<hex>` registradas por este processo.
+  - Docker CLI usado apenas no harness de testes.
+- **INFRA LOCAL**: `docker-compose.yml` passa a publicar o PostgreSQL somente em `127.0.0.1` (antes em todas as interfaces). É requisito da guarda e reduz exposição. No Windows, recriar o container: `docker compose up -d --force-recreate postgres`.
+- **TESTES**: 21 novos.
+  - 18 puros: 14 da guarda, cobrindo os casos 1–9 e 12, e 4 de parsing/coleta com saída de Docker SIMULADA.
+  - 3 de integração REAL com PostgreSQL local: evidência real aceita, caso 10 (zero DDL quando a verificação falha) e caso 11 (limpeza restrita).
+  - `DOCKER_INTEGRATION_NOT_EXECUTED`: não há daemon Docker neste ambiente, então o caminho Docker foi testado apenas com saída sintética.
+- **GATE_CANONICO** (Linux, Node v22.22.0, pnpm 12.5.1): ver bloco de relatório da PR. `WINDOWS_VALIDATION_NOT_EXECUTED`: a revalidação independente no Windows 11 / Node 24 é obrigatória antes de qualquer autorização de merge.
+- **SAFETY**: `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `SECRET_AUDIT = PASS`.
+
+## 2026-10-21 — Fase 8 — PR #121 (008-OF2): Endurecimento da Proveniência do Destino de Teste — Claude Code
+
+- **ESCOPO**: `TARGETED SECURITY FIX / EXISTING PR / NO MERGE` sobre o HEAD `17b21ea19178c993d4b1fe8d98f4068561a018f2` (base `main` `6d02868`, sem avanço). Domínio da 008-OF2 inalterado: FSM, migration `0007`, repositories, fencing/recovery e trilha append-only. Só o harness de testes mudou.
+- **P0-A (túnel SSH)**: `DIRECT_LOOPBACK` passou a exigir prova de sistema de arquivos local. O teste grava um nonce aleatório no disco local (`/tmp`, ou `os.tmpdir()` no Windows) e o servidor precisa lê-lo com `pg_read_file`. Um túnel para servidor remoto não enxerga o arquivo, e o destino é rejeitado com `SERVER_NOT_PROVEN_LOCAL`. Isso vale também para socket Unix. Não há flag de bypass.
+- **P0-B (daemon Docker remoto)**:
+  - O endpoint efetivo do daemon é resolvido como a CLI faz: `DOCKER_HOST` tem precedência; senão, o contexto atual (`DOCKER_CONTEXT` ou a configuração), lido com `docker context inspect`.
+  - Só são aceitos `unix:///...` e `npipe:////./pipe/...`. SSH, TCP (inclusive `127.0.0.1`) e TLS são rejeitados com `DOCKER_ENDPOINT_NOT_LOCAL`.
+  - O endpoint verificado é fixado com `-H` em todo `inspect`/`exec`.
+  - A correlação por `system_identifier`, IP do container e porta publicada foi mantida.
+- **P1 (órfão após falha de migration)**: qualquer falha após `CREATE DATABASE` remove a base recém-criada. A remoção continua restrita a nomes descartáveis registrados pelo processo. A causa original é propagada intacta; se a limpeza também falhar, as duas são reportadas juntas em `AggregateError`, com a original primeiro.
+- **TESTES (TDD)**:
+  - 7 regressões puras ficaram vermelhas antes da correção: túnel aceito e endpoints remotos aceitos.
+  - Novos testes puros: 4 endpoints locais legítimos, 6 endpoints remotos ou não verificáveis, contexto e `DOCKER_HOST` remotos, precedência de `DOCKER_HOST` e contexto ilegível.
+  - Integração REAL com PostgreSQL local: o nonce faz a ida e volta pelo servidor (`VERIFIED`) e a falha induzida de migration não deixa base residual.
+  - Docker não foi executado (sem daemon neste ambiente); a saída do Docker foi simulada.
+- **LIMITAÇÃO RESIDUAL DOCUMENTADA**: um socket Unix ou named pipe local que seja ele próprio encaminhado (túnel deliberado de socket) não é distinguível pela CLI. Ainda assim, a aceitação exige a correlação completa com a porta publicada no loopback local, o IP visto pelo servidor e o `system_identifier`, o que só acontece com encaminhamento duplo e intencional.
+- **GATE**: ver relatório da PR. `WINDOWS_VALIDATION_NOT_EXECUTED`; a revalidação independente no Windows 11 / Node 24 continua obrigatória.
+- **SAFETY**: `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `SECRET_AUDIT = PASS`.
+
+## 2026-10-21 — Fase 8 — PR #121 (008-OF2): Gate Windows 11 + Docker Desktop e Precedência do Docker CLI — Claude Code
+
+- **ESCOPO**: `WINDOWS_GATE_EXECUTION / TARGETED FIX / TDD / EXISTING PR ONLY` na branch `feat/phase8-008-of2-durable-outbound-persistence`, HEAD de código `6d31234e8df9fa93860d2509d25ea0067bb95b5f` (base `main` `6d02868d80aa281a623fb70a4fd8919c17ecd1cb`). PR #121 permanece ABERTA e sem merge. Sem chamadas a provedores, sem compra de números, sem migrations remotas, sem 008-OF3.
+- **AMBIENTE OBSERVADO**: Windows 11 Pro `10.0.26200`, Node `v24.20.0`, pnpm `12.5.1`, Docker client/server `29.6.2`; container `voice-agent-postgres` (`postgres:16-alpine`, running) publicado em `127.0.0.1:5432`. `TEST_DATABASE_URL`, `DATABASE_URL`, `DOCKER_HOST` e `DOCKER_CONTEXT` ausentes no shell normal.
+- **EVIDÊNCIA REAL DO DESTINO**: modo `DOCKER_LOCAL_CONTAINER`; `localFileProof = UNAVAILABLE` (o servidor vê `172.18.0.2` e não vê o arquivo do host); endpoint `npipe:////./pipe/dockerDesktopLinuxEngine`; porta publicada `127.0.0.1:5432` igual à porta do cliente; IP do container igual ao IP visto pelo servidor; `system_identifier` idêntico pelos dois caminhos (`pg_control_system()` dentro do container e pela conexão).
+- **PRECEDÊNCIA DO DOCKER CLI (EMPÍRICA)**: `-H` > `DOCKER_HOST` > `DOCKER_CONTEXT` > contexto atual. `DOCKER_HOST` vence mesmo com `DOCKER_CONTEXT` inválido. `DOCKER_TLS_VERIFY` não vazio falha fechado: a CLI não inicializa contra o npipe local nesse estado, então a localidade não é comprovável.
+- **CORREÇÕES**:
+  - `resolveDockerEndpoint`: `DOCKER_TLS_VERIFY` fail-closed; `DOCKER_HOST` vence e nunca consulta contexto; `DOCKER_CONTEXT` é inspecionado pelo NOME explícito; todo `inspect`/`exec` é fixado com `-H <endpoint verificado>`, sem releitura de contexto.
+  - `createDisposableTestDatabase`: injeção `databaseName` validada contra `^of2_test_[0-9a-f]{12}$` ANTES de qualquer DDL; nomes não descartáveis são recusados.
+  - Teste de integração reescrito para dois modos: `DIRECT_LOOPBACK` exige `localFileProof = VERIFIED`; `DOCKER_LOCAL_CONTAINER` exige identidade completa (nome autorizado, `running`, imagem `postgres:16*`, serviço compose `postgres`, publicação SOMENTE em loopback e igual à porta do cliente, endereço do container igual ao endereço visto pelo servidor, `system_identifier` igual) e `localFileProof = UNAVAILABLE`.
+  - Limpeza global `pg_database LIKE 'of2_test_%'` substituída por identidade por nome exato: casos 10/P1 comprovam zero DDL pelo nome injetado; caso 11 usa `try/finally` e comprova criação/remoção do nome exato.
+  - Timeout explícito de 30 s nos casos com DDL real (evidência + `CREATE DATABASE` + migrations excedem os 5 s padrão do Vitest neste host). Nenhum `skip`/`todo` adicionado.
+  - +4 testes puros de conflito de variáveis: `DOCKER_HOST` local vence `DOCKER_CONTEXT` remoto; `DOCKER_HOST` remoto não é salvo por contexto local; `DOCKER_CONTEXT` inspecionado por nome; `DOCKER_TLS_VERIFY` fail-closed.
+- **TEST_CHANGE_REASON**: a reescrita do teste de integração substitui uma contagem global (suscetível a resíduos de outras execuções) por identidade por nome exato e acrescenta as asserções de identidade Docker que o modo já exigia — `ASSERTION_STRONGER`. A mudança do fixture puro `dockerized()` para `localFileProof: 'UNAVAILABLE'` é `ASSERTION_EQUIVALENT`: o modo Docker não consulta essa prova, e o valor agora reflete o comportamento real. Nenhuma asserção foi removida ou enfraquecida.
+- **LIMPEZA PRÉ-CORREÇÃO**: uma base `of2_test_e26a174af779` deixada pela execução anterior (timeout antes do `drop`) foi removida por `DROP DATABASE`; a contagem de `of2_test_%` observada em seguida foi `0`. Não é patch de dados de produto: é base descartável de teste.
+- **TESTES FOCADOS**: 3 arquivos, `45/45` testes PASS; typecheck, ESLint, Prettier e `check:file-size` limpos.
+- **GATE CANÔNICO WINDOWS**: `cmd /c "pnpm install --frozen-lockfile && pnpm check"`; exit code `0`; `193` arquivos aprovados / `6` ignorados (`199`); `1451` testes aprovados / `45` ignorados (`1496`); duração `190.05s` na reexecução final (`255.70s` na primeira execução, mesmo código).
+- **CLASSIFICAÇÃO**: `IMPLEMENTED`; `TESTED LOCALLY` no Windows 11 / Node 24; qualquer tráfego real de provedor continua `PROVIDER-UNVERIFIED`; `VALIDATED` não se aplica a provedores nesta entrada.
+- **SAFETY**: `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `REAL_DOTENV_ACCESSED = NO` | `SECRET_AUDIT = PASS`.

@@ -7,6 +7,7 @@ import {
   integer,
   pgEnum,
   uniqueIndex,
+  unique,
   index,
   check,
   foreignKey,
@@ -58,6 +59,7 @@ export const outboundCampaigns = pgTable(
     index('outbound_campaigns_org_idx').on(table.organizationId),
     index('outbound_campaigns_org_status_idx').on(table.organizationId, table.status),
     check('outbound_campaigns_name_chk', sql`char_length(${table.name}) > 0`),
+    unique('outbound_campaigns_id_org_unique').on(table.id, table.organizationId),
   ],
 );
 
@@ -100,6 +102,7 @@ export const outboundCallJobs = pgTable(
       foreignColumns: [agents.id, agents.organizationId],
       name: 'outbound_call_jobs_agent_org_fk',
     }).onDelete('restrict'),
+    unique('outbound_call_jobs_id_org_unique').on(table.id, table.organizationId),
     uniqueIndex('outbound_call_jobs_org_idempotency_uidx').on(
       table.organizationId,
       table.idempotencyKey,

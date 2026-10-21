@@ -1,15 +1,9 @@
 import type { CallSession, CallSessionState } from '@voice-agent/contracts';
-import { TERMINAL_CALL_SESSION_STATES } from '@voice-agent/contracts';
+import {
+  TERMINAL_CALL_SESSION_STATES,
+  isValidCallSessionStateTransition,
+} from '@voice-agent/contracts';
 import { InvalidStateTransitionError } from '@voice-agent/errors';
-
-const ALLOWED_TRANSITIONS: Readonly<Record<CallSessionState, ReadonlySet<CallSessionState>>> = {
-  CREATED: new Set<CallSessionState>(['CONNECTING', 'FAILED']),
-  CONNECTING: new Set<CallSessionState>(['ACTIVE', 'FAILED']),
-  ACTIVE: new Set<CallSessionState>(['ENDING', 'FAILED']),
-  ENDING: new Set<CallSessionState>(['ENDED', 'FAILED']),
-  ENDED: new Set<CallSessionState>(),
-  FAILED: new Set<CallSessionState>(),
-};
 
 export interface TransitionOptions {
   readonly failureReason?: string;
@@ -20,8 +14,7 @@ export function isValidCallSessionTransition(
   fromState: CallSessionState,
   toState: CallSessionState,
 ): boolean {
-  const allowed = ALLOWED_TRANSITIONS[fromState];
-  return allowed ? allowed.has(toState) : false;
+  return isValidCallSessionStateTransition(fromState, toState);
 }
 
 export function transitionCallSession(

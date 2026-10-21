@@ -3,14 +3,14 @@
 <!--
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
-LAST_REFRESHED_AT: 2026-10-20
-CONTEXT_BASE_MAIN_SHA: fb82e40da61006c798860b1bb9c320ed255b1cde
+LAST_REFRESHED_AT: 2026-10-21
+CONTEXT_BASE_MAIN_SHA: 6d02868d80aa281a623fb70a4fd8919c17ecd1cb
 CURRENT_PHASE: Phase 8 (OUTBOUND_FIRST_TWO_TRACK_PLANNING)
-CURRENT_SLICE: 008-OF1 Post-Merge Gate Timeout Stabilization
-CONTEXT_UPDATE_BRANCH: fix/phase8-postmerge-gate-timeout-stabilization
-CONTEXT_UPDATE_PR: 120
-LAST_MERGED_PR_AT_REFRESH: 119
-LAST_MERGE_SHA_AT_REFRESH: fb82e40da61006c798860b1bb9c320ed255b1cde
+CURRENT_SLICE: 008-OF2 Durable Outbound Persistence (offline, em revisão)
+CONTEXT_UPDATE_BRANCH: feat/phase8-008-of2-durable-outbound-persistence
+CONTEXT_UPDATE_PR: 121
+LAST_MERGED_PR_AT_REFRESH: 120
+LAST_MERGE_SHA_AT_REFRESH: 6d02868d80aa281a623fb70a4fd8919c17ecd1cb
 LAST_TESTED_CODE_SHA: QUERY_GIT_AT_RUNTIME
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
@@ -32,7 +32,7 @@ AI_CONTEXT_HEADER_END
 | **API** | `IMPLEMENTED` | `apps/api` (Hono/Node.js, rotas de drafts, lifecycle com validação de toolset canônico, auth interna com service token/Ed25519, gerenciamento de campanhas outbound /v1/campaigns e agendamento em lote de jobs, descarte de rascunho de versão DEC-040, e API REST de documentos de base de conhecimento /v1/knowledge/documents com RBAC DEC-039) |
 | **Voice** | `PARTIAL` | `apps/voice` (Motor universal de execução de tools `ToolExecutionEngine`, registro `InMemoryToolRegistry`, adapters `OperatingHoursTool`/`CatalogSearchTool`/`CatalogItemDetailTool` e resolução de toolset de versão publicada `resolvePublishedVersionToolset` implementados/testados offline; coordenador de retrieval `VoiceKnowledgeRetrievalCoordinator` offline; Orquestrador com roteamento supervisionado offline, coordenador dedicado `GuardedTurnRoutingCoordinator`, despacho determinístico, entrega estática de segurança offline, ownership OPTION_B, blindagem DISPATCH_ATTEMPTED -> NO_OPENAI_FALLBACK, single-owner Jev evaluation e tratamento qualificado de interrupção H4/H5 implementados/testados offline; streaming OpenAI; AuxiliaryTurnShadowObserver integrado non-blocking; handler determinístico `agent.operating_hours` integrado offline; fiação em runtime de produção: NÃO; tráfego real: NÃO) |
 | **Worker** | `IMPLEMENTED` | `apps/worker` (Fundação de background tasks, processamento de filas assíncronas, dispatcher atômico de chamadas outbound `outbound-call-dispatcher` com `SKIP LOCKED`; 008-OF1: coordenador offline de ciclo de vida de tentativas `outbound-attempt-origination-coordinator` com fakes em memória, sem fiação ativa) |
-| **Database** | `IMPLEMENTED` | `packages/database` (PostgreSQL 16, Drizzle ORM, multi-tenancy, schemas comerciais, de auditoria, `agent_versions.configuration` com preservação snapshot de toolset, `catalog_items` tenant-scoped com `CatalogRepository`, `outbound_campaigns`/`outbound_call_jobs`, e `knowledge_documents`/`knowledge_chunks` com migrations `0004_ordinary_charles_xavier.sql` e `0006_peaceful_thunderbolt.sql`) |
+| **Database** | `IMPLEMENTED` | `packages/database` (PostgreSQL 16, Drizzle ORM, multi-tenancy, schemas comerciais, de auditoria, `agent_versions.configuration` com preservação snapshot de toolset, `catalog_items` tenant-scoped com `CatalogRepository`, `outbound_campaigns`/`outbound_call_jobs`, e `knowledge_documents`/`knowledge_chunks` com migrations `0004_ordinary_charles_xavier.sql` e `0006_peaceful_thunderbolt.sql`; 008-OF2 em revisão: `organization_phone_numbers`/`call_attempts`/`call_sessions`/`call_events` via migration `0007_durable_outbound_persistence.sql`, somente local) |
 
 ---
 
@@ -125,11 +125,12 @@ AI_CONTEXT_HEADER_END
 
 ## 6. Estado Atual da Evidência de Qualidade (Quality Gate Snapshot)
 
-- **Último `pnpm check` Global na Main**: `BLOCKED_WITH_EVIDENCE` (observado no merge da PR #119 no commit `fb82e40da61006c798860b1bb9c320ed255b1cde`: exit code 1 no estágio 4 por timeout de 5000ms no teste preexistente da Fase 6 `packages/integrations/src/typesafe/check-targeted-v2-technical-readiness.test.ts > C. dataset hash mismatch => technical readiness NO` sob carga de 4 workers do Vitest no Windows; todos os 94 testes da 008-OF1 passaram). O gate PASS ainda NÃO é atribuível à `main` enquanto a PR #120 não for mesclada.
+- **Último `pnpm check` Global na Main**: `BLOCKED_WITH_EVIDENCE` (observado no merge da PR #119 no commit `fb82e40da61006c798860b1bb9c320ed255b1cde`: exit code 1 no estágio 4 por timeout de 5000ms no teste preexistente da Fase 6 `packages/integrations/src/typesafe/check-targeted-v2-technical-readiness.test.ts > C. dataset hash mismatch => technical readiness NO` sob carga de 4 workers do Vitest no Windows; todos os 94 testes da 008-OF1 passaram). A PR #120 foi mesclada depois (`6d02868`) com gate PASS na branch; um gate completo reexecutado na `main` pós-#120 não foi observado neste snapshot.
+- **Gate Canônico Windows na Branch da PR #121**: `PASS` (Windows 11 Pro `10.0.26200`, Node `v24.20.0`, pnpm `12.5.1`, Docker `29.6.2`; `cmd /c "pnpm install --frozen-lockfile && pnpm check"` com exit code 0; 193 arquivos de teste aprovados / 6 ignorados; 1451 testes aprovados / 45 ignorados; duração 190.05s na reexecução final). Evidência real do destino no modo `DOCKER_LOCAL_CONTAINER` com container `voice-agent-postgres` (`postgres:16-alpine`) e `system_identifier` correlacionado.
 - **Gate Canônico na Branch da PR #120 (`fix/phase8-postmerge-gate-timeout-stabilization`)**: `PASS` (após aplicar `{ timeout: 30000 }` aos testes A, C e E de `check-targeted-v2-technical-readiness.test.ts`, o comando `cmd /c "pnpm install --frozen-lockfile && pnpm check"` terminou com exit code 0; 7 estágios aprovados; 181 arquivos de teste aprovados / 1348 testes aprovados / 0 falhas / 45 testes de staging pulados).
 - **Identificadores de HEAD & Semântica Não-Auto-Referencial**:
   - `LAST_RECORDED_FULL_GATE_HEAD = QUERY_GIT_AT_RUNTIME`
-  - `LAST_RECORDED_FULL_GATE_STATUS = PASS (na branch da PR #120)`
+  - `LAST_RECORDED_FULL_GATE_STATUS = PASS (na branch da PR #121, Windows 11 / Node 24)`
   - `CURRENT_BRANCH_HEAD_SOURCE = QUERY_GIT_AT_RUNTIME`
   - `LAST_CODE_BEARING_MAIN_SHA = fb82e40da61006c798860b1bb9c320ed255b1cde`
   - *Nota*: `AI_CONTEXT.md` é conteúdo versionado e não pode conter o SHA do próprio commit que o modifica. O HEAD exato da branch corrente deve ser obtido do Git em runtime (`QUERY_GIT_AT_RUNTIME`). `LAST_RECORDED_FULL_GATE_HEAD` registra a evidência mais recente observada e durável quando este snapshot foi redigido, evitando loops infinitos de auto-referência.
@@ -210,10 +211,10 @@ AI_CONTEXT_HEADER_END
 - **Phase 7 Status**: `CLOSED ON MAIN` (PRs #94 a #115 mescladas na main; fechamento formal aceito pelo operador humano via DEC-041).
 - **Phase 8 Status**: `OUTBOUND_FIRST_TWO_TRACK_PLANNING` (DEC-042 e DEC-043 na `main`).
 - **008-OF1 Status**: `MERGED ON MAIN AS OFFLINE IMPLEMENTATION` (incorporada à `main` via PR #119 no commit `fb82e40da61006c798860b1bb9c320ed255b1cde`). Contratos provider-neutral em `packages/contracts/src/telephony/` e coordenador/fakes offline em `apps/worker/src/`. Zero migrations, zero tabelas adicionais, zero adapters Twilio/Millis em runtime de produção, zero chamadas reais. Status de evidência: `TESTED` offline; `PROVIDER-UNVERIFIED`.
-- **Quality Gate Pós-Merge PR #119**: `FAILED_INITIALLY` no HEAD da main `fb82e40da61006c798860b1bb9c320ed255b1cde` devido a timeout de 5000ms em teste preexistente de benchmark da Fase 6 (`check-targeted-v2-technical-readiness.test.ts`).
-- **PR #120 Status**: `OPEN / PENDING HUMAN REVIEW & EXPLICIT MERGE DECISION` (branch `fix/phase8-postmerge-gate-timeout-stabilization`). Estabiliza timeouts dos testes A, C e E com `{ timeout: 30000 }`. Quality gate canônico passou com `PASS` (exit code 0) na branch.
-- `NEXT_ALLOWED_STEP = HUMAN_REVIEW_AND_DECISION_OF_PR_120` (revisão independente da PR #120; proibido merge sem autorização humana explícita).
-- `NEXT_ALLOWED_SLICE = 008_OF2_PERSISTENCE` (permanece NÃO iniciada; somente após aprovação e merge da PR #120 e autorização explícita separada do operador; migrations exigem autorização própria).
+- **PR #120 Status**: `MERGED ON MAIN` (squash `6d02868`; estabilização de timeouts e reconciliação pós-merge; gate da `main` reportado: 181 arquivos de teste, 1.348 testes aprovados, 45 ignorados, 0 falhas, exit code 0).
+- **008-OF2 Status**: `IMPLEMENTED_TESTED_OFFLINE / WINDOWS GATE PASS / AGUARDANDO DECISÃO HUMANA DE MERGE` — PR #121 ABERTA e não mesclada, com correções da revisão independente (trilha append-only também contra DELETE/TRUNCATE/cascatas, correlação de tenant antes da identidade do evento, vínculo sessão↔tentativa por FK composta, banco de teste descartável por suíte; guarda de destino com prova de sistema de arquivos local, daemon Docker local e precedência correta de `DOCKER_HOST`/`DOCKER_CONTEXT`) — branch `feat/phase8-008-of2-durable-outbound-persistence` (autorização humana explícita para implementação offline). Migration aditiva `0007_durable_outbound_persistence` (tabelas `organization_phone_numbers`, `call_attempts`, `call_sessions`, `call_events`; FKs compostas por tenant; triggers de append-only e identidade imutável) executada SOMENTE em PostgreSQL 16 local descartável. Repositories transacionais, claims com lease/fencing, recuperação pós-crash testada com processos Node separados. Sem fiação a dispatcher/runtime, sem webhooks, sem adapters reais. Gate canônico Windows 11 / Node 24 observado com exit code 0 (193 arquivos aprovados / 1451 testes aprovados / 45 ignorados).
+- `NEXT_ALLOWED_STEP = HUMAN_MERGE_DECISION_ON_PR_121_AFTER_WINDOWS_GATE_PASS` (PR #121 aberta e não mesclada; gate Windows 11 / Node 24 observado com exit code 0 e evidência real de destino `DOCKER_LOCAL_CONTAINER`; merge continua proibido sem autorização humana explícita; migrations remotas exigem autorização própria).
+- `NEXT_ALLOWED_SLICE = NONE_UNTIL_008_OF2_DECISION` (008-OF3 só após aprovação/merge da 008-OF2 e autorização separada).
 - `PURCHASE_OF_PHONE_NUMBERS = 0` | `REAL_PROVIDER_CALLS = 0` | `CUSTOMER_TRAFFIC = PROHIBITED` | `ACTIVE_GUARDED = BLOCKED`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
 
