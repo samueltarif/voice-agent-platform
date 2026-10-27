@@ -247,8 +247,8 @@ A ordem histórica 008A–008G postergava o dialer outbound para o Slice 008E, c
 
 ##### D. Detalhamento Sequencial das Slices Outbound-First
 
-- [ ] **Slice 008-OF1 — Contratos e Ciclo de Vida Outbound Provider-Neutral (Fundação)**:
-  - **Status Real**: `IMPLEMENTED_TESTED_OFFLINE / EM REVISÃO HUMANA` — implementação offline aberta em PR própria (branch `feat/phase8-008-of1-outbound-lifecycle-contracts`); NÃO concluída até aprovação e merge. Contratos em `packages/contracts/src/telephony/`; coordenador e fakes offline em `apps/worker/src/`; zero migrations, zero adapters Twilio/Millis, zero chamadas reais (`PROVIDER-UNVERIFIED`). Persistência e recuperação após reinício real permanecem na 008-OF2.
+- [x] **Slice 008-OF1 — Contratos e Ciclo de Vida Outbound Provider-Neutral (Fundação)**:
+  - **Status Real**: Concluída e mesclada na `main` via PR #119 (`fb82e40da61006c798860b1bb9c320ed255b1cde`). Contratos em `packages/contracts/src/telephony/`; coordenador e fakes offline em `apps/worker/src/`; zero migrations, zero adapters Twilio/Millis em produção, zero chamadas reais (`PROVIDER-UNVERIFIED`). Persistência e tolerância a crash entregues na 008-OF2.
   - **Objetivo**: Definir portas de originação, estados de tentativa e ciclo de vida de chamadas outbound sem acoplamento a fornecedores e sem migrations prematuras.
   - **Escopo**:
     - Porta `TelephonyOriginationPort` e tipos em `packages/contracts/src/telephony/`.
@@ -261,8 +261,8 @@ A ordem histórica 008A–008G postergava o dialer outbound para o Slice 008E, c
   - **Critérios de Aceitação**: Portas implementadas, suite de testes passando, `pnpm check` = exit 0, zero dependências externas.
   - **Riscos**: Acoplamento prematuro a conceitos específicos da Twilio ou Millis (mitigado por revisão provider-neutral).
 
-- [ ] **Slice 008-OF2 — Persistência Operacional, Sessões, Eventos e Números Twilio**:
-  - **Status Real**: `IMPLEMENTED_TESTED_OFFLINE / EM REVISÃO HUMANA` — implementação offline na PR #121 (aberta; branch `feat/phase8-008-of2-durable-outbound-persistence`; correções da revisão independente aplicadas, validação Windows pendente); NÃO concluída até aprovação e merge. Migration aditiva `0007` aplicada apenas em PostgreSQL local descartável; estados persistidos = FSM canônica da 008-OF1 (sem simplificação para `PENDING/DISPATCHED/FAILED/COMPLETED`). Zero migrations remotas, zero chamadas reais, zero compra de números (`PROVIDER-UNVERIFIED`).
+- [x] **Slice 008-OF2 — Persistência Operacional, Sessões, Eventos e Números Twilio**:
+  - **Status Real**: Concluída e mesclada na `main` via PR #121 (`e1203381374b1d372b98cf0f049237fe7c5378ac`). Migration aditiva `0007_durable_outbound_persistence.sql` aplicada exclusivamente em PostgreSQL 16 local descartável; schemas `organization_phone_numbers`, `call_attempts`, `call_sessions`, `call_events`; FKs compostas por tenant; triggers append-only e de imutabilidade; repositories transacionais; leases/fencing e suíte de recuperação de crash com processos Node reais. Zero migrations remotas, zero chamadas reais, zero compra de números (`PROVIDER-UNVERIFIED`).
   - **Objetivo**: Estabelecer a fundação completa de persistência durável para o ciclo de vida outbound, mapeando números Twilio e separando explicitamente jobs, tentativas, sessões e eventos.
   - **Escopo**:
     - Planejamento de migration aditiva versionada para tabela `organization_phone_numbers` (`organizationId`, `e164Number`, `twilioPhoneNumberSid`, `status: ACTIVE | RELEASED`).

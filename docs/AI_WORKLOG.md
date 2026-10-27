@@ -18505,3 +18505,25 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **GATE CANÔNICO WINDOWS**: `cmd /c "pnpm install --frozen-lockfile && pnpm check"`; exit code `0`; `193` arquivos aprovados / `6` ignorados (`199`); `1451` testes aprovados / `45` ignorados (`1496`); duração `190.05s` na reexecução final (`255.70s` na primeira execução, mesmo código).
 - **CLASSIFICAÇÃO**: `IMPLEMENTED`; `TESTED LOCALLY` no Windows 11 / Node 24; qualquer tráfego real de provedor continua `PROVIDER-UNVERIFIED`; `VALIDATED` não se aplica a provedores nesta entrada.
 - **SAFETY**: `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `REAL_DOTENV_ACCESSED = NO` | `SECRET_AUDIT = PASS`.
+
+## 2026-10-27 — Fase 8 — PR #121 Post-Merge Reconciliação de Governança e Transição para 008-OF3 — Antigravity
+
+- **CONTEXTO**: Reconciliação documental pós-merge da PR #121 (Slice 008-OF2 — Durable Outbound Persistence and Crash Recovery), incorporada à branch `main` via squash merge no commit `e1203381374b1d372b98cf0f049237fe7c5378ac` em 21/10/2026.
+- **BRANCH**: `docs/phase8-008-of2-postmerge-governance-reconciliation`
+- **BASE_MAIN_SHA**: `e1203381374b1d372b98cf0f049237fe7c5378ac`
+- **STATUS_DE_EVIDÊNCIA**:
+  - `008-OF1`: Concluída e mesclada na `main` no commit `fb82e40da61006c798860b1bb9c320ed255b1cde` (PR #119).
+  - `008-OF2`: Concluída e mesclada na `main` no commit `e1203381374b1d372b98cf0f049237fe7c5378ac` (PR #121).
+  - `008-OF3`: Planejada conforme DEC-043 (`outbound_budget_ledgers`, concorrência e quotas fail-closed). Próxima slice técnica autorizada para implementação offline.
+- **RECONCILIAÇÃO DOCUMENTAL**:
+  - `docs/ROADMAP.md`: Marcadas as slices 008-OF1 e 008-OF2 como concluídas (`[x]`) com seus respectivos commits de merge na `main`.
+  - `docs/AI_CONTEXT.md`: Atualizados `CONTEXT_BASE_MAIN_SHA` para `e120338...`, `LAST_MERGED_PR_AT_REFRESH` para `121`, `LAST_MERGE_SHA_AT_REFRESH` para `e120338...`, status do subsistema Database para mesclado na `main`, e `NEXT_ALLOWED_SLICE` atualizado para `008-OF3`.
+- **SEGURANÇA E INVARIANTES**:
+  - `ACTIVE_GUARDED = BLOCKED`
+  - `CUSTOMER_TRAFFIC = PROHIBITED`
+  - `PRODUCTION_RUNTIME_WIRING = NO`
+  - `REAL_PROVIDER_CALLS = 0`
+  - `PURCHASE_OF_PHONE_NUMBERS = 0`
+  - `REMOTE_MIGRATIONS = 0`
+  - `REAL_DOTENV_ACCESSED = NO`
+  - `SECRET_AUDIT = PASS`
