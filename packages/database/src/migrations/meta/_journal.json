@@ -57,6 +57,13 @@
       "when": 1792520500458,
       "tag": "0007_durable_outbound_persistence",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793114841691,
+      "tag": "0008_outbound_budget_quotas",
+      "breakpoints": true
     }
   ]
 }

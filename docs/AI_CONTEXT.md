@@ -4,13 +4,13 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-27
-CONTEXT_BASE_MAIN_SHA: e1203381374b1d372b98cf0f049237fe7c5378ac
+CONTEXT_BASE_MAIN_SHA: 1d4b998168519fcc8423dde8138e2c865ca765cd
 CURRENT_PHASE: Phase 8 (OUTBOUND_FIRST_TWO_TRACK_PLANNING)
-CURRENT_SLICE: 008-OF2 Post-Merge Reconciled / 008-OF3 Ready for Implementation
-CONTEXT_UPDATE_BRANCH: docs/phase8-008-of2-postmerge-governance-reconciliation
-CONTEXT_UPDATE_PR: 122
-LAST_MERGED_PR_AT_REFRESH: 121
-LAST_MERGE_SHA_AT_REFRESH: e1203381374b1d372b98cf0f049237fe7c5378ac
+CURRENT_SLICE: 008-OF3 Implemented & Tested Offline / Ready for PR Review
+CONTEXT_UPDATE_BRANCH: feat/phase8-008-of3-budget-quotas
+CONTEXT_UPDATE_PR: PENDING_REVIEW
+LAST_MERGED_PR_AT_REFRESH: 122
+LAST_MERGE_SHA_AT_REFRESH: 1d4b998168519fcc8423dde8138e2c865ca765cd
 LAST_TESTED_CODE_SHA: QUERY_GIT_AT_RUNTIME
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
@@ -32,7 +32,7 @@ AI_CONTEXT_HEADER_END
 | **API** | `IMPLEMENTED` | `apps/api` (Hono/Node.js, rotas de drafts, lifecycle com validação de toolset canônico, auth interna com service token/Ed25519, gerenciamento de campanhas outbound /v1/campaigns e agendamento em lote de jobs, descarte de rascunho de versão DEC-040, e API REST de documentos de base de conhecimento /v1/knowledge/documents com RBAC DEC-039) |
 | **Voice** | `PARTIAL` | `apps/voice` (Motor universal de execução de tools `ToolExecutionEngine`, registro `InMemoryToolRegistry`, adapters `OperatingHoursTool`/`CatalogSearchTool`/`CatalogItemDetailTool` e resolução de toolset de versão publicada `resolvePublishedVersionToolset` implementados/testados offline; coordenador de retrieval `VoiceKnowledgeRetrievalCoordinator` offline; Orquestrador com roteamento supervisionado offline, coordenador dedicado `GuardedTurnRoutingCoordinator`, despacho determinístico, entrega estática de segurança offline, ownership OPTION_B, blindagem DISPATCH_ATTEMPTED -> NO_OPENAI_FALLBACK, single-owner Jev evaluation e tratamento qualificado de interrupção H4/H5 implementados/testados offline; streaming OpenAI; AuxiliaryTurnShadowObserver integrado non-blocking; handler determinístico `agent.operating_hours` integrado offline; fiação em runtime de produção: NÃO; tráfego real: NÃO) |
 | **Worker** | `IMPLEMENTED` | `apps/worker` (Fundação de background tasks, processamento de filas assíncronas, dispatcher atômico de chamadas outbound `outbound-call-dispatcher` com `SKIP LOCKED`; 008-OF1: coordenador offline de ciclo de vida de tentativas `outbound-attempt-origination-coordinator` com fakes em memória, sem fiação ativa) |
-| **Database** | `IMPLEMENTED` | `packages/database` (PostgreSQL 16, Drizzle ORM, multi-tenancy, schemas comerciais, de auditoria, `agent_versions.configuration` com preservação snapshot de toolset, `catalog_items` tenant-scoped com `CatalogRepository`, `outbound_campaigns`/`outbound_call_jobs`, e `knowledge_documents`/`knowledge_chunks` com migrations `0004_ordinary_charles_xavier.sql` e `0006_peaceful_thunderbolt.sql`; 008-OF2 mesclada na main: `organization_phone_numbers`/`call_attempts`/`call_sessions`/`call_events` via migration `0007_durable_outbound_persistence.sql`, somente local) |
+| **Database** | `IMPLEMENTED` | `packages/database` (PostgreSQL 16, Drizzle ORM, multi-tenancy, schemas comerciais, auditoria, `agent_versions`, `catalog_items`, `outbound_campaigns`/`outbound_call_jobs`, `knowledge_documents`/`knowledge_chunks`; 008-OF2: `organization_phone_numbers`/`call_attempts`/`call_sessions`/`call_events` via migration 0007; 008-OF3 implementada e testada offline: `outbound_budget_ledgers`/`outbound_budget_reservations` via migration 0008, hard budget caps, solvency guard, quotas diárias e runner blindado) |
 
 ---
 
@@ -213,8 +213,10 @@ AI_CONTEXT_HEADER_END
 - **008-OF1 Status**: `MERGED ON MAIN AS OFFLINE IMPLEMENTATION` (incorporada à `main` via PR #119 no commit `fb82e40da61006c798860b1bb9c320ed255b1cde`). Contratos provider-neutral em `packages/contracts/src/telephony/` e coordenador/fakes offline em `apps/worker/src/`. Zero migrations, zero tabelas adicionais, zero adapters Twilio/Millis em runtime de produção, zero chamadas reais. Status de evidência: `TESTED` offline; `PROVIDER-UNVERIFIED`.
 - **PR #120 Status**: `MERGED ON MAIN` (squash `6d02868`; estabilização de timeouts e reconciliação pós-merge; gate da `main` reportado: 181 arquivos de teste, 1.348 testes aprovados, 45 ignorados, 0 falhas, exit code 0).
 - **008-OF2 Status**: `MERGED ON MAIN AS OFFLINE IMPLEMENTATION` (incorporada à `main` via PR #121 no commit `e1203381374b1d372b98cf0f049237fe7c5378ac`). Migration aditiva `0007_durable_outbound_persistence` executada exclusivamente em PostgreSQL 16 local descartável. Repositórios transacionais, claims com lease/fencing e tolerância a crash comprovada com processos Node reais. Sem fiação ativa, sem webhooks, sem adapters reais (`PROVIDER-UNVERIFIED`). Gate canônico Windows reportado no merge: 193 arquivos aprovados / 1.451 testes aprovados / 45 ignorados / zero falhas.
-- `NEXT_ALLOWED_STEP = IMPLEMENTATION_OF_SLICE_008_OF3` (Quotas, Concorrência e Orçamento / Hard Budget Caps conforme DEC-043).
-- `NEXT_ALLOWED_SLICE = 008-OF3` (Quotas, Concorrência e Orçamento — Hard Budget Caps).
+- **PR #122 Status**: `MERGED ON MAIN` (commit `1d4b998168519fcc8423dde8138e2c865ca765cd`; reconciliação de governança pós-merge da PR #121, DEC-043 no DECISIONS_LOG.md e ROADMAP.md alinhados).
+- **008-OF3 Status**: `IMPLEMENTED / TESTED LOCALLY` no branch `feat/phase8-008-of3-budget-quotas`. Contratos provider-neutral em `packages/contracts/src/telephony/outbound-budget-*`, migration `0008_outbound_budget_quotas.sql` com ledgers e reservas, solvency guard, concurrency limits, daily quotas e `DurableGuardedOriginationRunner`. Suite completa de 201 arquivos (195 aprovados, 6 staging ignorados, 1.468 testes aprovados, 45 ignorados, 0 falhas). Arquitetura AST e verificação de tamanho (416 arquivos de lógica <= 180 linhas) aprovadas com zero erros.
+- `NEXT_ALLOWED_STEP = REVIEW_AND_MERGE_SLICE_008_OF3` (Revisão e merge da PR 008-OF3; em seguida 008-OF4 — Adapters isolados Twilio e Millis AI em pacotes de integração offline).
+- `NEXT_ALLOWED_SLICE = 008-OF4` (após merge de 008-OF3).
 - `PURCHASE_OF_PHONE_NUMBERS = 0` | `REAL_PROVIDER_CALLS = 0` | `CUSTOMER_TRAFFIC = PROHIBITED` | `ACTIVE_GUARDED = BLOCKED`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
 

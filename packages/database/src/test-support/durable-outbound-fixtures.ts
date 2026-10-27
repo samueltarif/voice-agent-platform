@@ -47,7 +47,7 @@ async function createPublishedAgent(db: DatabaseInstance, orgId: string, userId:
   return { agentId: agent!.id, agentVersionId: version!.id };
 }
 
-async function createTenant(
+export async function createTenant(
   db: DatabaseInstance,
   input: { readonly runId: string; readonly userId: string; readonly tag: string },
 ) {

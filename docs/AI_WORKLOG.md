@@ -18527,3 +18527,47 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `REMOTE_MIGRATIONS = 0`
   - `REAL_DOTENV_ACCESSED = NO`
   - `SECRET_AUDIT = PASS`
+
+## 2026-10-27 — Fase 8 — Slice 008-OF3: Quotas, Concorrência e Orçamento (Hard Budget Caps) — Antigravity
+
+- **ESCOPO**: `IMPLEMENTATION / OFFLINE TDD / ARCHITECTURAL INTEGRITY` sobre a base `main` `1d4b998168519fcc8423dde8138e2c865ca765cd` (pós-reconciliação de governança PR #122). Branch ativa: `feat/phase8-008-of3-budget-quotas`.
+- **OBJETIVO**: Implementar as travas financeiras atômicas e de concorrência antes da autorização de qualquer discagem, conforme DEC-042, DEC-043 e ROADMAP.md.
+- **CONTRATOS PROVIDER-NEUTRAL (`packages/contracts/src/telephony/`)**:
+  - `outbound-budget-types.ts`: Tipos `OutboundBudgetLedger`, `OutboundBudgetReservation`, `OutboundBudgetReservationStatus`. Campos contábeis desacoplados de fornecedores específicos: `spentCarrierMinorUnits` e `spentConversationalMinorUnits` (telefonia/transporte e voz/IA em tempo real).
+  - `outbound-budget-operations.ts`: Schemas Zod de entrada e saída para provisionamento, reserva, liquidação (settlement) e liberação (release).
+  - `outbound-budget-contracts.ts`: Interface de porta de domínio `OutboundBudgetPort`.
+  - `evaluate-budget-reservation.ts`: Funções puras de cálculo de saldo disponível e avaliação determinística de reserva orçamentária (`calculateAvailableBudget`, `evaluateBudgetReservation`).
+  - `outbound-budget-contracts.test.ts`: 7 testes unitários puros de contratos e regras de solvência/concorrência.
+- **PERSISTÊNCIA E DRIZZLE SCHEMA (`packages/database/src/schema/`)**:
+  - `outbound-budget-ledgers.ts`: Tabela `outbound_budget_ledgers` com chave primária UUID, isolamento multi-tenant (`organization_id`), moeda, saldo alocado, reservado, consumido em carrier e em conversacional, limites de concorrência (`max_concurrent_calls`) e de tentativas diárias (`max_daily_attempts`). Check constraints de solvência (`allocated >= reserved + spent`), totalização exata e não-negatividade.
+  - `outbound-budget-reservations.ts`: Tabela `outbound_budget_reservations` com foreign keys compostas por tenant referenciando `call_attempts` e `outbound_call_jobs`, chave de idempotência única por tenant, timestamps com timezone e check constraints de totalização de liquidação.
+  - Migration aditiva versionada: `0008_outbound_budget_quotas.sql` e snapshot `0008_snapshot.json` gerados e validados com `drizzle-kit check` (zero erros).
+- **REPOSITÓRIOS E TRANSAÇÕES ATÔMICAS (`packages/database/src/repositories/`)**:
+  - `DrizzleOutboundBudgetRepository`: Implementação de `OutboundBudgetPort` com isolamento multi-tenant estrito, transações com travamento pessimista `SELECT ... FOR UPDATE`, bloqueio fail-closed em caso de saldo insuficiente, excesso de concorrência simultânea ou estouro de quota diária.
+  - Sub-módulos coesos (arquivos <= 180 linhas, funções <= 50 linhas, complexidade <= 8): `outbound-budget-provision.ts`, `outbound-budget-reserve.ts`, `outbound-budget-settle.ts`, `outbound-budget-release.ts`, `outbound-budget-queries.ts`, `outbound-budget-mapping.ts`.
+  - `DurableGuardedOriginationRunner`: Orquestrador blindado que encapsula o runner de originação durável, reservando saldo atomicamente antes do despacho e liberando/estornando a reserva imediatamente caso a originação seja abortada.
+- **INTEGRIDADE DE TESTES E EVIDÊNCIAS OBSERVADAS**:
+  - `outbound-budget.integration.test.ts`: 10 testes de integração executados contra PostgreSQL 16 Alpine Docker local:
+    - Provisionamento e consulta de ledger;
+    - Reserva atômica com dedução do saldo disponível;
+    - Idempotência em reservas duplicadas com mesma tentativa ou chave;
+    - Solvency guard: rejeição fail-closed quando o saldo disponível é insuficiente;
+    - Limite de concorrência: bloqueio fail-closed em reservas simultâneas atingindo `max_concurrent_calls`;
+    - Quota diária: bloqueio fail-closed quando `maxDailyAttempts` é atingido no dia;
+    - Liquidação com estorno de saldo não consumido;
+    - Liberação e estorno integral de reservas canceladas;
+    - Coordenação via `DurableGuardedOriginationRunner`;
+    - Teste de estresse de condição de corrida (stress test de solvência com 6 workers simultâneos contra barreira assíncrona — exatamente 3 reservas aceitas e 3 rejeitadas por saldo, saldo final 0 sem nunca negativar).
+  - Suíte de regressão durável e schema (7 arquivos, 47 testes): 100% aprovados.
+  - Provider neutrality guard (`outbound-attempt-offline-guard.test.ts`): 8 testes aprovados, zero menções a marcas de fornecedores em contratos.
+  - Quality Gate Canônico Completo (`pnpm check`):
+    - `pnpm format:check`: 100% em conformidade com Prettier.
+    - `pnpm check:architecture`: Todas as fronteiras e regras arquiteturais respeitadas.
+    - `pnpm check:file-size`: 416 arquivos de lógica de produção verificados; zero erros (todos <= 180 linhas).
+    - `pnpm lint`: ESLint aprovado com zero erros e zero avisos.
+    - `pnpm typecheck`: 12 pacotes aprovados sem erros.
+    - `pnpm build`: Build de produção turbo aprovado em todos os 12 pacotes (incluindo Next.js 15.2).
+    - `pnpm test`: 201 arquivos de teste (195 aprovados, 6 staging ignorados como esperado offline; 1.468 testes aprovados, 45 ignorados, 0 falhas).
+- **STATUS DE EVIDÊNCIA**: `IMPLEMENTED` / `TESTED LOCALLY` no Windows 11 / Node 24 / PostgreSQL 16 local Docker.
+- **SAFETY**: `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `REAL_DOTENV_ACCESSED = NO` | `SECRET_AUDIT = PASS`.
+

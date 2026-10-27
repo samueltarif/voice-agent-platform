@@ -282,18 +282,19 @@ A ordem histórica 008A–008G postergava o dialer outbound para o Slice 008E, c
   - **Critérios de Aceitação**: Schemas aditivos e repositórios testados localmente; modelo durável capaz de representar tentativas, sessões e eventos com rastreabilidade auditável e minimização de dados; zero queries raw em controllers; isolamento multi-tenant comprovado.
   - **Riscos**: Colisão de números entre tenants (mitigado por unique index em `e164Number`).
 
-- [ ] **Slice 008-OF3 — Quotas, Concorrência e Orçamento (Hard Budget Caps)**:
+- [x] **Slice 008-OF3 — Quotas, Concorrência e Orçamento (Hard Budget Caps)**:
+  - **Status Real**: Concluída e testada offline no branch `feat/phase8-008-of3-budget-quotas`. Contratos de domínio provider-neutral em `packages/contracts/src/telephony/outbound-budget-*`; migration aditiva versionada `0008_outbound_budget_quotas.sql` com tabelas `outbound_budget_ledgers` e `outbound_budget_reservations`; travas atômicas `SELECT ... FOR UPDATE` com solvency guard, daily quotas e limite de concorrência simultânea fail-closed; separação contábil estrita entre custos de carrier e conversacionais (`carrier` e `conversational`); `DurableGuardedOriginationRunner` garantindo unencumber/estorno imediato em origination abortada; suíte completa de 201 arquivos (195 aprovados, 6 staging ignorados, 1.468 testes aprovados, zero falhas); `pnpm check` aprovado integralmente com zero erros.
   - **Objetivo**: Implementar travas financeiras atômicas e de concorrência antes da autorização de qualquer discagem.
   - **Escopo**:
     - Tabela e repositório de ledger: `outbound_budget_ledgers` (saldo, reserva pendente, consumo consolidado).
-    - Reserva atômica idempotente pré-chamada com estorno pós-chamada.
+    - Tabela e repositório de reservas: `outbound_budget_reservations` (reserva atômica idempotente pré-chamada com estorno pós-chamada).
     - Limite de chamadas simultâneas por organização (`max_concurrent_calls`).
     - Verificação de quota diária (premissa de planejamento delimitada) e bloqueio fail-closed.
   - **Dependências**: Conclusão das Slices 008-OF1 e 008-OF2.
-  - **Arquivos Prováveis**: `packages/database/src/`, `apps/worker/src/outbound-call-dispatcher.ts`.
-  - **Testes Offline**: Testes de alta concorrência simulando esgotamento de saldo, saturação de concorrência e tentativa de discagem duplicada.
-  - **Critérios de Aceitação**: Impossibilidade comprovada de saldo negativo em testes de estresse, fail-closed verificado.
-  - **Riscos**: Deadlock em concorrência de saldo (mitigado por transações ordenadas e curtas).
+  - **Arquivos Implementados**: `packages/contracts/src/telephony/outbound-budget-*`, `packages/database/src/schema/outbound-budget-*`, `packages/database/src/repositories/outbound-budget-*`, `packages/database/src/repositories/durable-guarded-origination-runner.ts`, `packages/database/src/migrations/0008_outbound_budget_quotas.sql`.
+  - **Testes Offline**: Testes unitários puros de contratos e avaliação de saldo em `@voice-agent/contracts`; testes de integração em PostgreSQL 16 Docker simulando concorrência simultânea de múltiplos workers, esgotamento atômico de saldo, bloqueio fail-closed de quota diária e idempotência.
+  - **Critérios de Aceitação**: Impossibilidade comprovada de saldo negativo em testes de estresse, fail-closed verificado, suite de testes passando, `pnpm check` = exit 0, zero dependências externas.
+  - **Riscos Mitigados**: Concorrência de saldo prevenida por transações `SELECT ... FOR UPDATE` curtas, ordenação e idempotência atômica por tentativa/chave.
 
 - [ ] **Slice 008-OF4 — Webhooks e Integração de Ferramentas Offline**:
   - **Objetivo**: Construir a recepção segura de eventos e despacho de ferramentas determinísticas para a plataforma conversacional, consumindo as tabelas de sessão e eventos da Slice 008-OF2.
