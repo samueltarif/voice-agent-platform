@@ -26,6 +26,7 @@ export const outboundBudgetLedgers = pgTable(
     spentAmountMinorUnits: integer('spent_amount_minor_units').notNull().default(0),
     maxConcurrentCalls: integer('max_concurrent_calls').notNull().default(5),
     maxDailyAttempts: integer('max_daily_attempts').notNull().default(50),
+    timezone: text('timezone').notNull().default('UTC'),
     version: integer('version').notNull().default(1),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
@@ -45,8 +46,8 @@ export const outboundBudgetLedgers = pgTable(
       sql`${table.spentAmountMinorUnits} = ${table.spentCarrierMinorUnits} + ${table.spentConversationalMinorUnits}`,
     ),
     check(
-      'outbound_budget_ledgers_solvency_chk',
-      sql`${table.allocatedBudgetMinorUnits} >= (${table.reservedAmountMinorUnits} + ${table.spentAmountMinorUnits})`,
+      'outbound_budget_ledgers_reserved_le_allocated_chk',
+      sql`${table.allocatedBudgetMinorUnits} >= ${table.reservedAmountMinorUnits}`,
     ),
     check('outbound_budget_ledgers_concurrency_chk', sql`${table.maxConcurrentCalls} > 0`),
     check('outbound_budget_ledgers_daily_quota_chk', sql`${table.maxDailyAttempts} > 0`),

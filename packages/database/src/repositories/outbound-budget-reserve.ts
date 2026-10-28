@@ -3,18 +3,30 @@ import type {
   ReserveOutboundBudgetInput,
   ReserveOutboundBudgetOutcome,
 } from '@voice-agent/contracts';
-import { evaluateBudgetReservation, type BudgetEvaluationDecision } from '@voice-agent/contracts';
-import { outboundBudgetLedgers } from '../schema/outbound-budget-ledgers.js';
+import { evaluateBudgetReservation, getStartOfDayInTimezone } from '@voice-agent/contracts';
+import {
+  outboundBudgetLedgers,
+  type OutboundBudgetLedgerEntity,
+} from '../schema/outbound-budget-ledgers.js';
 import { outboundBudgetReservations } from '../schema/outbound-budget-reservations.js';
+import {
+  platformGlobalBudgetLedgers,
+  type PlatformGlobalBudgetLedgerEntity,
+} from '../schema/platform-global-budget-ledger.js';
 import type { DatabaseExecutor } from './database-executor.js';
 import {
   mapOutboundBudgetLedger,
   mapOutboundBudgetReservation,
+  mapPlatformGlobalBudgetLedger,
 } from './outbound-budget-mapping.js';
 import {
   countActiveConcurrentReservations,
+  countGlobalActiveConcurrentReservations,
   countTodayCallAttempts,
+  GLOBAL_BUDGET_LEDGER_ID,
 } from './outbound-budget-queries.js';
+import { mapDecisionToBlockOutcome } from './outbound-budget-reserve-mapper.js';
+import { insertReservationRecord } from './outbound-budget-reserve-record.js';
 
 async function findExistingReservation(
   tx: DatabaseExecutor,
@@ -43,63 +55,47 @@ async function findExistingReservation(
   return null;
 }
 
-function mapDecisionToBlockOutcome(
-  decision: Exclude<BudgetEvaluationDecision, { allowed: true }>,
-): ReserveOutboundBudgetOutcome {
-  if (decision.reason === 'CONCURRENCY_LIMIT_REACHED') {
-    return {
-      kind: 'CONCURRENCY_LIMIT_REACHED',
-      activeConcurrentCalls: decision.activeConcurrentCalls,
-      maxConcurrentCalls: decision.maxConcurrentCalls,
-      reason: 'Active concurrent call limit reached for organization.',
-    };
-  }
-  if (decision.reason === 'DAILY_QUOTA_EXCEEDED') {
-    return {
-      kind: 'DAILY_QUOTA_EXCEEDED',
-      todayAttemptsCount: decision.todayAttemptsCount,
-      maxDailyAttempts: decision.maxDailyAttempts,
-      reason: 'Daily attempt quota exceeded for organization.',
-    };
-  }
-  return {
-    kind: 'INSUFFICIENT_FUNDS',
-    availableMinorUnits: decision.availableMinorUnits,
-    requestedMinorUnits: decision.requestedMinorUnits,
-    reason: 'Insufficient available budget for reservation.',
-  };
+interface EncumberParams {
+  readonly globalRow: PlatformGlobalBudgetLedgerEntity;
+  readonly tenantRow: OutboundBudgetLedgerEntity;
+  readonly amount: number;
+  readonly now: Date;
 }
 
-async function insertReservationRecord(
-  tx: DatabaseExecutor,
-  input: ReserveOutboundBudgetInput,
-  now: Date,
-) {
-  const [created] = await tx
-    .insert(outboundBudgetReservations)
-    .values({
-      id: crypto.randomUUID(),
-      organizationId: input.organizationId,
-      attemptId: input.attemptId,
-      jobId: input.jobId,
-      reservedAmountMinorUnits: input.estimatedAmountMinorUnits,
-      reservedCarrierMinorUnits: input.estimatedCarrierMinorUnits ?? 0,
-      reservedConversationalMinorUnits: input.estimatedConversationalMinorUnits ?? 0,
-      settledCarrierMinorUnits: 0,
-      settledConversationalMinorUnits: 0,
-      settledAmountMinorUnits: 0,
-      status: 'RESERVED',
-      idempotencyKey: input.idempotencyKey,
-      reservedAt: now,
-      createdAt: now,
-      updatedAt: now,
+async function encumberLedgers(tx: DatabaseExecutor, params: EncumberParams): Promise<void> {
+  await tx
+    .update(platformGlobalBudgetLedgers)
+    .set({
+      reservedAmountMinorUnits: params.globalRow.reservedAmountMinorUnits + params.amount,
+      version: params.globalRow.version + 1,
+      updatedAt: params.now,
     })
-    .returning();
+    .where(eq(platformGlobalBudgetLedgers.id, GLOBAL_BUDGET_LEDGER_ID));
 
-  if (!created) {
-    throw new Error('Failed to create outbound budget reservation');
-  }
-  return created;
+  await tx
+    .update(outboundBudgetLedgers)
+    .set({
+      reservedAmountMinorUnits: params.tenantRow.reservedAmountMinorUnits + params.amount,
+      version: params.tenantRow.version + 1,
+      updatedAt: params.now,
+    })
+    .where(eq(outboundBudgetLedgers.id, params.tenantRow.id));
+}
+
+async function lockLedgers(tx: DatabaseExecutor, organizationId: string) {
+  const [globalRow] = await tx
+    .select()
+    .from(platformGlobalBudgetLedgers)
+    .where(eq(platformGlobalBudgetLedgers.id, GLOBAL_BUDGET_LEDGER_ID))
+    .for('update');
+
+  const [tenantRow] = await tx
+    .select()
+    .from(outboundBudgetLedgers)
+    .where(eq(outboundBudgetLedgers.organizationId, organizationId))
+    .for('update');
+
+  return { globalRow, tenantRow };
 }
 
 export async function reserveBudgetInTransaction(
@@ -109,13 +105,11 @@ export async function reserveBudgetInTransaction(
   const existingOutcome = await findExistingReservation(tx, input);
   if (existingOutcome) return existingOutcome;
 
-  const [ledger] = await tx
-    .select()
-    .from(outboundBudgetLedgers)
-    .where(eq(outboundBudgetLedgers.organizationId, input.organizationId))
-    .for('update');
-
-  if (!ledger) {
+  const { globalRow, tenantRow } = await lockLedgers(tx, input.organizationId);
+  if (!globalRow) {
+    return { kind: 'GLOBAL_LEDGER_NOT_FOUND', reason: 'Global budget ledger not found.' };
+  }
+  if (!tenantRow) {
     return {
       kind: 'INSUFFICIENT_FUNDS',
       availableMinorUnits: 0,
@@ -124,30 +118,29 @@ export async function reserveBudgetInTransaction(
     };
   }
 
-  const activeConcurrentCalls = await countActiveConcurrentReservations(tx, input.organizationId);
-  const todayAttemptsCount = await countTodayCallAttempts(tx, input.organizationId);
+  const globalActive = await countGlobalActiveConcurrentReservations(tx);
+  const activeConcurrent = await countActiveConcurrentReservations(tx, input.organizationId);
+  const since = getStartOfDayInTimezone(new Date(), tenantRow.timezone ?? 'UTC');
+  const todayAttempts = await countTodayCallAttempts(tx, input.organizationId, since);
 
   const decision = evaluateBudgetReservation({
-    ledger: mapOutboundBudgetLedger(ledger),
+    globalLedger: mapPlatformGlobalBudgetLedger(globalRow),
+    globalActiveConcurrentCalls: globalActive,
+    ledger: mapOutboundBudgetLedger(tenantRow),
     requestedAmountMinorUnits: input.estimatedAmountMinorUnits,
-    activeConcurrentCalls,
-    todayAttemptsCount,
+    activeConcurrentCalls: activeConcurrent,
+    todayAttemptsCount: todayAttempts,
   });
 
-  if (!decision.allowed) {
-    return mapDecisionToBlockOutcome(decision);
-  }
+  if (!decision.allowed) return mapDecisionToBlockOutcome(decision);
 
   const now = new Date();
-  await tx
-    .update(outboundBudgetLedgers)
-    .set({
-      reservedAmountMinorUnits: ledger.reservedAmountMinorUnits + input.estimatedAmountMinorUnits,
-      version: ledger.version + 1,
-      updatedAt: now,
-    })
-    .where(eq(outboundBudgetLedgers.id, ledger.id));
-
+  await encumberLedgers(tx, {
+    globalRow,
+    tenantRow,
+    amount: input.estimatedAmountMinorUnits,
+    now,
+  });
   const created = await insertReservationRecord(tx, input, now);
 
   return {

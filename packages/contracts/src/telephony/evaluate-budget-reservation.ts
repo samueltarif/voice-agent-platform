@@ -1,6 +1,11 @@
-import type { OutboundBudgetLedger } from './outbound-budget-contracts.js';
+import type {
+  OutboundBudgetLedger,
+  PlatformGlobalBudgetLedger,
+} from './outbound-budget-contracts.js';
 
 export interface BudgetEvaluationInput {
+  readonly globalLedger?: PlatformGlobalBudgetLedger | null;
+  readonly globalActiveConcurrentCalls?: number;
   readonly ledger: OutboundBudgetLedger;
   readonly requestedAmountMinorUnits: number;
   readonly activeConcurrentCalls: number;
@@ -8,7 +13,27 @@ export interface BudgetEvaluationInput {
 }
 
 export type BudgetEvaluationDecision =
-  | { readonly allowed: true; readonly availableMinorUnits: number }
+  | {
+      readonly allowed: true;
+      readonly availableMinorUnits: number;
+      readonly globalAvailableMinorUnits?: number;
+    }
+  | {
+      readonly allowed: false;
+      readonly reason: 'GLOBAL_LEDGER_NOT_FOUND';
+    }
+  | {
+      readonly allowed: false;
+      readonly reason: 'GLOBAL_CONCURRENCY_LIMIT_REACHED';
+      readonly activeConcurrentCalls: number;
+      readonly maxConcurrentCalls: number;
+    }
+  | {
+      readonly allowed: false;
+      readonly reason: 'GLOBAL_INSUFFICIENT_FUNDS';
+      readonly availableMinorUnits: number;
+      readonly requestedMinorUnits: number;
+    }
   | {
       readonly allowed: false;
       readonly reason: 'INSUFFICIENT_FUNDS';
@@ -38,7 +63,42 @@ export function calculateAvailableBudget(
   return Math.max(0, ledger.allocatedBudgetMinorUnits - encumbered);
 }
 
+type GlobalConstraintsResult =
+  | Exclude<BudgetEvaluationDecision, { allowed: true }>
+  | { readonly allowed: true; readonly globalAvailable: number };
+
+function evaluateGlobalConstraints(input: BudgetEvaluationInput): GlobalConstraintsResult {
+  if (!input.globalLedger) {
+    return { allowed: false, reason: 'GLOBAL_LEDGER_NOT_FOUND' };
+  }
+
+  const globalActive = input.globalActiveConcurrentCalls ?? 0;
+  if (globalActive >= input.globalLedger.maxConcurrentCalls) {
+    return {
+      allowed: false,
+      reason: 'GLOBAL_CONCURRENCY_LIMIT_REACHED',
+      activeConcurrentCalls: globalActive,
+      maxConcurrentCalls: input.globalLedger.maxConcurrentCalls,
+    };
+  }
+
+  const globalAvailable = calculateAvailableBudget(input.globalLedger);
+  if (globalAvailable < input.requestedAmountMinorUnits) {
+    return {
+      allowed: false,
+      reason: 'GLOBAL_INSUFFICIENT_FUNDS',
+      availableMinorUnits: globalAvailable,
+      requestedMinorUnits: input.requestedAmountMinorUnits,
+    };
+  }
+
+  return { allowed: true, globalAvailable };
+}
+
 export function evaluateBudgetReservation(input: BudgetEvaluationInput): BudgetEvaluationDecision {
+  const globalResult = evaluateGlobalConstraints(input);
+  if (!globalResult.allowed) return globalResult;
+
   if (input.activeConcurrentCalls >= input.ledger.maxConcurrentCalls) {
     return {
       allowed: false,
@@ -67,5 +127,9 @@ export function evaluateBudgetReservation(input: BudgetEvaluationInput): BudgetE
     };
   }
 
-  return { allowed: true, availableMinorUnits: available };
+  return {
+    allowed: true,
+    availableMinorUnits: available,
+    globalAvailableMinorUnits: globalResult.globalAvailable,
+  };
 }

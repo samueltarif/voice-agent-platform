@@ -7,23 +7,37 @@ import type {
 } from './durable-outbound-origination-runner.js';
 
 export interface GuardedOriginationOptions {
+  readonly estimatedCarrierMinorUnits: number;
+  readonly estimatedConversationalMinorUnits: number;
   readonly estimatedCostMinorUnits?: number;
-  readonly estimatedCarrierMinorUnits?: number;
-  readonly estimatedConversationalMinorUnits?: number;
 }
 
 export interface GuardedRunnerDependencies {
   readonly runner: DurableOutboundOriginationRunner;
   readonly attempts: DrizzleCallAttemptRepository;
   readonly budget: OutboundBudgetPort;
-  readonly defaultEstimatedCostMinorUnits?: number;
 }
 
-function resolveEstimatedAmounts(options?: GuardedOriginationOptions, defaultCost = 500) {
-  const total = options?.estimatedCostMinorUnits ?? defaultCost;
-  const carrier = options?.estimatedCarrierMinorUnits ?? 0;
-  const conversational = options?.estimatedConversationalMinorUnits ?? 0;
-  return { total, carrier, conversational };
+function resolveEstimatedAmounts(options?: GuardedOriginationOptions) {
+  if (!options) return null;
+  const { estimatedCarrierMinorUnits, estimatedConversationalMinorUnits } = options;
+  if (
+    typeof estimatedCarrierMinorUnits !== 'number' ||
+    estimatedCarrierMinorUnits <= 0 ||
+    typeof estimatedConversationalMinorUnits !== 'number' ||
+    estimatedConversationalMinorUnits <= 0
+  ) {
+    return null;
+  }
+  const total =
+    options.estimatedCostMinorUnits ??
+    estimatedCarrierMinorUnits + estimatedConversationalMinorUnits;
+  if (total <= 0) return null;
+  return {
+    total,
+    carrier: estimatedCarrierMinorUnits,
+    conversational: estimatedConversationalMinorUnits,
+  };
 }
 
 function isReservationSuccessful(kind: string): boolean {
@@ -40,7 +54,10 @@ export class DurableGuardedOriginationRunner {
     const record = await this.deps.attempts.getById(scope);
     if (!record) return 'NOT_FOUND';
 
-    const estimates = resolveEstimatedAmounts(options, this.deps.defaultEstimatedCostMinorUnits);
+    const estimates = resolveEstimatedAmounts(options);
+    if (!estimates) {
+      return 'ESTIMATED_COST_REQUIRED';
+    }
 
     const outcome = await this.deps.budget.reserveBudget({
       organizationId: scope.organizationId,

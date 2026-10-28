@@ -18,6 +18,22 @@ export interface OutboundBudgetLedger {
   readonly availableAmountMinorUnits: number;
   readonly maxConcurrentCalls: number;
   readonly maxDailyAttempts: number;
+  readonly timezone: string;
+  readonly version: number;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
+}
+
+export interface PlatformGlobalBudgetLedger {
+  readonly id: string;
+  readonly currency: string;
+  readonly allocatedBudgetMinorUnits: number;
+  readonly reservedAmountMinorUnits: number;
+  readonly spentCarrierMinorUnits: number;
+  readonly spentConversationalMinorUnits: number;
+  readonly spentAmountMinorUnits: number;
+  readonly availableAmountMinorUnits: number;
+  readonly maxConcurrentCalls: number;
   readonly version: number;
   readonly createdAt: Date;
   readonly updatedAt: Date;

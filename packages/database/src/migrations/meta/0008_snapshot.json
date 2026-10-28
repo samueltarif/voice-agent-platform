@@ -1,5 +1,5 @@
 {
-  "id": "e481c9b5-6550-4d87-87f5-b368a7c881a2",
+  "id": "2b57c427-6bb0-4f61-b0fe-be152d554f7c",
   "prevId": "f50440ef-8406-4b4c-bcf0-3a241cf92144",
   "version": "7",
   "dialect": "postgresql",
@@ -3784,6 +3784,13 @@
           "notNull": true,
           "default": 50
         },
+        "timezone": {
+          "name": "timezone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'UTC'"
+        },
         "version": {
           "name": "version",
           "type": "integer",
@@ -3852,9 +3859,9 @@
           "name": "outbound_budget_ledgers_spent_total_chk",
           "value": "\"outbound_budget_ledgers\".\"spent_amount_minor_units\" = \"outbound_budget_ledgers\".\"spent_carrier_minor_units\" + \"outbound_budget_ledgers\".\"spent_conversational_minor_units\""
         },
-        "outbound_budget_ledgers_solvency_chk": {
-          "name": "outbound_budget_ledgers_solvency_chk",
-          "value": "\"outbound_budget_ledgers\".\"allocated_budget_minor_units\" >= (\"outbound_budget_ledgers\".\"reserved_amount_minor_units\" + \"outbound_budget_ledgers\".\"spent_amount_minor_units\")"
+        "outbound_budget_ledgers_reserved_le_allocated_chk": {
+          "name": "outbound_budget_ledgers_reserved_le_allocated_chk",
+          "value": "\"outbound_budget_ledgers\".\"allocated_budget_minor_units\" >= \"outbound_budget_ledgers\".\"reserved_amount_minor_units\""
         },
         "outbound_budget_ledgers_concurrency_chk": {
           "name": "outbound_budget_ledgers_concurrency_chk",
@@ -4126,6 +4133,127 @@
         "outbound_budget_res_status_released_chk": {
           "name": "outbound_budget_res_status_released_chk",
           "value": "(\"outbound_budget_reservations\".\"status\" != 'RELEASED') OR (\"outbound_budget_reservations\".\"released_at\" IS NOT NULL)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.platform_global_budget_ledgers": {
+      "name": "platform_global_budget_ledgers",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "currency": {
+          "name": "currency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'USD'"
+        },
+        "allocated_budget_minor_units": {
+          "name": "allocated_budget_minor_units",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "reserved_amount_minor_units": {
+          "name": "reserved_amount_minor_units",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "spent_carrier_minor_units": {
+          "name": "spent_carrier_minor_units",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "spent_conversational_minor_units": {
+          "name": "spent_conversational_minor_units",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "spent_amount_minor_units": {
+          "name": "spent_amount_minor_units",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "max_concurrent_calls": {
+          "name": "max_concurrent_calls",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 100
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "platform_global_budget_allocated_chk": {
+          "name": "platform_global_budget_allocated_chk",
+          "value": "\"platform_global_budget_ledgers\".\"allocated_budget_minor_units\" >= 0"
+        },
+        "platform_global_budget_reserved_chk": {
+          "name": "platform_global_budget_reserved_chk",
+          "value": "\"platform_global_budget_ledgers\".\"reserved_amount_minor_units\" >= 0"
+        },
+        "platform_global_budget_spent_carrier_chk": {
+          "name": "platform_global_budget_spent_carrier_chk",
+          "value": "\"platform_global_budget_ledgers\".\"spent_carrier_minor_units\" >= 0"
+        },
+        "platform_global_budget_spent_conversational_chk": {
+          "name": "platform_global_budget_spent_conversational_chk",
+          "value": "\"platform_global_budget_ledgers\".\"spent_conversational_minor_units\" >= 0"
+        },
+        "platform_global_budget_spent_total_chk": {
+          "name": "platform_global_budget_spent_total_chk",
+          "value": "\"platform_global_budget_ledgers\".\"spent_amount_minor_units\" = \"platform_global_budget_ledgers\".\"spent_carrier_minor_units\" + \"platform_global_budget_ledgers\".\"spent_conversational_minor_units\""
+        },
+        "platform_global_budget_reserved_le_allocated_chk": {
+          "name": "platform_global_budget_reserved_le_allocated_chk",
+          "value": "\"platform_global_budget_ledgers\".\"allocated_budget_minor_units\" >= \"platform_global_budget_ledgers\".\"reserved_amount_minor_units\""
+        },
+        "platform_global_budget_concurrency_chk": {
+          "name": "platform_global_budget_concurrency_chk",
+          "value": "\"platform_global_budget_ledgers\".\"max_concurrent_calls\" > 0"
+        },
+        "platform_global_budget_version_chk": {
+          "name": "platform_global_budget_version_chk",
+          "value": "\"platform_global_budget_ledgers\".\"version\" > 0"
         }
       },
       "isRLSEnabled": false

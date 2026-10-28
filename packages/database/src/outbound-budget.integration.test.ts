@@ -34,6 +34,12 @@ describe('008-OF3 Outbound Budget, Quotas and Concurrency', () => {
 
   beforeAll(async () => {
     fx = await createDurableOutboundFixture(left.db);
+    // Platform global ledger must be configured before tenant operations can succeed (fail-closed)
+    await budgetRepoL.provisionGlobalLedger({
+      currency: 'USD',
+      allocatedBudgetMinorUnits: 10000000, // $100,000.00
+      maxConcurrentCalls: 500,
+    });
   });
 
   afterAll(async () => {
@@ -66,6 +72,7 @@ describe('008-OF3 Outbound Budget, Quotas and Concurrency', () => {
       currency: 'USD',
       maxConcurrentCalls: 3,
       maxDailyAttempts: 25,
+      timezone: 'UTC',
     });
 
     expect(ledger.organizationId).toBe(orgId);
@@ -75,6 +82,7 @@ describe('008-OF3 Outbound Budget, Quotas and Concurrency', () => {
     expect(ledger.availableAmountMinorUnits).toBe(10000);
     expect(ledger.maxConcurrentCalls).toBe(3);
     expect(ledger.maxDailyAttempts).toBe(25);
+    expect(ledger.timezone).toBe('UTC');
 
     const retrieved = await budgetRepoL.getLedger(orgId);
     expect(retrieved).not.toBeNull();
@@ -118,6 +126,8 @@ describe('008-OF3 Outbound Budget, Quotas and Concurrency', () => {
       attemptId: attempt.id,
       jobId: attempt.jobId,
       estimatedAmountMinorUnits: 400,
+      estimatedCarrierMinorUnits: 250,
+      estimatedConversationalMinorUnits: 150,
       idempotencyKey: attempt.idempotencyKey,
     });
     expect(first.kind).toBe('RESERVED');
@@ -127,6 +137,8 @@ describe('008-OF3 Outbound Budget, Quotas and Concurrency', () => {
       attemptId: attempt.id,
       jobId: attempt.jobId,
       estimatedAmountMinorUnits: 400,
+      estimatedCarrierMinorUnits: 250,
+      estimatedConversationalMinorUnits: 150,
       idempotencyKey: attempt.idempotencyKey,
     });
     expect(duplicate.kind).toBe('ALREADY_RESERVED');
@@ -150,6 +162,8 @@ describe('008-OF3 Outbound Budget, Quotas and Concurrency', () => {
       attemptId: attempt1.id,
       jobId: attempt1.jobId,
       estimatedAmountMinorUnits: 500,
+      estimatedCarrierMinorUnits: 300,
+      estimatedConversationalMinorUnits: 200,
       idempotencyKey: attempt1.idempotencyKey,
     });
     expect(first.kind).toBe('RESERVED');
@@ -160,6 +174,8 @@ describe('008-OF3 Outbound Budget, Quotas and Concurrency', () => {
       attemptId: attempt2.id,
       jobId: attempt2.jobId,
       estimatedAmountMinorUnits: 500, // needs 500, only 100 available
+      estimatedCarrierMinorUnits: 300,
+      estimatedConversationalMinorUnits: 200,
       idempotencyKey: attempt2.idempotencyKey,
     });
 
@@ -198,6 +214,8 @@ describe('008-OF3 Outbound Budget, Quotas and Concurrency', () => {
       attemptId: att1.id,
       jobId: att1.jobId,
       estimatedAmountMinorUnits: 100,
+      estimatedCarrierMinorUnits: 50,
+      estimatedConversationalMinorUnits: 50,
       idempotencyKey: att1.idempotencyKey,
     });
     expect(res1.kind).toBe('RESERVED');
@@ -207,6 +225,8 @@ describe('008-OF3 Outbound Budget, Quotas and Concurrency', () => {
       attemptId: att2.id,
       jobId: att2.jobId,
       estimatedAmountMinorUnits: 100,
+      estimatedCarrierMinorUnits: 50,
+      estimatedConversationalMinorUnits: 50,
       idempotencyKey: att2.idempotencyKey,
     });
     expect(res2.kind).toBe('RESERVED');
@@ -217,6 +237,8 @@ describe('008-OF3 Outbound Budget, Quotas and Concurrency', () => {
       attemptId: att3.id,
       jobId: att3.jobId,
       estimatedAmountMinorUnits: 100,
+      estimatedCarrierMinorUnits: 50,
+      estimatedConversationalMinorUnits: 50,
       idempotencyKey: att3.idempotencyKey,
     });
     expect(res3.kind).toBe('CONCURRENCY_LIMIT_REACHED');
@@ -254,6 +276,7 @@ describe('008-OF3 Outbound Budget, Quotas and Concurrency', () => {
 
     expect(settled.totalSettledMinorUnits).toBe(250);
     expect(settled.unusedReservationRefundedMinorUnits).toBe(350); // 600 - 250 = 350 refunded
+    expect(settled.overageMinorUnits).toBe(0);
     expect(settled.reservation.status).toBe('COMMITTED');
     expect(settled.reservation.settledCarrierMinorUnits).toBe(150);
     expect(settled.reservation.settledConversationalMinorUnits).toBe(100);
@@ -276,6 +299,8 @@ describe('008-OF3 Outbound Budget, Quotas and Concurrency', () => {
       attemptId: attempt.id,
       jobId: attempt.jobId,
       estimatedAmountMinorUnits: 450,
+      estimatedCarrierMinorUnits: 250,
+      estimatedConversationalMinorUnits: 200,
       idempotencyKey: attempt.idempotencyKey,
     });
     expect(reserved.kind).toBe('RESERVED');
@@ -297,7 +322,7 @@ describe('008-OF3 Outbound Budget, Quotas and Concurrency', () => {
     expect(afterLedger?.reservedAmountMinorUnits).toBe(initialReserved);
   });
 
-  it('coordinates budget and runner through DurableGuardedOriginationRunner', async () => {
+  it('coordinates budget and runner through DurableGuardedOriginationRunner with explicit costs', async () => {
     const orgId = fx.tenantA.organizationId;
     const attempt = await createPreparedAttempt(fx.tenantA, 'guarded-1');
 
@@ -336,13 +361,18 @@ describe('008-OF3 Outbound Budget, Quotas and Concurrency', () => {
       runner,
       attempts: attemptRepo,
       budget: budgetRepoL,
-      defaultEstimatedCostMinorUnits: 300,
     });
 
-    const result = await guardedRunner.originate({
-      organizationId: orgId,
-      attemptId: attempt.id,
-    });
+    const result = await guardedRunner.originate(
+      {
+        organizationId: orgId,
+        attemptId: attempt.id,
+      },
+      {
+        estimatedCarrierMinorUnits: 180,
+        estimatedConversationalMinorUnits: 120,
+      },
+    );
 
     expect(result.kind).toBe('COMPLETED');
     expect(originationCalls).toBe(1);
@@ -391,6 +421,8 @@ describe('008-OF3 Outbound Budget, Quotas and Concurrency', () => {
         attemptId: att.id,
         jobId: att.jobId,
         estimatedAmountMinorUnits: 500,
+        estimatedCarrierMinorUnits: 300,
+        estimatedConversationalMinorUnits: 200,
         idempotencyKey: att.idempotencyKey,
       });
     });
@@ -432,6 +464,8 @@ describe('008-OF3 Outbound Budget, Quotas and Concurrency', () => {
       attemptId: att1.id,
       jobId: att1.jobId,
       estimatedAmountMinorUnits: 100,
+      estimatedCarrierMinorUnits: 50,
+      estimatedConversationalMinorUnits: 50,
       idempotencyKey: att1.idempotencyKey,
     });
     expect(res1.kind).toBe('RESERVED');
@@ -443,6 +477,8 @@ describe('008-OF3 Outbound Budget, Quotas and Concurrency', () => {
       attemptId: att2.id,
       jobId: att2.jobId,
       estimatedAmountMinorUnits: 100,
+      estimatedCarrierMinorUnits: 50,
+      estimatedConversationalMinorUnits: 50,
       idempotencyKey: att2.idempotencyKey,
     });
     expect(res2.kind).toBe('RESERVED');
@@ -454,6 +490,8 @@ describe('008-OF3 Outbound Budget, Quotas and Concurrency', () => {
       attemptId: att3.id,
       jobId: att3.jobId,
       estimatedAmountMinorUnits: 100,
+      estimatedCarrierMinorUnits: 50,
+      estimatedConversationalMinorUnits: 50,
       idempotencyKey: att3.idempotencyKey,
     });
 

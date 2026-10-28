@@ -4,71 +4,80 @@ import type {
   SettleOutboundBudgetOutcome,
 } from '@voice-agent/contracts';
 import { outboundBudgetLedgers } from '../schema/outbound-budget-ledgers.js';
-import {
-  outboundBudgetReservations,
-  type OutboundBudgetReservationEntity,
-} from '../schema/outbound-budget-reservations.js';
+import { outboundBudgetReservations } from '../schema/outbound-budget-reservations.js';
+import { platformGlobalBudgetLedgers } from '../schema/platform-global-budget-ledger.js';
 import type { DatabaseExecutor } from './database-executor.js';
 import { mapOutboundBudgetReservation } from './outbound-budget-mapping.js';
+import { GLOBAL_BUDGET_LEDGER_ID } from './outbound-budget-queries.js';
+import {
+  checkSettlementEligibility,
+  commitSettledReservation,
+} from './outbound-budget-settle-record.js';
 
-function checkSettlementEligibility(
-  reservation: OutboundBudgetReservationEntity | undefined,
-): SettleOutboundBudgetOutcome | null {
-  if (!reservation) {
-    return {
-      kind: 'RESERVATION_NOT_FOUND',
-      reason: 'Reservation not found for organization and attempt.',
-    };
-  }
-  if (reservation.status === 'COMMITTED') {
-    return {
-      kind: 'ALREADY_SETTLED',
-      reservation: mapOutboundBudgetReservation(reservation),
-    };
-  }
-  if (reservation.status === 'RELEASED') {
-    return {
-      kind: 'RESERVATION_ALREADY_RELEASED',
-      reason: 'Cannot settle a reservation that was already released.',
-    };
-  }
-  return null;
-}
-
-interface SettlementCalculationInput {
+interface SettlementLedgerParams {
   readonly orgId: string;
   readonly reservedAmount: number;
-  readonly actualCarrierCost: number;
-  readonly actualConversationalCost: number;
+  readonly carrierCost: number;
+  readonly conversationalCost: number;
+  readonly totalActual: number;
+  readonly now: Date;
 }
 
-async function applyLedgerSettlement(
+async function updateGlobalLedgerSettlement(
   tx: DatabaseExecutor,
-  input: SettlementCalculationInput,
+  params: SettlementLedgerParams,
 ): Promise<void> {
-  const [ledger] = await tx
+  const [globalRow] = await tx
     .select()
-    .from(outboundBudgetLedgers)
-    .where(eq(outboundBudgetLedgers.organizationId, input.orgId))
+    .from(platformGlobalBudgetLedgers)
+    .where(eq(platformGlobalBudgetLedgers.id, GLOBAL_BUDGET_LEDGER_ID))
     .for('update');
 
-  if (ledger) {
-    const totalActual = input.actualCarrierCost + input.actualConversationalCost;
+  if (globalRow) {
+    await tx
+      .update(platformGlobalBudgetLedgers)
+      .set({
+        reservedAmountMinorUnits: Math.max(
+          0,
+          globalRow.reservedAmountMinorUnits - params.reservedAmount,
+        ),
+        spentCarrierMinorUnits: globalRow.spentCarrierMinorUnits + params.carrierCost,
+        spentConversationalMinorUnits:
+          globalRow.spentConversationalMinorUnits + params.conversationalCost,
+        spentAmountMinorUnits: globalRow.spentAmountMinorUnits + params.totalActual,
+        version: globalRow.version + 1,
+        updatedAt: params.now,
+      })
+      .where(eq(platformGlobalBudgetLedgers.id, GLOBAL_BUDGET_LEDGER_ID));
+  }
+}
+
+async function updateTenantLedgerSettlement(
+  tx: DatabaseExecutor,
+  params: SettlementLedgerParams,
+): Promise<void> {
+  const [tenantRow] = await tx
+    .select()
+    .from(outboundBudgetLedgers)
+    .where(eq(outboundBudgetLedgers.organizationId, params.orgId))
+    .for('update');
+
+  if (tenantRow) {
     await tx
       .update(outboundBudgetLedgers)
       .set({
         reservedAmountMinorUnits: Math.max(
           0,
-          ledger.reservedAmountMinorUnits - input.reservedAmount,
+          tenantRow.reservedAmountMinorUnits - params.reservedAmount,
         ),
-        spentCarrierMinorUnits: ledger.spentCarrierMinorUnits + input.actualCarrierCost,
+        spentCarrierMinorUnits: tenantRow.spentCarrierMinorUnits + params.carrierCost,
         spentConversationalMinorUnits:
-          ledger.spentConversationalMinorUnits + input.actualConversationalCost,
-        spentAmountMinorUnits: ledger.spentAmountMinorUnits + totalActual,
-        version: ledger.version + 1,
-        updatedAt: new Date(),
+          tenantRow.spentConversationalMinorUnits + params.conversationalCost,
+        spentAmountMinorUnits: tenantRow.spentAmountMinorUnits + params.totalActual,
+        version: tenantRow.version + 1,
+        updatedAt: params.now,
       })
-      .where(eq(outboundBudgetLedgers.id, ledger.id));
+      .where(eq(outboundBudgetLedgers.id, tenantRow.id));
   }
 }
 
@@ -90,38 +99,35 @@ export async function settleBudgetInTransaction(
   const ineligibility = checkSettlementEligibility(reservation);
   if (ineligibility) return ineligibility;
 
-  await applyLedgerSettlement(tx, {
-    orgId: input.organizationId,
-    reservedAmount: reservation!.reservedAmountMinorUnits,
-    actualCarrierCost: input.actualCarrierCostMinorUnits,
-    actualConversationalCost: input.actualConversationalCostMinorUnits,
-  });
-
-  const actualTotal = input.actualCarrierCostMinorUnits + input.actualConversationalCostMinorUnits;
-  const unusedRefund = Math.max(0, reservation!.reservedAmountMinorUnits - actualTotal);
+  const carrierCost = input.actualCarrierCostMinorUnits;
+  const conversationalCost = input.actualConversationalCostMinorUnits;
+  const totalActual = carrierCost + conversationalCost;
+  const reservedAmount = reservation!.reservedAmountMinorUnits;
   const now = new Date();
 
-  const [updated] = await tx
-    .update(outboundBudgetReservations)
-    .set({
-      settledCarrierMinorUnits: input.actualCarrierCostMinorUnits,
-      settledConversationalMinorUnits: input.actualConversationalCostMinorUnits,
-      settledAmountMinorUnits: actualTotal,
-      status: 'COMMITTED',
-      settledAt: now,
-      updatedAt: now,
-    })
-    .where(eq(outboundBudgetReservations.id, reservation!.id))
-    .returning();
+  const ledgerParams: SettlementLedgerParams = {
+    orgId: input.organizationId,
+    reservedAmount,
+    carrierCost,
+    conversationalCost,
+    totalActual,
+    now,
+  };
+  await updateGlobalLedgerSettlement(tx, ledgerParams);
+  await updateTenantLedgerSettlement(tx, ledgerParams);
 
-  if (!updated) {
-    throw new Error('Failed to update settled outbound budget reservation');
-  }
+  const updated = await commitSettledReservation(tx, reservation!.id, {
+    carrierCost,
+    conversationalCost,
+    totalActual,
+    now,
+  });
 
   return {
     kind: 'SETTLED',
     reservation: mapOutboundBudgetReservation(updated),
-    totalSettledMinorUnits: actualTotal,
-    unusedReservationRefundedMinorUnits: unusedRefund,
+    totalSettledMinorUnits: totalActual,
+    unusedReservationRefundedMinorUnits: Math.max(0, reservedAmount - totalActual),
+    overageMinorUnits: Math.max(0, totalActual - reservedAmount),
   };
 }

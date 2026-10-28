@@ -2,6 +2,8 @@ import type { DatabaseInstance } from '../client/connection.js';
 import type {
   OutboundBudgetLedger,
   OutboundBudgetPort,
+  PlatformGlobalBudgetLedger,
+  ProvisionGlobalBudgetLedgerInput,
   ProvisionOutboundBudgetLedgerInput,
   ReleaseOutboundBudgetInput,
   ReleaseOutboundBudgetOutcome,
@@ -12,9 +14,13 @@ import type {
 } from '@voice-agent/contracts';
 import {
   findBudgetLedgerByOrganization,
+  findGlobalBudgetLedger,
   findReservationByAttemptId,
 } from './outbound-budget-queries.js';
-import { provisionLedgerInTransaction } from './outbound-budget-provision.js';
+import {
+  provisionGlobalLedgerInTransaction,
+  provisionLedgerInTransaction,
+} from './outbound-budget-provision.js';
 import { reserveBudgetInTransaction } from './outbound-budget-reserve.js';
 import { settleBudgetInTransaction } from './outbound-budget-settle.js';
 import { releaseBudgetInTransaction } from './outbound-budget-release.js';
@@ -25,6 +31,26 @@ import {
 
 export class DrizzleOutboundBudgetRepository implements OutboundBudgetPort {
   constructor(private readonly db: DatabaseInstance) {}
+
+  async getGlobalLedger(): Promise<PlatformGlobalBudgetLedger | null> {
+    try {
+      return await findGlobalBudgetLedger(this.db);
+    } catch (error) {
+      throw new OutboundPersistenceTechnicalError('getGlobalLedger', { cause: error });
+    }
+  }
+
+  async provisionGlobalLedger(
+    input: ProvisionGlobalBudgetLedgerInput,
+  ): Promise<PlatformGlobalBudgetLedger> {
+    try {
+      return await this.db.transaction((tx) => provisionGlobalLedgerInTransaction(tx, input));
+    } catch (error) {
+      throw new OutboundPersistenceTechnicalError('provisionGlobalLedger', {
+        cause: error,
+      });
+    }
+  }
 
   async getLedger(organizationId: string): Promise<OutboundBudgetLedger | null> {
     try {
@@ -51,7 +77,9 @@ export class DrizzleOutboundBudgetRepository implements OutboundBudgetPort {
       const failure = classifyPostgresFailure(error);
       if (
         failure.kind === 'CHECK_VIOLATION' &&
-        failure.constraint === 'outbound_budget_ledgers_solvency_chk'
+        (failure.constraint === 'outbound_budget_ledgers_reserved_le_allocated_chk' ||
+          failure.constraint === 'outbound_budget_ledgers_solvency_chk' ||
+          failure.constraint === 'platform_global_budget_reserved_le_allocated_chk')
       ) {
         return {
           kind: 'INSUFFICIENT_FUNDS',

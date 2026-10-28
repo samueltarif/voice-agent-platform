@@ -1,15 +1,36 @@
 import { and, eq, gte, sql } from 'drizzle-orm';
-import type { OutboundBudgetLedger, OutboundBudgetReservation } from '@voice-agent/contracts';
+import type {
+  OutboundBudgetLedger,
+  OutboundBudgetReservation,
+  PlatformGlobalBudgetLedger,
+} from '@voice-agent/contracts';
+import { getStartOfDayInTimezone } from '@voice-agent/contracts';
 import { outboundBudgetLedgers } from '../schema/outbound-budget-ledgers.js';
 import { outboundBudgetReservations } from '../schema/outbound-budget-reservations.js';
+import { platformGlobalBudgetLedgers } from '../schema/platform-global-budget-ledger.js';
 import type { DatabaseExecutor } from './database-executor.js';
 import {
   mapOutboundBudgetLedger,
   mapOutboundBudgetReservation,
+  mapPlatformGlobalBudgetLedger,
 } from './outbound-budget-mapping.js';
 
+export const GLOBAL_BUDGET_LEDGER_ID = 'platform_global';
+
 export function getStartOfUtcDay(date: Date = new Date()): Date {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  return getStartOfDayInTimezone(date, 'UTC');
+}
+
+export async function findGlobalBudgetLedger(
+  executor: DatabaseExecutor,
+): Promise<PlatformGlobalBudgetLedger | null> {
+  const [row] = await executor
+    .select()
+    .from(platformGlobalBudgetLedgers)
+    .where(eq(platformGlobalBudgetLedgers.id, GLOBAL_BUDGET_LEDGER_ID))
+    .limit(1);
+
+  return row ? mapPlatformGlobalBudgetLedger(row) : null;
 }
 
 export async function findBudgetLedgerByOrganization(
@@ -61,6 +82,17 @@ export async function findReservationByIdempotencyKey(
     .limit(1);
 
   return row ? mapOutboundBudgetReservation(row) : null;
+}
+
+export async function countGlobalActiveConcurrentReservations(
+  executor: DatabaseExecutor,
+): Promise<number> {
+  const [result] = await executor
+    .select({ count: sql<number>`count(*)::int` })
+    .from(outboundBudgetReservations)
+    .where(eq(outboundBudgetReservations.status, 'RESERVED'));
+
+  return result?.count ?? 0;
 }
 
 export async function countActiveConcurrentReservations(

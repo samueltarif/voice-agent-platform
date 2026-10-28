@@ -10,6 +10,7 @@ CREATE TABLE "outbound_budget_ledgers" (
 	"spent_amount_minor_units" integer DEFAULT 0 NOT NULL,
 	"max_concurrent_calls" integer DEFAULT 5 NOT NULL,
 	"max_daily_attempts" integer DEFAULT 50 NOT NULL,
+	"timezone" text DEFAULT 'UTC' NOT NULL,
 	"version" integer DEFAULT 1 NOT NULL,
 	"created_at" timestamp with time zone NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
@@ -20,7 +21,7 @@ CREATE TABLE "outbound_budget_ledgers" (
 	CONSTRAINT "outbound_budget_ledgers_spent_carrier_chk" CHECK ("outbound_budget_ledgers"."spent_carrier_minor_units" >= 0),
 	CONSTRAINT "outbound_budget_ledgers_spent_conversational_chk" CHECK ("outbound_budget_ledgers"."spent_conversational_minor_units" >= 0),
 	CONSTRAINT "outbound_budget_ledgers_spent_total_chk" CHECK ("outbound_budget_ledgers"."spent_amount_minor_units" = "outbound_budget_ledgers"."spent_carrier_minor_units" + "outbound_budget_ledgers"."spent_conversational_minor_units"),
-	CONSTRAINT "outbound_budget_ledgers_solvency_chk" CHECK ("outbound_budget_ledgers"."allocated_budget_minor_units" >= ("outbound_budget_ledgers"."reserved_amount_minor_units" + "outbound_budget_ledgers"."spent_amount_minor_units")),
+	CONSTRAINT "outbound_budget_ledgers_reserved_le_allocated_chk" CHECK ("outbound_budget_ledgers"."allocated_budget_minor_units" >= "outbound_budget_ledgers"."reserved_amount_minor_units"),
 	CONSTRAINT "outbound_budget_ledgers_concurrency_chk" CHECK ("outbound_budget_ledgers"."max_concurrent_calls" > 0),
 	CONSTRAINT "outbound_budget_ledgers_daily_quota_chk" CHECK ("outbound_budget_ledgers"."max_daily_attempts" > 0),
 	CONSTRAINT "outbound_budget_ledgers_version_chk" CHECK ("outbound_budget_ledgers"."version" > 0)
@@ -54,6 +55,28 @@ CREATE TABLE "outbound_budget_reservations" (
 	CONSTRAINT "outbound_budget_res_settled_total_chk" CHECK ("outbound_budget_reservations"."settled_amount_minor_units" = "outbound_budget_reservations"."settled_carrier_minor_units" + "outbound_budget_reservations"."settled_conversational_minor_units"),
 	CONSTRAINT "outbound_budget_res_status_settled_chk" CHECK (("outbound_budget_reservations"."status" != 'COMMITTED') OR ("outbound_budget_reservations"."settled_at" IS NOT NULL)),
 	CONSTRAINT "outbound_budget_res_status_released_chk" CHECK (("outbound_budget_reservations"."status" != 'RELEASED') OR ("outbound_budget_reservations"."released_at" IS NOT NULL))
+);
+--> statement-breakpoint
+CREATE TABLE "platform_global_budget_ledgers" (
+	"id" text PRIMARY KEY NOT NULL,
+	"currency" text DEFAULT 'USD' NOT NULL,
+	"allocated_budget_minor_units" integer DEFAULT 0 NOT NULL,
+	"reserved_amount_minor_units" integer DEFAULT 0 NOT NULL,
+	"spent_carrier_minor_units" integer DEFAULT 0 NOT NULL,
+	"spent_conversational_minor_units" integer DEFAULT 0 NOT NULL,
+	"spent_amount_minor_units" integer DEFAULT 0 NOT NULL,
+	"max_concurrent_calls" integer DEFAULT 100 NOT NULL,
+	"version" integer DEFAULT 1 NOT NULL,
+	"created_at" timestamp with time zone NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "platform_global_budget_allocated_chk" CHECK ("platform_global_budget_ledgers"."allocated_budget_minor_units" >= 0),
+	CONSTRAINT "platform_global_budget_reserved_chk" CHECK ("platform_global_budget_ledgers"."reserved_amount_minor_units" >= 0),
+	CONSTRAINT "platform_global_budget_spent_carrier_chk" CHECK ("platform_global_budget_ledgers"."spent_carrier_minor_units" >= 0),
+	CONSTRAINT "platform_global_budget_spent_conversational_chk" CHECK ("platform_global_budget_ledgers"."spent_conversational_minor_units" >= 0),
+	CONSTRAINT "platform_global_budget_spent_total_chk" CHECK ("platform_global_budget_ledgers"."spent_amount_minor_units" = "platform_global_budget_ledgers"."spent_carrier_minor_units" + "platform_global_budget_ledgers"."spent_conversational_minor_units"),
+	CONSTRAINT "platform_global_budget_reserved_le_allocated_chk" CHECK ("platform_global_budget_ledgers"."allocated_budget_minor_units" >= "platform_global_budget_ledgers"."reserved_amount_minor_units"),
+	CONSTRAINT "platform_global_budget_concurrency_chk" CHECK ("platform_global_budget_ledgers"."max_concurrent_calls" > 0),
+	CONSTRAINT "platform_global_budget_version_chk" CHECK ("platform_global_budget_ledgers"."version" > 0)
 );
 --> statement-breakpoint
 ALTER TABLE "outbound_budget_ledgers" ADD CONSTRAINT "outbound_budget_ledgers_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint

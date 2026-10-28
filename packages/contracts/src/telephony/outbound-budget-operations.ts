@@ -7,10 +7,21 @@ export const provisionOutboundBudgetLedgerInputSchema = z.object({
   allocatedBudgetMinorUnits: z.number().int().nonnegative().default(0),
   maxConcurrentCalls: z.number().int().positive().default(5),
   maxDailyAttempts: z.number().int().positive().default(50),
+  timezone: z.string().min(1).default('UTC'),
 });
 
 export type ProvisionOutboundBudgetLedgerInput = z.input<
   typeof provisionOutboundBudgetLedgerInputSchema
+>;
+
+export const provisionGlobalBudgetLedgerInputSchema = z.object({
+  currency: z.string().min(1).default('USD'),
+  allocatedBudgetMinorUnits: z.number().int().nonnegative(),
+  maxConcurrentCalls: z.number().int().positive(),
+});
+
+export type ProvisionGlobalBudgetLedgerInput = z.input<
+  typeof provisionGlobalBudgetLedgerInputSchema
 >;
 
 export const reserveOutboundBudgetInputSchema = z.object({
@@ -19,8 +30,8 @@ export const reserveOutboundBudgetInputSchema = z.object({
   jobId: z.string().uuid(),
   campaignId: z.string().uuid().optional().nullable(),
   estimatedAmountMinorUnits: z.number().int().positive(),
-  estimatedCarrierMinorUnits: z.number().int().nonnegative().optional().default(0),
-  estimatedConversationalMinorUnits: z.number().int().nonnegative().optional().default(0),
+  estimatedCarrierMinorUnits: z.number().int().positive(),
+  estimatedConversationalMinorUnits: z.number().int().positive(),
   idempotencyKey: z.string().min(1),
 });
 
@@ -53,6 +64,22 @@ export type ReserveOutboundBudgetOutcome =
       readonly todayAttemptsCount: number;
       readonly maxDailyAttempts: number;
       readonly reason: string;
+    }
+  | {
+      readonly kind: 'GLOBAL_LEDGER_NOT_FOUND';
+      readonly reason: string;
+    }
+  | {
+      readonly kind: 'GLOBAL_INSUFFICIENT_FUNDS';
+      readonly availableMinorUnits: number;
+      readonly requestedMinorUnits: number;
+      readonly reason: string;
+    }
+  | {
+      readonly kind: 'GLOBAL_CONCURRENCY_LIMIT_REACHED';
+      readonly activeConcurrentCalls: number;
+      readonly maxConcurrentCalls: number;
+      readonly reason: string;
     };
 
 export const settleOutboundBudgetInputSchema = z.object({
@@ -70,6 +97,7 @@ export type SettleOutboundBudgetOutcome =
       readonly reservation: OutboundBudgetReservation;
       readonly totalSettledMinorUnits: number;
       readonly unusedReservationRefundedMinorUnits: number;
+      readonly overageMinorUnits: number;
     }
   | {
       readonly kind: 'ALREADY_SETTLED';

@@ -18571,3 +18571,42 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **STATUS DE EVIDÊNCIA**: `IMPLEMENTED` / `TESTED LOCALLY` no Windows 11 / Node 24 / PostgreSQL 16 local Docker.
 - **SAFETY**: `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `REAL_DOTENV_ACCESSED = NO` | `SECRET_AUDIT = PASS`.
 
+## 2026-10-28 — Fase 8 — Slice 008-OF3: Hardening Financeiro, Teto Global e Liquidação de Overage (PR #122) — Antigravity
+
+- **ESCOPO**: `TARGETED FINANCIAL SAFETY HARDENING / TDD / PR #122` na branch `feat/phase8-008-of3-budget-quotas`.
+- **RESOLUÇÃO DOS BLOQUEIOS DA AUDITORIA PRÉ-MERGE**:
+  1. **P1 — Hard Budget Cap Global**:
+     - Criada autoridade financeira global durável: tabela `platform_global_budget_ledgers` (singleton `platform_global`) com alocação máxima de orçamento e concorrência global da plataforma.
+     - Avaliação atômica global + tenant em transação única (`evaluateBudgetReservation`). Ordem determinística de locks pessimistas: Global Ledger `FOR UPDATE` -> Tenant Ledger `FOR UPDATE` -> Attempt Reservation. Zero deadlocks comprovados.
+     - Falha fail-closed com `GLOBAL_LEDGER_NOT_FOUND` se a política global não estiver configurada.
+     - Bloqueio fail-closed por esgotamento de orçamento global (`GLOBAL_INSUFFICIENT_FUNDS`) e teto de concorrência global (`GLOBAL_CONCURRENCY_LIMIT_REACHED`).
+  2. **P1 — Liquidação de Gasto Superior à Reserva (Overage Settlement)**:
+     - Modelagem ajustada para permitir registro fidedigno do custo real confirmado mesmo quando superar a estimativa inicial ou o orçamento alocado (`spent > allocated`).
+     - Constraint atualizada de forma segura para `allocated_budget_minor_units >= reserved_amount_minor_units` (`reserved_le_allocated_chk`), permitindo contabilização de débitos já realizados sem rejeição por constraint do PostgreSQL.
+     - `calculateAvailableBudget` projeta `Math.max(0, allocated - (reserved + spent))`. Em caso de déficit, o saldo disponível torna-se zero, bloqueando estritamente qualquer nova admissão (`INSUFFICIENT_FUNDS`) até liquidação/reconciliação do saldo.
+     - Rastreabilidade de sobrecusto com `overageMinorUnits` no retorno `SETTLED`.
+  3. **P1 — Eliminação de Custo Arbitrário por Default (500 minor units)**:
+     - Removido qualquer fallback hardcoded de estimativa em `DurableGuardedOriginationRunner`.
+     - Exigência mandatória de estimativas positivas explícitas para carrier e conversação (`estimatedCarrierMinorUnits > 0`, `estimatedConversationalMinorUnits > 0`).
+     - Ausência de estimativa válida resulta em bloqueio imediato fail-closed: `{ kind: 'NOT_SENT', reason: 'ESTIMATED_COST_REQUIRED' }`.
+  4. **P2 — Quotas Diárias Timezone-Aware**:
+     - Adicionado campo `timezone` (default `'UTC'`) a `outbound_budget_ledgers`.
+     - Função pura `getStartOfDayInTimezone(date, timezone)` utilizando `Intl.DateTimeFormat` para corte temporal determinístico e resistente a relógios heterogêneos.
+  5. **Migration Versionada Unificada**:
+     - Migration `0008_outbound_budget_quotas.sql` consolidada limpa com `platform_global_budget_ledgers`, `outbound_budget_ledgers` (com `timezone` e constraint atualizada) e `outbound_budget_reservations`. Snapshot `0008_snapshot.json` validado com `drizzle-kit check`.
+- **EVIDÊNCIA DE TESTES**:
+  - `packages/contracts/src/telephony/outbound-budget-contracts.test.ts`: 11 testes unitários cobrindo cálculos puros, faltas de configuração global, estouro de concorrência global, esgotamento global e timezone.
+  - `packages/database/src/outbound-budget.integration.test.ts`: 10 testes de integração cobrindo ledger de tenant, quotas, concorrência e estresse.
+  - `packages/database/src/outbound-budget-global.integration.test.ts`: 7 testes de integração adversariais cobrindo disputa global entre múltiplos tenants, concorrência global, liquidação com overage superior ao orçamento alocado, transições da máquina de estados (duplo settle, duplo release, late release) e fail-closed por estimativa ausente.
+  - Total: 28/28 testes financeiros e adversariais aprovados contra PostgreSQL 16 Alpine local descartável.
+- **QUALITY GATE**:
+  - `pnpm format:check`: PASS.
+  - `pnpm lint`: PASS (0 erros, 0 warnings).
+  - `pnpm typecheck`: PASS (12/12 pacotes).
+  - `pnpm build`: PASS (12/12 pacotes, Next.js build OK).
+  - `pnpm check:architecture`: PASS.
+  - `pnpm check:file-size`: PASS (todos os arquivos de lógica <= 180 linhas).
+- **STATUS DE EVIDÊNCIA**: `IMPLEMENTED` / `TESTED LOCALLY` / `READY FOR MERGE`.
+- **SAFETY**: `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `REAL_DOTENV_ACCESSED = NO` | `SECRET_AUDIT = PASS`.
+
+
