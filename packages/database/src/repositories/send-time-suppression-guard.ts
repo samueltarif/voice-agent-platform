@@ -6,6 +6,7 @@ import type { CallAttemptEntity } from '../schema/call-attempts.js';
 import type { DatabaseExecutor } from './database-executor.js';
 import { applyAttemptEventInTransaction } from './durable-attempt-event-applier.js';
 import { buildInternalAttemptEvent } from './durable-attempt-event-factory.js';
+import { lockSuppressionKey } from './suppression-linearization-lock.js';
 
 /**
  * 008-MVP1 — última barreira antes do efeito externo: o destino do job da
@@ -16,20 +17,24 @@ export async function isAttemptDestinationSuppressed(
   executor: DatabaseExecutor,
   row: CallAttemptEntity,
 ): Promise<boolean> {
-  const [hit] = await executor
-    .select({ hit: sql<number>`1` })
+  const [job] = await executor
+    .select({ destination: outboundCallJobs.destinationPhone })
     .from(outboundCallJobs)
-    .innerJoin(
-      contactSuppressions,
-      and(
-        eq(contactSuppressions.organizationId, outboundCallJobs.organizationId),
-        eq(contactSuppressions.phoneE164, outboundCallJobs.destinationPhone),
-      ),
-    )
     .where(
       and(
         eq(outboundCallJobs.id, row.jobId),
         eq(outboundCallJobs.organizationId, row.organizationId),
+      ),
+    );
+  if (!job) return false;
+  await lockSuppressionKey(executor, row.organizationId, job.destination);
+  const [hit] = await executor
+    .select({ hit: sql<number>`1` })
+    .from(contactSuppressions)
+    .where(
+      and(
+        eq(contactSuppressions.organizationId, row.organizationId),
+        eq(contactSuppressions.phoneE164, job.destination),
       ),
     )
     .limit(1);

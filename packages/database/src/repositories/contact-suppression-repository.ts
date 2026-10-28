@@ -2,6 +2,7 @@ import { and, desc, eq } from 'drizzle-orm';
 import type { ContactSuppressionReason } from '@voice-agent/contracts';
 import type { DatabaseInstance } from '../client/connection.js';
 import { contactSuppressions, type ContactSuppressionEntity } from '../schema/contacts.js';
+import { lockSuppressionKey } from './suppression-linearization-lock.js';
 
 export interface AddSuppressionInput {
   readonly organizationId: string;
@@ -24,31 +25,34 @@ export type AddSuppressionOutcome =
 export class DrizzleContactSuppressionRepository {
   constructor(private readonly db: DatabaseInstance) {}
 
-  async addSuppression(input: AddSuppressionInput): Promise<AddSuppressionOutcome> {
-    const [created] = await this.db
-      .insert(contactSuppressions)
-      .values({
-        organizationId: input.organizationId,
-        phoneE164: input.phoneE164,
-        reason: input.reason,
-        evidenceReference: input.evidenceReference ?? null,
-        createdByUserId: input.createdByUserId ?? null,
-      })
-      .onConflictDoNothing({
-        target: [contactSuppressions.organizationId, contactSuppressions.phoneE164],
-      })
-      .returning();
-    if (created) return { kind: 'SUPPRESSED', suppression: created };
-    const [existing] = await this.db
-      .select()
-      .from(contactSuppressions)
-      .where(
-        and(
-          eq(contactSuppressions.organizationId, input.organizationId),
-          eq(contactSuppressions.phoneE164, input.phoneE164),
-        ),
-      );
-    return { kind: 'ALREADY_SUPPRESSED', suppression: existing! };
+  addSuppression(input: AddSuppressionInput): Promise<AddSuppressionOutcome> {
+    return this.db.transaction(async (tx) => {
+      await lockSuppressionKey(tx, input.organizationId, input.phoneE164);
+      const [created] = await tx
+        .insert(contactSuppressions)
+        .values({
+          organizationId: input.organizationId,
+          phoneE164: input.phoneE164,
+          reason: input.reason,
+          evidenceReference: input.evidenceReference ?? null,
+          createdByUserId: input.createdByUserId ?? null,
+        })
+        .onConflictDoNothing({
+          target: [contactSuppressions.organizationId, contactSuppressions.phoneE164],
+        })
+        .returning();
+      if (created) return { kind: 'SUPPRESSED' as const, suppression: created };
+      const [existing] = await tx
+        .select()
+        .from(contactSuppressions)
+        .where(
+          and(
+            eq(contactSuppressions.organizationId, input.organizationId),
+            eq(contactSuppressions.phoneE164, input.phoneE164),
+          ),
+        );
+      return { kind: 'ALREADY_SUPPRESSED' as const, suppression: existing! };
+    });
   }
 
   listSuppressions(organizationId: string, limit: number, offset: number) {

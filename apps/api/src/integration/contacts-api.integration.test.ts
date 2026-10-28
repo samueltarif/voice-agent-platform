@@ -217,6 +217,24 @@ describe('008-MVP1 contacts API (HTTP + PostgreSQL)', () => {
     ]);
   });
 
+  it('refuses oversized import bodies before parsing them (413)', async () => {
+    role = 'OWNER';
+    const list = await call('POST', '/v1/contact-lists', fx.tenantA.organizationId, {
+      name: 'Gigante',
+    });
+    const huge = 'Telefone\n' + '"'.repeat(5 * 1024 * 1024);
+    const response = await call(
+      'POST',
+      `/v1/contact-lists/${list.json.id}/imports`,
+      fx.tenantA.organizationId,
+      {
+        csv: huge,
+        mapping: { phoneColumn: 'Telefone' },
+      },
+    );
+    expect(response.status).toBe(413);
+  });
+
   it('rejects invalid CSVs and phones with 400 without partial writes', async () => {
     role = 'OWNER';
     const list = await call('POST', '/v1/contact-lists', fx.tenantA.organizationId, {

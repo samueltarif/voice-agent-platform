@@ -1,4 +1,5 @@
 import { createRoute, type OpenAPIHono, z } from '@hono/zod-openapi';
+import { bodyLimit } from 'hono/body-limit';
 import { BadRequestError, ConflictError, NotFoundError } from '@voice-agent/errors';
 import {
   CONTACT_CSV_LIMITS,
@@ -148,8 +149,21 @@ function registerMembers(app: OpenAPIHono, deps: ApiDependencies): void {
   );
 }
 
+/**
+ * Teto do corpo da importação, aplicado ANTES do parsing JSON: o CSV tem até
+ * `maxBytes`, e o escape JSON pode no máximo dobrar o tamanho (aspas, quebras).
+ */
+export const CONTACT_IMPORT_MAX_BODY_BYTES = CONTACT_CSV_LIMITS.maxBytes * 2 + 64 * 1024;
+
 /** 008-MVP1 — listas de contatos e importação CSV (tenant via assertion de serviço). */
 export function registerContactListRoutes(app: OpenAPIHono, deps: ApiDependencies): void {
+  app.use(
+    '/v1/contact-lists/:listId/imports',
+    bodyLimit({
+      maxSize: CONTACT_IMPORT_MAX_BODY_BYTES,
+      onError: (c) => c.json({ error: { code: 'PAYLOAD_TOO_LARGE' } }, 413),
+    }),
+  );
   registerListCrud(app, deps);
   registerImport(app, deps);
   registerMembers(app, deps);
