@@ -45,11 +45,12 @@ function buildDomainEvent(
 }
 
 /**
- * Status de chamada → FSM durável. Efeitos de negócio:
- * - transição de estado apenas via FSM (monotônica; eventos atrasados = STALE);
- * - rejeição confirmada libera a reserva (idempotente: reentrega = ALREADY_RELEASED,
- *   e uma falha entre aplicar e liberar é corrigida pela reentrega);
- * - nenhum efeito de liquidação (custos reais: 008-OF5/MVP4) e NUNCA rediscagem.
+ * Status de chamada → FSM durável (monotônica; eventos atrasados = STALE).
+ * ZERO efeito financeiro: a semântica de custo de uma rejeição do provedor é
+ * PROVIDER-UNVERIFIED (rejeição após SEND_STARTED/OUTCOME_UNKNOWN pode ainda
+ * gerar cobrança). A reserva permanece encumberada até liquidação ou
+ * reconciliação explícitas (008-OF5/008-MVP4), preservando a garantia da
+ * 008-OF3 de que custo realizado é sempre registrável. Nunca rediscagem.
  */
 export async function ingestCallStatus(
   deps: ProviderWebhookDependencies,
@@ -87,13 +88,6 @@ export async function ingestCallStatus(
     deps.logger.warn('provider_webhook.rejected_transition', {
       ...context,
       reason: outcome.reason,
-    });
-  }
-  if (outcome.record.attempt.state === 'ORIGINATION_REJECTED') {
-    await deps.budget.releaseBudget({
-      organizationId: attempt.organizationId,
-      attemptId: attempt.id,
-      reason: 'PROVIDER_CONFIRMED_REJECTION',
     });
   }
   return RECEIVED;

@@ -94,12 +94,15 @@ export function attemptEventTypeForCallStatus(
 }
 
 /**
- * Chave de deduplicação da entrega. Com id oficial: provedor + id. Sem ele:
+ * Chave de deduplicação da entrega. Com id oficial: provedor + referência + id. Sem ele:
  * composição determinística provedor + referência + tipo de transição (uma
  * transição por tipo e tentativa; repetições são a mesma entrega).
  */
 export function providerDeliveryKey(provider: string, event: NormalizedProviderEvent): string {
-  if (event.providerEventId) return `${provider}|id|${event.providerEventId}`;
+  // Id oficial escopado pela referência: provedores podem reutilizar ids entre chamadas.
+  if (event.providerEventId) {
+    return `${provider}|id|${event.providerCallReference}|${event.providerEventId}`;
+  }
   const transition = event.kind === 'CALL_STATUS' ? event.status : `TOOL:${event.invocationId}`;
   return `${provider}|ref|${event.providerCallReference}|${transition}`;
 }

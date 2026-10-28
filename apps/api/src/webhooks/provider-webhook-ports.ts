@@ -1,5 +1,4 @@
 import type {
-  OutboundBudgetPort,
   ProviderWebhookAuthenticator,
   ProviderWebhookNormalizer,
   ToolPort,
@@ -22,7 +21,6 @@ export interface ProviderWebhookDependencies {
   /** Provedores habilitados por nome de rota; ausente = 401 uniforme. */
   readonly providers: ReadonlyMap<string, ProviderWebhookAdapter>;
   readonly store: ProviderEventAttemptStorePort;
-  readonly budget: Pick<OutboundBudgetPort, 'releaseBudget'>;
   readonly tools: ToolPort;
   /** Limite interno de execução de ferramenta; sem valor oficial do provedor (NOT_VERIFIED). */
   readonly toolTimeoutMs: number;

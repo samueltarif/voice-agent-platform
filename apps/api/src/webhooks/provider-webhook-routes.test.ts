@@ -52,7 +52,6 @@ function harness(
       resolveByProviderReference: async () => LIVE,
       applyProviderEvent: async () => ({ kind: 'NOT_FOUND' }),
     },
-    budget: { releaseBudget: vi.fn() },
     tools: { executeTool: async (i) => ({ status: 'SUCCESS', toolName: i.toolName, output: 1 }) },
     toolTimeoutMs: 50,
     logger,

@@ -51,7 +51,6 @@ describe('008-OF4 provider webhook ingress against real PostgreSQL', () => {
       ],
     ]),
     store: new DrizzleProviderEventAttemptStore(tdb.db),
-    budget,
     tools,
     toolTimeoutMs: 2_000,
     logger: createNullLogger(),
@@ -137,6 +136,40 @@ describe('008-OF4 provider webhook ingress against real PostgreSQL', () => {
     return scope;
   }
 
+  /** Tentativa com SEND_STARTED gravado e nenhum desfecho (worker morto durante o envio). */
+  async function claimedOnly(tenant: TenantFixture) {
+    const jobId = await createExtraJob(tdb.db, { tenant, tag: 'webhook-claimed' });
+    const prepared = await attempts.prepareAttempt({
+      organizationId: tenant.organizationId,
+      jobId,
+      attemptId: randomUUID(),
+      correlationId: randomUUID(),
+      intentEventId: randomUUID(),
+      now: new Date(),
+    });
+    if (prepared.kind !== 'PREPARED') throw new Error(prepared.reason);
+    const a = prepared.record.attempt;
+    const scope = { organizationId: a.organizationId, attemptId: a.id };
+    const reserved = await budget.reserveBudget({
+      ...scope,
+      jobId: a.jobId,
+      estimatedAmountMinorUnits: 500,
+      estimatedCarrierMinorUnits: 300,
+      estimatedConversationalMinorUnits: 200,
+      idempotencyKey: a.idempotencyKey,
+    });
+    expect(reserved.kind).toBe('RESERVED');
+    const claim = await attempts.claimSend({
+      ...scope,
+      ownerId: 'w',
+      leaseMs: 60_000,
+      eventId: randomUUID(),
+      now: new Date(),
+    });
+    if (claim.kind !== 'CLAIMED') throw new Error(claim.reason);
+    return scope;
+  }
+
   const providerRows = (attemptId: string) =>
     raw.pool.query(
       "SELECT event_type, source, provider FROM call_events WHERE attempt_id = $1 AND source = 'PROVIDER'",
@@ -177,24 +210,57 @@ describe('008-OF4 provider webhook ingress against real PostgreSQL', () => {
     expect(rows).toHaveLength(1);
   });
 
-  it('releases the reservation exactly once on a confirmed rejection, despite redelivery', async () => {
-    const scope = await sentAttempt(fx.tenantA, 'CA-rej-1', false);
-    // Simula adapter que registra a referência antes do desfecho (contrato real: 008-OF5).
-    await raw.pool.query(
-      "UPDATE call_attempts SET provider_reference = 'CA-rej-1', state_version = state_version + 1 WHERE id = $1",
-      [scope.attemptId],
-    );
-    const before = await budget.getLedger(scope.organizationId);
-    const rejected = {
-      ...status('CA-rej-1', 'REJECTED', 'evt-rej-1'),
-      rejectionReason: 'DESTINATION_NOT_ALLOWED',
-    };
-    await post('events', rejected);
-    await post('events', rejected);
-    expect(await stateOf(scope)).toBe('ORIGINATION_REJECTED');
-    const after = await budget.getLedger(scope.organizationId);
-    expect(after?.reservedAmountMinorUnits).toBe((before?.reservedAmountMinorUnits ?? 0) - 500);
-    expect(after?.spentAmountMinorUnits).toBe(before?.spentAmountMinorUnits);
+  it.each([
+    ['SEND_STARTED', 'CA-rej-sent'],
+    ['OUTCOME_UNKNOWN', 'CA-rej-unknown'],
+  ] as const)(
+    'a provider rejection after %s never releases funds; a later realized cost is still recorded',
+    async (phase, ref) => {
+      const scope =
+        phase === 'SEND_STARTED'
+          ? await claimedOnly(fx.tenantA)
+          : await sentAttempt(fx.tenantA, ref, false);
+      // Simula adapter que registra a referência antes do desfecho (contrato real: 008-OF5).
+      await raw.pool.query(
+        'UPDATE call_attempts SET provider_reference = $2, state_version = state_version + 1 WHERE id = $1',
+        [scope.attemptId, ref],
+      );
+      const before = await budget.getLedger(scope.organizationId);
+      const rejected = {
+        ...status(ref, 'REJECTED', `evt-${ref}`),
+        rejectionReason: 'DESTINATION_NOT_ALLOWED',
+      };
+      await post('events', rejected);
+      await post('events', rejected);
+      expect(await stateOf(scope)).toBe('ORIGINATION_REJECTED');
+      const after = await budget.getLedger(scope.organizationId);
+      expect(after?.reservedAmountMinorUnits).toBe(before?.reservedAmountMinorUnits);
+      // Semântica de custo da rejeição é PROVIDER-UNVERIFIED: a dívida realizada continua registrável.
+      const settled = await budget.settleBudget({
+        ...scope,
+        actualCarrierCostMinorUnits: 120,
+        actualConversationalCostMinorUnits: 30,
+      });
+      expect(settled.kind).toBe('SETTLED');
+    },
+  );
+
+  it('applies concurrent identical deliveries exactly once', async () => {
+    const scope = await sentAttempt(fx.tenantA, 'CA-race-1', true);
+    const closed = status('CA-race-1', 'CLOSED', 'evt-race-1');
+    const responses = await Promise.all(Array.from({ length: 10 }, () => post('events', closed)));
+    expect(responses.every((r) => r.status === 202)).toBe(true);
+    expect((await providerRows(scope.attemptId)).rows).toHaveLength(1);
+    expect(await stateOf(scope)).toBe('CLOSED');
+  });
+
+  it('scopes official event ids to the call reference (no cross-call collision)', async () => {
+    const first = await sentAttempt(fx.tenantA, 'CA-scope-1', true);
+    const second = await sentAttempt(fx.tenantB, 'CA-scope-2', true);
+    await post('events', status('CA-scope-1', 'CLOSED', 'reused-id'));
+    await post('events', status('CA-scope-2', 'CLOSED', 'reused-id'));
+    expect(await stateOf(first)).toBe('CLOSED');
+    expect(await stateOf(second)).toBe('CLOSED');
   });
 
   it('never acts on a reference shared by two tenants (ambiguous, uniform response)', async () => {

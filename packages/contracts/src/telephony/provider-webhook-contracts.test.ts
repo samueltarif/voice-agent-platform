@@ -41,7 +41,7 @@ describe('008-OF4 provider webhook contracts', () => {
   });
 
   it('prefers the official event id and otherwise composes a deterministic key', () => {
-    expect(providerDeliveryKey('p', { ...status, providerEventId: 'e-1' })).toBe('p|id|e-1');
+    expect(providerDeliveryKey('p', { ...status, providerEventId: 'e-1' })).toBe('p|id|ref-1|e-1');
     expect(providerDeliveryKey('p', status)).toBe('p|ref|ref-1|CLOSED');
     expect(providerDeliveryKey('p', status)).not.toBe(
       providerDeliveryKey('p', { ...status, status: 'ACCEPTED' }),
