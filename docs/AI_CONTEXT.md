@@ -4,13 +4,13 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-28
-CONTEXT_BASE_MAIN_SHA: 1d4b998168519fcc8423dde8138e2c865ca765cd
+CONTEXT_BASE_MAIN_SHA: f7b19ee13bab99aabf247b94245924b42736d349
 CURRENT_PHASE: Phase 8 (OUTBOUND_FIRST_TWO_TRACK_PLANNING)
-CURRENT_SLICE: 008-OF3 Financial Hardening Complete / Ready for Squash Merge
-CONTEXT_UPDATE_BRANCH: feat/phase8-008-of3-budget-quotas
-CONTEXT_UPDATE_PR: 122
-LAST_MERGED_PR_AT_REFRESH: 121
-LAST_MERGE_SHA_AT_REFRESH: 1d4b998168519fcc8423dde8138e2c865ca765cd
+CURRENT_SLICE: 008-OF3 Merged on Main / Fail-Closed Hardening in PR #123
+CONTEXT_UPDATE_BRANCH: fix/phase8-008-of3-fail-closed-hardening
+CONTEXT_UPDATE_PR: 123
+LAST_MERGED_PR_AT_REFRESH: 122
+LAST_MERGE_SHA_AT_REFRESH: f7b19ee13bab99aabf247b94245924b42736d349
 LAST_TESTED_CODE_SHA: QUERY_GIT_AT_RUNTIME
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
@@ -32,7 +32,7 @@ AI_CONTEXT_HEADER_END
 | **API** | `IMPLEMENTED` | `apps/api` (Hono/Node.js, rotas de drafts, lifecycle com validação de toolset canônico, auth interna com service token/Ed25519, gerenciamento de campanhas outbound /v1/campaigns e agendamento em lote de jobs, descarte de rascunho de versão DEC-040, e API REST de documentos de base de conhecimento /v1/knowledge/documents com RBAC DEC-039) |
 | **Voice** | `PARTIAL` | `apps/voice` (Motor universal de execução de tools `ToolExecutionEngine`, registro `InMemoryToolRegistry`, adapters `OperatingHoursTool`/`CatalogSearchTool`/`CatalogItemDetailTool` e resolução de toolset de versão publicada `resolvePublishedVersionToolset` implementados/testados offline; coordenador de retrieval `VoiceKnowledgeRetrievalCoordinator` offline; Orquestrador com roteamento supervisionado offline, coordenador dedicado `GuardedTurnRoutingCoordinator`, despacho determinístico, entrega estática de segurança offline, ownership OPTION_B, blindagem DISPATCH_ATTEMPTED -> NO_OPENAI_FALLBACK, single-owner Jev evaluation e tratamento qualificado de interrupção H4/H5 implementados/testados offline; streaming OpenAI; AuxiliaryTurnShadowObserver integrado non-blocking; handler determinístico `agent.operating_hours` integrado offline; fiação em runtime de produção: NÃO; tráfego real: NÃO) |
 | **Worker** | `IMPLEMENTED` | `apps/worker` (Fundação de background tasks, processamento de filas assíncronas, dispatcher atômico de chamadas outbound `outbound-call-dispatcher` com `SKIP LOCKED`; 008-OF1: coordenador offline de ciclo de vida de tentativas `outbound-attempt-origination-coordinator` com fakes em memória, sem fiação ativa) |
-| **Database** | `IMPLEMENTED` | `packages/database` (PostgreSQL 16, Drizzle ORM, multi-tenancy, schemas comerciais, auditoria, `agent_versions`, `catalog_items`, `outbound_campaigns`/`outbound_call_jobs`, `knowledge_documents`/`knowledge_chunks`; 008-OF2: `organization_phone_numbers`/`call_attempts`/`call_sessions`/`call_events` via migration 0007; 008-OF3 implementada e testada offline: `outbound_budget_ledgers`/`outbound_budget_reservations` via migration 0008, hard budget caps, solvency guard, quotas diárias e runner blindado) |
+| **Database** | `IMPLEMENTED` | `packages/database` (PostgreSQL 16, Drizzle ORM, multi-tenancy, schemas comerciais, auditoria, `agent_versions`, `catalog_items`, `outbound_campaigns`/`outbound_call_jobs`, `knowledge_documents`/`knowledge_chunks`; 008-OF2: `organization_phone_numbers`/`call_attempts`/`call_sessions`/`call_events` via migration 0007; 008-OF3 implementada, testada offline e mesclada na main: `platform_global_budget_ledgers`/`outbound_budget_ledgers`/`outbound_budget_reservations` via migration 0008, hard budget caps global e por tenant, solvency guard, quotas diárias timezone-aware e runner blindado; mutações de settle/release endurecidas fail-closed na PR #123) |
 
 ---
 
@@ -126,13 +126,16 @@ AI_CONTEXT_HEADER_END
 ## 6. Estado Atual da Evidência de Qualidade (Quality Gate Snapshot)
 
 - **Último `pnpm check` Global na Main**: `BLOCKED_WITH_EVIDENCE` (observado no merge da PR #119 no commit `fb82e40da61006c798860b1bb9c320ed255b1cde`: exit code 1 no estágio 4 por timeout de 5000ms no teste preexistente da Fase 6 `packages/integrations/src/typesafe/check-targeted-v2-technical-readiness.test.ts > C. dataset hash mismatch => technical readiness NO` sob carga de 4 workers do Vitest no Windows; todos os 94 testes da 008-OF1 passaram). A PR #120 foi mesclada depois (`6d02868`) com gate PASS na branch; um gate completo reexecutado na `main` pós-#120 não foi observado neste snapshot.
-- **Gate Canônico Windows na Branch da PR #121**: `PASS` (Windows 11 Pro `10.0.26200`, Node `v24.20.0`, pnpm `12.5.1`, Docker `29.6.2`; `cmd /c "pnpm install --frozen-lockfile && pnpm check"` com exit code 0; 193 arquivos de teste aprovados / 6 ignorados; 1451 testes aprovados / 45 ignorados; duração 190.05s na reexecução final). Evidência real do destino no modo `DOCKER_LOCAL_CONTAINER` com container `voice-agent-postgres` (`postgres:16-alpine`) e `system_identifier` correlacionado.
+- **Gate Canônico na Branch da PR #121**: `PASS` (Windows 11 Pro `10.0.26200`, Node `v24.20.0`, pnpm `12.5.1`, Docker `29.6.2`; `cmd /c "pnpm install --frozen-lockfile && pnpm check"` com exit code 0; 193 arquivos de teste aprovados / 6 ignorados; 1451 testes aprovados / 45 ignorados; duração 190.05s na reexecução final). Evidência real do destino no modo `DOCKER_LOCAL_CONTAINER` com container `voice-agent-postgres` (`postgres:16-alpine`) e `system_identifier` correlacionado.
+- **Gate Canônico na Branch da PR #122 (008-OF3)**: `PASS` (exit code 0; 201 arquivos de teste, 195 aprovados / 6 ignorados; 1.468 testes aprovados / 45 ignorados; zero falhas). Merge squash em `f7b19ee13bab99aabf247b94245924b42736d349`.
+- **Gate Canônico na Main pós-#122 (baseline da PR #123)**: `PASS` (exit code 0 em `f7b19ee`; 196 arquivos de teste aprovados / 6 ignorados (202); 1.479 testes aprovados / 45 ignorados (1.524); duração 248.02s; 41 avisos de tamanho, zero violações).
+- **Gate Canônico na Branch da PR #123 (hardening fail-closed 008-OF3)**: `PASS` (exit code 0 no HEAD `eeec50c`; 198 arquivos de teste aprovados / 6 ignorados (204); 1.485 testes aprovados / 45 ignorados (1.530); duração 292.62s).
 - **Gate Canônico na Branch da PR #120 (`fix/phase8-postmerge-gate-timeout-stabilization`)**: `PASS` (após aplicar `{ timeout: 30000 }` aos testes A, C e E de `check-targeted-v2-technical-readiness.test.ts`, o comando `cmd /c "pnpm install --frozen-lockfile && pnpm check"` terminou com exit code 0; 7 estágios aprovados; 181 arquivos de teste aprovados / 1348 testes aprovados / 0 falhas / 45 testes de staging pulados).
 - **Identificadores de HEAD & Semântica Não-Auto-Referencial**:
-  - `LAST_RECORDED_FULL_GATE_HEAD = QUERY_GIT_AT_RUNTIME`
-  - `LAST_RECORDED_FULL_GATE_STATUS = PASS (na branch da PR #121, Windows 11 / Node 24)`
+  - `LAST_RECORDED_FULL_GATE_HEAD = eeec50c52cc59234c807b63e912c566dde57c20a`
+  - `LAST_RECORDED_FULL_GATE_STATUS = PASS (na branch da PR #123, Windows 11 / Node 24)`
   - `CURRENT_BRANCH_HEAD_SOURCE = QUERY_GIT_AT_RUNTIME`
-  - `LAST_CODE_BEARING_MAIN_SHA = fb82e40da61006c798860b1bb9c320ed255b1cde`
+  - `LAST_CODE_BEARING_MAIN_SHA = f7b19ee13bab99aabf247b94245924b42736d349`
   - *Nota*: `AI_CONTEXT.md` é conteúdo versionado e não pode conter o SHA do próprio commit que o modifica. O HEAD exato da branch corrente deve ser obtido do Git em runtime (`QUERY_GIT_AT_RUNTIME`). `LAST_RECORDED_FULL_GATE_HEAD` registra a evidência mais recente observada e durável quando este snapshot foi redigido, evitando loops infinitos de auto-referência.
 - **Regressão de Asserções**: `ASSERTION_WEAKER = 0`, `NEW_SKIPS = 0`.
 - **Verificação Arquitetural**: `SUCESSO: Todas as fronteiras e regras arquiteturais respeitadas.`
@@ -213,10 +216,10 @@ AI_CONTEXT_HEADER_END
 - **008-OF1 Status**: `MERGED ON MAIN AS OFFLINE IMPLEMENTATION` (incorporada à `main` via PR #119 no commit `fb82e40da61006c798860b1bb9c320ed255b1cde`). Contratos provider-neutral em `packages/contracts/src/telephony/` e coordenador/fakes offline em `apps/worker/src/`. Zero migrations, zero tabelas adicionais, zero adapters Twilio/Millis em runtime de produção, zero chamadas reais. Status de evidência: `TESTED` offline; `PROVIDER-UNVERIFIED`.
 - **PR #120 Status**: `MERGED ON MAIN` (squash `6d02868`; estabilização de timeouts e reconciliação pós-merge; gate da `main` reportado: 181 arquivos de teste, 1.348 testes aprovados, 45 ignorados, 0 falhas, exit code 0).
 - **008-OF2 Status**: `MERGED ON MAIN AS OFFLINE IMPLEMENTATION` (incorporada à `main` via PR #121 no commit `e1203381374b1d372b98cf0f049237fe7c5378ac`). Migration aditiva `0007_durable_outbound_persistence` executada exclusivamente em PostgreSQL 16 local descartável. Repositórios transacionais, claims com lease/fencing e tolerância a crash comprovada com processos Node reais. Sem fiação ativa, sem webhooks, sem adapters reais (`PROVIDER-UNVERIFIED`). Gate canônico Windows reportado no merge: 193 arquivos aprovados / 1.451 testes aprovados / 45 ignorados / zero falhas.
-- **PR #122 Status**: `MERGED ON MAIN` (commit `1d4b998168519fcc8423dde8138e2c865ca765cd`; reconciliação de governança pós-merge da PR #121, DEC-043 no DECISIONS_LOG.md e ROADMAP.md alinhados).
-- **008-OF3 Status**: `IMPLEMENTED / TESTED LOCALLY` no branch `feat/phase8-008-of3-budget-quotas`. Contratos provider-neutral em `packages/contracts/src/telephony/outbound-budget-*`, migration `0008_outbound_budget_quotas.sql` com ledgers e reservas, solvency guard, concurrency limits, daily quotas e `DurableGuardedOriginationRunner`. Suite completa de 201 arquivos (195 aprovados, 6 staging ignorados, 1.468 testes aprovados, 45 ignorados, 0 falhas). Arquitetura AST e verificação de tamanho (416 arquivos de lógica <= 180 linhas) aprovadas com zero erros.
-- `NEXT_ALLOWED_STEP = REVIEW_AND_MERGE_SLICE_008_OF3` (Revisão e merge da PR 008-OF3; em seguida 008-OF4 — Adapters isolados Twilio e Millis AI em pacotes de integração offline).
-- `NEXT_ALLOWED_SLICE = 008-OF4` (após merge de 008-OF3).
+- **PR #122 Status**: `MERGED ON MAIN` (squash `f7b19ee13bab99aabf247b94245924b42736d349`; implementação da 008-OF3 com budget global e por tenant, quotas diárias timezone-aware, overage settlement e runner blindado; gate da branch `PASS` com 201 arquivos / 1.468 testes aprovados).
+- **008-OF3 Status**: `MERGED ON MAIN / HARDENING IN PR #123`. Auditoria pós-merge encontrou dois defeitos fail-open reais no ledger financeiro: settle/release commitavam a transição da reserva sem atualizar ledgers ausentes, e `ALREADY_RESERVED` autorizava originação com reserva `RELEASED`/`COMMITTED`. Correção mínima aplicada com `OutboundBudgetLedgerMissingError` e `resolveReservationBlock`; 6 novos testes de regressão (3 unitários, 3 de integração PostgreSQL) comprovados em ciclo regression-first. Gate canônico da branch: 198 arquivos / 1.485 testes aprovados / 45 ignorados / zero falhas.
+- `NEXT_ALLOWED_STEP = REVIEW_AND_MERGE_SLICE_008_OF3_HARDENING` (merge da PR #123; em seguida 008-OF4 — Webhooks provider-neutral e integração de ferramentas offline).
+- `NEXT_ALLOWED_SLICE = 008-OF4` (após merge da PR #123).
 - `PURCHASE_OF_PHONE_NUMBERS = 0` | `REAL_PROVIDER_CALLS = 0` | `CUSTOMER_TRAFFIC = PROHIBITED` | `ACTIVE_GUARDED = BLOCKED`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
 
