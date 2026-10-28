@@ -7,6 +7,11 @@ import {
   collectTestDatabaseEvidence,
 } from './collect-test-database-evidence.js';
 import {
+  acquireDisposableDatabaseLease,
+  DISPOSABLE_DATABASE_LEASE_KEYS,
+  releaseDisposableDatabaseLease,
+} from './disposable-database-lease.js';
+import {
   assertDroppableByThisRun,
   createDisposableTestDatabase,
 } from './disposable-test-database.js';
@@ -27,13 +32,52 @@ import {
  */
 const DDL_TIMEOUT_MS = 30_000;
 
+/**
+ * Esta suíte cria bancos DENTRO dos testes; o lease entre processos é obtido no
+ * carregamento (sem limite de hook) para que a espera por outras suítes
+ * descartáveis nunca consuma o `DDL_TIMEOUT_MS` dos testes. Criações internas
+ * reentram no mesmo lease deste processo.
+ */
+await acquireDisposableDatabaseLease(resolveTestAdminUrl(process.env));
+
 describe('disposable test database guard against the real local PostgreSQL', () => {
   const adminUrl = resolveTestAdminUrl(process.env);
   const admin = createDatabaseConnection({ connectionString: adminUrl, maxConnections: 1 });
 
   afterAll(async () => {
     await admin.pool.end();
+    await releaseDisposableDatabaseLease();
   });
+
+  async function leaseFreeForAnotherSession(): Promise<boolean> {
+    const other = createDatabaseConnection({ connectionString: adminUrl, maxConnections: 1 });
+    try {
+      const keys = sql.join(
+        DISPOSABLE_DATABASE_LEASE_KEYS.map((k) => sql`${k}`),
+        sql`, `,
+      );
+      const taken = await other.db.execute(sql`SELECT pg_try_advisory_lock(${keys}) AS ok`);
+      const ok = (taken.rows[0] as { ok: boolean }).ok;
+      if (ok) await other.db.execute(sql`SELECT pg_advisory_unlock(${keys})`);
+      return ok;
+    } finally {
+      await other.pool.end();
+    }
+  }
+
+  it('L1. the disposable-database lease excludes other sessions while held', async () => {
+    expect(await leaseFreeForAnotherSession()).toBe(false);
+  });
+
+  it(
+    'L2. nested create/drop in the same process re-enters the lease and keeps it held',
+    async () => {
+      const tdb = await createDisposableTestDatabase('guard');
+      await tdb.drop();
+      expect(await leaseFreeForAnotherSession()).toBe(false);
+    },
+    DDL_TIMEOUT_MS,
+  );
 
   async function databaseExists(name: string): Promise<boolean> {
     const result = await admin.db.execute(sql`SELECT 1 FROM pg_database WHERE datname = ${name}`);

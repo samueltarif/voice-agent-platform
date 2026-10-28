@@ -12,6 +12,7 @@ import { platformGlobalBudgetLedgers } from '../schema/platform-global-budget-le
 import type { DatabaseExecutor } from './database-executor.js';
 import { requireOutboundBudgetLedgerRow } from './outbound-budget-ledger-presence.js';
 import { mapOutboundBudgetReservation } from './outbound-budget-mapping.js';
+import { proveAttemptNotSent } from './outbound-budget-release-evidence.js';
 import { GLOBAL_BUDGET_LEDGER_ID } from './outbound-budget-queries.js';
 
 function checkReleaseEligibility(
@@ -79,6 +80,28 @@ async function unencumberLedgers(tx: DatabaseExecutor, input: UnencumberInput): 
     .where(eq(outboundBudgetLedgers.id, lockedTenant.id));
 }
 
+async function requireNotSentEvidence(
+  tx: DatabaseExecutor,
+  ctx: {
+    readonly input: ReleaseOutboundBudgetInput;
+    readonly reservation: OutboundBudgetReservationEntity;
+    readonly now: Date;
+  },
+): Promise<ReleaseOutboundBudgetOutcome | null> {
+  const evidence = await proveAttemptNotSent(tx, {
+    organizationId: ctx.input.organizationId,
+    attemptId: ctx.input.attemptId,
+    now: ctx.now,
+  });
+  if (evidence.proven) return null;
+  return {
+    kind: 'RELEASE_BLOCKED_ATTEMPT_NOT_PROVEN_UNSENT',
+    reservation: mapOutboundBudgetReservation(ctx.reservation),
+    attemptState: evidence.attemptState,
+    reason: 'Release requires proof that the attempt was never sent.',
+  };
+}
+
 export async function releaseBudgetInTransaction(
   tx: DatabaseExecutor,
   input: ReleaseOutboundBudgetInput,
@@ -98,6 +121,8 @@ export async function releaseBudgetInTransaction(
   if (ineligibility) return ineligibility;
 
   const now = new Date();
+  const blocked = await requireNotSentEvidence(tx, { input, reservation: reservation!, now });
+  if (blocked) return blocked;
   await unencumberLedgers(tx, {
     orgId: input.organizationId,
     amount: reservation!.reservedAmountMinorUnits,

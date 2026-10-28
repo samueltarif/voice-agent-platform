@@ -12,10 +12,7 @@ import {
   type DurableOutboundFixture,
   type TenantFixture,
 } from './test-support/durable-outbound-fixtures.js';
-import {
-  createDisposableTestDatabase,
-  type DisposableTestDatabase,
-} from './test-support/disposable-test-database.js';
+import { createDisposableTestDatabase } from './test-support/disposable-test-database.js';
 
 async function failureOf(work: Promise<unknown>) {
   try {
@@ -26,9 +23,16 @@ async function failureOf(work: Promise<unknown>) {
   return null;
 }
 
+/**
+ * Banco criado no carregamento do módulo, como nas demais suítes descartáveis:
+ * criação + migrations não ficam sujeitas ao limite de hook de 10 s e, se
+ * falharem, o próprio harness remove a base e propaga a causa original; o
+ * `afterAll` só existe quando a criação terminou (nunca com `tdb` indefinido).
+ */
+const tdb = await createDisposableTestDatabase('review');
+
 /** Regressões da revisão independente da PR #121 (P0-1, P0-2, P0-3). */
 describe('PR #121 review regressions (PostgreSQL)', () => {
-  let tdb: DisposableTestDatabase;
   let attempts: DrizzleCallAttemptRepository;
   let sessions: DrizzleCallSessionRepository;
   let trail: DrizzleCallEventTrailRepository;
@@ -36,7 +40,6 @@ describe('PR #121 review regressions (PostgreSQL)', () => {
   const now = new Date('2026-10-20T12:00:00.000Z');
 
   beforeAll(async () => {
-    tdb = await createDisposableTestDatabase('review');
     attempts = new DrizzleCallAttemptRepository(tdb.db);
     sessions = new DrizzleCallSessionRepository(tdb.db);
     trail = new DrizzleCallEventTrailRepository(tdb.db);
