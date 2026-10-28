@@ -129,11 +129,11 @@ AI_CONTEXT_HEADER_END
 - **Gate Canônico na Branch da PR #121**: `PASS` (Windows 11 Pro `10.0.26200`, Node `v24.20.0`, pnpm `12.5.1`, Docker `29.6.2`; `cmd /c "pnpm install --frozen-lockfile && pnpm check"` com exit code 0; 193 arquivos de teste aprovados / 6 ignorados; 1451 testes aprovados / 45 ignorados; duração 190.05s na reexecução final). Evidência real do destino no modo `DOCKER_LOCAL_CONTAINER` com container `voice-agent-postgres` (`postgres:16-alpine`) e `system_identifier` correlacionado.
 - **Gate Canônico na Branch da PR #122 (008-OF3)**: `PASS` (exit code 0; 201 arquivos de teste, 195 aprovados / 6 ignorados; 1.468 testes aprovados / 45 ignorados; zero falhas). Merge squash em `f7b19ee13bab99aabf247b94245924b42736d349`.
 - **Gate Canônico na Main pós-#122 (baseline da PR #123)**: `PASS` (exit code 0 em `f7b19ee`; 196 arquivos de teste aprovados / 6 ignorados (202); 1.479 testes aprovados / 45 ignorados (1.524); duração 248.02s; 41 avisos de tamanho, zero violações).
-- **Gate Canônico na Branch da PR #123 (hardening fail-closed 008-OF3)**: `PASS` (exit code 0 no HEAD `eeec50c`; 198 arquivos de teste aprovados / 6 ignorados (204); 1.485 testes aprovados / 45 ignorados (1.530); duração 292.62s).
+- **Gate Canônico na Branch da PR #123 (hardening fail-closed 008-OF3)**: `PASS` (exit code 0; 198 arquivos de teste aprovados / 6 ignorados (204); 1.485 testes aprovados / 45 ignorados (1.530)). Reexecução final pré-merge no HEAD de merge: exit code 0, mesmas contagens, duração 275.03s.
 - **Gate Canônico na Branch da PR #120 (`fix/phase8-postmerge-gate-timeout-stabilization`)**: `PASS` (após aplicar `{ timeout: 30000 }` aos testes A, C e E de `check-targeted-v2-technical-readiness.test.ts`, o comando `cmd /c "pnpm install --frozen-lockfile && pnpm check"` terminou com exit code 0; 7 estágios aprovados; 181 arquivos de teste aprovados / 1348 testes aprovados / 0 falhas / 45 testes de staging pulados).
 - **Identificadores de HEAD & Semântica Não-Auto-Referencial**:
-  - `LAST_RECORDED_FULL_GATE_HEAD = eeec50c52cc59234c807b63e912c566dde57c20a`
-  - `LAST_RECORDED_FULL_GATE_STATUS = PASS (na branch da PR #123, Windows 11 / Node 24)`
+  - `LAST_RECORDED_FULL_GATE_HEAD = QUERY_GIT_AT_RUNTIME`
+  - `LAST_RECORDED_FULL_GATE_STATUS = PASS (HEAD final pré-merge da PR #123, Windows 11 / Node 24; 198 arquivos / 1.485 testes / 45 ignorados / exit code 0)`
   - `CURRENT_BRANCH_HEAD_SOURCE = QUERY_GIT_AT_RUNTIME`
   - `LAST_CODE_BEARING_MAIN_SHA = f7b19ee13bab99aabf247b94245924b42736d349`
   - *Nota*: `AI_CONTEXT.md` é conteúdo versionado e não pode conter o SHA do próprio commit que o modifica. O HEAD exato da branch corrente deve ser obtido do Git em runtime (`QUERY_GIT_AT_RUNTIME`). `LAST_RECORDED_FULL_GATE_HEAD` registra a evidência mais recente observada e durável quando este snapshot foi redigido, evitando loops infinitos de auto-referência.
