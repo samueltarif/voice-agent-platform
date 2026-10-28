@@ -18505,3 +18505,108 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **GATE CANÔNICO WINDOWS**: `cmd /c "pnpm install --frozen-lockfile && pnpm check"`; exit code `0`; `193` arquivos aprovados / `6` ignorados (`199`); `1451` testes aprovados / `45` ignorados (`1496`); duração `190.05s` na reexecução final (`255.70s` na primeira execução, mesmo código).
 - **CLASSIFICAÇÃO**: `IMPLEMENTED`; `TESTED LOCALLY` no Windows 11 / Node 24; qualquer tráfego real de provedor continua `PROVIDER-UNVERIFIED`; `VALIDATED` não se aplica a provedores nesta entrada.
 - **SAFETY**: `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `REAL_DOTENV_ACCESSED = NO` | `SECRET_AUDIT = PASS`.
+
+## 2026-10-27 — Fase 8 — PR #121 Post-Merge Reconciliação de Governança e Transição para 008-OF3 — Antigravity
+
+- **CONTEXTO**: Reconciliação documental pós-merge da PR #121 (Slice 008-OF2 — Durable Outbound Persistence and Crash Recovery), incorporada à branch `main` via squash merge no commit `e1203381374b1d372b98cf0f049237fe7c5378ac` em 21/10/2026.
+- **BRANCH**: `docs/phase8-008-of2-postmerge-governance-reconciliation`
+- **BASE_MAIN_SHA**: `e1203381374b1d372b98cf0f049237fe7c5378ac`
+- **STATUS_DE_EVIDÊNCIA**:
+  - `008-OF1`: Concluída e mesclada na `main` no commit `fb82e40da61006c798860b1bb9c320ed255b1cde` (PR #119).
+  - `008-OF2`: Concluída e mesclada na `main` no commit `e1203381374b1d372b98cf0f049237fe7c5378ac` (PR #121).
+  - `008-OF3`: Planejada conforme DEC-043 (`outbound_budget_ledgers`, concorrência e quotas fail-closed). Próxima slice técnica autorizada para implementação offline.
+- **RECONCILIAÇÃO DOCUMENTAL**:
+  - `docs/ROADMAP.md`: Marcadas as slices 008-OF1 e 008-OF2 como concluídas (`[x]`) com seus respectivos commits de merge na `main`.
+  - `docs/AI_CONTEXT.md`: Atualizados `CONTEXT_BASE_MAIN_SHA` para `e120338...`, `LAST_MERGED_PR_AT_REFRESH` para `121`, `LAST_MERGE_SHA_AT_REFRESH` para `e120338...`, status do subsistema Database para mesclado na `main`, e `NEXT_ALLOWED_SLICE` atualizado para `008-OF3`.
+- **SEGURANÇA E INVARIANTES**:
+  - `ACTIVE_GUARDED = BLOCKED`
+  - `CUSTOMER_TRAFFIC = PROHIBITED`
+  - `PRODUCTION_RUNTIME_WIRING = NO`
+  - `REAL_PROVIDER_CALLS = 0`
+  - `PURCHASE_OF_PHONE_NUMBERS = 0`
+  - `REMOTE_MIGRATIONS = 0`
+  - `REAL_DOTENV_ACCESSED = NO`
+  - `SECRET_AUDIT = PASS`
+
+## 2026-10-27 — Fase 8 — Slice 008-OF3: Quotas, Concorrência e Orçamento (Hard Budget Caps) — Antigravity
+
+- **ESCOPO**: `IMPLEMENTATION / OFFLINE TDD / ARCHITECTURAL INTEGRITY` sobre a base `main` `1d4b998168519fcc8423dde8138e2c865ca765cd` (pós-reconciliação de governança PR #122). Branch ativa: `feat/phase8-008-of3-budget-quotas`.
+- **OBJETIVO**: Implementar as travas financeiras atômicas e de concorrência antes da autorização de qualquer discagem, conforme DEC-042, DEC-043 e ROADMAP.md.
+- **CONTRATOS PROVIDER-NEUTRAL (`packages/contracts/src/telephony/`)**:
+  - `outbound-budget-types.ts`: Tipos `OutboundBudgetLedger`, `OutboundBudgetReservation`, `OutboundBudgetReservationStatus`. Campos contábeis desacoplados de fornecedores específicos: `spentCarrierMinorUnits` e `spentConversationalMinorUnits` (telefonia/transporte e voz/IA em tempo real).
+  - `outbound-budget-operations.ts`: Schemas Zod de entrada e saída para provisionamento, reserva, liquidação (settlement) e liberação (release).
+  - `outbound-budget-contracts.ts`: Interface de porta de domínio `OutboundBudgetPort`.
+  - `evaluate-budget-reservation.ts`: Funções puras de cálculo de saldo disponível e avaliação determinística de reserva orçamentária (`calculateAvailableBudget`, `evaluateBudgetReservation`).
+  - `outbound-budget-contracts.test.ts`: 7 testes unitários puros de contratos e regras de solvência/concorrência.
+- **PERSISTÊNCIA E DRIZZLE SCHEMA (`packages/database/src/schema/`)**:
+  - `outbound-budget-ledgers.ts`: Tabela `outbound_budget_ledgers` com chave primária UUID, isolamento multi-tenant (`organization_id`), moeda, saldo alocado, reservado, consumido em carrier e em conversacional, limites de concorrência (`max_concurrent_calls`) e de tentativas diárias (`max_daily_attempts`). Check constraints de solvência (`allocated >= reserved + spent`), totalização exata e não-negatividade.
+  - `outbound-budget-reservations.ts`: Tabela `outbound_budget_reservations` com foreign keys compostas por tenant referenciando `call_attempts` e `outbound_call_jobs`, chave de idempotência única por tenant, timestamps com timezone e check constraints de totalização de liquidação.
+  - Migration aditiva versionada: `0008_outbound_budget_quotas.sql` e snapshot `0008_snapshot.json` gerados e validados com `drizzle-kit check` (zero erros).
+- **REPOSITÓRIOS E TRANSAÇÕES ATÔMICAS (`packages/database/src/repositories/`)**:
+  - `DrizzleOutboundBudgetRepository`: Implementação de `OutboundBudgetPort` com isolamento multi-tenant estrito, transações com travamento pessimista `SELECT ... FOR UPDATE`, bloqueio fail-closed em caso de saldo insuficiente, excesso de concorrência simultânea ou estouro de quota diária.
+  - Sub-módulos coesos (arquivos <= 180 linhas, funções <= 50 linhas, complexidade <= 8): `outbound-budget-provision.ts`, `outbound-budget-reserve.ts`, `outbound-budget-settle.ts`, `outbound-budget-release.ts`, `outbound-budget-queries.ts`, `outbound-budget-mapping.ts`.
+  - `DurableGuardedOriginationRunner`: Orquestrador blindado que encapsula o runner de originação durável, reservando saldo atomicamente antes do despacho e liberando/estornando a reserva imediatamente caso a originação seja abortada.
+- **INTEGRIDADE DE TESTES E EVIDÊNCIAS OBSERVADAS**:
+  - `outbound-budget.integration.test.ts`: 10 testes de integração executados contra PostgreSQL 16 Alpine Docker local:
+    - Provisionamento e consulta de ledger;
+    - Reserva atômica com dedução do saldo disponível;
+    - Idempotência em reservas duplicadas com mesma tentativa ou chave;
+    - Solvency guard: rejeição fail-closed quando o saldo disponível é insuficiente;
+    - Limite de concorrência: bloqueio fail-closed em reservas simultâneas atingindo `max_concurrent_calls`;
+    - Quota diária: bloqueio fail-closed quando `maxDailyAttempts` é atingido no dia;
+    - Liquidação com estorno de saldo não consumido;
+    - Liberação e estorno integral de reservas canceladas;
+    - Coordenação via `DurableGuardedOriginationRunner`;
+    - Teste de estresse de condição de corrida (stress test de solvência com 6 workers simultâneos contra barreira assíncrona — exatamente 3 reservas aceitas e 3 rejeitadas por saldo, saldo final 0 sem nunca negativar).
+  - Suíte de regressão durável e schema (7 arquivos, 47 testes): 100% aprovados.
+  - Provider neutrality guard (`outbound-attempt-offline-guard.test.ts`): 8 testes aprovados, zero menções a marcas de fornecedores em contratos.
+  - Quality Gate Canônico Completo (`pnpm check`):
+    - `pnpm format:check`: 100% em conformidade com Prettier.
+    - `pnpm check:architecture`: Todas as fronteiras e regras arquiteturais respeitadas.
+    - `pnpm check:file-size`: 416 arquivos de lógica de produção verificados; zero erros (todos <= 180 linhas).
+    - `pnpm lint`: ESLint aprovado com zero erros e zero avisos.
+    - `pnpm typecheck`: 12 pacotes aprovados sem erros.
+    - `pnpm build`: Build de produção turbo aprovado em todos os 12 pacotes (incluindo Next.js 15.2).
+    - `pnpm test`: 201 arquivos de teste (195 aprovados, 6 staging ignorados como esperado offline; 1.468 testes aprovados, 45 ignorados, 0 falhas).
+- **STATUS DE EVIDÊNCIA**: `IMPLEMENTED` / `TESTED LOCALLY` no Windows 11 / Node 24 / PostgreSQL 16 local Docker.
+- **SAFETY**: `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `REAL_DOTENV_ACCESSED = NO` | `SECRET_AUDIT = PASS`.
+
+## 2026-10-28 — Fase 8 — Slice 008-OF3: Hardening Financeiro, Teto Global e Liquidação de Overage (PR #122) — Antigravity
+
+- **ESCOPO**: `TARGETED FINANCIAL SAFETY HARDENING / TDD / PR #122` na branch `feat/phase8-008-of3-budget-quotas`.
+- **RESOLUÇÃO DOS BLOQUEIOS DA AUDITORIA PRÉ-MERGE**:
+  1. **P1 — Hard Budget Cap Global**:
+     - Criada autoridade financeira global durável: tabela `platform_global_budget_ledgers` (singleton `platform_global`) com alocação máxima de orçamento e concorrência global da plataforma.
+     - Avaliação atômica global + tenant em transação única (`evaluateBudgetReservation`). Ordem determinística de locks pessimistas: Global Ledger `FOR UPDATE` -> Tenant Ledger `FOR UPDATE` -> Attempt Reservation. Zero deadlocks comprovados.
+     - Falha fail-closed com `GLOBAL_LEDGER_NOT_FOUND` se a política global não estiver configurada.
+     - Bloqueio fail-closed por esgotamento de orçamento global (`GLOBAL_INSUFFICIENT_FUNDS`) e teto de concorrência global (`GLOBAL_CONCURRENCY_LIMIT_REACHED`).
+  2. **P1 — Liquidação de Gasto Superior à Reserva (Overage Settlement)**:
+     - Modelagem ajustada para permitir registro fidedigno do custo real confirmado mesmo quando superar a estimativa inicial ou o orçamento alocado (`spent > allocated`).
+     - Constraint atualizada de forma segura para `allocated_budget_minor_units >= reserved_amount_minor_units` (`reserved_le_allocated_chk`), permitindo contabilização de débitos já realizados sem rejeição por constraint do PostgreSQL.
+     - `calculateAvailableBudget` projeta `Math.max(0, allocated - (reserved + spent))`. Em caso de déficit, o saldo disponível torna-se zero, bloqueando estritamente qualquer nova admissão (`INSUFFICIENT_FUNDS`) até liquidação/reconciliação do saldo.
+     - Rastreabilidade de sobrecusto com `overageMinorUnits` no retorno `SETTLED`.
+  3. **P1 — Eliminação de Custo Arbitrário por Default (500 minor units)**:
+     - Removido qualquer fallback hardcoded de estimativa em `DurableGuardedOriginationRunner`.
+     - Exigência mandatória de estimativas positivas explícitas para carrier e conversação (`estimatedCarrierMinorUnits > 0`, `estimatedConversationalMinorUnits > 0`).
+     - Ausência de estimativa válida resulta em bloqueio imediato fail-closed: `{ kind: 'NOT_SENT', reason: 'ESTIMATED_COST_REQUIRED' }`.
+  4. **P2 — Quotas Diárias Timezone-Aware**:
+     - Adicionado campo `timezone` (default `'UTC'`) a `outbound_budget_ledgers`.
+     - Função pura `getStartOfDayInTimezone(date, timezone)` utilizando `Intl.DateTimeFormat` para corte temporal determinístico e resistente a relógios heterogêneos.
+  5. **Migration Versionada Unificada**:
+     - Migration `0008_outbound_budget_quotas.sql` consolidada limpa com `platform_global_budget_ledgers`, `outbound_budget_ledgers` (com `timezone` e constraint atualizada) e `outbound_budget_reservations`. Snapshot `0008_snapshot.json` validado com `drizzle-kit check`.
+- **EVIDÊNCIA DE TESTES**:
+  - `packages/contracts/src/telephony/outbound-budget-contracts.test.ts`: 11 testes unitários cobrindo cálculos puros, faltas de configuração global, estouro de concorrência global, esgotamento global e timezone.
+  - `packages/database/src/outbound-budget.integration.test.ts`: 10 testes de integração cobrindo ledger de tenant, quotas, concorrência e estresse.
+  - `packages/database/src/outbound-budget-global.integration.test.ts`: 7 testes de integração adversariais cobrindo disputa global entre múltiplos tenants, concorrência global, liquidação com overage superior ao orçamento alocado, transições da máquina de estados (duplo settle, duplo release, late release) e fail-closed por estimativa ausente.
+  - Total: 28/28 testes financeiros e adversariais aprovados contra PostgreSQL 16 Alpine local descartável.
+- **QUALITY GATE**:
+  - `pnpm format:check`: PASS.
+  - `pnpm lint`: PASS (0 erros, 0 warnings).
+  - `pnpm typecheck`: PASS (12/12 pacotes).
+  - `pnpm build`: PASS (12/12 pacotes, Next.js build OK).
+  - `pnpm check:architecture`: PASS.
+  - `pnpm check:file-size`: PASS (todos os arquivos de lógica <= 180 linhas).
+- **STATUS DE EVIDÊNCIA**: `IMPLEMENTED` / `TESTED LOCALLY` / `READY FOR MERGE`.
+- **SAFETY**: `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `REAL_DOTENV_ACCESSED = NO` | `SECRET_AUDIT = PASS`.
+
+

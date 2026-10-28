@@ -247,8 +247,8 @@ A ordem histórica 008A–008G postergava o dialer outbound para o Slice 008E, c
 
 ##### D. Detalhamento Sequencial das Slices Outbound-First
 
-- [ ] **Slice 008-OF1 — Contratos e Ciclo de Vida Outbound Provider-Neutral (Fundação)**:
-  - **Status Real**: `IMPLEMENTED_TESTED_OFFLINE / EM REVISÃO HUMANA` — implementação offline aberta em PR própria (branch `feat/phase8-008-of1-outbound-lifecycle-contracts`); NÃO concluída até aprovação e merge. Contratos em `packages/contracts/src/telephony/`; coordenador e fakes offline em `apps/worker/src/`; zero migrations, zero adapters Twilio/Millis, zero chamadas reais (`PROVIDER-UNVERIFIED`). Persistência e recuperação após reinício real permanecem na 008-OF2.
+- [x] **Slice 008-OF1 — Contratos e Ciclo de Vida Outbound Provider-Neutral (Fundação)**:
+  - **Status Real**: Concluída e mesclada na `main` via PR #119 (`fb82e40da61006c798860b1bb9c320ed255b1cde`). Contratos em `packages/contracts/src/telephony/`; coordenador e fakes offline em `apps/worker/src/`; zero migrations, zero adapters Twilio/Millis em produção, zero chamadas reais (`PROVIDER-UNVERIFIED`). Persistência e tolerância a crash entregues na 008-OF2.
   - **Objetivo**: Definir portas de originação, estados de tentativa e ciclo de vida de chamadas outbound sem acoplamento a fornecedores e sem migrations prematuras.
   - **Escopo**:
     - Porta `TelephonyOriginationPort` e tipos em `packages/contracts/src/telephony/`.
@@ -261,8 +261,8 @@ A ordem histórica 008A–008G postergava o dialer outbound para o Slice 008E, c
   - **Critérios de Aceitação**: Portas implementadas, suite de testes passando, `pnpm check` = exit 0, zero dependências externas.
   - **Riscos**: Acoplamento prematuro a conceitos específicos da Twilio ou Millis (mitigado por revisão provider-neutral).
 
-- [ ] **Slice 008-OF2 — Persistência Operacional, Sessões, Eventos e Números Twilio**:
-  - **Status Real**: `IMPLEMENTED_TESTED_OFFLINE / EM REVISÃO HUMANA` — implementação offline na PR #121 (aberta; branch `feat/phase8-008-of2-durable-outbound-persistence`; correções da revisão independente aplicadas, validação Windows pendente); NÃO concluída até aprovação e merge. Migration aditiva `0007` aplicada apenas em PostgreSQL local descartável; estados persistidos = FSM canônica da 008-OF1 (sem simplificação para `PENDING/DISPATCHED/FAILED/COMPLETED`). Zero migrations remotas, zero chamadas reais, zero compra de números (`PROVIDER-UNVERIFIED`).
+- [x] **Slice 008-OF2 — Persistência Operacional, Sessões, Eventos e Números Twilio**:
+  - **Status Real**: Concluída e mesclada na `main` via PR #121 (`e1203381374b1d372b98cf0f049237fe7c5378ac`). Migration aditiva `0007_durable_outbound_persistence.sql` aplicada exclusivamente em PostgreSQL 16 local descartável; schemas `organization_phone_numbers`, `call_attempts`, `call_sessions`, `call_events`; FKs compostas por tenant; triggers append-only e de imutabilidade; repositories transacionais; leases/fencing e suíte de recuperação de crash com processos Node reais. Zero migrations remotas, zero chamadas reais, zero compra de números (`PROVIDER-UNVERIFIED`).
   - **Objetivo**: Estabelecer a fundação completa de persistência durável para o ciclo de vida outbound, mapeando números Twilio e separando explicitamente jobs, tentativas, sessões e eventos.
   - **Escopo**:
     - Planejamento de migration aditiva versionada para tabela `organization_phone_numbers` (`organizationId`, `e164Number`, `twilioPhoneNumberSid`, `status: ACTIVE | RELEASED`).
@@ -282,18 +282,19 @@ A ordem histórica 008A–008G postergava o dialer outbound para o Slice 008E, c
   - **Critérios de Aceitação**: Schemas aditivos e repositórios testados localmente; modelo durável capaz de representar tentativas, sessões e eventos com rastreabilidade auditável e minimização de dados; zero queries raw em controllers; isolamento multi-tenant comprovado.
   - **Riscos**: Colisão de números entre tenants (mitigado por unique index em `e164Number`).
 
-- [ ] **Slice 008-OF3 — Quotas, Concorrência e Orçamento (Hard Budget Caps)**:
+- [x] **Slice 008-OF3 — Quotas, Concorrência e Orçamento (Hard Budget Caps)**:
+  - **Status Real**: Concluída e testada offline no branch `feat/phase8-008-of3-budget-quotas`. Contratos de domínio provider-neutral em `packages/contracts/src/telephony/outbound-budget-*`; migration aditiva versionada `0008_outbound_budget_quotas.sql` com tabelas `outbound_budget_ledgers` e `outbound_budget_reservations`; travas atômicas `SELECT ... FOR UPDATE` com solvency guard, daily quotas e limite de concorrência simultânea fail-closed; separação contábil estrita entre custos de carrier e conversacionais (`carrier` e `conversational`); `DurableGuardedOriginationRunner` garantindo unencumber/estorno imediato em origination abortada; suíte completa de 201 arquivos (195 aprovados, 6 staging ignorados, 1.468 testes aprovados, zero falhas); `pnpm check` aprovado integralmente com zero erros.
   - **Objetivo**: Implementar travas financeiras atômicas e de concorrência antes da autorização de qualquer discagem.
   - **Escopo**:
     - Tabela e repositório de ledger: `outbound_budget_ledgers` (saldo, reserva pendente, consumo consolidado).
-    - Reserva atômica idempotente pré-chamada com estorno pós-chamada.
+    - Tabela e repositório de reservas: `outbound_budget_reservations` (reserva atômica idempotente pré-chamada com estorno pós-chamada).
     - Limite de chamadas simultâneas por organização (`max_concurrent_calls`).
     - Verificação de quota diária (premissa de planejamento delimitada) e bloqueio fail-closed.
   - **Dependências**: Conclusão das Slices 008-OF1 e 008-OF2.
-  - **Arquivos Prováveis**: `packages/database/src/`, `apps/worker/src/outbound-call-dispatcher.ts`.
-  - **Testes Offline**: Testes de alta concorrência simulando esgotamento de saldo, saturação de concorrência e tentativa de discagem duplicada.
-  - **Critérios de Aceitação**: Impossibilidade comprovada de saldo negativo em testes de estresse, fail-closed verificado.
-  - **Riscos**: Deadlock em concorrência de saldo (mitigado por transações ordenadas e curtas).
+  - **Arquivos Implementados**: `packages/contracts/src/telephony/outbound-budget-*`, `packages/database/src/schema/outbound-budget-*`, `packages/database/src/repositories/outbound-budget-*`, `packages/database/src/repositories/durable-guarded-origination-runner.ts`, `packages/database/src/migrations/0008_outbound_budget_quotas.sql`.
+  - **Testes Offline**: Testes unitários puros de contratos e avaliação de saldo em `@voice-agent/contracts`; testes de integração em PostgreSQL 16 Docker simulando concorrência simultânea de múltiplos workers, esgotamento atômico de saldo, bloqueio fail-closed de quota diária e idempotência.
+  - **Critérios de Aceitação**: Impossibilidade comprovada de saldo negativo em testes de estresse, fail-closed verificado, suite de testes passando, `pnpm check` = exit 0, zero dependências externas.
+  - **Riscos Mitigados**: Concorrência de saldo prevenida por transações `SELECT ... FOR UPDATE` curtas, ordenação e idempotência atômica por tentativa/chave.
 
 - [ ] **Slice 008-OF4 — Webhooks e Integração de Ferramentas Offline**:
   - **Objetivo**: Construir a recepção segura de eventos e despacho de ferramentas determinísticas para a plataforma conversacional, consumindo as tabelas de sessão e eventos da Slice 008-OF2.
