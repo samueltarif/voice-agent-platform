@@ -1,4 +1,4 @@
-import type { OutboundBudgetPort } from '@voice-agent/contracts';
+import type { OutboundBudgetPort, ReserveOutboundBudgetOutcome } from '@voice-agent/contracts';
 import type { DrizzleCallAttemptRepository } from './call-attempt-repository.js';
 import type {
   AttemptScope,
@@ -40,8 +40,19 @@ function resolveEstimatedAmounts(options?: GuardedOriginationOptions) {
   };
 }
 
-function isReservationSuccessful(kind: string): boolean {
-  return kind === 'RESERVED' || kind === 'ALREADY_RESERVED';
+/**
+ * Apenas uma reserva ainda pendente autoriza o envio. `ALREADY_RESERVED`
+ * devolve o estado persistido, que pode estar RELEASED (tentativa anterior
+ * abortada) ou COMMITTED (já liquidada); prosseguir nesses casos originaria
+ * uma chamada sem fundos encumberados (fail-open).
+ */
+function resolveReservationBlock(outcome: ReserveOutboundBudgetOutcome): string | null {
+  if (outcome.kind === 'RESERVED') return null;
+  if (outcome.kind === 'ALREADY_RESERVED') {
+    if (outcome.reservation.status === 'RESERVED') return null;
+    return `BUDGET_BLOCKED:RESERVATION_NOT_PENDING:${outcome.reservation.status}`;
+  }
+  return `BUDGET_BLOCKED:${outcome.kind}`;
 }
 
 export class DurableGuardedOriginationRunner {
@@ -69,9 +80,8 @@ export class DurableGuardedOriginationRunner {
       idempotencyKey: record.attempt.idempotencyKey,
     });
 
-    if (!isReservationSuccessful(outcome.kind)) {
-      return `BUDGET_BLOCKED:${outcome.kind}`;
-    }
+    const block = resolveReservationBlock(outcome);
+    if (block) return block;
 
     return null;
   }
