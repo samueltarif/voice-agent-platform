@@ -59,8 +59,12 @@ describe('008-MVP1 suppression vs send decision linearization', () => {
       phoneE164: '+5511933330001',
       reason: 'OPT_OUT',
     });
-    expect(await settlesWithin(pending, 300)).toBe(false);
-    await release();
+    try {
+      expect(await settlesWithin(pending, 300)).toBe(false);
+    } finally {
+      // Sempre encerra a transação de teste: falha de asserção não pode vazar lock/banco.
+      await release();
+    }
     expect((await pending).kind).toBe('SUPPRESSED');
   });
 
@@ -88,8 +92,11 @@ describe('008-MVP1 suppression vs send decision linearization', () => {
       eventId: randomUUID(),
       now: new Date(),
     });
-    expect(await settlesWithin(claim, 300)).toBe(false);
-    await release();
+    try {
+      expect(await settlesWithin(claim, 300)).toBe(false);
+    } finally {
+      await release();
+    }
     expect((await claim).kind).toBe('CLAIMED');
   });
 });
