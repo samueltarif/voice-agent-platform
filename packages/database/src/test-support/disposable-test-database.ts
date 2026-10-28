@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm';
 import { createDatabaseConnection, type DatabaseInstance } from '../client/connection.js';
 import { runMigrations } from '../client/migrate.js';
 import { collectTestDatabaseEvidence } from './collect-test-database-evidence.js';
+import { waitForDatabaseDrain } from './wait-for-database-drain.js';
 import {
   acquireDisposableDatabaseLease,
   releaseDisposableDatabaseLease,
@@ -153,6 +154,7 @@ async function dropDisposable(input: {
   assertDroppableByThisRun(input.name);
   const admin = createDatabaseConnection({ connectionString: ADMIN_URL, maxConnections: 1 });
   try {
+    await waitForDatabaseDrain(admin.db, input.name);
     await admin.db.execute(sql.raw(`DROP DATABASE IF EXISTS "${input.name}" WITH (FORCE)`));
     const left = await admin.db.execute(
       sql`SELECT 1 FROM pg_database WHERE datname = ${input.name}`,
