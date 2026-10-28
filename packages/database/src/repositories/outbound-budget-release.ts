@@ -10,6 +10,7 @@ import {
 } from '../schema/outbound-budget-reservations.js';
 import { platformGlobalBudgetLedgers } from '../schema/platform-global-budget-ledger.js';
 import type { DatabaseExecutor } from './database-executor.js';
+import { requireOutboundBudgetLedgerRow } from './outbound-budget-ledger-presence.js';
 import { mapOutboundBudgetReservation } from './outbound-budget-mapping.js';
 import { GLOBAL_BUDGET_LEDGER_ID } from './outbound-budget-queries.js';
 
@@ -51,16 +52,15 @@ async function unencumberLedgers(tx: DatabaseExecutor, input: UnencumberInput): 
     .where(eq(platformGlobalBudgetLedgers.id, GLOBAL_BUDGET_LEDGER_ID))
     .for('update');
 
-  if (globalRow) {
-    await tx
-      .update(platformGlobalBudgetLedgers)
-      .set({
-        reservedAmountMinorUnits: Math.max(0, globalRow.reservedAmountMinorUnits - input.amount),
-        version: globalRow.version + 1,
-        updatedAt: input.now,
-      })
-      .where(eq(platformGlobalBudgetLedgers.id, GLOBAL_BUDGET_LEDGER_ID));
-  }
+  const lockedGlobal = requireOutboundBudgetLedgerRow(globalRow, 'GLOBAL');
+  await tx
+    .update(platformGlobalBudgetLedgers)
+    .set({
+      reservedAmountMinorUnits: Math.max(0, lockedGlobal.reservedAmountMinorUnits - input.amount),
+      version: lockedGlobal.version + 1,
+      updatedAt: input.now,
+    })
+    .where(eq(platformGlobalBudgetLedgers.id, GLOBAL_BUDGET_LEDGER_ID));
 
   const [tenantRow] = await tx
     .select()
@@ -68,16 +68,15 @@ async function unencumberLedgers(tx: DatabaseExecutor, input: UnencumberInput): 
     .where(eq(outboundBudgetLedgers.organizationId, input.orgId))
     .for('update');
 
-  if (tenantRow) {
-    await tx
-      .update(outboundBudgetLedgers)
-      .set({
-        reservedAmountMinorUnits: Math.max(0, tenantRow.reservedAmountMinorUnits - input.amount),
-        version: tenantRow.version + 1,
-        updatedAt: input.now,
-      })
-      .where(eq(outboundBudgetLedgers.id, tenantRow.id));
-  }
+  const lockedTenant = requireOutboundBudgetLedgerRow(tenantRow, 'TENANT');
+  await tx
+    .update(outboundBudgetLedgers)
+    .set({
+      reservedAmountMinorUnits: Math.max(0, lockedTenant.reservedAmountMinorUnits - input.amount),
+      version: lockedTenant.version + 1,
+      updatedAt: input.now,
+    })
+    .where(eq(outboundBudgetLedgers.id, lockedTenant.id));
 }
 
 export async function releaseBudgetInTransaction(

@@ -7,6 +7,7 @@ import { outboundBudgetLedgers } from '../schema/outbound-budget-ledgers.js';
 import { outboundBudgetReservations } from '../schema/outbound-budget-reservations.js';
 import { platformGlobalBudgetLedgers } from '../schema/platform-global-budget-ledger.js';
 import type { DatabaseExecutor } from './database-executor.js';
+import { requireOutboundBudgetLedgerRow } from './outbound-budget-ledger-presence.js';
 import { mapOutboundBudgetReservation } from './outbound-budget-mapping.js';
 import { GLOBAL_BUDGET_LEDGER_ID } from './outbound-budget-queries.js';
 import {
@@ -33,23 +34,22 @@ async function updateGlobalLedgerSettlement(
     .where(eq(platformGlobalBudgetLedgers.id, GLOBAL_BUDGET_LEDGER_ID))
     .for('update');
 
-  if (globalRow) {
-    await tx
-      .update(platformGlobalBudgetLedgers)
-      .set({
-        reservedAmountMinorUnits: Math.max(
-          0,
-          globalRow.reservedAmountMinorUnits - params.reservedAmount,
-        ),
-        spentCarrierMinorUnits: globalRow.spentCarrierMinorUnits + params.carrierCost,
-        spentConversationalMinorUnits:
-          globalRow.spentConversationalMinorUnits + params.conversationalCost,
-        spentAmountMinorUnits: globalRow.spentAmountMinorUnits + params.totalActual,
-        version: globalRow.version + 1,
-        updatedAt: params.now,
-      })
-      .where(eq(platformGlobalBudgetLedgers.id, GLOBAL_BUDGET_LEDGER_ID));
-  }
+  const lockedGlobal = requireOutboundBudgetLedgerRow(globalRow, 'GLOBAL');
+  await tx
+    .update(platformGlobalBudgetLedgers)
+    .set({
+      reservedAmountMinorUnits: Math.max(
+        0,
+        lockedGlobal.reservedAmountMinorUnits - params.reservedAmount,
+      ),
+      spentCarrierMinorUnits: lockedGlobal.spentCarrierMinorUnits + params.carrierCost,
+      spentConversationalMinorUnits:
+        lockedGlobal.spentConversationalMinorUnits + params.conversationalCost,
+      spentAmountMinorUnits: lockedGlobal.spentAmountMinorUnits + params.totalActual,
+      version: lockedGlobal.version + 1,
+      updatedAt: params.now,
+    })
+    .where(eq(platformGlobalBudgetLedgers.id, GLOBAL_BUDGET_LEDGER_ID));
 }
 
 async function updateTenantLedgerSettlement(
@@ -62,23 +62,22 @@ async function updateTenantLedgerSettlement(
     .where(eq(outboundBudgetLedgers.organizationId, params.orgId))
     .for('update');
 
-  if (tenantRow) {
-    await tx
-      .update(outboundBudgetLedgers)
-      .set({
-        reservedAmountMinorUnits: Math.max(
-          0,
-          tenantRow.reservedAmountMinorUnits - params.reservedAmount,
-        ),
-        spentCarrierMinorUnits: tenantRow.spentCarrierMinorUnits + params.carrierCost,
-        spentConversationalMinorUnits:
-          tenantRow.spentConversationalMinorUnits + params.conversationalCost,
-        spentAmountMinorUnits: tenantRow.spentAmountMinorUnits + params.totalActual,
-        version: tenantRow.version + 1,
-        updatedAt: params.now,
-      })
-      .where(eq(outboundBudgetLedgers.id, tenantRow.id));
-  }
+  const lockedTenant = requireOutboundBudgetLedgerRow(tenantRow, 'TENANT');
+  await tx
+    .update(outboundBudgetLedgers)
+    .set({
+      reservedAmountMinorUnits: Math.max(
+        0,
+        lockedTenant.reservedAmountMinorUnits - params.reservedAmount,
+      ),
+      spentCarrierMinorUnits: lockedTenant.spentCarrierMinorUnits + params.carrierCost,
+      spentConversationalMinorUnits:
+        lockedTenant.spentConversationalMinorUnits + params.conversationalCost,
+      spentAmountMinorUnits: lockedTenant.spentAmountMinorUnits + params.totalActual,
+      version: lockedTenant.version + 1,
+      updatedAt: params.now,
+    })
+    .where(eq(outboundBudgetLedgers.id, lockedTenant.id));
 }
 
 export async function settleBudgetInTransaction(
