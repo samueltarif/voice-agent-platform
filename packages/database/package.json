@@ -10,6 +10,11 @@
       "types": "./src/index.ts",
       "import": "./src/index.ts",
       "default": "./src/index.ts"
+    },
+    "./test-support": {
+      "types": "./src/test-support/index.ts",
+      "import": "./src/test-support/index.ts",
+      "default": "./src/test-support/index.ts"
     }
   },
   "scripts": {

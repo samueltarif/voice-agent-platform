@@ -296,7 +296,8 @@ A ordem histórica 008A–008G postergava o dialer outbound para o Slice 008E, c
   - **Critérios de Aceitação**: Impossibilidade comprovada de saldo negativo em testes de estresse, fail-closed verificado, suite de testes passando, `pnpm check` = exit 0, zero dependências externas.
   - **Riscos Mitigados**: Concorrência de saldo prevenida por transações `SELECT ... FOR UPDATE` curtas, ordenação e idempotência atômica por tentativa/chave.
 
-- [ ] **Slice 008-OF4 — Webhooks e Integração de Ferramentas Offline**:
+- [x] **Slice 008-OF4 — Webhooks e Integração de Ferramentas Offline**:
+  - **Status Real**: Implementada offline na branch `feat/phase8-008-of4-secure-webhooks` (PR pendente de merge). Contratos provider-neutral em `packages/contracts/src/telephony/provider-webhook-contracts.ts` (autenticador fail-closed por padrão, normalizador por provedor, schema estrito sem campos de tenant); ingress em `apps/api/src/webhooks/` **não montado** em `createApp` (webhooks públicos = 0); resolução server-side do tenant por `call_attempts.provider_reference` (migration aditiva `0009_provider_reference_lookup`, apenas índice); deduplicação por `event_id` determinístico (id oficial ou chave composta), trilha `source = PROVIDER` com hash do corpo; nenhum efeito financeiro a partir de webhooks (semântica de custo de rejeições `PROVIDER-UNVERIFIED`; liquidação/reconciliação em 008-OF5/008-MVP4); despacho de ferramentas via `ToolPort` com timeout interno fail-closed. Contratos reais Twilio/Millis: `PROVIDER-UNVERIFIED` (008-OF5).
   - **Objetivo**: Construir a recepção segura de eventos e despacho de ferramentas determinísticas para a plataforma conversacional, consumindo as tabelas de sessão e eventos da Slice 008-OF2.
   - **Escopo**:
     - Endpoints de webhook em `apps/api` para status de chamada e acionamento de ferramentas.

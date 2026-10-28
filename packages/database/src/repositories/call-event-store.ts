@@ -88,6 +88,27 @@ export interface InsertAttemptEventInput {
   readonly result: StoredEventResult;
   readonly rejectionReason: string | null;
   readonly now: Date;
+  readonly origin?: ProviderEventOrigin | undefined;
+}
+
+/** Proveniência de evento externo; nenhum payload bruto é armazenado. */
+export interface ProviderEventOrigin {
+  readonly provider: string;
+  readonly providerEventId: string | null;
+  readonly providerCallId: string;
+  /** SHA-256 hex do corpo bruto: evidência auxiliar, nunca identidade. */
+  readonly payloadHash: string;
+}
+
+function provenanceColumns(origin: ProviderEventOrigin | undefined) {
+  if (!origin) return { source: 'INTERNAL' as const };
+  return {
+    source: 'PROVIDER' as const,
+    provider: origin.provider,
+    providerEventId: origin.providerEventId,
+    providerCallId: origin.providerCallId,
+    payloadHash: origin.payloadHash,
+  };
 }
 
 export async function insertAttemptEvent(
@@ -99,7 +120,7 @@ export async function insertAttemptEvent(
     organizationId: input.organizationId,
     attemptId: input.attemptId,
     callSessionId: input.callSessionId,
-    source: 'INTERNAL',
+    ...provenanceColumns(input.origin),
     eventType: input.event.type,
     attributes: extractEventAttributes(input.event),
     fingerprint: fingerprintAttemptEvent(input.event),

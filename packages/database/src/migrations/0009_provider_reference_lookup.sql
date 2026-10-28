@@ -1,0 +1,1 @@
+CREATE INDEX "call_attempts_provider_reference_idx" ON "call_attempts" USING btree ("provider_reference") WHERE "call_attempts"."provider_reference" IS NOT NULL;
