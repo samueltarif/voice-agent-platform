@@ -4,13 +4,13 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-28
-CONTEXT_BASE_MAIN_SHA: 3e1033d7bba5d994aaaba7c090344e8dc08da092
+CONTEXT_BASE_MAIN_SHA: eee88fd1ba64dfdc9837e3e60a3269618ca93ae5
 CURRENT_PHASE: Phase 8 (OUTBOUND_FIRST_TWO_TRACK_PLANNING)
-CURRENT_SLICE: 008-OF4 Secure Webhook Ingress (offline) in PR #125
-CONTEXT_UPDATE_BRANCH: feat/phase8-008-of4-secure-webhooks
-CONTEXT_UPDATE_PR: 125
-LAST_MERGED_PR_AT_REFRESH: 124
-LAST_MERGE_SHA_AT_REFRESH: 3e1033d7bba5d994aaaba7c090344e8dc08da092
+CURRENT_SLICE: 008-OF4 Merged / Disposable-DB Teardown Race Fix in PR #126
+CONTEXT_UPDATE_BRANCH: fix/phase8-disposable-db-drop-drain
+CONTEXT_UPDATE_PR: 126
+LAST_MERGED_PR_AT_REFRESH: 125
+LAST_MERGE_SHA_AT_REFRESH: eee88fd1ba64dfdc9837e3e60a3269618ca93ae5
 LAST_TESTED_CODE_SHA: QUERY_GIT_AT_RUNTIME
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
@@ -221,8 +221,9 @@ AI_CONTEXT_HEADER_END
 - **PR #123 Status**: `MERGED ON MAIN` (squash `63e0f2f257150904c97890219bd4979e5eccad71`).
 - **PR #124 (008-OF3 release-evidence hardening)**: `releaseBudget` passa a exigir prova de não envio na mesma transação (terminal sem chamada, ou cancelamento atômico `CANCEL_REQUESTED` antes do envio); tentativas enviadas, aceitas, incertas ou encerradas retornam `RELEASE_BLOCKED_ATTEMPT_NOT_PROVEN_UNSENT` e mantêm orçamento/capacidade encumberados. Janela diária corrigida em dias de DST; fuso IANA inválido rejeitado no provisionamento e fail-closed na reserva.
 - **PR #124 Status**: `MERGED ON MAIN` pelo operador (merge commit `3e1033d7bba5d994aaaba7c090344e8dc08da092`, árvore idêntica ao HEAD testado `7310391`; gate Windows do operador PASS 1.507/45/0; gate pós-merge Linux PASS 1.507/45/0). Inclui lease entre processos para suítes de banco descartável (estabilização do gate Windows).
-- **008-OF4 (PR #125)**: ingress de webhooks provider-neutral offline em `apps/api/src/webhooks/` (não montado), contratos em `packages/contracts/src/telephony/provider-webhook-contracts.ts`, store `DrizzleProviderEventAttemptStore`, migration aditiva `0009_provider_reference_lookup` (índice). Autenticação real e normalizadores por provedor: `PROVIDER-UNVERIFIED` (008-OF5).
-- `NEXT_ALLOWED_STEP = MERGE_PR_125_THEN_NEXT_INDEPENDENT_SLICE` (008-OF5 exige decisão humana de autoridade de originação Twilio-led vs Millis-led; 008-MVP1 é tecnicamente independente).
+- **008-OF4 Status**: `MERGED ON MAIN` (PR #125, merge commit `eee88fd1ba64dfdc9837e3e60a3269618ca93ae5`; gate Windows do operador em `d08497f` PASS 1.528/45/0). Ingress provider-neutral offline em `apps/api/src/webhooks/` (não montado), sem efeito financeiro a partir de webhooks; autenticadores/normalizadores reais `PROVIDER-UNVERIFIED` (008-OF5).
+- **PR #126**: correção da corrida no teardown de bancos descartáveis (erro 57P01 intermitente no gate pós-merge de `eee88fd`).
+- `NEXT_ALLOWED_STEP = MERGE_PR_126_THEN_008_MVP1` (008-OF5 aguarda decisão humana Twilio-led vs Millis-led; 008-MVP3 depende da 008-OF5).
 - `NEXT_ALLOWED_SLICE = 008-MVP1` (Contatos/Audiência/Supressão; dependências 008-OF2 e 008-OF3 satisfeitas).
 - `PURCHASE_OF_PHONE_NUMBERS = 0` | `REAL_PROVIDER_CALLS = 0` | `CUSTOMER_TRAFFIC = PROHIBITED` | `ACTIVE_GUARDED = BLOCKED`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
