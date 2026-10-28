@@ -4,6 +4,10 @@ import { createDatabaseConnection, type DatabaseInstance } from '../client/conne
 import { runMigrations } from '../client/migrate.js';
 import { collectTestDatabaseEvidence } from './collect-test-database-evidence.js';
 import {
+  acquireDisposableDatabaseLease,
+  releaseDisposableDatabaseLease,
+} from './disposable-database-lease.js';
+import {
   evaluateTestTargetEvidence,
   isDisposableDatabaseName,
   isLoopbackHost,
@@ -93,7 +97,11 @@ export async function createDisposableTestDatabase(
   const admin = createDatabaseConnection({ connectionString: ADMIN_URL, maxConnections: 1 });
   try {
     await proveTarget(admin.db, options);
-    await admin.db.execute(sql.raw(`CREATE DATABASE "${name}"`));
+    await acquireDisposableDatabaseLease(ADMIN_URL);
+    await admin.db.execute(sql.raw(`CREATE DATABASE "${name}"`)).catch(async (error: unknown) => {
+      await releaseDisposableDatabaseLease();
+      throw error;
+    });
     createdByThisRun.add(name);
   } finally {
     await admin.pool.end();
@@ -153,5 +161,7 @@ async function dropDisposable(input: {
     createdByThisRun.delete(input.name);
   } finally {
     await admin.pool.end();
+    // Só após a prova de posse (base criada por ESTE processo, que detém o lease).
+    await releaseDisposableDatabaseLease();
   }
 }
