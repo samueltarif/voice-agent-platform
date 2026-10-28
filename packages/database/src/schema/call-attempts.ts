@@ -1,5 +1,6 @@
 import { sql, type InferSelectModel } from 'drizzle-orm';
 import {
+  type AnyPgColumn,
   boolean,
   check,
   foreignKey,
@@ -26,6 +27,13 @@ export const callAttemptStateEnum = pgEnum('call_attempt_state', OUTBOUND_ATTEMP
 const TERMINAL_STATES_SQL = sql.raw(
   `('ORIGINATION_REJECTED', 'NOT_ORIGINATED', 'CLOSED', 'CANCELED')`,
 );
+
+/** 008-OF4: tenant resolvido server-side pela referência do provedor (não única). */
+function providerReferenceLookupIndex(column: AnyPgColumn) {
+  return index('call_attempts_provider_reference_idx')
+    .on(column)
+    .where(sql`${column} IS NOT NULL`);
+}
 
 export const callAttempts = pgTable(
   'call_attempts',
@@ -98,6 +106,7 @@ export const callAttempts = pgTable(
     uniqueIndex('call_attempts_single_open_per_job_uidx')
       .on(table.organizationId, table.jobId)
       .where(sql`${table.state} NOT IN ${TERMINAL_STATES_SQL}`),
+    providerReferenceLookupIndex(table.providerReference),
     index('call_attempts_org_state_lease_idx').on(
       table.organizationId,
       table.state,

@@ -9,7 +9,7 @@ import {
 import { callAttempts, type CallAttemptEntity } from '../schema/call-attempts.js';
 import type { DatabaseExecutor } from './database-executor.js';
 import { attemptStateColumns, type DurableAttemptRecord } from './call-attempt-mapping.js';
-import { insertAttemptEvent } from './call-event-store.js';
+import { insertAttemptEvent, type ProviderEventOrigin } from './call-event-store.js';
 import { checkSessionBinding } from './durable-session-binding-guard.js';
 import {
   classifyKnownEvent,
@@ -39,6 +39,8 @@ export interface ApplyAttemptEventInput {
   readonly patch?: AttemptTechnicalPatch | undefined;
   /** Grava `patch` também quando o evento é STALE (ex.: retomada de claim expirado). */
   readonly patchOnStale?: boolean | undefined;
+  /** Evento recebido de provedor externo (008-OF4): gravado como `source = PROVIDER`. */
+  readonly origin?: ProviderEventOrigin | undefined;
 }
 
 export type DurableApplyOutcome =
@@ -161,6 +163,7 @@ async function applyNewEvent(
     result: result.kind,
     rejectionReason: result.kind === 'REJECTED' ? result.reason : null,
     now: input.now,
+    origin: input.origin,
   });
   const next = await loadRecord(executor, finalRow);
   if (result.kind === 'REJECTED') return { kind: 'REJECTED', record: next, reason: result.reason };

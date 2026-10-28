@@ -4,13 +4,13 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-28
-CONTEXT_BASE_MAIN_SHA: 63e0f2f257150904c97890219bd4979e5eccad71
+CONTEXT_BASE_MAIN_SHA: 3e1033d7bba5d994aaaba7c090344e8dc08da092
 CURRENT_PHASE: Phase 8 (OUTBOUND_FIRST_TWO_TRACK_PLANNING)
-CURRENT_SLICE: 008-OF3 Merged on Main / Release-Evidence Hardening in PR #124
-CONTEXT_UPDATE_BRANCH: fix/phase8-008-of3-release-not-sent-evidence
-CONTEXT_UPDATE_PR: 124
-LAST_MERGED_PR_AT_REFRESH: 123
-LAST_MERGE_SHA_AT_REFRESH: 63e0f2f257150904c97890219bd4979e5eccad71
+CURRENT_SLICE: 008-OF4 Secure Webhook Ingress (offline) in PR #125
+CONTEXT_UPDATE_BRANCH: feat/phase8-008-of4-secure-webhooks
+CONTEXT_UPDATE_PR: 125
+LAST_MERGED_PR_AT_REFRESH: 124
+LAST_MERGE_SHA_AT_REFRESH: 3e1033d7bba5d994aaaba7c090344e8dc08da092
 LAST_TESTED_CODE_SHA: QUERY_GIT_AT_RUNTIME
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
@@ -220,9 +220,10 @@ AI_CONTEXT_HEADER_END
 - **008-OF3 Status**: `MERGED ON MAIN / HARDENING IN PR #123`. Auditoria pós-merge encontrou dois defeitos fail-open reais no ledger financeiro: settle/release commitavam a transição da reserva sem atualizar ledgers ausentes, e `ALREADY_RESERVED` autorizava originação com reserva `RELEASED`/`COMMITTED`. Correção mínima aplicada com `OutboundBudgetLedgerMissingError` e `resolveReservationBlock`; 6 novos testes de regressão (3 unitários, 3 de integração PostgreSQL) comprovados em ciclo regression-first. Gate canônico da branch: 198 arquivos / 1.485 testes aprovados / 45 ignorados / zero falhas.
 - **PR #123 Status**: `MERGED ON MAIN` (squash `63e0f2f257150904c97890219bd4979e5eccad71`).
 - **PR #124 (008-OF3 release-evidence hardening)**: `releaseBudget` passa a exigir prova de não envio na mesma transação (terminal sem chamada, ou cancelamento atômico `CANCEL_REQUESTED` antes do envio); tentativas enviadas, aceitas, incertas ou encerradas retornam `RELEASE_BLOCKED_ATTEMPT_NOT_PROVEN_UNSENT` e mantêm orçamento/capacidade encumberados. Janela diária corrigida em dias de DST; fuso IANA inválido rejeitado no provisionamento e fail-closed na reserva.
-- **PR #124 — gate Windows**: execução do operador em `1e8aa55` falhou por timeouts de integração (checkpoint forçado por `DROP DATABASE` sob fsync lento + órfão de banco na suíte `review`); corrigido com lease entre processos para suítes de banco descartável. Gate Windows do novo HEAD: pendente do operador.
-- `NEXT_ALLOWED_STEP = WINDOWS_GATE_ON_NEW_PR_124_HEAD_THEN_MERGE_THEN_008_OF4` (008-OF4 — Webhooks provider-neutral e integração de ferramentas offline).
-- `NEXT_ALLOWED_SLICE = 008-OF4` (após merge da PR #124).
+- **PR #124 Status**: `MERGED ON MAIN` pelo operador (merge commit `3e1033d7bba5d994aaaba7c090344e8dc08da092`, árvore idêntica ao HEAD testado `7310391`; gate Windows do operador PASS 1.507/45/0; gate pós-merge Linux PASS 1.507/45/0). Inclui lease entre processos para suítes de banco descartável (estabilização do gate Windows).
+- **008-OF4 (PR #125)**: ingress de webhooks provider-neutral offline em `apps/api/src/webhooks/` (não montado), contratos em `packages/contracts/src/telephony/provider-webhook-contracts.ts`, store `DrizzleProviderEventAttemptStore`, migration aditiva `0009_provider_reference_lookup` (índice). Autenticação real e normalizadores por provedor: `PROVIDER-UNVERIFIED` (008-OF5).
+- `NEXT_ALLOWED_STEP = MERGE_PR_125_THEN_NEXT_INDEPENDENT_SLICE` (008-OF5 exige decisão humana de autoridade de originação Twilio-led vs Millis-led; 008-MVP1 é tecnicamente independente).
+- `NEXT_ALLOWED_SLICE = 008-MVP1` (Contatos/Audiência/Supressão; dependências 008-OF2 e 008-OF3 satisfeitas).
 - `PURCHASE_OF_PHONE_NUMBERS = 0` | `REAL_PROVIDER_CALLS = 0` | `CUSTOMER_TRAFFIC = PROHIBITED` | `ACTIVE_GUARDED = BLOCKED`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
 
