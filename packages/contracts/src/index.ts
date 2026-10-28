@@ -9,3 +9,4 @@ export * from './catalog/index.js';
 export * from './outbound/index.js';
 export * from './telephony/index.js';
 export * from './knowledge/index.js';
+export * from './contacts/index.js';

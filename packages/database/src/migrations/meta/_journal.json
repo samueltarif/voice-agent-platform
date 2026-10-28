@@ -71,6 +71,13 @@
       "when": 1793204625128,
       "tag": "0009_provider_reference_lookup",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793209964350,
+      "tag": "0010_contacts_audiences_suppression",
+      "breakpoints": true
     }
   ]
 }

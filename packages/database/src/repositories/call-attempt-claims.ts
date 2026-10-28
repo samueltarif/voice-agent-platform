@@ -13,6 +13,10 @@ import {
   type DurableApplyOutcome,
 } from './durable-attempt-event-applier.js';
 import { buildInternalAttemptEvent } from './durable-attempt-event-factory.js';
+import {
+  cancelSuppressedAttempt,
+  isAttemptDestinationSuppressed,
+} from './send-time-suppression-guard.js';
 
 export interface ClaimInput {
   readonly organizationId: string;
@@ -28,6 +32,7 @@ export type ClaimRejectionReason =
   | 'NOT_CLAIMABLE_IN_STATE'
   | 'CLAIM_HELD_BY_ANOTHER_OWNER'
   | 'MANUAL_REVIEW_REQUIRED'
+  | 'DESTINATION_SUPPRESSED'
   | 'CLAIM_TRANSITION_REJECTED';
 
 export type ClaimResult =
@@ -70,6 +75,10 @@ export async function claimSendInTransaction(
   if (!row) return { kind: 'REJECTED', reason: 'NOT_FOUND' };
   if (row.state !== 'ORIGINATION_PENDING') {
     return { kind: 'REJECTED', reason: 'NOT_CLAIMABLE_IN_STATE' };
+  }
+  if (await isAttemptDestinationSuppressed(executor, row)) {
+    await cancelSuppressedAttempt(executor, row, input.now);
+    return { kind: 'REJECTED', reason: 'DESTINATION_SUPPRESSED' };
   }
   const fence = { ownerId: input.ownerId, fencingToken: row.fencingToken + 1 };
   const event = buildInternalAttemptEvent({

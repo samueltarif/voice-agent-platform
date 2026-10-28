@@ -355,7 +355,8 @@ A ordem histórica 008A–008G postergava o dialer outbound para o Slice 008E, c
 
 Esta trilha paralela e rastreável define as capacidades de produto indispensáveis para que a plataforma seja operada por clientes em um piloto comercial, segregando a entrega de software utilizável da infraestrutura básica de telefonia:
 
-- [ ] **Slice 008-MVP1 — Contatos, Audiência, Supressão e Elegibilidade**:
+- [x] **Slice 008-MVP1 — Contatos, Audiência, Supressão e Elegibilidade**:
+  - **Status Real**: Implementada offline na branch `feat/phase8-008-mvp1-contacts-suppression` (PR pendente). Contratos em `packages/contracts/src/contacts/` (normalização E.164 pelo plano de numeração brasileiro — DDDs geográficos, móvel 9 dígitos/fixo 8 dígitos, não geográficos recusados —, parser CSV RFC 4180 com limites, relatório de rejeição neutralizado contra CSV injection, supressões sem presunção legal); migration aditiva `0010_contacts_audiences_suppression` (`contacts`, `contact_lists`, `contact_list_members` com FKs compostas por tenant, `contact_suppressions`) + trigger que impede criar/redirecionar job para número suprimido; guarda de supressão no `claimSend` (cancela a tentativa atomicamente e permite liberar a reserva); rotas `/v1/contact-lists*` e `/v1/contact-suppressions` com RBAC próprio. *Diferido*: janelas/políticas de horário de contato por tenant (008-MVP2, junto ao agendamento) e remoção de supressão (exige decisão de governança).
   - **Objetivo**: Permitir que o cliente gerencie seus destinatários de campanhas com isolamento multi-tenant, validação estrita e conformidade regulatória prévia.
   - **Escopo**:
     - Modelagem e persistência de contatos permanentes (`tenant_contacts`) isolados por `organizationId`.
