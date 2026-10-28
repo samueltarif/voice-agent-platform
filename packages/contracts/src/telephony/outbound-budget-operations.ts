@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isValidIanaTimezone } from './date-timezone-boundary.js';
 import type { OutboundBudgetReservation } from './outbound-budget-types.js';
 
 export const provisionOutboundBudgetLedgerInputSchema = z.object({
@@ -7,7 +8,7 @@ export const provisionOutboundBudgetLedgerInputSchema = z.object({
   allocatedBudgetMinorUnits: z.number().int().nonnegative().default(0),
   maxConcurrentCalls: z.number().int().positive().default(5),
   maxDailyAttempts: z.number().int().positive().default(50),
-  timezone: z.string().min(1).default('UTC'),
+  timezone: z.string().min(1).refine(isValidIanaTimezone, 'Unknown IANA timezone').default('UTC'),
 });
 
 export type ProvisionOutboundBudgetLedgerInput = z.input<
@@ -137,5 +138,12 @@ export type ReleaseOutboundBudgetOutcome =
     }
   | {
       readonly kind: 'RESERVATION_NOT_FOUND';
+      readonly reason: string;
+    }
+  | {
+      /** Sem evidência de não envio: orçamento e capacidade permanecem encumberados. */
+      readonly kind: 'RELEASE_BLOCKED_ATTEMPT_NOT_PROVEN_UNSENT';
+      readonly reservation: OutboundBudgetReservation;
+      readonly attemptState: string;
       readonly reason: string;
     };

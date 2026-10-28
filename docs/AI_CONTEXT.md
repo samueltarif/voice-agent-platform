@@ -4,13 +4,13 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-28
-CONTEXT_BASE_MAIN_SHA: f7b19ee13bab99aabf247b94245924b42736d349
+CONTEXT_BASE_MAIN_SHA: 63e0f2f257150904c97890219bd4979e5eccad71
 CURRENT_PHASE: Phase 8 (OUTBOUND_FIRST_TWO_TRACK_PLANNING)
-CURRENT_SLICE: 008-OF3 Merged on Main / Fail-Closed Hardening in PR #123
-CONTEXT_UPDATE_BRANCH: fix/phase8-008-of3-fail-closed-hardening
-CONTEXT_UPDATE_PR: 123
-LAST_MERGED_PR_AT_REFRESH: 122
-LAST_MERGE_SHA_AT_REFRESH: f7b19ee13bab99aabf247b94245924b42736d349
+CURRENT_SLICE: 008-OF3 Merged on Main / Release-Evidence Hardening in PR #124
+CONTEXT_UPDATE_BRANCH: fix/phase8-008-of3-release-not-sent-evidence
+CONTEXT_UPDATE_PR: 124
+LAST_MERGED_PR_AT_REFRESH: 123
+LAST_MERGE_SHA_AT_REFRESH: 63e0f2f257150904c97890219bd4979e5eccad71
 LAST_TESTED_CODE_SHA: QUERY_GIT_AT_RUNTIME
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
@@ -218,8 +218,10 @@ AI_CONTEXT_HEADER_END
 - **008-OF2 Status**: `MERGED ON MAIN AS OFFLINE IMPLEMENTATION` (incorporada à `main` via PR #121 no commit `e1203381374b1d372b98cf0f049237fe7c5378ac`). Migration aditiva `0007_durable_outbound_persistence` executada exclusivamente em PostgreSQL 16 local descartável. Repositórios transacionais, claims com lease/fencing e tolerância a crash comprovada com processos Node reais. Sem fiação ativa, sem webhooks, sem adapters reais (`PROVIDER-UNVERIFIED`). Gate canônico Windows reportado no merge: 193 arquivos aprovados / 1.451 testes aprovados / 45 ignorados / zero falhas.
 - **PR #122 Status**: `MERGED ON MAIN` (squash `f7b19ee13bab99aabf247b94245924b42736d349`; implementação da 008-OF3 com budget global e por tenant, quotas diárias timezone-aware, overage settlement e runner blindado; gate da branch `PASS` com 201 arquivos / 1.468 testes aprovados).
 - **008-OF3 Status**: `MERGED ON MAIN / HARDENING IN PR #123`. Auditoria pós-merge encontrou dois defeitos fail-open reais no ledger financeiro: settle/release commitavam a transição da reserva sem atualizar ledgers ausentes, e `ALREADY_RESERVED` autorizava originação com reserva `RELEASED`/`COMMITTED`. Correção mínima aplicada com `OutboundBudgetLedgerMissingError` e `resolveReservationBlock`; 6 novos testes de regressão (3 unitários, 3 de integração PostgreSQL) comprovados em ciclo regression-first. Gate canônico da branch: 198 arquivos / 1.485 testes aprovados / 45 ignorados / zero falhas.
-- `NEXT_ALLOWED_STEP = REVIEW_AND_MERGE_SLICE_008_OF3_HARDENING` (merge da PR #123; em seguida 008-OF4 — Webhooks provider-neutral e integração de ferramentas offline).
-- `NEXT_ALLOWED_SLICE = 008-OF4` (após merge da PR #123).
+- **PR #123 Status**: `MERGED ON MAIN` (squash `63e0f2f257150904c97890219bd4979e5eccad71`).
+- **PR #124 (008-OF3 release-evidence hardening)**: `releaseBudget` passa a exigir prova de não envio na mesma transação (terminal sem chamada, ou cancelamento atômico `CANCEL_REQUESTED` antes do envio); tentativas enviadas, aceitas, incertas ou encerradas retornam `RELEASE_BLOCKED_ATTEMPT_NOT_PROVEN_UNSENT` e mantêm orçamento/capacidade encumberados. Janela diária corrigida em dias de DST; fuso IANA inválido rejeitado no provisionamento e fail-closed na reserva.
+- `NEXT_ALLOWED_STEP = MERGE_PR_124_THEN_008_OF4` (008-OF4 — Webhooks provider-neutral e integração de ferramentas offline).
+- `NEXT_ALLOWED_SLICE = 008-OF4` (após merge da PR #124).
 - `PURCHASE_OF_PHONE_NUMBERS = 0` | `REAL_PROVIDER_CALLS = 0` | `CUSTOMER_TRAFFIC = PROHIBITED` | `ACTIVE_GUARDED = BLOCKED`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
 
