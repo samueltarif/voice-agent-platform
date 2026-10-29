@@ -225,6 +225,7 @@ AI_CONTEXT_HEADER_END
 - **PR #126 Status**: `MERGED ON MAIN` (merge commit `f21b40b38da72d3a7f1baf40b3ce42206b798982`; gate Windows do operador em `f37738f` PASS 1.529/45/0): teardown de bancos descartáveis aguarda drenagem das conexões antes do DROP.
 - **008-MVP1 Status**: `MERGED ON MAIN` (PR #127, `77fbc5b1573daf6581805b1ebcac1d383b56a46a`; gate Windows 1.567/45/0; gate pós-merge Linux PASS). Pendências humanas: evidência de consentimento e remoção de supressão.
 - **008-MVP2a Status**: `MERGED ON MAIN` (PR #128, `8f7de00e5ec7e1fdff541fa334e326405c3ad950`; gate Windows 1.589/45/0; gate pós-merge Linux PASS).
+- **Ambiente de tipos (PR #129)**: `tsconfig.base.json` fixa `types: []`/`typeRoots: []` (pacotes com tipos próprios fixam os seus) — pastas `node_modules/@types` fora do workspace (ex.: `D:\node_modules\@types` no host Windows) não podem mais quebrar o typecheck.
 - **Correção da barreira de envio (PR própria)**: status da campanha revalidado no `claimSend` (`FOR SHARE`): cancelada → tentativa e job cancelados sem discar; pausada → nada enviado, tentativa e reserva mantidas para a retomada; já enviada → segue sua FSM.
 - `NEXT_ALLOWED_STEP = MERGE_SEND_GATE_FIX_AND_008_MVP2B` (008-OF5/008-MVP3 aguardam decisão Twilio-led vs Millis-led).
 - `NEXT_ALLOWED_SLICE = 008-MVP2b` (interface web de campanhas, contatos e supressões; depende da MVP2a).
