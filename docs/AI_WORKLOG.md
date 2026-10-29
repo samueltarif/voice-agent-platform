@@ -18762,3 +18762,16 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **GATE LOCAL (Linux)**: `pnpm install --frozen-lockfile && pnpm check` exit 0 — 1.648 PASS / 45 SKIP / 0 FAIL, 7/7 estágios.
 - **DEFERRED / OPTIONAL**: edição de nome/descrição após criação; paginação acima de 100 campanhas/contatos/supressões; agendamento de início pela tela (o contrato aceita `scheduledStartAt`); atualização automática do progresso (hoje a tela relê após cada ação).
 - **SAFETY**: `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `PUBLIC_WEBHOOKS = 0` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `REAL_DOTENV_ACCESSED = NO` | `SECRET_AUDIT = PASS`.
+
+## 2026-10-29 — Fase 8 — 008-MVP2b: Integração com a `main` pós-#128 e Auditoria Adversarial — Claude
+
+- **INTEGRAÇÃO**: `main` `8f7de00` (merge da #128, árvore idêntica a `01b229f`) mesclada na branch da MVP2b por merge commit, preservando `8fc2835`; sem conflitos.
+- **AUDITORIA ADVERSARIAL (sem defeito P0/P1 na MVP2b)**:
+  - *same-origin*: `Origin` de outro host ou `sec-fetch-site: cross-site` → 403 antes de resolver a sessão; requisições sem `Origin` só passam como navegação/fetch same-origin; mutações exigem ainda o cabeçalho customizado `x-operations-org-slug` (inalcançável por formulário cross-site e sujeito a preflight CORS não atendido), funcionando como barreira anti-CSRF adicional.
+  - *isolamento de organização*: organização sempre vinda da sessão; a declarada pela tela só pode coincidir (409 em aba desatualizada); `organizationId`/`agentVersionId`/`status` no corpo → 400 (schemas estritos); recurso de outro tenant → 404 da API → `notFound()`.
+  - *RBAC*: a API decide — criação exige `agent.edit` (OWNER/ADMIN/MANAGER = `campaigns.operate`), audiência/START/RESUME `campaigns.operate`, PAUSE/CANCEL `campaigns.halt`, importação `contacts.manage`, supressão `contacts.suppress`; a UI espelha as tabelas (teste por papel) e nunca é a única barreira.
+  - *UUID*: ids de rota validados antes de sessão/API (path traversal → 404); slugs de redirecionamento com `encodeURIComponent`.
+  - *payload*: teto em streaming (64 KiB; importação = teto da API), inclusive sem `content-length` ou com `content-length` falso.
+  - *supressões*: somente inclusão; nenhuma rota/ação de remoção; reinclusão preserva o motivo original (exibido na tela).
+  - *transições*: ações oferecidas = FSM dos contratos (teste exaustivo); duplo clique bloqueado; toda mutação relê o estado real. O risco de concorrência PAUSE/CANCEL × envio foi corrigido na PR #129 (backend), independente desta PR.
+- **P3 REGISTRADOS (DEFERRED)**: CSV em Windows-1252 (exportação comum do Excel) é lido como UTF-8 — acentos em nomes podem corromper (telefones não são afetados); `sec-fetch-site: same-site` sem `Origin` é aceito pelo verificador compartilhado (pré-existente; mitigado pelo cabeçalho obrigatório).

@@ -4,13 +4,13 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-29
-CONTEXT_BASE_MAIN_SHA: 77fbc5b1573daf6581805b1ebcac1d383b56a46a
+CONTEXT_BASE_MAIN_SHA: 8f7de00e5ec7e1fdff541fa334e326405c3ad950
 CURRENT_PHASE: Phase 8 (OUTBOUND_FIRST_TWO_TRACK_PLANNING)
-CURRENT_SLICE: 008-MVP2b Campaigns/Contacts Web (branch on top of PR #128)
+CURRENT_SLICE: 008-MVP2b Campaigns/Contacts Web in PR #MVP2B_PR
 CONTEXT_UPDATE_BRANCH: feat/phase8-008-mvp2b-campaigns-web
-CONTEXT_UPDATE_PR: PENDING_AFTER_128
-LAST_MERGED_PR_AT_REFRESH: 127
-LAST_MERGE_SHA_AT_REFRESH: 77fbc5b1573daf6581805b1ebcac1d383b56a46a
+CONTEXT_UPDATE_PR: MVP2B_PR
+LAST_MERGED_PR_AT_REFRESH: 128
+LAST_MERGE_SHA_AT_REFRESH: 8f7de00e5ec7e1fdff541fa334e326405c3ad950
 LAST_TESTED_CODE_SHA: QUERY_GIT_AT_RUNTIME
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
@@ -224,9 +224,10 @@ AI_CONTEXT_HEADER_END
 - **008-OF4 Status**: `MERGED ON MAIN` (PR #125, merge commit `eee88fd1ba64dfdc9837e3e60a3269618ca93ae5`; gate Windows do operador em `d08497f` PASS 1.528/45/0). Ingress provider-neutral offline em `apps/api/src/webhooks/` (não montado), sem efeito financeiro a partir de webhooks; autenticadores/normalizadores reais `PROVIDER-UNVERIFIED` (008-OF5).
 - **PR #126 Status**: `MERGED ON MAIN` (merge commit `f21b40b38da72d3a7f1baf40b3ce42206b798982`; gate Windows do operador em `f37738f` PASS 1.529/45/0): teardown de bancos descartáveis aguarda drenagem das conexões antes do DROP.
 - **008-MVP1 Status**: `MERGED ON MAIN` (PR #127, `77fbc5b1573daf6581805b1ebcac1d383b56a46a`; gate Windows 1.567/45/0; gate pós-merge Linux PASS). Pendências humanas: evidência de consentimento e remoção de supressão.
-- **008-MVP2a (PR #128)**: backend do ciclo de vida de campanhas (audiência, START/PAUSE/RESUME/CANCEL, progresso real, bloqueio de despacho por status da campanha, migration aditiva `0011`).
-- **008-MVP2b (branch `feat/phase8-008-mvp2b-campaigns-web`)**: interface web de campanhas, contatos e supressões sobre BFF same-origin; PR aberta somente após o merge da #128.
-- `NEXT_ALLOWED_STEP = MERGE_PR_128_THEN_OPEN_008_MVP2B_PR` (008-OF5/008-MVP3 aguardam decisão Twilio-led vs Millis-led).
+- **008-MVP2a Status**: `MERGED ON MAIN` (PR #128, `8f7de00e5ec7e1fdff541fa334e326405c3ad950`; gate Windows 1.589/45/0; gate pós-merge Linux PASS).
+- **PR #129 (correção P1, em revisão)**: status da campanha revalidado na barreira de envio (`claimSend`) — jobs reivindicados antes de PAUSE/CANCEL não discam.
+- **008-MVP2b (PR #MVP2B_PR)**: interface web de campanhas, contatos e supressões sobre BFF same-origin.
+- `NEXT_ALLOWED_STEP = VALIDATE_AND_MERGE_PR_129_AND_MVP2B_PR` (008-OF5/008-MVP3 aguardam decisão Twilio-led vs Millis-led).
 - `NEXT_ALLOWED_SLICE = 008-MVP4` (resultados e visibilidade operacional; depende da MVP2).
 - `PURCHASE_OF_PHONE_NUMBERS = 0` | `REAL_PROVIDER_CALLS = 0` | `CUSTOMER_TRAFFIC = PROHIBITED` | `ACTIVE_GUARDED = BLOCKED`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
