@@ -3,7 +3,7 @@ import { bodyLimit } from 'hono/body-limit';
 import { BadRequestError, ConflictError, NotFoundError } from '@voice-agent/errors';
 import {
   CONTACT_CSV_LIMITS,
-  contactCsvMappingSchema,
+  contactImportRequestSchema,
   createContactListInputSchema,
   planContactImport,
   renderRejectedRowsCsv,
@@ -13,12 +13,7 @@ import { getServiceAuth } from '../auth/service-auth-middleware.js';
 import { authorizeTenant, type TenantPermission } from '../auth/tenant-authorization.js';
 
 const listParams = z.object({ listId: z.string().uuid() });
-const importBody = z
-  .object({
-    csv: z.string().min(1).max(CONTACT_CSV_LIMITS.maxBytes),
-    mapping: contactCsvMappingSchema,
-  })
-  .strict();
+const importBody = contactImportRequestSchema;
 const membersQuery = z.object({
   eligibility: z.enum(['ALL', 'ELIGIBLE']).default('ELIGIBLE'),
   limit: z.coerce.number().int().min(1).max(500).default(100),

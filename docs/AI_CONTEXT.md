@@ -3,12 +3,12 @@
 <!--
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
-LAST_REFRESHED_AT: 2026-10-28
+LAST_REFRESHED_AT: 2026-10-29
 CONTEXT_BASE_MAIN_SHA: 77fbc5b1573daf6581805b1ebcac1d383b56a46a
 CURRENT_PHASE: Phase 8 (OUTBOUND_FIRST_TWO_TRACK_PLANNING)
-CURRENT_SLICE: 008-MVP2a Campaign Lifecycle Backend in PR #128
-CONTEXT_UPDATE_BRANCH: feat/phase8-008-mvp2a-campaign-lifecycle
-CONTEXT_UPDATE_PR: 128
+CURRENT_SLICE: 008-MVP2b Campaigns/Contacts Web (branch on top of PR #128)
+CONTEXT_UPDATE_BRANCH: feat/phase8-008-mvp2b-campaigns-web
+CONTEXT_UPDATE_PR: PENDING_AFTER_128
 LAST_MERGED_PR_AT_REFRESH: 127
 LAST_MERGE_SHA_AT_REFRESH: 77fbc5b1573daf6581805b1ebcac1d383b56a46a
 LAST_TESTED_CODE_SHA: QUERY_GIT_AT_RUNTIME
@@ -225,8 +225,9 @@ AI_CONTEXT_HEADER_END
 - **PR #126 Status**: `MERGED ON MAIN` (merge commit `f21b40b38da72d3a7f1baf40b3ce42206b798982`; gate Windows do operador em `f37738f` PASS 1.529/45/0): teardown de bancos descartáveis aguarda drenagem das conexões antes do DROP.
 - **008-MVP1 Status**: `MERGED ON MAIN` (PR #127, `77fbc5b1573daf6581805b1ebcac1d383b56a46a`; gate Windows 1.567/45/0; gate pós-merge Linux PASS). Pendências humanas: evidência de consentimento e remoção de supressão.
 - **008-MVP2a (PR #128)**: backend do ciclo de vida de campanhas (audiência, START/PAUSE/RESUME/CANCEL, progresso real, bloqueio de despacho por status da campanha, migration aditiva `0011`).
-- `NEXT_ALLOWED_STEP = MERGE_PR_128_THEN_008_MVP2B_WEB` (008-OF5/008-MVP3 aguardam decisão Twilio-led vs Millis-led).
-- `NEXT_ALLOWED_SLICE = 008-MVP2b` (interface web de campanhas, contatos e supressões; depende da MVP2a).
+- **008-MVP2b (branch `feat/phase8-008-mvp2b-campaigns-web`)**: interface web de campanhas, contatos e supressões sobre BFF same-origin; PR aberta somente após o merge da #128.
+- `NEXT_ALLOWED_STEP = MERGE_PR_128_THEN_OPEN_008_MVP2B_PR` (008-OF5/008-MVP3 aguardam decisão Twilio-led vs Millis-led).
+- `NEXT_ALLOWED_SLICE = 008-MVP4` (resultados e visibilidade operacional; depende da MVP2).
 - `PURCHASE_OF_PHONE_NUMBERS = 0` | `REAL_PROVIDER_CALLS = 0` | `CUSTOMER_TRAFFIC = PROHIBITED` | `ACTIVE_GUARDED = BLOCKED`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
 

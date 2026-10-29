@@ -17,6 +17,15 @@ export const contactCsvMappingSchema = z
   .strict();
 export type ContactCsvMapping = z.input<typeof contactCsvMappingSchema>;
 
+/** Corpo HTTP da importação (API e BFF validam o MESMO schema). */
+export const contactImportRequestSchema = z
+  .object({
+    csv: z.string().min(1).max(CONTACT_CSV_LIMITS.maxBytes),
+    mapping: contactCsvMappingSchema,
+  })
+  .strict();
+export type ContactImportRequest = z.infer<typeof contactImportRequestSchema>;
+
 export type ContactImportRowRejection =
   ContactPhoneRejectionReason | 'DUPLICATE_IN_FILE' | 'CELL_TOO_LONG' | 'COLUMN_COUNT_MISMATCH';
 

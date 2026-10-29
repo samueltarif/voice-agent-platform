@@ -12,7 +12,7 @@ export interface InternalApiClientConfig {
 }
 
 export interface InternalApiRequestOptions {
-  method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   path: string;
   userId: string;
   organizationId: string;

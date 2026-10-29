@@ -1,7 +1,7 @@
 import type { InternalApiClient, InternalApiRequestOptions } from './internal-api-client.js';
 import type { ActiveOrganizationContext } from '../organization/active-organization-context.js';
 
-export type TenantApiMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
+export type TenantApiMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 export interface TenantRequestOptions {
   readonly method: TenantApiMethod;
