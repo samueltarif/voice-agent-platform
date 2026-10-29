@@ -6,9 +6,9 @@ CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-29
 CONTEXT_BASE_MAIN_SHA: 8f7de00e5ec7e1fdff541fa334e326405c3ad950
 CURRENT_PHASE: Phase 8 (OUTBOUND_FIRST_TWO_TRACK_PLANNING)
-CURRENT_SLICE: 008-MVP2b Campaigns/Contacts Web in PR #MVP2B_PR
+CURRENT_SLICE: 008-MVP2b Campaigns/Contacts Web in PR #130
 CONTEXT_UPDATE_BRANCH: feat/phase8-008-mvp2b-campaigns-web
-CONTEXT_UPDATE_PR: MVP2B_PR
+CONTEXT_UPDATE_PR: 130
 LAST_MERGED_PR_AT_REFRESH: 128
 LAST_MERGE_SHA_AT_REFRESH: 8f7de00e5ec7e1fdff541fa334e326405c3ad950
 LAST_TESTED_CODE_SHA: QUERY_GIT_AT_RUNTIME
@@ -226,8 +226,8 @@ AI_CONTEXT_HEADER_END
 - **008-MVP1 Status**: `MERGED ON MAIN` (PR #127, `77fbc5b1573daf6581805b1ebcac1d383b56a46a`; gate Windows 1.567/45/0; gate pós-merge Linux PASS). Pendências humanas: evidência de consentimento e remoção de supressão.
 - **008-MVP2a Status**: `MERGED ON MAIN` (PR #128, `8f7de00e5ec7e1fdff541fa334e326405c3ad950`; gate Windows 1.589/45/0; gate pós-merge Linux PASS).
 - **PR #129 (correção P1, em revisão)**: status da campanha revalidado na barreira de envio (`claimSend`) — jobs reivindicados antes de PAUSE/CANCEL não discam.
-- **008-MVP2b (PR #MVP2B_PR)**: interface web de campanhas, contatos e supressões sobre BFF same-origin.
-- `NEXT_ALLOWED_STEP = VALIDATE_AND_MERGE_PR_129_AND_MVP2B_PR` (008-OF5/008-MVP3 aguardam decisão Twilio-led vs Millis-led).
+- **008-MVP2b (PR #130)**: interface web de campanhas, contatos e supressões sobre BFF same-origin.
+- `NEXT_ALLOWED_STEP = VALIDATE_AND_MERGE_PR_129_AND_PR_130` (008-OF5/008-MVP3 aguardam decisão Twilio-led vs Millis-led).
 - `NEXT_ALLOWED_SLICE = 008-MVP4` (resultados e visibilidade operacional; depende da MVP2).
 - `PURCHASE_OF_PHONE_NUMBERS = 0` | `REAL_PROVIDER_CALLS = 0` | `CUSTOMER_TRAFFIC = PROHIBITED` | `ACTIVE_GUARDED = BLOCKED`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
