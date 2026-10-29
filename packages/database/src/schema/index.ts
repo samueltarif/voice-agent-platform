@@ -15,3 +15,4 @@ export * from './outbound-budget-ledgers.js';
 export * from './outbound-budget-reservations.js';
 export * from './platform-global-budget-ledger.js';
 export * from './contacts.js';
+export * from './campaign-audiences.js';

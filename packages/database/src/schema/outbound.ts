@@ -56,6 +56,12 @@ export const outboundCampaigns = pgTable(
       .notNull(),
   },
   (table) => [
+    /** 008-MVP2: agente e versão do MESMO tenant (antes só validado na aplicação). */
+    foreignKey({
+      columns: [table.agentVersionId, table.agentId, table.organizationId],
+      foreignColumns: [agentVersions.id, agentVersions.agentId, agentVersions.organizationId],
+      name: 'outbound_campaigns_agent_version_org_fk',
+    }).onDelete('restrict'),
     index('outbound_campaigns_org_idx').on(table.organizationId),
     index('outbound_campaigns_org_status_idx').on(table.organizationId, table.status),
     check('outbound_campaigns_name_chk', sql`char_length(${table.name}) > 0`),

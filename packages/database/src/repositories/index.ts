@@ -59,3 +59,4 @@ export * from './durable-guarded-origination-runner.js';
 export * from './provider-event-attempt-store.js';
 export * from './contact-repository.js';
 export * from './contact-suppression-repository.js';
+export * from './campaign-lifecycle-repository.js';

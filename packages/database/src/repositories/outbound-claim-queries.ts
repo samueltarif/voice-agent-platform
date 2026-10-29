@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import type { ClaimJobInput } from '@voice-agent/contracts';
+import { NON_DISPATCHABLE_CAMPAIGN_STATUSES, type ClaimJobInput } from '@voice-agent/contracts';
 
 export const OUTBOUND_JOB_RETURNING_COLUMNS = sql`
   id,
@@ -24,6 +24,21 @@ export const OUTBOUND_JOB_RETURNING_COLUMNS = sql`
   updated_at AS "updatedAt"
 `;
 
+/**
+ * 008-MVP2: job de campanha PAUSED/CANCELED/COMPLETED nunca é reivindicado.
+ * Avaliado na MESMA instrução do UPDATE (sem janela entre checagem e claim).
+ * Jobs sem campanha e campanhas DRAFT (fluxo em lote da 007F) seguem elegíveis.
+ */
+const CAMPAIGN_DISPATCHABLE = sql`NOT EXISTS (
+  SELECT 1 FROM outbound_campaigns c
+  WHERE c.id = outbound_call_jobs.campaign_id
+    AND c.organization_id = outbound_call_jobs.organization_id
+    AND c.status IN (${sql.join(
+      NON_DISPATCHABLE_CAMPAIGN_STATUSES.map((status) => sql`${status}`),
+      sql`, `,
+    )})
+)`;
+
 export function buildClaimNextDueJobSql(organizationId: string, workerId: string, now: Date) {
   return sql`
     UPDATE outbound_call_jobs
@@ -40,6 +55,7 @@ export function buildClaimNextDueJobSql(organizationId: string, workerId: string
           OR (status = 'FAILED_RETRYABLE' AND next_retry_at <= ${now})
         )
         AND attempts < max_attempts
+        AND ${CAMPAIGN_DISPATCHABLE}
       ORDER BY scheduled_at ASC, id ASC
       FOR UPDATE SKIP LOCKED
       LIMIT 1
@@ -63,6 +79,7 @@ export function buildClaimJobSql(input: ClaimJobInput, now: Date) {
         OR (status = 'FAILED_RETRYABLE' AND next_retry_at <= ${now})
       )
       AND attempts < max_attempts
+      AND ${CAMPAIGN_DISPATCHABLE}
     RETURNING ${OUTBOUND_JOB_RETURNING_COLUMNS};
   `;
 }

@@ -78,6 +78,13 @@
       "when": 1793209964350,
       "tag": "0010_contacts_audiences_suppression",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793280900067,
+      "tag": "0011_campaign_audience_lifecycle",
+      "breakpoints": true
     }
   ]
 }
