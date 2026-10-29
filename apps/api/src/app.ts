@@ -14,6 +14,7 @@ import { registerKnowledgeReadRoutes } from './routes/knowledge-read-routes.js';
 import { registerKnowledgeMutationRoutes } from './routes/knowledge-mutation-routes.js';
 import { registerContactListRoutes } from './routes/contact-list-routes.js';
 import { registerContactSuppressionRoutes } from './routes/contact-suppression-routes.js';
+import { registerCampaignLifecycleRoutes } from './routes/campaign-lifecycle-routes.js';
 import { serviceAuthMiddleware } from './auth/service-auth-middleware.js';
 
 import { bootstrapAuthMiddleware } from './auth/bootstrap-auth-middleware.js';
@@ -84,6 +85,7 @@ export function createApp(deps: ApiDependencies): OpenAPIHono {
   registerKnowledgeMutationRoutes(app, deps);
   registerContactListRoutes(app, deps);
   registerContactSuppressionRoutes(app, deps);
+  registerCampaignLifecycleRoutes(app, deps);
 
   // 6. Global error handler & not found handler with canonical error envelopes
   app.onError(createApiErrorHandler(deps.logger));

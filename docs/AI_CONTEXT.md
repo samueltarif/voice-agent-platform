@@ -4,13 +4,13 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-28
-CONTEXT_BASE_MAIN_SHA: f21b40b38da72d3a7f1baf40b3ce42206b798982
+CONTEXT_BASE_MAIN_SHA: 77fbc5b1573daf6581805b1ebcac1d383b56a46a
 CURRENT_PHASE: Phase 8 (OUTBOUND_FIRST_TWO_TRACK_PLANNING)
-CURRENT_SLICE: 008-MVP1 Contacts, Audiences and Suppression in PR #127
-CONTEXT_UPDATE_BRANCH: feat/phase8-008-mvp1-contacts-suppression
-CONTEXT_UPDATE_PR: 127
-LAST_MERGED_PR_AT_REFRESH: 126
-LAST_MERGE_SHA_AT_REFRESH: f21b40b38da72d3a7f1baf40b3ce42206b798982
+CURRENT_SLICE: 008-MVP2a Campaign Lifecycle Backend in PR #128
+CONTEXT_UPDATE_BRANCH: feat/phase8-008-mvp2a-campaign-lifecycle
+CONTEXT_UPDATE_PR: 128
+LAST_MERGED_PR_AT_REFRESH: 127
+LAST_MERGE_SHA_AT_REFRESH: 77fbc5b1573daf6581805b1ebcac1d383b56a46a
 LAST_TESTED_CODE_SHA: QUERY_GIT_AT_RUNTIME
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
@@ -223,9 +223,10 @@ AI_CONTEXT_HEADER_END
 - **PR #124 Status**: `MERGED ON MAIN` pelo operador (merge commit `3e1033d7bba5d994aaaba7c090344e8dc08da092`, árvore idêntica ao HEAD testado `7310391`; gate Windows do operador PASS 1.507/45/0; gate pós-merge Linux PASS 1.507/45/0). Inclui lease entre processos para suítes de banco descartável (estabilização do gate Windows).
 - **008-OF4 Status**: `MERGED ON MAIN` (PR #125, merge commit `eee88fd1ba64dfdc9837e3e60a3269618ca93ae5`; gate Windows do operador em `d08497f` PASS 1.528/45/0). Ingress provider-neutral offline em `apps/api/src/webhooks/` (não montado), sem efeito financeiro a partir de webhooks; autenticadores/normalizadores reais `PROVIDER-UNVERIFIED` (008-OF5).
 - **PR #126 Status**: `MERGED ON MAIN` (merge commit `f21b40b38da72d3a7f1baf40b3ce42206b798982`; gate Windows do operador em `f37738f` PASS 1.529/45/0): teardown de bancos descartáveis aguarda drenagem das conexões antes do DROP.
-- **008-MVP1 (PR #127)**: contatos, listas, importação CSV, supressões e elegibilidade fail-closed offline (migration aditiva `0010`, trigger anti-job suprimido, guarda e lock de linearização no `claimSend`, rotas `/v1/contact-lists*` e `/v1/contact-suppressions`). Pendências humanas: evidência de consentimento e remoção de supressão (decisões normativas).
-- `NEXT_ALLOWED_STEP = MERGE_PR_127_THEN_008_MVP2` (008-OF5/008-MVP3 aguardam decisão Twilio-led vs Millis-led).
-- `NEXT_ALLOWED_SLICE = 008-MVP2` (Gestão de Campanhas; depende da 008-MVP1).
+- **008-MVP1 Status**: `MERGED ON MAIN` (PR #127, `77fbc5b1573daf6581805b1ebcac1d383b56a46a`; gate Windows 1.567/45/0; gate pós-merge Linux PASS). Pendências humanas: evidência de consentimento e remoção de supressão.
+- **008-MVP2a (PR #128)**: backend do ciclo de vida de campanhas (audiência, START/PAUSE/RESUME/CANCEL, progresso real, bloqueio de despacho por status da campanha, migration aditiva `0011`).
+- `NEXT_ALLOWED_STEP = MERGE_PR_128_THEN_008_MVP2B_WEB` (008-OF5/008-MVP3 aguardam decisão Twilio-led vs Millis-led).
+- `NEXT_ALLOWED_SLICE = 008-MVP2b` (interface web de campanhas, contatos e supressões; depende da MVP2a).
 - `PURCHASE_OF_PHONE_NUMBERS = 0` | `REAL_PROVIDER_CALLS = 0` | `CUSTOMER_TRAFFIC = PROHIBITED` | `ACTIVE_GUARDED = BLOCKED`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
 

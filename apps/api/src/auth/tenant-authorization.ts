@@ -2,13 +2,15 @@ import { ForbiddenError } from '@voice-agent/errors';
 import type { TenantRole } from '@voice-agent/contracts';
 import type { OrganizationRepository, MembershipRepository } from '@voice-agent/database';
 import { hasAgentPermission, type AgentPermission } from './agent-permissions.js';
+import { hasCampaignPermission, type CampaignPermission } from './campaign-permissions.js';
 import { hasContactPermission, type ContactPermission } from './contact-permissions.js';
 import {
   hasKnowledgePermission,
   type KnowledgeManagementPermission,
 } from './knowledge-permissions.js';
 
-export type TenantPermission = AgentPermission | KnowledgeManagementPermission | ContactPermission;
+export type TenantPermission =
+  AgentPermission | KnowledgeManagementPermission | ContactPermission | CampaignPermission;
 
 function hasTenantPermission(role: TenantRole, permission: TenantPermission): boolean {
   if (permission.startsWith('knowledge.')) {
@@ -16,6 +18,9 @@ function hasTenantPermission(role: TenantRole, permission: TenantPermission): bo
   }
   if (permission.startsWith('contacts.')) {
     return hasContactPermission(role, permission as ContactPermission);
+  }
+  if (permission.startsWith('campaigns.')) {
+    return hasCampaignPermission(role, permission as CampaignPermission);
   }
   return hasAgentPermission(role, permission as AgentPermission);
 }
