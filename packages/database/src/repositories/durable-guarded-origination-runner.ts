@@ -55,6 +55,14 @@ function resolveReservationBlock(outcome: ReserveOutboundBudgetOutcome): string 
   return `BUDGET_BLOCKED:${outcome.kind}`;
 }
 
+/**
+ * Campanha pausada: nada é enviado e a tentativa fica pendente com a reserva
+ * mantida para a retomada. Liberar aqui cancelaria a tentativa (prova de não
+ * envio), e uma tentativa CANCELED bloqueia sucessoras — o contato seria
+ * perdido por uma pausa.
+ */
+const HELD_FOR_RESUME: ReadonlySet<string> = new Set(['CAMPAIGN_PAUSED']);
+
 export class DurableGuardedOriginationRunner {
   constructor(private readonly deps: GuardedRunnerDependencies) {}
 
@@ -94,7 +102,7 @@ export class DurableGuardedOriginationRunner {
     if (errorReason) return { kind: 'NOT_SENT', reason: errorReason };
 
     const runResult = await this.deps.runner.originate(scope);
-    if (runResult.kind === 'NOT_SENT') {
+    if (runResult.kind === 'NOT_SENT' && !HELD_FOR_RESUME.has(runResult.reason)) {
       await this.deps.budget.releaseBudget({
         organizationId: scope.organizationId,
         attemptId: scope.attemptId,

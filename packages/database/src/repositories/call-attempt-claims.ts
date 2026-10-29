@@ -13,6 +13,7 @@ import {
   type DurableApplyOutcome,
 } from './durable-attempt-event-applier.js';
 import { buildInternalAttemptEvent } from './durable-attempt-event-factory.js';
+import { applyCampaignSendRefusal, campaignSendRefusal } from './send-time-campaign-gate.js';
 import {
   cancelSuppressedAttempt,
   isAttemptDestinationSuppressed,
@@ -33,6 +34,8 @@ export type ClaimRejectionReason =
   | 'CLAIM_HELD_BY_ANOTHER_OWNER'
   | 'MANUAL_REVIEW_REQUIRED'
   | 'DESTINATION_SUPPRESSED'
+  | 'CAMPAIGN_PAUSED'
+  | 'CAMPAIGN_CANCELED'
   | 'CLAIM_TRANSITION_REJECTED';
 
 export type ClaimResult =
@@ -75,6 +78,11 @@ export async function claimSendInTransaction(
   if (!row) return { kind: 'REJECTED', reason: 'NOT_FOUND' };
   if (row.state !== 'ORIGINATION_PENDING') {
     return { kind: 'REJECTED', reason: 'NOT_CLAIMABLE_IN_STATE' };
+  }
+  const refusal = await campaignSendRefusal(executor, row);
+  if (refusal) {
+    await applyCampaignSendRefusal(executor, row, { refusal, now: input.now });
+    return { kind: 'REJECTED', reason: refusal };
   }
   if (await isAttemptDestinationSuppressed(executor, row)) {
     await cancelSuppressedAttempt(executor, row, input.now);
