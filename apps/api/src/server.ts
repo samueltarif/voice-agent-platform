@@ -15,6 +15,8 @@ import {
   UserOrganizationContextRepository,
   DrizzleOutboundRepository,
   DrizzleKnowledgeRepository,
+  DrizzleContactRepository,
+  DrizzleContactSuppressionRepository,
 } from '@voice-agent/database';
 
 import { ServiceAssertionVerifier } from './auth/service-assertion-verifier.js';
@@ -56,6 +58,8 @@ const organizationRepo = new OrganizationRepository(db);
 const userOrgContextRepo = new UserOrganizationContextRepository(db);
 const outboundRepo = new DrizzleOutboundRepository(db);
 const knowledgeRepo = new DrizzleKnowledgeRepository(db);
+const contactRepo = new DrizzleContactRepository(db);
+const suppressionRepo = new DrizzleContactSuppressionRepository(db);
 
 const verifier = new ServiceAssertionVerifier({ publicJwks });
 const bootstrapVerifier = new BootstrapAssertionVerifier({ publicJwks });
@@ -75,6 +79,8 @@ const app = createApp({
   userOrgContextRepo,
   outboundRepo,
   knowledgeRepo,
+  contactRepo,
+  suppressionRepo,
 });
 
 const server = serve({ fetch: app.fetch, port }, (info) => {

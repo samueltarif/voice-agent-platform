@@ -9,6 +9,8 @@ import type {
   MembershipRepository,
   OrganizationRepository,
   UserOrganizationContextRepository,
+  DrizzleContactRepository,
+  DrizzleContactSuppressionRepository,
 } from '@voice-agent/database';
 import type { OutboundRepositoryPort, KnowledgeRepositoryPort } from '@voice-agent/contracts';
 import type { ServiceAssertionVerifier } from '../auth/service-assertion-verifier.js';
@@ -29,4 +31,6 @@ export interface ApiDependencies {
   readonly userOrgContextRepo: UserOrganizationContextRepository;
   readonly outboundRepo?: OutboundRepositoryPort | undefined;
   readonly knowledgeRepo?: KnowledgeRepositoryPort | undefined;
+  readonly contactRepo?: DrizzleContactRepository | undefined;
+  readonly suppressionRepo?: DrizzleContactSuppressionRepository | undefined;
 }

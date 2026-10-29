@@ -57,3 +57,5 @@ export * from './outbound-budget-settle.js';
 export * from './outbound-budget-release.js';
 export * from './durable-guarded-origination-runner.js';
 export * from './provider-event-attempt-store.js';
+export * from './contact-repository.js';
+export * from './contact-suppression-repository.js';
