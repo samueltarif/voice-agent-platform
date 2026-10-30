@@ -1,0 +1,1 @@
+CREATE INDEX "call_attempts_org_campaign_created_idx" ON "call_attempts" USING btree ("organization_id","campaign_id","created_at");

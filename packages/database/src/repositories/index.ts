@@ -60,3 +60,4 @@ export * from './provider-event-attempt-store.js';
 export * from './contact-repository.js';
 export * from './contact-suppression-repository.js';
 export * from './campaign-lifecycle-repository.js';
+export * from './campaign-report-repository.js';

@@ -11,7 +11,15 @@ import {
 } from './campaign-labels';
 import { campaignActionSuccess } from './campaign-action-messages';
 
-const zero = { total: 0, scheduled: 0, inProgress: 0, completed: 0, failed: 0, canceled: 0 };
+const zero = {
+  total: 0,
+  scheduled: 0,
+  inProgress: 0,
+  heldByPause: 0,
+  completed: 0,
+  failed: 0,
+  canceled: 0,
+};
 
 describe('campaign actions offered by the UI', () => {
   it('matches the contract state machine for every status × action', () => {

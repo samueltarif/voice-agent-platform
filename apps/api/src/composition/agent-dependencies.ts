@@ -12,6 +12,7 @@ import type {
   DrizzleContactRepository,
   DrizzleContactSuppressionRepository,
   DrizzleCampaignLifecycleRepository,
+  DrizzleCampaignReportRepository,
 } from '@voice-agent/database';
 import type { OutboundRepositoryPort, KnowledgeRepositoryPort } from '@voice-agent/contracts';
 import type { ServiceAssertionVerifier } from '../auth/service-assertion-verifier.js';
@@ -35,4 +36,5 @@ export interface ApiDependencies {
   readonly contactRepo?: DrizzleContactRepository | undefined;
   readonly suppressionRepo?: DrizzleContactSuppressionRepository | undefined;
   readonly campaignLifecycleRepo?: DrizzleCampaignLifecycleRepository | undefined;
+  readonly campaignReportRepo?: DrizzleCampaignReportRepository | undefined;
 }

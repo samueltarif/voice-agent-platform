@@ -90,6 +90,7 @@ describe('008-MVP2 campaign lifecycle', () => {
       total: 2,
       scheduled: 2,
       inProgress: 0,
+      heldByPause: 0,
       completed: 0,
       failed: 0,
       canceled: 0,

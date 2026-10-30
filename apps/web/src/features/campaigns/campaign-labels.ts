@@ -55,6 +55,7 @@ export const CAMPAIGN_PROGRESS_ROWS: readonly {
 }[] = [
   { key: 'scheduled', label: 'Agendadas' },
   { key: 'inProgress', label: 'Em andamento' },
+  { key: 'heldByPause', label: 'Retidos pela pausa' },
   { key: 'completed', label: 'Concluídas' },
   { key: 'failed', label: 'Falharam' },
   { key: 'canceled', label: 'Canceladas' },

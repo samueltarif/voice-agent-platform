@@ -58,7 +58,10 @@ export const campaignActionInputSchema = z.object({ action: campaignActionSchema
 export interface CampaignProgress {
   readonly total: number;
   readonly scheduled: number;
+  /** Jobs em execução real (exclui os retidos pela pausa). */
   readonly inProgress: number;
+  /** 008-MVP4: jobs reivindicados de campanha PAUSADA sem tentativa enviada (não estão discando). */
+  readonly heldByPause: number;
   readonly completed: number;
   readonly failed: number;
   readonly canceled: number;
