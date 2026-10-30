@@ -6,9 +6,9 @@ CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-10-30
 CONTEXT_BASE_MAIN_SHA: 382cf2c7c843c5e0d862a9d86835ccd7f65dfb7a
 CURRENT_PHASE: Phase 8 (OUTBOUND_FIRST_TWO_TRACK_PLANNING)
-CURRENT_SLICE: 008-MVP4a Campaign Reports Backend
+CURRENT_SLICE: 008-MVP4a Campaign Reports Backend in PR #131
 CONTEXT_UPDATE_BRANCH: feat/phase8-008-mvp4a-campaign-reports
-CONTEXT_UPDATE_PR: PENDING
+CONTEXT_UPDATE_PR: 131
 LAST_MERGED_PR_AT_REFRESH: 130
 LAST_MERGE_SHA_AT_REFRESH: 382cf2c7c843c5e0d862a9d86835ccd7f65dfb7a
 LAST_TESTED_CODE_SHA: QUERY_GIT_AT_RUNTIME
@@ -228,8 +228,8 @@ AI_CONTEXT_HEADER_END
 - **PR #129 Status**: `MERGED ON MAIN` (merge commit `6882f1a44efa867a2b06ae2425bc39b82a19956c`, árvore idêntica a `c362ae4`; gate Windows do operador PASS 1.597/45/0; gate pós-merge Linux PASS). Status da campanha revalidado no `claimSend` (`FOR SHARE`): cancelada → tentativa e job cancelados sem discar; pausada → nada enviado, tentativa e reserva mantidas para a retomada; já enviada → segue sua FSM.
 - **Ambiente de tipos (PR #129)**: `tsconfig.base.json` fixa `types: []`/`typeRoots: []` (pacotes com tipos próprios fixam os seus) — pastas `node_modules/@types` fora do workspace (ex.: `D:\node_modules\@types` no host Windows) não podem mais quebrar o typecheck.
 - **008-MVP2b Status**: `MERGED ON MAIN` (PR #130, `382cf2c7c843c5e0d862a9d86835ccd7f65dfb7a`; gate Windows 1.656/45/0; gate pós-merge Linux PASS). **008-MVP2 concluída.**
-- **008-MVP4a (em PR)**: relatório de campanha a partir do estado persistido — progresso com jobs retidos pela pausa, tentativas por classe de desfecho (sem inventar resultado), custos somente do ledger (liquidado × reservado, visíveis apenas a OWNER/ADMIN/MANAGER), listagem com telefone mascarado; índice aditivo `0012`.
-- `NEXT_ALLOWED_STEP = VALIDATE_AND_MERGE_008_MVP4A` (008-OF5/008-MVP3 aguardam decisão Twilio-led vs Millis-led).
+- **008-MVP4a (PR #131)**: relatório de campanha a partir do estado persistido — progresso com jobs retidos pela pausa, tentativas por classe de desfecho (sem inventar resultado), custos somente do ledger (liquidado × reservado, visíveis apenas a OWNER/ADMIN/MANAGER), listagem com telefone mascarado; índice aditivo `0012`.
+- `NEXT_ALLOWED_STEP = VALIDATE_AND_MERGE_PR_131` (008-OF5/008-MVP3 aguardam decisão Twilio-led vs Millis-led).
 - `NEXT_ALLOWED_SLICE = 008-MVP4b` (telas de relatório e acompanhamento sobre a API da MVP4a; depois substituição dos dados simulados de dashboard/chamadas).
 - `PURCHASE_OF_PHONE_NUMBERS = 0` | `REAL_PROVIDER_CALLS = 0` | `CUSTOMER_TRAFFIC = PROHIBITED` | `ACTIVE_GUARDED = BLOCKED`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
