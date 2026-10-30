@@ -25,6 +25,7 @@ import {
 } from '@voice-agent/ui';
 import { useUiPreferences } from '../preferences/ui-preferences-context';
 import { SidebarLinkItem, type SidebarNavItem } from './sidebar-link-item';
+import { orgNavItem } from './org-nav-item';
 import type { OrganizationSummary } from './organization-switcher';
 
 function SidebarBrandHeader({
@@ -121,24 +122,14 @@ export function DesktopSidebar({ currentOrg }: DesktopSidebarProps = {}) {
         active: pathname === '/dashboard',
       },
       { title: 'Chamadas', href: '/calls', icon: Headphones, active: pathname === '/calls' },
-      { title: 'Campanhas', href: '#', icon: Activity, badge: 'Preview', disabled: true },
-      { title: 'Leads', href: '#', icon: Users, badge: 'Em breve', disabled: true },
-      {
-        title: 'Agente IA',
-        href: slug ? `/orgs/${slug}/agents` : '#',
-        icon: Bot,
-        active: slug ? pathname.startsWith(`/orgs/${slug}/agents`) : false,
-        disabled: !slug,
-        ...(slug ? {} : { badge: 'Em breve' }),
-      },
-      {
-        title: 'Base de Conhecimento',
-        href: slug ? `/orgs/${slug}/knowledge` : '#',
-        icon: BookOpen,
-        active: slug ? pathname.startsWith(`/orgs/${slug}/knowledge`) : false,
-        disabled: !slug,
-        ...(slug ? {} : { badge: 'Em breve' }),
-      },
+      orgNavItem({ title: 'Campanhas', segment: 'campaigns', icon: Activity }, slug, pathname),
+      orgNavItem({ title: 'Contatos', segment: 'contacts', icon: Users }, slug, pathname),
+      orgNavItem({ title: 'Agente IA', segment: 'agents', icon: Bot }, slug, pathname),
+      orgNavItem(
+        { title: 'Base de Conhecimento', segment: 'knowledge', icon: BookOpen },
+        slug,
+        pathname,
+      ),
       { title: 'Configurações', href: '#', icon: Settings, badge: 'Em breve', disabled: true },
     ];
   }, [pathname, currentOrg?.slug]);

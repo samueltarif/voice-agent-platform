@@ -81,3 +81,16 @@ export type CampaignActionOutcome =
         | 'AGENT_NOT_ACTIVE'
         | 'NO_ELIGIBLE_CONTACTS';
     };
+
+/**
+ * Criação de campanha pela interface: o cliente escolhe só o AGENTE; a versão
+ * publicada atual é resolvida no servidor e a campanha nasce em DRAFT.
+ */
+export const createCampaignDraftInputSchema = z
+  .object({
+    name: z.string().trim().min(1).max(120),
+    agentId: z.string().uuid(),
+    description: z.string().trim().max(500).optional(),
+  })
+  .strict();
+export type CreateCampaignDraftInput = z.infer<typeof createCampaignDraftInputSchema>;

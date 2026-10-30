@@ -71,22 +71,20 @@ function MobileMenuModules({
       <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-2">
         Módulos
       </span>
-      <div className="flex items-center justify-between p-2 rounded-md hover:bg-accent text-sm text-muted-foreground">
-        <span className="flex items-center gap-2">
-          <Activity className="h-4 w-4" /> Campanhas
-        </span>
-        <Badge variant="outline" className="text-[10px]">
-          Preview
-        </Badge>
-      </div>
-      <div className="flex items-center justify-between p-2 rounded-md hover:bg-accent text-sm text-muted-foreground">
-        <span className="flex items-center gap-2">
-          <Users className="h-4 w-4" /> Leads
-        </span>
-        <Badge variant="outline" className="text-[10px]">
-          Em breve
-        </Badge>
-      </div>
+      <OrgModuleLink
+        slug={currentOrg?.slug}
+        segment="campaigns"
+        label="Campanhas"
+        icon={<Activity className="h-4 w-4" />}
+        onOpenChange={onOpenChange}
+      />
+      <OrgModuleLink
+        slug={currentOrg?.slug}
+        segment="contacts"
+        label="Contatos"
+        icon={<Users className="h-4 w-4" />}
+        onOpenChange={onOpenChange}
+      />
       <OrgModuleLink
         slug={currentOrg?.slug}
         segment="agents"
