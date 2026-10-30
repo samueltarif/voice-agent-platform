@@ -35,6 +35,16 @@ function providerReferenceLookupIndex(column: AnyPgColumn) {
     .where(sql`${column} IS NOT NULL`);
 }
 
+/** Varredura de recuperação/reconciliação por estado e lease (008-OF2). */
+function stateLeaseIndex(org: AnyPgColumn, state: AnyPgColumn, leaseExpiresAt: AnyPgColumn) {
+  return index('call_attempts_org_state_lease_idx').on(org, state, leaseExpiresAt);
+}
+
+/** 008-MVP4: relatórios e listagem por campanha (mais recentes primeiro). */
+function campaignReportIndex(org: AnyPgColumn, campaign: AnyPgColumn, createdAt: AnyPgColumn) {
+  return index('call_attempts_org_campaign_created_idx').on(org, campaign, createdAt);
+}
+
 export const callAttempts = pgTable(
   'call_attempts',
   {
@@ -107,11 +117,8 @@ export const callAttempts = pgTable(
       .on(table.organizationId, table.jobId)
       .where(sql`${table.state} NOT IN ${TERMINAL_STATES_SQL}`),
     providerReferenceLookupIndex(table.providerReference),
-    index('call_attempts_org_state_lease_idx').on(
-      table.organizationId,
-      table.state,
-      table.leaseExpiresAt,
-    ),
+    campaignReportIndex(table.organizationId, table.campaignId, table.createdAt),
+    stateLeaseIndex(table.organizationId, table.state, table.leaseExpiresAt),
     check('call_attempts_attempt_number_chk', sql`${table.attemptNumber} > 0`),
     check('call_attempts_state_version_chk', sql`${table.stateVersion} > 0`),
     check('call_attempts_fencing_chk', sql`${table.fencingToken} >= 0`),

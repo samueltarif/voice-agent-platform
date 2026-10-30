@@ -85,6 +85,13 @@
       "when": 1793280900067,
       "tag": "0011_campaign_audience_lifecycle",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793373579363,
+      "tag": "0012_campaign_report_index",
+      "breakpoints": true
     }
   ]
 }

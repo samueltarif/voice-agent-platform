@@ -34,7 +34,13 @@ export function CampaignProgressPanel({ progress }: { readonly progress: Campaig
             </div>
           </div>
         )}
-        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+        {progress.heldByPause > 0 && (
+          <p data-testid="campaign-progress-held" className="text-xs text-muted-foreground">
+            {progress.heldByPause} contato(s) já reservados para discagem estão retidos pela pausa:
+            nada foi discado e eles seguem ao retomar a campanha.
+          </p>
+        )}
+        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {CAMPAIGN_PROGRESS_ROWS.map((row) => (
             <div key={row.key} className="rounded-md border border-border/60 p-3">
               <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">

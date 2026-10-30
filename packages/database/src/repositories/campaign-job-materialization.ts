@@ -1,7 +1,6 @@
 import { and, eq, sql } from 'drizzle-orm';
 import type { CampaignProgress } from '@voice-agent/contracts';
 import { agents, agentVersions } from '../schema/agents.js';
-import { outboundCallJobs } from '../schema/outbound.js';
 import type { DatabaseExecutor } from './database-executor.js';
 
 export interface CampaignScope {
@@ -85,27 +84,46 @@ export async function cancelPendingCampaignJobs(
   return result.rows.length;
 }
 
+const EMPTY_PROGRESS: CampaignProgress = {
+  total: 0,
+  scheduled: 0,
+  inProgress: 0,
+  heldByPause: 0,
+  completed: 0,
+  failed: 0,
+  canceled: 0,
+};
+
+/**
+ * Progresso real dos jobs. 008-MVP4: job reivindicado de campanha PAUSADA sem
+ * tentativa enviada (`send_started_at`) está retido pela pausa — não discando
+ * — e sai de "em andamento".
+ */
 export async function readCampaignProgress(
   tx: DatabaseExecutor,
   scope: CampaignScope,
 ): Promise<CampaignProgress> {
-  const count = (statuses: string) =>
-    sql<number>`count(*) FILTER (WHERE ${outboundCallJobs.status}::text = ANY(string_to_array(${statuses}, ',')))::int`;
-  const [row] = await tx
-    .select({
-      total: sql<number>`count(*)::int`,
-      scheduled: count('SCHEDULED,FAILED_RETRYABLE'),
-      inProgress: count('CLAIMED,DISPATCHED'),
-      completed: count('COMPLETED'),
-      failed: count('FAILED_TERMINAL'),
-      canceled: count('CANCELED'),
-    })
-    .from(outboundCallJobs)
-    .where(
-      and(
-        eq(outboundCallJobs.organizationId, scope.organizationId),
-        eq(outboundCallJobs.campaignId, scope.campaignId),
-      ),
-    );
-  return row ?? { total: 0, scheduled: 0, inProgress: 0, completed: 0, failed: 0, canceled: 0 };
+  const result = await tx.execute<Record<keyof CampaignProgress | 'running', number>>(sql`
+    SELECT
+      count(*)::int AS "total",
+      count(*) FILTER (WHERE j.status IN ('SCHEDULED', 'FAILED_RETRYABLE'))::int AS "scheduled",
+      count(*) FILTER (WHERE j.status IN ('CLAIMED', 'DISPATCHED'))::int AS "running",
+      count(*) FILTER (
+        WHERE j.status IN ('CLAIMED', 'DISPATCHED') AND c.status = 'PAUSED'
+          AND NOT EXISTS (
+            SELECT 1 FROM call_attempts a
+            WHERE a.organization_id = j.organization_id AND a.job_id = j.id
+              AND a.send_started_at IS NOT NULL
+          )
+      )::int AS "heldByPause",
+      count(*) FILTER (WHERE j.status = 'COMPLETED')::int AS "completed",
+      count(*) FILTER (WHERE j.status = 'FAILED_TERMINAL')::int AS "failed",
+      count(*) FILTER (WHERE j.status = 'CANCELED')::int AS "canceled"
+    FROM outbound_call_jobs j
+    JOIN outbound_campaigns c ON c.id = j.campaign_id AND c.organization_id = j.organization_id
+    WHERE j.organization_id = ${scope.organizationId} AND j.campaign_id = ${scope.campaignId}`);
+  const row = result.rows[0];
+  if (!row) return EMPTY_PROGRESS;
+  const { running, inProgress: _unused, ...counts } = row;
+  return { ...counts, inProgress: running - counts.heldByPause };
 }

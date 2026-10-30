@@ -404,6 +404,7 @@ Esta trilha paralela e rastreável define as capacidades de produto indispensáv
   - **Critérios de Aceitação**: Configuração do agente refletida fidedignamente no payload do simulador Millis; zero vazamento de prompts ou chaves entre tenants.
 
 - [ ] **Slice 008-MVP4 — Resultados de Chamadas, Monitoramento e Visibilidade Operacional**:
+  - **Status Real**: Em andamento em PRs revisáveis. **MVP4a (backend)** na branch `feat/phase8-008-mvp4a-campaign-reports`: `GET /v1/campaigns/{id}/report` e `GET /v1/campaigns/{id}/attempts` a partir do estado persistido; classes de desfecho derivadas da FSM (não enviada, retida pela pausa, em curso, desconhecido, sem chamada criada, cancelada antes do envio, encerrada); custos apenas do ledger (liquidado × reservado), restritos a OWNER/ADMIN/MANAGER; telefone mascarado; progresso separa jobs retidos pela pausa. *Disposition tags* (atendida, ocupado, caixa postal…) **indisponíveis** até a integração do provedor (008-OF5, bloqueada pela decisão Twilio-led vs Millis-led) — nada é inferido. **MVP4b (web)** e substituição dos dados simulados de dashboard/chamadas: pendentes.
   - **Objetivo**: Fornecer ao cliente visibilidade operacional completa e auditável sobre o resultado de cada ligação e campanha no Dashboard.
   - **Escopo**:
     - Histórico durável persistido consumindo `call_sessions` e `call_events` da 008-OF2.

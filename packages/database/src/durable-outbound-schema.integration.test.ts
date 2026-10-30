@@ -29,7 +29,7 @@ async function failureOf(work: Promise<unknown>) {
 }
 
 describe('008-OF2 migration on a brand-new disposable database', () => {
-  it('applies all migrations (0000–0011) from empty and is idempotent on re-run', async () => {
+  it('applies all migrations (0000–0012) from empty and is idempotent on re-run', async () => {
     // `tdb` foi criado vazio e migrado do zero; a nova execução prova idempotência.
     await runMigrations({ connectionString: tdb.url });
     const fresh = tdb;
@@ -52,7 +52,7 @@ describe('008-OF2 migration on a brand-new disposable database', () => {
       const applied = await fresh.db.execute<{ total: string }>(
         sql`SELECT count(*)::text AS total FROM drizzle.__drizzle_migrations`,
       );
-      expect(applied.rows[0]?.total).toBe('12');
+      expect(applied.rows[0]?.total).toBe('13');
       const audiences = await fresh.db.execute<{ name: string }>(sql`
         SELECT tablename AS name FROM pg_tables
           WHERE schemaname = 'public' AND tablename = 'outbound_campaign_audiences'`);
@@ -65,6 +65,10 @@ describe('008-OF2 migration on a brand-new disposable database', () => {
         SELECT indexname AS name FROM pg_indexes
           WHERE tablename = 'call_attempts' AND indexname = 'call_attempts_provider_reference_idx'`);
       expect(lookup.rows).toHaveLength(1);
+      const reportIndex = await fresh.db.execute<{ name: string }>(sql`
+        SELECT indexname AS name FROM pg_indexes
+          WHERE tablename = 'call_attempts' AND indexname = 'call_attempts_org_campaign_created_idx'`);
+      expect(reportIndex.rows).toHaveLength(1);
     }
   });
 

@@ -10,13 +10,14 @@ describe('008-MVP2 campaign permissions', () => {
   });
 
   it.each([
-    ['OWNER', true, true],
-    ['ADMIN', true, true],
-    ['MANAGER', true, true],
-    ['OPERATOR', false, true],
-    ['VIEWER', false, false],
-  ] as const)('%s: operate=%s halt=%s', (role, operate, halt) => {
+    ['OWNER', true, true, true],
+    ['ADMIN', true, true, true],
+    ['MANAGER', true, true, true],
+    ['OPERATOR', false, true, false],
+    ['VIEWER', false, false, false],
+  ] as const)('%s: operate=%s halt=%s costs=%s', (role, operate, halt, costs) => {
     expect(hasCampaignPermission(role, 'campaigns.operate')).toBe(operate);
     expect(hasCampaignPermission(role, 'campaigns.halt')).toBe(halt);
+    expect(hasCampaignPermission(role, 'campaigns.costs')).toBe(costs);
   });
 });

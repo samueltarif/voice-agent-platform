@@ -22,7 +22,15 @@ function detail(status: CampaignDetailView['campaign']['status'], withAudience =
       createdAt: '2026-10-01T00:00:00Z',
       updatedAt: '2026-10-01T00:00:00Z',
     },
-    progress: { total: 4, scheduled: 1, inProgress: 1, completed: 1, failed: 0, canceled: 1 },
+    progress: {
+      total: 4,
+      scheduled: 1,
+      inProgress: 1,
+      heldByPause: 0,
+      completed: 1,
+      failed: 0,
+      canceled: 1,
+    },
     audience: withAudience ? { contactListId: 'l1', scheduledStartAt: null } : null,
   } satisfies CampaignDetailView;
 }
@@ -89,5 +97,23 @@ describe('CampaignList and CampaignCreateForm', () => {
     const html = renderToString(<CampaignCreateForm orgSlug="org-a" agents={[]} />);
     expect(html).toContain('campaign-create-no-agents');
     expect(html).not.toContain('Criar rascunho');
+  });
+});
+
+describe('CampaignProgressPanel (008-MVP4: jobs held by the pause)', () => {
+  it('shows held jobs separately from jobs in progress and explains nothing was dialed', () => {
+    const view = detail('PAUSED');
+    const html = render('OWNER', {
+      ...view,
+      progress: { ...view.progress, inProgress: 0, heldByPause: 1 },
+    });
+    expect(html).toContain('Retidos pela pausa');
+    expect(html).toContain('data-testid="campaign-progress-heldByPause">1<');
+    expect(html).toContain('data-testid="campaign-progress-held"');
+    expect(html).toContain('nada foi discado');
+  });
+
+  it('hides the explanation when nothing is held', () => {
+    expect(render('OWNER', detail('ACTIVE'))).not.toContain('data-testid="campaign-progress-held"');
   });
 });
