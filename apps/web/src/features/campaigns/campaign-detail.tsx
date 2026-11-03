@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
 import { ShieldCheck } from 'lucide-react';
 import type { TenantRole } from '@voice-agent/contracts';
 import type { CampaignDetailView, ContactListSummary } from '../../lib/operations/operations-types';
@@ -37,6 +38,13 @@ export function CampaignDetail({ orgSlug, role, initial, lists }: CampaignDetail
             </h2>
             <CampaignStatusBadge status={campaign.status} />
           </div>
+          <Link
+            href={`/orgs/${orgSlug}/campaigns/${campaign.id}/report`}
+            className="text-xs font-medium text-primary hover:underline"
+            data-testid="campaign-report-link"
+          >
+            Ver relatório e tentativas
+          </Link>
           {campaign.description && (
             <p className="text-sm text-muted-foreground">{campaign.description}</p>
           )}

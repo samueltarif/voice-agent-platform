@@ -67,6 +67,10 @@ describe('CampaignDetail', () => {
     expect(render('OWNER', detail('ACTIVE'))).not.toContain('Salvar audiência');
   });
 
+  it('links to the campaign report for every role', () => {
+    expect(render('VIEWER', detail('ACTIVE'))).toContain('/orgs/org-a/campaigns/c1/report');
+  });
+
   it('renders the real progress and the offline notice', () => {
     const html = render('OWNER', detail('ACTIVE'));
     expect(html).toContain('4 contatos agendados no total');
