@@ -13,6 +13,8 @@
 - **DECISÕES ANTERIORES APLICÁVEIS**: DEC-042 (números exclusivamente gerenciados pela Twilio; Millis AI selecionada para conversação; BYON cancelado) e DEC-043 (sequenciamento; autoridade A/B expressamente **não** decidida).
 - **PREFERÊNCIA HUMANA REGISTRADA**: telefonia na nuvem. As duas opções abaixo são telefonia na nuvem (Twilio como operadora em ambas); a preferência não distingue entre elas.
 - **CRITÉRIO DE ESCOLHA DECIDIDO PELO OPERADOR (DEC-044, 2026-11-03)**: **QUALIDADE acima de PREÇO**. Pesos: (1) voz natural, clareza do áudio e reconhecimento do português brasileiro — 30%; (2) baixa latência e conversação fluida — 25%; (3) estabilidade, confiabilidade e qualidade das chamadas — 20%; (4) interrupção natural (*barge-in*) e gestão de turnos — 15%; (5) controle técnico, observabilidade, recuperação de falhas e facilidade de integração — 10%. Custo e limites financeiros permanecem como **controles operacionais**, não como critério de escolha. Este critério **não** seleciona Twilio-led nem Millis-led.
+- **PREFERÊNCIAS DE PRODUTO DECLARADAS PELO OPERADOR (2026-11-03) — NÃO SÃO APROVAÇÃO DE ARQUITETURA**: (a) Twilio para números brasileiros, originação, controle e acompanhamento das chamadas; (b) Millis AI para voz, reconhecimento de fala e conversação, especialmente em pt-BR; (c) gravação de áudio e transcrição oferecidas **juntas no mesmo plano comercial**; (d) SIP como **primeira** conexão Twilio↔Millis a investigar, com Media Streams bidirecional como alternativa técnica. Essas preferências orientam a investigação e o desenho offline; **H1 (Twilio-led × Millis-led), a escolha SIP × Media Streams e qualquer ativação real continuam pendentes** de evidência e de aprovação humana explícita. A DEC-044 permanece integral e inalterada.
+- **EVIDÊNCIAS RECEBIDAS DOS FORNECEDORES**: seção 8 (Twilio: resposta comercial/técnica; Millis: atendimento automatizado). Desenho técnico offline correspondente em [PHASE_8_TWILIO_SIP_MILLIS_ARCHITECTURE_DESIGN.md](PHASE_8_TWILIO_SIP_MILLIS_ARCHITECTURE_DESIGN.md) e [PHASE_8_CALL_RECORDING_TRANSCRIPTION_DESIGN.md](PHASE_8_CALL_RECORDING_TRANSCRIPTION_DESIGN.md).
 - **INVARIANTES PRESERVADOS**: `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `PUBLIC_WEBHOOKS = 0`.
 
 ## 2. Decisões solicitadas
@@ -25,6 +27,10 @@
 | **H4** | Quem fará a revisão jurídica (LGPD, telemarketing, divulgação de IA, gravação) e quando | Gate A (008-OF6) e Gate B |
 | **H5** (opcional) | Incluir variantes de STT/TTS da Millis para pt-BR no plano comparativo de qualidade (seção 3.7) | Escopo do teste da Fase 1 |
 | **Q0** | Aprovar a Fase 0 do plano comparativo (perguntas aos fornecedores + preparação offline, sem custo e sem chamadas) | Medição de qualidade |
+| **H6** | Empacotamento comercial de gravação + transcrição no mesmo plano (preferência declarada; preço e plano a definir) | Etapa R1 |
+| **D-SIP-FAIL / D-AMD** | Comportamento quando a perna SIP falha após o atendimento; uso de detecção de secretária eletrônica | Etapa S4 |
+| **D-COPY / D-TRANSCRIPT-SOURCE** | Copiar mídia para armazenamento próprio e apagar no fornecedor; fonte de transcrição (Millis, se comprovada, ou alternativa) | Etapas R2/R3 |
+| **C-1 a C-7** | Aviso de gravação e de IA, base legal, acesso, retenção, exclusão e backups, transferência internacional, telemarketing/0303 | Gravação real e Gate A |
 
 Nenhuma implementação dependente destas decisões será iniciada antes da aprovação.
 
@@ -267,3 +273,59 @@ Q0: [APROVAR | NÃO]   (Fase 0 do plano comparativo)
 ```
 
 Cada aprovação será registrada como nova DEC em `docs/DECISIONS_LOG.md` antes de qualquer implementação dependente.
+
+## 8. Evidências recebidas dos fornecedores (2026-11-03)
+
+Classificação usada:
+
+- `DOCUMENTADO`: consta da documentação pública oficial do fornecedor, consultada em 2026-11-03.
+- `AFIRMADO_PELA_TWILIO`: resposta recebida da Twilio pelo operador; não é homologação da engenharia.
+- `AFIRMADO_POR_CHATBOT_MILLIS`: resposta do atendimento automatizado da Millis; **não é evidência técnica**.
+- `CONTRADITO`: a documentação oficial diverge da afirmação.
+- `NÃO_VERIFICADO`: sem fonte oficial.
+
+### 8.1 Twilio
+
+| # | Afirmação recebida | Classificação | Observação |
+| :---: | :--- | :--- | :--- |
+| T1 | Programmable Voice inicia chamadas de saída para +55 | `AFIRMADO_PELA_TWILIO` + `DOCUMENTADO` | As diretrizes de voz BR permitem saída a partir de números brasileiros da Twilio |
+| T2 | Controle na Twilio com áudio para sistema externo por SIP ou Media Streams bidirecional, sem ConversationRelay | `AFIRMADO_PELA_TWILIO` + `DOCUMENTADO` (TwiML `<Dial><Sip>` e Media Streams) | — |
+| T3 | Fluxo: chamada pela API de Voice e, após o atendimento, `<Dial><Sip>` para o endpoint SIP da Millis | `AFIRMADO_PELA_TWILIO`; mecânica `DOCUMENTADO` | A TwiML de uma chamada criada pela API é executada quando a chamada é atendida. `<Sip>` aceita transporte UDP/TCP/TLS, cabeçalhos `x-` (até 1024 caracteres), usuário e senha, e `;region=` para a origem do SIP de saída, **incluindo `br1`** |
+| T4 | Correlacionar as pernas, acompanhar *status callbacks* e tratar encerramentos separadamente | `AFIRMADO_PELA_TWILIO` + `DOCUMENTADO` | A perna de saída é identificada por `DialCallSid`; o resultado SIP vem em `DialSipResponseCode` e `DialSipCallId`; `statusCallbackEvent` existe por perna |
+| T5 | Gravação em canais separados (`RecordingChannels=dual`, `RecordingTrack=both`) e download com `RequestedChannels=2` | `AFIRMADO_PELA_TWILIO` + `DOCUMENTADO` | Em `<Dial>` com gravação dupla, a perna pai fica sempre no canal 1 e a perna filha no canal 2. Na API de chamadas, o padrão de `RecordingTrack` já é `both` |
+| T6 | Falta comprovar que a gravação SIP capta a voz do cliente e a voz realmente reproduzida pela Millis | `AFIRMADO_PELA_TWILIO` | Pendência de teste (Fase 1), nunca presumida |
+| T7 | Transferência para vendedor: atualizar a chamada ou usar Conference | `AFIRMADO_PELA_TWILIO` | Em Conference com gravação dupla, só o primeiro participante fica isolado; os demais são misturados no canal 2 (`DOCUMENTADO`) |
+| T8 | A transcrição da Millis pode ser usada sem o Conversation Intelligence da Twilio | `AFIRMADO_PELA_TWILIO` | Depende de a Millis comprovar API e fidelidade |
+| T9 | A integração Twilio + Millis **não** foi homologada pela engenharia da Twilio | `AFIRMADO_PELA_TWILIO` | **Não existe homologação ponta a ponta** |
+| T10 | Abrir chamado técnico em help.twilio.com (Programmable Voice, assunto "SIP outbound +55 com endpoint da Millis") | Ação humana pendente | Não executada |
+
+**Custos ilustrativos recebidos × tabela pública** (1 número local + 1.000 min de saída para celular, com gravação):
+
+| Item | Valor recebido | Tabela pública BR (ago/2026) | Situação |
+| :--- | :--- | :--- | :--- |
+| Número local | US$ 4,25/mês | US$ 4,25/mês | Confere |
+| Telefonia | US$ 66,30 | US$ 0,0663/min × 1.000 = US$ 66,30 | Confere |
+| Gravação | US$ 50,00 | Gravação **US$ 0,0025/min** (= US$ 2,50) + armazenamento US$ 0,0005/min/mês; **transcrição** Twilio US$ 0,05/min (= US$ 50,00) | **Divergente**: o valor de US$ 50,00 coincide com o de transcrição. Pedir confirmação à Twilio |
+| Subtotal parcial | US$ 120,55 | — | Depende da linha anterior |
+
+**Fora do subtotal (desconhecidos ou não incluídos)**: interface SIP da Twilio (tabela: US$ 0,0040/min) ou Media Streams (US$ 0,0044/min); Millis (plataforma US$ 0,02/min + STT US$ 0,0043/min + LLM + TTS por caractere; ElevenLabs ≈ US$ 0,05/min; gravação e transcrição da Millis não têm preço documentado); armazenamento próprio; detecção de secretária eletrônica (US$ 0,0075/chamada); impostos; câmbio; tarifas efetivas negociadas. **O subtotal não é custo total do produto**, e o custo continua sendo controle operacional, não critério de escolha (DEC-044).
+
+### 8.2 Millis (atendimento automatizado — não é engenharia)
+
+| # | Afirmação do chatbot | Classificação | O que a documentação oficial mostra |
+| :---: | :--- | :--- | :--- |
+| M1 | Suporta integração SIP com a Twilio | `AFIRMADO_POR_CHATBOT_MILLIS` / parcialmente `DOCUMENTADO` | A página SIP descreve registrar a chamada e **redirecionar** o sistema telefônico para o endereço SIP devolvido. Não há passo a passo Twilio nem caso de saída |
+| M2 | `register_sip_call` prepara a sessão para receber a conexão | `DOCUMENTADO` com lacunas | Aceita `agent_id`, `agent_config`, `metadata`, `from_phone`, `to_phone`. O guia de integração mostra `call_id` e um endereço `sip` na resposta, mas a **referência da API declara o schema de resposta vazio**. Validade do endereço não documentada |
+| M3 | Gravação e transcrição com identificação de falantes e *timestamps* | `AFIRMADO_POR_CHATBOT_MILLIS` / **não comprovado** | `GET /call-logs/{session_id}` devolve `chat` como **string** (sem papéis nem *timestamps* no schema) e `recording` como objeto sem campo de URL definido |
+| M4 | Transcrição por API ou webhook, sem outra API | Parcial | O webhook de fim de chamada e `call-logs` trazem `chat` (string). Fidelidade e estrutura não documentadas |
+| M5 | Opções de STT, TTS e LLM para pt-BR (Deepgram, ElevenLabs etc.) | Parcial | A tabela de preços lista Deepgram, ElevenLabs, OpenAI, Cartesia, PlayHT, Rime e Neets para TTS, e `agent_config` tem `language` e `speech_to_text`. **Qualidade em pt-BR não documentada** |
+| M6 | Assinatura HMAC-SHA256 nos webhooks, cabeçalho `X-Millis-Signature` | **`CONTRADITO`** até prova | A página de webhooks documenta apenas cabeçalhos estáticos configuráveis; nenhuma página menciona HMAC nem `X-Millis-Signature` |
+| M7 | Operações de retenção e exclusão | Parcial | Documentado: `DELETE /call-logs/{session_id}/recording` (não diz se apaga transcrição ou metadados). Política de retenção não documentada |
+| M8 | Endpoints `GET /v1/calls/{call_id}/recording`, `GET /v1/calls/{call_id}/transcript`, `DELETE /v1/calls/{call_id}/data` | **`NÃO_VERIFICADO`** — não existem na documentação pública | Os caminhos documentados são `/call-logs/{session_id}`, `/call-logs/{session_id}/recording` e `/sessions/{session_id}/terminate`. **Nenhum código usará os caminhos do chatbot** |
+
+Também documentado e relevante: `POST /sessions/{session_id}/terminate` (encerra a sessão), servidores `api-west` (EUA) e `api-eu-west` (UE), e cabeçalho `authorization` sem esquema de segurança formal na especificação.
+
+Aguardam a resposta da engenharia da Millis: SIP de saída com +55, schema real de `register_sip_call`, validade do endereço SIP, estrutura do `chat`, gravação (formato, canais, URL, retenção), assinatura de webhooks, preços de gravação e transcrição, região de processamento e DPA. Lista completa na seção 9 do desenho de arquitetura.
+
+Fontes oficiais adicionais (2026-11-03): [Twilio — TwiML Sip](https://www.twilio.com/docs/voice/twiml/sip), [Twilio — TwiML Dial](https://www.twilio.com/docs/voice/twiml/dial), [Twilio — Call resource](https://www.twilio.com/docs/voice/api/call-resource), [Twilio — Recording resource](https://www.twilio.com/docs/voice/api/recording), [Millis — Get Call History](https://docs.millis.ai/api-reference/call-logs/get-call-history.md), [Millis — Delete Call Recording](https://docs.millis.ai/api-reference/call-logs/delete-call-recording.md), [Millis — Terminate Call Session](https://docs.millis.ai/api-reference/call-management/terminate-call-session.md), [Millis — Register Sip Call](https://docs.millis.ai/api-reference/call-management/register-sip-call.md), [Millis — Pricing](https://docs.millis.ai/pricing.md).
+
