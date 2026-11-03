@@ -55,7 +55,7 @@ A S1 só cria contratos e testes, sem rede, adaptador ou migração. Escopo, cri
 | ID | Pergunta | Opções | Sugerida | Tipo |
 | :---: | :--- | :--- | :--- | :---: |
 | **D-SIP-FAIL** | A perna do agente falha **depois** que o contato atendeu | (a) Mensagem curta pré-gravada em pt-BR e desligar; (b) Desligar sem mensagem | (a) — nunca deixar silêncio. O texto da mensagem fica para C-1 | OFFLINE (comportamento) |
-| **D-DUP-CALL** | Callback revela um segundo `CallSid` para a mesma tentativa | (a) Só alertar e marcar para revisão; (b) Encerrar automaticamente a segunda chamada e alertar | (b) — protege o contato de duas ligações simultâneas | OFFLINE |
+| **D-DUP-CALL** | Callback revela um segundo `CallSid` para a mesma tentativa | (a) Só alertar e marcar para revisão manual, sem encerrar nada; (b) Encerramento automático **somente** com duplicidade comprovada pelos critérios da seção 7.1, com alerta | **Revisada**: (a) como padrão; (b) só após aprovação explícita e com todos os critérios da seção 7.1 — **ressalva do operador R-1** | OFFLINE |
 | **D-AMD** | Detecção de secretária eletrônica antes de conectar a IA | (a) Configurável por campanha, desligada por padrão; (b) Sempre ligada; (c) Não suportar | (a) | OFFLINE |
 | **D-REG-TIMING** | Momento do registro da sessão Millis (§2.1) | (a) R1 — antes de discar; (b) R2 — no atendimento; (c) Suportar os dois por configuração e decidir pela medição | (c) — a validade do URI é desconhecida e R2 custa latência | OFFLINE |
 
@@ -68,7 +68,7 @@ A S1 só cria contratos e testes, sem rede, adaptador ou migração. Escopo, cri
 | **C-4/C-5-OFF** | Retenção e exclusão no código | Prazo configurável por tenant com teto da plataforma; **sem valor padrão de produção**; *legal hold*; job de expiração; exclusão a pedido do titular | Aprovar o **mecanismo**; prazos são DEFINITIVOS e jurídicos | OFFLINE |
 | **C-8-OFF** | Padrão de gravação | (a) **Desligada por padrão**, ativada por tenant/campanha só após decisão C-8 definitiva; (b) Ligada por padrão | (a) | OFFLINE |
 | **D-COPY** | Mídia sob controle da plataforma | (a) Copiar para armazenamento privado próprio, verificar SHA-256 e apagar no fornecedor; (b) Manter no fornecedor e servir por *proxy* | (a), com armazenamento falso no offline (local real: C-6) | OFFLINE |
-| **D-TRANSCRIPT-SOURCE** | Fonte da transcrição | (a) Millis se comprovada; contingência com STT independente sobre o canal do agente; (b) Só Millis; (c) Só STT independente | (a) | OFFLINE |
+| **D-TRANSCRIPT-SOURCE** | Fonte da transcrição | (a) Millis se comprovada; contingência com STT independente sobre **os dois canais** (cliente e agente), transcritos separadamente e intercalados por horário; (b) Só Millis; (c) Só STT independente (dois canais) | **Revisada**: (a), com contingência sempre nos dois participantes — **ressalva do operador R-2** | OFFLINE |
 
 ### Etapa Q1 — *harness* de métricas de qualidade (áudio sintético local)
 
@@ -122,3 +122,51 @@ Primeira PR a iniciar: [S1 | R1 | Q1]
 ```
 
 Cada aprovação será registrada como nova DEC em `docs/DECISIONS_LOG.md`, indicando **OFFLINE** ou **DEFINITIVA**, antes de iniciar a etapa correspondente.
+
+## 7. Registro de decisões para iniciar o desenvolvimento offline (estado em 2026-11-03)
+
+Situação de cada item **neste momento**. Nada está aprovado; as preferências declaradas não substituem a resposta do formato da seção 6.
+
+| Item | Situação | Observação |
+| :--- | :--- | :--- |
+| Direção: Twilio telefonia, Millis voz e conversação, SIP primeiro, gravação + transcrição no mesmo plano, qualidade acima de preço | `PREFERÊNCIA DECLARADA` (reiterada em 2026-11-03) | DEC-044 (qualidade acima de preço) é a única registrada como decisão |
+| H1-OFF, D-REC-MECH, D-CB-TOKEN, D-MILLIS-DOC-ONLY | `PENDENTE` | — |
+| D-SIP-FAIL, D-AMD, D-REG-TIMING | `PENDENTE` | — |
+| **D-DUP-CALL** | `PENDENTE` + **ressalva R-1 vinculante** | Ver 7.1 |
+| H6, C-3-OFF, C-4/C-5-OFF, C-8-OFF, D-COPY | `PENDENTE` | — |
+| **D-TRANSCRIPT-SOURCE** | `PENDENTE` + **ressalva R-2 vinculante** | Ver 7.2 |
+| Q0, H5 | `PENDENTE` | — |
+| 008-OF5a | `NÃO INICIADA` | Exige H1-OFF e autorização explícita para iniciar |
+
+As ressalvas abaixo são **diretrizes de revisão do operador** (2026-11-03). Elas restringem qualquer opção que venha a ser aprovada, mas **não** aprovam nenhuma opção.
+
+### 7.1 Ressalva R-1 — D-DUP-CALL: não encerrar chamada potencialmente legítima
+
+Um segundo `CallSid` ligado à mesma tentativa **não prova duplicidade**. Pode ser:
+- a perna do agente de IA (`<Dial><Sip>`);
+- uma perna de atendente humano numa transferência;
+- um redirecionamento.
+
+**Classificação da perna antes de qualquer conclusão:**
+1. **Pelo endpoint assinado que recebeu o callback**: o endpoint de status da `CONTACT_LEG` é distinto do endpoint da `AI_AGENT_LEG` e do `action` do `<Dial>`. Como o URL faz parte da assinatura, o tipo de perna não pode ser forjado.
+2. **Pela relação pai/filha**: uma perna filha cujo pai é a `CONTACT_LEG` já vinculada é legítima. O campo de vínculo pai/filha nos callbacks precisa ser **confirmado no chamado técnico da Twilio**; enquanto não for, vale só o critério 1.
+
+**Duplicidade comprovada exige todos os critérios abaixo:**
+- callback recebido no endpoint da `CONTACT_LEG`, com assinatura válida e o token da tentativa;
+- `CallSid` diferente da `CONTACT_LEG` já vinculada e **sem** relação de filha com ela;
+- **consulta autenticada à API da operadora** mostrando as duas como chamadas pai, do número da plataforma para o **mesmo destino**, com períodos **sobrepostos**;
+- nenhuma transferência ou redirecionamento registrado para a tentativa.
+
+**Comportamento:**
+- **Padrão**: só alerta + revisão manual, sem encerrar nada e sem rediscar.
+- **Encerramento automático**: somente se D-DUP-CALL (b) for aprovada explicitamente **e** todos os critérios forem atendidos. Qual das chamadas encerrar também faz parte dessa aprovação.
+- **Testes exigidos na S4**: perna filha legítima **não** é anomalia; transferência **não** é anomalia; duplicidade só com todos os critérios; nenhum encerramento sem aprovação.
+
+### 7.2 Ressalva R-2 — D-TRANSCRIPT-SOURCE: transcrição alternativa com os dois participantes
+
+Uma transcrição alternativa (contingência ou auditoria) cobre **cliente e agente**, nunca só um participante:
+- cada canal da gravação dupla é transcrito separadamente, e os segmentos são intercalados por horário;
+- o rótulo de falante vem do **mapa de canais**, que continua `UNVERIFIED` até o teste T6 da Fase 1 — antes disso, "Canal 1/Canal 2";
+- se houver transferência, o canal 2 tem agente de IA e humano em intervalos diferentes, atribuídos pelos horários das pernas;
+- custo e fornecedor da transcrição alternativa continuam decisão pendente; preço da Twilio a confirmar.
+

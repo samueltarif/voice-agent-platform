@@ -31,7 +31,7 @@
 | **D-SIP-FAIL / D-AMD** | Comportamento quando a perna SIP falha após o atendimento; uso de detecção de secretária eletrônica | Etapa S4 |
 | **D-COPY / D-TRANSCRIPT-SOURCE** | Copiar mídia para armazenamento próprio e apagar no fornecedor; fonte de transcrição (Millis, se comprovada, ou alternativa) | Etapas R2/R3 |
 | **C-1 a C-8** | Aviso de gravação e de IA, base legal, acesso, retenção, exclusão e backups, transferência internacional, telemarketing/0303, política de gravação (quando gravar) | Gravação real e Gate A |
-| **D-DUP-CALL** | Encerrar automaticamente ou só alertar quando um callback revelar um segundo `CallSid` para a mesma tentativa | Etapa S4 |
+| **D-DUP-CALL** | Só alertar (padrão) ou encerrar automaticamente com duplicidade comprovada (ressalva R-1) quando um callback revelar um segundo `CallSid` para a mesma tentativa | Etapa S4 |
 
 Nenhuma implementação dependente destas decisões será iniciada antes da aprovação.
 

@@ -211,7 +211,7 @@ Também valem em ambos: janela anti-replay, corpo bruto preservado, limite de ta
    4. **Vincular o `CallSid` por *compare-and-set***, na mesma transação que aplica o evento:
       - `provider_reference` vazio e estado `ORIGINATION_SENT`, `OUTCOME_UNKNOWN` ou `RECONCILIATION_PENDING`: o callback **prova** que a chamada foi criada. Vincula o `CallSid` e resolve o desconhecido como originado, **sem rediscagem**.
       - Mesmo `CallSid` já vinculado: segue normalmente.
-      - **`CallSid` diferente** do já vinculado: **anomalia de possível originação duplicada**. Nenhuma transição, alerta operacional, tentativa marcada para revisão manual e **nenhuma rediscagem**. Se a segunda chamada deve ser encerrada automaticamente é decisão **D-DUP-CALL**.
+      - **`CallSid` diferente** do já vinculado: **anomalia de possível originação duplicada**. Nenhuma transição, alerta operacional, tentativa marcada para revisão manual e **nenhuma rediscagem**. Encerramento automático **não** é padrão: exige identificar a perna (callback de perna filha legítima ou de transferência não é anomalia) e comprovar a duplicidade (ressalva R-1, seção 7.1 do pacote de decisões offline), além de aprovação explícita de **D-DUP-CALL**.
    5. **Deduplicar** por chave única (fornecedor, `CallSid`, perna, evento/status, `SequenceNumber`). Repetição é ignorada de forma idempotente.
    6. **Ordenar** por `SequenceNumber`/`Timestamp`: evento atrasado nunca regride estado. Evento após `CLOSED` é só auditado, sem efeito financeiro.
 3. **O caminho da resposta síncrona** (criação da chamada) usa o **mesmo** *compare-and-set*: se um callback já vinculou o mesmo `CallSid`, não faz nada; se vinculou outro, aplica a mesma regra de anomalia.
@@ -379,7 +379,7 @@ Supressão, consentimento, auditoria e isolamento por tenant continuam como est�
 | :--- | :--- |
 | S1–S4 | **H1**: aprovar Twilio-led (com SIP como primeira conexão) **como direção do desenho offline** — não autoriza ativação |
 | S4 | **D-SIP-FAIL**: comportamento quando a perna SIP falha depois do atendimento |
-| S4 | **D-DUP-CALL**: encerrar automaticamente ou só alertar quando um callback revelar um segundo `CallSid` para a mesma tentativa (§2.5.1) |
+| S4 | **D-DUP-CALL**: só alertar (padrão) ou encerrar automaticamente com duplicidade comprovada, quando um callback revelar um segundo `CallSid` para a mesma tentativa (§2.5.1; ressalva R-1) |
 | S4 (opcional) | **D-AMD**: usar detecção de secretária eletrônica da Twilio |
 | R1 | C-3, C-4 e C-5 (acesso, retenção, exclusão) e H6 (empacotamento comercial gravação + transcrição) |
 | R2 | C-6 (local de armazenamento e transferência internacional); D-COPY (copiar para armazenamento próprio e apagar no fornecedor) |
