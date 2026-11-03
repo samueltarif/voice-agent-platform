@@ -152,7 +152,7 @@ Escala 0–5, com o pior caso razoável para o que não está verificado:
 | 5. Controle | 10% | 2 | 4 | Seção 3.3 |
 | **Total ponderado** | | **2,5** | **3,1** | **Incerteza maior que a diferença** nos critérios 1, 2 e 4 |
 
-Se a Millis confirmar por escrito o suporte de saída para +55, o critério 3 de A sobe para 3 e o total de A vai a 2,9 — próximo com B. Daí a necessidade de medir.
+Se a Millis confirmar por escrito o suporte de saída para +55, o critério 3 de A sobe para 3 e o total de A vai a 2,9 — próximo do de B (3,1). Daí a necessidade de medir.
 
 #### 3.7.4 Pergunta de qualidade fora do escopo A × B (H5, opcional)
 
