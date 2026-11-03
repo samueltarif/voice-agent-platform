@@ -16,6 +16,7 @@ import { registerContactListRoutes } from './routes/contact-list-routes.js';
 import { registerContactSuppressionRoutes } from './routes/contact-suppression-routes.js';
 import { registerCampaignLifecycleRoutes } from './routes/campaign-lifecycle-routes.js';
 import { registerCampaignReportRoutes } from './routes/campaign-report-routes.js';
+import { registerOperationsOverviewRoutes } from './routes/operations-overview-routes.js';
 import { serviceAuthMiddleware } from './auth/service-auth-middleware.js';
 
 import { bootstrapAuthMiddleware } from './auth/bootstrap-auth-middleware.js';
@@ -70,6 +71,7 @@ export function createApp(deps: ApiDependencies): OpenAPIHono {
   app.use('/v1/contact-lists', serviceAuthMiddleware(deps.verifier));
   app.use('/v1/contact-lists/*', serviceAuthMiddleware(deps.verifier));
   app.use('/v1/contact-suppressions', serviceAuthMiddleware(deps.verifier));
+  app.use('/v1/operations/*', serviceAuthMiddleware(deps.verifier));
 
   // 5. Asymmetric bootstrap authentication for user-scoped routes
   app.use('/v1/me/*', bootstrapAuthMiddleware(deps.bootstrapVerifier));
@@ -88,6 +90,7 @@ export function createApp(deps: ApiDependencies): OpenAPIHono {
   registerContactSuppressionRoutes(app, deps);
   registerCampaignLifecycleRoutes(app, deps);
   registerCampaignReportRoutes(app, deps);
+  registerOperationsOverviewRoutes(app, deps);
 
   // 6. Global error handler & not found handler with canonical error envelopes
   app.onError(createApiErrorHandler(deps.logger));

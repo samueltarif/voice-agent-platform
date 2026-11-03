@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Info } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@voice-agent/ui';
-import type { CampaignReport } from '@voice-agent/contracts';
+import type { CampaignAttemptSummary, CampaignReport } from '@voice-agent/contracts';
 import { CAMPAIGN_PROGRESS_ROWS } from '../campaigns/campaign-labels';
 import { OUTCOME_LABELS, OUTCOME_ORDER } from './report-labels';
 
@@ -22,6 +22,48 @@ function Metric(props: {
   );
 }
 
+/** Tentativas por situação persistida (campanha ou organização). */
+export function AttemptOutcomeCard(props: {
+  readonly attempts: CampaignAttemptSummary;
+  readonly title?: string | undefined;
+}) {
+  const { attempts } = props;
+  return (
+    <Card className="border-border/60 shadow-xs">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">
+          {props.title ?? 'Tentativas de discagem'} ({attempts.total})
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-xs text-muted-foreground" data-testid="report-attempts-sent">
+          {attempts.sent} com envio iniciado · {attempts.total - attempts.sent} nunca enviadas
+          {attempts.requiresManualReview > 0 &&
+            ` · ${attempts.requiresManualReview} aguardando revisão manual`}
+        </p>
+        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {OUTCOME_ORDER.map((outcome) => (
+            <Metric
+              key={outcome}
+              label={OUTCOME_LABELS[outcome].label}
+              hint={OUTCOME_LABELS[outcome].hint}
+              value={attempts.byOutcome[outcome]}
+              testId={`report-outcome-${outcome}`}
+            />
+          ))}
+        </dl>
+        <p
+          className="flex items-start gap-2 text-xs text-muted-foreground"
+          data-testid="report-dispositions"
+        >
+          <Info className="h-4 w-4 shrink-0" aria-hidden />
+          Desfechos da conversa (atendida, ocupado, caixa postal) ainda não estão disponíveis:
+          dependem da integração com o provedor de telefonia.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
 /** Contatos (jobs) e tentativas por situação — somente contagens persistidas. */
 export function CampaignReportSummary({ report }: { readonly report: CampaignReport }) {
   const { progress, attempts } = report;
@@ -44,37 +86,7 @@ export function CampaignReportSummary({ report }: { readonly report: CampaignRep
           </dl>
         </CardContent>
       </Card>
-      <Card className="border-border/60 shadow-xs">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Tentativas de discagem ({attempts.total})</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-xs text-muted-foreground" data-testid="report-attempts-sent">
-            {attempts.sent} com envio iniciado · {attempts.total - attempts.sent} nunca enviadas
-            {attempts.requiresManualReview > 0 &&
-              ` · ${attempts.requiresManualReview} aguardando revisão manual`}
-          </p>
-          <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {OUTCOME_ORDER.map((outcome) => (
-              <Metric
-                key={outcome}
-                label={OUTCOME_LABELS[outcome].label}
-                hint={OUTCOME_LABELS[outcome].hint}
-                value={attempts.byOutcome[outcome]}
-                testId={`report-outcome-${outcome}`}
-              />
-            ))}
-          </dl>
-          <p
-            className="flex items-start gap-2 text-xs text-muted-foreground"
-            data-testid="report-dispositions"
-          >
-            <Info className="h-4 w-4 shrink-0" aria-hidden />
-            Desfechos da conversa (atendida, ocupado, caixa postal) ainda não estão disponíveis:
-            dependem da integração com o provedor de telefonia.
-          </p>
-        </CardContent>
-      </Card>
+      <AttemptOutcomeCard attempts={attempts} />
     </div>
   );
 }

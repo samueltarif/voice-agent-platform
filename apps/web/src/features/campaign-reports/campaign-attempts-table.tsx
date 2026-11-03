@@ -2,18 +2,28 @@
 
 import * as React from 'react';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from '@voice-agent/ui';
-import type { AttemptOutcomeClass, CampaignAttemptRow } from '@voice-agent/contracts';
+import type { AttemptOutcomeClass } from '@voice-agent/contracts';
 import { formatAgentDate } from '../agents/agent-date-formatter';
 import { FieldLabel, OPERATION_FIELD } from '../operations/operation-feedback';
 import { ATTEMPTS_PAGE_SIZE, OUTCOME_LABELS, OUTCOME_ORDER, formatDuration } from './report-labels';
-import { useCampaignAttempts } from './use-campaign-attempts';
+import { useAttemptsPage, type AttemptRow } from './use-campaign-attempts';
 
-function AttemptRow({ row }: { readonly row: CampaignAttemptRow }) {
+function campaignOf(row: AttemptRow): string | null {
+  return 'campaignName' in row ? (row.campaignName ?? 'Sem campanha (lote)') : null;
+}
+
+function AttemptItem({ row }: { readonly row: AttemptRow }) {
+  const campaign = campaignOf(row);
   return (
     <li className="grid gap-1 p-3 text-sm sm:grid-cols-[1fr_auto_auto_auto] sm:items-center sm:gap-4">
       <span className="font-mono" data-testid="attempt-destination">
         {row.destinationMasked}
         <span className="ml-2 text-xs text-muted-foreground">#{row.attemptNumber}</span>
+        {campaign && (
+          <span className="block text-xs text-muted-foreground" data-testid="attempt-campaign">
+            {campaign}
+          </span>
+        )}
       </span>
       <Badge variant="outline" className="w-fit text-xs">
         {OUTCOME_LABELS[row.outcome].label}
@@ -29,7 +39,7 @@ function AttemptRow({ row }: { readonly row: CampaignAttemptRow }) {
   );
 }
 
-function AttemptList({ rows }: { readonly rows: readonly CampaignAttemptRow[] | null }) {
+function AttemptList({ rows }: { readonly rows: readonly AttemptRow[] | null }) {
   if (rows === null) {
     return (
       <p role="alert" className="text-sm text-destructive">
@@ -51,29 +61,34 @@ function AttemptList({ rows }: { readonly rows: readonly CampaignAttemptRow[] | 
       data-testid="attempts-list"
     >
       {rows.map((row) => (
-        <AttemptRow key={row.attemptId} row={row} />
+        <AttemptItem key={row.attemptId} row={row} />
       ))}
     </ul>
   );
 }
 
-interface CampaignAttemptsTableProps {
+interface AttemptsTableProps {
   readonly orgSlug: string;
-  readonly campaignId: string;
-  readonly initial: readonly CampaignAttemptRow[];
+  /** Rota do BFF que lista as tentativas (campanha ou organização). */
+  readonly endpoint: string;
+  readonly initial: readonly AttemptRow[];
+  readonly title?: string | undefined;
+  /** Parâmetros fixos da consulta (ex.: período), iguais aos da carga inicial. */
+  readonly fixedParams?: Readonly<Record<string, string>> | undefined;
 }
 
-/** Tentativas da campanha, mais recentes primeiro; telefones já mascarados pela API. */
-export function CampaignAttemptsTable({
-  orgSlug,
-  campaignId,
-  initial,
-}: CampaignAttemptsTableProps) {
-  const view = useCampaignAttempts(orgSlug, campaignId, initial);
+/** Tentativas, mais recentes primeiro; telefones já mascarados pela API. */
+export function AttemptsTable(props: AttemptsTableProps) {
+  const { title } = props;
+  const view = useAttemptsPage(
+    props.orgSlug,
+    { endpoint: props.endpoint, fixedParams: props.fixedParams },
+    props.initial,
+  );
   return (
     <Card className="border-border/60 shadow-xs">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base">Tentativas</CardTitle>
+        <CardTitle className="text-base">{title ?? 'Tentativas'}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="max-w-xs space-y-1.5">

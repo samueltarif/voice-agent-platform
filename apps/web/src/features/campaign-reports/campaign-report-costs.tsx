@@ -37,7 +37,14 @@ function Breakdown(props: {
 }
 
 /** Custos do ledger: liquidado (real) separado da reserva (estimativa). */
-export function CampaignReportCosts({ costs }: { readonly costs: CampaignCostSummary | null }) {
+export function CampaignReportCosts({
+  costs,
+  settledNote,
+}: {
+  readonly costs: CampaignCostSummary | null;
+  /** Complemento do rótulo "Liquidado" (ex.: período considerado). */
+  readonly settledNote?: string | undefined;
+}) {
   return (
     <Card className="border-border/60 shadow-xs">
       <CardHeader className="pb-2">
@@ -52,7 +59,7 @@ export function CampaignReportCosts({ costs }: { readonly costs: CampaignCostSum
           <div className="grid gap-3 md:grid-cols-2">
             <Breakdown
               title="Liquidado"
-              note={`Custo real registrado no ledger (${costs.settledAttempts} tentativa(s)).`}
+              note={`Custo real registrado no ledger${settledNote ? ` ${settledNote}` : ''} (${costs.settledAttempts} tentativa(s)).`}
               values={costs.settled}
               currency={costs.currency}
               testId="report-costs-settled"

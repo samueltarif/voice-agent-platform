@@ -2,7 +2,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import type { CampaignAttemptRow, CampaignReport } from '@voice-agent/contracts';
 import { CampaignStatusBadge } from '../campaigns/campaign-status-badge';
-import { CampaignAttemptsTable } from './campaign-attempts-table';
+import { AttemptsTable } from './campaign-attempts-table';
 import { CampaignReportCosts } from './campaign-report-costs';
 import { CampaignReportSummary } from './campaign-report-summary';
 
@@ -29,9 +29,9 @@ export function CampaignReportView(props: CampaignReportViewProps) {
       </div>
       <CampaignReportSummary report={report} />
       <CampaignReportCosts costs={report.costs} />
-      <CampaignAttemptsTable
+      <AttemptsTable
         orgSlug={orgSlug}
-        campaignId={report.campaignId}
+        endpoint={`/api/campaigns/${report.campaignId}/attempts`}
         initial={props.attempts}
       />
     </div>

@@ -1,24 +1,42 @@
 'use client';
 
 import * as React from 'react';
-import type { AttemptOutcomeClass, CampaignAttemptRow } from '@voice-agent/contracts';
+import type {
+  AttemptOutcomeClass,
+  CampaignAttemptRow,
+  OperationsAttemptRow,
+} from '@voice-agent/contracts';
 import { operationsRequest } from '../../lib/operations/operations-client';
 import { ATTEMPTS_PAGE_SIZE } from './report-labels';
 
+const NO_PARAMS: Readonly<Record<string, string>> = {};
+
+/** Linha de tentativa: da campanha ou da organização (com a campanha de origem). */
+export type AttemptRow = CampaignAttemptRow | OperationsAttemptRow;
+
 export interface AttemptsPageState {
-  readonly rows: readonly CampaignAttemptRow[] | null;
+  readonly rows: readonly AttemptRow[] | null;
   readonly loading: boolean;
 }
 
 /**
- * Página de tentativas com filtro por situação. Pede uma linha a mais para
- * saber se existe próxima página sem contar o total.
+ * Página de tentativas com filtro por situação. `endpoint` é a rota do BFF
+ * (campanha ou organização). Pede uma linha a mais para saber se existe
+ * próxima página sem contar o total.
  */
-export function useCampaignAttempts(
+/** Rota do BFF e parâmetros fixos (ex.: período) — iguais aos da carga inicial. */
+export interface AttemptsSource {
+  readonly endpoint: string;
+  readonly fixedParams?: Readonly<Record<string, string>> | undefined;
+}
+
+export function useAttemptsPage(
   orgSlug: string,
-  campaignId: string,
-  initial: readonly CampaignAttemptRow[],
+  source: AttemptsSource,
+  initial: readonly AttemptRow[],
 ) {
+  const { endpoint } = source;
+  const fixedParams = source.fixedParams ?? NO_PARAMS;
   const [outcome, setOutcome] = React.useState<AttemptOutcomeClass | ''>('');
   const [offset, setOffset] = React.useState(0);
   const [state, setState] = React.useState<AttemptsPageState>({ rows: initial, loading: false });
@@ -31,22 +49,21 @@ export function useCampaignAttempts(
     }
     const controller = new AbortController();
     const params = new URLSearchParams({
+      ...fixedParams,
       limit: String(ATTEMPTS_PAGE_SIZE + 1),
       offset: String(offset),
       ...(outcome ? { outcome } : {}),
     });
     setState((s) => ({ ...s, loading: true }));
-    operationsRequest<{ attempts: CampaignAttemptRow[] }>(
-      orgSlug,
-      `/api/campaigns/${campaignId}/attempts?${params.toString()}`,
-      { signal: controller.signal },
-    )
+    operationsRequest<{ attempts: AttemptRow[] }>(orgSlug, `${endpoint}?${params.toString()}`, {
+      signal: controller.signal,
+    })
       .then((res) => setState({ rows: res.attempts, loading: false }))
       .catch(() => {
         if (!controller.signal.aborted) setState({ rows: null, loading: false });
       });
     return () => controller.abort();
-  }, [orgSlug, campaignId, outcome, offset]);
+  }, [orgSlug, endpoint, fixedParams, outcome, offset]);
 
   const changeOutcome = (next: AttemptOutcomeClass | '') => {
     setOutcome(next);
