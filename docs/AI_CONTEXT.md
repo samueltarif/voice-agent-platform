@@ -4,12 +4,12 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-11-03
-CONTEXT_BASE_MAIN_SHA: 22ab511a396e1192e5ffb093f7b4121259e6ed8e
+CONTEXT_BASE_MAIN_SHA: 0c45b0fae13f4e47f33f9b950ccb6e0cf971b575
 CURRENT_PHASE: Phase 8 (OUTBOUND_FIRST_TWO_TRACK_PLANNING)
-CURRENT_SLICE: 008-MVP4 complete; Phase 8 decision package awaiting human decision (H1-H4)
-CONTEXT_UPDATE_BRANCH: docs/phase8-mvp4-closeout-decision-package
-CONTEXT_UPDATE_PR: PENDING
-LAST_MERGED_PR_AT_REFRESH: 133
+CURRENT_SLICE: 008-MVP4 complete; Phase 8 decision package + offline SIP/recording designs awaiting human decision
+CONTEXT_UPDATE_BRANCH: docs/phase8-twilio-sip-millis-design
+CONTEXT_UPDATE_PR: 135
+LAST_MERGED_PR_AT_REFRESH: 134
 LAST_MERGE_SHA_AT_REFRESH: 8d75d0f89039e227152ee18c805d1f1926255ade
 LAST_TESTED_CODE_SHA: QUERY_GIT_AT_RUNTIME
 CONTEXT_STATUS_AT_REFRESH: CURRENT
@@ -233,7 +233,8 @@ AI_CONTEXT_HEADER_END
 - **008-MVP4c Status**: `MERGED ON MAIN` (PR #133, `22ab511a396e1192e5ffb093f7b4121259e6ed8e`; gate Windows do operador em `9110c97` PASS 1.713/45/0 com `WINDOWS_PR133_GATE_EXIT_CODE=0` capturado por `$LASTEXITCODE`; gate pós-merge Linux PASS 1.713/45/0): `/dashboard` e `/calls` usam apenas dados persistidos (`GET /v1/operations/overview` e `/v1/operations/attempts`); dados simulados removidos; transbordo humano, desfechos da conversa e transcrições declarados indisponíveis. **008-MVP4 concluída.**
 - **Pacote de decisão da Fase 8**: `docs/research/PHASE_8_TELEPHONY_AUTHORITY_AND_CONTACT_POLICY_DECISION_PACKAGE.md` — `AWAITING_HUMAN_DECISION` (H1 autoridade Twilio-led × Millis-led; H2 remoção de supressões; H3 evidência de consentimento; H4 revisão jurídica). Nenhuma opção selecionada.
 - **DEC-044 (2026-11-03)**: critério de escolha da autoridade de originação = **QUALIDADE acima de PREÇO** (voz/pt-BR 30%, latência 25%, estabilidade 20%, *barge-in* 15%, controle 10%); custo é controle operacional, não critério. **Não seleciona Twilio-led nem Millis-led.** Avaliação na seção 3.7 do pacote: 70% do peso sem diferença demonstrada (mesmo motor Millis e mesma perna Twilio nas duas opções) — plano comparativo de testes proposto (Fase 0 sem custo; Fase 1 só com autorização específica).
-- **Evidências e desenho (2026-11-03)**: respostas da Twilio (não homologação de engenharia) e do atendimento automatizado da Millis (não é evidência técnica) classificadas na seção 8 do pacote de decisão; preferências de produto declaradas (Twilio telefonia, Millis conversação, gravação + transcrição no mesmo plano, SIP primeiro e Media Streams como alternativa) — **não aprovadas como arquitetura**. Desenhos offline: `docs/research/PHASE_8_TWILIO_SIP_MILLIS_ARCHITECTURE_DESIGN.md` e `docs/research/PHASE_8_CALL_RECORDING_TRANSCRIPTION_DESIGN.md`. Próxima PR sugerida `008-OF5a` (contratos de sessão e pernas) só após H1.
+- **PR #134 Status**: `MERGED ON MAIN` (merge commit `0c45b0fae13f4e47f33f9b950ccb6e0cf971b575`, árvore idêntica a `9bd5725`): fechamento da 008-MVP4, DEC-044 e pacote de decisão H1–H5.
+- **Evidências e desenho (2026-11-03)**: respostas da Twilio (não homologação de engenharia) e do atendimento automatizado da Millis (não é evidência técnica) classificadas na seção 8 do pacote de decisão; preferências de produto declaradas (Twilio telefonia, Millis conversação, gravação + transcrição no mesmo plano, SIP primeiro e Media Streams como alternativa) — **não aprovadas como arquitetura**. Desenhos offline: `docs/research/PHASE_8_TWILIO_SIP_MILLIS_ARCHITECTURE_DESIGN.md` e `docs/research/PHASE_8_CALL_RECORDING_TRANSCRIPTION_DESIGN.md`. Revisão de 2026-11-03: nomes neutros nos contratos (`CONTACT_LEG`/`AI_AGENT_LEG`/`HUMAN_AGENT_LEG`), mecanismo único de gravação (no nível da chamada, `<Dial record="do-not-record">`), token de callback assinado por tentativa contra a corrida callback × `CallSid`, preço de gravação divergente e não confirmado. Próxima PR sugerida `008-OF5a` (contratos de sessão e pernas) só após H1.
 - `NEXT_ALLOWED_STEP = HUMAN_DECISION_ON_PHASE8_DECISION_PACKAGE` (H1–H4; preferência humana por telefonia em nuvem registrada — atendida pelas duas opções —, sem decisão de autoridade).
 - `NEXT_ALLOWED_SLICE = HUMAN_DECISION_REQUIRED` (trilha 008-MVP1 a 008-MVP4 concluída; 008-OF5, 008-MVP3 e 008-OF6 dependem de H1; remoção de supressões depende de H2; evidência de consentimento depende de H3).
 - `PURCHASE_OF_PHONE_NUMBERS = 0` | `REAL_PROVIDER_CALLS = 0` | `CUSTOMER_TRAFFIC = PROHIBITED` | `ACTIVE_GUARDED = BLOCKED`.

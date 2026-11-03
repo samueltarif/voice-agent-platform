@@ -37,17 +37,32 @@ O cliente da plataforma poderá:
 
 | Fonte | O que oferece (documentado) | Papel proposto |
 | :--- | :--- | :--- |
-| **Gravação Twilio** | Gravação da chamada em dois canais (pai no canal 1, filha no canal 2 em `<Dial>` duplo); download WAV/MP3 com `RequestedChannels=2`; callback com `RecordingSid`, duração, canais; `DELETE` da gravação; criptografia opcional | **Fonte primária do áudio** (operadora; independente do motor conversacional) e base de conferência |
+| **Gravação Twilio** | Gravação da chamada em dois canais (perna pai no canal 1, filha no canal 2); download WAV/MP3 com `RequestedChannels=2`; callback com `RecordingSid`, duração, canais; `DELETE` da gravação; criptografia opcional | **Fonte primária do áudio** (operadora; independente do motor conversacional) e base de conferência. **Mecanismo único** por chamada — gravação no nível da chamada, sem gravação no `<Dial>` — para evitar gravações e cobranças duplicadas (estratégia completa, incluindo transferências: §2.11 do desenho de arquitetura) |
 | **Millis `call-logs` / webhook de fim** | `chat` (**string**, sem papéis ou *timestamps* no schema), `recording` (objeto sem URL definida), `duration`, `call_status`, `cost_breakdown`; `DELETE /call-logs/{session_id}/recording` | **Fonte preferencial da transcrição** — **condicionada** à comprovação de estrutura, papéis e fidelidade (perguntas 7 e 8 à Millis) |
 | Afirmações do chatbot da Millis (falantes, *timestamps*, `/v1/calls/...`, `X-Millis-Signature`) | **Não comprovadas** | Não usadas no desenho |
 | Transcrição alternativa (Twilio US$ 0,05/min ou outro STT sobre o canal 2) | Disponível no mercado | **Opção de contingência** (decisão D-TRANSCRIPT-SOURCE): só se a Millis não comprovar fidelidade, ou para auditar o que foi realmente falado |
 
-## 4. Modelo de dados proposto (não implementado; migration só após decisões)
+### 3.1 O que continua NÃO comprovado na Millis (não usar como fato)
+
+| Item | Situação | Consequência no desenho |
+| :--- | :--- | :--- |
+| Identificação de falantes na transcrição | Afirmada pelo chatbot; o schema documentado de `chat` é **string**, sem papéis | `speaker = UNKNOWN` até comprovação; nada de rotular por suposição |
+| *Timestamps* por fala | Afirmados pelo chatbot; **não documentados** | Navegação texto → áudio desabilitada |
+| Fidelidade entre o texto do agente e o áudio realmente ouvido (*barge-in*, cortes) | **Não documentada** | Falas do agente marcadas `GENERATED_UNCONFIRMED` |
+| Endpoints de exportação (`/v1/calls/{call_id}/recording`, `/v1/calls/{call_id}/transcript`, `DELETE /v1/calls/{call_id}/data`) | Citados pelo chatbot; **inexistentes** na documentação pública | **Não usados**; o adaptador usa só `GET /call-logs/{session_id}` e `DELETE /call-logs/{session_id}/recording` (documentados) |
+| Formato, canais e URL da gravação da Millis | O objeto `recording` não define campos no schema | Gravação da Millis não é fonte até comprovação |
+| Escopo do `DELETE …/recording` (só áudio ou também transcrição/metadados) | **Não documentado** | Exclusão no fornecedor tratada como "a confirmar" |
+| Assinatura de webhooks (HMAC, `X-Millis-Signature`) | Afirmada pelo chatbot; **contradita** pela documentação | Webhook só dispara consulta autenticada |
+| Retenção e região de armazenamento na Millis | **Não documentadas** | Pendência C-6 |
+
+Nenhum schema, campo ou URL de fornecedor é inventado. O modelo da seção 4 é **interno da plataforma** e não descreve formato de fornecedor.
+
+## 4. Modelo de dados interno proposto (não implementado; migration só após decisões)
 
 ```
 call_recordings
   id, organization_id (FK), attempt_id (FK composta por tenant), call_session_id
-  source            TWILIO | MILLIS
+  source            TELEPHONY_PROVIDER | CONVERSATION_PROVIDER   (nome do fornecedor só no adaptador)
   provider_ref      opaco (RecordingSid / session_id)  — nunca exposto ao navegador
   status            PENDING | PROCESSING | AVAILABLE | FAILED | UNAVAILABLE | DELETED
   unavailable_reason  NOT_RECORDED_BY_POLICY | NO_ANSWER | PROVIDER_ERROR | NOT_CONSENTED | ...
@@ -61,7 +76,7 @@ call_recordings
 
 call_transcripts
   id, organization_id, attempt_id, call_session_id
-  source            MILLIS | TWILIO | OTHER_STT
+  source            CONVERSATION_PROVIDER | TELEPHONY_PROVIDER | INDEPENDENT_STT
   status            FINAL | PARTIAL | UNAVAILABLE | FAILED | DELETED
   unavailable_reason, language
   speaker_attribution  PROVIDER_LABELED | INFERRED | NONE
@@ -97,7 +112,7 @@ Regras:
 
 ## 6. Acesso, permissões e reprodução
 
-**Permissões propostas** (decisão C-3; mesmo modelo de `campaigns.costs`):
+**Permissões — PROPOSTA para discussão; decisão humana pendente (C-3).** Nada aqui está aprovado; o modelo segue o padrão de `campaigns.costs`:
 
 | Permissão | Proposta de papéis | Observação |
 | :--- | :--- | :--- |
@@ -116,7 +131,7 @@ Regras:
 
 ## 7. Retenção, exclusão e backups
 
-- Política por tenant com teto da plataforma (Constituição, Artigo VIII: configurável, sem presumir prazos legais). Valores padrão: **decisão C-4**.
+- **Todos os prazos, a política de gravação e as regras de exclusão são decisões humanas e jurídicas pendentes** (C-4, C-5, C-8, H4). O desenho só fixa o mecanismo: política por tenant com teto da plataforma (Constituição, Artigo VIII: configurável, sem presumir prazos legais).
 - Job diário de expiração:
   - apaga o objeto, marca `DELETED`, preserva metadados mínimos e a trilha de auditoria;
   - a transcrição segue a mesma política, com prazos independentes se decidido.
@@ -138,6 +153,7 @@ Regras:
 ## 9. Comercial
 
 - Uma *entitlement* única do plano (`conversationHistory`) habilita gravação e transcrição juntas, conforme a preferência declarada.
+- Custo de referência ainda **não confirmado**: gravação Twilio US$ 0,05/min pelo e-mail × US$ 0,0025/min pela tabela pública (divergência registrada na seção 8.1 do pacote); gravação e transcrição da Millis sem preço documentado.
 - Tecnicamente são dois interruptores independentes por organização, para permitir, por exemplo, transcrição sem áudio quando o tenant ou o jurídico exigir.
 - Preço e plano: **H6** (decisão comercial).
 - O custo de gravação, transcrição e armazenamento entra no ledger como controle operacional.
@@ -146,7 +162,7 @@ Regras:
 
 | Etapa | Escopo | Testes | Depende de |
 | :---: | :--- | :--- | :--- |
-| **R1** | Contratos + schema (migration aditiva local) + permissões + estados; leitura vazia na API | Isolamento entre tenants, RBAC por papel, estados explícitos, FKs compostas | C-3, C-4, C-5, H6 |
+| **R1** | Contratos + schema (migration aditiva local) + permissões + estados; leitura vazia na API | Isolamento entre tenants, RBAC por papel, estados explícitos, FKs compostas, nenhum nome de fornecedor em enum | C-3, C-4, C-5, C-8, H6 |
 | **R2** | Pipeline com fornecedores falsos e porta de armazenamento falsa: ingestão, SHA-256, retentativas, expiração, exclusão, *legal hold*, auditoria | Ingestão idempotente, falha → `FAILED`, expiração respeita *legal hold*, exclusão auditada | R1, D-COPY, C-6 |
 | **R3** | Telas de histórico e detalhe; *streaming* autorizado com `Range`; download auditado | Sem URL de fornecedor no HTML; rótulos só com atribuição verificada; navegação só com *timestamps* | R2, C-1 |
 

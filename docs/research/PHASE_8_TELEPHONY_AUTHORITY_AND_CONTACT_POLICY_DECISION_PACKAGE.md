@@ -30,7 +30,8 @@
 | **H6** | Empacotamento comercial de gravação + transcrição no mesmo plano (preferência declarada; preço e plano a definir) | Etapa R1 |
 | **D-SIP-FAIL / D-AMD** | Comportamento quando a perna SIP falha após o atendimento; uso de detecção de secretária eletrônica | Etapa S4 |
 | **D-COPY / D-TRANSCRIPT-SOURCE** | Copiar mídia para armazenamento próprio e apagar no fornecedor; fonte de transcrição (Millis, se comprovada, ou alternativa) | Etapas R2/R3 |
-| **C-1 a C-7** | Aviso de gravação e de IA, base legal, acesso, retenção, exclusão e backups, transferência internacional, telemarketing/0303 | Gravação real e Gate A |
+| **C-1 a C-8** | Aviso de gravação e de IA, base legal, acesso, retenção, exclusão e backups, transferência internacional, telemarketing/0303, política de gravação (quando gravar) | Gravação real e Gate A |
+| **D-DUP-CALL** | Encerrar automaticamente ou só alertar quando um callback revelar um segundo `CallSid` para a mesma tentativa | Etapa S4 |
 
 Nenhuma implementação dependente destas decisões será iniciada antes da aprovação.
 
@@ -305,8 +306,8 @@ Classificação usada:
 | :--- | :--- | :--- | :--- |
 | Número local | US$ 4,25/mês | US$ 4,25/mês | Confere |
 | Telefonia | US$ 66,30 | US$ 0,0663/min × 1.000 = US$ 66,30 | Confere |
-| Gravação | US$ 50,00 | Gravação **US$ 0,0025/min** (= US$ 2,50) + armazenamento US$ 0,0005/min/mês; **transcrição** Twilio US$ 0,05/min (= US$ 50,00) | **Divergente**: o valor de US$ 50,00 coincide com o de transcrição. Pedir confirmação à Twilio |
-| Subtotal parcial | US$ 120,55 | — | Depende da linha anterior |
+| Gravação | US$ 50,00 (= **US$ 0,05/min**, conforme o e-mail da Twilio) | Gravação **US$ 0,0025/min** (= US$ 2,50) + armazenamento US$ 0,0005/min/mês; a tabela lista US$ 0,05/min como **transcrição** | **DIVERGENTE — NENHUM DOS DOIS É PREÇO CONTRATADO OU CONFIRMADO.** O e-mail diz US$ 0,05/min de gravação; a tabela pública diz US$ 0,0025/min. Aguarda resposta oficial (pergunta 3 do chamado técnico) |
+| Subtotal parcial | US$ 120,55 (pelo e-mail) | US$ 73,05 se valer a tabela pública | **Não confirmado**; varia conforme a linha anterior |
 
 **Fora do subtotal (desconhecidos ou não incluídos)**: interface SIP da Twilio (tabela: US$ 0,0040/min) ou Media Streams (US$ 0,0044/min); Millis (plataforma US$ 0,02/min + STT US$ 0,0043/min + LLM + TTS por caractere; ElevenLabs ≈ US$ 0,05/min; gravação e transcrição da Millis não têm preço documentado); armazenamento próprio; detecção de secretária eletrônica (US$ 0,0075/chamada); impostos; câmbio; tarifas efetivas negociadas. **O subtotal não é custo total do produto**, e o custo continua sendo controle operacional, não critério de escolha (DEC-044).
 

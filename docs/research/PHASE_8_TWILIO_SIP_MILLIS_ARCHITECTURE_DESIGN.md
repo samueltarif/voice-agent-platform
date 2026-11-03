@@ -48,12 +48,29 @@ interface ConversationSessionPort {
   terminate(sessionRef: string): Promise<'TERMINATED' | 'NOT_FOUND' | 'UNKNOWN'>;
   fetchOutcome(sessionRef: string): Promise<ConversationOutcome | 'NOT_READY' | 'UNKNOWN'>;
 }
-type MediaTarget = { kind: 'SIP_URI'; uri: string } | { kind: 'MEDIA_STREAM_URL'; url: string };
+type MediaTarget = { kind: 'SIP_URI'; uri: string } | { kind: 'BIDIRECTIONAL_AUDIO_STREAM'; url: string };
 ```
 
-- `mediaTarget` cobre SIP (primeira opção) e Media Streams (alternativa), sem a orquestração conhecer o transporte.
+- `mediaTarget` cobre SIP (primeira opção) e *stream* bidirecional de áudio (alternativa; no adaptador Twilio corresponde ao Media Streams), sem a orquestração conhecer o transporte.
 - `expiresAt: null` significa "validade desconhecida" — o caso atual, pois a Millis não documenta a validade do endereço SIP.
 - O adapter Millis só mapeia campos documentados: `register_sip_call` (`agent_id`, `agent_config`, `metadata`), `POST /sessions/{session_id}/terminate`, `GET /call-logs/{session_id}`. A resposta de `register_sip_call` tem schema vazio na referência: o adapter valida com Zod estrito e devolve `UNAVAILABLE/REJECTED` se não encontrar um URI SIP válido (fail-closed).
+
+### 1.2 Nomenclatura neutra nos contratos (revisão 2026-11-03)
+
+Contratos genéricos (`packages/contracts`, schema do banco, domínio do worker) **não** usam nomes de fornecedor nem termos de produto de fornecedor. Os nomes de fornecedor aparecem **somente** dentro dos adaptadores em `packages/integrations` e nas colunas de mapeamento deste documento.
+
+| Conceito | Nome neutro no contrato | Mapeamento (só no adaptador) |
+| :--- | :--- | :--- |
+| Perna telefônica com o contato | `CONTACT_LEG` | Twilio: chamada pai (`CallSid`) |
+| Perna do motor conversacional | `AI_AGENT_LEG` | Twilio: perna filha do `<Dial>` (`DialCallSid`); Millis: sessão |
+| Perna de atendente humano (futuro) | `HUMAN_AGENT_LEG` | Twilio: perna de `<Dial><Number>` ou participante de conferência |
+| Resultado da conexão da perna do agente | evento `AI_AGENT_LEG_RESULT` com `bridgeStatus` e `transportResponseCode` (código SIP, quando houver) | Twilio: `DialCallStatus`, `DialSipResponseCode` |
+| Destino de mídia | `SIP_URI` \| `BIDIRECTIONAL_AUDIO_STREAM` | Twilio: `<Dial><Sip>` \| `<Connect><Stream>` |
+| Referência da sessão conversacional | `sessionRef` (opaca) | Millis: `session_id`/`call_id` |
+| Referência da chamada na operadora | `providerReference` (opaca, já existente) | Twilio: `CallSid` |
+| Origem de gravação/transcrição | `TELEPHONY_PROVIDER` \| `CONVERSATION_PROVIDER` \| `INDEPENDENT_STT` | Twilio \| Millis \| outro |
+
+Um teste de arquitetura (`check:architecture`) já proíbe imports de fornecedor no core. Proposta para a S1: estender a verificação para recusar os identificadores literais `twilio`/`millis` em `packages/contracts` (exceto comentários de documentação).
 
 ## 2. Sequência principal (caminho feliz)
 
@@ -109,16 +126,16 @@ Parâmetros da criação da chamada:
 | `Timeout` | tempo de toque (padrão 60, máximo 600) | — |
 | `StatusCallback` + `StatusCallbackEvent` | `initiated`, `ringing`, `answered`, `completed` | Eventos da perna pai |
 | `MachineDetection` | opcional — **decisão de produto** (custo por chamada e atraso) | Evitar conectar a Millis a uma caixa postal |
-| `Record`, `RecordingChannels=dual`, `RecordingStatusCallback` | conforme o desenho de gravação | Gravação no nível da chamada (continua após uma transferência) |
+| `Record=true`, `RecordingChannels=dual`, `RecordingStatusCallback` | **mecanismo único de gravação** quando a gravação estiver habilitada (§2.11) | Uma gravação por chamada; o `<Dial>` fica explicitamente sem gravação |
 
 TwiML proposta:
 
 ```xml
 <Response>
-  <Dial timeLimit="{segundos}" action="{endpoint de resultado do Dial}"
-        record="{do-not-record | record-from-answer-dual}">
+  <Dial timeLimit="{segundos}" action="{endpoint de resultado da perna do agente}?t={callbackToken}"
+        record="do-not-record">  <!-- explícito: a gravação é feita no nível da chamada (§2.11) -->
     <Sip statusCallbackEvent="initiated ringing answered completed"
-         statusCallback="{endpoint de status da perna SIP}">
+         statusCallback="{endpoint de status da perna do agente}?t={callbackToken}">
       {URI SIP devolvido pela Millis};transport={udp|tcp|tls};region={br1|us1|…}?x-vap-corr={token}
     </Sip>
   </Dial>
@@ -156,13 +173,13 @@ Regras:
   - `ORIGINATION_RESULT_UNKNOWN` em timeout ou erro de transporte;
   - `CALL_CLOSED_CONFIRMED` somente quando o encerramento da perna pai for confirmado.
 - **Sessão de chamada** (`call_sessions`): `PREPARED` (nova) → `CONNECTING` → `ACTIVE` → `ENDING` → encerrada.
-- **Perna** (proposta `call_legs`): `PARENT_PSTN` e `CHILD_SIP_MILLIS` (e, no futuro, `CHILD_HUMAN`), cada uma com o status e os horários dos callbacks.
+- **Perna** (proposta `call_legs`, nomes neutros — §1.2): `CONTACT_LEG` e `AI_AGENT_LEG` (e, no futuro, `HUMAN_AGENT_LEG`), cada uma com o status e os horários dos callbacks.
 
 Mapeamento de status Twilio da perna pai (`queued`, `ringing`, `in-progress`, `completed`, `busy`, `failed`, `no-answer`, `canceled`):
 - `busy`, `no-answer` e `failed` antes do atendimento: chamada encerrada **sem conversa**;
 - `in-progress`: atendida;
 - `completed`: encerrada.
-- `DialCallStatus` e `DialSipResponseCode` informam o destino da perna SIP **separadamente** do destino da chamada.
+- No adaptador Twilio, `DialCallStatus` e `DialSipResponseCode` viram o evento neutro `AI_AGENT_LEG_RESULT`, que informa o destino da perna do agente **separadamente** do destino da chamada.
 
 **Ordenação**: `SequenceNumber` e `Timestamp` dos callbacks + deduplicação por chave composta da 008-OF4. Um evento fora de ordem nunca regride o estado.
 
@@ -174,6 +191,35 @@ Mapeamento de status Twilio da perna pai (`queued`, `ringing`, `in-progress`, `c
 | Millis (fim de sessão) | Apenas cabeçalho estático configurável (documentado). HMAC/`X-Millis-Signature` é só afirmação do chatbot | **Fail-closed**: o webhook da Millis nunca muda estado financeiro nem encerra tentativa sozinho; serve de *gatilho* para uma **consulta autenticada** a `GET /call-logs/{session_id}`, cuja resposta é a fonte |
 
 Também valem em ambos: janela anti-replay, corpo bruto preservado, limite de tamanho e rejeição 401/403 sem detalhes.
+
+#### 2.5.1 Corrida: callbacks que chegam antes da persistência do `CallSid`
+
+**Cenário**: a Twilio pode enviar `initiated`/`ringing` (e, em teoria, eventos posteriores) antes de o worker gravar o `CallSid` devolvido pela criação da chamada — resposta lenta, crash do worker ou timeout que deixou a tentativa em `OUTCOME_UNKNOWN`. Procurar o tenant só pelo `CallSid` falharia exatamente nesse caso.
+
+**Desenho proposto**:
+
+1. **Token de callback por tentativa**: gerado no passo *write-ahead*, antes do `SEND_STARTED` ser confirmado:
+   - aleatório, com ≥ 128 bits;
+   - no banco fica só o **hash**, com índice único;
+   - vai como parâmetro `t` em todos os URLs de callback daquela tentativa: `StatusCallback`, `statusCallback` do `<Sip>`, `action` do `<Dial>` e `RecordingStatusCallback`;
+   - a assinatura `X-Twilio-Signature` é calculada sobre o URL completo, incluindo a *query* (algoritmo documentado; o validador e o resolvedor de URL canônico já existem), então o token não pode ser trocado sem invalidar a assinatura;
+   - o token não identifica o tenant nem dá acesso a nada sem uma assinatura válida.
+2. **Ordem de processamento** de cada callback:
+   1. **Verificar a assinatura.** Se falhar: 401/403, auditoria, nenhum efeito.
+   2. **Resolver a tentativa pelo hash do token.** Token desconhecido: rejeição auditada; nunca se cria tentativa nem sessão a partir de callback.
+   3. **Tenant = `organizationId` da tentativa encontrada.** Nunca do payload.
+   4. **Vincular o `CallSid` por *compare-and-set***, na mesma transação que aplica o evento:
+      - `provider_reference` vazio e estado `ORIGINATION_SENT`, `OUTCOME_UNKNOWN` ou `RECONCILIATION_PENDING`: o callback **prova** que a chamada foi criada. Vincula o `CallSid` e resolve o desconhecido como originado, **sem rediscagem**.
+      - Mesmo `CallSid` já vinculado: segue normalmente.
+      - **`CallSid` diferente** do já vinculado: **anomalia de possível originação duplicada**. Nenhuma transição, alerta operacional, tentativa marcada para revisão manual e **nenhuma rediscagem**. Se a segunda chamada deve ser encerrada automaticamente é decisão **D-DUP-CALL**.
+   5. **Deduplicar** por chave única (fornecedor, `CallSid`, perna, evento/status, `SequenceNumber`). Repetição é ignorada de forma idempotente.
+   6. **Ordenar** por `SequenceNumber`/`Timestamp`: evento atrasado nunca regride estado. Evento após `CLOSED` é só auditado, sem efeito financeiro.
+3. **O caminho da resposta síncrona** (criação da chamada) usa o **mesmo** *compare-and-set*: se um callback já vinculou o mesmo `CallSid`, não faz nada; se vinculou outro, aplica a mesma regra de anomalia.
+4. **Resposta HTTP**:
+   - 2xx somente após a persistência durável;
+   - erro de banco gera 5xx;
+   - a política de reenvio de *status callbacks* da Twilio **não está verificada**, por isso a perda de eventos é coberta pela reconciliação por consulta (§2.6), nunca por suposição.
+5. **Callback sem token** (configuração incorreta): rejeitado e auditado. Não se adota fila de eventos "sem dono", porque `call_events` exige tenant e tentativa (FK composta); essa fila exigiria novos estados sem necessidade atual (YAGNI). O desfecho vem da reconciliação.
 
 ### 2.6 Reconciliação após falhas e prevenção de rediscagem
 
@@ -213,7 +259,7 @@ Liquidação no ledger: só com o desfecho confirmado. O custo de telefonia é c
 
 ### 2.9 Alternativa Media Streams (mesma orquestração)
 
-- `ConversationSessionPort.prepare` devolveria `MEDIA_STREAM_URL`, e a TwiML seria `<Connect><Stream url=…/>`.
+- `ConversationSessionPort.prepare` devolveria `BIDIRECTIONAL_AUDIO_STREAM`, e o adaptador Twilio geraria `<Connect><Stream url=…/>` (Media Streams).
 - A Millis documenta esse caminho apenas para chamadas de **entrada** (`twilio_inbound/{public_key}/{agent_id}`), sem `agent_config` por chamada no URL.
 - Formato fixo μ-law 8 kHz; mensagens `clear` e `mark` documentadas.
 - **Não se afirma superioridade de SIP nem de Media Streams sem medição** (seção 5).
@@ -222,9 +268,35 @@ Liquidação no ledger: só com o desfecho confirmado. O custo de telefonia é c
 
 | Alternativa | Como | Continuidade | Gravação | Observação |
 | :--- | :--- | :--- | :--- | :--- |
-| **T-A: Atualizar a chamada** | Redirecionar a perna pai para nova TwiML `<Dial><Number>` do vendedor (encerra a perna Millis) | Fria (sem apresentação) | Gravação no nível da chamada continua; a do `<Dial>` anterior termina | Mais simples |
+| **T-A: Atualizar a chamada** | Redirecionar a perna pai para nova TwiML `<Dial><Number>` do vendedor (encerra a perna Millis) | Fria (sem apresentação) | Gravação no nível da chamada (mecanismo único, §2.11) deve continuar — **a confirmar com a Twilio** | Mais simples |
 | **T-B: Conference desde o início** | Contato, Millis e, depois, o vendedor na mesma sala | Morna (IA pode apresentar) | Gravação dupla isola só o primeiro participante; IA e vendedor ficam misturados no canal 2 | Custo e complexidade maiores |
 | **T-C: SIP REFER pela Millis** | A Millis transfere por REFER | Depende da Millis | Não documentado | Twilio cobra por REFER; **não documentado na Millis** |
+
+### 2.11 Estratégia de gravação na Twilio (mecanismo primário único)
+
+**Fatos documentados**:
+- Na criação da chamada, `Record` com `RecordingChannels=dual` grava a chamada com a perna pai no canal 1 e a filha no canal 2; o padrão de `RecordingTrack` é `both`.
+- `<Dial record="record-from-answer-dual">` grava só enquanto aquele `<Dial>` durar, também com pai no canal 1 e filha no canal 2.
+- Em conferência com gravação dupla, só o primeiro participante fica isolado; os demais são misturados no canal 2.
+- Cada gravação é um recurso próprio (`RecordingSid`), cobrado por minuto gravado e por armazenamento.
+
+**Inferência**: ligar a gravação na chamada **e** no `<Dial>` produz duas gravações do mesmo período, com **cobrança duplicada** e **dados pessoais duplicados**. A documentação não diz que a Twilio deduplica; o desenho trata como duplicado.
+
+**Estratégia proposta** (validação na Fase 1 e no chamado técnico):
+
+| Topologia | Mecanismo único | `<Dial record>` | Resultado esperado |
+| :--- | :--- | :--- | :--- |
+| Padrão (contato + agente de IA por SIP) | Gravação **no nível da chamada**: `Record=true`, `RecordingChannels=dual`, `RecordingStatusCallback` | `do-not-record`, explícito | 1 gravação por chamada: canal 1 = perna do contato; canal 2 = perna conectada no momento |
+| Transferência T-A (redirecionamento) | Mesma gravação no nível da chamada | `do-not-record` em todo `<Dial>` | Canal 2 contém o agente de IA e depois o humano, **em intervalos diferentes**; a atribuição usa os horários das pernas (`AI_AGENT_LEG` × `HUMAN_AGENT_LEG`). Continuidade após o redirecionamento: **a confirmar** |
+| Conferência T-B (se adotada) | Gravação **da conferência**; gravação no nível da chamada **desligada** | — | Contato isolado no canal 1 só se entrar primeiro; agente de IA e humano **misturados** no canal 2 (rótulos degradados, declarados como tal) |
+| Contingência (se a Twilio indicar que a gravação no nível da chamada não capta a perna SIP corretamente) | Gravação **no `<Dial>`** (`record-from-answer-dual`), sem gravação no nível da chamada | Um por segmento | Arquivos por segmento sem sobreposição (não são duplicatas), unidos por linha do tempo |
+
+**Guardas**:
+- O gerador de TwiML (S2) recebe a estratégia como configuração única e tem teste que **impede** combinar a gravação no nível da chamada com `record≠do-not-record` no `<Dial>`.
+- O pipeline espera **uma** gravação por chamada na topologia padrão. Um `RecordingSid` extra para o mesmo `CallSid` vira `UNEXPECTED_DUPLICATE`: alerta, nunca exibido como segunda gravação, candidato a exclusão após revisão.
+- A atribuição canal → falante continua `UNVERIFIED` até o teste T6 da Fase 1.
+- Preço da gravação: **divergente e não confirmado** — o e-mail da Twilio indica US$ 0,05/min e a tabela pública, US$ 0,0025/min (seção 8.1 do pacote). Nenhum dos dois é preço contratado.
+- Gravar ou não, e quando, é decisão humana (**C-8**).
 
 ## 3. Segurança e dados
 
@@ -286,6 +358,7 @@ Complementa a seção 3.7 do pacote de decisão (DEC-044 inalterada).
 | C-5 | Exclusão e backups (prazo de propagação; *legal hold*) | Desenho de gravação |
 | C-6 | Transferência internacional (Millis EUA/UE; Twilio; armazenamento) | LGPD art. 33; DPA de cada fornecedor |
 | C-7 | Telefonia e telemarketing no Brasil: divergência sobre o 0303 (Anatel revogou a obrigatoriedade em ago/2025; a página da Twilio ainda o cita), Origem Verificada, cadastros de bloqueio | Revisão jurídica (H4) + chamado Twilio |
+| C-8 | Política de gravação: gravar todas as chamadas, por campanha ou só com consentimento específico; o que fazer se o contato recusar | Estratégia técnica em §2.11; decisão humana e jurídica |
 
 Supressão, consentimento, auditoria e isolamento por tenant continuam como estão na `main`. Orientação comercial da Twilio e respostas do chatbot da Millis **não** são parecer jurídico.
 
@@ -293,8 +366,8 @@ Supressão, consentimento, auditoria e isolamento por tenant continuam como est�
 
 | Etapa | Escopo | Testes offline | Depende de |
 | :---: | :--- | :--- | :--- |
-| **S1** | Contratos provider-neutral: `ConversationSessionPort`, `MediaTarget`, modelo de pernas (`call_legs`), evento normalizado de perna e de resultado do Dial, estado `PREPARED` da sessão | Zod estrito, transições, correlação, ordenação | **H1 = Twilio-led como direção offline** |
-| **S2** | Adapter Twilio offline: criação/consulta/encerramento por cliente HTTP falso; gerador de TwiML `<Dial><Sip>`; normalizador de callbacks; validador de assinatura reaproveitado | TwiML exata; assinatura válida/inválida/replay; mapeamento de todos os status; `DialSipResponseCode` | S1 |
+| **S1** | Contratos provider-neutral com nomes neutros (§1.2): `ConversationSessionPort`, `MediaTarget`, modelo de pernas (`call_legs`), evento `AI_AGENT_LEG_RESULT`, token de callback, estado `PREPARED` da sessão | Zod estrito, transições, correlação, ordenação | **H1 = Twilio-led como direção offline** |
+| **S2** | Adapter Twilio offline: criação/consulta/encerramento por cliente HTTP falso; gerador de TwiML `<Dial><Sip>`; normalizador de callbacks; validador de assinatura reaproveitado | TwiML exata; token de callback em todos os URLs; **combinação proibida de gravação no nível da chamada + `<Dial record>`**; assinatura válida/inválida/replay (incluindo *query* adulterada); mapeamento de todos os status para eventos neutros; `DialSipResponseCode` → `AI_AGENT_LEG_RESULT` | S1 |
 | **S3** | Adapter Millis offline: `register_sip_call` (só campos documentados, resposta validada fail-closed), `terminate`, `call-logs`; autenticador de webhook continua fail-closed | Resposta sem URI → `UNAVAILABLE`; `chat` tratado como texto não estruturado | S1 + respostas U2/U5 (o adapter é feito com o que é documentado; ajusta-se depois) |
 | **S4** | Orquestração no worker: preparar → originar → callbacks → encerrar → liquidar; recuperação (2.6) e kill switch (2.7); simuladores `FakeTwilioOriginationSimulator` e `FakeMillisConversationSimulator` (fechamento da 008-OF5) | E2E offline: caminho feliz, crash em cada ponto, SIP 4xx/5xx, Millis fora, eventos duplicados e fora de ordem, zero rediscagem | S2, S3, **D-SIP-FAIL** |
 | **R1–R3** | Gravação e transcrição | Ver o desenho próprio | C-1 a C-6 |
@@ -306,6 +379,7 @@ Supressão, consentimento, auditoria e isolamento por tenant continuam como est�
 | :--- | :--- |
 | S1–S4 | **H1**: aprovar Twilio-led (com SIP como primeira conexão) **como direção do desenho offline** — não autoriza ativação |
 | S4 | **D-SIP-FAIL**: comportamento quando a perna SIP falha depois do atendimento |
+| S4 | **D-DUP-CALL**: encerrar automaticamente ou só alertar quando um callback revelar um segundo `CallSid` para a mesma tentativa (§2.5.1) |
 | S4 (opcional) | **D-AMD**: usar detecção de secretária eletrônica da Twilio |
 | R1 | C-3, C-4 e C-5 (acesso, retenção, exclusão) e H6 (empacotamento comercial gravação + transcrição) |
 | R2 | C-6 (local de armazenamento e transferência internacional); D-COPY (copiar para armazenamento próprio e apagar no fornecedor) |
@@ -332,7 +406,8 @@ Supressão, consentimento, auditoria e isolamento por tenant continuam como est�
 **Chamado técnico da Twilio** ("SIP outbound +55 com endpoint da Millis"):
 1. Validação do fluxo API → atendimento → `<Dial><Sip>` para +55, incluindo a `region` recomendada (`br1`?) para SIP de saída.
 2. Confirmação de qual canal capta o contato e qual capta a perna SIP na gravação dupla, para gravação no nível da chamada e no `<Dial>`.
-3. Preço de gravação: os US$ 50,00 informados correspondem à transcrição (US$ 0,05/min) e não à gravação (US$ 0,0025/min)?
+3. Preço de gravação: o e-mail indica US$ 50,00 por 1.000 min (US$ 0,05/min) e a tabela pública indica US$ 0,0025/min (com US$ 0,05/min listado como transcrição). Qual é o preço aplicável à nossa conta? Nenhum dos dois é tratado como confirmado.
+6. Gravação no nível da chamada × no `<Dial>`: confirmação de que ativar as duas gera gravações e cobranças duplicadas; se a gravação no nível da chamada capta corretamente a perna SIP e continua após um redirecionamento (transferência T-A).
 4. Filtros de listagem de chamadas para reconciliação após crash; encerramento de chamada em curso pela API.
 5. Números 0303 × revogação da Anatel (ago/2025); Origem Verificada para tráfego originado pela Twilio.
 
@@ -340,13 +415,14 @@ Supressão, consentimento, auditoria e isolamento por tenant continuam como est�
 
 **`008-OF5a` — contratos provider-neutral de sessão conversacional e pernas (S1).**
 
-- **Escopo**: `packages/contracts/src/telephony/` — `ConversationSessionPort`, `MediaTarget` (SIP | Media Stream), estado `PREPARED`, modelo e eventos de pernas (`PARENT_PSTN`, `CHILD_SIP_MILLIS`), evento normalizado de resultado do Dial (status + código SIP), regras de correlação (uma perna Millis ativa por tentativa; perna filha só com pai conhecido). Sem adapters, sem rede, sem schema de banco (migration só na S4).
+- **Escopo**: `packages/contracts/src/telephony/` — `ConversationSessionPort`, `MediaTarget` (`SIP_URI` | `BIDIRECTIONAL_AUDIO_STREAM`), estado `PREPARED`, modelo e eventos de pernas com nomes neutros (`CONTACT_LEG`, `AI_AGENT_LEG`, `HUMAN_AGENT_LEG` reservado), evento `AI_AGENT_LEG_RESULT` (status + `transportResponseCode`), token de callback por tentativa (geração e hash; §2.5.1), regras de correlação (uma `AI_AGENT_LEG` ativa por tentativa; perna sem `CONTACT_LEG` conhecida rejeitada; `providerReference` divergente = anomalia). Sem adapters, sem rede, sem schema de banco (migration só na S4).
 - **Critérios de aceite**:
-  - nenhum tipo de fornecedor nos contratos (`check:architecture`);
+  - nenhum tipo **nem nome** de fornecedor nos contratos (`check:architecture`, estendido conforme §1.2);
   - FSM existente intacta;
   - eventos fora de ordem não regridem estado;
-  - segunda perna Millis rejeitada;
-  - perna sem pai rejeitada;
+  - segunda `AI_AGENT_LEG` ativa rejeitada;
+  - perna sem `CONTACT_LEG` rejeitada;
+  - vínculo de `providerReference` por *compare-and-set*: igual → idempotente; diferente → anomalia sem transição;
   - gate canônico verde no HEAD exato.
-- **Testes**: transições válidas e inválidas, deduplicação, correlação, Zod estrito (campos extras rejeitados), regressão da FSM da 008-OF1.
+- **Testes**: transições válidas e inválidas, deduplicação, correlação, corrida callback × resposta síncrona (vínculo antes e depois, `OUTCOME_UNKNOWN` resolvido sem rediscagem, `CallSid` divergente), Zod estrito (campos extras rejeitados), regressão da FSM da 008-OF1.
 - **Bloqueio**: só começa com **H1 aprovada como direção offline**. Alternativa que não depende de H1: **Q1** (harness de métricas sobre áudio sintético), se **Q0** for aprovado.
