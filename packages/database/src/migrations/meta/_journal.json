@@ -92,6 +92,13 @@
       "when": 1793373579363,
       "tag": "0012_campaign_report_index",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793703617318,
+      "tag": "0013_operations_overview_index",
+      "breakpoints": true
     }
   ]
 }

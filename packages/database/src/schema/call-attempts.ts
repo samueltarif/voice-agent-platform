@@ -45,6 +45,11 @@ function campaignReportIndex(org: AnyPgColumn, campaign: AnyPgColumn, createdAt:
   return index('call_attempts_org_campaign_created_idx').on(org, campaign, createdAt);
 }
 
+/** 008-MVP4c: visão operacional da organização por período (mais recentes primeiro). */
+function orgRecentIndex(org: AnyPgColumn, createdAt: AnyPgColumn) {
+  return index('call_attempts_org_created_idx').on(org, createdAt);
+}
+
 export const callAttempts = pgTable(
   'call_attempts',
   {
@@ -118,6 +123,7 @@ export const callAttempts = pgTable(
       .where(sql`${table.state} NOT IN ${TERMINAL_STATES_SQL}`),
     providerReferenceLookupIndex(table.providerReference),
     campaignReportIndex(table.organizationId, table.campaignId, table.createdAt),
+    orgRecentIndex(table.organizationId, table.createdAt),
     stateLeaseIndex(table.organizationId, table.state, table.leaseExpiresAt),
     check('call_attempts_attempt_number_chk', sql`${table.attemptNumber} > 0`),
     check('call_attempts_state_version_chk', sql`${table.stateVersion} > 0`),

@@ -3,14 +3,14 @@
 <!--
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
-LAST_REFRESHED_AT: 2026-10-30
-CONTEXT_BASE_MAIN_SHA: 30f71721f744119d6e206b294a0b4e2b2606b792
+LAST_REFRESHED_AT: 2026-11-03
+CONTEXT_BASE_MAIN_SHA: 8d75d0f89039e227152ee18c805d1f1926255ade
 CURRENT_PHASE: Phase 8 (OUTBOUND_FIRST_TWO_TRACK_PLANNING)
-CURRENT_SLICE: 008-MVP4b Campaign Report Web in PR #132
-CONTEXT_UPDATE_BRANCH: feat/phase8-008-mvp4b-campaign-report-web
-CONTEXT_UPDATE_PR: 132
-LAST_MERGED_PR_AT_REFRESH: 131
-LAST_MERGE_SHA_AT_REFRESH: 30f71721f744119d6e206b294a0b4e2b2606b792
+CURRENT_SLICE: 008-MVP4c Real Dashboard and Calls in PR #133
+CONTEXT_UPDATE_BRANCH: feat/phase8-008-mvp4c-real-dashboard-calls
+CONTEXT_UPDATE_PR: 133
+LAST_MERGED_PR_AT_REFRESH: 132
+LAST_MERGE_SHA_AT_REFRESH: 8d75d0f89039e227152ee18c805d1f1926255ade
 LAST_TESTED_CODE_SHA: QUERY_GIT_AT_RUNTIME
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
@@ -229,9 +229,10 @@ AI_CONTEXT_HEADER_END
 - **Ambiente de tipos (PR #129)**: `tsconfig.base.json` fixa `types: []`/`typeRoots: []` (pacotes com tipos próprios fixam os seus) — pastas `node_modules/@types` fora do workspace (ex.: `D:\node_modules\@types` no host Windows) não podem mais quebrar o typecheck.
 - **008-MVP2b Status**: `MERGED ON MAIN` (PR #130, `382cf2c7c843c5e0d862a9d86835ccd7f65dfb7a`; gate Windows 1.656/45/0; gate pós-merge Linux PASS). **008-MVP2 concluída.**
 - **008-MVP4a Status**: `MERGED ON MAIN` (PR #131, `30f71721f744119d6e206b294a0b4e2b2606b792`; gate Windows 1.671/45/0; gate pós-merge Linux PASS): relatório de campanha a partir do estado persistido (retidos pela pausa, classes de desfecho, custos do ledger liquidado × reservado só para OWNER/ADMIN/MANAGER, telefone mascarado; índice aditivo `0012`).
-- **008-MVP4b (PR #132)**: tela `/orgs/{slug}/campaigns/{id}/report` sobre BFF same-origin — contatos por estado real, tentativas por situação, custos liquidados × reservados, lista paginada e mascarada.
-- `NEXT_ALLOWED_STEP = VALIDATE_AND_MERGE_PR_132` (008-OF5/008-MVP3 aguardam decisão Twilio-led vs Millis-led; preferência humana por telefonia em nuvem registrada, sem decisão de autoridade).
-- `NEXT_ALLOWED_SLICE = 008-MVP4c` (substituição dos dados simulados de dashboard e chamadas por dados persistidos).
+- **008-MVP4b Status**: `MERGED ON MAIN` (PR #132, `8d75d0f89039e227152ee18c805d1f1926255ade`; gate Windows na 2ª execução: 7/7 estágios sem erro, 1.687/45/0 — o log não registrou o exit code explicitamente; 1ª execução invalidada por lentidão do host; gate pós-merge Linux PASS).
+- **008-MVP4c (PR #133)**: `/dashboard` e `/calls` passam a usar apenas dados persistidos (`GET /v1/operations/overview` e `/v1/operations/attempts`); dados simulados removidos; transbordo humano, desfechos da conversa e transcrições declarados indisponíveis.
+- `NEXT_ALLOWED_STEP = VALIDATE_AND_MERGE_PR_133` (008-OF5/008-MVP3 aguardam decisão Twilio-led vs Millis-led; preferência humana por telefonia em nuvem registrada, sem decisão de autoridade).
+- `NEXT_ALLOWED_SLICE = HUMAN_DECISION_REQUIRED` (com a MVP4c, a trilha MVP offline sem provedor fica concluída; 008-OF5, 008-MVP3 e 008-OF6 dependem da decisão Twilio-led vs Millis-led).
 - `PURCHASE_OF_PHONE_NUMBERS = 0` | `REAL_PROVIDER_CALLS = 0` | `CUSTOMER_TRAFFIC = PROHIBITED` | `ACTIVE_GUARDED = BLOCKED`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
 

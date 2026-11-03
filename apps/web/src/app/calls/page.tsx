@@ -1,45 +1,65 @@
-'use client';
-
 import * as React from 'react';
-import { Download, RefreshCw } from 'lucide-react';
-import { Button } from '@voice-agent/ui';
+import { redirect } from 'next/navigation';
+import { Info } from 'lucide-react';
+import type { OperationsAttemptRow } from '@voice-agent/contracts';
 import { TenantShell } from '../../shell/tenant-shell';
-import { MOCK_DETAILED_CALL } from '../../mocks/calls-mock-data';
-import { LiveCallCard } from '../../features/calls/live-call-card';
-import { CallsFilterBar } from '../../features/calls/calls-filter-bar';
+import { AttemptsTable } from '../../features/campaign-reports/campaign-attempts-table';
+import { ATTEMPTS_PAGE_SIZE } from '../../features/campaign-reports/report-labels';
+import { OperationsLoadError } from '../../features/operations/operations-load-error';
+import { NoOrganizationState } from '../../features/operations-overview/no-organization-state';
+import { resolveOverviewContext } from '../../features/operations-overview/load-tenant-overview';
 
-export default function CallsPage() {
+const PERIOD_DAYS = 30;
+const PERIOD = { days: String(PERIOD_DAYS) } as const;
+
+/** 008-MVP4c: tentativas reais da organização (sem transcrições/gravações simuladas). */
+export default async function CallsPage() {
+  const page = await resolveOverviewContext();
+  if (page.kind === 'UNAUTHENTICATED') {
+    redirect('/login');
+    return null;
+  }
+  if (page.kind === 'NO_ORGANIZATION') {
+    return (
+      <TenantShell title="Chamadas">
+        <NoOrganizationState />
+      </TenantShell>
+    );
+  }
+  const attempts = await page.tenant
+    .request<OperationsAttemptRow[]>({
+      method: 'GET',
+      path: `/v1/operations/attempts?days=${PERIOD_DAYS}&limit=${ATTEMPTS_PAGE_SIZE + 1}`,
+    })
+    .catch(() => null);
   return (
-    <TenantShell title="Chamadas ao Vivo & Transcrições">
+    <TenantShell title="Chamadas" currentOrg={page.context} organizations={page.organizations}>
       <div className="space-y-6">
-        {/* Page Header */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-1">
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-              Monitoramento de chamadas
-            </h2>
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              Preview operacional de chamadas ativas, transcrições e protocolo de transbordo humano.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="gap-2 h-9 text-xs">
-              <RefreshCw className="h-3.5 w-3.5" />
-              <span>Atualizar</span>
-            </Button>
-            <Button variant="outline" size="sm" className="gap-2 h-9 text-xs">
-              <Download className="h-3.5 w-3.5" />
-              <span>Exportar</span>
-            </Button>
-          </div>
+        <div className="space-y-1">
+          <h2 className="text-xl font-bold tracking-tight sm:text-2xl">Chamadas e tentativas</h2>
+          <p className="text-xs text-muted-foreground sm:text-sm">
+            Tentativas de discagem dos últimos {PERIOD_DAYS} dias, de todas as campanhas.
+          </p>
         </div>
-
-        {/* Filter Bar */}
-        <CallsFilterBar />
-
-        {/* Active Call Detail Card */}
-        <LiveCallCard call={MOCK_DETAILED_CALL} />
+        <p
+          className="flex items-start gap-2 rounded-md border border-border/60 bg-muted/40 p-3 text-xs text-muted-foreground"
+          data-testid="calls-availability-notice"
+        >
+          <Info className="h-4 w-4 shrink-0" aria-hidden />
+          Discagem real desativada neste ambiente. Transcrições, gravações e desfechos da conversa
+          ainda não são armazenados, então não são exibidos.
+        </p>
+        {attempts ? (
+          <AttemptsTable
+            orgSlug={page.context.slug}
+            endpoint="/api/operations/attempts"
+            fixedParams={PERIOD}
+            initial={attempts}
+            title="Tentativas"
+          />
+        ) : (
+          <OperationsLoadError message="Não foi possível carregar as tentativas." />
+        )}
       </div>
     </TenantShell>
   );

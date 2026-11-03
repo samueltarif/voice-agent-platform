@@ -61,3 +61,4 @@ export * from './contact-repository.js';
 export * from './contact-suppression-repository.js';
 export * from './campaign-lifecycle-repository.js';
 export * from './campaign-report-repository.js';
+export * from './operations-overview-repository.js';
