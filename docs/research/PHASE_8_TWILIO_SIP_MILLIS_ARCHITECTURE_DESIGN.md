@@ -211,7 +211,7 @@ Também valem em ambos: janela anti-replay, corpo bruto preservado, limite de ta
    4. **Vincular o `CallSid` por *compare-and-set***, na mesma transação que aplica o evento:
       - `provider_reference` vazio e estado `ORIGINATION_SENT`, `OUTCOME_UNKNOWN` ou `RECONCILIATION_PENDING`: o callback **prova** que a chamada foi criada. Vincula o `CallSid` e resolve o desconhecido como originado, **sem rediscagem**.
       - Mesmo `CallSid` já vinculado: segue normalmente.
-      - **`CallSid` diferente** do já vinculado: **anomalia de possível originação duplicada**. Nenhuma transição, alerta operacional, tentativa marcada para revisão manual e **nenhuma rediscagem**. Se a segunda chamada deve ser encerrada automaticamente é decisão **D-DUP-CALL**.
+      - **`CallSid` diferente** do já vinculado: **anomalia de possível originação duplicada**. Nenhuma transição, alerta operacional, tentativa marcada para revisão manual e **nenhuma rediscagem**. Encerramento automático **não** é padrão: exige identificar a perna (callback de perna filha legítima ou de transferência não é anomalia) e comprovar a duplicidade (ressalva R-1, seção 7.1 do pacote de decisões offline), além de aprovação explícita de **D-DUP-CALL**.
    5. **Deduplicar** por chave única (fornecedor, `CallSid`, perna, evento/status, `SequenceNumber`). Repetição é ignorada de forma idempotente.
    6. **Ordenar** por `SequenceNumber`/`Timestamp`: evento atrasado nunca regride estado. Evento após `CLOSED` é só auditado, sem efeito financeiro.
 3. **O caminho da resposta síncrona** (criação da chamada) usa o **mesmo** *compare-and-set*: se um callback já vinculou o mesmo `CallSid`, não faz nada; se vinculou outro, aplica a mesma regra de anomalia.
@@ -270,7 +270,7 @@ Liquidação no ledger: só com o desfecho confirmado. O custo de telefonia é c
 | :--- | :--- | :--- | :--- | :--- |
 | **T-A: Atualizar a chamada** | Redirecionar a perna pai para nova TwiML `<Dial><Number>` do vendedor (encerra a perna Millis) | Fria (sem apresentação) | Gravação no nível da chamada (mecanismo único, §2.11) deve continuar — **a confirmar com a Twilio** | Mais simples |
 | **T-B: Conference desde o início** | Contato, Millis e, depois, o vendedor na mesma sala | Morna (IA pode apresentar) | Gravação dupla isola só o primeiro participante; IA e vendedor ficam misturados no canal 2 | Custo e complexidade maiores |
-| **T-C: SIP REFER pela Millis** | A Millis transfere por REFER | Depende da Millis | Não documentado | Twilio cobra por REFER; **não documentado na Millis** |
+| **T-C: SIP REFER pela Millis** | A Millis transfere por REFER | Depende da Millis | **Pendente de validação** (a Twilio alertou que a continuidade precisa de teste específico; pode gerar outro `RecordingSid`) | Twilio cobra por REFER; **não documentado na Millis** |
 
 ### 2.11 Estratégia de gravação na Twilio (mecanismo primário único)
 
@@ -293,10 +293,22 @@ Liquidação no ledger: só com o desfecho confirmado. O custo de telefonia é c
 
 **Guardas**:
 - O gerador de TwiML (S2) recebe a estratégia como configuração única e tem teste que **impede** combinar a gravação no nível da chamada com `record≠do-not-record` no `<Dial>`.
-- O pipeline espera **uma** gravação por chamada na topologia padrão. Um `RecordingSid` extra para o mesmo `CallSid` vira `UNEXPECTED_DUPLICATE`: alerta, nunca exibido como segunda gravação, candidato a exclusão após revisão.
+- Na topologia padrão, o esperado é **uma** gravação por chamada, mas **um mesmo histórico pode conter um ou mais `RecordingSid`** (por exemplo, gravação reiniciada após falha, transferência que crie nova chamada, contingência por segmento). Cada `RecordingSid` é classificado pelos horários:
+  - gravações **sobrepostas** no mesmo período da mesma chamada: `UNEXPECTED_DUPLICATE` (alerta; nunca exibida como segunda gravação; candidata a exclusão após revisão);
+  - gravações **sem sobreposição**: segmentos do mesmo histórico, ordenados na linha do tempo.
+- **Cobertura**: o histórico só é exibido como gravação **completa** quando os segmentos cobrem, comprovadamente, todo o intervalo atendido da chamada (horários e durações das gravações × das pernas). Caso contrário, aparece como **incompleta**, com a lacuna indicada. **Nunca** se apresenta um arquivo incompleto como gravação completa.
 - A atribuição canal → falante continua `UNVERIFIED` até o teste T6 da Fase 1.
 - Preço da gravação: **divergente e não confirmado** — o e-mail da Twilio indica US$ 0,05/min e a tabela pública, US$ 0,0025/min (seção 8.1 do pacote). Nenhum dos dois é preço contratado.
 - Gravar ou não, e quando, é decisão humana (**C-8**).
+
+**Atualização de 2026-11-04 (correção da Twilio — T11 a T18 da seção 8.1.1 do pacote):**
+
+- O **mecanismo único de gravação no nível da chamada** continua sendo a **direção preferencial OFFLINE**. A Twilio passou a recomendá-lo expressamente para este fluxo. Isso **não** é decisão aprovada (D-REC-MECH segue pendente) nem homologação de engenharia.
+- **Não se ativa gravação simultaneamente na Calls API e no `<Dial>`.** O teste da S2 que proíbe essa combinação continua obrigatório.
+- **Continuidade na transferência T-A** (perna do agente substituída pela do vendedor, com o `CallSid` principal preservado): **hipótese técnica fundamentada, não comprovada** por teste ponta a ponta. A Twilio disse que outro arquivo "não necessariamente" será criado. Validar na Fase 1.
+- **SIP REFER** (T-C) e qualquer transferência iniciada pela Millis: **pendentes de validação**. Podem gerar nova chamada e, portanto, outro `RecordingSid` ou perda de continuidade.
+- Recuperação: listar as gravações pelo `CallSid` e baixar as concluídas com `RequestedChannels=2`; o pipeline aceita um ou mais `RecordingSid` por histórico, com a regra de cobertura acima.
+- Preço da gravação: **NÃO CONFIRMADO** — a Twilio não reconciliou US$ 0,0500/min × US$ 0,0025/min. Armazenamento cobrado à parte.
 
 ## 3. Segurança e dados
 
@@ -379,7 +391,7 @@ Supressão, consentimento, auditoria e isolamento por tenant continuam como est�
 | :--- | :--- |
 | S1–S4 | **H1**: aprovar Twilio-led (com SIP como primeira conexão) **como direção do desenho offline** — não autoriza ativação |
 | S4 | **D-SIP-FAIL**: comportamento quando a perna SIP falha depois do atendimento |
-| S4 | **D-DUP-CALL**: encerrar automaticamente ou só alertar quando um callback revelar um segundo `CallSid` para a mesma tentativa (§2.5.1) |
+| S4 | **D-DUP-CALL**: só alertar (padrão) ou encerrar automaticamente com duplicidade comprovada, quando um callback revelar um segundo `CallSid` para a mesma tentativa (§2.5.1; ressalva R-1) |
 | S4 (opcional) | **D-AMD**: usar detecção de secretária eletrônica da Twilio |
 | R1 | C-3, C-4 e C-5 (acesso, retenção, exclusão) e H6 (empacotamento comercial gravação + transcrição) |
 | R2 | C-6 (local de armazenamento e transferência internacional); D-COPY (copiar para armazenamento próprio e apagar no fornecedor) |

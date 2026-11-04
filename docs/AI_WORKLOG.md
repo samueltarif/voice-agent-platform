@@ -18902,3 +18902,32 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **PACOTE DE DECISÕES PARA DESENVOLVIMENTO OFFLINE**: `docs/research/PHASE_8_OFFLINE_DEVELOPMENT_DECISION_PACKAGE.md`. Organiza por etapa (S1–S4, R1–R3, Q1) as decisões necessárias para começar o código offline e separa aprovações **OFFLINE** (só código e testes locais, padrão seguro, configurável) de **DEFINITIVAS** (aviso de gravação, base legal, matriz final de acesso, prazos, local de armazenamento, telemarketing, preço, H1 definitiva, autorização da Fase 1). A direção preferida do operador (Twilio telefonia, Millis conversação, SIP primeiro, gravação + transcrição no mesmo plano, qualidade acima de preço) aparece como "opção alinhada", **não aprovada**. Nenhuma DEC nova.
 - **NÃO EXECUTADO**: 008-OF5a não iniciada; nenhuma integração real; nenhum merge automático.
 - **SAFETY**: `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `PUBLIC_WEBHOOKS = 0`.
+
+## 2026-11-03 — Fase 8 — Pós-merge da PR #136 e Registro de Decisões Offline com Ressalvas do Operador — Claude
+
+- **VALIDAÇÃO WINDOWS DA #136 (relatada pelo operador)**: SHA `b74574c0ccb242c1eeb5184aca773f1976da0eb4`; exit code 0; 1.713 PASS / 45 SKIP / 0 FAIL; typecheck 12/12; build 12/12; formatação, lint, arquitetura e tamanho de arquivos aprovados; worktree limpa após a execução.
+- **MERGE**: mesclada manualmente pelo operador em 2026-11-03T20:13:55Z como merge commit `3ed0eb90b50613ea7d5d61ff8b5f5b5587ff026a` (árvore idêntica a `b74574c`, verificado com `git diff`).
+- **GATE PÓS-MERGE LINUX**: worktree nova em `3ed0eb90` (limpa antes e depois): `pnpm install --frozen-lockfile && pnpm check` exit 0; 243 arquivos de teste PASS / 6 SKIP; 1.713 PASS / 45 SKIP / 0 FAIL; 12/12 tarefas de typecheck e de build; arquitetura e tamanho de arquivos PASS.
+- **REGISTRO DE DECISÕES (seção 7 do pacote offline)**: todos os itens `PENDENTE`. A direção reiterada pelo operador (Twilio telefonia, Millis voz e conversação, SIP primeiro, qualidade acima de preço, gravação + transcrição no mesmo plano) consta como `PREFERÊNCIA DECLARADA`; nenhuma opção presumida aprovada; 008-OF5a `NÃO INICIADA`.
+- **RESSALVAS VINCULANTES DO OPERADOR (diretrizes de revisão, não aprovação de opção)**:
+  - **R-1 / D-DUP-CALL**: não encerrar automaticamente chamada potencialmente legítima. Primeiro classificar a perna (endpoint assinado; relação pai/filha a confirmar com a Twilio). Duplicidade só com todos os critérios: endpoint da `CONTACT_LEG`, `CallSid` sem relação de filha, consulta autenticada mostrando duas chamadas pai para o mesmo destino com sobreposição, nenhuma transferência. Padrão: alerta + revisão manual. A sugestão anterior desta mesma data, "(b) encerrar automaticamente", fica **substituída**; a entrada anterior permanece como histórico.
+  - **R-2 / D-TRANSCRIPT-SOURCE**: transcrição alternativa cobre **cliente e agente** (dois canais transcritos separadamente e intercalados por horário), com rótulos condicionados ao mapa de canais verificado. Corrige a redação anterior "STT sobre o canal do agente / canal 2" nos documentos de desenho.
+- **SAFETY**: nenhuma implementação, integração real, chamada, compra, credencial ou webhook público. `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `PUBLIC_WEBHOOKS = 0`.
+
+## 2026-11-04 — Fase 8 — Correção da Twilio sobre Gravação Incorporada à PR #137 (documentação) — Claude
+
+- **ESTADO**: PR #137 aberta, base `main` (`3ed0eb90`), head anterior `8bf07b170ec001cec064686fd39b66ba1311be62`, sem conflitos. Gate Windows ainda não executado pelo operador. Ajustes feitos na mesma PR, a pedido do operador; sem PR adicional.
+- **NOVA EVIDÊNCIA (atendimento da Twilio, não homologação de engenharia)**: a Twilio reconheceu expressamente uma contradição nas orientações anteriores e recomendou:
+  - uma única gravação dual-channel na chamada principal pela Calls API (`Record=true`, `RecordingChannels=dual`, `RecordingTrack=both`);
+  - nenhuma gravação nos `<Dial>`;
+  - preservar o `CallSid` principal na troca da perna da Millis pela do vendedor (sem novo arquivo "necessariamente");
+  - validar a continuidade sobretudo em transferência iniciada pela Millis ou por SIP REFER;
+  - listar as gravações por `CallSid` e baixar as concluídas com `RequestedChannels=2`.
+
+  Também declarou que **não conseguiu reconciliar** US$ 0,0500/min × US$ 0,0025/min e que o armazenamento é cobrado à parte. Registrada como T11–T18 na seção 8.1.1 do pacote de decisão; as respostas anteriores (T1–T10 e a tabela de custos) **permanecem** como histórico.
+- **DOCUMENTOS AJUSTADOS**:
+  - **Desenho SIP §2.11**: mecanismo único no nível da chamada confirmado como direção preferencial OFFLINE (D-REC-MECH pendente); proibição explícita de gravar na Calls API e no `<Dial>` ao mesmo tempo; continuidade na T-A como hipótese não comprovada; SIP REFER pendente; 1..N `RecordingSid` por histórico (sobrepostas = `UNEXPECTED_DUPLICATE`; sem sobreposição = segmentos); "completa" só com cobertura comprovada. Substitui a redação anterior "o pipeline espera uma gravação por chamada", que tratava todo `RecordingSid` extra como duplicata.
+  - **Gravação + transcrição §3.2/§3.3**: canal 2 = áudio recebido pelo contato, podendo ter IA e humano em momentos distintos; falantes só por intervalos das pernas + mapa verificado; Millis preferencial só para o trecho da IA; trecho humano `UNAVAILABLE` sem fonte comprovada; histórico `FINAL` só com todos os trechos cobertos; indicador de cobertura na tela.
+- **RESSALVAS PRESERVADAS**: R-1 (D-DUP-CALL) e R-2 (D-TRANSCRIPT-SOURCE) sem alteração.
+- **DECISÕES**: nenhuma aprovada por inferência (H1-OFF, D-*, H6, C-*, Q0, H5 pendentes); 008-OF5a não iniciada.
+- **SAFETY**: `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `PUBLIC_WEBHOOKS = 0`.

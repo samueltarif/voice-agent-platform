@@ -31,7 +31,7 @@
 | **D-SIP-FAIL / D-AMD** | Comportamento quando a perna SIP falha após o atendimento; uso de detecção de secretária eletrônica | Etapa S4 |
 | **D-COPY / D-TRANSCRIPT-SOURCE** | Copiar mídia para armazenamento próprio e apagar no fornecedor; fonte de transcrição (Millis, se comprovada, ou alternativa) | Etapas R2/R3 |
 | **C-1 a C-8** | Aviso de gravação e de IA, base legal, acesso, retenção, exclusão e backups, transferência internacional, telemarketing/0303, política de gravação (quando gravar) | Gravação real e Gate A |
-| **D-DUP-CALL** | Encerrar automaticamente ou só alertar quando um callback revelar um segundo `CallSid` para a mesma tentativa | Etapa S4 |
+| **D-DUP-CALL** | Só alertar (padrão) ou encerrar automaticamente com duplicidade comprovada (ressalva R-1) quando um callback revelar um segundo `CallSid` para a mesma tentativa | Etapa S4 |
 
 Nenhuma implementação dependente destas decisões será iniciada antes da aprovação.
 
@@ -310,6 +310,23 @@ Classificação usada:
 | Subtotal parcial | US$ 120,55 (pelo e-mail) | US$ 73,05 se valer a tabela pública | **Não confirmado**; varia conforme a linha anterior |
 
 **Fora do subtotal (desconhecidos ou não incluídos)**: interface SIP da Twilio (tabela: US$ 0,0040/min) ou Media Streams (US$ 0,0044/min); Millis (plataforma US$ 0,02/min + STT US$ 0,0043/min + LLM + TTS por caractere; ElevenLabs ≈ US$ 0,05/min; gravação e transcrição da Millis não têm preço documentado); armazenamento próprio; detecção de secretária eletrônica (US$ 0,0075/chamada); impostos; câmbio; tarifas efetivas negociadas. **O subtotal não é custo total do produto**, e o custo continua sendo controle operacional, não critério de escolha (DEC-044).
+
+#### 8.1.1 Correção da Twilio sobre gravação (recebida em 2026-11-04)
+
+A Twilio reconheceu **expressamente uma contradição** nas orientações anteriores sobre gravação. As respostas anteriores (T5–T7 e a tabela de custos acima) continuam registradas como histórico; esta correção as complementa.
+
+| # | Afirmação recebida | Classificação | Observação |
+| :---: | :--- | :--- | :--- |
+| T11 | Para o nosso fluxo: **uma única** gravação dual-channel na chamada principal do cliente, pela Calls API (`Record=true`, `RecordingChannels=dual`, `RecordingTrack=both`) | `AFIRMADO_PELA_TWILIO` (atendimento) + parâmetros `DOCUMENTADO` | Coincide com o mecanismo único já adotado no desenho offline (§2.11 do desenho SIP) |
+| T12 | **Não** ativar gravação nos `<Dial>`, evitando gravações e cobranças duplicadas | `AFIRMADO_PELA_TWILIO` | Confirma a inferência documentada antes |
+| T13 | Preservar o `CallSid` da chamada principal na troca da perna SIP da Millis por uma perna de vendedor humano | `AFIRMADO_PELA_TWILIO` | Base da transferência T-A |
+| T14 | Com a chamada principal e a gravação ativas, a troca de interlocutor **não exige necessariamente** outro arquivo | `AFIRMADO_PELA_TWILIO` — "não necessariamente" | Hipótese técnica fundamentada; **não comprovada** ponta a ponta |
+| T15 | A continuidade da gravação ainda precisa de validação, sobretudo quando a transferência for iniciada pela Millis ou usar SIP REFER | `AFIRMADO_PELA_TWILIO` | SIP REFER continua **pendente de validação** |
+| T16 | A API permite listar gravações associadas ao `CallSid` e baixar as concluídas com `RequestedChannels=2` | `AFIRMADO_PELA_TWILIO` + `DOCUMENTADO` (download com `RequestedChannels=2`) | Um histórico pode ter um ou mais `RecordingSid` |
+| T17 | A Twilio **não conseguiu reconciliar** US$ 0,0500/min e US$ 0,0025/min para gravação | `AFIRMADO_PELA_TWILIO` | Preço da gravação **NÃO CONFIRMADO**. Nenhum dos dois valores é tarifa contratada |
+| T18 | O armazenamento de gravações é cobrado separadamente | `AFIRMADO_PELA_TWILIO` + `DOCUMENTADO` (tabela: US$ 0,0005/min/mês) | Valor de tabela, não contratado |
+
+Esta resposta é orientação do **atendimento** da Twilio, **não** homologação de engenharia da integração Twilio + Millis (T9 continua válida).
 
 ### 8.2 Millis (atendimento automatizado — não é engenharia)
 
