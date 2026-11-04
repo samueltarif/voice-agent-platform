@@ -19070,3 +19070,14 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - O SHA anterior da #141 (`325600e`) deixa de ser candidato ao gate Windows.
 - **S2, S3 e S4 não iniciadas**; nenhuma autorizada.
 - **SAFETY**: `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `PUBLIC_WEBHOOKS = 0`.
+
+## 2026-11-04 — Fase 8 — Pós-merge da PR #141 (008-OF5a S1) — Claude
+
+- **VALIDAÇÃO WINDOWS DA #141 (relatada pelo operador)**: SHA `58eb1479a3275644b2d632a030303da202432dd8`; exit code 0; 1.776 PASS / 45 SKIP / 0 FAIL; typecheck 12/12; build 12/12; lint, formatação e arquitetura aprovados; worktree limpa.
+- **MERGE**: mesclada manualmente pelo operador em 2026-11-04T19:29:44Z como merge commit `22d5230477290f0940507d78ffe36fc98449b539` (pais `406f155` e `58eb147`; árvore idêntica a `58eb147`, verificado com `git diff`).
+- **GATE PÓS-MERGE LINUX**: worktree nova e isolada em `22d5230` (limpa antes e depois), DSN carregado de arquivo: `pnpm install --frozen-lockfile && pnpm check` exit 0; 253 arquivos de teste PASS / 6 SKIP; 1.776 PASS / 45 SKIP / 0 FAIL; 12/12 tarefas de typecheck e de build; formatação, lint, arquitetura e tamanho de arquivos PASS.
+- **DEC-045** e as quatro decisões OFFLINE da S1 (H1-OFF, D-CB-TOKEN, D-S1-SESSION-STATE, D-S1-ARCH-CHECK) preservadas sem alteração.
+- **AS1a (somente análise, sem código)**: `playbook.stages` e `examples` são editados no Agent Studio e publicados no snapshot, mas o compositor de contexto do `apps/voice` os descarta e o mapeador de prompt não os renderiza. Escopo, testes e salvaguardas propostos no chat; **AS1a aguarda autorização específica do operador**.
+- **REGISTRO**: esta entrada fica numa branch própria sem PR, para entrar na próxima PR de código autorizada (sem PR exclusiva de planejamento).
+- **S2, S3 e S4 não iniciadas**; nenhuma autorizada.
+- **SAFETY**: `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `PUBLIC_WEBHOOKS = 0`.
