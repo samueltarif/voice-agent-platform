@@ -18950,7 +18950,7 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 
   Sem cadastro, sem usuário fictício, sem desabilitar ou contornar a verificação de sessão, sem alterar páginas protegidas.
 - **REGRESSION-FIRST**: sem a página, `app/login/page.test.tsx` falhou (`Cannot find module './page.js'`); com a página, passou.
-- **TESTES NOVOS (13)**:
+- **TESTES NOVOS (12)**:
   - `sign-in-with-email.test.ts` (8): entrada inválida sem chamar o cliente; sucesso só com dados; apenas e-mail e senha enviados; 400/401/403; 429; 500 e erro de rede; destino fixo;
   - `app/login/page.test.tsx` (4):
     - `/login` acessível sem sessão;
