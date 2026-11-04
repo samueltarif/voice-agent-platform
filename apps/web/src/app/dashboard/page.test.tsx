@@ -117,3 +117,40 @@ describe('008-MVP4c /dashboard and /calls from persisted data', () => {
     expect(await render(CallsPage())).toContain('Não foi possível carregar as tentativas.');
   });
 });
+
+describe('/dashboard and /calls when the organization context is unavailable', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it.each([
+    ['dashboard', () => DashboardPage()],
+    ['calls', () => CallsPage()],
+  ])(
+    '%s: shows an explicit error (inside the shell, with sign-out) when the organization cannot be resolved',
+    async (_n, load) => {
+      vi.mocked(getServerOrganizationContext).mockRejectedValue(new Error('ECONNREFUSED'));
+      const errorLog = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const out = await render(load());
+      expect(out).toContain('data-testid="operations-load-error"');
+      expect(out).toContain('não foi possível carregar sua organização agora');
+      expect(out).toContain('data-testid="sign-out-button"');
+      expect(out).not.toContain('kpi-attempts');
+      expect(redirect).not.toHaveBeenCalled();
+      expect(JSON.stringify(errorLog.mock.calls)).not.toContain('ECONNREFUSED');
+      errorLog.mockRestore();
+    },
+  );
+
+  it('dashboard shows the same explicit error when the internal API client is not configured', async () => {
+    resolved();
+    vi.mocked(getInternalApiClient).mockImplementation(() => {
+      throw new Error('INTERNAL_SERVICE_PRIVATE_JWK is required to initialize API clients');
+    });
+    const errorLog = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const out = await render(DashboardPage());
+    expect(out).toContain('não foi possível carregar sua organização agora');
+    expect(out).not.toContain('INTERNAL_SERVICE_PRIVATE_JWK');
+    errorLog.mockRestore();
+  });
+});

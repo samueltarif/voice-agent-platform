@@ -18996,6 +18996,52 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **S1**: contratos e decisões do brief preservados sem alteração. **O merge da #138 não autoriza a 008-OF5a**; aguardam decisão explícita H1-OFF, D-CB-TOKEN, D-S1-SESSION-STATE e D-S1-ARCH-CHECK.
 - **SAFETY**: `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `PUBLIC_WEBHOOKS = 0`.
 
+## 2026-11-04 — Fluxo de autenticação local: login na porta 3001, conta de desenvolvimento, logout e `/platform` — Claude
+
+- **ESTADO**: PR #139 mesclada em 2026-11-04T13:33:52Z como merge commit `7975d087e92a2d12a3f7dc6019e841821f11a600` (árvore idêntica a `a47565f`). Gate pós-merge Linux em worktree nova `7975d08` (limpa antes e depois): exit 0; 245 arquivos de teste PASS / 6 SKIP; 1.725 PASS / 45 SKIP / 0 FAIL. Nenhuma PR aberta. Trabalho em worktree e branch novas (`fix/web-local-auth-flow`).
+- **SINTOMA (relatado pelo operador)**: em `http://localhost:3001/login`, o botão "Entrar" ficava carregando indefinidamente.
+- **REPRODUÇÃO REAL**: Next.js na 3001, porta 3000 ocupada por um processo que aceita conexões e não responde, banco PostgreSQL local descartável.
+  - O formulário enviava `POST http://localhost:3000/api/auth/sign-in/email`: `auth-client.ts` tinha `baseURL` fixo `http://localhost:3000`. Sem resposta, o botão ficou carregando por mais de 20 s, sem mensagem.
+  - Mesmo enviando à 3001, o servidor recusava com `403 INVALID_ORIGIN`: `BETTER_AUTH_URL` padrão `http://localhost:3000` define a única origem confiável.
+  - Após login, `/dashboard` quebrava com erro cru (`INTERNAL_SERVICE_PRIVATE_JWK is required…`): `pnpm dev` sobe só a web; a API não tem script `dev`, e a porta padrão da API (3001) coincide com a que o Next.js escolheu.
+  - Não havia logout em nenhuma tela.
+  - `/platform` era página cliente com dados MOCK, sem verificação de sessão nem de Platform Admin.
+  - Não existe conta de teste local nem mecanismo de criação.
+- **CORREÇÕES (mínimas)**:
+  - `lib/auth/auth-client.ts`: sem `NEXT_PUBLIC_APP_URL`, o Better Auth usa `window.location.origin` (comportamento da biblioteca, verificado em `better-auth@1.7.5/dist/utils/url.mjs`).
+  - `lib/auth/trusted-origins.ts` + `auth.ts` (`trustedOrigins` como função): lista explícita `TRUSTED_ORIGINS`; fora de produção, também a origem loopback real da requisição (`localhost`, `127.0.0.1`, `[::1]`, qualquer porta). **Produção inalterada.** Hosts parecidos (`localhost.evil.example`, `127.0.0.1.nip.io`) recusados.
+  - `features/auth/sign-in-with-email.ts`: tempo limite de 15 s com `AbortSignal` (`TIMEOUT`); `403 INVALID_ORIGIN` → mensagem própria de configuração, em vez de "senha incorreta".
+  - `features/auth/sign-out-session.ts` + `sign-out-button.tsx` + topo do shell: botão **Sair**, com tempo limite e erro visível.
+  - `features/operations-overview/load-tenant-overview.ts` + `/dashboard` e `/calls`: falha ao resolver a organização vira o estado explícito `CONTEXT_UNAVAILABLE`, dentro do shell e com **Sair** disponível; o log do servidor registra só o tipo do erro.
+  - `/platform`: página de servidor que responde **404 em produção**. Fora dela, exige sessão e mostra a prévia com faixa "Modo demonstração" e botões de relatório desativados. **Nenhum acesso administrativo real**; a verificação de Platform Admin no servidor ainda não existe e fica no backlog.
+  - Comando `pnpm --filter @voice-agent/web dev:create-local-account` (`lib/dev/*`):
+    - recusa `NODE_ENV=production`, `APP_ENV` staging/produção e banco fora de loopback;
+    - senha por prompt oculto (duas vezes) ou `LOCAL_DEV_ACCOUNT_PASSWORD`, nunca por argumento, nunca impressa;
+    - mínimo de 12 caracteres;
+    - cria pelo Better Auth (`signUpEmail`) e, opcionalmente, organização local `ACTIVE` + vínculo `OWNER` pelos repositórios existentes, de forma idempotente;
+    - não altera conta existente.
+  - Dependência de desenvolvimento `tsx@4.23.15` em `apps/web`: já estava no lockfile como dependência transitiva (+3 linhas no `pnpm-lock.yaml`, nenhum pacote novo); executado com `--conditions=development`.
+  - README (primeiro acesso local) e `.env.example` (comentários `TRUSTED_ORIGINS` e `NEXT_PUBLIC_APP_URL`, sem valores).
+- **TESTES**: novos `trusted-origins.test.ts` (4), `sign-out-session.test.ts` (3), `local-dev-account.test.ts` (9), `app/platform/page.test.tsx` (3), +3 em `sign-in-with-email.test.ts` e +3 em `dashboard/page.test.tsx`. Teste existente alterado: `sign-in-with-email.test.ts` "signs in only when…" — `TEST_CHANGE_REASON = SIGNATURE_EXTENDED_WITH_ABORT_SIGNAL`. O 1º argumento continua exatamente `{ email, password }`, e passa-se a exigir que o 2º contenha apenas `signal` (`ASSERTION_EQUIVALENT`).
+- **VALIDAÇÃO EM NAVEGADOR REAL (local, sem fornecedores)**: Chromium + `next dev` na 3001 com a 3000 ocupada + API real (`apps/api` compilada) na 3002 + banco PostgreSQL local descartável (`authsmoke_*`); par Ed25519 e senha gerados apenas em memória.
+  - `/dashboard` sem sessão → `/login`;
+  - senha errada → `401` e "E-mail ou senha incorretos.";
+  - senha certa → `200` e `/dashboard` da organização local;
+  - **Sair** → `200 /api/auth/sign-out`, e `/dashboard` volta a exigir login;
+  - `/platform` deslogado → `/login`;
+  - comando: criação exit 0, repetição exit 2 (sem alteração), banco remoto recusado exit 1;
+  - sem a API: o painel mostra a mensagem explícita e o **Sair** funciona.
+
+  Banco descartável removido ao final (0 bancos `authsmoke_%` restantes); processo auxiliar da 3000 encerrado. **Status: `VALIDATED` localmente** para login, logout, proteção do painel e criação de conta local; `/platform` com Platform Admin real: `NOT IMPLEMENTED`.
+- **SECURITY PROCESS DEVIATION — REPEATED PATTERN**:
+  - **Fato**: nesta e em sessões anteriores (gates pós-merge e testes locais desde a Fase 8), o agente passou na linha de comando DSNs do PostgreSQL local com a senha padrão de desenvolvimento (`TEST_DATABASE_URL=…`, `DATABASE_URL=…`) e `PGPASSWORD=…` (createdb/dropdb/psql), contrariando o AGENTS.md §7.5.
+  - **Escopo**: apenas o PostgreSQL local do container de desenvolvimento, com a credencial pública de exemplo do `.env.example`. Nenhum banco remoto, nenhuma credencial real, nada commitado (auditoria do diff abaixo).
+  - **Risco**: baixo (credencial local de exemplo), mas a regra não admite exceção para localhost.
+  - **Contenção**: a partir desta entrada, o DSN do gate é carregado de um arquivo de ambiente fora do repositório (`set -a; . arquivo`), sem aparecer na linha de comando; o teste ponta a ponta monta o DSN em memória.
+  - **Rotação humana**: não necessária (credencial de exemplo apenas local).
+- **NÃO FEITO (deliberadamente)**: verificação real de Platform Admin; script `dev` da API; geração automatizada do par de chaves local; restrição de cadastro público (`emailAndPassword` aceita `sign-up` em qualquer ambiente — decisão de produto pendente); exigência de `BETTER_AUTH_SECRET` em produção (o padrão inseguro de desenvolvimento ainda é aceito se a variável faltar).
+- **SAFETY**: `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `PUBLIC_WEBHOOKS = 0`.
+
 ## 2026-11-04 — Fase 8 — 008-OF5a (S1): contratos offline de sessão de conversa e pernas — Claude
 
 - **AUTORIZAÇÃO**: o operador decidiu H1-OFF = a (Twilio-led, SIP primeiro, stream como alternativa), D-CB-TOKEN = a (token seguro por tentativa), D-S1-SESSION-STATE = a (reutilizar `CREATED`) e D-S1-ARCH-CHECK = a (reforçar neutralidade) e autorizou literalmente iniciar a 008-OF5a (S1) offline. Registrado na **DEC-045**. A autorização **não** vale para S2, S3, S4 nem para integração real; não é escolha definitiva de produção.
@@ -19010,4 +19056,17 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `scripts/find-vendor-identifiers.mjs` + `check:architecture`: recusa nomes de fornecedor em identificadores e literais de `packages/contracts` (comentários permitidos). Prova negativa local: arquivo-sonda com identificador de fornecedor fez o check sair com código 1.
 - **NÃO IMPLEMENTADO (deliberado)**: adaptadores de fornecedor, rede, banco, migration, worker, webhook, rota de callback, CSPRNG de runtime, persistência do token e do vínculo, campos ou endpoints da Millis.
 - **TESTES**: 3 arquivos novos em `packages/contracts/src/telephony` e 1 em `packages/integrations/src/architecture`; nenhum teste existente alterado.
+- **SAFETY**: `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `PUBLIC_WEBHOOKS = 0`.
+
+## 2026-11-04 — Fase 8 — Pós-merge da PR #140 e atualização da PR #141 com a `main` — Claude
+
+- **VALIDAÇÃO WINDOWS DA #140 (relatada pelo operador)**: SHA `c3ddc2af3674cabafbb46bcaacc013789715c5bb`; exit code 0; 1.750 PASS / 45 SKIP / 0 FAIL; typecheck 12/12; build 12/12; arquitetura, lint e formatação aprovados; worktree limpa.
+- **MERGE**: mesclada manualmente pelo operador em 2026-11-04T17:39:50Z como merge commit `406f155ee43b357207b60e2574915d2cb4ea2518` (pais `7975d08` e `c3ddc2a`; árvore idêntica a `c3ddc2a`, verificado com `git diff`).
+- **GATE PÓS-MERGE LINUX**: worktree nova em `406f155` (limpa antes e depois), DSN carregado de arquivo: `pnpm install --frozen-lockfile && pnpm check` exit 0; 249 arquivos de teste PASS / 6 SKIP; 1.750 PASS / 45 SKIP / 0 FAIL; 12/12 tarefas de typecheck e de build; formatação, lint, arquitetura e tamanho de arquivos PASS.
+- **ATUALIZAÇÃO DA PR #141**: a `main` foi mesclada na branch `feat/phase8-008-of5a-s1-session-leg-contracts` por merge commit, sem force push.
+  - AI_WORKLOG resolvido append-only: conteúdo da `main` como prefixo exato, seguido da entrada da S1 e desta entrada; nenhuma linha removida de nenhum dos lados.
+  - AI_CONTEXT combinado: mantidas as linhas da #139 e do fluxo de autenticação vindas da `main`, acrescentado o status da #140 e preservadas as linhas da S1; o `NEXT_ALLOWED_STEP` anterior à DEC-045 foi substituído pelo da S1.
+  - DECISIONS_LOG e DEC-045 inalterados (a #140 não tocou no arquivo).
+  - O SHA anterior da #141 (`325600e`) deixa de ser candidato ao gate Windows.
+- **S2, S3 e S4 não iniciadas**; nenhuma autorizada.
 - **SAFETY**: `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `PUBLIC_WEBHOOKS = 0`.

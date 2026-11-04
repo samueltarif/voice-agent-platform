@@ -18,8 +18,8 @@ export function LoginForm() {
     event.preventDefault();
     setPending(true);
     setMessage(null);
-    const outcome = await signInWithEmail({ email, password }, (credentials) =>
-      authClient.signIn.email(credentials),
+    const outcome = await signInWithEmail({ email, password }, (credentials, { signal }) =>
+      authClient.signIn.email(credentials, { signal }),
     );
     if (outcome.kind === 'SIGNED_IN') {
       router.replace(POST_LOGIN_PATH);

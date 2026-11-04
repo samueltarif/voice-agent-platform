@@ -7,7 +7,10 @@ import { AttemptsTable } from '../../features/campaign-reports/campaign-attempts
 import { ATTEMPTS_PAGE_SIZE } from '../../features/campaign-reports/report-labels';
 import { OperationsLoadError } from '../../features/operations/operations-load-error';
 import { NoOrganizationState } from '../../features/operations-overview/no-organization-state';
-import { resolveOverviewContext } from '../../features/operations-overview/load-tenant-overview';
+import {
+  CONTEXT_UNAVAILABLE_MESSAGE,
+  resolveOverviewContext,
+} from '../../features/operations-overview/load-tenant-overview';
 
 const PERIOD_DAYS = 30;
 const PERIOD = { days: String(PERIOD_DAYS) } as const;
@@ -23,6 +26,13 @@ export default async function CallsPage() {
     return (
       <TenantShell title="Chamadas">
         <NoOrganizationState />
+      </TenantShell>
+    );
+  }
+  if (page.kind === 'CONTEXT_UNAVAILABLE') {
+    return (
+      <TenantShell title="Chamadas">
+        <OperationsLoadError message={CONTEXT_UNAVAILABLE_MESSAGE} />
       </TenantShell>
     );
   }
