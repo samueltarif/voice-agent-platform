@@ -4,12 +4,12 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-11-03
-CONTEXT_BASE_MAIN_SHA: 3ed0eb90b50613ea7d5d61ff8b5f5b5587ff026a
+CONTEXT_BASE_MAIN_SHA: 3b75e523ef0850515fce6581129166ce79b3e63c
 CURRENT_PHASE: Phase 8 (OUTBOUND_FIRST_TWO_TRACK_PLANNING)
 CURRENT_SLICE: Phase 8 offline development decision package awaiting human decision (008-OF5a not started)
-CONTEXT_UPDATE_BRANCH: docs/phase8-offline-decision-record
+CONTEXT_UPDATE_BRANCH: docs/phase8-of5a-s1-decision-prep
 CONTEXT_UPDATE_PR: PENDING
-LAST_MERGED_PR_AT_REFRESH: 136
+LAST_MERGED_PR_AT_REFRESH: 137
 LAST_MERGE_SHA_AT_REFRESH: 8d75d0f89039e227152ee18c805d1f1926255ade
 LAST_TESTED_CODE_SHA: QUERY_GIT_AT_RUNTIME
 CONTEXT_STATUS_AT_REFRESH: CURRENT
@@ -238,8 +238,10 @@ AI_CONTEXT_HEADER_END
 - **Pacote de decisões para desenvolvimento offline**: `docs/research/PHASE_8_OFFLINE_DEVELOPMENT_DECISION_PACKAGE.md` — `AWAITING_HUMAN_DECISION` (H1-OFF, D-*, H6, C-*-OFF, Q0, H5), separando decisões OFFLINE de DEFINITIVAS; nenhuma aprovada. **008-OF5a não iniciada.**
 - **PR #136 Status**: `MERGED ON MAIN` (merge commit `3ed0eb90b50613ea7d5d61ff8b5f5b5587ff026a`, árvore idêntica a `b74574c`; gate Windows do operador 1.713/45/0, exit 0; gate pós-merge Linux PASS 1.713/45/0). Registro de decisões na seção 7 do pacote offline: tudo `PENDENTE`; ressalvas vinculantes do operador **R-1** (D-DUP-CALL: sem encerramento automático sem identificar as pernas e comprovar duplicidade) e **R-2** (D-TRANSCRIPT-SOURCE: transcrição alternativa cobre cliente e agente).
 - **Correção da Twilio sobre gravação (2026-11-04)**: atendimento (não engenharia) recomendou uma única gravação dual na chamada principal pela Calls API e nenhuma gravação nos `<Dial>` — coincide com a direção preferencial OFFLINE (D-REC-MECH segue pendente). Continuidade na transferência T-A é hipótese não comprovada; SIP REFER pendente de validação; um histórico pode ter 1..N `RecordingSid`, com cobertura comprovada antes de exibir "completa"; preço da gravação **não confirmado** (Twilio não reconciliou US$ 0,0500 × 0,0025/min); armazenamento cobrado à parte.
+- **PR #137 Status**: `MERGED ON MAIN` (merge commit `3b75e523ef0850515fce6581129166ce79b3e63c`, árvore idêntica a `f6a4051`; gate Windows do operador 1.713/45/0, exit 0; gate pós-merge Linux PASS 1.713/45/0).
+- **Brief para iniciar a 008-OF5a (S1)**: `docs/research/PHASE_8_OF5A_S1_START_DECISION_BRIEF.md` — `AWAITING_HUMAN_DECISION` (H1-OFF, D-CB-TOKEN, D-S1-SESSION-STATE, D-S1-ARCH-CHECK + autorização literal). Achado: `CALL_SESSION_STATES` alimenta o enum PostgreSQL `call_session_runtime_state`, então um estado `PREPARED` exigiria migração; proposta mínima = reutilizar `CREATED`. **S1 não iniciada.**
 - **Evidências e desenho (2026-11-03)**: respostas da Twilio (não homologação de engenharia) e do atendimento automatizado da Millis (não é evidência técnica) classificadas na seção 8 do pacote de decisão; preferências de produto declaradas (Twilio telefonia, Millis conversação, gravação + transcrição no mesmo plano, SIP primeiro e Media Streams como alternativa) — **não aprovadas como arquitetura**. Desenhos offline: `docs/research/PHASE_8_TWILIO_SIP_MILLIS_ARCHITECTURE_DESIGN.md` e `docs/research/PHASE_8_CALL_RECORDING_TRANSCRIPTION_DESIGN.md`. Revisão de 2026-11-03: nomes neutros nos contratos (`CONTACT_LEG`/`AI_AGENT_LEG`/`HUMAN_AGENT_LEG`), mecanismo único de gravação (no nível da chamada, `<Dial record="do-not-record">`), token de callback assinado por tentativa contra a corrida callback × `CallSid`, preço de gravação divergente e não confirmado. Próxima PR sugerida `008-OF5a` (contratos de sessão e pernas) só após H1.
-- `NEXT_ALLOWED_STEP = HUMAN_DECISION_ON_PHASE8_OFFLINE_DEVELOPMENT_PACKAGE` (decisões OFFLINE por etapa; direção preferida do operador — Twilio telefonia, Millis conversação, SIP primeiro, gravação + transcrição no mesmo plano, qualidade acima de preço — registrada sem aprovação; 008-OF5a só após H1-OFF).
+- `NEXT_ALLOWED_STEP = HUMAN_DECISION_ON_008_OF5A_S1_START_BRIEF` (antes: pacote de decisões offline) (decisões OFFLINE por etapa; direção preferida do operador — Twilio telefonia, Millis conversação, SIP primeiro, gravação + transcrição no mesmo plano, qualidade acima de preço — registrada sem aprovação; 008-OF5a só após H1-OFF).
 - `NEXT_ALLOWED_SLICE = HUMAN_DECISION_REQUIRED` (trilha 008-MVP1 a 008-MVP4 concluída; 008-OF5, 008-MVP3 e 008-OF6 dependem de H1; remoção de supressões depende de H2; evidência de consentimento depende de H3).
 - `PURCHASE_OF_PHONE_NUMBERS = 0` | `REAL_PROVIDER_CALLS = 0` | `CUSTOMER_TRAFFIC = PROHIBITED` | `ACTIVE_GUARDED = BLOCKED`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
