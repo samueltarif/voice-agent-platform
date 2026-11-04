@@ -18948,3 +18948,50 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - correção proposta (pendente, D-S1-SESSION-STATE): reutilizar `CREATED` e guardar a referência da sessão conversacional num contrato próprio. O desenho SIP (§2.4, §7, §10) recebeu nota de revisão.
 - **PRESERVADO**: correção da Twilio sobre gravação única no nível da chamada (T11–T18); ressalvas R-1 e R-2; todas as decisões pendentes. **Nenhuma decisão aprovada por causa do merge.** 008-OF5a **não iniciada**.
 - **SAFETY**: `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `PUBLIC_WEBHOOKS = 0`.
+
+## 2026-11-04 — Correção: `/login` retornava 404 (apps/web) — Claude
+
+- **ESTADO**: `main` em `3b75e523`; PR #138 aberta (documentação; não tocada). Trabalho em worktree e branch novas (`fix/web-login-route-404`) a partir da `main`, sem alterar outras worktrees.
+- **SINTOMA (relatado pelo operador)**: `GET / 307`, `GET /dashboard 307`, `GET /login 404`.
+- **CAUSA-RAIZ (verificada no código e no histórico)**:
+  - `/` redireciona para `/dashboard` (`app/page.tsx`);
+  - `/dashboard`, `/calls` e as telas `/orgs/{slug}/*` redirecionam para `/login` quando não há sessão (`redirect('/login')`, por exemplo em `app/dashboard/page.tsx` e `lib/operations/resolve-tenant-page.ts`);
+  - **a rota `apps/web/src/app/login/page.tsx` nunca existiu**: nenhum commit no histórico toca `app/login`. O AI_WORKLOG registra "Login UI E2E: NOT VALIDATED", com a tela de login reservada a uma "fatia específica de UI de login" que não foi executada;
+  - não há `middleware.ts`;
+  - a autenticação configurada é Better Auth (`lib/auth/auth.ts`, e-mail e senha) com handler em `/api/auth/[...all]` e cliente em `lib/auth/auth-client.ts` (sem uso até agora);
+  - variáveis envolvidas (só por nome; nenhum `.env` lido): `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `NEXT_PUBLIC_APP_URL`, todas com padrões locais no código.
+- **CORREÇÃO MÍNIMA**:
+  - `app/login/page.tsx`: página de servidor; com sessão (`session.user.id`, mesmo critério das telas protegidas), redireciona para `/dashboard`; sem sessão, mostra o formulário;
+  - `features/auth/login-form.tsx`: componente cliente com `authClient.signIn.email`; após sucesso, `router.replace('/dashboard')` e `refresh`;
+  - `features/auth/sign-in-with-email.ts`: lógica pura com validação local, mensagem genérica (sem revelar se o e-mail existe), 400/401/403 → credenciais inválidas, 429 → limite, demais → indisponível; envia **apenas** e-mail e senha; destino fixo `POST_LOGIN_PATH = '/dashboard'`, em módulo comum (não `'use client'`) para a página de servidor recebê-lo como texto.
+
+  Sem cadastro, sem usuário fictício, sem desabilitar ou contornar a verificação de sessão, sem alterar páginas protegidas.
+- **REGRESSION-FIRST**: sem a página, `app/login/page.test.tsx` falhou (`Cannot find module './page.js'`); com a página, passou.
+- **TESTES NOVOS (12)**:
+  - `sign-in-with-email.test.ts` (8): entrada inválida sem chamar o cliente; sucesso só com dados; apenas e-mail e senha enviados; 400/401/403; 429; 500 e erro de rede; destino fixo;
+  - `app/login/page.test.tsx` (4):
+    - `/login` acessível sem sessão;
+    - `/dashboard` sem sessão → `/login`;
+    - com sessão, `/login` → `/dashboard`, e `/dashboard` não volta (sem ciclo, inclusive sem organização);
+    - usuário autenticado entra no painel da organização resolvida no servidor: usuário da sessão; todas as requisições internas com `organizationId` da organização ativa; nenhum link para outra organização disponível.
+- **VALIDAÇÃO LOCAL REAL (sem criar conta)**: `next dev` local + Better Auth real + PostgreSQL local:
+  - `GET /` 307 → `/dashboard`; `GET /dashboard` 307 → `/login`; `GET /login` 200;
+  - no Chromium, o login com e-mail inexistente gerou `POST /api/auth/sign-in/email 401` e a mensagem "E-mail ou senha incorretos.", permanecendo em `/login`.
+
+  O login bem-sucedido em navegador **não foi executado** (exigiria criar uma conta; proibido sem autorização): **NOT VALIDATED** em navegador, **TESTED** offline. Servidor encerrado após o teste.
+- **SAFETY**: nenhuma conta ou credencial criada; nenhum banco remoto; nenhum serviço pago; 008-OF5a não iniciada. `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `PUBLIC_WEBHOOKS = 0`.
+
+## 2026-11-04 — Fase 8 — Pós-merge da PR #138 e Atualização da PR #139 com a `main` — Claude
+
+- **VALIDAÇÃO WINDOWS DA #138 (relatada pelo operador)**: SHA `e50fc9cb6191115ab83d5787503d32c600045b61`; exit code 0; 1.713 PASS / 45 SKIP / 0 FAIL; typecheck 12/12; build 12/12; formatação, lint e arquitetura aprovados; worktree limpa.
+- **MERGE**: mesclada manualmente pelo operador em 2026-11-04T12:23:13Z como merge commit `0a269fbd7cc8207267662543b604f93aad129aa0` (árvore idêntica a `e50fc9c`, verificado com `git diff`).
+- **GATE PÓS-MERGE LINUX**: worktree nova em `0a269fbd` (limpa antes e depois): `pnpm install --frozen-lockfile && pnpm check` exit 0; 243 arquivos de teste PASS / 6 SKIP; 1.713 PASS / 45 SKIP / 0 FAIL; 12/12 tarefas de typecheck e de build; arquitetura e tamanho de arquivos PASS.
+- **ATUALIZAÇÃO DA PR #139**: com o merge da #138, a #139 (correção `/login`) entrou em conflito com a `main` (`mergeable_state = dirty`), porque ambas acrescentavam entradas ao AI_WORKLOG e alteravam o AI_CONTEXT.
+  - A `main` foi mesclada na branch `fix/web-login-route-404` por merge commit, sem force push.
+  - AI_WORKLOG resolvido append-only: conteúdo da `main` como prefixo exato, seguido da entrada da #139 e desta entrada; verificado que nenhuma linha de nenhum dos lados foi perdida.
+  - AI_CONTEXT combinado.
+  - O registro pós-merge da #138 entrou nesta mesma PR, para não abrir outra PR de planejamento.
+  - O SHA anterior da #139 (`f5be5c0`) deixa de ser candidato ao gate Windows.
+- **CORREÇÃO NO AI_CONTEXT**: o `NEXT_ALLOWED_STEP` vindo da #138 carregava um parêntese residual da versão anterior ("(antes: pacote de decisões offline) (decisões OFFLINE por etapa…)"); reescrito sem mudar o significado. Cabeçalho atualizado: `CONTEXT_BASE_MAIN_SHA`, `LAST_MERGED_PR_AT_REFRESH`, `LAST_MERGE_SHA_AT_REFRESH` e `LAST_REFRESHED_AT`, este último desatualizado desde 2026-11-03.
+- **S1**: contratos e decisões do brief preservados sem alteração. **O merge da #138 não autoriza a 008-OF5a**; aguardam decisão explícita H1-OFF, D-CB-TOKEN, D-S1-SESSION-STATE e D-S1-ARCH-CHECK.
+- **SAFETY**: `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `PUBLIC_WEBHOOKS = 0`.
