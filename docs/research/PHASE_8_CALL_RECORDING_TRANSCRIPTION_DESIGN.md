@@ -57,6 +57,22 @@ O cliente da plataforma poderá:
 
 Nenhum schema, campo ou URL de fornecedor é inventado. O modelo da seção 4 é **interno da plataforma** e não descreve formato de fornecedor.
 
+### 3.2 Quem fala em cada canal (atualização 2026-11-04)
+
+- Na gravação única no nível da chamada (recomendação da Twilio, T11), o **canal 1** é a perna do contato e o **canal 2** é o **áudio recebido pelo contato**.
+- O canal 2 pode conter, **em momentos distintos**, a voz do agente de IA (Millis) e a do atendente humano, após uma transferência.
+- A identificação de quem fala no canal 2 depende **somente** de evidências confiáveis:
+  - os intervalos das pernas (`AI_AGENT_LEG` × `HUMAN_AGENT_LEG`), registrados pelos callbacks;
+  - o mapeamento de canais **verificado** (teste T6).
+- Sem essas evidências: "Canal 2 — participante não identificado". **Nunca** se inventam falantes nem *timestamps*.
+
+### 3.3 Cobertura da transcrição por trecho
+
+- **Trecho com o agente de IA**: a transcrição da Millis continua sendo a **fonte preferencial**, se comprovada (§3.1).
+- **Trecho após a transferência para o humano**: **não se presume** que a Millis o transcreva, porque a sessão conversacional dela pode já ter terminado. Sem fonte comprovada para esse trecho, ele aparece como `UNAVAILABLE` ("trecho com atendente humano sem transcrição").
+- Se D-TRANSCRIPT-SOURCE for aprovada com contingência, o trecho humano pode vir do STT independente sobre **os dois canais** (ressalva R-2).
+- A transcrição do histórico só é `FINAL` quando todos os trechos estão cobertos; caso contrário, `PARTIAL`, indicando o trecho faltante.
+
 ## 4. Modelo de dados interno proposto (não implementado; migration só após decisões)
 
 ```
@@ -67,12 +83,19 @@ call_recordings
   status            PENDING | PROCESSING | AVAILABLE | FAILED | UNAVAILABLE | DELETED
   unavailable_reason  NOT_RECORDED_BY_POLICY | NO_ANSWER | PROVIDER_ERROR | NOT_CONSENTED | ...
   channels          1 | 2
-  channel_map       {1: CUSTOMER, 2: AGENT} | null
+  channel_map       {1: CONTACT, 2: AUDIO_HEARD_BY_CONTACT} | null   (canal 2 pode ter IA e humano em momentos distintos — §3.2)
   channel_map_status UNVERIFIED | VERIFIED
   duration_ms, started_at
   storage_key       chave privada no armazenamento da plataforma (prefixo por organização)
   content_type, bytes, sha256
   retention_until, legal_hold, deleted_at, deleted_by, provider_deleted_at
+  -- um histórico (attempt) pode ter 1..N linhas de call_recordings (um ou mais RecordingSid)
+
+call_recording_coverage   (por tentativa/histórico)
+  attempt_id, organization_id
+  coverage_status   COMPLETE | INCOMPLETE | UNKNOWN   (COMPLETE só com cobertura comprovada do intervalo atendido)
+  gaps              lista de intervalos sem gravação, quando conhecidos
+  overlap_flags     gravações sobrepostas (UNEXPECTED_DUPLICATE)
 
 call_transcripts
   id, organization_id, attempt_id, call_session_id
@@ -145,6 +168,8 @@ Regras:
 - **Histórico** (`/calls` evolui): colunas existentes da 008-MVP4c + indicadores "gravação" e "transcrição" com o estado real.
 - **Detalhe da chamada**:
   - player dois canais com rótulos **CLIENTE/AGENTE DE IA** só quando `channel_map_status = VERIFIED`; caso contrário, "Canal 1/Canal 2 (atribuição não verificada)";
+  - no canal 2, rótulos por intervalo ("AGENTE DE IA" / "ATENDENTE HUMANO") somente com os intervalos das pernas e o mapa de canais verificado (§3.2);
+  - indicador de cobertura: "Gravação completa" só com `coverage_status = COMPLETE`; caso contrário, "Gravação incompleta — lacuna de hh:mm:ss a hh:mm:ss" ou "Cobertura desconhecida". Um arquivo incompleto nunca é exibido como gravação completa;
   - transcrição em segmentos com rótulos e horários quando existirem;
   - aviso de fidelidade nas falas do agente;
   - clique no trecho → posição no áudio apenas com `timing = SEGMENT_TIMESTAMPS`.
