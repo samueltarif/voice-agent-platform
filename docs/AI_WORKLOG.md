@@ -18995,3 +18995,19 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **CORREÇÃO NO AI_CONTEXT**: o `NEXT_ALLOWED_STEP` vindo da #138 carregava um parêntese residual da versão anterior ("(antes: pacote de decisões offline) (decisões OFFLINE por etapa…)"); reescrito sem mudar o significado. Cabeçalho atualizado: `CONTEXT_BASE_MAIN_SHA`, `LAST_MERGED_PR_AT_REFRESH`, `LAST_MERGE_SHA_AT_REFRESH` e `LAST_REFRESHED_AT`, este último desatualizado desde 2026-11-03.
 - **S1**: contratos e decisões do brief preservados sem alteração. **O merge da #138 não autoriza a 008-OF5a**; aguardam decisão explícita H1-OFF, D-CB-TOKEN, D-S1-SESSION-STATE e D-S1-ARCH-CHECK.
 - **SAFETY**: `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `PUBLIC_WEBHOOKS = 0`.
+
+## 2026-11-04 — Fase 8 — 008-OF5a (S1): contratos offline de sessão de conversa e pernas — Claude
+
+- **AUTORIZAÇÃO**: o operador decidiu H1-OFF = a (Twilio-led, SIP primeiro, stream como alternativa), D-CB-TOKEN = a (token seguro por tentativa), D-S1-SESSION-STATE = a (reutilizar `CREATED`) e D-S1-ARCH-CHECK = a (reforçar neutralidade) e autorizou literalmente iniciar a 008-OF5a (S1) offline. Registrado na **DEC-045**. A autorização **não** vale para S2, S3, S4 nem para integração real; não é escolha definitiva de produção.
+- **BASE**: branch `feat/phase8-008-of5a-s1-session-leg-contracts` criada de `origin/main` `7975d087e92a2d12a3f7dc6019e841821f11a600`, independente da PR #140 (autenticação local).
+- **IMPLEMENTADO** (somente `packages/contracts/src/telephony/`, sem dependência nova):
+  - `conversation-session-port.ts`: porta neutra `prepare/terminate/getStatus`; `MediaTarget` `SIP_URI` | `BIDIRECTIONAL_AUDIO_STREAM` (`wss://`); validade desconhecida (`expiresAt = null`) nunca é tratada como válida.
+  - `call-leg.ts` e `call-leg-events.ts`: papéis `CONTACT_LEG`, `AI_AGENT_LEG`, `HUMAN_AGENT_LEG` (reservada); estados de perna monotônicos; eventos normalizados com Zod estrito.
+  - `evaluate-provider-reference-binding.ts`: compare-and-set **puro** do identificador da perna do contato (BIND, ALREADY_BOUND, DIVERGENT_REFERENCE_ANOMALY, NOT_BINDABLE_STATE). Não garante atomicidade no PostgreSQL; a persistência condicional fica para a S4.
+  - `evaluate-call-leg-event.ts`: duplicatas idempotentes, eventos atrasados nunca regridem, isolamento de tenant e tentativa, perna do agente exige a perna do contato como pai, no máximo uma perna de IA ativa.
+  - `classify-second-provider-reference.ts` (R-1): segundo identificador vira no máximo `ALERT_AND_REVIEW`; não existe ação de encerramento; `PROVEN_DUPLICATE_ORIGINATION` exige confirmação de todos os critérios.
+  - `callback-token.ts`: 32 bytes (256 bits) por porta de entropia injetada, base64url de 43 caracteres, só o hash SHA-256 é persistido, comparação em tempo constante, valor redigido em `toString`/`toJSON`/inspeção. O CSPRNG real é ligado na S4.
+  - `scripts/find-vendor-identifiers.mjs` + `check:architecture`: recusa nomes de fornecedor em identificadores e literais de `packages/contracts` (comentários permitidos). Prova negativa local: arquivo-sonda com identificador de fornecedor fez o check sair com código 1.
+- **NÃO IMPLEMENTADO (deliberado)**: adaptadores de fornecedor, rede, banco, migration, worker, webhook, rota de callback, CSPRNG de runtime, persistência do token e do vínculo, campos ou endpoints da Millis.
+- **TESTES**: 3 arquivos novos em `packages/contracts/src/telephony` e 1 em `packages/integrations/src/architecture`; nenhum teste existente alterado.
+- **SAFETY**: `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `PUBLIC_WEBHOOKS = 0`.
