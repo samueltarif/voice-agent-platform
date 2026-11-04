@@ -1,5 +1,7 @@
 import type { AuthoritativeInstructions, ConversationModelInput } from '@voice-agent/contracts';
+import { composeConversationGuidance } from '@voice-agent/contracts';
 import type { OpenAiChatMessage } from './openai-chat-completion-types.js';
+import { renderGuidanceSections } from './openai-guidance-prompt.js';
 
 export function buildSystemPrompt(instructions: AuthoritativeInstructions): string {
   const parts: string[] = [
@@ -10,27 +12,21 @@ export function buildSystemPrompt(instructions: AuthoritativeInstructions): stri
     `Idioma: ${instructions.languageCode}`,
     'Regras de Conversação:',
     ...instructions.rules.conversational.map((rule) => `- ${rule}`),
+    ...renderGuidanceSections(instructions),
   ];
 
   return parts.filter(Boolean).join('\n');
 }
 
+/** Caminho sem contexto composto: mesma hierarquia e mesmos limites do principal. */
 function buildFallbackSystemPrompt(input: ConversationModelInput): string {
-  const persona = input.agentSnapshot.persona;
-  const language = input.agentSnapshot.voice?.languageCode ?? 'pt-BR';
-  const rules = input.agentSnapshot.rules.conversational ?? [];
-
-  const parts: string[] = [
-    `Papel: ${persona.role}`,
-    persona.companyName ? `Empresa: ${persona.companyName}` : '',
-    `Objetivo: ${persona.objective}`,
-    `Tom: ${persona.tone}`,
-    `Idioma: ${language}`,
-    'Regras de Conversação:',
-    ...rules.map((rule) => `- ${rule}`),
-  ];
-
-  return parts.filter(Boolean).join('\n');
+  const snapshot = input.agentSnapshot;
+  return buildSystemPrompt({
+    persona: snapshot.persona,
+    languageCode: snapshot.voice?.languageCode ?? 'pt-BR',
+    rules: { conversational: snapshot.rules.conversational ?? [] },
+    ...composeConversationGuidance(snapshot).guidance,
+  });
 }
 
 export function mapConversationInputToOpenAiMessages(

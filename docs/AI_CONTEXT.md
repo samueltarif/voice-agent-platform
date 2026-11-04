@@ -6,8 +6,8 @@ CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-11-04
 CONTEXT_BASE_MAIN_SHA: 22d5230477290f0940507d78ffe36fc98449b539
 CURRENT_PHASE: Phase 8 (OUTBOUND_FIRST_TWO_TRACK_PLANNING)
-CURRENT_SLICE: 008-OF5a (S1) merged (DEC-045); S2/S3/S4 not authorized; AS1a awaiting operator authorization
-CONTEXT_UPDATE_BRANCH: docs/phase8-post-merge-141-record
+CURRENT_SLICE: AS1a (playbook/examples in the OFFLINE conversation engine) in review; S2/S3/S4 not authorized
+CONTEXT_UPDATE_BRANCH: feat/agent-studio-as1a-playbook-examples-context
 CONTEXT_UPDATE_PR: PENDING
 LAST_MERGED_PR_AT_REFRESH: 141
 LAST_MERGE_SHA_AT_REFRESH: 22d5230477290f0940507d78ffe36fc98449b539
@@ -249,7 +249,8 @@ AI_CONTEXT_HEADER_END
 - **008-OF5a (S1) — contratos offline (2026-11-04)**: decisões OFFLINE H1-OFF=a, D-CB-TOKEN=a, D-S1-SESSION-STATE=a e D-S1-ARCH-CHECK=a registradas na **DEC-045** com autorização literal do operador (não vale para S2/S3/S4 nem para integração real; não é escolha definitiva de produção). Implementado só em `packages/contracts/src/telephony/`: `ConversationSessionPort`, `MediaTarget` (SIP primeiro, stream bidirecional `wss` como alternativa), pernas `CONTACT_LEG`/`AI_AGENT_LEG`/`HUMAN_AGENT_LEG` (reservada), eventos normalizados, regras puras de vínculo e idempotência, classificação R-1 (nunca encerra chamada) e contrato do token de callback (32 bytes, só hash persistido, valor redigido). `check:architecture` agora recusa nomes de fornecedor em identificadores e literais de `packages/contracts`. Sem rede, adaptador, banco, migration, worker ou webhook.
 - **PR #141 Status**: `MERGED ON MAIN` (merge commit `22d5230477290f0940507d78ffe36fc98449b539`, árvore idêntica a `58eb147`; gate Windows do operador 1.776/45/0, exit 0; gate pós-merge Linux PASS 1.776/45/0). DEC-045 e as quatro decisões OFFLINE da S1 preservadas.
 - **Achado AS1a (2026-11-04)**: `playbook.stages` e `examples` são salvos e publicados em `agent_versions.configuration`, mas `ConversationContextComposer` (`apps/voice`) os descarta e o mapeador de prompt (`packages/integrations/src/openai/openai-input-mapper.ts`) não os renderiza; hoje não influenciam o motor de conversação.
-- `NEXT_ALLOWED_STEP = OPERATOR_AUTHORIZATION_FOR_AS1A` (escopo proposto no chat; S2, S3 e S4 da telefonia continuam sem autorização; direção preferida do operador registrada como decisão OFFLINE, não de produção).
+- **AS1a (2026-11-04, autorizada pelo operador; somente OFFLINE)**: `composeConversationGuidance` (contracts, função pura) leva `playbook.stages` e `examples` da versão publicada ao `ConversationContextComposer` com limites determinísticos (12 etapas, 8 exemplos, 300/600 caracteres por campo, texto achatado numa linha), sem alterar a configuração armazenada nem o schema V1; o montador de prompt offline renderiza "Etapas do atendimento" e "Exemplos ilustrativos" depois das regras, com aviso de precedência e valores como literais JSON; o caminho alternativo usa a mesma função. Logs só com contagens. **Não integrado à Millis**; não comprova comportamento em chamada real; delimitação reduz, mas não elimina, o risco de prompt injection.
+- `NEXT_ALLOWED_STEP = WINDOWS_GATE_AND_MANUAL_MERGE_OF_AS1A_PR` (AS1b, AS1c, AS4 e S2/S3/S4 da telefonia continuam sem autorização; direção preferida do operador registrada como decisão OFFLINE, não de produção).
 - `NEXT_ALLOWED_SLICE = HUMAN_DECISION_REQUIRED` (trilha 008-MVP1 a 008-MVP4 concluída; 008-OF5, 008-MVP3 e 008-OF6 dependem de H1; remoção de supressões depende de H2; evidência de consentimento depende de H3).
 - `PURCHASE_OF_PHONE_NUMBERS = 0` | `REAL_PROVIDER_CALLS = 0` | `CUSTOMER_TRAFFIC = PROHIBITED` | `ACTIVE_GUARDED = BLOCKED`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.

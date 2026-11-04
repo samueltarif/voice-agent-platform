@@ -13,6 +13,27 @@ export interface AuthoritativeInstructions {
     readonly conversational: readonly string[];
     readonly deterministic?: Readonly<Record<string, unknown>> | undefined;
   };
+  /**
+   * AS1a: etapas do roteiro da versão publicada, já normalizadas e limitadas.
+   * Dados de configuração do tenant, subordinados às regras; ausente quando vazio.
+   */
+  readonly playbook?: ConversationGuidancePlaybook | undefined;
+  /** AS1a: exemplos ilustrativos da versão publicada; ausente quando vazio. */
+  readonly examples?: readonly ConversationGuidanceExample[] | undefined;
+}
+
+export interface ConversationGuidanceStage {
+  readonly name: string;
+  readonly goal: string;
+}
+
+export interface ConversationGuidancePlaybook {
+  readonly stages: readonly ConversationGuidanceStage[];
+}
+
+export interface ConversationGuidanceExample {
+  readonly customerInput: string;
+  readonly idealAgentResponse: string;
 }
 
 export interface ConversationTurnRecord {
