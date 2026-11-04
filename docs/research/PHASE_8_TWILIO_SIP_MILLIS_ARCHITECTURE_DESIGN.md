@@ -173,6 +173,7 @@ Regras:
   - `ORIGINATION_RESULT_UNKNOWN` em timeout ou erro de transporte;
   - `CALL_CLOSED_CONFIRMED` somente quando o encerramento da perna pai for confirmado.
 - **Sessão de chamada** (`call_sessions`): `PREPARED` (nova) → `CONNECTING` → `ACTIVE` → `ENDING` → encerrada.
+  - **Revisão de 2026-11-04**: `CALL_SESSION_STATES` alimenta o enum PostgreSQL `call_session_runtime_state`, então um estado novo exige migração. Proposta mínima (decisão **D-S1-SESSION-STATE**, ver [brief da S1](PHASE_8_OF5A_S1_START_DECISION_BRIEF.md)): reutilizar o estado existente `CREATED` para a sessão preparada e guardar a referência da sessão conversacional num contrato próprio. Neste desenho, "sessão `PREPARED`" deve ser lido como "sessão `CREATED` com preparação registrada" até a decisão.
 - **Perna** (proposta `call_legs`, nomes neutros — §1.2): `CONTACT_LEG` e `AI_AGENT_LEG` (e, no futuro, `HUMAN_AGENT_LEG`), cada uma com o status e os horários dos callbacks.
 
 Mapeamento de status Twilio da perna pai (`queued`, `ringing`, `in-progress`, `completed`, `busy`, `failed`, `no-answer`, `canceled`):
@@ -378,7 +379,7 @@ Supressão, consentimento, auditoria e isolamento por tenant continuam como est�
 
 | Etapa | Escopo | Testes offline | Depende de |
 | :---: | :--- | :--- | :--- |
-| **S1** | Contratos provider-neutral com nomes neutros (§1.2): `ConversationSessionPort`, `MediaTarget`, modelo de pernas (`call_legs`), evento `AI_AGENT_LEG_RESULT`, token de callback, estado `PREPARED` da sessão | Zod estrito, transições, correlação, ordenação | **H1 = Twilio-led como direção offline** |
+| **S1** | Contratos provider-neutral com nomes neutros (§1.2): `ConversationSessionPort`, `MediaTarget`, modelo de pernas (`call_legs`), evento `AI_AGENT_LEG_RESULT`, token de callback, representação da sessão preparada (D-S1-SESSION-STATE) | Zod estrito, transições, correlação, ordenação | **H1 = Twilio-led como direção offline** |
 | **S2** | Adapter Twilio offline: criação/consulta/encerramento por cliente HTTP falso; gerador de TwiML `<Dial><Sip>`; normalizador de callbacks; validador de assinatura reaproveitado | TwiML exata; token de callback em todos os URLs; **combinação proibida de gravação no nível da chamada + `<Dial record>`**; assinatura válida/inválida/replay (incluindo *query* adulterada); mapeamento de todos os status para eventos neutros; `DialSipResponseCode` → `AI_AGENT_LEG_RESULT` | S1 |
 | **S3** | Adapter Millis offline: `register_sip_call` (só campos documentados, resposta validada fail-closed), `terminate`, `call-logs`; autenticador de webhook continua fail-closed | Resposta sem URI → `UNAVAILABLE`; `chat` tratado como texto não estruturado | S1 + respostas U2/U5 (o adapter é feito com o que é documentado; ajusta-se depois) |
 | **S4** | Orquestração no worker: preparar → originar → callbacks → encerrar → liquidar; recuperação (2.6) e kill switch (2.7); simuladores `FakeTwilioOriginationSimulator` e `FakeMillisConversationSimulator` (fechamento da 008-OF5) | E2E offline: caminho feliz, crash em cada ponto, SIP 4xx/5xx, Millis fora, eventos duplicados e fora de ordem, zero rediscagem | S2, S3, **D-SIP-FAIL** |
@@ -427,7 +428,7 @@ Supressão, consentimento, auditoria e isolamento por tenant continuam como est�
 
 **`008-OF5a` — contratos provider-neutral de sessão conversacional e pernas (S1).**
 
-- **Escopo**: `packages/contracts/src/telephony/` — `ConversationSessionPort`, `MediaTarget` (`SIP_URI` | `BIDIRECTIONAL_AUDIO_STREAM`), estado `PREPARED`, modelo e eventos de pernas com nomes neutros (`CONTACT_LEG`, `AI_AGENT_LEG`, `HUMAN_AGENT_LEG` reservado), evento `AI_AGENT_LEG_RESULT` (status + `transportResponseCode`), token de callback por tentativa (geração e hash; §2.5.1), regras de correlação (uma `AI_AGENT_LEG` ativa por tentativa; perna sem `CONTACT_LEG` conhecida rejeitada; `providerReference` divergente = anomalia). Sem adapters, sem rede, sem schema de banco (migration só na S4).
+- **Escopo**: `packages/contracts/src/telephony/` — `ConversationSessionPort`, `MediaTarget` (`SIP_URI` | `BIDIRECTIONAL_AUDIO_STREAM`), representação da sessão preparada (D-S1-SESSION-STATE; sem migração na S1), modelo e eventos de pernas com nomes neutros (`CONTACT_LEG`, `AI_AGENT_LEG`, `HUMAN_AGENT_LEG` reservado), evento `AI_AGENT_LEG_RESULT` (status + `transportResponseCode`), token de callback por tentativa (geração e hash; §2.5.1), regras de correlação (uma `AI_AGENT_LEG` ativa por tentativa; perna sem `CONTACT_LEG` conhecida rejeitada; `providerReference` divergente = anomalia). Sem adapters, sem rede, sem schema de banco (migration só na S4).
 - **Critérios de aceite**:
   - nenhum tipo **nem nome** de fornecedor nos contratos (`check:architecture`, estendido conforme §1.2);
   - FSM existente intacta;
