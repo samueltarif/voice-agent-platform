@@ -116,6 +116,12 @@ describe('008-MVP4c /dashboard and /calls from persisted data', () => {
     api(() => Object.assign(new Error('boom'), { status: 500 }));
     expect(await render(CallsPage())).toContain('Não foi possível carregar as tentativas.');
   });
+});
+
+describe('/dashboard and /calls when the organization context is unavailable', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
 
   it.each([
     ['dashboard', () => DashboardPage()],
