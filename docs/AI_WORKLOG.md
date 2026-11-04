@@ -18931,3 +18931,20 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **RESSALVAS PRESERVADAS**: R-1 (D-DUP-CALL) e R-2 (D-TRANSCRIPT-SOURCE) sem alteração.
 - **DECISÕES**: nenhuma aprovada por inferência (H1-OFF, D-*, H6, C-*, Q0, H5 pendentes); 008-OF5a não iniciada.
 - **SAFETY**: `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `PUBLIC_WEBHOOKS = 0`.
+
+## 2026-11-04 — Fase 8 — Pós-merge da PR #137 e Brief de Decisões para Iniciar a 008-OF5a (S1) — Claude
+
+- **VALIDAÇÃO WINDOWS DA #137 (relatada pelo operador)**: SHA `f6a40514526a41dbdb723f3e5ed4af43b8f91503`; exit code 0; 1.713 PASS / 45 SKIP / 0 FAIL; typecheck e build 12/12; formatação, lint, arquitetura e tamanho de arquivos aprovados; worktree limpa.
+- **MERGE**: mesclada manualmente pelo operador em 2026-11-04T11:36:09Z como merge commit `3b75e523ef0850515fce6581129166ce79b3e63c` (árvore idêntica a `f6a4051`, verificado com `git diff`).
+- **GATE PÓS-MERGE LINUX**: worktree nova em `3b75e523` (limpa antes e depois): `pnpm install --frozen-lockfile && pnpm check` exit 0; 243 arquivos de teste PASS / 6 SKIP; 1.713 PASS / 45 SKIP / 0 FAIL; 12/12 tarefas de typecheck e de build; arquitetura e tamanho de arquivos PASS.
+- **BRIEF DA S1**: `docs/research/PHASE_8_OF5A_S1_START_DECISION_BRIEF.md`. Contém:
+  - escopo e não-escopo;
+  - as quatro decisões obrigatórias para iniciar: H1-OFF, D-CB-TOKEN, D-S1-SESSION-STATE e D-S1-ARCH-CHECK;
+  - decisões **não** necessárias para a S1 (não presumidas);
+  - arquivos prováveis, critérios de aceite, testes e formato de autorização literal.
+- **CORREÇÃO DE DESENHO (`PREVIOUS ASSUMPTION` / `NEW EVIDENCE` / `CORRECTION`)**:
+  - antes: estado novo `PREPARED` da sessão de chamada na S1;
+  - evidência: `CALL_SESSION_STATES` alimenta o enum PostgreSQL `call_session_runtime_state` (`packages/database/src/schema/call-sessions.ts`), então um estado novo exige migração, fora do escopo da S1;
+  - correção proposta (pendente, D-S1-SESSION-STATE): reutilizar `CREATED` e guardar a referência da sessão conversacional num contrato próprio. O desenho SIP (§2.4, §7, §10) recebeu nota de revisão.
+- **PRESERVADO**: correção da Twilio sobre gravação única no nível da chamada (T11–T18); ressalvas R-1 e R-2; todas as decisões pendentes. **Nenhuma decisão aprovada por causa do merge.** 008-OF5a **não iniciada**.
+- **SAFETY**: `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `PUBLIC_WEBHOOKS = 0`.
