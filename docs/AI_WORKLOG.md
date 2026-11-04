@@ -19041,3 +19041,32 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - **Rotação humana**: não necessária (credencial de exemplo apenas local).
 - **NÃO FEITO (deliberadamente)**: verificação real de Platform Admin; script `dev` da API; geração automatizada do par de chaves local; restrição de cadastro público (`emailAndPassword` aceita `sign-up` em qualquer ambiente — decisão de produto pendente); exigência de `BETTER_AUTH_SECRET` em produção (o padrão inseguro de desenvolvimento ainda é aceito se a variável faltar).
 - **SAFETY**: `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `PUBLIC_WEBHOOKS = 0`.
+
+## 2026-11-04 — Fase 8 — 008-OF5a (S1): contratos offline de sessão de conversa e pernas — Claude
+
+- **AUTORIZAÇÃO**: o operador decidiu H1-OFF = a (Twilio-led, SIP primeiro, stream como alternativa), D-CB-TOKEN = a (token seguro por tentativa), D-S1-SESSION-STATE = a (reutilizar `CREATED`) e D-S1-ARCH-CHECK = a (reforçar neutralidade) e autorizou literalmente iniciar a 008-OF5a (S1) offline. Registrado na **DEC-045**. A autorização **não** vale para S2, S3, S4 nem para integração real; não é escolha definitiva de produção.
+- **BASE**: branch `feat/phase8-008-of5a-s1-session-leg-contracts` criada de `origin/main` `7975d087e92a2d12a3f7dc6019e841821f11a600`, independente da PR #140 (autenticação local).
+- **IMPLEMENTADO** (somente `packages/contracts/src/telephony/`, sem dependência nova):
+  - `conversation-session-port.ts`: porta neutra `prepare/terminate/getStatus`; `MediaTarget` `SIP_URI` | `BIDIRECTIONAL_AUDIO_STREAM` (`wss://`); validade desconhecida (`expiresAt = null`) nunca é tratada como válida.
+  - `call-leg.ts` e `call-leg-events.ts`: papéis `CONTACT_LEG`, `AI_AGENT_LEG`, `HUMAN_AGENT_LEG` (reservada); estados de perna monotônicos; eventos normalizados com Zod estrito.
+  - `evaluate-provider-reference-binding.ts`: compare-and-set **puro** do identificador da perna do contato (BIND, ALREADY_BOUND, DIVERGENT_REFERENCE_ANOMALY, NOT_BINDABLE_STATE). Não garante atomicidade no PostgreSQL; a persistência condicional fica para a S4.
+  - `evaluate-call-leg-event.ts`: duplicatas idempotentes, eventos atrasados nunca regridem, isolamento de tenant e tentativa, perna do agente exige a perna do contato como pai, no máximo uma perna de IA ativa.
+  - `classify-second-provider-reference.ts` (R-1): segundo identificador vira no máximo `ALERT_AND_REVIEW`; não existe ação de encerramento; `PROVEN_DUPLICATE_ORIGINATION` exige confirmação de todos os critérios.
+  - `callback-token.ts`: 32 bytes (256 bits) por porta de entropia injetada, base64url de 43 caracteres, só o hash SHA-256 é persistido, comparação em tempo constante, valor redigido em `toString`/`toJSON`/inspeção. O CSPRNG real é ligado na S4.
+  - `scripts/find-vendor-identifiers.mjs` + `check:architecture`: recusa nomes de fornecedor em identificadores e literais de `packages/contracts` (comentários permitidos). Prova negativa local: arquivo-sonda com identificador de fornecedor fez o check sair com código 1.
+- **NÃO IMPLEMENTADO (deliberado)**: adaptadores de fornecedor, rede, banco, migration, worker, webhook, rota de callback, CSPRNG de runtime, persistência do token e do vínculo, campos ou endpoints da Millis.
+- **TESTES**: 3 arquivos novos em `packages/contracts/src/telephony` e 1 em `packages/integrations/src/architecture`; nenhum teste existente alterado.
+- **SAFETY**: `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `PUBLIC_WEBHOOKS = 0`.
+
+## 2026-11-04 — Fase 8 — Pós-merge da PR #140 e atualização da PR #141 com a `main` — Claude
+
+- **VALIDAÇÃO WINDOWS DA #140 (relatada pelo operador)**: SHA `c3ddc2af3674cabafbb46bcaacc013789715c5bb`; exit code 0; 1.750 PASS / 45 SKIP / 0 FAIL; typecheck 12/12; build 12/12; arquitetura, lint e formatação aprovados; worktree limpa.
+- **MERGE**: mesclada manualmente pelo operador em 2026-11-04T17:39:50Z como merge commit `406f155ee43b357207b60e2574915d2cb4ea2518` (pais `7975d08` e `c3ddc2a`; árvore idêntica a `c3ddc2a`, verificado com `git diff`).
+- **GATE PÓS-MERGE LINUX**: worktree nova em `406f155` (limpa antes e depois), DSN carregado de arquivo: `pnpm install --frozen-lockfile && pnpm check` exit 0; 249 arquivos de teste PASS / 6 SKIP; 1.750 PASS / 45 SKIP / 0 FAIL; 12/12 tarefas de typecheck e de build; formatação, lint, arquitetura e tamanho de arquivos PASS.
+- **ATUALIZAÇÃO DA PR #141**: a `main` foi mesclada na branch `feat/phase8-008-of5a-s1-session-leg-contracts` por merge commit, sem force push.
+  - AI_WORKLOG resolvido append-only: conteúdo da `main` como prefixo exato, seguido da entrada da S1 e desta entrada; nenhuma linha removida de nenhum dos lados.
+  - AI_CONTEXT combinado: mantidas as linhas da #139 e do fluxo de autenticação vindas da `main`, acrescentado o status da #140 e preservadas as linhas da S1; o `NEXT_ALLOWED_STEP` anterior à DEC-045 foi substituído pelo da S1.
+  - DECISIONS_LOG e DEC-045 inalterados (a #140 não tocou no arquivo).
+  - O SHA anterior da #141 (`325600e`) deixa de ser candidato ao gate Windows.
+- **S2, S3 e S4 não iniciadas**; nenhuma autorizada.
+- **SAFETY**: `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `PUBLIC_WEBHOOKS = 0`.

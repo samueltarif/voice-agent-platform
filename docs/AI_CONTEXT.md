@@ -4,13 +4,13 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-11-04
-CONTEXT_BASE_MAIN_SHA: 7975d087e92a2d12a3f7dc6019e841821f11a600
+CONTEXT_BASE_MAIN_SHA: 406f155ee43b357207b60e2574915d2cb4ea2518
 CURRENT_PHASE: Phase 8 (OUTBOUND_FIRST_TWO_TRACK_PLANNING)
-CURRENT_SLICE: 008-OF5a (S1) awaiting human decision (not started); /login fix in PR #139
-CONTEXT_UPDATE_BRANCH: fix/web-local-auth-flow
-CONTEXT_UPDATE_PR: PENDING
-LAST_MERGED_PR_AT_REFRESH: 139
-LAST_MERGE_SHA_AT_REFRESH: 7975d087e92a2d12a3f7dc6019e841821f11a600
+CURRENT_SLICE: 008-OF5a (S1) offline contracts in review (DEC-045); S2/S3/S4 not authorized
+CONTEXT_UPDATE_BRANCH: feat/phase8-008-of5a-s1-session-leg-contracts
+CONTEXT_UPDATE_PR: 141
+LAST_MERGED_PR_AT_REFRESH: 140
+LAST_MERGE_SHA_AT_REFRESH: 406f155ee43b357207b60e2574915d2cb4ea2518
 LAST_TESTED_CODE_SHA: QUERY_GIT_AT_RUNTIME
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
@@ -244,8 +244,10 @@ AI_CONTEXT_HEADER_END
 - **PR #138 Status**: `MERGED ON MAIN` (merge commit `0a269fbd7cc8207267662543b604f93aad129aa0`, árvore idêntica a `e50fc9c`; gate Windows do operador 1.713/45/0, exit 0; gate pós-merge Linux PASS 1.713/45/0). Contratos e decisões da S1 preservados no brief; **S1 não iniciada**.
 - **Correção `/login` 404 (2026-11-04)**: página pública `/login` (Better Auth e-mail/senha, sem cadastro nem usuário fictício) adicionada na PR #139 (branch isolada `fix/web-login-route-404`); com sessão redireciona para `/dashboard`; sem sessão as telas protegidas continuam indo para `/login`. Fluxo de recusa validado em navegador real local; fluxo de sucesso coberto por testes offline.
 - **PR #139 Status**: `MERGED ON MAIN` (merge commit `7975d087e92a2d12a3f7dc6019e841821f11a600`; gate pós-merge Linux PASS 1.725/45/0): página pública `/login`.
-- **Fluxo de autenticação local (branch `fix/web-local-auth-flow`)**: cliente Better Auth usa a origem da própria página (sem `localhost:3000` fixo); fora de produção, origens loopback em qualquer porta são aceitas (produção inalterada: só `BETTER_AUTH_URL` + `TRUSTED_ORIGINS`); login e logout com tempo limite e erros explícitos; botão **Sair**; comando `dev:create-local-account` (somente banco localhost); `/dashboard` e `/calls` com estado explícito quando a API interna não responde; `/platform` = demo identificada (404 em produção; sem verificação real de Platform Admin ainda). Validado em navegador real local com banco descartável.
-- `NEXT_ALLOWED_STEP = HUMAN_DECISION_ON_008_OF5A_S1_START_BRIEF` (H1-OFF, D-CB-TOKEN, D-S1-SESSION-STATE, D-S1-ARCH-CHECK e autorização literal do operador; o merge da #138 **não** autoriza a S1; direção preferida do operador — Twilio telefonia, Millis conversação, SIP primeiro, gravação + transcrição no mesmo plano, qualidade acima de preço — registrada sem aprovação).
+- **Fluxo de autenticação local (PR #140, mesclada)**: cliente Better Auth usa a origem da própria página (sem `localhost:3000` fixo); fora de produção, origens loopback em qualquer porta são aceitas (produção inalterada: só `BETTER_AUTH_URL` + `TRUSTED_ORIGINS`); login e logout com tempo limite e erros explícitos; botão **Sair**; comando `dev:create-local-account` (somente banco localhost); `/dashboard` e `/calls` com estado explícito quando a API interna não responde; `/platform` = demo identificada (404 em produção; sem verificação real de Platform Admin ainda). Validado em navegador real local com banco descartável.
+- **PR #140 Status**: `MERGED ON MAIN` (merge commit `406f155ee43b357207b60e2574915d2cb4ea2518`, árvore idêntica a `c3ddc2a`; gate Windows do operador 1.750/45/0, exit 0; gate pós-merge Linux PASS 1.750/45/0).
+- **008-OF5a (S1) — contratos offline (2026-11-04)**: decisões OFFLINE H1-OFF=a, D-CB-TOKEN=a, D-S1-SESSION-STATE=a e D-S1-ARCH-CHECK=a registradas na **DEC-045** com autorização literal do operador (não vale para S2/S3/S4 nem para integração real; não é escolha definitiva de produção). Implementado só em `packages/contracts/src/telephony/`: `ConversationSessionPort`, `MediaTarget` (SIP primeiro, stream bidirecional `wss` como alternativa), pernas `CONTACT_LEG`/`AI_AGENT_LEG`/`HUMAN_AGENT_LEG` (reservada), eventos normalizados, regras puras de vínculo e idempotência, classificação R-1 (nunca encerra chamada) e contrato do token de callback (32 bytes, só hash persistido, valor redigido). `check:architecture` agora recusa nomes de fornecedor em identificadores e literais de `packages/contracts`. Sem rede, adaptador, banco, migration, worker ou webhook.
+- `NEXT_ALLOWED_STEP = WINDOWS_GATE_AND_MANUAL_MERGE_OF_008_OF5A_S1_PR` (depois: decisão explícita do operador para S2, S3 ou S4 — nenhuma autorizada; direção preferida do operador — Twilio telefonia, Millis conversação, SIP primeiro, gravação + transcrição no mesmo plano, qualidade acima de preço — registrada como decisão OFFLINE, não de produção).
 - `NEXT_ALLOWED_SLICE = HUMAN_DECISION_REQUIRED` (trilha 008-MVP1 a 008-MVP4 concluída; 008-OF5, 008-MVP3 e 008-OF6 dependem de H1; remoção de supressões depende de H2; evidência de consentimento depende de H3).
 - `PURCHASE_OF_PHONE_NUMBERS = 0` | `REAL_PROVIDER_CALLS = 0` | `CUSTOMER_TRAFFIC = PROHIBITED` | `ACTIVE_GUARDED = BLOCKED`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.

@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import ts from 'typescript';
+import { findVendorIdentifiers } from './find-vendor-identifiers.mjs';
 
 const ROOT_DIR = resolve('.');
 const FORBIDDEN_GENERIC_NAMES = new Set([
@@ -163,6 +164,14 @@ function scanFiles(dir) {
       }
       const content = readFileSync(fullPath, 'utf8');
       checkDisallowedComments(relPath, content);
+      if (relPath.startsWith('packages/contracts/')) {
+        for (const finding of findVendorIdentifiers(relPath, content)) {
+          console.error(
+            `[ERROR] Neutralidade: nome de fornecedor em 'packages/contracts' (${relPath}:${finding.line}): '${finding.text}'.`,
+          );
+          violations++;
+        }
+      }
       for (const imp of getImportsFromAST(relPath, content)) {
         checkBoundaries(relPath, imp);
       }
