@@ -25,8 +25,13 @@ describe('signInWithEmail (Better Auth email/password)', () => {
       kind: 'SIGNED_IN',
     });
     // Somente e-mail (normalizado) e senha: nenhuma organização, papel ou destino.
-    expect(signIn).toHaveBeenCalledWith({ email: VALID.email, password: VALID.password });
-    expect(Object.keys(signIn.mock.calls[0]![0]).sort()).toEqual(['email', 'password']);
+    // TEST_CHANGE_REASON = SIGNATURE_EXTENDED_WITH_ABORT_SIGNAL (ASSERTION_EQUIVALENT):
+    // o 1º argumento continua exatamente { email, password }; o 2º traz só o sinal.
+    const [credentials, options] = signIn.mock.calls[0]!;
+    expect(credentials).toEqual({ email: VALID.email, password: VALID.password });
+    expect(Object.keys(credentials).sort()).toEqual(['email', 'password']);
+    expect(Object.keys(options)).toEqual(['signal']);
+    expect(options.signal).toBeInstanceOf(AbortSignal);
   });
 
   it.each([400, 401, 403])('maps status %i to a generic invalid-credentials outcome', async (s) => {
@@ -59,5 +64,52 @@ describe('POST_LOGIN_PATH', () => {
   it('is a fixed same-origin path (no open redirect, no organization in the URL)', async () => {
     const { POST_LOGIN_PATH } = await import('./sign-in-with-email.js');
     expect(POST_LOGIN_PATH).toBe('/dashboard');
+  });
+});
+
+describe('signInWithEmail never leaves the form loading forever', () => {
+  it('maps INVALID_ORIGIN to a configuration message, not to wrong credentials', async () => {
+    const out = await signInWithEmail(
+      VALID,
+      client({ data: null, error: { status: 403, code: 'INVALID_ORIGIN' } }),
+    );
+    expect(out).toEqual({ kind: 'ORIGIN_REJECTED' });
+    expect(SIGN_IN_MESSAGES.ORIGIN_REJECTED).not.toBe(SIGN_IN_MESSAGES.INVALID_CREDENTIALS);
+  });
+
+  it('resolves TIMEOUT and aborts the request when the server never answers', async () => {
+    vi.useFakeTimers();
+    try {
+      let captured: AbortSignal | undefined;
+      const hanging = vi.fn<SignInEmailClient>((_c, { signal }) => {
+        captured = signal;
+        return new Promise(() => {}); // nunca responde (porta ocupada por outro processo)
+      });
+      const pending = signInWithEmail(VALID, hanging, 1000);
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(await pending).toEqual({ kind: 'TIMEOUT' });
+      expect(captured?.aborted).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('reports TIMEOUT when the client rejects because the request was aborted', async () => {
+    vi.useFakeTimers();
+    try {
+      const abortable = vi.fn<SignInEmailClient>(
+        (_c, { signal }) =>
+          new Promise((_resolve, reject) => {
+            signal.addEventListener('abort', () =>
+              reject(new DOMException('aborted', 'AbortError')),
+            );
+          }),
+      );
+      const pending = signInWithEmail(VALID, abortable, 500);
+      await vi.advanceTimersByTimeAsync(500);
+      expect(await pending).toEqual({ kind: 'TIMEOUT' });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

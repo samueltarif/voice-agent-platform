@@ -7,6 +7,7 @@ import {
   account,
   verification,
 } from '@voice-agent/database';
+import { resolveTrustedOrigins } from './trusted-origins.js';
 
 const connectionString =
   process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/voice_agent_dev';
@@ -31,4 +32,12 @@ export const auth = betterAuth({
   secret:
     process.env.BETTER_AUTH_SECRET || 'development-insecure-secret-minimum-32-characters-required!',
   baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
+  // Fora de produção, aceita a origem loopback real da requisição (porta 3001 etc.);
+  // em produção, apenas BETTER_AUTH_URL e TRUSTED_ORIGINS (ver trusted-origins.ts).
+  trustedOrigins: (request) =>
+    resolveTrustedOrigins({
+      requestOrigin: request?.headers.get('origin') ?? null,
+      nodeEnv: process.env.NODE_ENV,
+      explicitList: process.env.TRUSTED_ORIGINS,
+    }),
 });

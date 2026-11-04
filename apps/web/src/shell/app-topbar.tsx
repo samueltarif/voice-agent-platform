@@ -15,6 +15,7 @@ import {
 } from '@voice-agent/ui';
 import { useUiPreferences } from '../preferences/ui-preferences-context';
 import { OrganizationSwitcher, type OrganizationSummary } from './organization-switcher';
+import { SignOutButton } from '../features/auth/sign-out-button';
 
 interface AppTopbarProps {
   readonly title: string;
@@ -129,6 +130,7 @@ export function AppTopbar({
             OP
           </AvatarFallback>
         </Avatar>
+        <SignOutButton />
       </div>
     </header>
   );

@@ -16,6 +16,7 @@ import { OperationsKpis } from '../../features/operations-overview/operations-kp
 import { OperationsNotices } from '../../features/operations-overview/operations-notices';
 import { RunningCampaignsCard } from '../../features/operations-overview/running-campaigns-card';
 import {
+  CONTEXT_UNAVAILABLE_MESSAGE,
   resolveOverviewContext,
   type OverviewPageContext,
 } from '../../features/operations-overview/load-tenant-overview';
@@ -86,6 +87,13 @@ export default async function DashboardPage() {
     return (
       <TenantShell title="Central de Operações">
         <NoOrganizationState />
+      </TenantShell>
+    );
+  }
+  if (page.kind === 'CONTEXT_UNAVAILABLE') {
+    return (
+      <TenantShell title="Central de Operações">
+        <OperationsLoadError message={CONTEXT_UNAVAILABLE_MESSAGE} />
       </TenantShell>
     );
   }
