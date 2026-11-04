@@ -11,7 +11,8 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test:staging": "node --env-file=../../.env.staging ../../node_modules/vitest/vitest.mjs run src/lib/auth/auth.staging.test.ts"
+    "test:staging": "node --env-file=../../.env.staging ../../node_modules/vitest/vitest.mjs run src/lib/auth/auth.staging.test.ts",
+    "dev:create-local-account": "tsx --conditions=development --env-file-if-exists=../../.env src/lib/dev/create-local-dev-account.cli.ts"
   },
   "dependencies": {
     "@voice-agent/contracts": "workspace:*",
@@ -34,6 +35,7 @@
     "auth": "1.7.5",
     "postcss": "^8.5.0",
     "tailwindcss": "^4.0.0",
+    "tsx": "4.23.15",
     "typescript": "^5.7.3"
   }
 }

@@ -34,6 +34,22 @@ docker compose up -d
 pnpm --filter @voice-agent/database db:migrate
 ```
 
+### Primeiro acesso local (conta de desenvolvimento)
+
+Não existe conta padrão nem senha no repositório. Para criar uma conta **somente no seu banco local**:
+
+```bash
+pnpm --filter @voice-agent/web dev:create-local-account \
+  --email voce@exemplo.com --name "Seu nome" \
+  --org-slug minha-org --org-name "Minha Organização"
+```
+
+- A senha é pedida no terminal, sem eco e duas vezes (ou via `LOCAL_DEV_ACCOUNT_PASSWORD`); nunca pela linha de comando.
+- O comando recusa rodar se `NODE_ENV=production`, se `APP_ENV` for staging/produção ou se o banco não estiver em `localhost`.
+- A conta é criada pelo Better Auth (mesmo hash do login real). `--org-slug`/`--org-name` criam (ou reaproveitam) uma organização local com você como `OWNER`. Uma conta existente nunca é alterada.
+
+Depois: `pnpm dev` e abra `/login`. Se a porta 3000 estiver ocupada, o Next.js usa outra (ex.: 3001) e o login continua funcionando. Para o painel carregar os dados da organização, a API (`apps/api`, porta padrão **3001**) precisa estar rodando com o par de chaves interno (`INTERNAL_SERVICE_PUBLIC_JWKS` na API, `INTERNAL_SERVICE_PRIVATE_JWK` e `API_URL` na web). Sem ela, o painel mostra uma mensagem explícita de serviço indisponível, e o botão **Sair** continua disponível. Evite rodar a web e a API na mesma porta.
+
 ### Scripts de Qualidade (Centralizados)
 ```bash
 # Executa a cadeia completa de qualidade local (CI reproduzível)
