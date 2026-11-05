@@ -11,8 +11,13 @@ import { InvalidAgentVersionStatusError } from '@voice-agent/errors';
 import { createNullLogger, type Logger } from '@voice-agent/logger';
 import { createCallSession } from './create-call-session.js';
 import {
+  DEFAULT_MAX_PENDING_PREPARATIONS,
+  systemClock,
+  type TrustedClock,
+} from './bootstrap-memory-limits.js';
+import { PreparedBootstrapTracker } from './prepared-bootstrap-tracker.js';
+import {
   issueToolGrantForConsumedBootstrap,
-  type PreparedToolGrantSource,
   type PublishedToolGrant,
 } from './published-tool-grant.js';
 
@@ -32,6 +37,10 @@ export interface CallLifecycleGatewayDependencies {
   readonly sessionStore: CallSessionStorePort;
   readonly defaultTtlMs?: number | undefined;
   readonly logger?: Logger | undefined;
+  /** Etapa A (DEC-049): preparos pendentes por instância (padrão 1.000). */
+  readonly maxPendingPreparations?: number | undefined;
+  /** Relógio confiável para emissão e limpeza (controlável nos testes). */
+  readonly clock?: TrustedClock | undefined;
 }
 
 export interface InitializedCallBinding {
@@ -53,13 +62,20 @@ export class CallLifecycleGateway {
   private readonly defaultTtlMs: number;
   private readonly logger: Logger;
   /** Bootstraps preparados por ESTA instância, removidos na primeira tentativa de consumo. */
-  private readonly preparedForToolGrant = new Map<string, PreparedToolGrantSource>();
+  private readonly prepared: PreparedBootstrapTracker;
+  private readonly clock: TrustedClock;
 
   constructor(deps: CallLifecycleGatewayDependencies) {
     this.bootstrapRegistry = deps.bootstrapRegistry;
     this.sessionStore = deps.sessionStore;
     this.defaultTtlMs = deps.defaultTtlMs ?? DEFAULT_TTL_MS;
     this.logger = deps.logger ?? createNullLogger();
+    this.prepared = new PreparedBootstrapTracker({
+      capacity: deps.maxPendingPreparations ?? DEFAULT_MAX_PENDING_PREPARATIONS,
+      onCapacityExceeded: (pending) =>
+        this.logger.warn('call.bootstrap.capacity_exceeded', { pending }),
+    });
+    this.clock = deps.clock ?? systemClock;
   }
 
   async prepareCall(input: PrepareCallInput): Promise<CallBootstrap> {
@@ -69,7 +85,7 @@ export class CallLifecycleGateway {
       );
     }
 
-    const now = new Date();
+    const now = this.clock();
     const ttlMs = input.ttlMs ?? this.defaultTtlMs;
     const expiresAt = new Date(now.getTime() + ttlMs);
     const callId = randomUUID();
@@ -88,15 +104,14 @@ export class CallLifecycleGateway {
       ...(input.providerCallId !== undefined ? { providerCallId: input.providerCallId } : {}),
     };
 
-    await this.bootstrapRegistry.register(bootstrap);
-    this.preparedForToolGrant.set(bootstrapId, {
-      bootstrapId,
-      callId,
-      organizationId: input.organizationId,
-      agentId: input.agentId,
-      agentVersionId: input.agentVersionId,
-      snapshot: input.agentSnapshot,
-    });
+    // Etapa A: reserva antes do `register` (cheio ⇒ recusa, sem registro órfão).
+    this.prepared.reserveBootstrap(bootstrap, now);
+    try {
+      await this.bootstrapRegistry.register(bootstrap);
+    } catch (err) {
+      this.prepared.release(bootstrapId);
+      throw err;
+    }
 
     this.logger.info('call.bootstrap.created', {
       callId,
@@ -114,8 +129,8 @@ export class CallLifecycleGateway {
     bootstrapId: string,
     now = new Date(),
   ): Promise<InitializedCallBinding> {
-    const prepared = this.preparedForToolGrant.get(bootstrapId);
-    this.preparedForToolGrant.delete(bootstrapId);
+    this.prepared.sweep(this.clock());
+    const prepared = this.prepared.take(bootstrapId);
     const consumed = await this.bootstrapRegistry.consume(bootstrapId, now);
 
     const session = createCallSession({

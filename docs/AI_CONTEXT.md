@@ -6,8 +6,8 @@ CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-11-05
 CONTEXT_BASE_MAIN_SHA: 418bd2d8b1aa113cf431b66ed44e3f94f7c1c41e
 CURRENT_PHASE: Phase 8 (OUTBOUND_FIRST_TWO_TRACK_PLANNING)
-CURRENT_SLICE: complementary D8b merged (DEC-048); A (prepared-record cleanup), B (cross-process provenance) and C (Agent Studio offline simulator) in study only; S2/S3/S4 not authorized
-CONTEXT_UPDATE_BRANCH: docs/phase8-post-merge-145-record
+CURRENT_SLICE: stage A (bounded in-memory bootstrap records, DEC-049) in review; B and C in planning only; S2/S3/S4 not authorized
+CONTEXT_UPDATE_BRANCH: fix/voice-bootstrap-memory-bounds
 CONTEXT_UPDATE_PR: PENDING
 LAST_MERGED_PR_AT_REFRESH: 145
 LAST_MERGE_SHA_AT_REFRESH: 418bd2d8b1aa113cf431b66ed44e3f94f7c1c41e
@@ -261,7 +261,8 @@ AI_CONTEXT_HEADER_END
 - **D8b complementar em revisão (2026-11-05, DEC-048; somente OFFLINE, `apps/voice`)**: `CallLifecycleGateway` guarda em memória o que preparou e, em `consumeBootstrapAndInitializeSession`, emite `toolGrant` (organização, agente, versão, chamada, snapshot e toolset copiado e congelado) só quando o consumo teve sucesso e todos os vínculos batem com o preparo da mesma instância; caso contrário `toolGrant = null`. Concessões emitidas constam de um registro privado (`WeakSet`); `createPublishedVersionToolAuthorizer(grant)` recusa concessão falsificada e qualquer divergência de organização, versão, chamada ou snapshot (identidade); `buildPublishedVersionToolExecutionContext(grant, { turnId, correlationId })` é a única fonte dos IDs. **Limites**: registro durável ou outra instância do gateway ⇒ sem concessão; webhook segue bloqueado.
 - **PR #145 Status**: `MERGED ON MAIN` (merge commit `418bd2d8b1aa113cf431b66ed44e3f94f7c1c41e`, árvore idêntica a `18a5b4a`). Gate Windows: 1ª execução em `e939fb2` exit 1 (separador de caminho no teste de fronteira de import); 2ª execução em `18a5b4a` exit 0, 1.839/45/0. Gate pós-merge Linux PASS 1.839/45/0. Concessão de ferramentas emitida só pelo `CallLifecycleGateway`; registro durável ou outra instância ⇒ sem concessão.
 - **Estudos pendentes de decisão (2026-11-05)**: A — limpeza dos registros de preparo expirados ou não consumidos sem enfraquecer o consumo único; B — prova de origem da autorização entre processos (proposta: concessão ancorada no banco e reconstruída no servidor, sem token reutilizável); C — simulador offline visível no Agent Studio (proposta: pré-visualização determinística de contexto, ferramentas e desconto com dados fictícios, sem modelo de IA real). Nenhum implementado.
-- `NEXT_ALLOWED_STEP = OPERATOR_DECISION_ON_A_B_C` (conectores só em planejamento; D5–D7, D9, AS1c, AS2, AS4 e S2/S3/S4 da telefonia continuam sem autorização; avaliador comercial não ligado ao runtime).
+- **Etapa A em revisão (2026-11-05, DEC-049; somente OFFLINE, `apps/voice`)**: `PreparedBootstrapTracker` (1.000 pendentes por gateway) reserva antes do `register` e libera se ele falhar; `InMemoryCallBootstrapRegistry` (2.000 entradas) recusa registro não `PENDING`, com datas inválidas, id vazio, já vencido ou com id existente (não sobrescreve consumidos); limpeza oportunista pelo relógio confiável injetado (nunca pelo `now` do chamador), removendo só o que passou de `expiresAt`; cheio ⇒ `CallBootstrapCapacityExceededError` (503) sem expulsar válidos. Consumido continua recusado antes e depois do descarte.
+- `NEXT_ALLOWED_STEP = WINDOWS_GATE_AND_MANUAL_MERGE_OF_STAGE_A_PR` (B e C só em planejamento; conectores só em planejamento; D5–D7, D9, AS1c, AS2, AS4 e S2/S3/S4 da telefonia continuam sem autorização).
 - `NEXT_ALLOWED_SLICE = HUMAN_DECISION_REQUIRED` (trilha 008-MVP1 a 008-MVP4 concluída; 008-OF5, 008-MVP3 e 008-OF6 dependem de H1; remoção de supressões depende de H2; evidência de consentimento depende de H3).
 - `PURCHASE_OF_PHONE_NUMBERS = 0` | `REAL_PROVIDER_CALLS = 0` | `CUSTOMER_TRAFFIC = PROHIBITED` | `ACTIVE_GUARDED = BLOCKED`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
