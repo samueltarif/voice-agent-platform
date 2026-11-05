@@ -14,6 +14,13 @@ import {
 import { InMemoryToolRegistry } from './tool-registry.js';
 import { ToolExecutionEngine } from './tool-execution-engine.js';
 import { createOperatingHoursToolDefinition } from './operating-hours-tool.js';
+import {
+  GRANT_FIXTURE_IDS,
+  issueTestToolGrant,
+  issueTestToolGrantBinding,
+} from './published-tool-grant-fixtures.js';
+
+const TEST_ORG = '55555555-5555-4555-8555-555555555555';
 
 describe('Published Version Toolset Runtime Context', () => {
   const sampleSnapshotWithTools: AgentConfigurationSnapshotV1 = {
@@ -59,33 +66,38 @@ describe('Published Version Toolset Runtime Context', () => {
     expect(isToolConfiguredInSnapshot('unregistered_tool', sampleSnapshotWithTools)).toBe(false);
   });
 
-  it('builds published version ToolExecutionContext with trusted snapshot authority', () => {
-    const context = buildPublishedVersionToolExecutionContext({
-      organizationId: 'org-123',
-      agentId: 'agent-456',
-      agentVersionId: 'version-789',
+  // TEST_CHANGE_REASON = D8B_GRANT_BINDING (DEC-048), ASSERTION_STRONGER: os IDs
+  // e o snapshot do contexto passam a vir só da concessão emitida pelo gateway.
+  it('builds published version ToolExecutionContext with trusted snapshot authority', async () => {
+    const binding = await issueTestToolGrantBinding({
+      organizationId: TEST_ORG,
       snapshot: sampleSnapshotWithTools,
-      callId: 'call-abc',
+    });
+    const context = buildPublishedVersionToolExecutionContext(binding.toolGrant, {
+      turnId: 'turn-1',
     });
 
-    expect(context.organizationId).toBe('org-123');
-    expect(context.agentId).toBe('agent-456');
-    expect(context.agentVersionId).toBe('version-789');
+    expect(context.organizationId).toBe(TEST_ORG);
+    expect(context.agentId).toBe(GRANT_FIXTURE_IDS.agentId);
+    expect(context.agentVersionId).toBe(GRANT_FIXTURE_IDS.agentVersionId);
     expect(context.snapshot).toBe(sampleSnapshotWithTools);
-    expect(context.callId).toBe('call-abc');
+    expect(context.callId).toBe(binding.session.callId);
+    expect(context.turnId).toBe('turn-1');
   });
 
   it('authorizes execution when tool is in published snapshot toolset', async () => {
     const registry = new InMemoryToolRegistry();
     registry.registerTool(createOperatingHoursToolDefinition());
 
-    const isToolAllowed = createPublishedVersionToolAuthorizer(sampleSnapshotWithTools);
+    // TEST_CHANGE_REASON = D8B_GRANT_BINDING (DEC-048), ASSERTION_EQUIVALENT.
+    const grant = await issueTestToolGrant({
+      organizationId: TEST_ORG,
+      snapshot: sampleSnapshotWithTools,
+    });
+    const isToolAllowed = createPublishedVersionToolAuthorizer(grant);
     const engine = new ToolExecutionEngine({ registry, isToolAllowed });
 
-    const context: ToolExecutionContext = {
-      organizationId: 'org-test',
-      snapshot: sampleSnapshotWithTools,
-    };
+    const context: ToolExecutionContext = buildPublishedVersionToolExecutionContext(grant);
 
     const invocation: ToolInvocation = {
       toolName: 'agent.operating_hours',
@@ -113,13 +125,15 @@ describe('Published Version Toolset Runtime Context', () => {
     };
     registry.registerTool(extraTool);
 
-    const isToolAllowed = createPublishedVersionToolAuthorizer(sampleSnapshotWithoutTools);
+    // TEST_CHANGE_REASON = D8B_GRANT_BINDING (DEC-048), ASSERTION_EQUIVALENT.
+    const grant = await issueTestToolGrant({
+      organizationId: TEST_ORG,
+      snapshot: sampleSnapshotWithoutTools,
+    });
+    const isToolAllowed = createPublishedVersionToolAuthorizer(grant);
     const engine = new ToolExecutionEngine({ registry, isToolAllowed });
 
-    const context: ToolExecutionContext = {
-      organizationId: 'org-test',
-      snapshot: sampleSnapshotWithoutTools,
-    };
+    const context: ToolExecutionContext = buildPublishedVersionToolExecutionContext(grant);
 
     const invocation: ToolInvocation = {
       toolName: 'agent.operating_hours',
@@ -138,13 +152,15 @@ describe('Published Version Toolset Runtime Context', () => {
     const registry = new InMemoryToolRegistry();
     registry.registerTool(createOperatingHoursToolDefinition());
 
-    const isToolAllowed = createPublishedVersionToolAuthorizer(sampleSnapshotWithoutTools);
+    // TEST_CHANGE_REASON = D8B_GRANT_BINDING (DEC-048), ASSERTION_EQUIVALENT.
+    const grant = await issueTestToolGrant({
+      organizationId: TEST_ORG,
+      snapshot: sampleSnapshotWithoutTools,
+    });
+    const isToolAllowed = createPublishedVersionToolAuthorizer(grant);
     const engine = new ToolExecutionEngine({ registry, isToolAllowed });
 
-    const context: ToolExecutionContext = {
-      organizationId: 'org-test',
-      snapshot: sampleSnapshotWithoutTools,
-    };
+    const context: ToolExecutionContext = buildPublishedVersionToolExecutionContext(grant);
 
     // Adversarial model argument attempting to inject tool authorization
     const adversarialInvocation: ToolInvocation = {

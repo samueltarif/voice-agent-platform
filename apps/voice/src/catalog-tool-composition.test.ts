@@ -2,7 +2,11 @@ import { describe, it, expect } from 'vitest';
 import type { AgentConfigurationSnapshotV1 } from '@voice-agent/contracts';
 import { InMemoryToolRegistry } from './tool-registry.js';
 import { ToolExecutionEngine } from './tool-execution-engine.js';
-import { createPublishedVersionToolAuthorizer } from './published-version-toolset.js';
+import {
+  buildPublishedVersionToolExecutionContext,
+  createPublishedVersionToolAuthorizer,
+} from './published-version-toolset.js';
+import { issueTestToolGrant } from './published-tool-grant-fixtures.js';
 import { createCatalogSearchToolDefinition } from './catalog-search-tool.js';
 import { createCatalogItemDetailToolDefinition } from './catalog-item-detail-tool.js';
 import { createOperatingHoursToolDefinition } from './operating-hours-tool.js';
@@ -52,19 +56,25 @@ function createFakePort(): CatalogQueryPort {
   };
 }
 
+/**
+ * TEST_CHANGE_REASON = D8B_GRANT_BINDING (DEC-048), ASSERTION_EQUIVALENT:
+ * o verificador e o contexto passam a ser construídos a partir de uma concessão
+ * emitida pelo gateway (prepareCall → consume). Nenhuma expectativa mudou.
+ */
 describe('Catalog tool registry & runtime composition (007D)', () => {
   it('17. registered + allowlisted catalog tool executes', async () => {
     const registry = new InMemoryToolRegistry();
     const port = createFakePort();
     registry.registerTool(createCatalogSearchToolDefinition({ queryPort: port }));
     const snapshot = createSnapshot(['catalog.search']);
+    const grant = await issueTestToolGrant({ organizationId: ORG_A, snapshot });
     const engine = new ToolExecutionEngine({
       registry,
-      isToolAllowed: createPublishedVersionToolAuthorizer(snapshot),
+      isToolAllowed: createPublishedVersionToolAuthorizer(grant),
     });
     const result = await engine.executeTool(
       { toolName: 'catalog.search', rawArguments: { query: 'Plano' } },
-      { organizationId: ORG_A, snapshot },
+      buildPublishedVersionToolExecutionContext(grant),
     );
     expect(result.status).toBe('SUCCESS');
   });
@@ -75,16 +85,17 @@ describe('Catalog tool registry & runtime composition (007D)', () => {
     registry.registerTool(createCatalogSearchToolDefinition({ queryPort: port }));
     registry.registerTool(createCatalogItemDetailToolDefinition({ queryPort: port }));
     const snapshot = createSnapshot(['catalog.search']);
+    const grant = await issueTestToolGrant({ organizationId: ORG_A, snapshot });
     const engine = new ToolExecutionEngine({
       registry,
-      isToolAllowed: createPublishedVersionToolAuthorizer(snapshot),
+      isToolAllowed: createPublishedVersionToolAuthorizer(grant),
     });
     const result = await engine.executeTool(
       {
         toolName: 'catalog.item_detail',
         rawArguments: { sku: 'SKU-1' },
       },
-      { organizationId: ORG_A, snapshot },
+      buildPublishedVersionToolExecutionContext(grant),
     );
     expect(result.status).toBe('REJECTED');
     if (result.status === 'REJECTED') {
@@ -95,16 +106,17 @@ describe('Catalog tool registry & runtime composition (007D)', () => {
   it('19. configured but unregistered tool fails closed as unknown', async () => {
     const registry = new InMemoryToolRegistry();
     const snapshot = createSnapshot(['catalog.item_detail']);
+    const grant = await issueTestToolGrant({ organizationId: ORG_A, snapshot });
     const engine = new ToolExecutionEngine({
       registry,
-      isToolAllowed: createPublishedVersionToolAuthorizer(snapshot),
+      isToolAllowed: createPublishedVersionToolAuthorizer(grant),
     });
     const result = await engine.executeTool(
       {
         toolName: 'catalog.item_detail',
         rawArguments: { sku: 'SKU-1' },
       },
-      { organizationId: ORG_A, snapshot },
+      buildPublishedVersionToolExecutionContext(grant),
     );
     expect(result.status).toBe('REJECTED');
     if (result.status === 'REJECTED') {
@@ -116,13 +128,14 @@ describe('Catalog tool registry & runtime composition (007D)', () => {
     const registry = new InMemoryToolRegistry();
     registry.registerTool(createOperatingHoursToolDefinition());
     const snapshot = createSnapshot(['agent.operating_hours']);
+    const grant = await issueTestToolGrant({ organizationId: ORG_A, snapshot });
     const engine = new ToolExecutionEngine({
       registry,
-      isToolAllowed: createPublishedVersionToolAuthorizer(snapshot),
+      isToolAllowed: createPublishedVersionToolAuthorizer(grant),
     });
     const result = await engine.executeTool(
       { toolName: 'agent.operating_hours', rawArguments: { query: 'Qual horário?' } },
-      { organizationId: ORG_A, snapshot },
+      buildPublishedVersionToolExecutionContext(grant),
     );
     expect(result.status).toBe('SUCCESS');
   });

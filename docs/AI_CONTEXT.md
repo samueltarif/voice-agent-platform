@@ -6,8 +6,8 @@ CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-11-05
 CONTEXT_BASE_MAIN_SHA: 5c6ce716100a78c6e167ad204cb107dd496e2146
 CURRENT_PHASE: Phase 8 (OUTBOUND_FIRST_TWO_TRACK_PLANNING)
-CURRENT_SLICE: D8 merged (DEC-047); complementary D8b (org/version/snapshot grant binding) in study only; S2/S3/S4 not authorized
-CONTEXT_UPDATE_BRANCH: docs/phase8-post-merge-144-record
+CURRENT_SLICE: complementary D8b (published tool grant, DEC-048) in review; S2/S3/S4 not authorized
+CONTEXT_UPDATE_BRANCH: fix/voice-published-tool-grant
 CONTEXT_UPDATE_PR: PENDING
 LAST_MERGED_PR_AT_REFRESH: 144
 LAST_MERGE_SHA_AT_REFRESH: 5c6ce716100a78c6e167ad204cb107dd496e2146
@@ -258,7 +258,8 @@ AI_CONTEXT_HEADER_END
 - **D8 em revisão (2026-11-05, DEC-047; somente OFFLINE, `apps/voice`)**: `ToolExecutionEngine` exige verificador (construção lança `TypeError` sem ele), guarda-o em campo privado de JS e só executa com `true` exato; exceção do verificador vira `UNAUTHORIZED_TOOL` com log só do tipo do erro; Promise devolvida recusa sem rejeição não tratada. `createPublishedVersionToolAuthorizer` não tem mais snapshot de reserva: exige `context.snapshot` e que ele seja o mesmo objeto da versão publicada ligada ao verificador. **Limite**: o snapshot não carrega organização nem versão, então `context.organizationId`/`agentVersionId` não são conferidos contra ele; proposta no relatório da PR, sem ampliar contratos. Webhook de ferramentas continua não montado.
 - **PR #144 Status**: `MERGED ON MAIN` (merge commit `5c6ce716100a78c6e167ad204cb107dd496e2146`, árvore idêntica a `df55e22`; gate Windows do operador 1.822/45/0, exit 0; gate pós-merge Linux: 1ª execução exit 1 por timeout de 5 s em `agent-api-lifecycle.integration.test.ts` com a VM recém-iniciada, sem relação com o diff; 2ª execução no mesmo HEAD PASS 1.822/45/0). D8 ativa: executor exige verificador e só `true` exato autoriza; verificador da versão publicada sem snapshot de reserva.
 - **D8b complementar (2026-11-05, somente estudo)**: proposta de concessão (*grant*) de ferramentas criada só a partir do `CallBootstrap` consumido (organização, versão publicada, snapshot e cópia congelada do toolset), marcada por registro privado e conferida contra `context.organizationId`, `context.agentVersionId` e `context.snapshot`. Base planejada para a futura plataforma de conectores. **Implementação aguarda autorização.**
-- `NEXT_ALLOWED_STEP = OPERATOR_DECISION_ON_D8B_COMPLEMENTARY` (conectores só em planejamento; D5–D7, D9, AS1c, AS2, AS4 e S2/S3/S4 da telefonia continuam sem autorização; avaliador comercial não ligado ao runtime).
+- **D8b complementar em revisão (2026-11-05, DEC-048; somente OFFLINE, `apps/voice`)**: `CallLifecycleGateway` guarda em memória o que preparou e, em `consumeBootstrapAndInitializeSession`, emite `toolGrant` (organização, agente, versão, chamada, snapshot e toolset copiado e congelado) só quando o consumo teve sucesso e todos os vínculos batem com o preparo da mesma instância; caso contrário `toolGrant = null`. Concessões emitidas constam de um registro privado (`WeakSet`); `createPublishedVersionToolAuthorizer(grant)` recusa concessão falsificada e qualquer divergência de organização, versão, chamada ou snapshot (identidade); `buildPublishedVersionToolExecutionContext(grant, { turnId, correlationId })` é a única fonte dos IDs. **Limites**: registro durável ou outra instância do gateway ⇒ sem concessão; webhook segue bloqueado.
+- `NEXT_ALLOWED_STEP = WINDOWS_GATE_AND_MANUAL_MERGE_OF_D8B_PR` (conectores só em planejamento; D5–D7, D9, AS1c, AS2, AS4 e S2/S3/S4 da telefonia continuam sem autorização; avaliador comercial não ligado ao runtime).
 - `NEXT_ALLOWED_SLICE = HUMAN_DECISION_REQUIRED` (trilha 008-MVP1 a 008-MVP4 concluída; 008-OF5, 008-MVP3 e 008-OF6 dependem de H1; remoção de supressões depende de H2; evidência de consentimento depende de H3).
 - `PURCHASE_OF_PHONE_NUMBERS = 0` | `REAL_PROVIDER_CALLS = 0` | `CUSTOMER_TRAFFIC = PROHIBITED` | `ACTIVE_GUARDED = BLOCKED`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
