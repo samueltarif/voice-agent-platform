@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { join, relative, resolve } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import type { AgentConfigurationSnapshotV1, ToolExecutionContext } from '@voice-agent/contracts';
 import { OPERATING_HOURS_TOOL_NAME } from './operating-hours-tool.js';
@@ -127,7 +127,19 @@ describe('published tool grant — immutability and execution', () => {
   });
 });
 
+/** Caminho relativo à raiz com `/`, igual no Linux e no Windows. */
+const toRepoPath = (path: string): string => path.replace(/\\/g, '/');
+
 describe('published tool grant — issuer import boundary', () => {
+  it('normalizes Windows and POSIX separators to the same repository path', () => {
+    expect(toRepoPath('apps\\voice\\src\\published-tool-grant.ts')).toBe(
+      'apps/voice/src/published-tool-grant.ts',
+    );
+    expect(toRepoPath('apps/voice/src/published-tool-grant.ts')).toBe(
+      'apps/voice/src/published-tool-grant.ts',
+    );
+  });
+
   it('only the CallLifecycleGateway imports the grant issuer outside tests', () => {
     const root = resolve(__dirname, '../../..');
     const importers: string[] = [];
@@ -139,7 +151,7 @@ describe('published tool grant — issuer import boundary', () => {
         else if (/\.tsx?$/.test(entry.name) && !/\.test\.tsx?$/.test(entry.name)) {
           const text = readFileSync(full, 'utf8');
           if (text.includes('issueToolGrantForConsumedBootstrap'))
-            importers.push(full.slice(root.length + 1));
+            importers.push(toRepoPath(relative(root, full)));
         }
       }
     };
