@@ -3,14 +3,14 @@
 <!--
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
-LAST_REFRESHED_AT: 2026-11-04
-CONTEXT_BASE_MAIN_SHA: 22d5230477290f0940507d78ffe36fc98449b539
+LAST_REFRESHED_AT: 2026-11-05
+CONTEXT_BASE_MAIN_SHA: b6d43ebd19b7f6f9be2b0efaa105825d677d8da7
 CURRENT_PHASE: Phase 8 (OUTBOUND_FIRST_TWO_TRACK_PLANNING)
-CURRENT_SLICE: AS1a (playbook/examples in the OFFLINE conversation engine) in review; S2/S3/S4 not authorized
-CONTEXT_UPDATE_BRANCH: feat/agent-studio-as1a-playbook-examples-context
+CURRENT_SLICE: AS1b-1 (offline deterministic discount evaluator, DEC-046) in review; S2/S3/S4 not authorized
+CONTEXT_UPDATE_BRANCH: feat/agent-studio-as1b1-discount-evaluator
 CONTEXT_UPDATE_PR: PENDING
-LAST_MERGED_PR_AT_REFRESH: 141
-LAST_MERGE_SHA_AT_REFRESH: 22d5230477290f0940507d78ffe36fc98449b539
+LAST_MERGED_PR_AT_REFRESH: 142
+LAST_MERGE_SHA_AT_REFRESH: b6d43ebd19b7f6f9be2b0efaa105825d677d8da7
 LAST_TESTED_CODE_SHA: QUERY_GIT_AT_RUNTIME
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
@@ -250,7 +250,10 @@ AI_CONTEXT_HEADER_END
 - **PR #141 Status**: `MERGED ON MAIN` (merge commit `22d5230477290f0940507d78ffe36fc98449b539`, árvore idêntica a `58eb147`; gate Windows do operador 1.776/45/0, exit 0; gate pós-merge Linux PASS 1.776/45/0). DEC-045 e as quatro decisões OFFLINE da S1 preservadas.
 - **Achado AS1a (2026-11-04)**: `playbook.stages` e `examples` são salvos e publicados em `agent_versions.configuration`, mas `ConversationContextComposer` (`apps/voice`) os descarta e o mapeador de prompt (`packages/integrations/src/openai/openai-input-mapper.ts`) não os renderiza; hoje não influenciam o motor de conversação.
 - **AS1a (2026-11-04, autorizada pelo operador; somente OFFLINE)**: `composeConversationGuidance` (contracts, função pura) leva `playbook.stages` e `examples` da versão publicada ao `ConversationContextComposer` com limites determinísticos (12 etapas, 8 exemplos, 300/600 caracteres por campo, texto achatado numa linha), sem alterar a configuração armazenada nem o schema V1; o montador de prompt offline renderiza "Etapas do atendimento" e "Exemplos ilustrativos" depois das regras, com aviso de precedência e valores como literais JSON; o caminho alternativo usa a mesma função. Logs só com contagens. **Não integrado à Millis**; não comprova comportamento em chamada real; delimitação reduz, mas não elimina, o risco de prompt injection.
-- `NEXT_ALLOWED_STEP = WINDOWS_GATE_AND_MANUAL_MERGE_OF_AS1A_PR` (AS1b, AS1c, AS4 e S2/S3/S4 da telefonia continuam sem autorização; direção preferida do operador registrada como decisão OFFLINE, não de produção).
+- **PR #142 Status**: `MERGED ON MAIN` (merge commit `b6d43ebd19b7f6f9be2b0efaa105825d677d8da7`, árvore idêntica a `cbbb863`; gate Windows do operador 1.793/45/0, exit 0; gate pós-merge Linux PASS 1.793/45/0). AS1a vale só para o motor offline; não integrada à Millis.
+- **Achado AS1b (2026-11-05, somente análise)**: `rules.deterministic.maxDiscountPercent` é validado (Zod 0–100, opcional), salvo no rascunho e publicado no snapshot imutável, e chega a `AuthoritativeInstructions.rules.deterministic`, mas não é renderizado no prompt e nenhum código o aplica: não existe ferramenta de desconto, preço negociado ou condição de pagamento; o catálogo só lê `priceCents`; o `ToolExecutionEngine` não está ligado em runtime e, sem `isToolAllowed`, aceita qualquer ferramenta registrada. Hoje o campo não protege nada.
+- **AS1b-1 (2026-11-05, DEC-046; somente OFFLINE)**: `evaluateDiscountRequest` em `packages/contracts/src/commercial/` — função pura que avalia um pedido de desconto em pontos-base sobre o preço de tabela de um item do catálogo, com D1–D4 (política ausente = nenhum desconto; um item; pontos-base inteiros e no máximo 2 casas decimais na política; piso do desconto com BigInt; acima do teto = recusa integral) e motivos de recusa tipados, mais categoria pública que não revela outros tenants. **Não ligada** ao motor, a ferramentas, à API ou ao prompt; não impede promessas verbais do modelo. Sem moeda autoritativa da organização no contrato: divergência de moeda não é verificada. D5–D9 pendentes; *fail-open* do `ToolExecutionEngine` sem `isToolAllowed` registrado como questão de segurança pendente (não alterado).
+- `NEXT_ALLOWED_STEP = WINDOWS_GATE_AND_MANUAL_MERGE_OF_AS1B1_PR` (D5–D9, AS1c, AS2, AS4 e S2/S3/S4 da telefonia continuam sem autorização; direção preferida do operador registrada como decisão OFFLINE, não de produção).
 - `NEXT_ALLOWED_SLICE = HUMAN_DECISION_REQUIRED` (trilha 008-MVP1 a 008-MVP4 concluída; 008-OF5, 008-MVP3 e 008-OF6 dependem de H1; remoção de supressões depende de H2; evidência de consentimento depende de H3).
 - `PURCHASE_OF_PHONE_NUMBERS = 0` | `REAL_PROVIDER_CALLS = 0` | `CUSTOMER_TRAFFIC = PROHIBITED` | `ACTIVE_GUARDED = BLOCKED`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
