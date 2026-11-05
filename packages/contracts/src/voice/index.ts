@@ -4,6 +4,7 @@ export * from './voice-ports-contracts.js';
 export * from './call-bootstrap-contracts.js';
 export * from './model-stream-contracts.js';
 export * from './conversation-context-contracts.js';
+export * from './conversation-playbook-examples.js';
 export * from './conversation-history-contracts.js';
 export * from './auxiliary-turn-decision-contracts.js';
 export * from './call-session-transitions.js';

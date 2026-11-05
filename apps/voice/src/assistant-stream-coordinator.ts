@@ -50,7 +50,8 @@ export class AssistantStreamCoordinator {
     this.model = deps.model;
     this.logger = deps.logger;
     this.historyStore = deps.historyStore ?? new InMemoryConversationHistoryStore();
-    this.contextComposer = deps.contextComposer ?? new ConversationContextComposer();
+    this.contextComposer =
+      deps.contextComposer ?? new ConversationContextComposer({ logger: deps.logger });
   }
 
   async appendUserUtterance(session: CallSession, turnId: string, text: string): Promise<void> {

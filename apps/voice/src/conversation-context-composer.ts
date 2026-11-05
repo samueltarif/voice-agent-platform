@@ -5,6 +5,8 @@ import type {
   ComposedConversationContext,
   ConversationTurnRecord,
 } from '@voice-agent/contracts';
+import { composeConversationGuidance } from '@voice-agent/contracts';
+import type { Logger } from '@voice-agent/logger';
 
 export interface ComposeContextInput {
   readonly organizationId: string;
@@ -16,8 +18,33 @@ export interface ComposeContextInput {
   readonly callerTranscript: string;
 }
 
+export interface ConversationContextComposerOptions {
+  /** Recebe só contagens (nunca texto de etapas, exemplos ou falas). */
+  readonly logger?: Pick<Logger, 'info'> | undefined;
+}
+
 export class ConversationContextComposer {
+  private readonly logger: Pick<Logger, 'info'> | undefined;
+
+  constructor(options: ConversationContextComposerOptions = {}) {
+    this.logger = options.logger;
+  }
+
+  private composeGuidance(input: ComposeContextInput) {
+    const { guidance, stats } = composeConversationGuidance(input.snapshot);
+    if (stats.stagesIncluded + stats.examplesIncluded > 0) {
+      this.logger?.info('conversation.guidance.composed', {
+        organizationId: input.organizationId,
+        callId: input.callId,
+        turnId: input.turnId,
+        ...stats,
+      });
+    }
+    return guidance;
+  }
+
   composeContext(input: ComposeContextInput): ComposedConversationContext {
+    const guidance = this.composeGuidance(input);
     const instructions: AuthoritativeInstructions = {
       persona: {
         role: input.snapshot.persona.role,
@@ -43,6 +70,7 @@ export class ConversationContextComposer {
           ? { deterministic: input.snapshot.rules.deterministic }
           : {}),
       },
+      ...guidance,
     };
 
     const currentInput: CallerUtterance = {
