@@ -29,18 +29,27 @@ export function isToolConfiguredInSnapshot(
 }
 
 /**
- * Creates an authorization predicate suitable for `ToolExecutionEngineDependencies.isToolAllowed`.
- * Validates that the requested tool is explicitly in the published snapshot's configured toolset.
+ * Creates an authorization predicate for `ToolExecutionEngineDependencies.isToolAllowed`.
  *
- * Server-side trusted authority: The toolset is read from `context.snapshot` or the fallback
- * published snapshot, never from model arguments or untrusted caller data.
+ * D8b (DEC-047) — fail-closed, sem snapshot de reserva:
+ * - o contexto precisa trazer `snapshot`; sem ele, recusa;
+ * - o `snapshot` do contexto precisa ser o MESMO objeto da versão publicada
+ *   ligado a este verificador pelo código servidor; snapshot de outra versão
+ *   (outro objeto, mesmo que com conteúdo igual) recusa;
+ * - a ferramenta precisa estar no toolset desse snapshot.
+ *
+ * Limite conhecido: `AgentConfigurationSnapshotV1` não carrega organização nem
+ * versão, então este verificador não confere `context.organizationId` nem
+ * `context.agentVersionId` contra o snapshot (proposta registrada na DEC-047).
+ * O snapshot só é confiável quando vem de código servidor autorizado, nunca do
+ * modelo ou do cliente.
  */
 export function createPublishedVersionToolAuthorizer(
-  publishedSnapshot?: AgentConfigurationSnapshotV1 | undefined,
+  publishedSnapshot: AgentConfigurationSnapshotV1,
 ): (toolName: string, context: ToolExecutionContext) => boolean {
   return (toolName: string, context: ToolExecutionContext): boolean => {
-    const effectiveSnapshot = context.snapshot ?? publishedSnapshot;
-    return isToolConfiguredInSnapshot(toolName, effectiveSnapshot);
+    if (!publishedSnapshot || context.snapshot !== publishedSnapshot) return false;
+    return isToolConfiguredInSnapshot(toolName, publishedSnapshot);
   };
 }
 
