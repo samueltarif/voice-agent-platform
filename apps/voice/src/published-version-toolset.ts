@@ -3,6 +3,7 @@ import type {
   CanonicalToolName,
   ToolExecutionContext,
 } from '@voice-agent/contracts';
+import { isIssuedPublishedToolGrant, type PublishedToolGrant } from './published-tool-grant.js';
 
 /**
  * Resolves the configured canonical tool identities from an AgentVersion snapshot.
@@ -29,49 +30,59 @@ export function isToolConfiguredInSnapshot(
 }
 
 /**
- * Creates an authorization predicate for `ToolExecutionEngineDependencies.isToolAllowed`.
- *
- * D8b (DEC-047) — fail-closed, sem snapshot de reserva:
- * - o contexto precisa trazer `snapshot`; sem ele, recusa;
- * - o `snapshot` do contexto precisa ser o MESMO objeto da versão publicada
- *   ligado a este verificador pelo código servidor; snapshot de outra versão
- *   (outro objeto, mesmo que com conteúdo igual) recusa;
- * - a ferramenta precisa estar no toolset desse snapshot.
- *
- * Limite conhecido: `AgentConfigurationSnapshotV1` não carrega organização nem
- * versão, então este verificador não confere `context.organizationId` nem
- * `context.agentVersionId` contra o snapshot (proposta registrada na DEC-047).
- * O snapshot só é confiável quando vem de código servidor autorizado, nunca do
- * modelo ou do cliente.
+ * D8b complementar (DEC-048) — verificador ligado a uma concessão emitida pelo
+ * `CallLifecycleGateway`. Recusa (fail-closed) quando:
+ * - a concessão não foi emitida por `published-tool-grant` (falsificada/cópia);
+ * - `context.organizationId`, `context.agentVersionId` ou `context.callId`
+ *   faltam ou divergem da concessão;
+ * - `context.snapshot` falta ou não é o MESMO objeto da concessão (E3);
+ * - a ferramenta não está na cópia congelada do toolset da concessão.
+ * IDs são comparados por igualdade com os da concessão, que já passaram pela
+ * validação UUID de `createCallSession`; nenhum formato extra é imposto.
  */
 export function createPublishedVersionToolAuthorizer(
-  publishedSnapshot: AgentConfigurationSnapshotV1,
+  grant: PublishedToolGrant,
 ): (toolName: string, context: ToolExecutionContext) => boolean {
-  return (toolName: string, context: ToolExecutionContext): boolean => {
-    if (!publishedSnapshot || context.snapshot !== publishedSnapshot) return false;
-    return isToolConfiguredInSnapshot(toolName, publishedSnapshot);
-  };
+  if (!isIssuedPublishedToolGrant(grant)) return () => false;
+  return (toolName: string, context: ToolExecutionContext): boolean =>
+    context.organizationId === grant.organizationId &&
+    context.agentVersionId === grant.agentVersionId &&
+    context.callId === grant.callId &&
+    context.snapshot === grant.snapshot &&
+    grant.tools.includes(toolName as CanonicalToolName);
 }
 
-/**
- * Builds a provider-neutral ToolExecutionContext bound to a published AgentVersion snapshot.
- */
-export function buildPublishedVersionToolExecutionContext(params: {
-  readonly organizationId: string;
-  readonly agentId: string;
-  readonly agentVersionId: string;
-  readonly snapshot: AgentConfigurationSnapshotV1;
-  readonly callId?: string | undefined;
+export interface PublishedToolContextIdentifiers {
   readonly turnId?: string | undefined;
   readonly correlationId?: string | undefined;
-}): ToolExecutionContext {
+}
+
+const ALLOWED_IDENTIFIER_KEYS: ReadonlySet<string> = new Set(['turnId', 'correlationId']);
+
+/**
+ * Monta o contexto de execução a partir da concessão (única fonte de
+ * organização, agente, versão, chamada e snapshot). Só aceita `turnId` e
+ * `correlationId`; qualquer outra chave, ou concessão não emitida, lança erro.
+ */
+export function buildPublishedVersionToolExecutionContext(
+  grant: PublishedToolGrant,
+  identifiers: PublishedToolContextIdentifiers = {},
+): ToolExecutionContext {
+  if (!isIssuedPublishedToolGrant(grant)) {
+    throw new TypeError('A trusted published tool grant is required');
+  }
+  if (Object.keys(identifiers).some((key) => !ALLOWED_IDENTIFIER_KEYS.has(key))) {
+    throw new TypeError('Only turnId and correlationId may be supplied');
+  }
   return {
-    organizationId: params.organizationId,
-    agentId: params.agentId,
-    agentVersionId: params.agentVersionId,
-    snapshot: params.snapshot,
-    ...(params.callId !== undefined ? { callId: params.callId } : {}),
-    ...(params.turnId !== undefined ? { turnId: params.turnId } : {}),
-    ...(params.correlationId !== undefined ? { correlationId: params.correlationId } : {}),
+    organizationId: grant.organizationId,
+    agentId: grant.agentId,
+    agentVersionId: grant.agentVersionId,
+    callId: grant.callId,
+    snapshot: grant.snapshot,
+    ...(identifiers.turnId !== undefined ? { turnId: identifiers.turnId } : {}),
+    ...(identifiers.correlationId !== undefined
+      ? { correlationId: identifiers.correlationId }
+      : {}),
   };
 }

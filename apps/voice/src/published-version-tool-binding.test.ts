@@ -10,6 +10,8 @@ import {
   createOperatingHoursToolDefinition,
   OPERATING_HOURS_TOOL_NAME,
 } from './operating-hours-tool.js';
+import type { PublishedToolGrant } from './published-tool-grant.js';
+import { issueTestToolGrant } from './published-tool-grant-fixtures.js';
 
 const ORG_A = '11111111-1111-4111-8111-111111111111';
 const ORG_B = '22222222-2222-4222-8222-222222222222';
@@ -36,58 +38,69 @@ const invocation = {
   rawArguments: { query: 'Qual é o horário de atendimento de vocês?' },
 };
 
-function engineFor(snapshot: AgentConfigurationSnapshotV1) {
+function engineFor(grant: PublishedToolGrant) {
   const registry = new InMemoryToolRegistry();
   registry.registerTool(createOperatingHoursToolDefinition());
   return new ToolExecutionEngine({
     registry,
-    isToolAllowed: createPublishedVersionToolAuthorizer(snapshot),
+    isToolAllowed: createPublishedVersionToolAuthorizer(grant),
   });
 }
 
-function contextFor(org: string, version: string, snapshot: AgentConfigurationSnapshotV1) {
-  return buildPublishedVersionToolExecutionContext({
+const grantFor = (org: string, snapshot: AgentConfigurationSnapshotV1, agentVersionId?: string) =>
+  issueTestToolGrant({
     organizationId: org,
-    agentId: `agent-${org}`,
-    agentVersionId: version,
     snapshot,
+    ...(agentVersionId ? { agentVersionId } : {}),
   });
-}
 
+const VERSION_2 = '66666666-6666-4666-8666-666666666666';
+
+/**
+ * TEST_CHANGE_REASON = D8B_GRANT_BINDING (DEC-048): verificador e contexto
+ * construídos a partir de concessões emitidas pelo gateway. Os 5 cenários e
+ * suas expectativas foram mantidos (ASSERTION_EQUIVALENT); o de outra versão
+ * passa a usar versões com IDs distintos além de objetos distintos
+ * (ASSERTION_STRONGER).
+ */
 describe('published version authorizer — D8b binding (no fallback snapshot)', () => {
   it('authorizes the published snapshot bound to it and keeps operating hours working', async () => {
-    const snapshot = publishedSnapshot('Seg a Sex, 9h-18h');
-    const result = await engineFor(snapshot).executeTool(
+    const grant = await grantFor(ORG_A, publishedSnapshot('Seg a Sex, 9h-18h'));
+    const result = await engineFor(grant).executeTool(
       invocation,
-      contextFor(ORG_A, 'v1', snapshot),
+      buildPublishedVersionToolExecutionContext(grant),
     );
     expect(result.status).toBe('SUCCESS');
   });
 
   it('rejects a context without snapshot instead of falling back to the construction snapshot', async () => {
-    const snapshot = publishedSnapshot('Seg a Sex, 9h-18h');
-    const authorize = createPublishedVersionToolAuthorizer(snapshot);
-    const bare: ToolExecutionContext = { organizationId: ORG_A, agentVersionId: 'v1' };
-    expect(authorize(OPERATING_HOURS_TOOL_NAME, bare)).toBe(false);
-    expect(await engineFor(snapshot).executeTool(invocation, bare)).toMatchObject({
+    const grant = await grantFor(ORG_A, publishedSnapshot('Seg a Sex, 9h-18h'));
+    const authorize = createPublishedVersionToolAuthorizer(grant);
+    const { snapshot: _omitted, ...bare } = buildPublishedVersionToolExecutionContext(grant);
+    expect(authorize(OPERATING_HOURS_TOOL_NAME, bare as ToolExecutionContext)).toBe(false);
+    expect(await engineFor(grant).executeTool(invocation, bare)).toMatchObject({
       status: 'REJECTED',
       reason: 'UNAUTHORIZED_TOOL',
     });
   });
 
-  it('rejects the snapshot of another version, even with identical content', () => {
+  it('rejects the snapshot of another version, even with identical content', async () => {
     const v1 = publishedSnapshot('Seg a Sex, 9h-18h');
-    const v2 = structuredClone(v1);
-    const authorize = createPublishedVersionToolAuthorizer(v1);
-    expect(authorize(OPERATING_HOURS_TOOL_NAME, contextFor(ORG_A, 'v2', v2))).toBe(false);
-    expect(authorize(OPERATING_HOURS_TOOL_NAME, contextFor(ORG_A, 'v1', v1))).toBe(true);
+    const grant1 = await grantFor(ORG_A, v1);
+    const grant2 = await grantFor(ORG_A, structuredClone(v1), VERSION_2);
+    const authorize = createPublishedVersionToolAuthorizer(grant1);
+    const ctx2 = buildPublishedVersionToolExecutionContext(grant2);
+    expect(authorize(OPERATING_HOURS_TOOL_NAME, ctx2)).toBe(false);
+    const ctx1 = buildPublishedVersionToolExecutionContext(grant1);
+    expect(authorize(OPERATING_HOURS_TOOL_NAME, ctx1)).toBe(true);
   });
 
-  it('rejects the snapshot of another organization', () => {
-    const snapshotA = publishedSnapshot('A: 8h-12h');
-    const snapshotB = publishedSnapshot('B: 14h-18h');
-    const authorizeA = createPublishedVersionToolAuthorizer(snapshotA);
-    expect(authorizeA(OPERATING_HOURS_TOOL_NAME, contextFor(ORG_B, 'vB', snapshotB))).toBe(false);
+  it('rejects the snapshot of another organization', async () => {
+    const grantA = await grantFor(ORG_A, publishedSnapshot('A: 8h-12h'));
+    const grantB = await grantFor(ORG_B, publishedSnapshot('B: 14h-18h'));
+    const authorizeA = createPublishedVersionToolAuthorizer(grantA);
+    const ctxB = buildPublishedVersionToolExecutionContext(grantB);
+    expect(authorizeA(OPERATING_HOURS_TOOL_NAME, ctxB)).toBe(false);
   });
 
   it('isolates organizations under concurrent execution', async () => {
@@ -95,21 +108,22 @@ describe('published version authorizer — D8b binding (no fallback snapshot)', 
       [ORG_A]: publishedSnapshot('A: 8h-12h'),
       [ORG_B]: publishedSnapshot('B: 14h-18h'),
     };
-    const engines = {
-      [ORG_A]: engineFor(snapshots[ORG_A]!),
-      [ORG_B]: engineFor(snapshots[ORG_B]!),
+    const grants = {
+      [ORG_A]: await grantFor(ORG_A, snapshots[ORG_A]!),
+      [ORG_B]: await grantFor(ORG_B, snapshots[ORG_B]!),
     };
+    const engines = { [ORG_A]: engineFor(grants[ORG_A]!), [ORG_B]: engineFor(grants[ORG_B]!) };
     const spy = vi.fn();
     const runs = Array.from({ length: 40 }, (_v, i) => {
       const org = i % 2 === 0 ? ORG_A : ORG_B;
       const other = org === ORG_A ? ORG_B : ORG_A;
       const own = engines[org]!.executeTool(
         invocation,
-        contextFor(org, `v-${org}`, snapshots[org]!),
+        buildPublishedVersionToolExecutionContext(grants[org]!),
       );
       const crossed = engines[org]!.executeTool(
         invocation,
-        contextFor(other, `v-${other}`, snapshots[other]!),
+        buildPublishedVersionToolExecutionContext(grants[other]!),
       );
       return Promise.all([own, crossed]).then(([ok, denied]) => spy(org, ok, denied));
     });

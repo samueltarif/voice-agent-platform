@@ -10,6 +10,11 @@ import type {
 import { InvalidAgentVersionStatusError } from '@voice-agent/errors';
 import { createNullLogger, type Logger } from '@voice-agent/logger';
 import { createCallSession } from './create-call-session.js';
+import {
+  issueToolGrantForConsumedBootstrap,
+  type PreparedToolGrantSource,
+  type PublishedToolGrant,
+} from './published-tool-grant.js';
 
 export interface PrepareCallInput {
   readonly organizationId: string;
@@ -33,6 +38,11 @@ export interface InitializedCallBinding {
   readonly session: CallSession;
   readonly snapshot: AgentConfigurationSnapshotV1;
   readonly bootstrapId: string;
+  /**
+   * D8b (DEC-048): concessão de ferramentas, emitida só quando este gateway
+   * preparou o bootstrap e o consumo teve sucesso; `null` caso contrário.
+   */
+  readonly toolGrant: PublishedToolGrant | null;
 }
 
 const DEFAULT_TTL_MS = 60_000;
@@ -42,6 +52,8 @@ export class CallLifecycleGateway {
   private readonly sessionStore: CallSessionStorePort;
   private readonly defaultTtlMs: number;
   private readonly logger: Logger;
+  /** Bootstraps preparados por ESTA instância, removidos na primeira tentativa de consumo. */
+  private readonly preparedForToolGrant = new Map<string, PreparedToolGrantSource>();
 
   constructor(deps: CallLifecycleGatewayDependencies) {
     this.bootstrapRegistry = deps.bootstrapRegistry;
@@ -77,6 +89,14 @@ export class CallLifecycleGateway {
     };
 
     await this.bootstrapRegistry.register(bootstrap);
+    this.preparedForToolGrant.set(bootstrapId, {
+      bootstrapId,
+      callId,
+      organizationId: input.organizationId,
+      agentId: input.agentId,
+      agentVersionId: input.agentVersionId,
+      snapshot: input.agentSnapshot,
+    });
 
     this.logger.info('call.bootstrap.created', {
       callId,
@@ -94,6 +114,8 @@ export class CallLifecycleGateway {
     bootstrapId: string,
     now = new Date(),
   ): Promise<InitializedCallBinding> {
+    const prepared = this.preparedForToolGrant.get(bootstrapId);
+    this.preparedForToolGrant.delete(bootstrapId);
     const consumed = await this.bootstrapRegistry.consume(bootstrapId, now);
 
     const session = createCallSession({
@@ -113,10 +135,16 @@ export class CallLifecycleGateway {
       agentVersionId: session.agentVersionId,
     });
 
+    const toolGrant = issueToolGrantForConsumedBootstrap(prepared, consumed);
+    if (!toolGrant) {
+      this.logger.warn('call.tool_grant.unavailable', { callId: session.callId });
+    }
+
     return {
       session,
       snapshot: consumed.agentSnapshot,
       bootstrapId,
+      toolGrant,
     };
   }
 
