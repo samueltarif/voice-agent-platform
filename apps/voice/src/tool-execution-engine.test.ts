@@ -3,6 +3,17 @@ import type { ToolDefinition, ToolExecutionContext, ToolInvocation } from '@voic
 import { InMemoryToolRegistry } from './tool-registry.js';
 import { ToolExecutionEngine } from './tool-execution-engine.js';
 
+/**
+ * TEST_CHANGE_REASON = D8_AUTHORIZER_REQUIRED (DEC-047), ASSERTION_EQUIVALENT:
+ * o executor passou a exigir verificador; estes testes recebem um verificador
+ * explícito que libera só as ferramentas que cada um exercita. Nenhuma
+ * expectativa foi alterada.
+ */
+const allowOnly =
+  (...names: string[]) =>
+  (toolName: string): boolean =>
+    names.includes(toolName);
+
 describe('ToolExecutionEngine', () => {
   const baseContext: ToolExecutionContext = {
     organizationId: 'org_trusted_111',
@@ -34,7 +45,7 @@ describe('ToolExecutionEngine', () => {
     };
     registry.registerTool(echoTool);
 
-    const engine = new ToolExecutionEngine({ registry });
+    const engine = new ToolExecutionEngine({ registry, isToolAllowed: allowOnly('math.double') });
     const invocation: ToolInvocation = {
       toolName: 'math.double',
       invocationId: 'inv_001',
@@ -54,7 +65,7 @@ describe('ToolExecutionEngine', () => {
 
   it('fails closed when an unknown tool is invoked', async () => {
     const registry = new InMemoryToolRegistry();
-    const engine = new ToolExecutionEngine({ registry });
+    const engine = new ToolExecutionEngine({ registry, isToolAllowed: allowOnly('unknown.tool') });
 
     const invocation: ToolInvocation = {
       toolName: 'unknown.tool',
@@ -92,7 +103,10 @@ describe('ToolExecutionEngine', () => {
     };
     registry.registerTool(strictTool);
 
-    const engine = new ToolExecutionEngine({ registry });
+    const engine = new ToolExecutionEngine({
+      registry,
+      isToolAllowed: allowOnly('inventory.check'),
+    });
     const invocation: ToolInvocation = {
       toolName: 'inventory.check',
       invocationId: 'inv_003',
@@ -123,7 +137,10 @@ describe('ToolExecutionEngine', () => {
     };
     registry.registerTool(ctxInspectorTool);
 
-    const engine = new ToolExecutionEngine({ registry });
+    const engine = new ToolExecutionEngine({
+      registry,
+      isToolAllowed: allowOnly('system.inspect'),
+    });
     const invocation: ToolInvocation = {
       toolName: 'system.inspect',
       rawArguments: {},
@@ -153,7 +170,7 @@ describe('ToolExecutionEngine', () => {
     };
     registry.registerTool(auditTool);
 
-    const engine = new ToolExecutionEngine({ registry });
+    const engine = new ToolExecutionEngine({ registry, isToolAllowed: allowOnly('audit.log') });
     // Untrusted model arguments trying to forge tenant and permissions
     const maliciousInvocation: ToolInvocation = {
       toolName: 'audit.log',
@@ -189,7 +206,7 @@ describe('ToolExecutionEngine', () => {
     };
     registry.registerTool(crashingTool);
 
-    const engine = new ToolExecutionEngine({ registry });
+    const engine = new ToolExecutionEngine({ registry, isToolAllowed: allowOnly('system.crash') });
     const invocation: ToolInvocation = {
       toolName: 'system.crash',
       invocationId: 'inv_crash',
@@ -226,7 +243,10 @@ describe('ToolExecutionEngine', () => {
     registry.registerTool(toolA);
     registry.registerTool(toolB);
 
-    const engine = new ToolExecutionEngine({ registry });
+    const engine = new ToolExecutionEngine({
+      registry,
+      isToolAllowed: allowOnly('math.add10', 'string.len'),
+    });
 
     const resA = await engine.executeTool(
       { toolName: 'math.add10', rawArguments: { x: 5 } },
@@ -297,7 +317,7 @@ describe('ToolExecutionEngine', () => {
     };
     registry.registerTool(tenantTool);
 
-    const engine = new ToolExecutionEngine({ registry });
+    const engine = new ToolExecutionEngine({ registry, isToolAllowed: allowOnly('tenant.record') });
 
     const tenantA: ToolExecutionContext = { organizationId: 'tenant_alpha' };
     const tenantB: ToolExecutionContext = { organizationId: 'tenant_beta' };

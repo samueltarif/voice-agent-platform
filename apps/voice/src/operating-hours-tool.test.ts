@@ -11,6 +11,17 @@ import {
   OPERATING_HOURS_TOOL_NAME,
 } from './operating-hours-tool.js';
 
+/**
+ * TEST_CHANGE_REASON = D8_AUTHORIZER_REQUIRED (DEC-047), ASSERTION_EQUIVALENT:
+ * o executor passou a exigir verificador; estes testes recebem um verificador
+ * explícito que libera só as ferramentas que cada um exercita. Nenhuma
+ * expectativa foi alterada.
+ */
+const allowOnly =
+  (...names: string[]) =>
+  (toolName: string): boolean =>
+    names.includes(toolName);
+
 describe('operating-hours-tool integration with ToolExecutionEngine', () => {
   const orgA = '11111111-1111-4111-8111-111111111111';
 
@@ -46,7 +57,10 @@ describe('operating-hours-tool integration with ToolExecutionEngine', () => {
     const tool = createOperatingHoursToolDefinition();
     registry.registerTool(tool);
 
-    const engine = new ToolExecutionEngine({ registry });
+    const engine = new ToolExecutionEngine({
+      registry,
+      isToolAllowed: allowOnly(OPERATING_HOURS_TOOL_NAME),
+    });
     const context: ToolExecutionContext = {
       organizationId: orgA,
       snapshot: sampleSnapshot,
@@ -78,7 +92,10 @@ describe('operating-hours-tool integration with ToolExecutionEngine', () => {
     });
     registry.registerTool(tool);
 
-    const engine = new ToolExecutionEngine({ registry });
+    const engine = new ToolExecutionEngine({
+      registry,
+      isToolAllowed: allowOnly(OPERATING_HOURS_TOOL_NAME),
+    });
     const context: ToolExecutionContext = {
       organizationId: orgA,
     };
@@ -106,7 +123,10 @@ describe('operating-hours-tool integration with ToolExecutionEngine', () => {
     const tool = createOperatingHoursToolDefinition();
     registry.registerTool(tool);
 
-    const engine = new ToolExecutionEngine({ registry });
+    const engine = new ToolExecutionEngine({
+      registry,
+      isToolAllowed: allowOnly(OPERATING_HOURS_TOOL_NAME),
+    });
     const contextWithoutHours: ToolExecutionContext = {
       organizationId: orgA,
       snapshot: {
@@ -139,7 +159,10 @@ describe('operating-hours-tool integration with ToolExecutionEngine', () => {
     const tool = createOperatingHoursToolDefinition();
     registry.registerTool(tool);
 
-    const engine = new ToolExecutionEngine({ registry });
+    const engine = new ToolExecutionEngine({
+      registry,
+      isToolAllowed: allowOnly(OPERATING_HOURS_TOOL_NAME),
+    });
     const context: ToolExecutionContext = {
       organizationId: orgA,
       snapshot: sampleSnapshot,
@@ -166,7 +189,10 @@ describe('operating-hours-tool integration with ToolExecutionEngine', () => {
     const tool = createOperatingHoursToolDefinition();
     registry.registerTool(tool);
 
-    const engine = new ToolExecutionEngine({ registry });
+    const engine = new ToolExecutionEngine({
+      registry,
+      isToolAllowed: allowOnly(OPERATING_HOURS_TOOL_NAME),
+    });
     const context: ToolExecutionContext = { organizationId: orgA };
 
     const result = await engine.executeTool(

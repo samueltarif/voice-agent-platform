@@ -9,12 +9,18 @@ import type {
 } from '@voice-agent/contracts';
 import { createNullLogger, type Logger } from '@voice-agent/logger';
 import { buildSafeLogContext } from './build-safe-log-context.js';
+import {
+  assertToolAuthorizer,
+  isToolExecutionAuthorized,
+  type ToolAuthorizer,
+} from './tool-authorization.js';
+
+export { TOOL_AUTHORIZER_REQUIRED_MESSAGE, type ToolAuthorizer } from './tool-authorization.js';
 
 export interface ToolExecutionEngineDependencies {
   readonly registry: ToolRegistryPort;
   readonly logger?: Logger | undefined;
-  readonly isToolAllowed?:
-    ((toolName: string, context: ToolExecutionContext) => boolean | undefined) | undefined;
+  readonly isToolAllowed: ToolAuthorizer;
 }
 
 interface HandlerExecutionInput {
@@ -27,13 +33,14 @@ interface HandlerExecutionInput {
 export class ToolExecutionEngine implements ToolPort {
   private readonly registry: ToolRegistryPort;
   private readonly logger: Logger;
-  private readonly isToolAllowed:
-    ((toolName: string, context: ToolExecutionContext) => boolean | undefined) | undefined;
+  /** Campo privado de JS: não pode ser trocado depois da construção. */
+  readonly #isToolAllowed: ToolAuthorizer;
 
   constructor(deps: ToolExecutionEngineDependencies) {
+    assertToolAuthorizer(deps?.isToolAllowed);
     this.registry = deps.registry;
     this.logger = deps.logger ?? createNullLogger();
-    this.isToolAllowed = deps.isToolAllowed;
+    this.#isToolAllowed = deps.isToolAllowed;
   }
 
   private resolveRegisteredTool(
@@ -73,7 +80,9 @@ export class ToolExecutionEngine implements ToolPort {
     invocation: ToolInvocation,
     context: ToolExecutionContext,
   ): ToolExecutionRejected | null {
-    if (this.isToolAllowed !== undefined && this.isToolAllowed(toolName, context) === false) {
+    if (
+      !isToolExecutionAuthorized(this.#isToolAllowed, { toolName, context, logger: this.logger })
+    ) {
       this.logger.warn('tool.execution.unauthorized_tool', buildSafeLogContext(toolName, context));
       return {
         status: 'REJECTED',
