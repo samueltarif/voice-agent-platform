@@ -4,13 +4,13 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-11-05
-CONTEXT_BASE_MAIN_SHA: f6f7130dd6a0c6945473ab0e04fc2fcf2bfe404f
+CONTEXT_BASE_MAIN_SHA: 5c6ce716100a78c6e167ad204cb107dd496e2146
 CURRENT_PHASE: Phase 8 (OUTBOUND_FIRST_TWO_TRACK_PLANNING)
-CURRENT_SLICE: D8 (ToolExecutionEngine fail-closed, DEC-047) in review; S2/S3/S4 not authorized
-CONTEXT_UPDATE_BRANCH: fix/voice-tool-engine-fail-closed
+CURRENT_SLICE: D8 merged (DEC-047); complementary D8b (org/version/snapshot grant binding) in study only; S2/S3/S4 not authorized
+CONTEXT_UPDATE_BRANCH: docs/phase8-post-merge-144-record
 CONTEXT_UPDATE_PR: PENDING
-LAST_MERGED_PR_AT_REFRESH: 143
-LAST_MERGE_SHA_AT_REFRESH: f6f7130dd6a0c6945473ab0e04fc2fcf2bfe404f
+LAST_MERGED_PR_AT_REFRESH: 144
+LAST_MERGE_SHA_AT_REFRESH: 5c6ce716100a78c6e167ad204cb107dd496e2146
 LAST_TESTED_CODE_SHA: QUERY_GIT_AT_RUNTIME
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
@@ -256,7 +256,9 @@ AI_CONTEXT_HEADER_END
 - **PR #143 Status**: `MERGED ON MAIN` (merge commit `f6f7130dd6a0c6945473ab0e04fc2fcf2bfe404f`, árvore idêntica a `02141aa`; gate Windows do operador 1.810/45/0, exit 0; gate pós-merge Linux PASS 1.810/45/0). Avaliador de desconto existe só como função pura; não ligado ao runtime.
 - **D8 — `ToolExecutionEngine` fail-open (2026-11-05, somente análise)**: (1) sem `isToolAllowed` qualquer ferramenta registrada executa; (2) retorno `undefined` também autoriza (só `false` recusa); (3) exceção do verificador escapa de `executeTool`; (4) `createPublishedVersionToolAuthorizer` cai no snapshot fixo da construção quando o contexto não traz `snapshot` — o caminho de webhook de ferramenta (não montado no app) monta o contexto sem `snapshot`. Nenhum chamador de produção instancia o executor. Experimento descartável: exigir autorização explícita derruba 12 testes existentes que constroem o executor sem verificador; remover o *fallback* não derruba nenhum. Plano apresentado no chat; **implementação aguarda autorização**.
 - **D8 em revisão (2026-11-05, DEC-047; somente OFFLINE, `apps/voice`)**: `ToolExecutionEngine` exige verificador (construção lança `TypeError` sem ele), guarda-o em campo privado de JS e só executa com `true` exato; exceção do verificador vira `UNAUTHORIZED_TOOL` com log só do tipo do erro; Promise devolvida recusa sem rejeição não tratada. `createPublishedVersionToolAuthorizer` não tem mais snapshot de reserva: exige `context.snapshot` e que ele seja o mesmo objeto da versão publicada ligada ao verificador. **Limite**: o snapshot não carrega organização nem versão, então `context.organizationId`/`agentVersionId` não são conferidos contra ele; proposta no relatório da PR, sem ampliar contratos. Webhook de ferramentas continua não montado.
-- `NEXT_ALLOWED_STEP = WINDOWS_GATE_AND_MANUAL_MERGE_OF_D8_PR` (vínculo por identificadores aguarda decisão; D5–D7, D9, AS1c, AS2, AS4 e S2/S3/S4 da telefonia continuam sem autorização; avaliador comercial não ligado ao runtime).
+- **PR #144 Status**: `MERGED ON MAIN` (merge commit `5c6ce716100a78c6e167ad204cb107dd496e2146`, árvore idêntica a `df55e22`; gate Windows do operador 1.822/45/0, exit 0; gate pós-merge Linux: 1ª execução exit 1 por timeout de 5 s em `agent-api-lifecycle.integration.test.ts` com a VM recém-iniciada, sem relação com o diff; 2ª execução no mesmo HEAD PASS 1.822/45/0). D8 ativa: executor exige verificador e só `true` exato autoriza; verificador da versão publicada sem snapshot de reserva.
+- **D8b complementar (2026-11-05, somente estudo)**: proposta de concessão (*grant*) de ferramentas criada só a partir do `CallBootstrap` consumido (organização, versão publicada, snapshot e cópia congelada do toolset), marcada por registro privado e conferida contra `context.organizationId`, `context.agentVersionId` e `context.snapshot`. Base planejada para a futura plataforma de conectores. **Implementação aguarda autorização.**
+- `NEXT_ALLOWED_STEP = OPERATOR_DECISION_ON_D8B_COMPLEMENTARY` (conectores só em planejamento; D5–D7, D9, AS1c, AS2, AS4 e S2/S3/S4 da telefonia continuam sem autorização; avaliador comercial não ligado ao runtime).
 - `NEXT_ALLOWED_SLICE = HUMAN_DECISION_REQUIRED` (trilha 008-MVP1 a 008-MVP4 concluída; 008-OF5, 008-MVP3 e 008-OF6 dependem de H1; remoção de supressões depende de H2; evidência de consentimento depende de H3).
 - `PURCHASE_OF_PHONE_NUMBERS = 0` | `REAL_PROVIDER_CALLS = 0` | `CUSTOMER_TRAFFIC = PROHIBITED` | `ACTIVE_GUARDED = BLOCKED`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
