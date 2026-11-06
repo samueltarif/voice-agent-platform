@@ -1,33 +1,12 @@
-import type {
-  AgentConfigurationSnapshotV1,
-  CanonicalToolName,
-  ToolExecutionContext,
-} from '@voice-agent/contracts';
+import type { CanonicalToolName, ToolExecutionContext } from '@voice-agent/contracts';
 import { isIssuedPublishedToolGrant, type PublishedToolGrant } from './published-tool-grant.js';
 
 /**
- * Resolves the configured canonical tool identities from an AgentVersion snapshot.
- * Returns an empty array if the snapshot does not declare any tools.
+ * S1 (DEC-050): a regra pura de toolset vive em `packages/contracts` (fonte
+ * única, também usada pelo simulador do Agent Studio); reexportada aqui para
+ * preservar os imports existentes de `apps/voice`.
  */
-export function resolvePublishedVersionToolset(
-  snapshot?: AgentConfigurationSnapshotV1 | undefined,
-): readonly CanonicalToolName[] {
-  if (!snapshot || !Array.isArray(snapshot.tools)) {
-    return [];
-  }
-  return snapshot.tools;
-}
-
-/**
- * Checks whether a given canonical tool is configured/allowed in an AgentVersion snapshot.
- */
-export function isToolConfiguredInSnapshot(
-  toolName: string,
-  snapshot?: AgentConfigurationSnapshotV1 | undefined,
-): boolean {
-  const toolset = resolvePublishedVersionToolset(snapshot);
-  return toolset.includes(toolName as CanonicalToolName);
-}
+export { isToolConfiguredInSnapshot, resolvePublishedVersionToolset } from '@voice-agent/contracts';
 
 /**
  * D8b complementar (DEC-048) — verificador ligado a uma concessão emitida pelo

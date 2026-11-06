@@ -3,14 +3,14 @@
 <!--
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
-LAST_REFRESHED_AT: 2026-11-05
-CONTEXT_BASE_MAIN_SHA: 418bd2d8b1aa113cf431b66ed44e3f94f7c1c41e
+LAST_REFRESHED_AT: 2026-11-06
+CONTEXT_BASE_MAIN_SHA: 8628181699a85f60663270da751f494e531f2ae9
 CURRENT_PHASE: Phase 8 (OUTBOUND_FIRST_TWO_TRACK_PLANNING)
-CURRENT_SLICE: stage A (bounded in-memory bootstrap records, DEC-049) in review; B and C in planning only; S2/S3/S4 not authorized
-CONTEXT_UPDATE_BRANCH: fix/voice-bootstrap-memory-bounds
+CURRENT_SLICE: Agent Studio offline simulator, first visual stage (DEC-050), in review; discount card deferred; B in planning; S2/S3/S4 not authorized
+CONTEXT_UPDATE_BRANCH: feat/agent-studio-offline-simulator
 CONTEXT_UPDATE_PR: PENDING
-LAST_MERGED_PR_AT_REFRESH: 145
-LAST_MERGE_SHA_AT_REFRESH: 418bd2d8b1aa113cf431b66ed44e3f94f7c1c41e
+LAST_MERGED_PR_AT_REFRESH: 146
+LAST_MERGE_SHA_AT_REFRESH: 8628181699a85f60663270da751f494e531f2ae9
 LAST_TESTED_CODE_SHA: QUERY_GIT_AT_RUNTIME
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
@@ -262,7 +262,10 @@ AI_CONTEXT_HEADER_END
 - **PR #145 Status**: `MERGED ON MAIN` (merge commit `418bd2d8b1aa113cf431b66ed44e3f94f7c1c41e`, árvore idêntica a `18a5b4a`). Gate Windows: 1ª execução em `e939fb2` exit 1 (separador de caminho no teste de fronteira de import); 2ª execução em `18a5b4a` exit 0, 1.839/45/0. Gate pós-merge Linux PASS 1.839/45/0. Concessão de ferramentas emitida só pelo `CallLifecycleGateway`; registro durável ou outra instância ⇒ sem concessão.
 - **Estudos pendentes de decisão (2026-11-05)**: A — limpeza dos registros de preparo expirados ou não consumidos sem enfraquecer o consumo único; B — prova de origem da autorização entre processos (proposta: concessão ancorada no banco e reconstruída no servidor, sem token reutilizável); C — simulador offline visível no Agent Studio (proposta: pré-visualização determinística de contexto, ferramentas e desconto com dados fictícios, sem modelo de IA real). Nenhum implementado.
 - **Etapa A em revisão (2026-11-05, DEC-049; somente OFFLINE, `apps/voice`)**: `PreparedBootstrapTracker` (1.000 pendentes por gateway) reserva antes do `register` e libera se ele falhar; `InMemoryCallBootstrapRegistry` (2.000 entradas) recusa registro não `PENDING`, com datas inválidas, id vazio, já vencido ou com id existente (não sobrescreve consumidos); limpeza oportunista pelo relógio confiável injetado (nunca pelo `now` do chamador), removendo só o que passou de `expiresAt`; cheio ⇒ `CallBootstrapCapacityExceededError` (503) sem expulsar válidos. Consumido continua recusado antes e depois do descarte.
-- `NEXT_ALLOWED_STEP = WINDOWS_GATE_AND_MANUAL_MERGE_OF_STAGE_A_PR` (B e C só em planejamento; conectores só em planejamento; D5–D7, D9, AS1c, AS2, AS4 e S2/S3/S4 da telefonia continuam sem autorização).
+- **PR #146 Status**: `MERGED ON MAIN` (merge commit `8628181699a85f60663270da751f494e531f2ae9`, árvore idêntica a `49c5259`). Gate Windows: 1ª execução exit 1 (2 timeouts de 5 s: `published-tool-grant-authorization.test.ts` e `jev-openai-l2-synthetic-runner.test.ts`); 2 execuções direcionadas 29/29; 2ª execução completa exit 0, 1.851/45/0. Gate pós-merge Linux PASS 1.851/45/0. **Risco aberto**: testes sensíveis a lentidão no Windows (caso sintético chegou a 4.920 ms; teste de fronteira de import percorre o repositório).
+- **Simulador offline do Agent Studio (2026-11-06, somente estudo)**: página própria que reutiliza o carregamento autenticado do detalhe do agente (`loadAgentDetailData`, `canReadAgentConfig`), sem rota nova; regra de toolset precisaria ir para `packages/contracts` para não divergir de `apps/voice`. Aguarda decisão.
+- **Simulador offline em revisão (2026-11-06, DEC-050)**: página `/orgs/[orgSlug]/agents/[agentId]/simulador` montada no servidor (sem `'use client'`, sem fetch no navegador, sem armazenamento), com faixa fixa "Simulação offline — sem IA, voz ou telefonia real", seletor por link entre "Rascunho salvo" e "Versão publicada", cartão "Contexto e roteiro" (`composeConversationGuidance`) e cartão "Ferramentas" (regra pura movida para `packages/contracts`, rótulos só de configuração). Acesso pela verificação extraída `resolveVerifiedAgentOrgContext` e por `loadAgentSimulatorData` (mesma rota autenticada `agent.config.read`; detalhe do agente inalterado). Sem desconto, chat ou execução de ferramentas.
+- `NEXT_ALLOWED_STEP = WINDOWS_GATE_AND_MANUAL_MERGE_OF_SIMULATOR_PR` (cartão de descontos, B, conectores, D5–D7, D9, AS1c, AS2, AS4 e S2/S3/S4 da telefonia continuam sem autorização).
 - `NEXT_ALLOWED_SLICE = HUMAN_DECISION_REQUIRED` (trilha 008-MVP1 a 008-MVP4 concluída; 008-OF5, 008-MVP3 e 008-OF6 dependem de H1; remoção de supressões depende de H2; evidência de consentimento depende de H3).
 - `PURCHASE_OF_PHONE_NUMBERS = 0` | `REAL_PROVIDER_CALLS = 0` | `CUSTOMER_TRAFFIC = PROHIBITED` | `ACTIVE_GUARDED = BLOCKED`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.

@@ -4,3 +4,4 @@ export * from './agent-configuration-v1.js';
 export * from './agent-contracts.js';
 export * from './agent-commercial-policy.js';
 export * from './agent-api-contracts.js';
+export * from './agent-version-toolset.js';
