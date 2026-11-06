@@ -53,6 +53,13 @@ const MOCK_DRAFT_VERSION: AgentVersionMetadataResponse = {
   publishedBy: null,
 };
 
+/**
+ * TEST_CHANGE_REASON = F1_CONTRACT_UUID_IDS (DEC-051), ASSERTION_EQUIVALENT:
+ * os ids de exemplo passam a seguir o contrato da API (UUID), porque ids fora
+ * do contrato agora são recusados antes de qualquer chamada. As expectativas
+ * são as mesmas, só com os novos valores.
+ */
+const CANONICAL_AGENT_ID = 'a0000000-0000-4000-8000-000000000001';
 describe('AgentDetailPage - Routing & Access Guards', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -84,9 +91,9 @@ describe('AgentDetailPage - Routing & Access Guards', () => {
     });
 
     await AgentDetailPage({
-      params: Promise.resolve({ orgSlug: 'wrong-org', agentId: 'agent-1' }),
+      params: Promise.resolve({ orgSlug: 'wrong-org', agentId: CANONICAL_AGENT_ID }),
     });
-    expect(redirect).toHaveBeenCalledWith('/orgs/active-org/agents/agent-1');
+    expect(redirect).toHaveBeenCalledWith(`/orgs/active-org/agents/${CANONICAL_AGENT_ID}`);
   });
 
   it('renders 404 state when agent is not found or belongs to another tenant', async () => {

@@ -16,7 +16,7 @@ import {
 
 vi.mock('next/navigation', () => ({
   redirect: vi.fn(),
-  usePathname: () => '/orgs/active-org/agents/agent-1/simulador',
+  usePathname: () => '/orgs/active-org/agents/a0000000-0000-4000-8000-000000000001/simulador',
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
 }));
 vi.mock('../../../../../../preferences/ui-preferences-context.js', () => ({
@@ -35,7 +35,7 @@ vi.mock('../../../../../../lib/organization/server-organization-context.js', () 
 vi.mock('../load-agent-detail-data.js', () => ({ loadAgentSimulatorData: vi.fn() }));
 
 const AGENT: AgentMetadataResponse = {
-  id: 'agent-1',
+  id: 'a0000000-0000-4000-8000-000000000001',
   name: 'Agente de Vendas',
   slug: 'agente-de-vendas',
   status: 'ACTIVE',
@@ -80,11 +80,17 @@ function loaded(overrides: Record<string, unknown> = {}) {
 const render = async (orgSlug = 'active-org', config?: string) =>
   renderToString(
     (await AgentSimulatorPage({
-      params: Promise.resolve({ orgSlug, agentId: 'agent-1' }),
+      params: Promise.resolve({ orgSlug, agentId: 'a0000000-0000-4000-8000-000000000001' }),
       searchParams: Promise.resolve(config ? { config } : {}),
     }))!,
   );
 
+/**
+ * TEST_CHANGE_REASON = F1_CONTRACT_UUID_IDS (DEC-051), ASSERTION_EQUIVALENT:
+ * os ids de exemplo passam a seguir o contrato da API (UUID), porque ids fora
+ * do contrato agora são recusados antes de qualquer chamada. As expectativas
+ * são as mesmas, só com os novos valores.
+ */
 describe('AgentSimulatorPage — access and isolation', () => {
   beforeEach(() => vi.clearAllMocks());
 
@@ -94,16 +100,24 @@ describe('AgentSimulatorPage — access and isolation', () => {
       availableOrganizations: [],
     });
     await AgentSimulatorPage({
-      params: Promise.resolve({ orgSlug: 'active-org', agentId: 'agent-1' }),
+      params: Promise.resolve({
+        orgSlug: 'active-org',
+        agentId: 'a0000000-0000-4000-8000-000000000001',
+      }),
       searchParams: Promise.resolve({}),
     });
     expect(redirect).toHaveBeenCalledWith('/login');
     asRole('ADMIN');
     await AgentSimulatorPage({
-      params: Promise.resolve({ orgSlug: 'other-org', agentId: 'agent-1' }),
+      params: Promise.resolve({
+        orgSlug: 'other-org',
+        agentId: 'a0000000-0000-4000-8000-000000000001',
+      }),
       searchParams: Promise.resolve({}),
     });
-    expect(redirect).toHaveBeenCalledWith('/orgs/active-org/agents/agent-1/simulador');
+    expect(redirect).toHaveBeenCalledWith(
+      '/orgs/active-org/agents/a0000000-0000-4000-8000-000000000001/simulador',
+    );
     expect(loadAgentSimulatorData).not.toHaveBeenCalled();
   });
 
@@ -128,7 +142,7 @@ describe('AgentSimulatorPage — access and isolation', () => {
     }
     const [context, userId, agentId] = vi.mocked(loadAgentSimulatorData).mock.calls[0]!;
     expect(context).toMatchObject({ organizationId: 'org-1', slug: 'active-org' });
-    expect([userId, agentId]).toEqual(['user-1', 'agent-1']);
+    expect([userId, agentId]).toEqual(['user-1', 'a0000000-0000-4000-8000-000000000001']);
   });
 
   it('shows a neutral notice without data for an agent of another organization', async () => {

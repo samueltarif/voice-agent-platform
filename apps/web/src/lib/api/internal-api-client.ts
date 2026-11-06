@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { JWK } from 'jose';
 import type { ApiErrorResponse } from '@voice-agent/contracts';
 import { internalServiceSigner } from '../auth/internal-service-signer.js';
+import { buildInternalApiUrl } from './internal-api-url.js';
 
 export interface InternalApiClientConfig {
   baseUrl: string;
@@ -18,11 +19,6 @@ export interface InternalApiRequestOptions {
   organizationId: string;
   body?: unknown;
   requestId?: string;
-}
-
-function buildApiUrl(baseUrl: string, path: string): string {
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  return `${baseUrl}${normalizedPath}`;
 }
 
 async function handleApiError(response: Response, requestId: string): Promise<never> {
@@ -62,7 +58,7 @@ export class InternalApiClient {
     });
 
     const requestId = options.requestId ?? randomUUID();
-    const url = buildApiUrl(this.baseUrl, options.path);
+    const url = buildInternalApiUrl(this.baseUrl, options.path);
 
     const headers: Record<string, string> = {
       Authorization: `Bearer ${assertion}`,

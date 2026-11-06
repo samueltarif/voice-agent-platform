@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getServerOrganizationContext } from '../../../../../lib/organization/server-organization-context.js';
+import { isContractUuid } from '../../../../../lib/api/internal-api-path.js';
 
 /**
  * Verificação de sessão, organização ativa e `orgSlug` da URL usada pelo
@@ -20,7 +21,9 @@ export async function resolveVerifiedAgentOrgContext(
     return null;
   }
   if (orgSlug !== orgResult.context.slug) {
-    redirect(`/orgs/${orgResult.context.slug}/agents/${agentId}${canonicalSuffix}`);
+    // F1: um id fora do contrato nunca é ecoado no redirecionamento.
+    const agentPath = isContractUuid(agentId) ? `/${agentId}${canonicalSuffix}` : '';
+    redirect(`/orgs/${orgResult.context.slug}/agents${agentPath}`);
     return null;
   }
   return { activeOrg: orgResult.context, user: orgResult.user, orgResult };

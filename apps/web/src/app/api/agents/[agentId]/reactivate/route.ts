@@ -5,6 +5,7 @@ import { TenantApiClient } from '../../../../../lib/api/tenant-api-client.js';
 import { isSameOriginRequest } from '../../is-same-origin-request.js';
 import { canArchiveAgent } from '../../../../../features/agents/agent-permissions.js';
 import { mapDraftApiError } from '../draft/draft-error-response.js';
+import { internalApiPath, uuidRouteSegment } from '../../../../../lib/api/internal-api-path.js';
 
 interface RouteContext {
   params: Promise<{ agentId: string }>;
@@ -57,7 +58,7 @@ export async function POST(req: NextRequest, { params }: RouteContext): Promise<
   try {
     const reactivated = await resolved.tenantClient.request({
       method: 'POST',
-      path: `/v1/agents/${agentId}/reactivate`,
+      path: internalApiPath`/v1/agents/${uuidRouteSegment(agentId)}/reactivate`,
       ...(resolved.requestId ? { requestId: resolved.requestId } : {}),
     });
 

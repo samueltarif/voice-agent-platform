@@ -5,6 +5,10 @@ import { TenantApiClient } from '../../../../../../../lib/api/tenant-api-client.
 import { isSameOriginRequest } from '../../../../is-same-origin-request.js';
 import { canReadAgentConfig } from '../../../../../../../features/agents/agent-permissions.js';
 import { mapDraftApiError } from '../../../draft/draft-error-response.js';
+import {
+  internalApiPath,
+  uuidRouteSegment,
+} from '../../../../../../../lib/api/internal-api-path.js';
 
 interface RouteContext {
   params: Promise<{ agentId: string; versionId: string }>;
@@ -60,7 +64,7 @@ export async function GET(req: NextRequest, { params }: RouteContext): Promise<N
   try {
     const configSnapshot = await resolved.tenantClient.request({
       method: 'GET',
-      path: `/v1/agents/${agentId}/versions/${versionId}/configuration`,
+      path: internalApiPath`/v1/agents/${uuidRouteSegment(agentId)}/versions/${uuidRouteSegment(versionId)}/configuration`,
       ...(resolved.requestId ? { requestId: resolved.requestId } : {}),
     });
 

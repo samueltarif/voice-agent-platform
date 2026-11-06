@@ -8,6 +8,7 @@ import { getInternalApiClient } from '../../../../../lib/api/api-client-factory.
 import { TenantApiClient } from '../../../../../lib/api/tenant-api-client.js';
 import type { ActiveOrganizationContext } from '../../../../../lib/organization/active-organization-context.js';
 import { canReadAgentConfig } from '../../../../../features/agents/agent-permissions.js';
+import { internalApiPath, uuidRouteSegment } from '../../../../../lib/api/internal-api-path.js';
 
 export interface AgentDetailDataResult {
   readonly agent: AgentMetadataResponse | null;
@@ -26,7 +27,7 @@ async function fetchVersionConfig(
 ): Promise<AgentConfigurationSnapshotV1 | null> {
   const res = await tenantClient.request<AgentVersionConfigurationResponse>({
     method: 'GET',
-    path: `/v1/agents/${agentId}/versions/${versionId}/configuration`,
+    path: internalApiPath`/v1/agents/${uuidRouteSegment(agentId)}/versions/${uuidRouteSegment(versionId)}/configuration`,
   });
   return res.configuration;
 }
@@ -89,11 +90,11 @@ async function loadAgentDetail(request: AgentDetailRequest): Promise<AgentDetail
   try {
     const agent = await tenantClient.request<AgentMetadataResponse>({
       method: 'GET',
-      path: `/v1/agents/${request.agentId}`,
+      path: internalApiPath`/v1/agents/${uuidRouteSegment(request.agentId)}`,
     });
     const versions = await tenantClient.request<AgentVersionMetadataResponse[]>({
       method: 'GET',
-      path: `/v1/agents/${request.agentId}/versions`,
+      path: internalApiPath`/v1/agents/${uuidRouteSegment(request.agentId)}/versions`,
     });
     const configs = await fetchReadableConfigs(tenantClient, request, versions);
     return { agent, versions, ...configs, isNotFound: false, errorMessage: null };
