@@ -19264,3 +19264,21 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **TESTES NOVOS**: `internal-api-path.test.ts` (5), `internal-api-url.test.ts` (6, incluindo varredura de todos os `path:` atuais de `apps/web` e cliente sem `fetch` para caminho inseguro), `agent-route-id-safety.test.ts` (11) e `agent-detail-route-id-safety.test.ts` (3).
 - **PROVA DE SENSIBILIDADE**: 7 mutações descartáveis — `uuidRouteSegment` aceitando qualquer valor (12 falhas), segmento aceitando `.`/`..` (2), segmento aceitando `/` e `%` (2), sem checagem de origem/caminho final (1), sem checagem de dupla codificação (1), aceitando segmento vazio (1), redirecionamento ecoando o id (1). Na primeira rodada a mutação de origem/caminho **sobreviveu**; foi adicionado o teste "refuses paths the URL parser would silently rewrite (second barrier)" e ela passou a falhar. Cada arquivo restaurado e conferido byte a byte.
 - **SAFETY**: `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `PUBLIC_WEBHOOKS = 0`.
+
+## 2026-11-06 — Governança — Pós-merge da PR #148 (correção F1) e revisão estática — Claude
+
+- **MERGE**: PR #148 mesclada na `main` como `9cdd9e58fe4231b1394a1803bcc4632192728fa7` (pais `2bcddd0bd8b484369cf4683f87131e15847b004f` e `dc0f002abb136f03729c2dcaad0c27214716a696`); `git diff dc0f002 9cdd9e5` vazio (árvore idêntica ao HEAD aprovado). `origin/main` conferida em `9cdd9e5` antes do gate.
+- **VALIDAÇÃO PRÉ-MERGE**: Linux (Claude) no HEAD `dc0f002`: 275 arquivos PASS / 6 SKIP; 1.897 PASS / 45 SKIP / 0 FAIL; typecheck e build 12/12; formatação, lint e arquitetura PASS; tamanho PASS (46 avisos); exit 0. Windows independente (operador) no mesmo SHA: 1.897 PASS / 45 SKIP / 0 FAIL; typecheck 12/12; build 12/12; lint, formatação e arquitetura PASS; worktree limpa; exit 0.
+- **GATE PÓS-MERGE LINUX** (worktree nova e detached `wt-postmerge148` em `9cdd9e5`; limpa antes e depois): `pnpm install --frozen-lockfile && pnpm check` exit 0 — lockfile sem mudança; Prettier PASS; ESLint sem saída; typecheck 12/12; testes 275 arquivos PASS / 6 SKIP, 1.897 PASS / 45 SKIP / 0 FAIL; build 12/12; arquitetura SUCESSO; tamanho SUCESSO (46 avisos, nenhum novo).
+- **REVISÃO ESTÁTICA (pedida antes do merge, executada depois dele, porque o merge ocorreu no mesmo minuto do pedido)**: 0 BLOCKER.
+  - NB-1: compatibilidade com "todos os chamadores" provada só por varredura textual; caminhos montados em tempo de execução (`toListPath` do conhecimento, slug do bootstrap) não eram testados.
+  - NB-2: testes novos da #148 não combinavam id hostil com sessão ausente, papel sem permissão, organização incompatível ou origem cruzada; a ordem estava só no código.
+  - NB-3: recusa da assertion de tenant em `/v1/me/*` sustentada pelo código (audiências distintas), sem teste.
+  - NB-4: no PATCH de rascunho, id hostil com corpo inválido devolve 400 antes do 404 (sem vazamento nem chamada).
+  - NB-5: `versionId` fora do contrato devolvido pela API transforma o detalhe inteiro em "não encontrado" (falha fechada).
+  - RR-1: `buildInternalApiUrl` recusa base terminada em `/`. **Correção desta entrada**: os dois clientes removem uma barra final antes de montar a URL (`InternalApiClient` e `BootstrapApiClient`, `replace(/\/$/, '')`), então `http://api:3002/` funciona; resta o risco só para base com duas barras finais ou uso direto da função.
+  - RR-2: defesa só na web; a API não recusa caminhos estranhos por conta própria.
+  - RR-3: duas regex de UUID (`operations-ids.ts` estrita; contrato permissivo).
+  - RR-4: a query só tem checagem de `#`, `\`, espaços e controles; depende de `URLSearchParams`/`pickQuery`.
+- **DECISÃO HUMANA**: não reverter a PR #148; autorizado o gate pós-merge, este registro e uma PR pequena somente de testes e documentação para fechar NB-1 e NB-2. Sem alteração de código de produção. DECISIONS_LOG preservado (sem decisão nova: a complementação de testes cabe na DEC-051).
+- **SAFETY**: `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `PUBLIC_WEBHOOKS = 0`.
