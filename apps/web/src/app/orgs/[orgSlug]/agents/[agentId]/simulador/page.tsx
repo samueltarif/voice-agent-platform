@@ -3,18 +3,17 @@ import { TenantShell } from '../../../../../../shell/tenant-shell';
 import { canReadAgentConfig } from '../../../../../../features/agents/agent-permissions.js';
 import { SimulatorView } from '../../../../../../features/agents/simulator/simulator-view.js';
 import { selectSimulatorConfiguration } from '../../../../../../features/agents/simulator/select-simulator-configuration.js';
+import {
+  SIMULATOR_FORBIDDEN_NOTICE,
+  SIMULATOR_NOT_FOUND_NOTICE,
+} from '../../../../../../features/agents/simulator/simulator-notices.js';
 import { loadAgentSimulatorData } from '../load-agent-detail-data.js';
 import { resolveVerifiedAgentOrgContext } from '../resolve-verified-agent-org-context.js';
 
 interface AgentSimulatorPageProps {
   readonly params: Promise<{ orgSlug: string; agentId: string }>;
-  readonly searchParams?: Promise<Record<string, string | string[] | undefined>> | undefined;
+  readonly searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
-
-export const SIMULATOR_FORBIDDEN_NOTICE =
-  'Seu perfil não pode visualizar a configuração deste agente.';
-export const SIMULATOR_NOT_FOUND_NOTICE =
-  'Agente não encontrado ou indisponível para esta organização.';
 
 /**
  * Simulador offline (DEC-050): somente leitura, montado no servidor a partir
@@ -43,7 +42,7 @@ export default async function AgentSimulatorPage({
     );
   } else {
     const data = await loadAgentSimulatorData(activeOrg, user.id, agentId);
-    const requested = (await searchParams)?.config;
+    const requested = (await searchParams).config;
     const selection = data.agent
       ? selectSimulatorConfiguration({
           draftConfig: data.draftConfig,

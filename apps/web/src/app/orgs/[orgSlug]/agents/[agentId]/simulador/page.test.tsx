@@ -8,10 +8,11 @@ import { getServerOrganizationContext } from '../../../../../../lib/organization
 import { DEFAULT_AGENT_CONFIGURATION_V1 } from '../../../../../../features/agents/agent-default-configuration.js';
 import { SIMULATOR_OFFLINE_LABEL } from '../../../../../../features/agents/simulator/simulator-offline-banner.js';
 import { loadAgentSimulatorData } from '../load-agent-detail-data.js';
-import AgentSimulatorPage, {
+import AgentSimulatorPage from './page.js';
+import {
   SIMULATOR_FORBIDDEN_NOTICE,
   SIMULATOR_NOT_FOUND_NOTICE,
-} from './page.js';
+} from '../../../../../../features/agents/simulator/simulator-notices.js';
 
 vi.mock('next/navigation', () => ({
   redirect: vi.fn(),
@@ -94,11 +95,13 @@ describe('AgentSimulatorPage — access and isolation', () => {
     });
     await AgentSimulatorPage({
       params: Promise.resolve({ orgSlug: 'active-org', agentId: 'agent-1' }),
+      searchParams: Promise.resolve({}),
     });
     expect(redirect).toHaveBeenCalledWith('/login');
     asRole('ADMIN');
     await AgentSimulatorPage({
       params: Promise.resolve({ orgSlug: 'other-org', agentId: 'agent-1' }),
+      searchParams: Promise.resolve({}),
     });
     expect(redirect).toHaveBeenCalledWith('/orgs/active-org/agents/agent-1/simulador');
     expect(loadAgentSimulatorData).not.toHaveBeenCalled();
