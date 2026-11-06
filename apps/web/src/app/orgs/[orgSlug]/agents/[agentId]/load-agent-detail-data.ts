@@ -44,50 +44,78 @@ function handleDetailError(err: unknown): AgentDetailDataResult {
   };
 }
 
+interface AgentDetailRequest {
+  readonly context: ActiveOrganizationContext;
+  readonly userId: string;
+  readonly agentId: string;
+  /**
+   * Simulador (DEC-050): também carrega a configuração publicada quando há
+   * rascunho, pela mesma rota autenticada (`agent.config.read` no servidor).
+   */
+  readonly includePublishedConfig: boolean;
+}
+
+async function fetchConfigIf(
+  tenantClient: TenantApiClient,
+  agentId: string,
+  version: AgentVersionMetadataResponse | null,
+): Promise<AgentConfigurationSnapshotV1 | null> {
+  return version ? fetchVersionConfig(tenantClient, agentId, version.id) : null;
+}
+
+async function fetchReadableConfigs(
+  tenantClient: TenantApiClient,
+  request: AgentDetailRequest,
+  versions: readonly AgentVersionMetadataResponse[],
+) {
+  const draftVersion = versions.find((v) => v.status === 'DRAFT') ?? null;
+  const publishedVersion = versions.find((v) => v.status === 'PUBLISHED') ?? null;
+  if (!canReadAgentConfig(request.context.role)) {
+    return { draftVersion, draftConfig: null, publishedConfig: null };
+  }
+  const draftConfig = await fetchConfigIf(tenantClient, request.agentId, draftVersion);
+  const wantsPublished = !draftVersion || request.includePublishedConfig;
+  const publishedConfig = await fetchConfigIf(
+    tenantClient,
+    request.agentId,
+    wantsPublished ? publishedVersion : null,
+  );
+  return { draftVersion, draftConfig, publishedConfig };
+}
+
+async function loadAgentDetail(request: AgentDetailRequest): Promise<AgentDetailDataResult> {
+  const internalClient = getInternalApiClient();
+  const tenantClient = new TenantApiClient(internalClient, request.context, request.userId);
+  try {
+    const agent = await tenantClient.request<AgentMetadataResponse>({
+      method: 'GET',
+      path: `/v1/agents/${request.agentId}`,
+    });
+    const versions = await tenantClient.request<AgentVersionMetadataResponse[]>({
+      method: 'GET',
+      path: `/v1/agents/${request.agentId}/versions`,
+    });
+    const configs = await fetchReadableConfigs(tenantClient, request, versions);
+    return { agent, versions, ...configs, isNotFound: false, errorMessage: null };
+  } catch (err: unknown) {
+    return handleDetailError(err);
+  }
+}
+
+/** Detalhe do agente: rascunho quando existe; senão, a versão publicada. */
 export async function loadAgentDetailData(
   context: ActiveOrganizationContext,
   userId: string,
   agentId: string,
 ): Promise<AgentDetailDataResult> {
-  const internalClient = getInternalApiClient();
-  const tenantClient = new TenantApiClient(internalClient, context, userId);
+  return loadAgentDetail({ context, userId, agentId, includePublishedConfig: false });
+}
 
-  try {
-    const agent = await tenantClient.request<AgentMetadataResponse>({
-      method: 'GET',
-      path: `/v1/agents/${agentId}`,
-    });
-
-    const versions = await tenantClient.request<AgentVersionMetadataResponse[]>({
-      method: 'GET',
-      path: `/v1/agents/${agentId}/versions`,
-    });
-
-    const draftVersion =
-      versions.find((v: AgentVersionMetadataResponse) => v.status === 'DRAFT') ?? null;
-    const publishedVersion =
-      versions.find((v: AgentVersionMetadataResponse) => v.status === 'PUBLISHED') ?? null;
-    const canRead = canReadAgentConfig(context.role);
-
-    let draftConfig: AgentConfigurationSnapshotV1 | null = null;
-    let publishedConfig: AgentConfigurationSnapshotV1 | null = null;
-
-    if (draftVersion && canRead) {
-      draftConfig = await fetchVersionConfig(tenantClient, agentId, draftVersion.id);
-    } else if (publishedVersion && canRead) {
-      publishedConfig = await fetchVersionConfig(tenantClient, agentId, publishedVersion.id);
-    }
-
-    return {
-      agent,
-      versions,
-      draftVersion,
-      draftConfig,
-      publishedConfig,
-      isNotFound: false,
-      errorMessage: null,
-    };
-  } catch (err: unknown) {
-    return handleDetailError(err);
-  }
+/** Simulador: rascunho salvo e versão publicada, ambos sob `canReadAgentConfig`. */
+export async function loadAgentSimulatorData(
+  context: ActiveOrganizationContext,
+  userId: string,
+  agentId: string,
+): Promise<AgentDetailDataResult> {
+  return loadAgentDetail({ context, userId, agentId, includePublishedConfig: true });
 }

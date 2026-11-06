@@ -1,0 +1,74 @@
+import * as React from 'react';
+import { TenantShell } from '../../../../../../shell/tenant-shell';
+import { canReadAgentConfig } from '../../../../../../features/agents/agent-permissions.js';
+import { SimulatorView } from '../../../../../../features/agents/simulator/simulator-view.js';
+import { selectSimulatorConfiguration } from '../../../../../../features/agents/simulator/select-simulator-configuration.js';
+import { loadAgentSimulatorData } from '../load-agent-detail-data.js';
+import { resolveVerifiedAgentOrgContext } from '../resolve-verified-agent-org-context.js';
+
+interface AgentSimulatorPageProps {
+  readonly params: Promise<{ orgSlug: string; agentId: string }>;
+  readonly searchParams?: Promise<Record<string, string | string[] | undefined>> | undefined;
+}
+
+export const SIMULATOR_FORBIDDEN_NOTICE =
+  'Seu perfil não pode visualizar a configuração deste agente.';
+export const SIMULATOR_NOT_FOUND_NOTICE =
+  'Agente não encontrado ou indisponível para esta organização.';
+
+/**
+ * Simulador offline (DEC-050): somente leitura, montado no servidor a partir
+ * do carregamento autenticado do detalhe do agente. Sem endpoint novo, sem
+ * fetch no navegador, sem IA, voz, telefonia ou gravação de dados.
+ */
+export default async function AgentSimulatorPage({
+  params,
+  searchParams,
+}: AgentSimulatorPageProps) {
+  const { orgSlug, agentId } = await params;
+  const verified = await resolveVerifiedAgentOrgContext(orgSlug, agentId, '/simulador');
+  if (!verified) return null;
+  const { activeOrg, user, orgResult } = verified;
+  const base = { organizationName: activeOrg.name, orgSlug: activeOrg.slug, agentId };
+
+  let view: React.ReactElement;
+  if (!canReadAgentConfig(activeOrg.role)) {
+    view = (
+      <SimulatorView
+        {...base}
+        agentName={null}
+        selection={null}
+        notice={SIMULATOR_FORBIDDEN_NOTICE}
+      />
+    );
+  } else {
+    const data = await loadAgentSimulatorData(activeOrg, user.id, agentId);
+    const requested = (await searchParams)?.config;
+    const selection = data.agent
+      ? selectSimulatorConfiguration({
+          draftConfig: data.draftConfig,
+          publishedConfig: data.publishedConfig,
+          requested,
+        })
+      : null;
+    const notice = data.agent ? null : SIMULATOR_NOT_FOUND_NOTICE;
+    view = (
+      <SimulatorView
+        {...base}
+        agentName={data.agent?.name ?? null}
+        selection={selection}
+        notice={notice}
+      />
+    );
+  }
+
+  return (
+    <TenantShell
+      title="Simulador do agente"
+      currentOrg={activeOrg}
+      organizations={orgResult.availableOrganizations}
+    >
+      {view}
+    </TenantShell>
+  );
+}

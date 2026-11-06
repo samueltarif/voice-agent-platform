@@ -1,6 +1,6 @@
 import * as React from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Bot, FileEdit } from 'lucide-react';
+import { ArrowLeft, Bot, FileEdit, FlaskConical } from 'lucide-react';
 import { Button } from '@voice-agent/ui';
 import type { AgentMetadataResponse, AgentVersionMetadataResponse } from '@voice-agent/contracts';
 import { AgentStatusBadge, AgentPublishedVersionBadge } from './agent-status-badge.js';
@@ -100,6 +100,16 @@ export function AgentDetailHeader({
               <span>•</span>
               <span>{`Atualizado: ${formatAgentDate(agent.updatedAt)}`}</span>
             </div>
+
+            <Button asChild variant="outline" size="sm" className="gap-2 text-xs">
+              <Link
+                href={`/orgs/${orgSlug}/agents/${agent.id}/simulador`}
+                data-testid="agent-simulator-link"
+              >
+                <FlaskConical className="h-4 w-4" aria-hidden="true" />
+                <span>Simulador</span>
+              </Link>
+            </Button>
 
             <AgentHeaderActions
               isArchived={isArchived}

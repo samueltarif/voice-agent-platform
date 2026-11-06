@@ -1,8 +1,6 @@
 import * as React from 'react';
-import { redirect } from 'next/navigation';
 import { AlertCircle } from 'lucide-react';
 import { Card, CardContent } from '@voice-agent/ui';
-import { getServerOrganizationContext } from '../../../../../lib/organization/server-organization-context.js';
 import { TenantShell } from '../../../../../shell/tenant-shell';
 import {
   canReadAgentConfig,
@@ -12,6 +10,7 @@ import {
 } from '../../../../../features/agents/agent-permissions.js';
 import { AgentDetailWorkspace } from '../../../../../features/agents/agent-detail-workspace.js';
 import { loadAgentDetailData } from './load-agent-detail-data.js';
+import { resolveVerifiedAgentOrgContext } from './resolve-verified-agent-org-context.js';
 
 interface AgentDetailPageProps {
   readonly params: Promise<{ orgSlug: string; agentId: string }>;
@@ -49,26 +48,9 @@ function AgentDetailStatusNotice({
   return null;
 }
 
-async function resolveVerifiedOrgContext(orgSlug: string, agentId: string) {
-  const orgResult = await getServerOrganizationContext();
-  if (orgResult.status === 'UNAUTHENTICATED') {
-    redirect('/login');
-    return null;
-  }
-  if (orgResult.status !== 'RESOLVED' || !orgResult.context || !orgResult.user) {
-    redirect('/dashboard');
-    return null;
-  }
-  if (orgSlug !== orgResult.context.slug) {
-    redirect(`/orgs/${orgResult.context.slug}/agents/${agentId}`);
-    return null;
-  }
-  return { activeOrg: orgResult.context, user: orgResult.user, orgResult };
-}
-
 export default async function AgentDetailPage({ params }: AgentDetailPageProps) {
   const { orgSlug, agentId } = await params;
-  const verified = await resolveVerifiedOrgContext(orgSlug, agentId);
+  const verified = await resolveVerifiedAgentOrgContext(orgSlug, agentId);
   if (!verified) {
     return null;
   }
