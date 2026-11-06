@@ -7,6 +7,7 @@ import { isSameOriginRequest } from '../../is-same-origin-request.js';
 import { canEditAgent } from '../../../../../features/agents/agent-permissions.js';
 import { DEFAULT_AGENT_CONFIGURATION_V1 } from '../../../../../features/agents/agent-default-configuration.js';
 import { mapDraftApiError } from './draft-error-response.js';
+import { internalApiPath, uuidRouteSegment } from '../../../../../lib/api/internal-api-path.js';
 
 interface RouteContext {
   params: Promise<{ agentId: string }>;
@@ -85,7 +86,7 @@ export async function POST(req: NextRequest, { params }: RouteContext): Promise<
   try {
     const draft = await resolved.tenantClient.request({
       method: 'POST',
-      path: `/v1/agents/${agentId}/drafts`,
+      path: internalApiPath`/v1/agents/${uuidRouteSegment(agentId)}/drafts`,
       body: parsedBody.data,
       ...(resolved.requestId ? { requestId: resolved.requestId } : {}),
     });
@@ -125,7 +126,7 @@ export async function PATCH(req: NextRequest, { params }: RouteContext): Promise
 
     const updated = await resolved.tenantClient.request({
       method: 'PATCH',
-      path: `/v1/agents/${agentId}/drafts/${versionId}`,
+      path: internalApiPath`/v1/agents/${uuidRouteSegment(agentId)}/drafts/${uuidRouteSegment(versionId)}`,
       body: validated.data,
       ...(resolved.requestId ? { requestId: resolved.requestId } : {}),
     });
@@ -153,7 +154,7 @@ export async function DELETE(req: NextRequest, { params }: RouteContext): Promis
   try {
     const result = await resolved.tenantClient.request({
       method: 'DELETE',
-      path: `/v1/agents/${agentId}/drafts/${versionId}`,
+      path: internalApiPath`/v1/agents/${uuidRouteSegment(agentId)}/drafts/${uuidRouteSegment(versionId)}`,
       ...(resolved.requestId ? { requestId: resolved.requestId } : {}),
     });
 

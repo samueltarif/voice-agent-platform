@@ -5,6 +5,7 @@ import { TenantApiClient } from '../../../../../../lib/api/tenant-api-client.js'
 import { isSameOriginRequest } from '../../../is-same-origin-request.js';
 import { canPublishAgent } from '../../../../../../features/agents/agent-permissions.js';
 import { mapDraftApiError } from '../draft-error-response.js';
+import { internalApiPath, uuidRouteSegment } from '../../../../../../lib/api/internal-api-path.js';
 
 interface RouteContext {
   params: Promise<{ agentId: string }>;
@@ -65,7 +66,7 @@ export async function POST(req: NextRequest, { params }: RouteContext): Promise<
   try {
     const published = await resolved.tenantClient.request({
       method: 'POST',
-      path: `/v1/agents/${agentId}/drafts/${versionId}/publish`,
+      path: internalApiPath`/v1/agents/${uuidRouteSegment(agentId)}/drafts/${uuidRouteSegment(versionId)}/publish`,
       ...(resolved.requestId ? { requestId: resolved.requestId } : {}),
     });
 

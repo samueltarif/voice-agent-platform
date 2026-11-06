@@ -5,6 +5,7 @@ import {
 } from '@voice-agent/contracts';
 import { pickQuery } from '../operations-ids.js';
 import { parseJsonBody, runTenantOperation } from '../operations-bff.js';
+import { internalApiPath, uuidRouteSegment } from '../../../lib/api/internal-api-path.js';
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   const query = pickQuery(req.url, ['limit', 'offset']);
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     if (!body.ok) return body.response;
     const versions = await tenant.request<AgentVersionMetadataResponse[]>({
       method: 'GET',
-      path: `/v1/agents/${body.data.agentId}/versions`,
+      path: internalApiPath`/v1/agents/${uuidRouteSegment(body.data.agentId)}/versions`,
     });
     const published = versions.find((v) => v.status === 'PUBLISHED');
     if (!published) return NextResponse.json({ code: 'NO_PUBLISHED_VERSION' }, { status: 409 });
