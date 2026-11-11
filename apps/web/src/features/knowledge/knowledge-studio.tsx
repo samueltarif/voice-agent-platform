@@ -32,7 +32,14 @@ function useLatestToast(fromMutations: string | null, fromManagement: string | n
 function KnowledgeToast({ toast }: { readonly toast: string | null }) {
   return (
     <>
-      <KnowledgeToast toast={toast} />
+      <div aria-live="polite" className="sr-only">
+        {toast}
+      </div>
+      {toast && (
+        <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+          {toast}
+        </p>
+      )}
     </>
   );
 }
