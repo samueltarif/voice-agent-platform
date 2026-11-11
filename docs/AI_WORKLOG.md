@@ -19314,9 +19314,11 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - Banco: `knowledge-document-lock.ts` (bloqueio por organização + token), `knowledge-content-replacement.ts`, `knowledge-document-edit.ts`, `knowledge-document-lifecycle.ts`, `DrizzleKnowledgeManagementService`; arquivamento com usuário passa a gravar auditoria na mesma transação.
   - API: `knowledge-management-routes.ts` + permissões `knowledge.update/associate/restore/delete` em mapa separado (matriz DEC-039 intacta); rota de arquivamento passa `auth.sub`.
   - Web: BFF `PATCH`/`DELETE` em `[documentId]`, `agent/` e `restore/` via `forward-knowledge-management.ts` (mesma origem, UUID, sessão, papel, organização da tela, corpo validado pelo contrato); mensagens em português para os novos códigos; menu de ações por estado e papel; diálogos de edição, associação, restauração e exclusão; nome do agente na lista; rótulo "Todos os agentes".
-- **TESTES EXISTENTES ALTERADOS** (2):
+- **TESTES EXISTENTES ALTERADOS** (3):
   - `knowledge-document-list.test.tsx`: `TEST_CHANGE_REASON = AGENT_LABEL_MATCHES_RETRIEVAL_SCOPE_DEC054`, `ASSERTION_EQUIVALENT` ("Sem agente associado" → "Todos os agentes"; negativa equivalente mantida).
   - `knowledge-archive-dialog.test.tsx`: `TEST_CHANGE_REASON = ARCHIVE_NOW_RESTORABLE_DEC054`, `ASSERTION_EQUIVALENT` (texto "não pode ser desfeita" ficaria falso).
+  - `apps/api/src/integration/knowledge-isolation.integration.test.ts`: `TEST_CHANGE_REASON = ARCHIVE_NOW_AUDITED_DEC054`, `ASSERTION_EQUIVALENT` (só teardown: apagar `audit_logs` antes das organizações, porque o arquivamento pela API passou a ser auditado; FK `restrict`).
+- **GATE (1ª e 2ª rodadas, falhas reais corrigidas)**: (a) o teste SSR existente do estúdio travou (`KnowledgeToast` recursivo, introduzido numa refatoração minha); corrigido em `922b12e`; (b) o teardown acima falhou com a FK de `audit_logs`.
 - **TESTES NOVOS**: integração no banco (13), HTTP da API (7), matriz RBAC (2), BFF (5), cliente (3), regras de UI (8), validação da edição (5), mensagens de falha (3), renderização de lista e diálogos (7).
 - **SAFETY**: sem migration, schema, chamadas externas ou dados da Qualitec. `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `PUBLIC_WEBHOOKS = 0`.
 
