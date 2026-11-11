@@ -6,6 +6,11 @@ import { TenantApiClient } from '../../../../../lib/api/tenant-api-client.js';
 import { mapKnowledgeBffError } from '../../knowledge-error-response.js';
 import { isSameOriginRequest } from '../../../agents/is-same-origin-request.js';
 import { checkKnowledgeOrgConsistency } from '../../knowledge-org-consistency.js';
+import { forwardKnowledgeManagement } from '../../forward-knowledge-management.js';
+import {
+  knowledgeLifecycleHttpBodySchema,
+  updateKnowledgeDocumentHttpBodySchema,
+} from '@voice-agent/contracts';
 
 type OrgContext = Awaited<ReturnType<typeof getServerOrganizationContext>>;
 
@@ -80,5 +85,45 @@ export async function GET(
     userId: result.user!.id,
     documentId,
     ...(requestId ? { requestId } : {}),
+  });
+}
+
+/** Edita título, coleção, versão da fonte e/ou substitui o conteúdo (DEC-054). */
+export async function PATCH(
+  req: NextRequest,
+  context: { params: Promise<{ documentId: string }> },
+): Promise<NextResponse> {
+  const { documentId } = await context.params;
+  return forwardKnowledgeManagement({
+    req,
+    documentId,
+    allowedRoles: ['OWNER', 'ADMIN', 'MANAGER'],
+    method: 'PATCH',
+    apiPath: `/v1/knowledge/documents/${documentId}`,
+    bodySchema: updateKnowledgeDocumentHttpBodySchema,
+    fallbackMessage: 'Não foi possível salvar o documento.',
+  });
+}
+
+/** Exclusão definitiva (só arquivado e sem agente). `expectedUpdatedAt` vem na query. */
+export async function DELETE(
+  req: NextRequest,
+  context: { params: Promise<{ documentId: string }> },
+): Promise<NextResponse> {
+  const { documentId } = await context.params;
+  const expected = req.nextUrl.searchParams.get('expectedUpdatedAt') ?? '';
+  if (!knowledgeLifecycleHttpBodySchema.safeParse({ expectedUpdatedAt: expected }).success) {
+    return NextResponse.json(
+      { error: 'Dados do documento inválidos.', code: 'VALIDATION_ERROR' },
+      { status: 400 },
+    );
+  }
+  return forwardKnowledgeManagement({
+    req,
+    documentId,
+    allowedRoles: ['OWNER', 'ADMIN'],
+    method: 'DELETE',
+    apiPath: `/v1/knowledge/documents/${documentId}?expectedUpdatedAt=${encodeURIComponent(expected)}`,
+    fallbackMessage: 'Não foi possível excluir o documento.',
   });
 }

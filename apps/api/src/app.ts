@@ -12,6 +12,7 @@ import { registerOutboundCampaignRoutes } from './routes/outbound-campaign-route
 import { registerOutboundBatchRoutes } from './routes/outbound-batch-routes.js';
 import { registerKnowledgeReadRoutes } from './routes/knowledge-read-routes.js';
 import { registerKnowledgeMutationRoutes } from './routes/knowledge-mutation-routes.js';
+import { registerKnowledgeManagementRoutes } from './routes/knowledge-management-routes.js';
 import { registerContactListRoutes } from './routes/contact-list-routes.js';
 import { registerContactSuppressionRoutes } from './routes/contact-suppression-routes.js';
 import { registerCampaignLifecycleRoutes } from './routes/campaign-lifecycle-routes.js';
@@ -86,6 +87,7 @@ export function createApp(deps: ApiDependencies): OpenAPIHono {
   registerOutboundBatchRoutes(app, deps);
   registerKnowledgeReadRoutes(app, deps);
   registerKnowledgeMutationRoutes(app, deps);
+  registerKnowledgeManagementRoutes(app, deps);
   registerContactListRoutes(app, deps);
   registerContactSuppressionRoutes(app, deps);
   registerCampaignLifecycleRoutes(app, deps);

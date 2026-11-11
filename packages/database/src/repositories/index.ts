@@ -32,6 +32,8 @@ export * from './knowledge-version-lock.js';
 export * from './knowledge-retrieval-scoring.js';
 export * from './knowledge-retrieval-service.js';
 export * from './knowledge-repository.js';
+export * from './knowledge-document-lock.js';
+export * from './knowledge-management-service.js';
 export * from './outbound-persistence-errors.js';
 export * from './call-attempt-mapping.js';
 export * from './durable-attempt-event-applier.js';

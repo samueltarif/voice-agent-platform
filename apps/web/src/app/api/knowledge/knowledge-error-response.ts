@@ -18,6 +18,17 @@ const SAFE_MESSAGES: Readonly<Record<string, string>> = {
   NOT_FOUND: 'Documento não encontrado.',
   CONFLICT: 'Documento em conflito com o conteúdo existente.',
   INVALID_STATE_TRANSITION: 'Transição de estado inválida para o documento.',
+  // DEC-054 — gestão de documentos.
+  KNOWLEDGE_STALE_UPDATE:
+    'O documento foi alterado depois que a lista foi carregada. Atualize a lista e tente de novo.',
+  KNOWLEDGE_NO_CHANGES: 'Nenhuma alteração para salvar.',
+  KNOWLEDGE_NOT_EDITABLE: 'Este documento não pode ser alterado no estado atual.',
+  KNOWLEDGE_PINNED_TO_AGENT_VERSION:
+    'Documento fixado a uma versão publicada de agente: só pode ser arquivado. Cadastre um novo documento para mudar o conteúdo.',
+  KNOWLEDGE_AGENT_UNAVAILABLE: 'Agente indisponível: escolha um agente ativo desta organização.',
+  KNOWLEDGE_NOT_RESTORABLE: 'Este documento não pode ser restaurado.',
+  KNOWLEDGE_DOCUMENT_IN_USE:
+    'Documento ainda associado a um agente ou a uma versão publicada. Restaure, remova a associação e arquive de novo antes de excluir.',
 };
 
 function resolveStatus(status: unknown): number {
