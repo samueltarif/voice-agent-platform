@@ -7,7 +7,7 @@ LAST_REFRESHED_AT: 2026-11-06
 CONTEXT_BASE_MAIN_SHA: 0561f39eb221bbe5c00ff646f436afdf7c0db330
 CURRENT_PHASE: Phase 8 (OUTBOUND_FIRST_TWO_TRACK_PLANNING)
 CURRENT_SLICE: 008-OF5 offline integration (DEC-052): S2 Twilio outbound <Dial><Sip> adapter, S3 Millis SIP session adapter and S4 offline orchestration under review (dependent PRs); 008-MVP3 mapping and 008-OF6 preflight follow in dependent PRs; real calls, spend and public webhooks blocked
-CONTEXT_UPDATE_BRANCH: feat/phase8-s4-offline-orchestration
+CONTEXT_UPDATE_BRANCH: feat/phase8-mvp3-millis-agent-mapping
 CONTEXT_UPDATE_PR: PENDING
 LAST_MERGED_PR_AT_REFRESH: 149
 LAST_MERGE_SHA_AT_REFRESH: 0561f39eb221bbe5c00ff646f436afdf7c0db330
@@ -273,7 +273,8 @@ AI_CONTEXT_HEADER_END
 - **S2 Twilio outbound (DEC-052)**: adaptador `packages/integrations/src/twilio-outbound/` desativado por padrão, sem composição de runtime; Millis (S3), orquestração (S4), mapeamento (008-MVP3) e preflight (008-OF6) em PRs dependentes.
 - **S3 Millis (DEC-052)**: adaptador `packages/integrations/src/millis/` desativado por padrão; resposta de `register_sip_call` `BLOCKED_BY_PROVIDER_CONTRACT` (ver `docs/research/PHASE_8_PROVIDER_CONTRACT_VERIFICATION.md`).
 - **S4 orquestração (DEC-052)**: `apps/worker/src/outbound-session-*` + E2E offline em `packages/integrations/src/outbound-e2e/`; validade desconhecida da sessão é recusada por padrão (nenhuma chamada sem decisão D-REG-TIMING ou resposta da Millis); persistência durável de sessão/token/pernas exige migration não autorizada.
-- `NEXT_ALLOWED_STEP = WINDOWS_GATE_AND_MANUAL_MERGE_OF_S2_S3_S4_PRS_IN_ORDER` (teste visual do simulador ainda depende de decisão humana; roteiro Windows proposto: banco descartável, migrations e conta local exigem autorização explícita; alterações de código de produção, validação em navegador com migrations ou contas, cartão de descontos, B, conectores, D5–D7, D9, AS1c, AS2, AS4 e S2/S3/S4 da telefonia continuam sem autorização).
+- **008-MVP3 mapeamento (DEC-052)**: `mapPublishedAgentToMillis` (só `prompt`, `first_message`, `language`, `session_timeout`); ferramentas `NOT_EXPOSED`; es-ES recusado; resolvedor server-side por organização + versão publicada.
+- `NEXT_ALLOWED_STEP = WINDOWS_GATE_AND_MANUAL_MERGE_OF_S2_S3_S4_MVP3_PRS_IN_ORDER` (teste visual do simulador ainda depende de decisão humana; roteiro Windows proposto: banco descartável, migrations e conta local exigem autorização explícita; alterações de código de produção, validação em navegador com migrations ou contas, cartão de descontos, B, conectores, D5–D7, D9, AS1c, AS2, AS4 e S2/S3/S4 da telefonia continuam sem autorização).
 - `NEXT_ALLOWED_SLICE = HUMAN_DECISION_REQUIRED` (trilha 008-MVP1 a 008-MVP4 concluída; 008-OF5, 008-MVP3 e 008-OF6 dependem de H1; remoção de supressões depende de H2; evidência de consentimento depende de H3).
 - `PURCHASE_OF_PHONE_NUMBERS = 0` | `REAL_PROVIDER_CALLS = 0` | `CUSTOMER_TRAFFIC = PROHIBITED` | `ACTIVE_GUARDED = BLOCKED`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.
