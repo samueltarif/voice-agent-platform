@@ -9,6 +9,7 @@ import { CommandPaletteDialog } from '../features/command-palette/command-palett
 import { useCommandPaletteHotkey } from '../features/command-palette/use-command-palette-hotkey';
 
 import type { OrganizationSummary } from './organization-switcher';
+import { useActiveOrganization } from './use-active-organization';
 
 interface TenantShellProps {
   readonly title: string;
@@ -25,41 +26,12 @@ export function TenantShell({
   organizations: propOrganizations,
   onSwitchOrg,
 }: TenantShellProps) {
-  const [currentOrg, setCurrentOrg] = React.useState<OrganizationSummary | null | undefined>(
+  const { currentOrg, organizations, nav } = useActiveOrganization(
     propCurrentOrg,
+    propOrganizations,
   );
-  const [organizations, setOrganizations] = React.useState<
-    readonly OrganizationSummary[] | undefined
-  >(propOrganizations);
   const [mobileDrawerOpen, setMobileDrawerOpen] = React.useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = React.useState(false);
-
-  React.useEffect(() => {
-    if (propCurrentOrg !== undefined) {
-      setCurrentOrg(propCurrentOrg);
-      setOrganizations(propOrganizations);
-      return;
-    }
-
-    let isMounted = true;
-    fetch('/api/organization/active')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (!isMounted || !data) return;
-        if (data.status === 'RESOLVED' && data.activeOrg) {
-          setCurrentOrg(data.activeOrg);
-          setOrganizations(data.availableOrgs || []);
-        } else if (data.status === 'NO_ORGANIZATIONS') {
-          setCurrentOrg(null);
-          setOrganizations([]);
-        }
-      })
-      .catch(() => {});
-
-    return () => {
-      isMounted = false;
-    };
-  }, [propCurrentOrg, propOrganizations]);
 
   const openCommandPalette = React.useCallback(() => {
     setCommandPaletteOpen(true);
@@ -70,7 +42,7 @@ export function TenantShell({
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
       {/* Persistent / Collapsible Desktop Sidebar */}
-      <DesktopSidebar currentOrg={currentOrg} />
+      <DesktopSidebar currentOrg={currentOrg} nav={nav} />
 
       {/* Main Content Area */}
       <div className="flex flex-1 flex-col overflow-hidden">
@@ -91,11 +63,7 @@ export function TenantShell({
       <MobileBottomNav onOpenMore={() => setMobileDrawerOpen(true)} />
 
       {/* Mobile Menu Drawer (Sheet) */}
-      <MobileMenuDrawer
-        open={mobileDrawerOpen}
-        onOpenChange={setMobileDrawerOpen}
-        currentOrg={currentOrg}
-      />
+      <MobileMenuDrawer open={mobileDrawerOpen} onOpenChange={setMobileDrawerOpen} nav={nav} />
 
       {/* Global Command Palette */}
       <CommandPaletteDialog open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} />

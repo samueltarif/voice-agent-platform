@@ -2,7 +2,8 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { Activity, BookOpen, Bot, Radio, Settings, Shield, Users } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { Radio, Settings, Shield } from 'lucide-react';
 import {
   Badge,
   Separator,
@@ -12,106 +13,87 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@voice-agent/ui';
-import type { OrganizationSummary } from './organization-switcher';
+import { NOT_IMPLEMENTED_BADGE, orgNavItems, type NavOrgContext } from './org-nav-item';
+import type { SidebarNavItem } from './sidebar-link-item';
 import { MobileMenuPreferences } from './mobile-menu-preferences';
 
 interface MobileMenuDrawerProps {
   readonly open: boolean;
   readonly onOpenChange: (open: boolean) => void;
-  readonly currentOrg?: OrganizationSummary | null | undefined;
+  readonly nav: NavOrgContext;
 }
 
-function OrgModuleLink({
-  slug,
-  segment,
-  label,
-  icon,
+function UnavailableModule({ item }: { readonly item: SidebarNavItem }) {
+  const Icon = item.icon;
+  return (
+    <div
+      aria-disabled="true"
+      className="flex items-center justify-between p-2 rounded-md text-sm text-muted-foreground"
+    >
+      <span className="flex items-center gap-2">
+        <Icon className="h-4 w-4" aria-hidden /> {item.title}
+      </span>
+      <Badge variant="outline" className="text-[10px]">
+        {item.badge}
+      </Badge>
+    </div>
+  );
+}
+
+function ModuleLink({
+  item,
   onOpenChange,
 }: {
-  readonly slug?: string | undefined;
-  readonly segment: string;
-  readonly label: string;
-  readonly icon: React.ReactNode;
+  readonly item: SidebarNavItem;
   readonly onOpenChange: (open: boolean) => void;
 }) {
-  if (!slug) {
-    return (
-      <div className="flex items-center justify-between p-2 rounded-md hover:bg-accent text-sm text-muted-foreground">
-        <span className="flex items-center gap-2">
-          {icon} {label}
-        </span>
-        <Badge variant="outline" className="text-[10px]">
-          Em breve
-        </Badge>
-      </div>
-    );
-  }
+  if (item.disabled) return <UnavailableModule item={item} />;
+  const Icon = item.icon;
   return (
     <Link
-      href={`/orgs/${slug}/${segment}`}
+      href={item.href}
       onClick={() => onOpenChange(false)}
+      aria-current={item.active ? 'page' : undefined}
       className="flex items-center justify-between p-2 rounded-md hover:bg-accent text-sm text-foreground"
     >
       <span className="flex items-center gap-2">
-        <span className="text-primary flex items-center">{icon}</span> {label}
+        <Icon className="h-4 w-4 text-primary" aria-hidden /> {item.title}
       </span>
     </Link>
   );
 }
 
-function MobileMenuModules({
-  currentOrg,
+/** Mesmos módulos, rótulos e motivos do menu desktop (fonte única: `org-nav-item`). */
+export function MobileMenuModules({
+  nav,
+  pathname,
   onOpenChange,
 }: {
-  readonly currentOrg?: OrganizationSummary | null | undefined;
+  readonly nav: NavOrgContext;
+  readonly pathname: string;
   readonly onOpenChange: (open: boolean) => void;
 }) {
+  const settings: SidebarNavItem = {
+    title: 'Configurações',
+    href: '#',
+    icon: Settings,
+    disabled: true,
+    badge: NOT_IMPLEMENTED_BADGE,
+  };
   return (
     <div className="space-y-1">
       <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-2">
         Módulos
       </span>
-      <OrgModuleLink
-        slug={currentOrg?.slug}
-        segment="campaigns"
-        label="Campanhas"
-        icon={<Activity className="h-4 w-4" />}
-        onOpenChange={onOpenChange}
-      />
-      <OrgModuleLink
-        slug={currentOrg?.slug}
-        segment="contacts"
-        label="Contatos"
-        icon={<Users className="h-4 w-4" />}
-        onOpenChange={onOpenChange}
-      />
-      <OrgModuleLink
-        slug={currentOrg?.slug}
-        segment="agents"
-        label="Agente IA"
-        icon={<Bot className="h-4 w-4" />}
-        onOpenChange={onOpenChange}
-      />
-      <OrgModuleLink
-        slug={currentOrg?.slug}
-        segment="knowledge"
-        label="Base de Conhecimento"
-        icon={<BookOpen className="h-4 w-4" />}
-        onOpenChange={onOpenChange}
-      />
-      <div className="flex items-center justify-between p-2 rounded-md hover:bg-accent text-sm text-muted-foreground">
-        <span className="flex items-center gap-2">
-          <Settings className="h-4 w-4" /> Configurações
-        </span>
-        <Badge variant="outline" className="text-[10px]">
-          Em breve
-        </Badge>
-      </div>
+      {[...orgNavItems(nav, pathname), settings].map((item) => (
+        <ModuleLink key={item.title} item={item} onOpenChange={onOpenChange} />
+      ))}
     </div>
   );
 }
 
-export function MobileMenuDrawer({ open, onOpenChange, currentOrg }: MobileMenuDrawerProps) {
+export function MobileMenuDrawer({ open, onOpenChange, nav }: MobileMenuDrawerProps) {
+  const pathname = usePathname();
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-[85vw] max-w-sm flex flex-col p-6 overflow-y-auto">
@@ -128,7 +110,7 @@ export function MobileMenuDrawer({ open, onOpenChange, currentOrg }: MobileMenuD
         </SheetHeader>
 
         <div className="flex-1 py-4 space-y-4">
-          <MobileMenuModules currentOrg={currentOrg} onOpenChange={onOpenChange} />
+          <MobileMenuModules nav={nav} pathname={pathname} onOpenChange={onOpenChange} />
           <Separator />
           <div className="space-y-1">
             <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-2">
@@ -143,7 +125,7 @@ export function MobileMenuDrawer({ open, onOpenChange, currentOrg }: MobileMenuD
                 <Shield className="h-4 w-4 text-primary" /> Platform Control Plane
               </span>
               <Badge variant="outline" className="text-[10px]">
-                Preview
+                Demonstração
               </Badge>
             </Link>
           </div>
@@ -156,7 +138,7 @@ export function MobileMenuDrawer({ open, onOpenChange, currentOrg }: MobileMenuD
             <span className="h-2 w-2 rounded-full bg-amber-500 shrink-0" />
             <span>Telefonia: Provider não conectado</span>
           </div>
-          <div className="text-[11px]">Multi-tenant • Workspace Demo</div>
+          <div className="text-[11px]">Ambiente offline · sem discagem real</div>
         </div>
       </SheetContent>
     </Sheet>
