@@ -8,6 +8,7 @@ import { KnowledgeFilterBar } from './knowledge-filter-bar';
 import { KnowledgeDocumentTable } from './knowledge-document-table';
 import { KnowledgeDocumentCard } from './knowledge-document-card';
 import { KnowledgePagination } from './knowledge-pagination';
+import type { KnowledgeManageProps } from './knowledge-row-actions-menu';
 
 export type { KnowledgeFilters } from './knowledge-document-list-types';
 
@@ -22,6 +23,8 @@ interface ListProps {
   readonly onPageChange: (nextOffset: number) => void;
   readonly onAdd: () => void;
   readonly onArchive: (doc: KnowledgeDocumentResponse) => void;
+  /** Gestão completa (DEC-054); sem ela a lista mantém só o arquivamento. */
+  readonly manage?: KnowledgeManageProps | undefined;
 }
 
 function EmptyState({
@@ -109,6 +112,7 @@ export function KnowledgeDocumentList(props: ListProps) {
     onPageChange,
     onAdd,
     onArchive,
+    manage,
   } = props;
   const filtered = filters.status !== '' || filters.collection !== '';
   // A API não retorna total: "próxima" habilita quando a página veio cheia.
@@ -136,6 +140,7 @@ export function KnowledgeDocumentList(props: ListProps) {
             documents={documents}
             canArchive={canArchive}
             onArchive={onArchive}
+            manage={manage}
           />
           <ul className="lg:hidden space-y-3" aria-label="Documentos da base de conhecimento">
             {documents.map((d) => (
@@ -144,6 +149,7 @@ export function KnowledgeDocumentList(props: ListProps) {
                 doc={d}
                 canArchive={canArchive}
                 onArchive={onArchive}
+                manage={manage}
               />
             ))}
           </ul>

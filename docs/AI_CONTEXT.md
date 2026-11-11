@@ -3,14 +3,14 @@
 <!--
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
-LAST_REFRESHED_AT: 2026-11-06
-CONTEXT_BASE_MAIN_SHA: 9cdd9e58fe4231b1394a1803bcc4632192728fa7
+LAST_REFRESHED_AT: 2026-11-11
+CONTEXT_BASE_MAIN_SHA: 0561f39eb221bbe5c00ff646f436afdf7c0db330
 CURRENT_PHASE: Phase 8 (OUTBOUND_FIRST_TWO_TRACK_PLANNING)
-CURRENT_SLICE: Security fix F1 merged (PR #148, DEC-051); tests-only follow-up for review findings NB-1/NB-2 under review; discount card deferred; S2/S3/S4 not authorized
-CONTEXT_UPDATE_BRANCH: test/web-f1-dynamic-paths-and-precedence
+CURRENT_SLICE: Knowledge Base document management (DEC-054: edit, agent association, restore, safe delete, audit) in review; PRs #150-#155 open and unchanged; discount card deferred
+CONTEXT_UPDATE_BRANCH: feat/knowledge-base-management
 CONTEXT_UPDATE_PR: PENDING
-LAST_MERGED_PR_AT_REFRESH: 148
-LAST_MERGE_SHA_AT_REFRESH: 9cdd9e58fe4231b1394a1803bcc4632192728fa7
+LAST_MERGED_PR_AT_REFRESH: 149
+LAST_MERGE_SHA_AT_REFRESH: 0561f39eb221bbe5c00ff646f436afdf7c0db330
 LAST_TESTED_CODE_SHA: QUERY_GIT_AT_RUNTIME
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
@@ -173,7 +173,7 @@ AI_CONTEXT_HEADER_END
 20. `KNOWLEDGE_BASE_PERSISTENCE = IMPLEMENTED` (`packages/database/src/schema/knowledge.ts`: `knowledge_documents` e `knowledge_chunks` tenant-scoped, forward-only migrations `0004_ordinary_charles_xavier.sql` e `0006_peaceful_thunderbolt.sql`).
 21. `KNOWLEDGE_BASE_INGESTION_RUNTIME = IMPLEMENTED_LOCAL_TRUSTED_TEXT` (`packages/database/src/repositories/knowledge-ingestion-service.ts`: ingestão transacional atômica de texto confiável local, normalização determinística NFC, identidade estável SHA-256, lifecycle).
 22. `KNOWLEDGE_BASE_RETRIEVAL_RUNTIME = IMPLEMENTED_LEXICAL_OFFLINE` (`packages/database/src/repositories/knowledge-retrieval-service.ts`: retrieval léxico offline limitado, filtragem de tenant e escopo de acesso no DB, ranking determinístico, proveniência e citações sem segredos).
-23. `KNOWLEDGE_BASE_API_MANAGEMENT = IMPLEMENTED` (`apps/api`: rotas REST sob `/v1/knowledge/documents` com RBAC dedicado `knowledge.read`, `knowledge.ingest`, `knowledge.archive` — DEC-039; PR #112).
+23. `KNOWLEDGE_BASE_API_MANAGEMENT = IMPLEMENTED` (`apps/api`: rotas REST sob `/v1/knowledge/documents` com RBAC dedicado `knowledge.read`, `knowledge.ingest`, `knowledge.archive` — DEC-039; PR #112). `KNOWLEDGE_DOCUMENT_MANAGEMENT = IMPLEMENTED_IN_REVIEW` (DEC-054, branch `feat/knowledge-base-management`): `PATCH /v1/knowledge/documents/{id}`, `PUT .../{id}/agent`, `POST .../{id}/restore`, `DELETE .../{id}?expectedUpdatedAt=`; concorrência otimista, auditoria em `audit_logs`, documento fixado a versão só arquiva, exclusão só arquivado e sem agente; `KNOWLEDGE_CONSUMED_IN_CALLS = NO` (`catalog.search`/`catalog.item_detail` leem `catalog_items`; o handoff de voz não está na composição; o mapeamento Millis da #153 não envia conhecimento).
 24. `KNOWLEDGE_BASE_STUDIO_UI_BFF = IMPLEMENTED` (`apps/web`: interface Agent Studio e rotas BFF `/api/knowledge-documents` com asserções criptográficas Ed25519, concorrência otimista `If-Match`/`ETag` e condicional DB update, blindagem CSRF fail-closed para `X-Forwarded-Host` e consistência multi-aba; PR #113).
 25. `AGENT_VERSION_DRAFT_DISCARD = IMPLEMENTED` (`apps/api`, `packages/database`: descarte atômico de draft via `POST /v1/agents/:agentId/versions/draft/discard` preservando imutabilidade de versões publicadas — DEC-040; PR #107).
 26. `SEMANTIC_VECTOR_RETRIEVAL = NOT_IMPLEMENTED` | `REAL_EMBEDDING_PROVIDER = NOT_IMPLEMENTED` | `VECTOR_STORAGE_PROVIDER = NOT_BOUND` | `PRODUCTION_RAG_GENERATION = NOT_IMPLEMENTED`.

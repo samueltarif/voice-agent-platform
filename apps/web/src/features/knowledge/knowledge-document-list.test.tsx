@@ -8,7 +8,10 @@ describe('KnowledgeDocumentList', () => {
     expect(html).toContain('Pronto');
     expect(html).toContain('Política');
     expect(html).toContain('suporte');
-    expect(html).toContain('Sem agente associado');
+    // TEST_CHANGE_REASON = AGENT_LABEL_MATCHES_RETRIEVAL_SCOPE_DEC054 (ASSERTION_EQUIVALENT):
+    // sem agente o documento é consultável por TODOS os agentes; o rótulo antigo dizia o oposto.
+    expect(html).toContain('Todos os agentes');
+    expect(html).not.toContain('Sem agente associado');
     expect(html).toContain('13/10/2026');
     expect(html).toContain('kb-row-22222222-2222-2222-2222-222222222222');
     expect(html).toContain('kb-card-22222222-2222-2222-2222-222222222222');
@@ -21,7 +24,8 @@ describe('KnowledgeDocumentList', () => {
       canArchive: false,
     });
     expect(html).toContain('aaaaaaaa');
-    expect(html).not.toContain('Sem agente associado');
+    // TEST_CHANGE_REASON = AGENT_LABEL_MATCHES_RETRIEVAL_SCOPE_DEC054 (ASSERTION_EQUIVALENT).
+    expect(html).not.toContain('Todos os agentes');
   });
 
   it('hides archive actions when canArchive is false (MANAGER view)', () => {

@@ -100,7 +100,7 @@ function registerArchiveRoute(app: OpenAPIHono, deps: ApiDependencies): void {
         throw err;
       }
 
-      const archived = await repo.archiveDocument(auth.orgId, documentId);
+      const archived = await repo.archiveDocument(auth.orgId, documentId, auth.sub);
       return c.json(toKnowledgeDocumentDto(archived), 200);
     },
   );

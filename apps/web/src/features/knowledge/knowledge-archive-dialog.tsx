@@ -83,7 +83,8 @@ export function KnowledgeArchiveDialog({
             <span>Arquivar documento</span>
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground pt-2">
-            O documento será marcado como arquivado. Esta ação não pode ser desfeita por esta tela.
+            O documento será marcado como arquivado. Você poderá restaurá-lo depois pelo menu do
+            documento.
           </DialogDescription>
         </DialogHeader>
         <p className="py-2 text-xs text-foreground">

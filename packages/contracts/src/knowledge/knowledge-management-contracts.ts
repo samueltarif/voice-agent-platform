@@ -88,5 +88,10 @@ export interface KnowledgeRepositoryPort {
     organizationId: string,
     options?: ListKnowledgeDocumentsOptions,
   ): Promise<KnowledgeDocument[]>;
-  archiveDocument(organizationId: string, documentId: string): Promise<KnowledgeDocument>;
+  /** `actorId` presente: grava auditoria na mesma transação do arquivamento. */
+  archiveDocument(
+    organizationId: string,
+    documentId: string,
+    actorId?: string,
+  ): Promise<KnowledgeDocument>;
 }
