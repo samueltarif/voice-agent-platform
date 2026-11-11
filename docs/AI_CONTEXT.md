@@ -4,10 +4,10 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-11-06
-CONTEXT_BASE_MAIN_SHA: 9cdd9e58fe4231b1394a1803bcc4632192728fa7
+CONTEXT_BASE_MAIN_SHA: 0561f39eb221bbe5c00ff646f436afdf7c0db330
 CURRENT_PHASE: Phase 8 (OUTBOUND_FIRST_TWO_TRACK_PLANNING)
-CURRENT_SLICE: Security fix F1 merged (PR #148, DEC-051); tests-only follow-up for review findings NB-1/NB-2 under review; discount card deferred; S2/S3/S4 not authorized
-CONTEXT_UPDATE_BRANCH: test/web-f1-dynamic-paths-and-precedence
+CURRENT_SLICE: Web navigation to real modules with explicit context states (DEC-053) under review; offline Twilio+Millis chain #150-#154 (DEC-052) awaiting Windows gate; discount card deferred
+CONTEXT_UPDATE_BRANCH: fix/web-nav-real-modules
 CONTEXT_UPDATE_PR: PENDING
 LAST_MERGED_PR_AT_REFRESH: 148
 LAST_MERGE_SHA_AT_REFRESH: 9cdd9e58fe4231b1394a1803bcc4632192728fa7
@@ -269,7 +269,8 @@ AI_CONTEXT_HEADER_END
 - **Revisão de segurança do simulador (2026-11-06)**: sessão, RBAC (`canReadAgentConfig` + `agent.config.read` na API) e isolamento por organização confirmados; HTML não contém IDs, persona, regras, desconto nem a configuração não selecionada (sonda descartável). **F1 (baixa, preexistente)**: `agentId`/`versionId` vindos da URL ou da query não são validados nem codificados antes de compor o caminho da API interna; o Next decodifica `%2F`, permitindo `..` no caminho (alcance limitado às rotas que o próprio usuário já pode acessar, todas com `authorizeTenant`). Correção proposta, não implementada.
 - **PR #148 Status (correção F1, DEC-051)**: `MERGED ON MAIN` (merge commit `9cdd9e58fe4231b1394a1803bcc4632192728fa7`, pais `2bcddd0` e `dc0f002`, árvore idêntica a `dc0f002`). Gates pré-merge Linux e Windows PASS (1.897/45/0); gate pós-merge Linux PASS (1.897/45/0, 12/12). Revisão estática feita depois do merge: 0 BLOCKER, 5 NON_BLOCKER, 4 RESIDUAL_RISK; decisão humana: não reverter e complementar NB-1/NB-2 com PR somente de testes.
 - **Conteúdo da correção F1 (DEC-051)**: `agentId`/`versionId` validados como UUID do contrato antes de montar caminho (inválido ⇒ não encontrado, sem chamada à API, sem eco no redirecionamento); caminhos dinâmicos por `internalApiPath`; clientes internos recusam caminho que seria normalizado ou sairia da origem. Gravidade reavaliada para **média** após auditoria dos destinos (sem acesso a outra organização; `/v1/me/*` recusa a assertion de tenant por audiência).
-- `NEXT_ALLOWED_STEP = WINDOWS_GATE_AND_MANUAL_MERGE_OF_F1_TESTS_PR` (alterações de código de produção, validação em navegador com migrations ou contas, cartão de descontos, B, conectores, D5–D7, D9, AS1c, AS2, AS4 e S2/S3/S4 da telefonia continuam sem autorização).
+- **Navegação web (DEC-053)**: lista única de módulos (`apps/web/src/shell/org-nav-item.ts`) para desktop e mobile; sem organização resolvida o motivo aparece (Carregando…, Entre para acessar, Sem organização, Organização indisponível); "Em breve" só em Configurações. O checkout principal do operador estava em `63e0f2f` (#123), anterior a todas essas páginas.
+- `NEXT_ALLOWED_STEP = WINDOWS_GATE_AND_MANUAL_MERGE_OF_WEB_NAV_PR_AND_PRS_150_154` (alterações de código de produção, validação em navegador com migrations ou contas, cartão de descontos, B, conectores, D5–D7, D9, AS1c, AS2, AS4 e S2/S3/S4 da telefonia continuam sem autorização).
 - `NEXT_ALLOWED_SLICE = HUMAN_DECISION_REQUIRED` (trilha 008-MVP1 a 008-MVP4 concluída; 008-OF5, 008-MVP3 e 008-OF6 dependem de H1; remoção de supressões depende de H2; evidência de consentimento depende de H3).
 - `PURCHASE_OF_PHONE_NUMBERS = 0` | `REAL_PROVIDER_CALLS = 0` | `CUSTOMER_TRAFFIC = PROHIBITED` | `ACTIVE_GUARDED = BLOCKED`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.

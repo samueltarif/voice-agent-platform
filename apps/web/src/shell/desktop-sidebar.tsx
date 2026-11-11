@@ -3,9 +3,6 @@
 import * as React from 'react';
 import { usePathname } from 'next/navigation';
 import {
-  Activity,
-  BookOpen,
-  Bot,
   ChevronLeft,
   ChevronRight,
   Headphones,
@@ -13,7 +10,6 @@ import {
   Radio,
   Settings,
   ShieldAlert,
-  Users,
 } from 'lucide-react';
 import {
   Button,
@@ -25,7 +21,12 @@ import {
 } from '@voice-agent/ui';
 import { useUiPreferences } from '../preferences/ui-preferences-context';
 import { SidebarLinkItem, type SidebarNavItem } from './sidebar-link-item';
-import { orgNavItem } from './org-nav-item';
+import {
+  initialNavOrgState,
+  NOT_IMPLEMENTED_BADGE,
+  orgNavItems,
+  type NavOrgContext,
+} from './org-nav-item';
 import type { OrganizationSummary } from './organization-switcher';
 
 function SidebarBrandHeader({
@@ -97,7 +98,7 @@ function SidebarFooterStatus({ collapsed }: { readonly collapsed: boolean }) {
         </div>
       </div>
       <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
-        <span className="truncate">Workspace Demo</span>
+        <span className="truncate">Ambiente offline · sem discagem real</span>
         <span className="text-[10px] text-primary">v0.1</span>
       </div>
     </div>
@@ -106,14 +107,15 @@ function SidebarFooterStatus({ collapsed }: { readonly collapsed: boolean }) {
 
 export interface DesktopSidebarProps {
   readonly currentOrg?: OrganizationSummary | null | undefined;
+  readonly nav?: NavOrgContext | undefined;
 }
 
-export function DesktopSidebar({ currentOrg }: DesktopSidebarProps = {}) {
+export function DesktopSidebar({ currentOrg, nav }: DesktopSidebarProps = {}) {
   const pathname = usePathname();
   const { sidebarCollapsed, toggleSidebar } = useUiPreferences();
 
   const navItems: readonly SidebarNavItem[] = React.useMemo(() => {
-    const slug = currentOrg?.slug;
+    const context = nav ?? { state: initialNavOrgState(currentOrg), slug: currentOrg?.slug };
     return [
       {
         title: 'Dashboard',
@@ -122,17 +124,16 @@ export function DesktopSidebar({ currentOrg }: DesktopSidebarProps = {}) {
         active: pathname === '/dashboard',
       },
       { title: 'Chamadas', href: '/calls', icon: Headphones, active: pathname === '/calls' },
-      orgNavItem({ title: 'Campanhas', segment: 'campaigns', icon: Activity }, slug, pathname),
-      orgNavItem({ title: 'Contatos', segment: 'contacts', icon: Users }, slug, pathname),
-      orgNavItem({ title: 'Agente IA', segment: 'agents', icon: Bot }, slug, pathname),
-      orgNavItem(
-        { title: 'Base de Conhecimento', segment: 'knowledge', icon: BookOpen },
-        slug,
-        pathname,
-      ),
-      { title: 'Configurações', href: '#', icon: Settings, badge: 'Em breve', disabled: true },
+      ...orgNavItems(context, pathname),
+      {
+        title: 'Configurações',
+        href: '#',
+        icon: Settings,
+        badge: NOT_IMPLEMENTED_BADGE,
+        disabled: true,
+      },
     ];
-  }, [pathname, currentOrg?.slug]);
+  }, [pathname, currentOrg, nav]);
 
   return (
     <aside

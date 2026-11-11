@@ -27,7 +27,8 @@ export function MobileBottomNav({ onOpenMore }: MobileBottomNavProps) {
       active: pathname === '/calls',
     },
     {
-      label: 'Platform',
+      label: 'Demo',
+      ariaLabel: 'Plataforma — demonstração com dados fictícios',
       href: '/platform',
       icon: Shield,
       active: pathname === '/platform',
@@ -45,6 +46,8 @@ export function MobileBottomNav({ onOpenMore }: MobileBottomNavProps) {
           <Link
             key={item.label}
             href={item.href}
+            aria-label={'ariaLabel' in item ? item.ariaLabel : undefined}
+            aria-current={item.active ? 'page' : undefined}
             className={cn(
               'flex flex-col items-center justify-center min-h-[44px] min-w-[44px] flex-1 py-1 rounded-md text-xs font-medium transition-colors',
               item.active
@@ -52,7 +55,7 @@ export function MobileBottomNav({ onOpenMore }: MobileBottomNavProps) {
                 : 'text-muted-foreground hover:text-foreground',
             )}
           >
-            <Icon className="h-5 w-5 mb-1" />
+            <Icon className="h-5 w-5 mb-1" aria-hidden />
             <span className="text-[11px] leading-tight">{item.label}</span>
           </Link>
         );

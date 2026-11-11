@@ -57,11 +57,14 @@ export function SidebarLinkItem({
     <Link
       href={item.disabled ? '#' : item.href}
       className={getSidebarItemClass(item.active, item.disabled, collapsed)}
+      aria-disabled={item.disabled ? true : undefined}
+      aria-current={item.active ? 'page' : undefined}
+      aria-label={item.badge ? `${item.title} (${item.badge})` : undefined}
       onClick={(e) => {
         if (item.disabled) e.preventDefault();
       }}
     >
-      <Icon className="h-4 w-4 shrink-0" />
+      <Icon className="h-4 w-4 shrink-0" aria-hidden />
       {collapsed ? null : <SidebarLinkContent title={item.title} badge={item.badge} />}
     </Link>
   );
