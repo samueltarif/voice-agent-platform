@@ -8,6 +8,7 @@ import {
   DrizzleKnowledgeManagementService,
   DrizzleKnowledgeRepository,
   DrizzleKnowledgeRetrievalService,
+  deleteKnowledgeChunksByDocumentId,
   getKnowledgeChunksByDocumentId,
   ingestKnowledgeDocument,
 } from './repositories/index.js';
@@ -295,6 +296,16 @@ describe('Knowledge management (DEC-054 integration)', () => {
       'knowledge.document_archived',
       'knowledge.document_restored',
     ]);
+  });
+
+  it('refuses to restore an archived document whose content is gone', async () => {
+    const doc = await ingest();
+    const archived = await repo.archiveDocument(orgA, doc.id, actorId);
+    await deleteKnowledgeChunksByDocumentId(db, orgA, doc.id);
+    await expect(management.restoreDocument(actor(archived))).rejects.toMatchObject({
+      code: 'KNOWLEDGE_NOT_RESTORABLE',
+    });
+    expect((await repo.getDocumentById(orgA, doc.id))!.status).toBe('ARCHIVED');
   });
 
   it('keeps archive without actor unaudited (existing callers unchanged)', async () => {
