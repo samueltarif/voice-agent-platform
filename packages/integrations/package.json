@@ -19,7 +19,8 @@
     "@voice-agent/logger": "workspace:*"
   },
   "devDependencies": {
-    "@voice-agent/voice": "workspace:*"
+    "@voice-agent/voice": "workspace:*",
+    "@voice-agent/worker": "workspace:*"
   },
   "scripts": {
     "build": "tsc",

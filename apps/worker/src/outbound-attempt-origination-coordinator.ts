@@ -65,6 +65,14 @@ export class OutboundAttemptOriginationCoordinator {
     return { kind: 'PREPARED', attempt: intent.attempt };
   }
 
+  getAttempt(ref: AttemptRef): OutboundAttempt | null {
+    return this.deps.store.get(ref.organizationId, ref.attemptId);
+  }
+  /** Cancela uma tentativa ainda não enviada (S4: sessão indisponível ou recusada). */
+  cancelBeforeSend(ref: AttemptRef): Promise<StepResult> {
+    return this.step(ref, 'CANCEL_REQUESTED');
+  }
+
   /** Write-ahead: o envio é registrado ANTES de qualquer chamada à porta. */
   markSendStarted(ref: AttemptRef): Promise<StepResult> {
     return this.step(ref, 'SEND_STARTED', { authorityId: this.deps.authorityId });
