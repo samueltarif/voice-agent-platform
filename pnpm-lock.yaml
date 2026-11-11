@@ -363,6 +363,9 @@ importers:
       '@voice-agent/voice':
         specifier: workspace:*
         version: link:../../apps/voice
+      '@voice-agent/worker':
+        specifier: workspace:*
+        version: link:../../apps/worker
 
   packages/logger: {}
 
