@@ -4,13 +4,13 @@
 AI_CONTEXT_HEADER_START
 CONTEXT_SCHEMA_VERSION: 1.1.0
 LAST_REFRESHED_AT: 2026-11-06
-CONTEXT_BASE_MAIN_SHA: 9cdd9e58fe4231b1394a1803bcc4632192728fa7
+CONTEXT_BASE_MAIN_SHA: 0561f39eb221bbe5c00ff646f436afdf7c0db330
 CURRENT_PHASE: Phase 8 (OUTBOUND_FIRST_TWO_TRACK_PLANNING)
-CURRENT_SLICE: Security fix F1 merged (PR #148, DEC-051); tests-only follow-up for review findings NB-1/NB-2 under review; discount card deferred; S2/S3/S4 not authorized
-CONTEXT_UPDATE_BRANCH: test/web-f1-dynamic-paths-and-precedence
+CURRENT_SLICE: 008-OF5 offline integration (DEC-052): S2 Twilio outbound <Dial><Sip> adapter under review; S3/S4, 008-MVP3 mapping and 008-OF6 preflight follow in dependent PRs; real calls, spend and public webhooks blocked
+CONTEXT_UPDATE_BRANCH: feat/phase8-s2-twilio-outbound-sip
 CONTEXT_UPDATE_PR: PENDING
-LAST_MERGED_PR_AT_REFRESH: 148
-LAST_MERGE_SHA_AT_REFRESH: 9cdd9e58fe4231b1394a1803bcc4632192728fa7
+LAST_MERGED_PR_AT_REFRESH: 149
+LAST_MERGE_SHA_AT_REFRESH: 0561f39eb221bbe5c00ff646f436afdf7c0db330
 LAST_TESTED_CODE_SHA: QUERY_GIT_AT_RUNTIME
 CONTEXT_STATUS_AT_REFRESH: CURRENT
 CONTEXT_RECONSTRUCTED_FROM_EVIDENCE: YES
@@ -268,8 +268,10 @@ AI_CONTEXT_HEADER_END
 - **PR #147 Status**: `MERGED ON MAIN` (merge commit `2bcddd0bd8b484369cf4683f87131e15847b004f`, árvore idêntica a `57d3564`), mesclada **antes** do gate Windows; validação Windows posterior PASS (1.872/45/0) e gate pós-merge Linux PASS (1.872/45/0). Simulador disponível em `/orgs/[orgSlug]/agents/[agentId]/simulador`; validação em navegador real ainda pendente (roteiro entregue ao operador).
 - **Revisão de segurança do simulador (2026-11-06)**: sessão, RBAC (`canReadAgentConfig` + `agent.config.read` na API) e isolamento por organização confirmados; HTML não contém IDs, persona, regras, desconto nem a configuração não selecionada (sonda descartável). **F1 (baixa, preexistente)**: `agentId`/`versionId` vindos da URL ou da query não são validados nem codificados antes de compor o caminho da API interna; o Next decodifica `%2F`, permitindo `..` no caminho (alcance limitado às rotas que o próprio usuário já pode acessar, todas com `authorizeTenant`). Correção proposta, não implementada.
 - **PR #148 Status (correção F1, DEC-051)**: `MERGED ON MAIN` (merge commit `9cdd9e58fe4231b1394a1803bcc4632192728fa7`, pais `2bcddd0` e `dc0f002`, árvore idêntica a `dc0f002`). Gates pré-merge Linux e Windows PASS (1.897/45/0); gate pós-merge Linux PASS (1.897/45/0, 12/12). Revisão estática feita depois do merge: 0 BLOCKER, 5 NON_BLOCKER, 4 RESIDUAL_RISK; decisão humana: não reverter e complementar NB-1/NB-2 com PR somente de testes.
+- **PR #149 Status (testes NB-1/NB-2 da F1)**: `MERGED ON MAIN` por merge manual do operador (merge commit `0561f39eb221bbe5c00ff646f436afdf7c0db330`, pais `9cdd9e5` e `a34349d`, árvore idêntica a `a34349d`). Gates pré-merge Linux e Windows PASS (1.966/45/0, 12/12); gate pós-merge Linux PASS (1.966/45/0, 12/12). Somente testes e documentação; nenhum arquivo de produção alterado.
 - **Conteúdo da correção F1 (DEC-051)**: `agentId`/`versionId` validados como UUID do contrato antes de montar caminho (inválido ⇒ não encontrado, sem chamada à API, sem eco no redirecionamento); caminhos dinâmicos por `internalApiPath`; clientes internos recusam caminho que seria normalizado ou sairia da origem. Gravidade reavaliada para **média** após auditoria dos destinos (sem acesso a outra organização; `/v1/me/*` recusa a assertion de tenant por audiência).
-- `NEXT_ALLOWED_STEP = WINDOWS_GATE_AND_MANUAL_MERGE_OF_F1_TESTS_PR` (alterações de código de produção, validação em navegador com migrations ou contas, cartão de descontos, B, conectores, D5–D7, D9, AS1c, AS2, AS4 e S2/S3/S4 da telefonia continuam sem autorização).
+- **S2 Twilio outbound (DEC-052)**: adaptador `packages/integrations/src/twilio-outbound/` desativado por padrão, sem composição de runtime; Millis (S3), orquestração (S4), mapeamento (008-MVP3) e preflight (008-OF6) em PRs dependentes.
+- `NEXT_ALLOWED_STEP = WINDOWS_GATE_AND_MANUAL_MERGE_OF_S2_PR` (teste visual do simulador ainda depende de decisão humana; roteiro Windows proposto: banco descartável, migrations e conta local exigem autorização explícita; alterações de código de produção, validação em navegador com migrations ou contas, cartão de descontos, B, conectores, D5–D7, D9, AS1c, AS2, AS4 e S2/S3/S4 da telefonia continuam sem autorização).
 - `NEXT_ALLOWED_SLICE = HUMAN_DECISION_REQUIRED` (trilha 008-MVP1 a 008-MVP4 concluída; 008-OF5, 008-MVP3 e 008-OF6 dependem de H1; remoção de supressões depende de H2; evidência de consentimento depende de H3).
 - `PURCHASE_OF_PHONE_NUMBERS = 0` | `REAL_PROVIDER_CALLS = 0` | `CUSTOMER_TRAFFIC = PROHIBITED` | `ACTIVE_GUARDED = BLOCKED`.
 - Do NOT execute live commands. Do NOT access real `.env`. Do NOT call external providers. Do NOT enable customer traffic.

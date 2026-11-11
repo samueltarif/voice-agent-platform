@@ -16,6 +16,11 @@ export interface ProviderWebhookRequest {
   /** Corpo bruto exatamente como recebido (assinaturas dependem dele). */
   readonly rawBody: string;
   readonly receivedAt: Date;
+  /**
+   * URL público canônico COMPLETO (esquema, host, caminho e query) como o
+   * remetente o assinou. Autenticadores que assinam o URL recusam sem ele.
+   */
+  readonly url?: string | undefined;
 }
 
 export const WEBHOOK_AUTH_REJECTION_REASONS = [
