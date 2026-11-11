@@ -19,6 +19,7 @@
     "format:check": "prettier --check .",
     "check:file-size": "node scripts/check-file-size.mjs",
     "check:architecture": "node scripts/check-architecture.mjs",
+    "preflight:live-test": "pnpm --filter @voice-agent/web exec tsx --conditions=development ../../packages/integrations/src/live-readiness/first-live-call-preflight.cli.ts",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm check:architecture && pnpm check:file-size",
     "db:migrate:staging": "pnpm --filter @voice-agent/database run db:migrate:staging",
     "test:staging:db": "node --env-file=.env.staging ./node_modules/vitest/vitest.mjs run packages/database/src/staging-connection.test.ts packages/database/src/staging-domain-integrity.test.ts packages/database/src/agent-domain.staging.test.ts",
