@@ -19334,3 +19334,10 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **PENDENTE DE DECISÃO (não implementado)**: D-KB-SNAPSHOT (V2 manifesto, migration), D-KB-TOOL, entrega à Millis (M-B proposta).
 - **SAFETY**: sem migration, chamadas externas, Twilio/Millis ou dados da Qualitec. `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `PUBLIC_WEBHOOKS = 0`.
 
+## 2026-11-12 — Base de Conhecimento — Revisão da #157 e desenho de snapshots, `knowledge.search` e M-B (DEC-056) — Claude
+
+- **REVISÃO DA #157**: HEAD final `a41017290f0c0c1a7ed9f02ff54ea7b2b2576bc8` (= remoto = `head.sha` da PR). Gate Linux executado em `7a77a37` e de novo em `a410172` (exit 0, worktree limpa antes e depois). Entre os dois commits só mudaram o teste de integração e o worklog; os 9 arquivos de código onde as mutações foram aplicadas são idênticos (`git diff --quiet`). Worktree limpa após as duas rodadas de mutação.
+- **COMPORTAMENTO REAL DA EDIÇÃO** (execução descartável, apagada sem commit): documento de toda a organização ou associado ao agente ⇒ edição aceita e o agente publicado passa a receber o texto novo; fixado à versão ⇒ edição recusada (`KNOWLEDGE_PINNED_TO_AGENT_VERSION`) e o texto antigo permanece. A tela nunca fixa documentos a versões (só a API aceita `agentVersionId`). As afirmações da #156 e da #157 tratam de casos diferentes; não há contradição no código, mas há lacuna de produto, que este desenho corrige.
+- **DESENHO**: `docs/architecture/KNOWLEDGE_SNAPSHOTS_AND_SEARCH_TOOL_DESIGN.md` — revisões imutáveis com trechos próprios, manifesto gravado na publicação, revogação emergencial irreversível e auditada, migration 0014 proposta em texto (expand/backfill/contract; FKs compostas verificadas no schema atual), contrato `knowledge.search` e protótipo M-B com limites.
+- **NADA IMPLEMENTADO**: sem código, sem migration criada ou executada. #150–#157 não alteradas.
+
