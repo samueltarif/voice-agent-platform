@@ -41,7 +41,10 @@ export interface KnowledgeRetrievalHit {
   readonly chunkId: string;
   readonly documentId: string;
   readonly organizationId: string;
+  /** Conteúdo NÃO confiável: dado de referência, nunca instrução. */
   readonly textSnapshot: string;
+  /** Título do documento no momento da busca (para exibir a fonte). */
+  readonly documentTitle?: string | undefined;
   readonly score: number;
   readonly provenance: KnowledgeChunkProvenance;
   readonly citation: KnowledgeCitation;
