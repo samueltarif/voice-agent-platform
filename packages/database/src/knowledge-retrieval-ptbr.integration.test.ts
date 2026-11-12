@@ -158,6 +158,11 @@ describe('Knowledge retrieval in Portuguese (DEC-055 integration)', () => {
       query: { queryText: 'VALVULA ESFERA', topK: 1 },
     });
     expect(result.hits[0]?.textSnapshot).toContain('Válvula Esfera Bipartida');
+    const onlyAccented = await retrieval.retrieve({
+      scope: { organizationId: orgA },
+      query: { queryText: 'VALVULA', topK: 1 },
+    });
+    expect(onlyAccented.hits[0]?.textSnapshot).toContain('Válvula Esfera Bipartida');
   });
 
   it('never returns the identical catalog of another organization', async () => {
@@ -240,6 +245,13 @@ describe('Knowledge retrieval in Portuguese (DEC-055 integration)', () => {
     await expect(
       preview.preview({ organizationId: orgA, agentId: agentDraft, queryText: question }),
     ).rejects.toMatchObject({ code: 'KNOWLEDGE_AGENT_NOT_PUBLISHED' });
+    const [archived] = await db
+      .insert(agents)
+      .values({ organizationId: orgA, name: 'Arq', slug: `kbr-arq-${runId}`, status: 'ARCHIVED' })
+      .returning();
+    await expect(
+      preview.preview({ organizationId: orgA, agentId: archived!.id, queryText: question }),
+    ).rejects.toMatchObject({ code: 'KNOWLEDGE_AGENT_UNAVAILABLE' });
   });
 
   it('returns instruction-like document text verbatim as untrusted data', async () => {
