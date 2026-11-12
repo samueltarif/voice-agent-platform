@@ -19346,3 +19346,7 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **PROVA DE SENSIBILIDADE**: 10 mutações descartáveis, restauradas byte a byte (SHA-256), todas detectadas. A G6 (ordem DIRECT antes de CONTEXT) só depois do caso "preço da válvula", em que o FAQ pontua mais que o produto.
 - **SAFETY**: sem migration, chamadas externas ou alteração do banco da Qualitec. #156–#159 não tocadas.
 
+
+## 2026-11-12 — Correção do registro anterior (DEC-058) — Claude
+
+- **CORREÇÃO**: a entrada anterior diz "19 (integração 11, regra 7, painel 1)". O correto, conferido por contagem de `it(` nos arquivos, é **18 testes novos (integração 10, regra 7, painel 1)**.
