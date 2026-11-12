@@ -19334,3 +19334,13 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **PENDENTE DE DECISÃO (não implementado)**: D-KB-SNAPSHOT (V2 manifesto, migration), D-KB-TOOL, entrega à Millis (M-B proposta).
 - **SAFETY**: sem migration, chamadas externas, Twilio/Millis ou dados da Qualitec. `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `PUBLIC_WEBHOOKS = 0`.
 
+## 2026-11-12 — Base de Conhecimento — Termo genérico não é evidência (DEC-058) — Claude
+
+- **FALHA (homologação Windows da #157)**: escopo "Como o agente ASSISTENTE DE VENDAS", pergunta "preço do helicóptero" ⇒ trechos 6 (0,42) e 5 (0,32) do FAQ de preços; o catálogo não tem helicópteros.
+- **CAUSA**: o pré-filtro SQL aceita trechos com QUALQUER termo (OU) e a pontuação é cobertura ponderada + bônus de frequência; um termo ausente só baixa a nota, nunca descarta. O teste da #157 para "preço do helicóptero" passou porque o catálogo fictício não tinha a palavra "preço" (lacuna de teste).
+- **REPRODUÇÃO PRIMEIRO**: `knowledge-retrieval-relevance.integration.test.ts` com catálogo fictício no formato do real (produtos + FAQ de preço/prazo/disponibilidade) falhou em 5 de 8 casos antes da correção.
+- **CORREÇÃO**: `knowledge-term-relevance.ts` (termos genéricos, ubíquos e centrais; classificação `DIRECT`/`CONTEXT`; descarte sem evidência), contagem de trechos do escopo no serviço, `relevance` nos resultados e `unmatchedTerms` no resultado e na pré-visualização; painel avisa "Sem menção nos documentos: …" e marca "contexto geral (não menciona o item)". Montagem do resultado extraída para `knowledge-retrieval-hit.ts`.
+- **ACHADO FORA DO ESCOPO**: o chunker corta por caracteres, inclusive no meio de palavras e códigos ("QT-52" | "0"); a sobreposição padrão (200) atenua, mas códigos de modelo podem se partir entre trechos. Registrado como `DEFERRED`.
+- **TESTES EXISTENTES**: nenhuma asserção alterada; um caso novo acrescentado ao teste do painel.
+- **SAFETY**: sem migration, chamadas externas ou alteração do banco da Qualitec. #156–#159 não tocadas.
+
