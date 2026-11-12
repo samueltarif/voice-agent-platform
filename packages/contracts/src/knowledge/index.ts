@@ -7,3 +7,5 @@ export * from './knowledge-management-contracts.js';
 export * from './knowledge-document-management-contracts.js';
 export * from './knowledge-excerpt.js';
 export * from './knowledge-retrieval-preview-contracts.js';
+export * from './knowledge-query-terms.js';
+export * from './knowledge-search-tool-contracts.js';

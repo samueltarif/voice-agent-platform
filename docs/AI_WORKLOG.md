@@ -19334,3 +19334,12 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **PENDENTE DE DECISÃO (não implementado)**: D-KB-SNAPSHOT (V2 manifesto, migration), D-KB-TOOL, entrega à Millis (M-B proposta).
 - **SAFETY**: sem migration, chamadas externas, Twilio/Millis ou dados da Qualitec. `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `PUBLIC_WEBHOOKS = 0`.
 
+## 2026-11-12 — Base de Conhecimento — Ferramenta offline `knowledge.search` (KB-TOOL, DEC-057) — Claude
+
+- **BASE**: worktree `wt-kb-tool`, branch `feat/knowledge-search-tool` sobre o SHA da #157 `a41017290f0c0c1a7ed9f02ff54ea7b2b2576bc8`. #150–#158 não tocadas.
+- **IMPLEMENTAÇÃO**: `knowledge-search-tool-contracts.ts` (contracts); `knowledge-query-terms.ts` movido de `database` para `contracts` (database reexporta; testes existentes intactos); `CANONICAL_TOOL_NAMES` + `knowledge.search`; `apps/voice/src/knowledge-search-tool.ts` (reaproveita `resolveVoiceKnowledgeScope`, a porta de recuperação e `buildKnowledgeExcerpt`); item no catálogo do Agent Studio.
+- **SEGURANÇA**: escopo só do contexto montado a partir da concessão (`buildPublishedVersionToolExecutionContext`); entrada estrita (recusa `organizationId`, `agentId`, `agentVersionId`, `documentIds`, `collection`); versão publicada sem a ferramenta ⇒ `UNAUTHORIZED_TOOL`; sem agente/versão ⇒ erro sem consulta; texto de documento devolvido como dado com `usage` fixo do servidor.
+- **TESTES**: 16 novos (ferramenta 10, contrato 4, catálogo do Studio 2); nenhum teste existente alterado.
+- **PROVA DE SENSIBILIDADE**: 9 mutações descartáveis, restauradas byte a byte (SHA-256): 8 detectadas (agente fixo no escopo, sem teto total, sem limite padrão, `usage` vindo do documento, entrada não estrita, título sem corte, truncamento omitido, catálogo sem a ferramenta). 1 equivalente: trocar o padrão de versão ausente de `''` para `'x'` continua recusado, porque `resolveVoiceKnowledgeScope` valida o UUID.
+- **NÃO FEITO**: composição de produção, conexão com Millis, migration 0014 (não autorizada).
+
