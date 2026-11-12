@@ -2,6 +2,7 @@ import {
   buildKnowledgeExcerpt,
   createZodToolValidator,
   extractKnowledgeQueryTerms,
+  KNOWLEDGE_MAX_QUERY_TERMS,
   KNOWLEDGE_SEARCH_DEFAULT_RESULTS,
   KNOWLEDGE_SEARCH_MAX_EXCERPT_CHARS,
   KNOWLEDGE_SEARCH_MAX_TITLE_CHARS,
@@ -31,6 +32,8 @@ function toResult(hit: KnowledgeRetrievalHit, terms: readonly string[]): Knowled
     sourceType: hit.citation.sourceType,
     excerpt: buildKnowledgeExcerpt(hit.textSnapshot, terms, KNOWLEDGE_SEARCH_MAX_EXCERPT_CHARS),
     score: Math.min(1, Math.max(0, hit.score)),
+    // Sem classificação explícita da busca, o trecho não comprova nada (fail-safe).
+    relevance: hit.relevance ?? 'CONTEXT',
   };
 }
 
@@ -52,11 +55,20 @@ function boundResults(
   return { results, cut: false };
 }
 
+/** Contexto genérico sozinho não é evidência: sem DIRECT, nenhum trecho é devolvido. */
+function keepOnlyWithDirectEvidence(
+  results: KnowledgeSearchToolResult[],
+): KnowledgeSearchToolResult[] {
+  return results.some((r) => r.relevance === 'DIRECT') ? results : [];
+}
+
 /**
  * `knowledge.search` (DEC-056). O escopo é derivado SÓ do contexto montado a
  * partir da concessão da versão publicada (organização, agente, versão); falta
  * de agente ou versão lança erro (fail-closed, sem ampliar para a organização).
  * Os trechos são dados não confiáveis e vêm acompanhados de `usage` fixo.
+ * `found` só é verdadeiro com trecho DIRECT (DEC-058); termos ausentes de todos
+ * os documentos vão em `unmatchedTerms`.
  * NÃO registrada em composição de produção.
  */
 export function createKnowledgeSearchToolDefinition(
@@ -81,12 +93,14 @@ export function createKnowledgeSearchToolDefinition(
         query: { queryText: input.query, topK: limit },
       });
       const terms = extractKnowledgeQueryTerms(input.query);
-      const { results, cut } = boundResults(retrieved.hits.slice(0, limit), terms);
+      const bounded = boundResults(retrieved.hits.slice(0, limit), terms);
+      const results = keepOnlyWithDirectEvidence(bounded.results);
       return {
         trust: 'UNTRUSTED_DATA',
         found: results.length > 0,
         results,
-        truncated: retrieved.truncated || cut,
+        unmatchedTerms: (retrieved.unmatchedTerms ?? []).slice(0, KNOWLEDGE_MAX_QUERY_TERMS),
+        truncated: retrieved.truncated || bounded.cut,
         usage: KNOWLEDGE_SEARCH_USAGE,
       };
     },

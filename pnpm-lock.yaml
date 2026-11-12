@@ -235,6 +235,10 @@ importers:
       '@voice-agent/logger':
         specifier: workspace:*
         version: link:../../packages/logger
+    devDependencies:
+      '@voice-agent/database':
+        specifier: workspace:*
+        version: link:../../packages/database
 
   apps/web:
     dependencies:

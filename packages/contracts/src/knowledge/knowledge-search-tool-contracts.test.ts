@@ -64,6 +64,7 @@ describe('knowledge.search contract (DEC-056)', () => {
       trust: 'UNTRUSTED_DATA',
       found: false,
       results: [],
+      unmatchedTerms: [],
       truncated: false,
       usage: KNOWLEDGE_SEARCH_USAGE,
     };
@@ -80,9 +81,10 @@ describe('knowledge.search contract (DEC-056)', () => {
       sourceType: 'FAQ',
       excerpt: 'x'.repeat(503),
       score: 0.5,
+      relevance: 'DIRECT',
     };
-    expect(knowledgeSearchToolOutputSchema.safeParse({ ...ok, results: [result] }).success).toBe(
-      false,
-    );
+    expect(
+      knowledgeSearchToolOutputSchema.safeParse({ ...ok, found: true, results: [result] }).success,
+    ).toBe(false);
   });
 });

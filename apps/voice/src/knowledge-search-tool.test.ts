@@ -52,6 +52,7 @@ function hit(
     textSnapshot: text,
     documentTitle: title,
     score,
+    relevance: 'DIRECT',
     provenance: {
       organizationId: ORG_A,
       documentId: DOC,
