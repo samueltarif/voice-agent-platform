@@ -19342,5 +19342,7 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **CORREÇÃO**: `knowledge-term-relevance.ts` (termos genéricos, ubíquos e centrais; classificação `DIRECT`/`CONTEXT`; descarte sem evidência), contagem de trechos do escopo no serviço, `relevance` nos resultados e `unmatchedTerms` no resultado e na pré-visualização; painel avisa "Sem menção nos documentos: …" e marca "contexto geral (não menciona o item)". Montagem do resultado extraída para `knowledge-retrieval-hit.ts`.
 - **ACHADO FORA DO ESCOPO**: o chunker corta por caracteres, inclusive no meio de palavras e códigos ("QT-52" | "0"); a sobreposição padrão (200) atenua, mas códigos de modelo podem se partir entre trechos. Registrado como `DEFERRED`.
 - **TESTES EXISTENTES**: nenhuma asserção alterada; um caso novo acrescentado ao teste do painel.
+- **TESTES NOVOS**: 19 (integração 11, regra 7, painel 1).
+- **PROVA DE SENSIBILIDADE**: 10 mutações descartáveis, restauradas byte a byte (SHA-256), todas detectadas. A G6 (ordem DIRECT antes de CONTEXT) só depois do caso "preço da válvula", em que o FAQ pontua mais que o produto.
 - **SAFETY**: sem migration, chamadas externas ou alteração do banco da Qualitec. #156–#159 não tocadas.
 

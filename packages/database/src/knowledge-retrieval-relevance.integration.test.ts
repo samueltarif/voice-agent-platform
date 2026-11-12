@@ -143,6 +143,15 @@ describe('Knowledge retrieval relevance: generic vs entity terms (integration)',
     expect(result.hits.slice(0, firstContext).every((h) => h.relevance === 'DIRECT')).toBe(true);
   });
 
+  it('puts the product excerpt first even when the price FAQ scores higher', async () => {
+    const result = await ask('preço da válvula');
+    const faq = result.hits.find((h) => h.relevance === 'CONTEXT');
+    expect(faq).toBeDefined();
+    expect(faq!.score).toBeGreaterThan(result.hits[0]!.score);
+    expect(result.hits[0]!.textSnapshot).toContain('Válvula Esfera');
+    expect(result.hits[0]!.relevance).toBe('DIRECT');
+  });
+
   it('answers purely commercial questions from the FAQ', async () => {
     const price = await ask('Como funcionam os preços?');
     expect(price.hits[0]!.textSnapshot).toContain('orçamento');
