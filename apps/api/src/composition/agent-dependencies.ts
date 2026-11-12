@@ -19,6 +19,7 @@ import type {
   OutboundRepositoryPort,
   KnowledgeRepositoryPort,
   KnowledgeManagementPort,
+  KnowledgeRetrievalPreviewPort,
 } from '@voice-agent/contracts';
 import type { ServiceAssertionVerifier } from '../auth/service-assertion-verifier.js';
 import type { BootstrapAssertionVerifier } from '../auth/bootstrap-assertion-verifier.js';
@@ -39,6 +40,7 @@ export interface ApiDependencies {
   readonly outboundRepo?: OutboundRepositoryPort | undefined;
   readonly knowledgeRepo?: KnowledgeRepositoryPort | undefined;
   readonly knowledgeManagement?: KnowledgeManagementPort | undefined;
+  readonly knowledgeRetrievalPreview?: KnowledgeRetrievalPreviewPort | undefined;
   readonly contactRepo?: DrizzleContactRepository | undefined;
   readonly suppressionRepo?: DrizzleContactSuppressionRepository | undefined;
   readonly campaignLifecycleRepo?: DrizzleCampaignLifecycleRepository | undefined;

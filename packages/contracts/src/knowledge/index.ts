@@ -5,3 +5,5 @@ export * from './knowledge-access-scope-contracts.js';
 export * from './knowledge-retrieval-contracts.js';
 export * from './knowledge-management-contracts.js';
 export * from './knowledge-document-management-contracts.js';
+export * from './knowledge-excerpt.js';
+export * from './knowledge-retrieval-preview-contracts.js';

@@ -1,4 +1,4 @@
-import { and, eq, ilike, inArray, isNull, or, type SQL } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, or, sql, type SQL } from 'drizzle-orm';
 import {
   type KnowledgeAccessScope,
   type KnowledgeRetrievalHit,
@@ -18,7 +18,21 @@ import {
   type KnowledgeChunkEntity,
   type KnowledgeDocumentEntity,
 } from '../schema/knowledge.js';
-import { computeLexicalScore, extractQueryTokens } from './knowledge-retrieval-scoring.js';
+import { computeTermWeights, scoreKnowledgeChunk } from './knowledge-retrieval-scoring.js';
+import {
+  extractKnowledgeQueryTerms,
+  foldKnowledgeText,
+  KNOWLEDGE_ACCENTED_CHARS,
+  KNOWLEDGE_PLAIN_CHARS,
+} from './knowledge-query-terms.js';
+
+/** Teto de trechos candidatos lidos por consulta (proteção de memória e tempo). */
+export const KNOWLEDGE_RETRIEVAL_MAX_CANDIDATES = 2000;
+
+/** Casa o termo sem distinguir acento nem caixa (o termo já vem normalizado). */
+function termMatches(term: string): SQL {
+  return sql`translate(${knowledgeChunks.text}, ${KNOWLEDGE_ACCENTED_CHARS}, ${KNOWLEDGE_PLAIN_CHARS}) ilike ${`%${term}%`}`;
+}
 
 function buildScopePredicates(scope: KnowledgeAccessScope): SQL[] {
   const clauses: SQL[] = [
@@ -57,8 +71,7 @@ function buildQueryPredicates(query: KnowledgeRetrievalQuery, tokens: readonly s
     clauses.push(inArray(knowledgeDocuments.sourceType, query.sourceTypes));
   }
   if (tokens.length > 0) {
-    const termMatches = tokens.map((t) => ilike(knowledgeChunks.text, `%${t}%`));
-    clauses.push(or(...termMatches)!);
+    clauses.push(or(...tokens.map(termMatches))!);
   }
 
   return clauses;
@@ -69,9 +82,11 @@ function rankAndSortHits(
   tokens: readonly string[],
 ): KnowledgeRetrievalHit[] {
   const scoredHits: KnowledgeRetrievalHit[] = [];
+  const folded = rows.map(({ chunk }) => foldKnowledgeText(chunk.text));
+  const weights = computeTermWeights(folded, tokens);
 
-  for (const { chunk, doc } of rows) {
-    const score = computeLexicalScore(chunk.text, tokens);
+  for (const [index, { chunk, doc }] of rows.entries()) {
+    const score = scoreKnowledgeChunk(folded[index]!, tokens, weights);
     if (score <= 0 && tokens.length > 0) continue;
 
     scoredHits.push({
@@ -79,6 +94,7 @@ function rankAndSortHits(
       documentId: doc.id,
       organizationId: doc.organizationId,
       textSnapshot: chunk.text,
+      documentTitle: doc.title,
       score,
       provenance: {
         organizationId: doc.organizationId,
@@ -114,18 +130,21 @@ export class DrizzleKnowledgeRetrievalService implements KnowledgeRetrievalPort 
   async retrieve(request: KnowledgeRetrievalRequest): Promise<KnowledgeRetrievalResult> {
     const scope = knowledgeAccessScopeSchema.parse(request.scope);
     const query = knowledgeRetrievalQuerySchema.parse(request.query);
-    const tokens = extractQueryTokens(query.queryText);
+    const tokens = extractKnowledgeQueryTerms(query.queryText);
     const predicates = [...buildScopePredicates(scope), ...buildQueryPredicates(query, tokens)];
 
     const rows = await this.db
       .select({ chunk: knowledgeChunks, doc: knowledgeDocuments })
       .from(knowledgeChunks)
       .innerJoin(knowledgeDocuments, eq(knowledgeChunks.documentId, knowledgeDocuments.id))
-      .where(and(...predicates));
+      .where(and(...predicates))
+      .orderBy(asc(knowledgeChunks.documentId), asc(knowledgeChunks.ordinal))
+      .limit(KNOWLEDGE_RETRIEVAL_MAX_CANDIDATES + 1);
 
-    const scoredHits = rankAndSortHits(rows, tokens);
+    const candidatesCapped = rows.length > KNOWLEDGE_RETRIEVAL_MAX_CANDIDATES;
+    const scoredHits = rankAndSortHits(rows.slice(0, KNOWLEDGE_RETRIEVAL_MAX_CANDIDATES), tokens);
     const clampedTopK = Math.min(Math.max(1, query.topK ?? 5), KNOWLEDGE_RETRIEVAL_MAX_TOP_K);
-    const truncated = scoredHits.length > clampedTopK;
+    const truncated = candidatesCapped || scoredHits.length > clampedTopK;
     const hits = scoredHits.slice(0, clampedTopK);
 
     return { hits, truncated };
