@@ -76,5 +76,6 @@ voice-agent-platform/
 - **`packages/config`**: Carregamento seguro e validação estrita de configurações de ambiente em tempo de inicialização.
 - **`packages/logger`**: Coletor de telemetria e logs em formato JSON estruturado com injeção de correlation IDs.
 - **`packages/errors`**: Catálogo centralizado de classes e códigos de erro previsíveis para toda a aplicação.
+- **`packages/agent-tools`**: Execução de ferramentas sem transporte de voz (DEC-061): motor com autorizador obrigatório, registro, ferramenta `knowledge.search` e turno simulado determinístico; usado por `apps/voice` e `apps/api`. Sem banco nem provedor.
 - **`packages/integrations`**: Adaptadores concretos para serviços externos implementando as portas abstratas do domínio.
 - **`packages/test-utils`**: Infraestrutura para testes reprodutíveis, rápidos e sem dependência de APIs externas pagas.

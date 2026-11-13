@@ -14,3 +14,9 @@ export {
   type DurableOutboundFixture,
   type TenantFixture,
 } from './durable-outbound-fixtures.js';
+export { createKnowledgeSimulationFixture } from './knowledge-simulation-fixtures.js';
+export {
+  knowledgeSimulationConfig,
+  KNOWLEDGE_SIMULATION_CATALOG,
+  type KnowledgeSimulationFixture,
+} from './knowledge-simulation-catalog.js';

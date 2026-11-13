@@ -6,6 +6,7 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "dependencies": {
+    "@voice-agent/agent-tools": "workspace:*",
     "@voice-agent/contracts": "workspace:*",
     "@voice-agent/errors": "workspace:*",
     "@voice-agent/logger": "workspace:*"

@@ -1,20 +1,2 @@
-import type { ToolExecutionContext } from '@voice-agent/contracts';
-import type { LogContext } from '@voice-agent/logger';
-
-export function buildSafeLogContext(
-  toolName: string,
-  context: ToolExecutionContext,
-  extra?: Record<string, unknown>,
-): LogContext {
-  const logCtx: Record<string, unknown> = {
-    toolName,
-    organizationId: context.organizationId,
-  };
-  if (context.callId !== undefined) logCtx.callId = context.callId;
-  if (context.turnId !== undefined) logCtx.turnId = context.turnId;
-  if (context.correlationId !== undefined) logCtx.correlationId = context.correlationId;
-  if (extra !== undefined) {
-    Object.assign(logCtx, extra);
-  }
-  return logCtx as LogContext;
-}
+/** Movido para `@voice-agent/agent-tools` (DEC-061); mantido para os imports existentes. */
+export { buildSafeLogContext } from '@voice-agent/agent-tools';

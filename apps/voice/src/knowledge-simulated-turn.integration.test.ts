@@ -1,29 +1,19 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import {
   agentConfigurationSnapshotV1Schema,
-  type AgentConfigurationSnapshotV1,
   type KnowledgeRetrievalPort,
 } from '@voice-agent/contracts';
 import {
-  AgentDraftService,
-  AgentLifecycleService,
-  AgentPublicationService,
   AgentRepository,
   AgentVersionRepository,
-  CommercialEntitlementResolver,
-  DefaultCommercialPublicationPolicy,
   DrizzleKnowledgeRetrievalService,
-  entitlements,
-  ingestKnowledgeDocument,
-  OrganizationRepository,
-  plans,
-  subscriptions,
-  user,
-  type DatabaseInstance,
 } from '@voice-agent/database';
 import {
   createDisposableTestDatabase,
+  createKnowledgeSimulationFixture,
+  knowledgeSimulationConfig,
   type DisposableTestDatabase,
+  type KnowledgeSimulationFixture,
 } from '@voice-agent/database/test-support';
 import { CallLifecycleGateway } from './call-lifecycle-gateway.js';
 import { InMemoryCallBootstrapRegistry } from './in-memory-call-bootstrap-registry.js';
@@ -35,143 +25,9 @@ import { runSimulatedKnowledgeTurn } from './knowledge-simulated-turn.js';
 /** Bancos preexistentes que esta suíte nunca pode usar como destino. */
 const FORBIDDEN_TARGETS = ['voice_agent_ui_0561f39', 'voice_agent_pr157_test', 'voice_agent_dev'];
 
-const CATALOG = [
-  'Qualitec Instrumentação. A Qualitec oferece soluções completas para óleo e gás em todo o Brasil.',
-  'Transmissor de Pressão Manométrica QT-310 da Qualitec. Faixa de 0 a 400 bar, saída 4-20 mA.',
-  'Transmissor de Pressão Diferencial QT-520 da Qualitec. Faixa de 0 a 25 bar, medição de vazão.',
-  'Válvula Esfera Bipartida VE-200 da Qualitec. Corpo em aço inox 316, classe 300.',
-  'Perguntas frequentes sobre preços: os preços da Qualitec são enviados por orçamento.',
-  'Prazo de entrega e disponibilidade: itens em estoque saem em 5 dias úteis.',
-];
-
-function config(tools: AgentConfigurationSnapshotV1['tools']): AgentConfigurationSnapshotV1 {
-  return {
-    persona: {
-      role: 'Assistente de Vendas',
-      companyName: 'Qualitec',
-      objective: 'Responder dúvidas sobre o catálogo',
-      tone: 'FORMAL',
-      greetingPhrase: 'Olá',
-      closingPhrase: 'Obrigado',
-      fallbackPhrase: 'Pode repetir?',
-    },
-    voice: { languageCode: 'pt-BR' },
-    rules: { conversational: ['Seja cordial'], deterministic: { operatingHours: '08:00-18:00' } },
-    tools,
-  };
-}
-
-/** Dados criados pelos serviços oficiais (agente, rascunho, publicação, ingestão). */
-async function seed(db: DatabaseInstance, run: string) {
-  const userId = `usr_kbsim_${run}`;
-  await db.insert(user).values({ id: userId, name: 'KB-SIM', email: `kbsim_${run}@example.com` });
-  const [plan] = await db
-    .insert(plans)
-    .values({ code: `kbsim-${run}`, name: 'KB-SIM', billingMode: 'SELF_SERVICE', status: 'ACTIVE' })
-    .returning();
-  await db.insert(entitlements).values({
-    planId: plan!.id,
-    featureKey: 'agents.max',
-    valueType: 'NUMERIC',
-    numericLimit: 10,
-  });
-  const resolver = new CommercialEntitlementResolver(db);
-  const lifecycle = new AgentLifecycleService(db, resolver);
-  const drafts = new AgentDraftService(db);
-  const publication = new AgentPublicationService(
-    db,
-    new DefaultCommercialPublicationPolicy(db, resolver),
-  );
-
-  async function org(tag: string) {
-    const created = await new OrganizationRepository(db).createOrganization({
-      slug: `kbsim-${tag}-${run}`,
-      name: tag,
-      status: 'ACTIVE',
-    });
-    await db.insert(subscriptions).values({
-      organizationId: created!.id,
-      planId: plan!.id,
-      status: 'ACTIVE',
-      billingMode: 'SELF_SERVICE',
-      currentPeriodStart: new Date(Date.now() - 86_400_000),
-      currentPeriodEnd: new Date(Date.now() + 86_400_000),
-    });
-    return created!.id;
-  }
-
-  async function agent(organizationId: string, slug: string, tools: string[], publish = true) {
-    const created = await lifecycle.createAgent({
-      organizationId,
-      name: slug,
-      slug,
-      createdBy: userId,
-    });
-    const agentId = created.id;
-    const configuration = config(tools as AgentConfigurationSnapshotV1['tools']);
-    const draft = await drafts.createDraft({
-      organizationId,
-      agentId,
-      configuration,
-      createdBy: userId,
-    });
-    if (publish) {
-      await publication.publishDraft({
-        organizationId,
-        agentId,
-        draftVersionId: draft.id,
-        publishedBy: userId,
-      });
-    }
-    return agentId;
-  }
-
-  async function ingest(
-    organizationId: string,
-    locator: string,
-    rawText: string,
-    agentId?: string,
-  ) {
-    await ingestKnowledgeDocument(db, {
-      organizationId,
-      ...(agentId ? { agentId } : {}),
-      title: `Catálogo ${locator}`,
-      source: { sourceType: 'PRODUCT_MANUAL', locator: `${run}/${locator}` },
-      rawText,
-      chunkingPolicy: { policyVersion: 'v1', maxChunkChars: 120, overlapChars: 0 },
-    });
-  }
-
-  const orgA = await org('a');
-  const orgB = await org('b');
-  const ids = {
-    orgA,
-    orgB,
-    sales: await agent(orgA, `vendas-${run}`, ['knowledge.search']),
-    support: await agent(orgA, `suporte-${run}`, ['knowledge.search']),
-    noTool: await agent(orgA, `sem-ferramenta-${run}`, ['catalog.search']),
-    draftOnly: await agent(orgA, `rascunho-${run}`, ['knowledge.search'], false),
-    archived: await agent(orgA, `arquivado-${run}`, ['knowledge.search']),
-    salesB: await agent(orgB, `vendas-b-${run}`, ['knowledge.search']),
-  };
-  await new AgentRepository(db).archiveAgent({
-    organizationId: orgA,
-    agentId: ids.archived,
-    actorId: userId,
-  });
-  for (const [i, text] of CATALOG.entries()) await ingest(orgA, `secao-${i}`, text);
-  await ingest(orgA, 'bombas', 'Bomba Centrífuga BC-90 para água industrial.', ids.support);
-  await ingest(
-    orgB,
-    'helicopteros',
-    'Helicóptero H-125 à venda. Preço do helicóptero sob consulta.',
-  );
-  return ids;
-}
-
 describe('KB-SIM-1: simulated turn with a published agent (disposable PostgreSQL)', () => {
   let tdb: DisposableTestDatabase;
-  let ids: Awaited<ReturnType<typeof seed>>;
+  let ids: KnowledgeSimulationFixture;
   let searches = 0;
 
   /**
@@ -218,7 +74,7 @@ describe('KB-SIM-1: simulated turn with a published agent (disposable PostgreSQL
 
   beforeAll(async () => {
     tdb = await createDisposableTestDatabase('knowledge-simulated-turn');
-    ids = await seed(tdb.db, Math.random().toString(36).slice(2, 8));
+    ids = await createKnowledgeSimulationFixture(tdb.db, Math.random().toString(36).slice(2, 8));
   }, 180_000);
 
   afterAll(async () => {
@@ -287,7 +143,7 @@ describe('KB-SIM-1: simulated turn with a published agent (disposable PostgreSQL
         organizationId: ids.orgA,
         agentId: ids.draftOnly,
         agentVersionId: '44444444-4444-4444-8444-444444444444',
-        agentSnapshot: config(['knowledge.search']),
+        agentSnapshot: knowledgeSimulationConfig(['knowledge.search']),
         agentVersionStatus: 'DRAFT',
       }),
     ).rejects.toThrow();
