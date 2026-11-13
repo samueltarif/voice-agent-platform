@@ -28,6 +28,7 @@ import { ServiceAssertionVerifier } from './auth/service-assertion-verifier.js';
 import { BootstrapAssertionVerifier } from './auth/bootstrap-assertion-verifier.js';
 import { createApiLogger } from './logging/api-logger.js';
 import { createApp } from './app.js';
+import { createKnowledgeSimulatedTurnService } from './simulation/knowledge-simulated-turn-service.js';
 
 const logger = createApiLogger('server');
 
@@ -65,6 +66,7 @@ const outboundRepo = new DrizzleOutboundRepository(db);
 const knowledgeRepo = new DrizzleKnowledgeRepository(db);
 const knowledgeManagement = new DrizzleKnowledgeManagementService(db);
 const knowledgeRetrievalPreview = new DrizzleKnowledgeRetrievalPreviewService(db);
+const knowledgeSimulatedTurn = createKnowledgeSimulatedTurnService(db);
 const contactRepo = new DrizzleContactRepository(db);
 const suppressionRepo = new DrizzleContactSuppressionRepository(db);
 const campaignLifecycleRepo = new DrizzleCampaignLifecycleRepository(db);
@@ -91,6 +93,7 @@ const app = createApp({
   knowledgeRepo,
   knowledgeManagement,
   knowledgeRetrievalPreview,
+  knowledgeSimulatedTurn,
   contactRepo,
   suppressionRepo,
   campaignLifecycleRepo,

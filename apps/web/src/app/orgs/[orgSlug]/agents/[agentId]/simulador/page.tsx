@@ -17,8 +17,9 @@ interface AgentSimulatorPageProps {
 
 /**
  * Simulador offline (DEC-050): somente leitura, montado no servidor a partir
- * do carregamento autenticado do detalhe do agente. Sem endpoint novo, sem
- * fetch no navegador, sem IA, voz, telefonia ou gravação de dados.
+ * do carregamento autenticado do detalhe do agente. A única parte interativa
+ * é a conversa simulada (DEC-061), que chama o BFF autenticado; sem IA, voz,
+ * telefonia ou gravação de dados.
  */
 export default async function AgentSimulatorPage({
   params,
@@ -51,12 +52,18 @@ export default async function AgentSimulatorPage({
         })
       : null;
     const notice = data.agent ? null : SIMULATOR_NOT_FOUND_NOTICE;
+    const published = data.versions.find((v) => v.status === 'PUBLISHED');
+    const conversation =
+      data.agent?.status === 'ACTIVE' && published
+        ? { publishedVersionNumber: published.versionNumber }
+        : null;
     view = (
       <SimulatorView
         {...base}
         agentName={data.agent?.name ?? null}
         selection={selection}
         notice={notice}
+        conversation={conversation}
       />
     );
   }
