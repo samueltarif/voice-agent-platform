@@ -19370,3 +19370,14 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **PROVA DE SENSIBILIDADE**: 7 mutações descartáveis (filtro sem DIRECT, padrão DIRECT, `unmatchedTerms` vazio, `found` por quantidade, e as três regras do `superRefine`), todas detectadas; arquivos restaurados byte a byte (SHA-256).
 - **BACKLOG (não implementado)**: chunker que corta no meio de palavras; ranking (sinônimos, semântica, pesos); termos genéricos e limiar de ubiquidade por organização; migration 0014 adiada.
 - **SAFETY**: sem migration, chamadas externas, Twilio/Millis, produção ou webhooks; banco da Qualitec e worktree Windows intocados; nenhuma composição de produção (`PRODUCTION_RUNTIME_WIRING=NO`). #150–#160 não alteradas.
+
+## 2026-11-13 — Base de Conhecimento — Turno simulado offline com `knowledge.search` (KB-SIM-1, DEC-060) — Claude
+
+- **BASE**: worktree `wt-kb-sim`, branch `feat/knowledge-simulated-turn` empilhada sobre a #161 (`6bd5998`). #150–#161 não alteradas.
+- **DIAGNÓSTICO**: o simulador do Studio (DEC-050) é só leitura; o orquestrador de conversa não executa ferramentas (o `ModelStreamEvent` não tem chamada de ferramenta); o único executor em conversa é o webhook do provedor (exige tentativa ao vivo). O coordenador antigo `voice-knowledge-retrieval-coordinator` não passa pela ferramenta nem pela concessão e não foi reutilizado.
+- **IMPLEMENTAÇÃO**: `apps/voice/src/knowledge-simulated-turn.ts` (`runSimulatedKnowledgeTurn`, `SIMULATED_REPLY`); `index.ts` passa a exportar `knowledge-search-tool` e `knowledge-simulated-turn`.
+- **TESTES NOVOS**: 18 — unitários 10 (`knowledge-simulated-turn.test.ts`) e integração 8 (`knowledge-simulated-turn.integration.test.ts`, base descartável `of2_test_*`, dados pelos serviços oficiais de agente, rascunho, publicação e ingestão; concessão pelo gateway em memória a partir da versão lida do banco). Critérios 1–8 da proposta cobertos; 9 (gate) e 10 (sem teste existente alterado, mutações) abaixo. Nenhum teste existente alterado.
+- **LIMPEZA**: a suíte remove a própria base (`drop` confere a ausência em `pg_database`); verificação posterior: `OF2_LEFTOVERS=0`.
+- **PROVA DE SENSIBILIDADE**: 7 mutações descartáveis (CONTEXT tratado como DIRECT, `found` ignorado, recusa de autorização tratada como falha, saída sem validação de contrato, trecho sem normalização de linhas, autorizador permissivo, frase de termo ausente removida), todas detectadas; arquivo restaurado byte a byte (SHA-256).
+- **LIMITAÇÃO**: concessão emitida pelo gateway com registro e sessão em memória; sem chamada, tentativa, provedor ou worker. Carregamento de agente/versão do banco só na composição do teste.
+- **SAFETY**: sem migration em banco existente (só migrations existentes na base descartável), sem 0014, sem IA, Twilio, Millis, produção, worker ou webhooks; banco da Qualitec e worktree Windows intocados.
