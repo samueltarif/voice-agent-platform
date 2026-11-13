@@ -19393,3 +19393,12 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **INVARIANTE DEC-050 PRESERVADA**: o teste que proíbe `'use client'`/`fetch(` na pasta `features/agents/simulator` não foi alterado; a parte interativa fica em pasta própria.
 - **PROVA DE SENSIBILIDADE**: 7 mutações descartáveis; 6 detectadas (toolset ignorado, agente arquivado aceito, papel VIEWER no BFF, resposta sem validação no cliente, aviso de "sem evidência" removido, conversa para agente arquivado). 1 equivalente: retirar a checagem de `agentId` do autorizador da API não muda o resultado porque o contexto é montado pelo próprio serviço (defesa em profundidade). Arquivos restaurados byte a byte.
 - **SAFETY**: sem IA, voz, Twilio, Millis, chamadas, campanhas, worker, webhooks ou migration em banco existente; banco da Qualitec e worktree Windows intocados.
+
+## 2026-11-13 — API — Correção da API compilada da #163 e bind em loopback (DEC-062) — Claude
+
+- **SINTOMA (Windows, operador)**: gate `pnpm check` aprovado no `548883d`, mas `node --import ./register-dist.js dist/apps/api/src/server.js` falhava com `ENOENT ... apps\api\dist\packages\agent-tools\src\index.js`.
+- **REPRODUÇÃO (Linux)**: `tsc` em `apps/api` emitia `dist/packages/{contracts,database,errors,logger}` e não `agent-tools`.
+- **CAUSA RAIZ**: faltava `@voice-agent/agent-tools` em `paths` do `tsconfig.base.json`; resolvido via symlink de `node_modules`, o pacote era tratado como biblioteca externa e não emitido. O `pnpm check` não iniciava a API compilada.
+- **CORREÇÃO**: `paths` adicionados; `apps/api/src/server-listen-options.ts` (+ teste, 4 casos) e `server.ts` passam a usar `HOST` (padrão `127.0.0.1`; curinga só com `API_ALLOW_PUBLIC_BIND=true`); `scripts/check-api-dist-startup.mjs` + `scripts/api-smoke-egress-guard.mjs`; `pnpm check` ganha `pnpm check:api-dist` depois de `pnpm build`.
+- **PROVA**: smoke `SUCESSO` (BIND=127.0.0.1, HEALTHZ=200, SIMULATED_TURN_ROUTE=401, EGRESS_ATTEMPTS=0, WILDCARD_WITHOUT_OPT_IN=REFUSED); com a entrada de `paths` removida temporariamente, o smoke FALHA ("a API compilada não iniciou") — arquivo restaurado; o guarda de rede bloqueia socket não loopback e `fetch` e deixa loopback passar (autoteste manual).
+- **SAFETY**: sem banco usado pelo smoke, sem migrations, sem Twilio/Millis/IA, sem worker ou webhook; `voice_agent_ui_0561f39` e `voice_agent_pr157_test` intocados.
