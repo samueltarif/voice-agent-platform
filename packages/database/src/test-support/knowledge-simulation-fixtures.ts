@@ -1,4 +1,9 @@
 import type { AgentConfigurationSnapshotV1 } from '@voice-agent/contracts';
+import {
+  KNOWLEDGE_SIMULATION_CATALOG,
+  knowledgeSimulationConfig,
+  type KnowledgeSimulationFixture,
+} from './knowledge-simulation-catalog.js';
 import type { DatabaseInstance } from '../client/connection.js';
 import { AgentDraftService } from '../repositories/agent-draft-service.js';
 import { AgentLifecycleService } from '../repositories/agent-lifecycle-service.js';
@@ -10,49 +15,6 @@ import { ingestKnowledgeDocument } from '../repositories/knowledge-ingestion-ser
 import { OrganizationRepository } from '../repositories/organization-repository.js';
 import { user } from '../schema/auth.js';
 import { entitlements, plans, subscriptions } from '../schema/commercial.js';
-
-/** Catálogo fictício no formato do catálogo da homologação (produtos + FAQ comercial). */
-export const KNOWLEDGE_SIMULATION_CATALOG = [
-  'Qualitec Instrumentação. A Qualitec oferece soluções completas para óleo e gás em todo o Brasil.',
-  'Transmissor de Pressão Manométrica QT-310 da Qualitec. Faixa de 0 a 400 bar, saída 4-20 mA.',
-  'Transmissor de Pressão Diferencial QT-520 da Qualitec. Faixa de 0 a 25 bar, medição de vazão.',
-  'Válvula Esfera Bipartida VE-200 da Qualitec. Corpo em aço inox 316, classe 300.',
-  'Perguntas frequentes sobre preços: os preços da Qualitec são enviados por orçamento.',
-  'Prazo de entrega e disponibilidade: itens em estoque saem em 5 dias úteis.',
-] as const;
-
-export function knowledgeSimulationConfig(
-  tools: AgentConfigurationSnapshotV1['tools'],
-): AgentConfigurationSnapshotV1 {
-  return {
-    persona: {
-      role: 'Assistente de Vendas',
-      companyName: 'Qualitec',
-      objective: 'Responder dúvidas sobre o catálogo',
-      tone: 'FORMAL',
-      greetingPhrase: 'Olá',
-      closingPhrase: 'Obrigado',
-      fallbackPhrase: 'Pode repetir?',
-    },
-    voice: { languageCode: 'pt-BR' },
-    rules: { conversational: ['Seja cordial'], deterministic: { operatingHours: '08:00-18:00' } },
-    tools,
-  };
-}
-
-export interface KnowledgeSimulationFixture {
-  readonly userId: string;
-  readonly orgA: string;
-  readonly orgB: string;
-  /** Organização A: vendas (com a ferramenta), suporte (documento fixado), sem ferramenta, só rascunho, arquivado. */
-  readonly sales: string;
-  readonly support: string;
-  readonly noTool: string;
-  readonly draftOnly: string;
-  readonly archived: string;
-  /** Organização B: vende helicópteros. */
-  readonly salesB: string;
-}
 
 async function createPlan(db: DatabaseInstance, run: string) {
   const [plan] = await db
@@ -68,6 +30,119 @@ async function createPlan(db: DatabaseInstance, run: string) {
   return plan!.id;
 }
 
+interface SeedContext {
+  readonly db: DatabaseInstance;
+  readonly run: string;
+  readonly userId: string;
+  readonly planId: string;
+}
+
+async function createOrg(seed: SeedContext, tag: string): Promise<string> {
+  const created = await new OrganizationRepository(seed.db).createOrganization({
+    slug: `kbsim-${tag}-${seed.run}`,
+    name: tag,
+    status: 'ACTIVE',
+  });
+  await seed.db.insert(subscriptions).values({
+    organizationId: created!.id,
+    planId: seed.planId,
+    status: 'ACTIVE',
+    billingMode: 'SELF_SERVICE',
+    currentPeriodStart: new Date(Date.now() - 86_400_000),
+    currentPeriodEnd: new Date(Date.now() + 86_400_000),
+  });
+  return created!.id;
+}
+
+interface AgentSpec {
+  readonly organizationId: string;
+  readonly slug: string;
+  readonly tools: readonly string[];
+  readonly publish?: boolean;
+}
+
+/** Agente → rascunho → (publicação), sempre pelos serviços oficiais. */
+async function createAgent(seed: SeedContext, spec: AgentSpec): Promise<string> {
+  const resolver = new CommercialEntitlementResolver(seed.db);
+  const created = await new AgentLifecycleService(seed.db, resolver).createAgent({
+    organizationId: spec.organizationId,
+    name: spec.slug,
+    slug: spec.slug,
+    createdBy: seed.userId,
+  });
+  const draft = await new AgentDraftService(seed.db).createDraft({
+    organizationId: spec.organizationId,
+    agentId: created.id,
+    configuration: knowledgeSimulationConfig([
+      ...spec.tools,
+    ] as AgentConfigurationSnapshotV1['tools']),
+    createdBy: seed.userId,
+  });
+  if (spec.publish === false) return created.id;
+  const policy = new DefaultCommercialPublicationPolicy(seed.db, resolver);
+  await new AgentPublicationService(seed.db, policy).publishDraft({
+    organizationId: spec.organizationId,
+    agentId: created.id,
+    draftVersionId: draft.id,
+    publishedBy: seed.userId,
+  });
+  return created.id;
+}
+
+interface DocumentSpec {
+  readonly organizationId: string;
+  readonly locator: string;
+  readonly rawText: string;
+  readonly agentId?: string | undefined;
+}
+
+async function ingest(seed: SeedContext, doc: DocumentSpec): Promise<void> {
+  await ingestKnowledgeDocument(seed.db, {
+    organizationId: doc.organizationId,
+    ...(doc.agentId ? { agentId: doc.agentId } : {}),
+    title: `Catálogo ${doc.locator}`,
+    source: { sourceType: 'PRODUCT_MANUAL', locator: `${seed.run}/${doc.locator}` },
+    rawText: doc.rawText,
+    chunkingPolicy: { policyVersion: 'v1', maxChunkChars: 120, overlapChars: 0 },
+  });
+}
+
+async function seedAgents(seed: SeedContext, orgA: string, orgB: string) {
+  const knowledge = ['knowledge.search'];
+  const make = (spec: AgentSpec) =>
+    createAgent(seed, { ...spec, slug: `${spec.slug}-${seed.run}` });
+  return {
+    sales: await make({ organizationId: orgA, slug: 'vendas', tools: knowledge }),
+    support: await make({ organizationId: orgA, slug: 'suporte', tools: knowledge }),
+    noTool: await make({ organizationId: orgA, slug: 'sem-ferramenta', tools: ['catalog.search'] }),
+    draftOnly: await make({
+      organizationId: orgA,
+      slug: 'rascunho',
+      tools: knowledge,
+      publish: false,
+    }),
+    archived: await make({ organizationId: orgA, slug: 'arquivado', tools: knowledge }),
+    salesB: await make({ organizationId: orgB, slug: 'vendas-b', tools: knowledge }),
+  };
+}
+
+async function seedDocuments(seed: SeedContext, fx: KnowledgeSimulationFixture): Promise<void> {
+  for (const [i, rawText] of KNOWLEDGE_SIMULATION_CATALOG.entries()) {
+    await ingest(seed, { organizationId: fx.orgA, locator: `secao-${i}`, rawText });
+  }
+  await ingest(seed, {
+    organizationId: fx.orgA,
+    locator: 'bombas',
+    rawText: 'Bomba Centrífuga BC-90 para água industrial.',
+    agentId: fx.support,
+  });
+  await ingest(seed, {
+    organizationId: fx.orgB,
+    locator: 'helicopteros',
+    rawText: 'Helicóptero H-125 à venda. Preço do helicóptero sob consulta.',
+  });
+}
+
 /**
  * Somente para bancos DESCARTÁVEIS de teste. Organizações, agentes, rascunhos,
  * publicações e documentos são criados pelos serviços oficiais; só usuário,
@@ -79,97 +154,20 @@ export async function createKnowledgeSimulationFixture(
 ): Promise<KnowledgeSimulationFixture> {
   const userId = `usr_kbsim_${run}`;
   await db.insert(user).values({ id: userId, name: 'KB-SIM', email: `kbsim_${run}@example.com` });
-  const planId = await createPlan(db, run);
-  const resolver = new CommercialEntitlementResolver(db);
-  const lifecycle = new AgentLifecycleService(db, resolver);
-  const drafts = new AgentDraftService(db);
-  const policy = new DefaultCommercialPublicationPolicy(db, resolver);
-  const publication = new AgentPublicationService(db, policy);
-
-  async function org(tag: string) {
-    const created = await new OrganizationRepository(db).createOrganization({
-      slug: `kbsim-${tag}-${run}`,
-      name: tag,
-      status: 'ACTIVE',
-    });
-    await db.insert(subscriptions).values({
-      organizationId: created!.id,
-      planId,
-      status: 'ACTIVE',
-      billingMode: 'SELF_SERVICE',
-      currentPeriodStart: new Date(Date.now() - 86_400_000),
-      currentPeriodEnd: new Date(Date.now() + 86_400_000),
-    });
-    return created!.id;
-  }
-
-  async function agent(organizationId: string, slug: string, tools: string[], publish = true) {
-    const created = await lifecycle.createAgent({
-      organizationId,
-      name: slug,
-      slug,
-      createdBy: userId,
-    });
-    const configuration = knowledgeSimulationConfig(tools as AgentConfigurationSnapshotV1['tools']);
-    const draft = await drafts.createDraft({
-      organizationId,
-      agentId: created.id,
-      configuration,
-      createdBy: userId,
-    });
-    if (publish) {
-      await publication.publishDraft({
-        organizationId,
-        agentId: created.id,
-        draftVersionId: draft.id,
-        publishedBy: userId,
-      });
-    }
-    return created.id;
-  }
-
-  async function ingest(
-    organizationId: string,
-    locator: string,
-    rawText: string,
-    agentId?: string,
-  ) {
-    await ingestKnowledgeDocument(db, {
-      organizationId,
-      ...(agentId ? { agentId } : {}),
-      title: `Catálogo ${locator}`,
-      source: { sourceType: 'PRODUCT_MANUAL', locator: `${run}/${locator}` },
-      rawText,
-      chunkingPolicy: { policyVersion: 'v1', maxChunkChars: 120, overlapChars: 0 },
-    });
-  }
-
-  const orgA = await org('a');
-  const orgB = await org('b');
+  const seed: SeedContext = { db, run, userId, planId: await createPlan(db, run) };
+  const orgA = await createOrg(seed, 'a');
+  const orgB = await createOrg(seed, 'b');
   const fixture: KnowledgeSimulationFixture = {
     userId,
     orgA,
     orgB,
-    sales: await agent(orgA, `vendas-${run}`, ['knowledge.search']),
-    support: await agent(orgA, `suporte-${run}`, ['knowledge.search']),
-    noTool: await agent(orgA, `sem-ferramenta-${run}`, ['catalog.search']),
-    draftOnly: await agent(orgA, `rascunho-${run}`, ['knowledge.search'], false),
-    archived: await agent(orgA, `arquivado-${run}`, ['knowledge.search']),
-    salesB: await agent(orgB, `vendas-b-${run}`, ['knowledge.search']),
+    ...(await seedAgents(seed, orgA, orgB)),
   };
   await new AgentRepository(db).archiveAgent({
     organizationId: orgA,
     agentId: fixture.archived,
     actorId: userId,
   });
-  for (const [i, text] of KNOWLEDGE_SIMULATION_CATALOG.entries()) {
-    await ingest(orgA, `secao-${i}`, text);
-  }
-  await ingest(orgA, 'bombas', 'Bomba Centrífuga BC-90 para água industrial.', fixture.support);
-  await ingest(
-    orgB,
-    'helicopteros',
-    'Helicóptero H-125 à venda. Preço do helicóptero sob consulta.',
-  );
+  await seedDocuments(seed, fixture);
   return fixture;
 }

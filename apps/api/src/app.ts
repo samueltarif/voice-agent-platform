@@ -50,6 +50,15 @@ function registerOpenApiDocs(app: OpenAPIHono): void {
   });
 }
 
+/** Base de Conhecimento: leitura, ingestão, gestão, pré-visualização e conversa simulada. */
+function registerKnowledgeRoutes(app: OpenAPIHono, deps: ApiDependencies): void {
+  registerKnowledgeReadRoutes(app, deps);
+  registerKnowledgeMutationRoutes(app, deps);
+  registerKnowledgeManagementRoutes(app, deps);
+  registerKnowledgeRetrievalPreviewRoutes(app, deps);
+  registerKnowledgeSimulatedTurnRoutes(app, deps);
+}
+
 export function createApp(deps: ApiDependencies): OpenAPIHono {
   const app = new OpenAPIHono({
     defaultHook: openApiDefaultHook,
@@ -87,11 +96,7 @@ export function createApp(deps: ApiDependencies): OpenAPIHono {
   registerMeOrganizationRoutes(app, deps);
   registerOutboundCampaignRoutes(app, deps);
   registerOutboundBatchRoutes(app, deps);
-  registerKnowledgeReadRoutes(app, deps);
-  registerKnowledgeMutationRoutes(app, deps);
-  registerKnowledgeManagementRoutes(app, deps);
-  registerKnowledgeRetrievalPreviewRoutes(app, deps);
-  registerKnowledgeSimulatedTurnRoutes(app, deps);
+  registerKnowledgeRoutes(app, deps);
   registerContactListRoutes(app, deps);
   registerContactSuppressionRoutes(app, deps);
   registerCampaignLifecycleRoutes(app, deps);

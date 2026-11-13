@@ -15,6 +15,14 @@ interface AgentSimulatorPageProps {
   readonly searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
+/** Conversa simulada (DEC-061): só para agente ativo com versão publicada. */
+function resolveConversation(data: Awaited<ReturnType<typeof loadAgentSimulatorData>>) {
+  const published = data.versions.find((v) => v.status === 'PUBLISHED');
+  return data.agent?.status === 'ACTIVE' && published
+    ? { publishedVersionNumber: published.versionNumber }
+    : null;
+}
+
 /**
  * Simulador offline (DEC-050): somente leitura, montado no servidor a partir
  * do carregamento autenticado do detalhe do agente. A única parte interativa
@@ -52,11 +60,7 @@ export default async function AgentSimulatorPage({
         })
       : null;
     const notice = data.agent ? null : SIMULATOR_NOT_FOUND_NOTICE;
-    const published = data.versions.find((v) => v.status === 'PUBLISHED');
-    const conversation =
-      data.agent?.status === 'ACTIVE' && published
-        ? { publishedVersionNumber: published.versionNumber }
-        : null;
+    const conversation = resolveConversation(data);
     view = (
       <SimulatorView
         {...base}

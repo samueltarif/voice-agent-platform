@@ -78,7 +78,9 @@ describe('SimulatorConversationView (DEC-061)', () => {
     expect(html).toContain('Contexto geral — não confirma o item');
     expect(html).not.toContain('simulator-turn-notice');
   });
+});
 
+describe('SimulatorConversationView (DEC-061): no evidence, states and safety', () => {
   it('warns clearly when there is no evidence and lists the missing terms', () => {
     const html = render({
       entries: [
