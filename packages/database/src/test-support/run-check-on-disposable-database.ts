@@ -1,5 +1,7 @@
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { sql } from 'drizzle-orm';
 import { createDatabaseConnection } from '../client/connection.js';
 import { runMigrations } from '../client/migrate.js';
@@ -8,6 +10,7 @@ import {
   evaluateTestTargetEvidence,
   resolveTestAdminUrl,
 } from './test-database-target-evidence.js';
+import { summarizeDisposableTimings } from './summarize-disposable-timings.js';
 
 /**
  * Gate em banco DESCARTÁVEL (DEC-062): cria `of2_test_<hex>` num PostgreSQL
@@ -21,6 +24,8 @@ const adminUrl = resolveTestAdminUrl(process.env);
 const command = process.argv.slice(2);
 const name = `of2_test_${randomUUID().replace(/-/g, '').slice(0, 12)}`;
 const log = (message: string) => console.log(`[gate-disposable] ${message}`);
+/** Tempos das suítes descartáveis (sem credenciais), resumidos no fim (DEC-063). */
+const timingsFile = process.env['OF2_TIMINGS_FILE'] || join(tmpdir(), `of2-timings-${name}.jsonl`);
 
 async function withAdmin<T>(
   work: (db: ReturnType<typeof createDatabaseConnection>['db']) => Promise<T>,
@@ -62,6 +67,7 @@ async function dropGateDatabase(): Promise<void> {
 
 function runCommand(gateUrl: string): Promise<number> {
   const env: NodeJS.ProcessEnv = { ...process.env, TEST_DATABASE_URL: gateUrl };
+  env['OF2_TIMINGS_FILE'] = timingsFile;
   delete env['DATABASE_URL'];
   delete env['MIGRATION_DATABASE_URL'];
   const [bin, ...args] = command.length > 0 ? command : ['pnpm', 'check'];
@@ -81,5 +87,7 @@ try {
   console.error(`[gate-disposable] ERRO: ${error instanceof Error ? error.message : 'falha'}`);
 } finally {
   if (created) await dropGateDatabase().catch(() => (exitCode = 1));
+  for (const line of summarizeDisposableTimings(timingsFile)) console.log(line);
+  log(`registro de tempos: ${timingsFile}`);
 }
 process.exit(exitCode);
