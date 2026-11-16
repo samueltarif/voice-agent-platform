@@ -6,6 +6,8 @@ export const CANONICAL_TOOL_NAMES = [
   'agent.operating_hours',
   'catalog.search',
   'catalog.item_detail',
+  // DEC-056: ampliação compatível — snapshots antigos continuam válidos e não ganham a ferramenta.
+  'knowledge.search',
 ] as const;
 export type CanonicalToolName = (typeof CANONICAL_TOOL_NAMES)[number];
 

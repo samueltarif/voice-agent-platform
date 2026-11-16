@@ -26,4 +26,10 @@ export const AVAILABLE_CANONICAL_TOOLS: readonly CanonicalToolItem[] = [
     description:
       'Permite ao agente consultar o detalhe de um produto ou serviço do catálogo do tenant.',
   },
+  {
+    name: 'knowledge.search',
+    label: 'Busca na Base de Conhecimento',
+    description:
+      'Permite ao agente consultar trechos dos documentos da organização liberados para ele, como dados (não instruções). Ainda não é usada em chamadas reais.',
+  },
 ];

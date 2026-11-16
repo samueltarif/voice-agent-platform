@@ -19334,6 +19334,15 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **PENDENTE DE DECISÃO (não implementado)**: D-KB-SNAPSHOT (V2 manifesto, migration), D-KB-TOOL, entrega à Millis (M-B proposta).
 - **SAFETY**: sem migration, chamadas externas, Twilio/Millis ou dados da Qualitec. `ACTIVE_GUARDED = BLOCKED` | `CUSTOMER_TRAFFIC = PROHIBITED` | `PRODUCTION_RUNTIME_WIRING = NO` | `REAL_PROVIDER_CALLS = 0` | `PURCHASE_OF_PHONE_NUMBERS = 0` | `REMOTE_MIGRATIONS = 0` | `PUBLIC_WEBHOOKS = 0`.
 
+## 2026-11-12 — Base de Conhecimento — Ferramenta offline `knowledge.search` (KB-TOOL, DEC-057) — Claude
+
+- **BASE**: worktree `wt-kb-tool`, branch `feat/knowledge-search-tool` sobre o SHA da #157 `a41017290f0c0c1a7ed9f02ff54ea7b2b2576bc8`. #150–#158 não tocadas.
+- **IMPLEMENTAÇÃO**: `knowledge-search-tool-contracts.ts` (contracts); `knowledge-query-terms.ts` movido de `database` para `contracts` (database reexporta; testes existentes intactos); `CANONICAL_TOOL_NAMES` + `knowledge.search`; `apps/voice/src/knowledge-search-tool.ts` (reaproveita `resolveVoiceKnowledgeScope`, a porta de recuperação e `buildKnowledgeExcerpt`); item no catálogo do Agent Studio.
+- **SEGURANÇA**: escopo só do contexto montado a partir da concessão (`buildPublishedVersionToolExecutionContext`); entrada estrita (recusa `organizationId`, `agentId`, `agentVersionId`, `documentIds`, `collection`); versão publicada sem a ferramenta ⇒ `UNAUTHORIZED_TOOL`; sem agente/versão ⇒ erro sem consulta; texto de documento devolvido como dado com `usage` fixo do servidor.
+- **TESTES**: 16 novos (ferramenta 10, contrato 4, catálogo do Studio 2); nenhum teste existente alterado.
+- **PROVA DE SENSIBILIDADE**: 9 mutações descartáveis, restauradas byte a byte (SHA-256): 8 detectadas (agente fixo no escopo, sem teto total, sem limite padrão, `usage` vindo do documento, entrada não estrita, título sem corte, truncamento omitido, catálogo sem a ferramenta). 1 equivalente: trocar o padrão de versão ausente de `''` para `'x'` continua recusado, porque `resolveVoiceKnowledgeScope` valida o UUID.
+- **NÃO FEITO**: composição de produção, conexão com Millis, migration 0014 (não autorizada).
+
 ## 2026-11-12 — Base de Conhecimento — Termo genérico não é evidência (DEC-058) — Claude
 
 - **FALHA (homologação Windows da #157)**: escopo "Como o agente ASSISTENTE DE VENDAS", pergunta "preço do helicóptero" ⇒ trechos 6 (0,42) e 5 (0,32) do FAQ de preços; o catálogo não tem helicópteros.
@@ -19350,3 +19359,14 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 ## 2026-11-12 — Correção do registro anterior (DEC-058) — Claude
 
 - **CORREÇÃO**: a entrada anterior diz "19 (integração 11, regra 7, painel 1)". O correto, conferido por contagem de `it(` nos arquivos, é **18 testes novos (integração 10, regra 7, painel 1)**.
+
+## 2026-11-12 — Base de Conhecimento — `knowledge.search` com relevância e termos ausentes (DEC-059) — Claude
+
+- **BASE**: worktree `wt-kb-search-rel`, branch `feat/knowledge-search-relevance` a partir da #159 (`d38b2a9`) com merge da #160 (`9a286db`). Conflitos só em `docs/AI_WORKLOG.md` e `docs/DECISIONS_LOG.md`, resolvidos por união (entradas append-only das duas PRs mantidas). Código mesclado automaticamente.
+- **PROBLEMA**: a ferramenta herdava o filtro e a ordem da #160 pela porta de busca, mas o contrato estrito descartava `relevance` e `unmatchedTerms`; o modelo recebia o FAQ de preço sem saber que era só contexto.
+- **IMPLEMENTAÇÃO**: `knowledge-search-tool-contracts.ts` (resultado com `relevance`; saída com `unmatchedTerms` ≤ `KNOWLEDGE_MAX_QUERY_TERMS`; `superRefine` exigindo `found` ⇔ DIRECT, DIRECT antes de CONTEXT, nunca CONTEXT sozinho; `usage` explica os rótulos); `knowledge-search-tool.ts` (trecho sem rótulo ⇒ CONTEXT; sem DIRECT ⇒ nenhum trecho; repassa `unmatchedTerms`). `apps/voice` ganha `@voice-agent/database` só como devDependency, para o teste de integração.
+- **TESTES NOVOS**: 19 — contrato 7 (`knowledge-search-tool-evidence.test.ts`), ferramenta 6 (`knowledge-search-tool-relevance.test.ts`), integração 6 (`knowledge-search-tool.integration.test.ts`: ferramenta real + motor com concessão da versão publicada + `DrizzleKnowledgeRetrievalService` no Postgres local, `runId`, teardown com prova de zero resíduos).
+- **TESTES EXISTENTES**: TEST_CHANGE_REASON = o contrato passou a exigir `relevance` e `unmatchedTerms`. `knowledge-search-tool.test.ts`: o fixture `hit()` passa a declarar `relevance: 'DIRECT'` (sem isso o trecho vira CONTEXT e alguns casos passariam vazios). `knowledge-search-tool-contracts.test.ts`: o objeto válido ganha `unmatchedTerms: []`, o resultado ganha `relevance: 'DIRECT'` e o caso de trecho longo usa `found: true`, para continuar falhando só pelo tamanho. Nenhuma asserção removida ou trocada. Classificação: ASSERTION_EQUIVALENT.
+- **PROVA DE SENSIBILIDADE**: 7 mutações descartáveis (filtro sem DIRECT, padrão DIRECT, `unmatchedTerms` vazio, `found` por quantidade, e as três regras do `superRefine`), todas detectadas; arquivos restaurados byte a byte (SHA-256).
+- **BACKLOG (não implementado)**: chunker que corta no meio de palavras; ranking (sinônimos, semântica, pesos); termos genéricos e limiar de ubiquidade por organização; migration 0014 adiada.
+- **SAFETY**: sem migration, chamadas externas, Twilio/Millis, produção ou webhooks; banco da Qualitec e worktree Windows intocados; nenhuma composição de produção (`PRODUCTION_RUNTIME_WIRING=NO`). #150–#160 não alteradas.

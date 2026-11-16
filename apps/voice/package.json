@@ -10,6 +10,9 @@
     "@voice-agent/errors": "workspace:*",
     "@voice-agent/logger": "workspace:*"
   },
+  "devDependencies": {
+    "@voice-agent/database": "workspace:*"
+  },
   "scripts": {
     "build": "tsc",
     "lint": "eslint .",
