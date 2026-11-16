@@ -19425,3 +19425,19 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **DIAGNÓSTICO**: `loadDependencies()` importa módulos compilados (`dist`) na primeira chamada de `runL2Benchmark`; Linux: 716 ms com importação × 13 ms sem ela. Mesmo padrão em `l2-joint-chain-result-classification.test.ts`. `[DEP0190]` = `shell: true` só no Windows nos dois runners novos.
 - **CORREÇÃO**: aquecimento em `beforeAll` (30 s) nos dois testes — TEST_CHANGE_REASON: custo de importação movido para preparo; nenhum `it(`/`expect` e nenhum limite de teste alterado; ASSERTION_EQUIVALENT. Runners sem shell (`process.execPath` + CLI do Vitest; `npm_execpath` para `pnpm`).
 - **PROVA DIRECIONADA (Linux)**: "Matrix B & C" 13 ms; com as 2 CPUs ocupadas por laços infinitos: 22 ms e joint-chain 28 ms (23/23 PASS).
+
+## 2026-11-12 — Base de Conhecimento — Revisão da #157 e desenho de snapshots, `knowledge.search` e M-B (DEC-056) — Claude
+
+> Entrada escrita em 2026-11-12 na PR #158 (commit `c20f85b`), que não entrou na `main` junto com #156–#163; reproduzida aqui sem alteração ao integrar a documentação em 2026-11-16.
+
+- **REVISÃO DA #157**: HEAD final `a41017290f0c0c1a7ed9f02ff54ea7b2b2576bc8` (= remoto = `head.sha` da PR). Gate Linux executado em `7a77a37` e de novo em `a410172` (exit 0, worktree limpa antes e depois). Entre os dois commits só mudaram o teste de integração e o worklog; os 9 arquivos de código onde as mutações foram aplicadas são idênticos (`git diff --quiet`). Worktree limpa após as duas rodadas de mutação.
+- **COMPORTAMENTO REAL DA EDIÇÃO** (execução descartável, apagada sem commit): documento de toda a organização ou associado ao agente ⇒ edição aceita e o agente publicado passa a receber o texto novo; fixado à versão ⇒ edição recusada (`KNOWLEDGE_PINNED_TO_AGENT_VERSION`) e o texto antigo permanece. A tela nunca fixa documentos a versões (só a API aceita `agentVersionId`). As afirmações da #156 e da #157 tratam de casos diferentes; não há contradição no código, mas há lacuna de produto, que este desenho corrige.
+- **DESENHO**: `docs/architecture/KNOWLEDGE_SNAPSHOTS_AND_SEARCH_TOOL_DESIGN.md` — revisões imutáveis com trechos próprios, manifesto gravado na publicação, revogação emergencial irreversível e auditada, migration 0014 proposta em texto (expand/backfill/contract; FKs compostas verificadas no schema atual), contrato `knowledge.search` e protótipo M-B com limites.
+- **NADA IMPLEMENTADO**: sem código, sem migration criada ou executada. #150–#157 não alteradas.
+
+## 2026-11-16 — Documentação — Desenho da #158 e roadmap da Base de Conhecimento na `main` — Claude
+
+- **BASE**: `origin/main` `2015da2` (#156–#163 integradas; gate Windows 2.159 PASS informado pelo operador). Branch `docs/knowledge-roadmap-and-design`.
+- **#158 RECUPERADA** (commit `c20f85b`): `docs/architecture/KNOWLEDGE_SNAPSHOTS_AND_SEARCH_TOOL_DESIGN.md` com nota de situação em 16/11 no topo (o texto original foi mantido); linha DEC-056 inserida na posição numérica entre DEC-055 e DEC-057; entrada do worklog da #158 reproduzida acima sem alteração, com nota de origem. Nenhuma linha existente dos logs foi alterada ou removida.
+- **ROADMAP**: `docs/ROADMAP_KNOWLEDGE.md` a partir do anexo do operador de 16/11 (PRs A–E, futuro, interface e regras idênticos ao anexo); "Ponto de partida" e "Próxima ação" atualizados com os fatos informados (integração na `main`, gate Windows) e o diagnóstico da FAQ DIRECT já registrado neste worklog.
+- **SÓ DOCUMENTAÇÃO**: nenhum código, migration, banco, publicação de agente ou chamada externa.
