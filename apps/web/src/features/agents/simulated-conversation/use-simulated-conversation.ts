@@ -17,6 +17,20 @@ export interface SimulatedConversationEntry {
   readonly response: KnowledgeSimulatedTurnResponse;
 }
 
+/** Acrescenta um turno mantendo só os {@link SIMULATED_HISTORY_MAX_TURNS} mais recentes. */
+export function appendSimulatedTurn(
+  entries: readonly SimulatedConversationEntry[],
+  entry: SimulatedConversationEntry,
+): SimulatedConversationEntry[] {
+  return [...entries, entry].slice(-SIMULATED_HISTORY_MAX_TURNS);
+}
+
+/** Pergunta que pode ser enviada: não vazia e dentro do limite do contrato. */
+export function sendableQuestion(draft: string): string | null {
+  const question = draft.trim();
+  return question && question.length <= SIMULATED_QUESTION_MAX_CHARS ? question : null;
+}
+
 export interface SimulatedConversationState {
   readonly draft: string;
   readonly pending: boolean;
@@ -38,8 +52,8 @@ export function useSimulatedConversation(input: {
   const nextId = React.useRef(1);
 
   const send = React.useCallback(async () => {
-    const question = draft.trim();
-    if (!question || pending || question.length > SIMULATED_QUESTION_MAX_CHARS) return;
+    const question = sendableQuestion(draft);
+    if (!question || pending) return;
     setPending(true);
     setFailure(null);
     try {
@@ -48,7 +62,7 @@ export function useSimulatedConversation(input: {
         utterance: question,
       });
       const entry = { id: nextId.current++, question, response };
-      setEntries((prev) => [...prev, entry].slice(-SIMULATED_HISTORY_MAX_TURNS));
+      setEntries((prev) => appendSimulatedTurn(prev, entry));
       setDraft('');
     } catch (error) {
       setFailure(describeKnowledgeFailure(error));

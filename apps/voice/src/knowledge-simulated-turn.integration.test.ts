@@ -22,11 +22,17 @@ import { InMemoryToolRegistry } from './tool-registry.js';
 import { createKnowledgeSearchToolDefinition } from './knowledge-search-tool.js';
 import { runSimulatedKnowledgeTurn } from './knowledge-simulated-turn.js';
 
+/**
+ * Criado no carregamento do módulo, como nas demais suítes descartáveis: a
+ * espera pelo lease exclusivo (outras suítes descartáveis em andamento) não
+ * conta no tempo limite do `beforeAll`.
+ */
+const tdb: DisposableTestDatabase = await createDisposableTestDatabase('knowledge-simulated-turn');
+
 /** Bancos preexistentes que esta suíte nunca pode usar como destino. */
 const FORBIDDEN_TARGETS = ['voice_agent_ui_0561f39', 'voice_agent_pr157_test', 'voice_agent_dev'];
 
 describe('KB-SIM-1: simulated turn with a published agent (disposable PostgreSQL)', () => {
-  let tdb: DisposableTestDatabase;
   let ids: KnowledgeSimulationFixture;
   let searches = 0;
 
@@ -73,12 +79,11 @@ describe('KB-SIM-1: simulated turn with a published agent (disposable PostgreSQL
   }
 
   beforeAll(async () => {
-    tdb = await createDisposableTestDatabase('knowledge-simulated-turn');
     ids = await createKnowledgeSimulationFixture(tdb.db, Math.random().toString(36).slice(2, 8));
   }, 180_000);
 
   afterAll(async () => {
-    await tdb?.drop();
+    await tdb.drop();
   }, 60_000);
 
   it('runs only on a database created by this suite (of2_test_*), never a preexisting one', async () => {

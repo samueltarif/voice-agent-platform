@@ -26,7 +26,8 @@
     "test:staging:api": "node --env-file=.env.staging ./node_modules/vitest/vitest.mjs run apps/web/src/lib/api/agent-api.staging.test.ts",
     "test:staging:bootstrap": "node --env-file=.env.staging ./node_modules/vitest/vitest.mjs run apps/web/src/lib/api/bootstrap-api.staging.test.ts",
     "test:staging": "pnpm test:staging:db && pnpm test:staging:web && pnpm test:staging:api && pnpm test:staging:bootstrap",
-    "check:api-dist": "node scripts/check-api-dist-startup.mjs"
+    "check:api-dist": "node scripts/check-api-dist-startup.mjs",
+    "check:disposable": "node --experimental-transform-types --no-warnings --import ./packages/database/src/test-support/typescript-source-loader.mjs packages/database/src/test-support/run-check-on-disposable-database.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.20.0",
