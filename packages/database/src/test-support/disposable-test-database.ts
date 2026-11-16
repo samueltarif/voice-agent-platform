@@ -5,6 +5,12 @@ import { runMigrations } from '../client/migrate.js';
 import { collectTestDatabaseEvidence } from './collect-test-database-evidence.js';
 import { waitForDatabaseDrain } from './wait-for-database-drain.js';
 import {
+  markLeaseAcquired,
+  markLeaseReleased,
+  registerDisposableSuite,
+  timeSuitePhase,
+} from './disposable-database-timings.js';
+import {
   acquireDisposableDatabaseLease,
   releaseDisposableDatabaseLease,
 } from './disposable-database-lease.js';
@@ -39,11 +45,7 @@ export interface DisposableDatabaseOptions {
   readonly collectEvidence?: ((db: DatabaseInstance) => Promise<TestTargetEvidence>) | undefined;
   /** Injeção apenas para o teste de falha induzida de migration. */
   readonly runMigrationsFn?: ((options: { connectionString: string }) => Promise<void>) | undefined;
-  /**
-   * Injeção apenas para os testes da guarda comprovarem, pelo NOME exato, que
-   * nenhuma base foi criada. Qualquer valor fora de `of2_test_<12 hex>` é
-   * recusado ANTES de qualquer DDL.
-   */
+  /** Só testes da guarda; fora de `of2_test_<12 hex>` é recusado ANTES de qualquer DDL. */
   readonly databaseName?: string | undefined;
 }
 
@@ -86,7 +88,7 @@ function withDatabase(url: string, name: string): string {
 }
 
 export async function createDisposableTestDatabase(
-  _tag: string,
+  tag: string,
   options: DisposableDatabaseOptions = {},
 ): Promise<DisposableTestDatabase> {
   const name = resolveDatabaseName(options);
@@ -97,10 +99,13 @@ export async function createDisposableTestDatabase(
   }
   const admin = createDatabaseConnection({ connectionString: ADMIN_URL, maxConnections: 1 });
   try {
-    await proveTarget(admin.db, options);
-    await acquireDisposableDatabaseLease(ADMIN_URL);
-    await admin.db.execute(sql.raw(`CREATE DATABASE "${name}"`)).catch(async (error: unknown) => {
-      await releaseDisposableDatabaseLease();
+    registerDisposableSuite(name, tag);
+    await timeSuitePhase(name, 'PROVE_TARGET', () => proveTarget(admin.db, options));
+    await timeSuitePhase(name, 'LEASE_WAIT', () => acquireDisposableDatabaseLease(ADMIN_URL));
+    markLeaseAcquired(name);
+    const create = sql.raw(`CREATE DATABASE "${name}"`);
+    await timeSuitePhase(name, 'CREATE', () => admin.db.execute(create)).catch(async (error) => {
+      await releaseDisposableDatabaseLease().finally(() => markLeaseReleased(name));
       throw error;
     });
     createdByThisRun.add(name);
@@ -123,7 +128,8 @@ async function openMigratedOrCleanUp(input: {
   const url = withDatabase(ADMIN_URL, name);
   try {
     assertDisposableDatabaseUrl(url);
-    await (options.runMigrationsFn ?? runMigrations)({ connectionString: url });
+    const migrate = options.runMigrationsFn ?? runMigrations;
+    await timeSuitePhase(name, 'MIGRATE', () => migrate({ connectionString: url }));
     const { db, pool } = createDatabaseConnection({ connectionString: url, maxConnections: 6 });
     return { name, url, db, drop: () => dropDisposable({ name, close: () => pool.end() }) };
   } catch (original) {
@@ -154,8 +160,9 @@ async function dropDisposable(input: {
   assertDroppableByThisRun(input.name);
   const admin = createDatabaseConnection({ connectionString: ADMIN_URL, maxConnections: 1 });
   try {
-    await waitForDatabaseDrain(admin.db, input.name);
-    await admin.db.execute(sql.raw(`DROP DATABASE IF EXISTS "${input.name}" WITH (FORCE)`));
+    await timeSuitePhase(input.name, 'DRAIN', () => waitForDatabaseDrain(admin.db, input.name));
+    const drop = sql.raw(`DROP DATABASE IF EXISTS "${input.name}" WITH (FORCE)`);
+    await timeSuitePhase(input.name, 'DROP', () => admin.db.execute(drop));
     const left = await admin.db.execute(
       sql`SELECT 1 FROM pg_database WHERE datname = ${input.name}`,
     );
@@ -165,5 +172,6 @@ async function dropDisposable(input: {
     await admin.pool.end();
     // Só após a prova de posse (base criada por ESTE processo, que detém o lease).
     await releaseDisposableDatabaseLease();
+    markLeaseReleased(input.name);
   }
 }

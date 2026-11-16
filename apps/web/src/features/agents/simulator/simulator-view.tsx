@@ -6,6 +6,7 @@ import { SimulatorConfigSelector } from './simulator-config-selector.js';
 import { SimulatorContextCard } from './simulator-context-card.js';
 import { SimulatorOfflineBanner } from './simulator-offline-banner.js';
 import { SimulatorToolsCard } from './simulator-tools-card.js';
+import { SimulatorConversationCard } from '../simulated-conversation/simulator-conversation-card.js';
 import {
   SIMULATOR_CONFIGURATION_LABELS,
   type SimulatorConfigurationSelection,
@@ -19,6 +20,11 @@ export interface SimulatorViewProps {
   readonly selection: SimulatorConfigurationSelection | null;
   /** Mensagem sem dados de configuração (sem permissão, não encontrado, erro). */
   readonly notice: string | null;
+  /**
+   * Conversa simulada (DEC-061): só quando o agente está ativo e tem versão
+   * publicada. Ausente ⇒ a página continua só de leitura.
+   */
+  readonly conversation?: { readonly publishedVersionNumber: number } | null | undefined;
 }
 
 function SimulatorNotice({ text }: { readonly text: string }) {
@@ -96,6 +102,14 @@ export function SimulatorView(props: SimulatorViewProps) {
       {props.notice && <SimulatorNotice text={props.notice} />}
       {!props.notice && props.selection && (
         <SimulatorBody selection={props.selection} basePath={`${detailPath}/simulador`} />
+      )}
+      {!props.notice && props.agentName && props.conversation && (
+        <SimulatorConversationCard
+          orgSlug={props.orgSlug}
+          agentId={props.agentId}
+          agentName={props.agentName}
+          publishedVersionNumber={props.conversation.publishedVersionNumber}
+        />
       )}
     </div>
   );

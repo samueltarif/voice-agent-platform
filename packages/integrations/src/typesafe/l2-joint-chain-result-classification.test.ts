@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import {
+  loadDependencies,
   EXPECTED_TYPESAFE_MODEL,
   runL2Benchmark,
 } from '../../../../scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs';
@@ -45,7 +46,14 @@ function createSuccessOpenAiFetch() {
 
 const silentLogger = { log: () => {}, warn: () => {}, error: () => {} };
 
+/** Importação dos módulos compilados é PREPARO (DEC-064); ver jev-openai-l2-synthetic-runner.test.ts. */
+const DEPENDENCY_WARMUP_TIMEOUT_MS = 30_000;
+
 describe('L2 Joint-Chain Result Classification (Human Decision A)', () => {
+  beforeAll(async () => {
+    await loadDependencies();
+  }, DEPENDENCY_WARMUP_TIMEOUT_MS);
+
   it('locks 7-deterministic / 5-generative shape as PARTIAL_CHAIN_OBSERVED, not PASS_COMPLETE', async () => {
     const result = await runL2Benchmark({
       offlineMode: true,

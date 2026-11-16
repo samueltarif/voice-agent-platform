@@ -28,10 +28,18 @@ import { ServiceAssertionVerifier } from './auth/service-assertion-verifier.js';
 import { BootstrapAssertionVerifier } from './auth/bootstrap-assertion-verifier.js';
 import { createApiLogger } from './logging/api-logger.js';
 import { createApp } from './app.js';
+import { createKnowledgeSimulatedTurnService } from './simulation/knowledge-simulated-turn-service.js';
+import { resolveApiListenOptions, type ApiListenOptions } from './server-listen-options.js';
 
 const logger = createApiLogger('server');
 
-const port = Number(process.env.PORT || '3001');
+let listenOptions: ApiListenOptions;
+try {
+  listenOptions = resolveApiListenOptions(process.env);
+} catch (error) {
+  logger.error(error instanceof Error ? error.message : 'Invalid HOST/PORT configuration');
+  process.exit(1);
+}
 const publicJwksJson = process.env.INTERNAL_SERVICE_PUBLIC_JWKS;
 
 if (!publicJwksJson) {
@@ -65,6 +73,7 @@ const outboundRepo = new DrizzleOutboundRepository(db);
 const knowledgeRepo = new DrizzleKnowledgeRepository(db);
 const knowledgeManagement = new DrizzleKnowledgeManagementService(db);
 const knowledgeRetrievalPreview = new DrizzleKnowledgeRetrievalPreviewService(db);
+const knowledgeSimulatedTurn = createKnowledgeSimulatedTurnService(db);
 const contactRepo = new DrizzleContactRepository(db);
 const suppressionRepo = new DrizzleContactSuppressionRepository(db);
 const campaignLifecycleRepo = new DrizzleCampaignLifecycleRepository(db);
@@ -91,6 +100,7 @@ const app = createApp({
   knowledgeRepo,
   knowledgeManagement,
   knowledgeRetrievalPreview,
+  knowledgeSimulatedTurn,
   contactRepo,
   suppressionRepo,
   campaignLifecycleRepo,
@@ -98,8 +108,8 @@ const app = createApp({
   operationsOverviewRepo,
 });
 
-const server = serve({ fetch: app.fetch, port }, (info) => {
-  logger.info(`Voice Agent Platform API listening on http://localhost:${info.port}`);
+const server = serve({ fetch: app.fetch, ...listenOptions }, (info) => {
+  logger.info(`Voice Agent Platform API listening on http://${info.address}:${info.port}`);
 });
 
 const shutdown = async () => {

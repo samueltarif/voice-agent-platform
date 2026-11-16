@@ -23,6 +23,8 @@
     "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
+      "@voice-agent/agent-tools": ["./packages/agent-tools/src/index.ts"],
+      "@voice-agent/agent-tools/*": ["./packages/agent-tools/src/*"],
       "@voice-agent/contracts": ["./packages/contracts/src/index.ts"],
       "@voice-agent/contracts/*": ["./packages/contracts/src/*"],
       "@voice-agent/errors": ["./packages/errors/src/index.ts"],

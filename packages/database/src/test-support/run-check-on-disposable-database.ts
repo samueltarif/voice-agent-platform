@@ -1,0 +1,107 @@
+import { spawn } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { sql } from 'drizzle-orm';
+import { createDatabaseConnection } from '../client/connection.js';
+import { runMigrations } from '../client/migrate.js';
+import { collectTestDatabaseEvidence } from './collect-test-database-evidence.js';
+import {
+  evaluateTestTargetEvidence,
+  resolveTestAdminUrl,
+} from './test-database-target-evidence.js';
+import { summarizeDisposableTimings } from './summarize-disposable-timings.js';
+
+/**
+ * Gate em banco DESCARTÁVEL (DEC-062): cria `of2_test_<hex>` num PostgreSQL
+ * local COMPROVADO, aplica as migrations existentes SÓ nele, roda o comando
+ * (padrão `pnpm check`) com `TEST_DATABASE_URL` apontando para ele e o remove
+ * no fim. Nenhum banco preexistente recebe DDL ou dados de teste; a conexão
+ * administrativa (`TEST_DATABASE_URL`, recomendado `.../postgres`) só executa
+ * `CREATE DATABASE`/`DROP DATABASE`. Nenhuma connection string é impressa.
+ */
+const adminUrl = resolveTestAdminUrl(process.env);
+const command = process.argv.slice(2);
+const name = `of2_test_${randomUUID().replace(/-/g, '').slice(0, 12)}`;
+const log = (message: string) => console.log(`[gate-disposable] ${message}`);
+/** Tempos das suítes descartáveis (sem credenciais), resumidos no fim (DEC-063). */
+const timingsFile = process.env['OF2_TIMINGS_FILE'] || join(tmpdir(), `of2-timings-${name}.jsonl`);
+
+async function withAdmin<T>(
+  work: (db: ReturnType<typeof createDatabaseConnection>['db']) => Promise<T>,
+) {
+  const admin = createDatabaseConnection({ connectionString: adminUrl, maxConnections: 1 });
+  try {
+    return await work(admin.db);
+  } finally {
+    await admin.pool.end();
+  }
+}
+
+async function createGateDatabase(): Promise<string> {
+  await withAdmin(async (db) => {
+    const decision = evaluateTestTargetEvidence(
+      await collectTestDatabaseEvidence({ adminUrl, db }),
+    );
+    if (!decision.accepted) {
+      throw new Error(`Refusing unproven PostgreSQL target (${decision.reason}); nothing created.`);
+    }
+    log(`destino local comprovado (${decision.mode}); criando ${name}`);
+    await db.execute(sql.raw(`CREATE DATABASE "${name}"`));
+  });
+  const url = new URL(adminUrl);
+  url.pathname = `/${name}`;
+  await runMigrations({ connectionString: url.toString() });
+  log(`migrations existentes aplicadas em ${name}`);
+  return url.toString();
+}
+
+async function dropGateDatabase(): Promise<void> {
+  await withAdmin(async (db) => {
+    await db.execute(sql.raw(`DROP DATABASE IF EXISTS "${name}" WITH (FORCE)`));
+    const left = await db.execute(sql`SELECT 1 FROM pg_database WHERE datname = ${name}`);
+    if (left.rows.length > 0) throw new Error(`${name} still present after drop.`);
+  });
+  log(`${name} removido`);
+}
+
+/**
+ * Sem shell (DEP0190): `pnpm` é o mesmo executável que iniciou este script
+ * (`npm_execpath`: script JS rodado pelo Node ou binário nativo); `node` é o
+ * Node atual. Outros comandos são executados diretamente, sem interpretação.
+ */
+function resolveExecutable(bin: string, args: string[]): [string, string[]] {
+  if (bin === 'node') return [process.execPath, args];
+  if (bin !== 'pnpm') return [bin, args];
+  const pnpm = process.env['npm_execpath'];
+  if (!pnpm) throw new Error('Execute via "pnpm check:disposable" (npm_execpath ausente).');
+  return /\.[cm]?js$/.test(pnpm) ? [process.execPath, [pnpm, ...args]] : [pnpm, args];
+}
+
+function runCommand(gateUrl: string): Promise<number> {
+  const env: NodeJS.ProcessEnv = { ...process.env, TEST_DATABASE_URL: gateUrl };
+  env['OF2_TIMINGS_FILE'] = timingsFile;
+  delete env['DATABASE_URL'];
+  delete env['MIGRATION_DATABASE_URL'];
+  const [bin, ...args] = command.length > 0 ? command : ['pnpm', 'check'];
+  log(`executando: ${[bin, ...args].join(' ')}`);
+  const [file, fileArgs] = resolveExecutable(bin!, args);
+  const child = spawn(file, fileArgs, { stdio: 'inherit', env });
+  return new Promise((resolve) => child.on('exit', (code) => resolve(code ?? 1)));
+}
+
+let exitCode = 1;
+let created = false;
+try {
+  const gateUrl = await createGateDatabase();
+  created = true;
+  exitCode = await runCommand(gateUrl);
+  log(`comando terminou com exit ${exitCode}`);
+} catch (error) {
+  console.error(`[gate-disposable] ERRO: ${error instanceof Error ? error.message : 'falha'}`);
+} finally {
+  if (created) await dropGateDatabase().catch(() => (exitCode = 1));
+  for (const line of summarizeDisposableTimings(timingsFile)) console.log(line);
+  log(`registro de tempos: ${timingsFile}`);
+}
+process.exit(exitCode);

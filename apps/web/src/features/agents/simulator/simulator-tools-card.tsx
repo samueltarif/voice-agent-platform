@@ -29,7 +29,7 @@ export function SimulatorToolsCard({ config, kind }: SimulatorToolsCardProps) {
           Ferramentas
         </CardTitle>
         <p className="text-xs text-muted-foreground">
-          Regra determinística — não é resposta de IA. Nenhuma ferramenta é executada aqui.
+          Regra determinística — não é resposta de IA. Este cartão não executa ferramentas.
         </p>
       </CardHeader>
       <CardContent className="space-y-3">

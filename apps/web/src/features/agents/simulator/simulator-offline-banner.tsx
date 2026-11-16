@@ -16,8 +16,9 @@ export function SimulatorOfflineBanner() {
       <div className="space-y-0.5">
         <p className="font-semibold">{SIMULATOR_OFFLINE_LABEL}</p>
         <p className="font-normal">
-          Mostra o que as regras determinísticas calculam a partir da configuração salva. Nada é
-          executado, enviado a fornecedores ou salvo.
+          Mostra o que as regras determinísticas calculam a partir da configuração salva. A conversa
+          simulada só consulta os documentos da versão publicada; nada é enviado a fornecedores ou
+          salvo.
         </p>
       </div>
     </div>

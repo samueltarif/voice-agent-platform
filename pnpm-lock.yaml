@@ -199,6 +199,9 @@ importers:
       '@hono/zod-openapi':
         specifier: ^0.19.10
         version: 0.19.10(hono@4.13.8)(zod@3.25.76)
+      '@voice-agent/agent-tools':
+        specifier: workspace:*
+        version: link:../../packages/agent-tools
       '@voice-agent/config':
         specifier: workspace:*
         version: link:../../packages/config
@@ -226,6 +229,9 @@ importers:
 
   apps/voice:
     dependencies:
+      '@voice-agent/agent-tools':
+        specifier: workspace:*
+        version: link:../../packages/agent-tools
       '@voice-agent/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
@@ -312,6 +318,15 @@ importers:
       '@voice-agent/logger':
         specifier: workspace:*
         version: link:../../packages/logger
+
+  packages/agent-tools:
+    dependencies:
+      '@voice-agent/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@voice-agent/logger':
+        specifier: workspace:*
+        version: link:../logger
 
   packages/config:
     dependencies:
