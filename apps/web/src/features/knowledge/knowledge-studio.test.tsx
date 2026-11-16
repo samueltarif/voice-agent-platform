@@ -17,6 +17,7 @@ describe('KnowledgeStudio (permissions + safe states)', () => {
     expect(html).toContain('Acesso restrito');
     expect(html).toContain('kb-error-no-permission');
     expect(html).not.toContain('Adicionar conhecimento');
+    expect(html).not.toContain('Enviar arquivo');
   });
 
   it('renders restricted state for VIEWER', () => {
@@ -32,6 +33,7 @@ describe('KnowledgeStudio (permissions + safe states)', () => {
     );
     expect(html).toContain('Base de Conhecimento');
     expect(html).toContain('Adicionar conhecimento');
+    expect(html).toContain('Enviar arquivo');
     expect(html).toContain('kb-loading');
   });
 

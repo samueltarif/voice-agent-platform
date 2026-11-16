@@ -8,6 +8,7 @@ export interface TenantRequestOptions {
   readonly path: string;
   readonly body?: unknown;
   readonly requestId?: string;
+  readonly timeoutMs?: number;
 }
 
 export class TenantApiClient {
@@ -42,6 +43,7 @@ export class TenantApiClient {
       organizationId: this.context.organizationId,
       ...(options.body !== undefined ? { body: options.body } : {}),
       ...(options.requestId !== undefined ? { requestId: options.requestId } : {}),
+      ...(options.timeoutMs !== undefined ? { timeoutMs: options.timeoutMs } : {}),
     };
 
     return this.internalApiClient.request<T>(internalOptions);

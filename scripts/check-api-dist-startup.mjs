@@ -7,6 +7,7 @@ import { generateKeyPairSync } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { checkCompiledExtraction } from './api-dist-extraction-smoke.mjs';
 
 const apiDir = fileURLToPath(new URL('../apps/api/', import.meta.url));
 const guard = new URL('./api-smoke-egress-guard.mjs', import.meta.url).href;
@@ -88,10 +89,12 @@ async function checkLoopbackStartup() {
     if (health.status !== 200) return fail(`/healthz respondeu ${health.status}`);
     const turn = await fetch(`${base}/v1/knowledge/simulated-turn`, { method: 'POST' });
     if (turn.status !== 401) return fail(`simulated-turn sem credencial respondeu ${turn.status}`);
+    const upload = await fetch(`${base}/v1/knowledge/extractions`, { method: 'POST' });
+    if (upload.status !== 401) return fail(`extractions sem credencial respondeu ${upload.status}`);
     if (api.state.stderr.includes('EGRESS_BLOCKED'))
       return fail('a API tentou acessar a rede externa');
     console.log(
-      `[api-dist-startup] BIND=${address} HEALTHZ=200 SIMULATED_TURN_ROUTE=401 EGRESS_ATTEMPTS=0`,
+      `[api-dist-startup] BIND=${address} HEALTHZ=200 SIMULATED_TURN_ROUTE=401 EXTRACTION_ROUTE=401 EGRESS_ATTEMPTS=0`,
     );
   } finally {
     api.child.kill();
@@ -115,6 +118,11 @@ if (!existsSync(join(apiDir, entry))) {
 } else {
   await checkLoopbackStartup();
   if (!process.exitCode) await checkWildcardRefused();
+  if (!process.exitCode) {
+    const extraction = await checkCompiledExtraction({ apiDir, guard, env: smokeEnv({}) });
+    if (!extraction.ok) fail(`extração no dist falhou (worker).\n${extraction.detail}`);
+    else console.log('[api-dist-startup] COMPILED_EXTRACTION_WORKER=OK EGRESS_ATTEMPTS=0');
+  }
   if (!process.exitCode)
     console.log('[api-dist-startup] SUCESSO: API compilada iniciou só em loopback.');
 }

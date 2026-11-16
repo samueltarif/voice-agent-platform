@@ -8,6 +8,7 @@ import { useKnowledgeMutations } from './use-knowledge-mutations';
 import { KnowledgeStudioHeader } from './knowledge-studio-header';
 import { KnowledgeDocumentList } from './knowledge-document-list';
 import { KnowledgeIngestForm } from './knowledge-ingest-form';
+import { KnowledgeUploadDialog } from './knowledge-upload-dialog';
 import { KnowledgeArchiveDialog } from './knowledge-archive-dialog';
 import { KnowledgeErrorState } from './knowledge-error-state';
 import type { KnowledgeFailure } from './knowledge-failure';
@@ -42,6 +43,31 @@ function KnowledgeToast({ toast }: { readonly toast: string | null }) {
           {toast}
         </p>
       )}
+    </>
+  );
+}
+
+/** Cadastro por texto colado e envio de arquivo (DEC-065): ambos usam a mesma ingestão. */
+function KnowledgeIngestEntry(props: {
+  readonly orgSlug: string;
+  readonly mutations: ReturnType<typeof useKnowledgeMutations>;
+  readonly uploadOpen: boolean;
+  readonly setUploadOpen: (open: boolean) => void;
+}) {
+  const { mutations } = props;
+  return (
+    <>
+      <KnowledgeIngestForm
+        isOpen={mutations.ingestOpen}
+        onOpenChange={mutations.setIngestOpen}
+        onSubmit={mutations.handleIngest}
+      />
+      <KnowledgeUploadDialog
+        orgSlug={props.orgSlug}
+        isOpen={props.uploadOpen}
+        onOpenChange={props.setUploadOpen}
+        onConfirm={mutations.handleIngest}
+      />
     </>
   );
 }
@@ -85,12 +111,15 @@ export function KnowledgeStudio({
   const preview = useKnowledgeRetrievalPreview(orgSlug);
   const toast = useLatestToast(mutations.toast, management.toast);
   const manage = knowledgeManageProps(role, management, mutations.openArchiveTarget);
+  const [uploadOpen, setUploadOpen] = React.useState(false);
+  const openIngest = () => mutations.setIngestOpen(true);
+  const openUpload = () => setUploadOpen(true);
 
   if (!canRead) return <KnowledgeErrorState kind="no-permission" />;
 
   return (
     <div className="space-y-6">
-      <KnowledgeStudioHeader canIngest={canIngest} onAdd={() => mutations.setIngestOpen(true)} />
+      <KnowledgeStudioHeader canIngest={canIngest} onAdd={openIngest} onUpload={openUpload} />
 
       <KnowledgeToast toast={toast} />
 
@@ -107,7 +136,7 @@ export function KnowledgeStudio({
             canArchive={canArchive}
             onFiltersChange={list.setFilters}
             onPageChange={list.setOffset}
-            onAdd={() => mutations.setIngestOpen(true)}
+            onAdd={openIngest}
             onArchive={(d) => mutations.openArchiveTarget(d)}
             manage={manage}
           />
@@ -115,10 +144,11 @@ export function KnowledgeStudio({
       )}
 
       {canIngest && (
-        <KnowledgeIngestForm
-          isOpen={mutations.ingestOpen}
-          onOpenChange={mutations.setIngestOpen}
-          onSubmit={mutations.handleIngest}
+        <KnowledgeIngestEntry
+          orgSlug={orgSlug}
+          mutations={mutations}
+          uploadOpen={uploadOpen}
+          setUploadOpen={setUploadOpen}
         />
       )}
       {canArchive && (

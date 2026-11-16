@@ -25,6 +25,8 @@
     "paths": {
       "@voice-agent/agent-tools": ["./packages/agent-tools/src/index.ts"],
       "@voice-agent/agent-tools/*": ["./packages/agent-tools/src/*"],
+      "@voice-agent/knowledge-extraction": ["./packages/knowledge-extraction/src/index.ts"],
+      "@voice-agent/knowledge-extraction/*": ["./packages/knowledge-extraction/src/*"],
       "@voice-agent/contracts": ["./packages/contracts/src/index.ts"],
       "@voice-agent/contracts/*": ["./packages/contracts/src/*"],
       "@voice-agent/errors": ["./packages/errors/src/index.ts"],

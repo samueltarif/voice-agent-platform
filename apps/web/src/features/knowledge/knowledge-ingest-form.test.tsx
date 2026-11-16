@@ -30,7 +30,11 @@ describe('KnowledgeIngestForm', () => {
     expect(html).toContain('for="kb-sourceType"');
     expect(html).toContain('for="kb-locator"');
     expect(html).toContain('for="kb-rawText"');
-    expect(html).toContain('Upload de arquivos não está disponível');
+    // TEST_CHANGE_REASON: DEC-065 adds file upload in a separate flow; the old
+    // "upload unavailable" text became false. ASSERTION_EQUIVALENT (same scope
+    // statement, updated wording, plus a check that the stale text is gone).
+    expect(html).toContain('Para enviar um arquivo');
+    expect(html).not.toContain('Upload de arquivos não está disponível');
     expect(html).toContain('kb-submit-ingest');
     expect(html).toContain('200.000');
   });
@@ -56,8 +60,10 @@ describe('KnowledgeIngestForm', () => {
       }),
     );
     // O mock de Sheet sempre renderiza o conteúdo; o Radix real só o exibe aberto.
-    // Aqui valem as garantias estáticas: sem upload e contador de 200.000.
-    expect(html).toContain('Upload de arquivos não está disponível');
+    // Aqui valem as garantias estáticas: texto colado e contador de 200.000.
+    // TEST_CHANGE_REASON: DEC-065 — upload agora é um fluxo separado
+    // (“Enviar arquivo”); ASSERTION_EQUIVALENT.
+    expect(html).toContain('Para enviar um arquivo');
     expect(html).toContain('200.000');
   });
 });
