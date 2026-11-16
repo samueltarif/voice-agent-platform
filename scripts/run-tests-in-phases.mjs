@@ -3,16 +3,20 @@
 // testes puros. Todo o resto roda em paralelo. Com argumentos, repassa direto ao
 // Vitest (uso local: `pnpm test <arquivo>`).
 import { spawn } from 'node:child_process';
+import { createRequire } from 'node:module';
+import { dirname, join } from 'node:path';
 
 const INTEGRATION = 'integration.test';
 const extra = process.argv.slice(2);
 
+// Executa o CLI do Vitest com o próprio Node, sem shell (DEP0190): os
+// argumentos chegam intactos, sem concatenação nem interpretação de shell.
+const vitestPackage = createRequire(import.meta.url).resolve('vitest/package.json');
+const vitestCli = join(dirname(vitestPackage), 'vitest.mjs');
+
 function vitest(args) {
   const started = Date.now();
-  const child = spawn('pnpm', ['exec', 'vitest', 'run', ...args], {
-    stdio: 'inherit',
-    shell: process.platform === 'win32',
-  });
+  const child = spawn(process.execPath, [vitestCli, 'run', ...args], { stdio: 'inherit' });
   return new Promise((resolve) =>
     child.on('exit', (code) => resolve({ code: code ?? 1, ms: Date.now() - started })),
   );

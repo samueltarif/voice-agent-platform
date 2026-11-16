@@ -65,6 +65,19 @@ async function dropGateDatabase(): Promise<void> {
   log(`${name} removido`);
 }
 
+/**
+ * Sem shell (DEP0190): `pnpm` é o mesmo executável que iniciou este script
+ * (`npm_execpath`: script JS rodado pelo Node ou binário nativo); `node` é o
+ * Node atual. Outros comandos são executados diretamente, sem interpretação.
+ */
+function resolveExecutable(bin: string, args: string[]): [string, string[]] {
+  if (bin === 'node') return [process.execPath, args];
+  if (bin !== 'pnpm') return [bin, args];
+  const pnpm = process.env['npm_execpath'];
+  if (!pnpm) throw new Error('Execute via "pnpm check:disposable" (npm_execpath ausente).');
+  return /\.[cm]?js$/.test(pnpm) ? [process.execPath, [pnpm, ...args]] : [pnpm, args];
+}
+
 function runCommand(gateUrl: string): Promise<number> {
   const env: NodeJS.ProcessEnv = { ...process.env, TEST_DATABASE_URL: gateUrl };
   env['OF2_TIMINGS_FILE'] = timingsFile;
@@ -72,7 +85,8 @@ function runCommand(gateUrl: string): Promise<number> {
   delete env['MIGRATION_DATABASE_URL'];
   const [bin, ...args] = command.length > 0 ? command : ['pnpm', 'check'];
   log(`executando: ${[bin, ...args].join(' ')}`);
-  const child = spawn(bin!, args, { stdio: 'inherit', env, shell: process.platform === 'win32' });
+  const [file, fileArgs] = resolveExecutable(bin!, args);
+  const child = spawn(file, fileArgs, { stdio: 'inherit', env });
   return new Promise((resolve) => child.on('exit', (code) => resolve(code ?? 1)));
 }
 

@@ -19418,3 +19418,10 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **CAUSA**: contenção, não deadlock. Os testes de integração compartilham um PostgreSQL; em paralelo, 31 ciclos CREATE/migrate/DROP (cada DROP com checkpoint imediato do cluster) disputam disco/CPU com as demais suítes de banco e com os testes puros. No Docker Desktop do Windows o custo de disco é muito maior; daí timeouts até em teste sintético de 5 s.
 - **CORREÇÃO**: `scripts/run-tests-in-phases.mjs` (`pnpm test`): fase 1 paralela sem integração; fase 2 integração em série. `disposable-database-timings.ts` + `summarize-disposable-timings.ts` (+ 3 testes) e instrumentação em `disposable-test-database.ts` (fases, sem credenciais). Nenhum tempo limite alterado; nenhuma asserção alterada.
 - **PROVA (Linux)**: 6 arquivos que falharam no Windows, em série no banco descartável: 49/49 PASS, `LEASE_WAIT` máx 6 ms. `pnpm check:disposable pnpm test`: fase 1 263 arquivos/1.792 testes PASS em 89 s; fase 2 50 arquivos/364 testes PASS em 99 s; 31 leases obtidos = 31 liberados; `LEASE_WAIT` máx 8 ms; maior `LEASE_HELD` = crash recovery 23 s.
+
+## 2026-11-16 — #163 — Timeout residual da fase 1 e DEP0190 (DEC-064) — Claude
+
+- **ENTRADA (operador)**: fase 1 no Windows em `78c3b50`: 1.794 PASS, 1 FAIL, 45 skip, 501 s; "Matrix B & C" 5.029 ms (limite 5 s); isolado 2.252 ms. Aviso `[DEP0190]`.
+- **DIAGNÓSTICO**: `loadDependencies()` importa módulos compilados (`dist`) na primeira chamada de `runL2Benchmark`; Linux: 716 ms com importação × 13 ms sem ela. Mesmo padrão em `l2-joint-chain-result-classification.test.ts`. `[DEP0190]` = `shell: true` só no Windows nos dois runners novos.
+- **CORREÇÃO**: aquecimento em `beforeAll` (30 s) nos dois testes — TEST_CHANGE_REASON: custo de importação movido para preparo; nenhum `it(`/`expect` e nenhum limite de teste alterado; ASSERTION_EQUIVALENT. Runners sem shell (`process.execPath` + CLI do Vitest; `npm_execpath` para `pnpm`).
+- **PROVA DIRECIONADA (Linux)**: "Matrix B & C" 13 ms; com as 2 CPUs ocupadas por laços infinitos: 22 ms e joint-chain 28 ms (23/23 PASS).

@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import type { L2CaseResult } from '../../../../scripts/benchmarks/voice/run-jev-openai-l2-synthetic-integration.mjs';
 import {
   checkCaps,
@@ -13,6 +13,7 @@ import {
   EXPECTED_TYPESAFE_MODEL,
   HARD_L2_COST_BOUND_FEASIBLE,
   L2_PLANNING_TOTAL_PROVIDER_COST_USD,
+  loadDependencies,
   MAX_OPENAI_INPUT_CHARS_PER_REQ,
   MAX_OPENAI_REQUESTS,
   MAX_TYPESAFE_INPUT_CHARS_PER_REQ,
@@ -110,7 +111,20 @@ function createFakeOpenAiFetch() {
   return { fetchFn, getCallCount: () => callCount, getCalls: () => calls };
 }
 
+/**
+ * O primeiro `runL2Benchmark` sem `deps` importa dinamicamente os módulos
+ * compilados (integrations/voice `dist`), que o Vitest transforma na primeira
+ * vez: ~0,7 s no Linux, 2,3 s no Windows isolado e > 5 s com a fase paralela
+ * carregada (DEC-064). Esse custo é de PREPARO, não do comportamento testado;
+ * fica num hook com orçamento próprio (30 s ≈ 6× o pior tempo observado).
+ */
+const DEPENDENCY_WARMUP_TIMEOUT_MS = 30_000;
+
 describe('L2 Synthetic Integration Runner - Offline Matrix Validation', () => {
+  beforeAll(async () => {
+    await loadDependencies();
+  }, DEPENDENCY_WARMUP_TIMEOUT_MS);
+
   const datasetPath = resolve(
     'scripts/benchmarks/voice/jev-openai-l2-synthetic-integration-v1-cases.json',
   );
