@@ -17,6 +17,10 @@ import type { KnowledgeDocumentResponse } from '@voice-agent/contracts';
 import { KnowledgeStatusBadge } from './knowledge-status-badge';
 import { SOURCE_TYPE_LABELS } from './knowledge-labels';
 import { formatKnowledgeDate } from './knowledge-date-formatter';
+import { hasAnyKnowledgeAction, knowledgeAgentLabel } from './knowledge-document-actions';
+import { KnowledgeRowActionsMenu, type KnowledgeManageProps } from './knowledge-row-actions-menu';
+
+const NO_AGENT_NAMES: ReadonlyMap<string, string> = new Map();
 
 function RowActions({
   doc,
@@ -53,7 +57,7 @@ function RowActions({
   );
 }
 
-function DocumentTableHead({ canArchive }: { readonly canArchive: boolean }) {
+function DocumentTableHead({ showActions }: { readonly showActions: boolean }) {
   return (
     <TableHeader>
       <TableRow className="hover:bg-transparent border-border/60">
@@ -75,7 +79,7 @@ function DocumentTableHead({ canArchive }: { readonly canArchive: boolean }) {
         <TableHead scope="col" className="font-semibold text-xs text-foreground text-right">
           Atualização
         </TableHead>
-        {canArchive && (
+        {showActions && (
           <TableHead scope="col" className="w-12">
             <span className="sr-only">Ações</span>
           </TableHead>
@@ -89,15 +93,18 @@ export function KnowledgeDocumentTable({
   documents,
   canArchive,
   onArchive,
+  manage,
 }: {
   readonly documents: readonly KnowledgeDocumentResponse[];
   readonly canArchive: boolean;
   readonly onArchive: (d: KnowledgeDocumentResponse) => void;
+  readonly manage?: KnowledgeManageProps | undefined;
 }) {
+  const showActions = manage ? hasAnyKnowledgeAction(manage.permissions) : canArchive;
   return (
     <div className="hidden lg:block rounded-lg border border-border/70 bg-card overflow-hidden shadow-xs">
       <Table aria-label="Documentos da base de conhecimento">
-        <DocumentTableHead canArchive={canArchive} />
+        <DocumentTableHead showActions={showActions} />
         <TableBody>
           {documents.map((d) => (
             <TableRow
@@ -120,18 +127,18 @@ export function KnowledgeDocumentTable({
                 {d.collection ?? '—'}
               </TableCell>
               <TableCell className="text-xs text-muted-foreground">
-                {d.agentId ? (
-                  <span className="font-mono">{d.agentId.slice(0, 8)}…</span>
-                ) : (
-                  'Sem agente associado'
-                )}
+                {knowledgeAgentLabel(d, manage?.agentNames ?? NO_AGENT_NAMES)}
               </TableCell>
               <TableCell className="text-right font-mono text-xs text-muted-foreground">
                 {formatKnowledgeDate(d.updatedAt)}
               </TableCell>
-              {canArchive && (
+              {showActions && (
                 <TableCell className="text-right">
-                  <RowActions doc={d} canArchive={canArchive} onArchive={onArchive} />
+                  {manage ? (
+                    <KnowledgeRowActionsMenu doc={d} manage={manage} />
+                  ) : (
+                    <RowActions doc={d} canArchive={canArchive} onArchive={onArchive} />
+                  )}
                 </TableCell>
               )}
             </TableRow>

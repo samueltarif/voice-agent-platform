@@ -33,7 +33,10 @@ describe('KnowledgeArchiveDialog', () => {
     expect(html).toContain('Confirmar arquivamento');
     expect(html).toContain('Cancelar');
     expect(html).toContain('será marcado como arquivado');
-    expect(html).toContain('não pode ser desfeita por esta tela');
+    // TEST_CHANGE_REASON = ARCHIVE_NOW_RESTORABLE_DEC054 (ASSERTION_EQUIVALENT): arquivar
+    // passou a ser reversível pelo menu; o texto que dizia o contrário ficaria falso.
+    expect(html).toContain('Você poderá restaurá-lo depois pelo menu do');
+    expect(html).not.toContain('não pode ser desfeita');
     expect(html).not.toContain('deixa de ser usado');
   });
 

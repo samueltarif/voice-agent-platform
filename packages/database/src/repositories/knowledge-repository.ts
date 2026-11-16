@@ -7,6 +7,7 @@ import type {
   ListKnowledgeDocumentsOptions,
 } from '@voice-agent/contracts';
 import { ingestKnowledgeDocument } from './knowledge-ingestion-service.js';
+import { archiveKnowledgeDocumentWithAudit } from './knowledge-document-lifecycle.js';
 import {
   getKnowledgeDocumentById,
   listKnowledgeDocuments,
@@ -36,7 +37,14 @@ export class DrizzleKnowledgeRepository implements KnowledgeRepositoryPort {
     return listKnowledgeDocuments(this.db, organizationId, options);
   }
 
-  async archiveDocument(organizationId: string, documentId: string): Promise<KnowledgeDocument> {
+  async archiveDocument(
+    organizationId: string,
+    documentId: string,
+    actorId?: string,
+  ): Promise<KnowledgeDocument> {
+    if (actorId) {
+      return archiveKnowledgeDocumentWithAudit(this.db, { organizationId, documentId, actorId });
+    }
     return updateKnowledgeDocumentStatus(this.db, {
       organizationId,
       documentId,

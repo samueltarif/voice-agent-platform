@@ -12,6 +12,37 @@ import { KnowledgeArchiveDialog } from './knowledge-archive-dialog';
 import { KnowledgeErrorState } from './knowledge-error-state';
 import type { KnowledgeFailure } from './knowledge-failure';
 import { handleDialogCloseAutoFocus, useListFocusTarget } from './knowledge-list-focus';
+import { knowledgeManagePermissions } from './knowledge-document-actions';
+import { useKnowledgeManagement } from './use-knowledge-management';
+import { KnowledgeManagementDialogs } from './knowledge-management-dialogs';
+import type { KnowledgeManageProps } from './knowledge-row-actions-menu';
+
+/** A mensagem mais recente entre cadastro/arquivamento e gestão. */
+function useLatestToast(fromMutations: string | null, fromManagement: string | null) {
+  const [latest, setLatest] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    if (fromMutations) setLatest(fromMutations);
+  }, [fromMutations]);
+  React.useEffect(() => {
+    if (fromManagement) setLatest(fromManagement);
+  }, [fromManagement]);
+  return latest;
+}
+
+function KnowledgeToast({ toast }: { readonly toast: string | null }) {
+  return (
+    <>
+      <div aria-live="polite" className="sr-only">
+        {toast}
+      </div>
+      {toast && (
+        <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+          {toast}
+        </p>
+      )}
+    </>
+  );
+}
 
 function archiveErrorProps(error: KnowledgeFailure | undefined) {
   return { errorStatus: error?.status, errorCode: error?.code };
@@ -30,6 +61,19 @@ export function KnowledgeStudio({
   const list = useKnowledgeListQuery(orgSlug, canRead);
   const focusTarget = useListFocusTarget();
   const mutations = useKnowledgeMutations(orgSlug, list.reload, list.currentQuery);
+  const management = useKnowledgeManagement({
+    orgSlug,
+    enabled: canRead,
+    reload: list.reload,
+    currentQuery: list.currentQuery,
+  });
+  const toast = useLatestToast(mutations.toast, management.toast);
+  const manage: KnowledgeManageProps = {
+    permissions: knowledgeManagePermissions(role),
+    agentNames: management.agentNames,
+    onAction: (action, doc) =>
+      action === 'archive' ? mutations.openArchiveTarget(doc) : management.open(action, doc),
+  };
 
   if (!canRead) return <KnowledgeErrorState kind="no-permission" />;
 
@@ -37,14 +81,7 @@ export function KnowledgeStudio({
     <div className="space-y-6">
       <KnowledgeStudioHeader canIngest={canIngest} onAdd={() => mutations.setIngestOpen(true)} />
 
-      <div aria-live="polite" className="sr-only">
-        {mutations.toast}
-      </div>
-      {mutations.toast && (
-        <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
-          {mutations.toast}
-        </p>
-      )}
+      <KnowledgeToast toast={toast} />
 
       {list.loadError ? (
         <KnowledgeErrorState kind={list.loadError} onRetry={() => void list.reload()} />
@@ -61,6 +98,7 @@ export function KnowledgeStudio({
             onPageChange={list.setOffset}
             onAdd={() => mutations.setIngestOpen(true)}
             onArchive={(d) => mutations.openArchiveTarget(d)}
+            manage={manage}
           />
         </div>
       )}
@@ -85,6 +123,7 @@ export function KnowledgeStudio({
           onConfirm={() => void mutations.handleArchive()}
         />
       )}
+      <KnowledgeManagementDialogs management={management} />
     </div>
   );
 }

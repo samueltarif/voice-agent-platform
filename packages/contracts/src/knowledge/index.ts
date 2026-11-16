@@ -4,3 +4,4 @@ export * from './knowledge-policy-identity.js';
 export * from './knowledge-access-scope-contracts.js';
 export * from './knowledge-retrieval-contracts.js';
 export * from './knowledge-management-contracts.js';
+export * from './knowledge-document-management-contracts.js';

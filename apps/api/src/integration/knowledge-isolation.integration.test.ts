@@ -148,6 +148,11 @@ describe('Knowledge Base Tenant Isolation (007J Real-Repository HTTP Integration
           'DELETE FROM organization_memberships WHERE organization_id = ANY($1::uuid[])',
           [createdOrgIds],
         );
+        // TEST_CHANGE_REASON = ARCHIVE_NOW_AUDITED_DEC054 (ASSERTION_EQUIVALENT, só teardown):
+        // o arquivamento pela API grava `audit_logs` (FK restrict); a limpeza precisa removê-los.
+        await pool.query('DELETE FROM audit_logs WHERE organization_id = ANY($1::uuid[])', [
+          createdOrgIds,
+        ]);
         await pool.query('DELETE FROM organizations WHERE id = ANY($1::uuid[])', [createdOrgIds]);
         const leftovers = await pool.query(
           'SELECT id FROM knowledge_documents WHERE organization_id = ANY($1::uuid[])',

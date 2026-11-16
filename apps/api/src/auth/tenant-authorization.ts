@@ -4,17 +4,14 @@ import type { OrganizationRepository, MembershipRepository } from '@voice-agent/
 import { hasAgentPermission, type AgentPermission } from './agent-permissions.js';
 import { hasCampaignPermission, type CampaignPermission } from './campaign-permissions.js';
 import { hasContactPermission, type ContactPermission } from './contact-permissions.js';
-import {
-  hasKnowledgePermission,
-  type KnowledgeManagementPermission,
-} from './knowledge-permissions.js';
+import { hasKnowledgePermission, type KnowledgePermission } from './knowledge-permissions.js';
 
 export type TenantPermission =
-  AgentPermission | KnowledgeManagementPermission | ContactPermission | CampaignPermission;
+  AgentPermission | KnowledgePermission | ContactPermission | CampaignPermission;
 
 function hasTenantPermission(role: TenantRole, permission: TenantPermission): boolean {
   if (permission.startsWith('knowledge.')) {
-    return hasKnowledgePermission(role, permission as KnowledgeManagementPermission);
+    return hasKnowledgePermission(role, permission as KnowledgePermission);
   }
   if (permission.startsWith('contacts.')) {
     return hasContactPermission(role, permission as ContactPermission);
