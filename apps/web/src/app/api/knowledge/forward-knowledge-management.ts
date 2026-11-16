@@ -16,7 +16,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export interface KnowledgeManagementForward {
   readonly req: NextRequest;
-  readonly documentId: string;
+  /** Ausente em operações sem documento (ex.: pré-visualização da busca). */
+  readonly documentId?: string | undefined;
   /** Espelho de UX do RBAC; a autorização real é revalidada na API. */
   readonly allowedRoles: readonly string[];
   readonly method: 'PATCH' | 'PUT' | 'POST' | 'DELETE';
@@ -24,6 +25,8 @@ export interface KnowledgeManagementForward {
   /** Schema do contrato; corpo inválido nunca chega à API. */
   readonly bodySchema?: BodySchema | undefined;
   readonly fallbackMessage: string;
+  /** Formato da resposta de sucesso; padrão `{ document }` (ou `{ deleted }`). */
+  readonly wrapResult?: ((result: unknown) => unknown) | undefined;
 }
 
 function json(status: number, error: string, code: string): NextResponse {
@@ -62,7 +65,7 @@ function rejectRequestShape(options: KnowledgeManagementForward): NextResponse |
   if (!isSameOriginRequest(options.req)) {
     return json(403, 'Origem da requisição não autorizada.', 'FORBIDDEN');
   }
-  if (!UUID.test(options.documentId)) {
+  if (options.documentId !== undefined && !UUID.test(options.documentId)) {
     return json(400, 'Identificador inválido.', 'VALIDATION_ERROR');
   }
   return null;
@@ -101,6 +104,7 @@ async function callTenantApi({ options, access, body, requestId }: TenantCall) {
       ...(body !== undefined ? { body } : {}),
       ...(requestId ? { requestId } : {}),
     });
+    if (options.wrapResult) return NextResponse.json(options.wrapResult(result));
     return NextResponse.json(
       options.method === 'DELETE' ? { deleted: true } : { document: result },
     );

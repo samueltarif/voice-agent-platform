@@ -16,6 +16,7 @@ import {
   DrizzleOutboundRepository,
   DrizzleKnowledgeRepository,
   DrizzleKnowledgeManagementService,
+  DrizzleKnowledgeRetrievalPreviewService,
   DrizzleContactRepository,
   DrizzleContactSuppressionRepository,
   DrizzleCampaignLifecycleRepository,
@@ -63,6 +64,7 @@ const userOrgContextRepo = new UserOrganizationContextRepository(db);
 const outboundRepo = new DrizzleOutboundRepository(db);
 const knowledgeRepo = new DrizzleKnowledgeRepository(db);
 const knowledgeManagement = new DrizzleKnowledgeManagementService(db);
+const knowledgeRetrievalPreview = new DrizzleKnowledgeRetrievalPreviewService(db);
 const contactRepo = new DrizzleContactRepository(db);
 const suppressionRepo = new DrizzleContactSuppressionRepository(db);
 const campaignLifecycleRepo = new DrizzleCampaignLifecycleRepository(db);
@@ -88,6 +90,7 @@ const app = createApp({
   outboundRepo,
   knowledgeRepo,
   knowledgeManagement,
+  knowledgeRetrievalPreview,
   contactRepo,
   suppressionRepo,
   campaignLifecycleRepo,

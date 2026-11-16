@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import type { TenantRole } from '@voice-agent/contracts';
+import type { KnowledgeDocumentResponse, TenantRole } from '@voice-agent/contracts';
 import { canArchiveKnowledge, canIngestKnowledge, canReadKnowledge } from './knowledge-permissions';
 import { useKnowledgeListQuery } from './use-knowledge-list';
 import { useKnowledgeMutations } from './use-knowledge-mutations';
@@ -13,8 +13,10 @@ import { KnowledgeErrorState } from './knowledge-error-state';
 import type { KnowledgeFailure } from './knowledge-failure';
 import { handleDialogCloseAutoFocus, useListFocusTarget } from './knowledge-list-focus';
 import { knowledgeManagePermissions } from './knowledge-document-actions';
-import { useKnowledgeManagement } from './use-knowledge-management';
+import { useKnowledgeManagement, type KnowledgeManagement } from './use-knowledge-management';
 import { KnowledgeManagementDialogs } from './knowledge-management-dialogs';
+import { KnowledgeRetrievalPreviewPanel } from './knowledge-retrieval-preview-panel';
+import { useKnowledgeRetrievalPreview } from './use-knowledge-retrieval-preview';
 import type { KnowledgeManageProps } from './knowledge-row-actions-menu';
 
 /** A mensagem mais recente entre cadastro/arquivamento e gestão. */
@@ -44,6 +46,19 @@ function KnowledgeToast({ toast }: { readonly toast: string | null }) {
   );
 }
 
+function knowledgeManageProps(
+  role: TenantRole | string | undefined,
+  management: KnowledgeManagement,
+  openArchive: (doc: KnowledgeDocumentResponse) => void,
+): KnowledgeManageProps {
+  return {
+    permissions: knowledgeManagePermissions(role),
+    agentNames: management.agentNames,
+    onAction: (action, doc) =>
+      action === 'archive' ? openArchive(doc) : management.open(action, doc),
+  };
+}
+
 function archiveErrorProps(error: KnowledgeFailure | undefined) {
   return { errorStatus: error?.status, errorCode: error?.code };
 }
@@ -67,13 +82,9 @@ export function KnowledgeStudio({
     reload: list.reload,
     currentQuery: list.currentQuery,
   });
+  const preview = useKnowledgeRetrievalPreview(orgSlug);
   const toast = useLatestToast(mutations.toast, management.toast);
-  const manage: KnowledgeManageProps = {
-    permissions: knowledgeManagePermissions(role),
-    agentNames: management.agentNames,
-    onAction: (action, doc) =>
-      action === 'archive' ? mutations.openArchiveTarget(doc) : management.open(action, doc),
-  };
+  const manage = knowledgeManageProps(role, management, mutations.openArchiveTarget);
 
   if (!canRead) return <KnowledgeErrorState kind="no-permission" />;
 
@@ -123,6 +134,7 @@ export function KnowledgeStudio({
           onConfirm={() => void mutations.handleArchive()}
         />
       )}
+      <KnowledgeRetrievalPreviewPanel state={preview} agents={management.agents} />
       <KnowledgeManagementDialogs management={management} />
     </div>
   );

@@ -26,6 +26,8 @@ const SAFE_MESSAGES: Readonly<Record<string, string>> = {
   KNOWLEDGE_PINNED_TO_AGENT_VERSION:
     'Documento fixado a uma versão publicada de agente: só pode ser arquivado. Cadastre um novo documento para mudar o conteúdo.',
   KNOWLEDGE_AGENT_UNAVAILABLE: 'Agente indisponível: escolha um agente ativo desta organização.',
+  KNOWLEDGE_AGENT_NOT_PUBLISHED:
+    'Este agente ainda não tem versão publicada. Publique-o no Agente IA para testar como ele consultará os documentos.',
   KNOWLEDGE_NOT_RESTORABLE: 'Este documento não pode ser restaurado.',
   KNOWLEDGE_DOCUMENT_IN_USE:
     'Documento ainda associado a um agente ou a uma versão publicada. Restaure, remova a associação e arquive de novo antes de excluir.',
