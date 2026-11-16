@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { KnowledgeSourceType } from './knowledge-document-contracts.js';
+import type { KnowledgeHitRelevance } from './knowledge-retrieval-contracts.js';
 
 /**
  * Pré-visualização OFFLINE da recuperação de conhecimento (DEC-055): mostra quais
@@ -34,6 +35,8 @@ export interface KnowledgeRetrievalPreviewHit {
   readonly sourceLocator: string;
   readonly excerpt: string;
   readonly score: number;
+  /** DIRECT = contém o assunto da pergunta; CONTEXT = só informação geral (preço, prazo…). */
+  readonly relevance?: KnowledgeHitRelevance | undefined;
 }
 
 export interface KnowledgeRetrievalPreview {
@@ -44,6 +47,8 @@ export interface KnowledgeRetrievalPreview {
   readonly agentVersionId?: string | undefined;
   /** Termos normalizados usados na busca (sem acento, singular, sem palavras vazias). */
   readonly terms: readonly string[];
+  /** Termos centrais sem correspondência: não há evidência sobre eles nos documentos. */
+  readonly unmatchedTerms?: readonly string[] | undefined;
   readonly hits: readonly KnowledgeRetrievalPreviewHit[];
   readonly truncated: boolean;
 }

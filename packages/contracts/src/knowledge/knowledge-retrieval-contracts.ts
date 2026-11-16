@@ -37,6 +37,8 @@ export const knowledgeCitationSchema = z
 
 export type KnowledgeCitation = z.infer<typeof knowledgeCitationSchema>;
 
+export type KnowledgeHitRelevance = 'DIRECT' | 'CONTEXT';
+
 export interface KnowledgeRetrievalHit {
   readonly chunkId: string;
   readonly documentId: string;
@@ -46,6 +48,12 @@ export interface KnowledgeRetrievalHit {
   /** Título do documento no momento da busca (para exibir a fonte). */
   readonly documentTitle?: string | undefined;
   readonly score: number;
+  /**
+   * DIRECT: o trecho contém um termo central da pergunta (ou a pergunta só tem
+   * termos genéricos). CONTEXT: só termos genéricos (preço, prazo…), devolvido
+   * depois dos DIRECT como contexto — nunca como evidência do item procurado.
+   */
+  readonly relevance?: KnowledgeHitRelevance | undefined;
   readonly provenance: KnowledgeChunkProvenance;
   readonly citation: KnowledgeCitation;
 }
@@ -53,6 +61,8 @@ export interface KnowledgeRetrievalHit {
 export interface KnowledgeRetrievalResult {
   readonly hits: readonly KnowledgeRetrievalHit[];
   readonly truncated: boolean;
+  /** Termos centrais da pergunta que não aparecem em nenhum documento do escopo. */
+  readonly unmatchedTerms?: readonly string[] | undefined;
 }
 
 export interface KnowledgeRetrievalRequest {

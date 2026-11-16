@@ -88,4 +88,17 @@ describe('KnowledgeRetrievalPreviewPanel', () => {
     };
     expect(render({ failure })).toContain('Agente sem versão publicada.');
   });
+
+  it('warns about terms with no mention and labels general-context excerpts', () => {
+    const base = preview('Os preços são enviados por orçamento.');
+    const none = render({ result: { ...base, hits: [], unmatchedTerms: ['helicoptero'] } });
+    expect(none).toContain('Sem menção nos documentos: helicoptero');
+    expect(none).toContain('não deve afirmar que a empresa oferece isso');
+    expect(none).toContain('Nenhum trecho encontrado');
+    const context = render({
+      result: { ...base, hits: [{ ...base.hits[0]!, relevance: 'CONTEXT' as const }] },
+    });
+    expect(context).toContain('contexto geral (não menciona o item)');
+    expect(render({ result: base })).not.toContain('Sem menção');
+  });
 });

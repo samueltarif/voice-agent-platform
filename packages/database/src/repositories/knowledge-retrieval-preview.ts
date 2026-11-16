@@ -89,6 +89,7 @@ function toPreviewHit(hit: KnowledgeRetrievalHit, priority: readonly string[]) {
     sourceLocator: hit.citation.sourceLocator,
     excerpt: buildKnowledgeExcerpt(hit.textSnapshot, priority, KNOWLEDGE_PREVIEW_MAX_EXCERPT_CHARS),
     score: hit.score,
+    relevance: hit.relevance ?? 'DIRECT',
   };
 }
 
@@ -115,6 +116,7 @@ export class DrizzleKnowledgeRetrievalPreviewService implements KnowledgeRetriev
       mode: input.agentId ? 'AGENT' : 'ORGANIZATION',
       ...(input.agentId ? { agentId: input.agentId, agentVersionId: resolved.agentVersionId } : {}),
       terms,
+      unmatchedTerms: result.unmatchedTerms ?? [],
       hits: result.hits.map((hit) => toPreviewHit(hit, priority)),
       truncated: result.truncated,
     };

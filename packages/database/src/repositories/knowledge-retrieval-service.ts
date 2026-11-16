@@ -1,12 +1,12 @@
-import { and, asc, eq, inArray, isNull, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, count, eq, inArray, isNull, or, sql, type SQL } from 'drizzle-orm';
 import {
   type KnowledgeAccessScope,
+  type KnowledgeHitRelevance,
   type KnowledgeRetrievalHit,
   type KnowledgeRetrievalPort,
   type KnowledgeRetrievalQuery,
   type KnowledgeRetrievalRequest,
   type KnowledgeRetrievalResult,
-  type KnowledgeSourceType,
   KNOWLEDGE_RETRIEVAL_MAX_TOP_K,
   knowledgeAccessScopeSchema,
   knowledgeRetrievalQuerySchema,
@@ -19,6 +19,8 @@ import {
   type KnowledgeDocumentEntity,
 } from '../schema/knowledge.js';
 import { computeTermWeights, scoreKnowledgeChunk } from './knowledge-retrieval-scoring.js';
+import { toKnowledgeRetrievalHit } from './knowledge-retrieval-hit.js';
+import { classifyKnowledgeHit, planKnowledgeTerms } from './knowledge-term-relevance.js';
 import {
   extractKnowledgeQueryTerms,
   foldKnowledgeText,
@@ -77,51 +79,35 @@ function buildQueryPredicates(query: KnowledgeRetrievalQuery, tokens: readonly s
   return clauses;
 }
 
-function rankAndSortHits(
-  rows: readonly { chunk: KnowledgeChunkEntity; doc: KnowledgeDocumentEntity }[],
-  tokens: readonly string[],
-): KnowledgeRetrievalHit[] {
-  const scoredHits: KnowledgeRetrievalHit[] = [];
+interface RankInput {
+  readonly rows: readonly { chunk: KnowledgeChunkEntity; doc: KnowledgeDocumentEntity }[];
+  readonly tokens: readonly string[];
+  readonly scopeChunkCount: number;
+}
+
+const RELEVANCE_ORDER: Readonly<Record<KnowledgeHitRelevance, number>> = { DIRECT: 0, CONTEXT: 1 };
+
+/** Pontua, aplica a regra central × genérico e ordena: DIRECT antes de CONTEXT. */
+function rankAndSortHits({ rows, tokens, scopeChunkCount }: RankInput) {
   const folded = rows.map(({ chunk }) => foldKnowledgeText(chunk.text));
   const weights = computeTermWeights(folded, tokens);
-
+  const frequency = tokens.map((t) => folded.filter((text) => text.includes(t)).length);
+  const plan = planKnowledgeTerms(tokens, frequency, scopeChunkCount);
+  const hits: KnowledgeRetrievalHit[] = [];
   for (const [index, { chunk, doc }] of rows.entries()) {
     const score = scoreKnowledgeChunk(folded[index]!, tokens, weights);
     if (score <= 0 && tokens.length > 0) continue;
-
-    scoredHits.push({
-      chunkId: chunk.id,
-      documentId: doc.id,
-      organizationId: doc.organizationId,
-      textSnapshot: chunk.text,
-      documentTitle: doc.title,
-      score,
-      provenance: {
-        organizationId: doc.organizationId,
-        documentId: doc.id,
-        chunkId: chunk.id,
-        chunkOrdinal: chunk.ordinal,
-        policyVersion: chunk.policyVersion,
-        ...(chunk.contentIdentityValue ? { contentIdentityValue: chunk.contentIdentityValue } : {}),
-      },
-      citation: {
-        documentId: doc.id,
-        chunkId: chunk.id,
-        sourceType: doc.sourceType as KnowledgeSourceType,
-        sourceLocator: doc.sourceLocator,
-        chunkOrdinal: chunk.ordinal,
-      },
-    });
+    const relevance = classifyKnowledgeHit(folded[index]!, plan);
+    if (relevance) hits.push(toKnowledgeRetrievalHit({ chunk, doc, score, relevance }));
   }
-
-  scoredHits.sort(
+  hits.sort(
     (a, b) =>
+      RELEVANCE_ORDER[a.relevance ?? 'DIRECT'] - RELEVANCE_ORDER[b.relevance ?? 'DIRECT'] ||
       b.score - a.score ||
       a.provenance.chunkOrdinal - b.provenance.chunkOrdinal ||
       a.chunkId.localeCompare(b.chunkId),
   );
-
-  return scoredHits;
+  return { hits, unmatchedTerms: plan.unmatched };
 }
 
 export class DrizzleKnowledgeRetrievalService implements KnowledgeRetrievalPort {
@@ -142,11 +128,29 @@ export class DrizzleKnowledgeRetrievalService implements KnowledgeRetrievalPort 
       .limit(KNOWLEDGE_RETRIEVAL_MAX_CANDIDATES + 1);
 
     const candidatesCapped = rows.length > KNOWLEDGE_RETRIEVAL_MAX_CANDIDATES;
-    const scoredHits = rankAndSortHits(rows.slice(0, KNOWLEDGE_RETRIEVAL_MAX_CANDIDATES), tokens);
+    const scopeChunkCount = await this.countScopeChunks(scope, query);
+    const ranked = rankAndSortHits({
+      rows: rows.slice(0, KNOWLEDGE_RETRIEVAL_MAX_CANDIDATES),
+      tokens,
+      scopeChunkCount,
+    });
     const clampedTopK = Math.min(Math.max(1, query.topK ?? 5), KNOWLEDGE_RETRIEVAL_MAX_TOP_K);
-    const truncated = candidatesCapped || scoredHits.length > clampedTopK;
-    const hits = scoredHits.slice(0, clampedTopK);
+    const truncated = candidatesCapped || ranked.hits.length > clampedTopK;
+    const hits = ranked.hits.slice(0, clampedTopK);
 
-    return { hits, truncated };
+    return { hits, truncated, unmatchedTerms: ranked.unmatchedTerms };
+  }
+
+  /** Total de trechos prontos no escopo (para identificar termos ubíquos). */
+  private async countScopeChunks(
+    scope: KnowledgeAccessScope,
+    query: KnowledgeRetrievalQuery,
+  ): Promise<number> {
+    const [row] = await this.db
+      .select({ total: count() })
+      .from(knowledgeChunks)
+      .innerJoin(knowledgeDocuments, eq(knowledgeChunks.documentId, knowledgeDocuments.id))
+      .where(and(...buildScopePredicates(scope), ...buildQueryPredicates(query, [])));
+    return row?.total ?? 0;
   }
 }
