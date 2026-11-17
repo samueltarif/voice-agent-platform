@@ -19521,3 +19521,15 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - As contagens dos gates Windows da #165 e da #166 vêm do operador; não constam no worklog.
   - `knowledge.search` só é instanciada na conversa simulada da API; o runtime de voz apenas reexporta a função (inferência por busca no código).
 - **SAFETY**: nenhum código, teste, banco, migration, dependência ou configuração de agente alterado; sem chamadas pagas. Verificação documental com `git diff --check`; gate completo não executado (mudança só de documentação).
+
+## 2026-11-17 — Ajustes na PR documental #168 pedidos pelo operador — Claude
+
+- **PEDIDO** (14:32): registrar o bloqueio de qualidade da #167, registrar a #168 como EM REVISÃO e reforçar o `CLAUDE.md`. Somente documentação.
+- **`docs/PROJECT_STATUS.md`**:
+  - §4 registra a decisão vigente: sem merge da #167 e sem novo gate Windows antes da revisão de qualidade e da definição do SHA final; `v2` só na comparação administrativa.
+  - Registra as metas e a avaliação do operador sobre `c29ee6a` (precisão 0,73; recall@3 0,966; negativas 0,60; aspectos 0,714; ~385 ms × ~105 ms, ~3,7×).
+  - Registra também, separados e com data, os números da revisão `87331ab` (DEC-068), ainda não aceitos pelo operador.
+  - Tabela de PRs: #167 aponta para `87331ab` e #168 aparece como EM REVISÃO, aberta em `78c7904`.
+  - Nova legenda NÃO VERIFICADO; prioridade 1 e §10 atualizados.
+- **`CLAUDE.md`**: leitura obrigatória de `AGENTS.md`, `docs/AI_EXECUTION_RULES.md` e `docs/PROJECT_STATUS.md` no início das tarefas; regra NÃO VERIFICADO quando Git ou GitHub não puderem ser consultados.
+- **VERIFICAÇÃO**: `git diff --check`; somente arquivos `.md`; gate completo não executado (só documentação). Código, testes, bancos e agente v4 intocados.

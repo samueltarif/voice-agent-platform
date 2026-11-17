@@ -4,7 +4,12 @@ As regras operacionais obrigatórias deste repositório estão em [`AGENTS.md`](
 
 ## Contexto e status obrigatório do Voice Agent Platform
 
-**No início de cada tarefa**, ler [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md). Esse documento vivo contém:
+**No início de cada tarefa**, ler obrigatoriamente, nesta ordem:
+1. [`AGENTS.md`](AGENTS.md);
+2. [`docs/AI_EXECUTION_RULES.md`](docs/AI_EXECUTION_RULES.md);
+3. [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md).
+
+O `docs/PROJECT_STATUS.md` é o documento vivo do projeto e contém:
 - o que já foi integrado e testado;
 - o que está autorizado ou em andamento;
 - o backlog e as decisões;
@@ -25,6 +30,8 @@ Perguntas como “o que já fizemos?”, “o que falta para concluir o SaaS?”
    - **Próximo passo**
 
 **Nunca tratar um plano como PR concluída, nem um gate verde como prova de produto pronto.**
+
+**Quando Git ou GitHub não puderem ser consultados**, identificar o status como **NÃO VERIFICADO**. Informar a data do último registro em `docs/PROJECT_STATUS.md`, sem apresentar informações antigas como atuais.
 
 ### Manutenção do status
 
