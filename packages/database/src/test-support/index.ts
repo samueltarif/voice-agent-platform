@@ -20,3 +20,14 @@ export {
   KNOWLEDGE_SIMULATION_CATALOG,
   type KnowledgeSimulationFixture,
 } from './knowledge-simulation-catalog.js';
+export {
+  createKnowledgeEvaluationFixture,
+  type KnowledgeEvaluationFixture,
+} from './knowledge-evaluation-fixture.js';
+export { EVALUATION_DOCUMENTS, type EvaluationDocument } from './fixtures/knowledge-evaluation-documents.js';
+export {
+  EVALUATION_QUESTIONS,
+  type EvaluationKind,
+  type EvaluationQuestion,
+} from './fixtures/knowledge-evaluation-questions.js';
+export { projectPreview, projectRetrieval } from './knowledge-retrieval-projection.js';
