@@ -19505,3 +19505,19 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **REGRESSÃO**: `pdf-document-options.test.ts` (5 testes) cobre caminho Windows com unidade, UNC, separador final, POSIX e o pdf.js recusando a forma antiga e aceitando a nova (com `path.win32`, roda em qualquer sistema). `pdf-active-content.test.ts`: TEST_CHANGE_REASON, valor exato `'/pdfjs/cmaps/'`, ASSERTION_STRONGER.
 - **TESTES DIRECIONADOS (Linux)**: `packages/knowledge-extraction` 10 arquivos, 62 PASS. Integração da extração 7 PASS (`of2_test_*`). `check:api-dist`: `COMPILED_EXTRACTION_CHILD=OK FORMATS=DOCX,PDF EGRESS_ATTEMPTS=0`.
 - **SAFETY**: só bancos descartáveis; nenhum banco existente, Qualitec ou agente v4 tocados; sem serviços pagos.
+
+## 2026-11-17 — Documentação: `docs/PROJECT_STATUS.md` e `CLAUDE.md` — Claude
+
+- **TAREFA**: somente documentação, a pedido do operador. Cria o painel vivo `docs/PROJECT_STATUS.md` a partir do rascunho do operador e o `CLAUDE.md` da raiz com as regras do adendo. Não existia `CLAUDE.md`; o novo arquivo remete a `AGENTS.md` e `docs/AI_EXECUTION_RULES.md`, sem duplicar nem substituir suas regras.
+- **VERIFICAÇÃO (17/11/2026)**:
+  - `origin/main` = `c31cd4a`.
+  - Estados das PRs #156 a #167 conferidos na API do GitHub.
+  - Árvores conferidas com `git rev-parse`: `7da5758` = `4fc76c6`; `c31cd4a` = `317a976` = `930ee4b…`.
+- **CORREÇÕES EM RELAÇÃO AO RASCUNHO**:
+  - B1 não estava "sem PR": está entregue na #167, aberta e sem merge, com gate Linux PASS no head `c29ee6a` e gate Windows pendente.
+  - A `v2` da B1 roda na comparação administrativa (OWNER/ADMIN), não na pré-visualização.
+  - A DEC-067 existe só na branch da #167.
+  - O `AI_CONTEXT.md` está defasado (11/11, base `0561f39`).
+  - As contagens dos gates Windows da #165 e da #166 vêm do operador; não constam no worklog.
+  - `knowledge.search` só é instanciada na conversa simulada da API; o runtime de voz apenas reexporta a função (inferência por busca no código).
+- **SAFETY**: nenhum código, teste, banco, migration, dependência ou configuração de agente alterado; sem chamadas pagas. Verificação documental com `git diff --check`; gate completo não executado (mudança só de documentação).
