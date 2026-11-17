@@ -26,11 +26,7 @@ import {
 import { normalizeScores, rawPassageScore } from './knowledge-passage-ranking.js';
 import { aspectsNotFound } from './knowledge-commercial-evidence.js';
 import { toKnowledgeRetrievalHit } from './knowledge-retrieval-hit.js';
-import {
-  KNOWLEDGE_GENERIC_TERMS,
-  KNOWLEDGE_UBIQUITY_MIN_CHUNKS,
-  KNOWLEDGE_UBIQUITY_RATIO,
-} from './knowledge-term-relevance.js';
+import { KNOWLEDGE_GENERIC_TERMS } from './knowledge-term-relevance.js';
 
 export interface EvaluateV2Input {
   readonly rows: readonly ChunkRow[];
@@ -53,14 +49,11 @@ function termStats(
   const scopeDf = [...input.scope.codes, ...input.scope.words];
   return terms.map((t, i) => {
     const df = Math.max(1, scopeDf[i] ?? 0);
-    const ubiquitous =
-      input.scope.total >= KNOWLEDGE_UBIQUITY_MIN_CHUNKS &&
-      df / input.scope.total > KNOWLEDGE_UBIQUITY_RATIO;
+    // Sem regra de ubiquidade na v2: o nome da empresa é tratado à parte e o
+    // IDF já reduz o peso de palavras frequentes (a palavra pedida não some).
     const central =
       t.isCode ||
-      (!KNOWLEDGE_GENERIC_TERMS.has(t.term) &&
-        !ubiquitous &&
-        !input.organizationNameTerms.has(t.term));
+      (!KNOWLEDGE_GENERIC_TERMS.has(t.term) && !input.organizationNameTerms.has(t.term));
     const passageFrequency = cands.filter(
       (c) => countTerm(c.foldedText, t) > 0 || countTerm(c.foldedHeading, t) > 0,
     ).length;

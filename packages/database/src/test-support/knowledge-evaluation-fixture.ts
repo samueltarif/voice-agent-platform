@@ -2,6 +2,7 @@ import type { DatabaseInstance } from '../client/connection.js';
 import { ingestKnowledgeDocument } from '../repositories/knowledge-ingestion-service.js';
 import { OrganizationRepository } from '../repositories/organization-repository.js';
 import { EVALUATION_DOCUMENTS } from './fixtures/knowledge-evaluation-documents.js';
+import { EVALUATION_EXTENSION_DOCUMENTS } from './fixtures/knowledge-evaluation-extension.js';
 
 /** IDs do corpus de avaliação (PR B1 / DEC-067). */
 export interface KnowledgeEvaluationFixture {
@@ -36,4 +37,24 @@ export async function createKnowledgeEvaluationFixture(
     documentKeys.set(result.document.id, doc.key);
   }
   return { orgA, orgB, documentKeys };
+}
+
+/** Casos novos de desenvolvimento (organização C, outro ramo); mesma ingestão padrão. */
+export async function createKnowledgeEvaluationExtensionFixture(
+  db: DatabaseInstance,
+  run: string,
+): Promise<{ readonly orgC: string; readonly documentKeys: ReadonlyMap<string, string> }> {
+  const org = { slug: `kbeval-c-${run}`, name: 'Eletrovale Distribuidora' };
+  const orgC = (await new OrganizationRepository(db).createOrganization(org))!.id;
+  const documentKeys = new Map<string, string>();
+  for (const doc of EVALUATION_EXTENSION_DOCUMENTS) {
+    const result = await ingestKnowledgeDocument(db, {
+      organizationId: orgC,
+      title: doc.title,
+      source: { sourceType: 'PRODUCT_MANUAL', locator: `eval/${run}/${doc.key}` },
+      rawText: doc.text,
+    });
+    documentKeys.set(result.document.id, doc.key);
+  }
+  return { orgC, documentKeys };
 }

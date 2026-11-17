@@ -1,5 +1,8 @@
 import type { KnowledgeRetrievalPreview } from '@voice-agent/contracts';
-import type { EvaluationQuestion } from './fixtures/knowledge-evaluation-questions.js';
+import type {
+  EvaluationOrg,
+  EvaluationQuestion,
+} from './fixtures/knowledge-evaluation-questions.js';
 
 /**
  * SOMENTE TESTES (PR B1 / DEC-067): métricas do corpus sobre o que a
@@ -38,7 +41,7 @@ function recallOf(q: EvaluationQuestion, direct: KnowledgeRetrievalPreview['hits
 export function scoreQuestion(
   q: EvaluationQuestion,
   shown: KnowledgeRetrievalPreview,
-  orgOfDocument: ReadonlyMap<string, 'A' | 'B'>,
+  orgOfDocument: ReadonlyMap<string, EvaluationOrg>,
 ): QuestionOutcome {
   const direct = shown.hits.filter((h) => h.relevance === 'DIRECT');
   const forbidden = direct.filter((h) => (q.mustNotShow ?? []).some((m) => h.excerpt.includes(m)));

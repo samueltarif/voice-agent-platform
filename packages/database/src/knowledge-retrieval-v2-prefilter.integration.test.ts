@@ -7,7 +7,7 @@ import {
 } from './repositories/index.js';
 import {
   loadCandidates,
-  loadScopeStats,
+  loadScopeTotal,
   V2_MAX_CANDIDATES,
 } from './repositories/knowledge-retrieval-v2-queries.js';
 import { analyzeKnowledgeQueryV2 } from './repositories/knowledge-query-analysis-v2.js';
@@ -71,12 +71,12 @@ describe('Knowledge retrieval v2 — SQL pre-filter for product codes', () => {
   it.each(['QT-310', 'QT 310', 'qt310', 'Qt.310'])(
     'SQL candidates for "%s" keep every spelling',
     async (q) => {
-      const rows = await loadCandidates(tdb.db, {
+      const { rows } = await loadCandidates(tdb.db, {
         scope: { organizationId: small },
         query: { queryText: q, topK: 10 },
         ...analyzeKnowledgeQueryV2(q),
       });
-      const keys = keysOf(rows.map((r) => ({ documentId: r.doc.id })));
+      const keys = keysOf(rows);
       expect(keys).toEqual(expect.arrayContaining(['dot', 'hyphen', 'joined', 'space']));
     },
   );
@@ -110,32 +110,36 @@ describe('Knowledge retrieval v2 — SQL pre-filter for product codes', () => {
     expect(V2_MAX_CANDIDATES).toBe(2000);
   });
 
+  /**
+   * Medição (sem asserção de tempo): escopo de ~2.900 trechos, três perguntas
+   * (palavras comuns acima do limite, código, negativa), v1 e v2 alternadas,
+   * 1 aquecimento descartado + 7 execuções; mediana por pergunta e perfil.
+   */
   it('reports v1 × v2 execution time on the large scope (measurement only)', async () => {
-    const time = async (profile: 'v1' | 'v2') => {
-      const runs: number[] = [];
-      for (let i = 0; i < 5; i++) {
-        const start = performance.now();
-        await retrieval.retrieve({
-          scope: { organizationId: big },
-          query: {
-            queryText: 'Transmissor QT-310 para painel',
-            topK: 5,
-            retrievalProfile: profile,
-          },
-        });
-        runs.push(performance.now() - start);
+    const queries = [
+      'Transmissor QT-310 para painel',
+      'Ficha do QT 310',
+      'Vocês têm bomba submersa?',
+    ];
+    const runs: Record<string, number[]> = {};
+    for (let i = 0; i < 8; i++) {
+      for (const queryText of queries) {
+        for (const profile of ['v1', 'v2'] as const) {
+          const start = performance.now();
+          await retrieval.retrieve({
+            scope: { organizationId: big },
+            query: { queryText, topK: 5, retrievalProfile: profile },
+          });
+          if (i > 0) (runs[`${profile}|${queryText}`] ??= []).push(performance.now() - start);
+        }
       }
-      return runs.sort((a, b) => a - b)[2]!;
-    };
-    const scope = {
-      scope: { organizationId: big },
-      query: { queryText: 'x', topK: 1 },
-      words: [],
-      codes: [],
-    };
-    const { total } = await loadScopeStats(tdb.db, scope);
-    const report = { chunks: total, v1MedianMs: await time('v1'), v2MedianMs: await time('v2') };
-    console.log(`[kb-timing] ${JSON.stringify(report)}`);
-    expect(report.v2MedianMs).toBeGreaterThan(0);
-  });
+    }
+    const median = (xs: number[]) => Math.round([...xs].sort((a, b) => a - b)[3]! * 10) / 10;
+    const scope = { scope: { organizationId: big }, query: { queryText: 'x', topK: 1 } };
+    const total = await loadScopeTotal(tdb.db, { ...scope, words: [], codes: [] });
+    const medians = Object.fromEntries(Object.entries(runs).map(([k, v]) => [k, median(v)]));
+    console.log(`[kb-timing] ${JSON.stringify({ chunks: total, runsPerCase: 7, medians })}`);
+    expect(Object.keys(medians)).toHaveLength(6);
+    // 48 buscas medidas: orçamento próprio de execução (só medição, sem limite de tempo).
+  }, 60_000);
 });

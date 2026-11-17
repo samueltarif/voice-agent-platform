@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, count, eq, or, sql, type SQL } from 'drizzle-orm';
 import {
   KNOWLEDGE_ACCENTED_CHARS,
   KNOWLEDGE_PLAIN_CHARS,
@@ -18,12 +18,10 @@ import { buildQueryPredicates, buildScopePredicates } from './knowledge-retrieva
 /**
  * Consultas da busca v2 (DEC-067). O pré-filtro é um SUPERCONJUNTO do
  * casamento exato feito depois em memória, para nunca descartar no SQL um
- * trecho que a v2 aceitaria: palavras por `ILIKE` sem acento; códigos com o
- * texto reduzido a letras e números ("QT-310", "QT 310" e "qt310" ⇒ "qt310";
- * "QT-3100" também passa aqui e é recusado depois). Título do documento entra
- * no pré-filtro só como reforço. Escopo idêntico ao da v1. Acima do limite de
- * candidatos, trechos com o CÓDIGO pedido vêm primeiro: o corte nunca descarta
- * o produto perguntado por causa de palavras comuns.
+ * trecho que a v2 aceitaria: palavras por `ILIKE` sem acento; códigos por
+ * TODOS os seus grupos de letras e números ("QT-310", "QT 310" e "qt310"
+ * contêm "qt" e "310"; "QT-3100" também passa aqui e é recusado depois). Escopo idêntico ao da v1.
+ * Acima do limite de candidatos, trechos com o CÓDIGO pedido vêm primeiro.
  */
 export const V2_MAX_CANDIDATES = 2000;
 
@@ -31,29 +29,24 @@ export type ChunkRow = { chunk: KnowledgeChunkEntity; doc: KnowledgeDocumentEnti
 
 const folded = (column: SQL | typeof knowledgeChunks.text) =>
   sql`translate(${column}, ${KNOWLEDGE_ACCENTED_CHARS}, ${KNOWLEDGE_PLAIN_CHARS})`;
-const alnum = (column: SQL | typeof knowledgeChunks.text) =>
-  sql`regexp_replace(lower(${folded(column)}), '[^a-z0-9]', '', 'g')`;
+/** "qt310" ⇒ ["qt", "310"]: cada grupo de letras ou números do código. */
+const codeGroups = (code: string) => code.match(/\p{L}+|\p{N}+/gu) ?? [code];
 
-export function wordInText(word: string): SQL {
+function wordInText(word: string): SQL {
   return sql`${folded(knowledgeChunks.text)} ilike ${`%${word}%`}`;
 }
 
+/**
+ * Código: o texto contém TODOS os grupos do código ("qt" e "310"), em
+ * qualquer grafia (QT-310, QT 310, qt310). Superconjunto barato (sem
+ * expressão regular no SQL); QT-3100 também passa e é recusado em memória.
+ */
+function codeIn(column: SQL | typeof knowledgeChunks.text, code: string): SQL {
+  return and(...codeGroups(code).map((g) => sql`${folded(column)} ilike ${`%${g}%`}`))!;
+}
+
 export function codeInText(code: string): SQL {
-  return sql`${alnum(knowledgeChunks.text)} like ${`%${code}%`}`;
-}
-
-function termPredicate(term: string, isCode: boolean): SQL {
-  const title = sql`${knowledgeDocuments.title}`;
-  const inTitle = isCode
-    ? sql`${alnum(title)} like ${`%${term}%`}`
-    : sql`${folded(title)} ilike ${`%${term}%`}`;
-  return or(isCode ? codeInText(term) : wordInText(term), inTitle)!;
-}
-
-/** Trechos com algum código pedido primeiro (ordenação antes do limite). */
-function codePriority(codes: readonly string[]): SQL[] {
-  if (codes.length === 0) return [];
-  return [desc(sql`case when ${or(...codes.map(codeInText))} then 1 else 0 end`)];
+  return codeIn(knowledgeChunks.text, code);
 }
 
 export interface V2QueryInput {
@@ -68,29 +61,55 @@ const scopeOf = (input: V2QueryInput) => [
   ...buildQueryPredicates(input.query, []),
 ];
 
-export async function loadCandidates(
-  db: DatabaseInstance,
-  input: V2QueryInput,
-): Promise<ChunkRow[]> {
-  const terms = [
-    ...input.words.map((w) => termPredicate(w, false)),
-    ...input.codes.map((c) => termPredicate(c, true)),
-  ];
+/** Trecho candidato LEVE: só o necessário para o casamento exato em memória. */
+export interface CandidateChunk {
+  readonly id: string;
+  readonly documentId: string;
+  readonly ordinal: number;
+  readonly text: string;
+}
+
+function selectCandidates(db: DatabaseInstance, input: V2QueryInput, predicate: SQL) {
   return db
-    .select({ chunk: knowledgeChunks, doc: knowledgeDocuments })
+    .select({
+      id: knowledgeChunks.id,
+      documentId: knowledgeChunks.documentId,
+      ordinal: knowledgeChunks.ordinal,
+      text: knowledgeChunks.text,
+    })
     .from(knowledgeChunks)
     .innerJoin(knowledgeDocuments, eq(knowledgeChunks.documentId, knowledgeDocuments.id))
-    .where(and(...scopeOf(input), ...(terms.length > 0 ? [or(...terms)!] : [])))
-    .orderBy(
-      ...codePriority(input.codes),
-      asc(knowledgeChunks.documentId),
-      asc(knowledgeChunks.ordinal),
-    )
+    .where(and(...scopeOf(input), predicate))
+    .orderBy(asc(knowledgeChunks.documentId), asc(knowledgeChunks.ordinal))
     .limit(V2_MAX_CANDIDATES + 1);
 }
 
-/** Trechos vizinhos (ordinal ± 1) dos candidatos, no MESMO escopo, para costurar seções. */
-export async function loadNeighbors(
+/**
+ * Candidatos leves (texto do trecho, sem linhas completas). Com código na
+ * pergunta, uma consulta só dos trechos com o código roda em paralelo e vem
+ * primeiro: acima do limite, o corte nunca descarta o produto perguntado.
+ */
+export async function loadCandidates(
+  db: DatabaseInstance,
+  input: V2QueryInput,
+): Promise<{ rows: CandidateChunk[]; capped: boolean }> {
+  const codes = input.codes.map(codeInText);
+  const terms = [...input.words.map(wordInText), ...codes];
+  if (terms.length === 0) return { rows: [], capped: false };
+  const [general, coded] = await Promise.all([
+    selectCandidates(db, input, or(...terms)!),
+    codes.length > 0 ? selectCandidates(db, input, or(...codes)!) : Promise.resolve([]),
+  ]);
+  const seen = new Set<string>();
+  const merged = [...coded, ...general].filter((r) => !seen.has(r.id) && !!seen.add(r.id));
+  return {
+    rows: merged.slice(0, V2_MAX_CANDIDATES),
+    capped: merged.length > V2_MAX_CANDIDATES,
+  };
+}
+
+/** Linhas completas (trecho + documento) dos pares pedidos, no MESMO escopo. */
+export async function loadChunkRows(
   db: DatabaseInstance,
   input: V2QueryInput,
   wanted: ReadonlyArray<{ documentId: string; ordinal: number }>,
@@ -112,28 +131,14 @@ export async function loadNeighbors(
     );
 }
 
-/** Total de trechos do escopo e, por termo, quantos o contêm (superconjunto, para IDF). */
-export async function loadScopeStats(
-  db: DatabaseInstance,
-  input: V2QueryInput,
-): Promise<{ total: number; words: number[]; codes: number[] }> {
-  const filtered = (predicate: SQL) =>
-    sql<number>`count(*) filter (where ${predicate})`.mapWith(Number);
-  const columns: Record<string, ReturnType<typeof filtered> | ReturnType<typeof count>> = {
-    total: count(),
-  };
-  input.words.forEach((w, i) => (columns[`w${i}`] = filtered(wordInText(w))));
-  input.codes.forEach((c, i) => (columns[`c${i}`] = filtered(codeInText(c))));
-  const [row] = (await db
-    .select(columns)
+/** Total de trechos prontos do escopo (IDF). Sem varrer o texto. */
+export async function loadScopeTotal(db: DatabaseInstance, input: V2QueryInput): Promise<number> {
+  const [row] = await db
+    .select({ total: count() })
     .from(knowledgeChunks)
     .innerJoin(knowledgeDocuments, eq(knowledgeChunks.documentId, knowledgeDocuments.id))
-    .where(and(...scopeOf(input)))) as Array<Record<string, number>>;
-  return {
-    total: Number(row?.total ?? 0),
-    words: input.words.map((_, i) => Number(row?.[`w${i}`] ?? 0)),
-    codes: input.codes.map((_, i) => Number(row?.[`c${i}`] ?? 0)),
-  };
+    .where(and(...scopeOf(input)));
+  return Number(row?.total ?? 0);
 }
 
 export async function loadOrganizationName(

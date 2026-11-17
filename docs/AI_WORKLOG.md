@@ -19523,3 +19523,31 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **CORPUS (39 perguntas)**: v1 precisão 0,70, recall@3 0,931, negativas 0,5; v2 precisão 0,73, recall@3 0,966, negativas 0,6, aspectos 0,714; isolamento 0 nas duas. Dev: v1 0,667 / 0,929; v2 0,8 / 0,929. Holdout: v1 0,727 / 0,933 / negativas 0,167; v2 0,667 / 1,0 / negativas 0,333. Melhoram na v2: P02, P07, P11, C01, C02, M02, M03, M05, M06, I04, H03. Falham nas duas: P01, P05, C06, M01, N02, N03, N05, H01, H02. Nenhuma pergunta que passava na v1 falha na v2; a precisão do holdout cai de 0,727 para 0,667.
 - **TEMPO** (escopo sintético de 2.916 trechos, mediana de 5 execuções, Linux local): v1 cerca de 105 ms, v2 cerca de 385 ms.
 - **SAFETY**: só bancos `of2_test_*` descartáveis; nenhuma migration; banco original da Qualitec, `voice_agent_pr157_test` e agente v4 intocados; sem serviços pagos, modelos externos ou telefonia.
+
+## 2026-11-17 — PR B1 (#167) — Revisão de qualidade solicitada pelo operador (DEC-068) — Claude
+
+- **ORIGEM**: o operador revisou a #167 em `c29ee6a` e não autorizou o merge. Metas não atingidas:
+  - precisão DIRECT 73% (meta 100%);
+  - negativas 60% (meta 100%);
+  - aspectos 71,4%;
+  - tempo ~385 ms contra ~105 ms da v1 (limite de 2×);
+  - VE-2000 com resultados indevidos.
+- **CAUSA DE CADA FALHA EM `c29ee6a`**:
+  - **P01**: válvulas como DIRECT pela palavra "pressão". "transmissor" estava em mais da metade dos 7 trechos e virou não central (ubiquidade), então a âncora passou a ser "pressão".
+  - **P05**: comunicado hostil como DIRECT por mencionar QT-310. Com "transmissor" não central, a cobertura só via o código.
+  - **C06** (VE-2000): código inexistente. Sem âncora de código, a âncora caiu em "válvula".
+  - **N02, N03, N05**: palavra parcialmente presente ("vazão", "bomba", "sensor") ancorava. As palavras ausentes ("ultrassônico", "submersa", "poço", "umidade") não pesavam.
+  - **M01, H01, H02**: comunicado hostil (QT-310 / válvula), que também tornava "informados" o preço (R$ 1,00) e o pagamento (90% de desconto).
+- **MÉTODO**:
+  - 16 casos novos de desenvolvimento (organização C, material elétrico), escritos antes das correções; reproduziram os defeitos.
+  - X15/X16 ("disjuntor bipolar", "cabo blindado") mostraram o empate em exatamente 0,5, que levou à maioria estrita.
+  - Holdout original só medido depois.
+- **MUDANÇAS**: ver DEC-068. Âncora de código exato com bloqueio, núcleo da pergunta, termos ausentes na cobertura, maioria estrita, sem ubiquidade na v2, pré-filtro SQL sem regex, candidatos leves, pré-seleção em memória dos 50 melhores trechos.
+- **TESTES ALTERADOS (TEST_CHANGE_REASON)**:
+  - `knowledge-evidence-classifier-v2.test.ts`: os 2 testes de `planTermsV2` descreviam a regra antiga (âncora = maior IDF). Foram substituídos pela regra nova e ganharam 6 casos (código inexistente, dois códigos, núcleo ausente, maioria estrita, plano bloqueado). Regra mudada por decisão registrada; classificação ASSERTION_STRONGER (mais casos, nenhuma asserção removida sem substituta).
+  - `knowledge-retrieval-v2-prefilter.integration.test.ts`: retorno de `loadCandidates` passou a ser `{ rows, capped }` (ASSERTION_EQUIVALENT). A medição de tempo agora usa 3 perguntas, aquecimento e 7 execuções, com prazo próprio de 60 s por executar 48 buscas (só medição, sem limite de tempo afirmado).
+  - Corpus: tipo de organização ampliado para C; relatório ganhou `extensionDev`. Corpus original e caracterização v1 intactos.
+- **NOVOS TESTES**:
+  - `knowledge-chunk-preselection-v2.test.ts` (4);
+  - `apps/voice/src/knowledge-retrieval-profile-guard.test.ts` (2): voz e `knowledge.search` nunca repassam `retrievalProfile`.
+- **SAFETY**: só bancos `of2_test_*`; nenhuma migration; Qualitec, `voice_agent_pr157_test` e agente v4 intocados; sem serviços pagos. B2/B3 não iniciadas; filtro de instruções hostis não implementado (registrado como bloqueio de ativação).

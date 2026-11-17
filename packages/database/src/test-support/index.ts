@@ -21,6 +21,7 @@ export {
   type KnowledgeSimulationFixture,
 } from './knowledge-simulation-catalog.js';
 export {
+  createKnowledgeEvaluationExtensionFixture,
   createKnowledgeEvaluationFixture,
   type KnowledgeEvaluationFixture,
 } from './knowledge-evaluation-fixture.js';
@@ -31,7 +32,12 @@ export {
 export {
   EVALUATION_QUESTIONS,
   type EvaluationKind,
+  type EvaluationOrg,
   type EvaluationQuestion,
 } from './fixtures/knowledge-evaluation-questions.js';
+export {
+  EVALUATION_EXTENSION_DOCUMENTS,
+  EVALUATION_EXTENSION_QUESTIONS,
+} from './fixtures/knowledge-evaluation-extension.js';
 export { projectPreview, projectRetrieval } from './knowledge-retrieval-projection.js';
 export { scoreQuestion, summarize, type QuestionOutcome } from './knowledge-evaluation-metrics.js';

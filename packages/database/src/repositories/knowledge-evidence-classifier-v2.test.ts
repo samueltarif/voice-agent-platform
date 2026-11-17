@@ -28,16 +28,47 @@ const classify = (m: PassageMatch, stats = codeStats, plan = codePlan) =>
 
 describe('planTermsV2', () => {
   it('códigos encontrados são as âncoras', () => {
-    expect(codePlan).toEqual({ matchedCentral: [0], anchors: [0], unmatched: [] });
+    expect(codePlan).toEqual({
+      matchedCentral: [0],
+      anchors: [0],
+      coverageTerms: [0],
+      unmatched: [],
+      blocked: false,
+    });
   });
 
-  it('sem código, âncora é a central mais específica; ausentes viram unmatched', () => {
+  it('código pedido inexistente bloqueia: nunca vira produto parecido', () => {
+    const stats = [stat('ve2000', true, 3, 0), stat('valvula', true, 1)];
+    expect(planTermsV2(stats, new Set(['ve2000']))).toMatchObject({
+      anchors: [],
+      unmatched: ['ve2000'],
+      blocked: true,
+    });
+  });
+
+  it('com dois códigos, só os encontrados ancoram; o ausente vai em unmatched', () => {
+    const stats = [stat('qt310', true, 2), stat('qt999', true, 3, 0)];
+    expect(planTermsV2(stats, new Set(['qt310', 'qt999']))).toMatchObject({
+      anchors: [0],
+      unmatched: ['qt999'],
+      blocked: false,
+    });
+  });
+
+  it('sem código, âncora é a 1ª central da pergunta; a cobertura inclui as ausentes', () => {
     const stats = [stat('valvula', true, 1), stat('esfera', true, 2), stat('titanio', true, 3, 0)];
     expect(planTermsV2(stats, new Set())).toEqual({
       matchedCentral: [0, 1],
-      anchors: [1],
+      anchors: [0],
+      coverageTerms: [0, 1, 2],
       unmatched: ['titanio'],
+      blocked: false,
     });
+  });
+
+  it('sem código, núcleo ausente de todo o escopo bloqueia', () => {
+    const stats = [stat('medidor', true, 3, 0), stat('vazao', true, 2)];
+    expect(planTermsV2(stats, new Set())).toMatchObject({ anchors: [], blocked: true });
   });
 });
 
@@ -66,6 +97,24 @@ describe('classifyPassageV2', () => {
     const stats = [stat('valvula', true, 1), stat('esfera', true, 2)];
     const plan = planTermsV2(stats, new Set());
     expect(classify(match([3, 0]), stats, plan)).toBeNull();
+  });
+
+  it('metade do peso ausente não é maioria: sem DIRECT', () => {
+    const stats = [stat('disjuntor', true, 2), stat('bipolar', true, 2, 0)];
+    const plan = planTermsV2(stats, new Set());
+    expect(classify(match([1, 0]), stats, plan)).toBeNull();
+  });
+
+  it('maioria estrita do peso presente: DIRECT', () => {
+    const stats = [stat('disjuntor', true, 2), stat('quadro', true, 2), stat('azul', true, 2, 0)];
+    const plan = planTermsV2(stats, new Set());
+    expect(classify(match([1, 1, 0]), stats, plan)).toBe('DIRECT');
+  });
+
+  it('plano bloqueado nunca devolve passagem', () => {
+    const stats = [stat('ve2000', true, 3, 0), stat('valvula', true, 1)];
+    const plan = planTermsV2(stats, new Set(['ve2000']));
+    expect(classify(match([0, 2]), stats, plan)).toBeNull();
   });
 
   it('nenhuma central encontrada no escopo = sem resultado', () => {
