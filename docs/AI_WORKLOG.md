@@ -19533,3 +19533,22 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - Nova legenda NÃO VERIFICADO; prioridade 1 e §10 atualizados.
 - **`CLAUDE.md`**: leitura obrigatória de `AGENTS.md`, `docs/AI_EXECUTION_RULES.md` e `docs/PROJECT_STATUS.md` no início das tarefas; regra NÃO VERIFICADO quando Git ou GitHub não puderem ser consultados.
 - **VERIFICAÇÃO**: `git diff --check`; somente arquivos `.md`; gate completo não executado (só documentação). Código, testes, bancos e agente v4 intocados.
+
+## 2026-11-17 — PR #168: registro do gate Windows e conclusão da revisão de qualidade da #167 — Claude
+
+- **PEDIDO** (16:58): registrar os resultados confirmados pelo operador para a #167 no SHA `87331abf26d6f8bf5cd407afa1babfca61de9300`. Somente documentação.
+  - Linux: 2.414 PASS, 45 ignorados, 0 falhas.
+  - Windows: 2.414 PASS, 45 ignorados, 0 falhas; build 14/14.
+  - Worktree `D:\vap-pr167` limpo; 0 bancos `of2_test_*` restantes.
+- **VERIFICADO NO GITHUB** (~17h00): #167 aberta, sem merge, head `87331ab`; `origin/main` `c31cd4a`.
+- **`docs/PROJECT_STATUS.md`**:
+  - #167 passa a "revisão de qualidade concluída; gates Linux e Windows aprovados; aberta, sem merge".
+  - SHA final da B1 = `87331ab`; tabela de gates com quem executou e data.
+  - Métricas preservadas: precisão DIRECT 94,4%, negativas 100%, recall@3 96,6%, aspectos 71,4%, desempenho 0,92× a 1,17× da v1.
+  - Falhas residuais por documentos hostis registradas como impedimento à ativação da v2 em agentes; v2 só na comparação administrativa até a B2 e nova autorização.
+- **AFIRMAÇÕES DESATUALIZADAS CORRIGIDAS** (registradas aqui, não apagadas do histórico do worklog):
+  - "aguardando avaliação do operador" e "números ainda não aceitos; SHA final não definido" foram substituídos pela conclusão da revisão e pelo SHA final;
+  - a decisão das 14h10 (sem merge e sem gate Windows antes da revisão) foi mantida como histórico, com a indicação de que suas condições foram cumpridas;
+  - a prioridade 1 passou a ser a decisão de merge da #167.
+  - Os números do `c29ee6a` permanecem como histórico.
+- **VERIFICAÇÃO**: `git diff --check`; somente `.md`; testes não executados (só documentação). Código, bancos, agentes, migrations e dependências intocados.

@@ -1,6 +1,6 @@
 # Voice Agent Platform — Estado vivo do projeto
 
-> **Última verificação no repositório:** 17/11/2026, por volta das 14h35 (horário de Brasília), contra a `origin/main` `c31cd4ab3e7a6e9d476a5f76bbfbc15d1d0e91da` e a API de PRs do GitHub (#167 e #168 abertas, sem merge). Primeira verificação: 14h10.
+> **Última verificação no repositório:** 17/11/2026, por volta das 17h00 (horário de Brasília), contra a `origin/main` `c31cd4ab3e7a6e9d476a5f76bbfbc15d1d0e91da` e a API de PRs do GitHub (#167 e #168 abertas, sem merge). Verificações anteriores: 14h10 e 14h35.
 > Este é um documento de acompanhamento e **não prova o estado em tempo real**. Antes de afirmar status atual, confira Git, PRs e decisões. Em caso de divergência, Git, código, testes observados e `docs/DECISIONS_LOG.md` prevalecem.
 > **Regra de leitura:** distinga sempre INTEGRADO, TESTADO, AUTORIZADO, PLANEJADO, PENDENTE e NÃO VALIDADO. Um plano não é código entregue, e um gate verde não é produto pronto.
 
@@ -56,7 +56,7 @@ SaaS multiempresa de agentes de voz:
 | #164 | INTEGRADA | `9615780` | `78b4b3b` | Desenho de snapshots e roadmap da Base de Conhecimento |
 | #165 (A1) | INTEGRADA | `4fc76c6` | `7da5758` | Upload TXT, MD e DOCX: extrair → prévia → confirmar → ingestão (DEC-065) |
 | #166 (A2) | INTEGRADA | `317a976` | `c31cd4a` | PDF com texto pesquisável, sem OCR; extração em processo filho (DEC-066) |
-| #167 (B1) | **EM REVISÃO — merge NÃO autorizado** (aberta) | `87331ab` (antes `c29ee6a`) | — | Busca v2 por passagens opt-in + comparação administrativa (DEC-067/068, só na branch). Ver §4. |
+| #167 (B1) | **EM REVISÃO** (aberta, sem merge): revisão de qualidade concluída; gates Linux e Windows aprovados | `87331ab` (antes `c29ee6a`) | — | Busca v2 por passagens opt-in + comparação administrativa (DEC-067/068, só na branch). Ver §4. |
 | #168 (docs) | **EM REVISÃO** (aberta, sem merge) | `78c7904` na abertura; ver a PR para o head atual | — | Este painel (`docs/PROJECT_STATUS.md`) e `CLAUDE.md` |
 
 **Detalhes conferidos:**
@@ -96,7 +96,7 @@ SaaS multiempresa de agentes de voz:
 
 ## 4. Base de Conhecimento — desenvolvimento restante
 
-### B1 — AUTORIZADA; PR #167 EM REVISÃO DE QUALIDADE — merge NÃO autorizado
+### B1 — AUTORIZADA; PR #167 com revisão de qualidade concluída e gates Linux/Windows aprovados — aberta, sem merge
 
 **Objetivo:** busca `v2` por passagens, com comparação administrativa `v1` × `v2`, **sem mudar o algoritmo dos agentes publicados**.
 
@@ -115,10 +115,10 @@ SaaS multiempresa de agentes de voz:
 - Corpus offline (~40 perguntas) e medição de desempenho.
 - Nenhuma migration, reindexação automática, alteração de documentos ou de resposta de voz.
 
-**Decisão vigente do operador (17/11/2026):**
-- **NÃO fazer merge** da #167.
-- **NÃO executar novamente o gate Windows** antes da conclusão da revisão de qualidade e da definição do SHA final.
-- A busca `v2` continua **exclusiva da comparação administrativa** (OWNER/ADMIN), **sem ativação em agentes**.
+**Decisões do operador (17/11/2026):**
+- **Às 14h10:** não fazer merge da #167 nem rodar de novo o gate Windows antes da conclusão da revisão de qualidade e da definição do SHA final. Essas duas condições foram cumpridas: a revisão foi concluída no SHA `87331ab`, e o operador rodou o gate Windows nele (ver abaixo).
+- **Situação às 17h00:** a #167 continua **aberta e sem merge**. O merge depende de decisão expressa do operador.
+- **Vigente:** a busca `v2` continua **exclusiva da comparação administrativa** (OWNER/ADMIN), **sem ativação em agentes**, até a B2 e nova autorização.
 
 **Metas de aceitação definidas pelo operador:**
 - precisão DIRECT 1,00;
@@ -142,7 +142,7 @@ SaaS multiempresa de agentes de voz:
 
   Restavam falsos positivos em consultas negativas e evidências com instruções hostis.
 
-**Revisão de qualidade — head `87331ab` (DEC-068), publicada na branch da #167 em 17/11/2026, AGUARDANDO avaliação do operador:**
+**Revisão de qualidade — head `87331ab` (DEC-068), CONCLUÍDA em 17/11/2026. SHA final da B1: `87331abf26d6f8bf5cd407afa1babfca61de9300`.**
 
 | Métrica `v2` | Resultado | Meta |
 | :--- | :--- | :--- |
@@ -153,9 +153,17 @@ SaaS multiempresa de agentes de voz:
 | Latência | 0,92× a 1,17× da `v1` (2.916 trechos; mediana de 7 execuções) | ≤ 2× |
 
 - Os 16 casos novos de desenvolvimento (organização C) ficaram em 1,00 em todas as métricas. Isolamento 0.
-- Gate Linux passou: fase 1 com 1.945 PASS e 45 skips de staging já existentes; fase 2 com 469 PASS.
-- **Todas as falhas restantes** (M01, H01 e H02, inclusive os 2 erros de aspecto) vêm de um **documento com instruções hostis**. O filtro é da B2 (D-RB7), não autorizada. Isso **bloqueia a ativação da `v2`** em qualquer agente.
-- Esses números foram medidos pelo Claude e **ainda não foram aceitos pelo operador**. O SHA final da B1 não está definido.
+- **Falhas residuais:** todas (M01, H01 e H02, inclusive os 2 erros de aspecto) vêm de um **documento com instruções hostis**. O filtro é da B2 (D-RB7), não autorizada.
+  - Por isso a precisão DIRECT (94,4%) e os aspectos (71,4%) ficam abaixo das metas.
+  - Isso **impede a ativação da `v2` em agentes**: ela continua exclusiva da comparação administrativa até a B2 e nova autorização.
+
+**Gates no SHA final `87331ab`:**
+
+| Gate | Resultado | Quem executou e quando |
+| :--- | :--- | :--- |
+| Linux (`check:disposable`) | **2.414 PASS** (fase 1: 1.945; fase 2: 469), 45 ignorados (staging já existentes), 0 falhas, `GATE_EXIT=0` | Claude, 17/11/2026 |
+| Windows | **2.414 PASS**, 45 ignorados, 0 falhas; build 14/14 | Operador, confirmado em 17/11/2026 (16h58) |
+| Pós-gate Windows | Git do worktree `D:\vap-pr167` limpo; 0 bancos `of2_test_*` restantes | Operador, 17/11/2026 |
 
 A DEC-067, a DEC-068 e `docs/architecture/KNOWLEDGE_RETRIEVAL_V2_DESIGN.md` existem **apenas na branch da #167** até o merge.
 
@@ -278,7 +286,7 @@ Componentes de campanha e billing existem no código, mas a operação comercial
 
 ## 9. Prioridades acordadas
 
-1. Concluir a revisão de qualidade da **B1** (#167) e definir o SHA final. Só então rodar o gate Windows e decidir o merge, sem tocar no Qualitec v4.
+1. Decidir o merge da **B1** (#167, SHA final `87331ab`). A revisão de qualidade e os gates Linux e Windows já foram concluídos. Não tocar no Qualitec v4. A `v2` segue só na comparação administrativa.
 2. Avaliar os resultados, aprovar e implementar a **B2**. A B3 é opcional.
 3. Planejar a **I1** e fazer I2/I3 **somente leitura**.
 4. Executar **testes reais de ligações** em ambiente controlado e autorizado.
