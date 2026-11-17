@@ -41,7 +41,7 @@ function FilePicker({ upload }: { readonly upload: KnowledgeUploadState }) {
   return (
     <div className="space-y-3">
       <label className="block space-y-1 text-xs font-medium" htmlFor="kb-upload-file">
-        <span>Arquivo (.txt, .md ou .docx)</span>
+        <span>Arquivo (.txt, .md, .docx ou .pdf)</span>
         <input
           id="kb-upload-file"
           type="file"
@@ -52,7 +52,8 @@ function FilePicker({ upload }: { readonly upload: KnowledgeUploadState }) {
         />
       </label>
       <p className="text-xs text-muted-foreground">
-        Limites: 2 MB para TXT/Markdown e 10 MB para DOCX. PDF ainda não é aceito.
+        Limites: 2 MB para TXT/Markdown; 10 MB e até 300 páginas para DOCX e PDF. PDF só com texto
+        pesquisável (sem OCR); PDFs protegidos por senha são recusados.
       </p>
       <Button
         size="sm"

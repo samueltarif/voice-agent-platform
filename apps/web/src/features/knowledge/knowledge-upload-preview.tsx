@@ -2,8 +2,14 @@ import * as React from 'react';
 import { KNOWLEDGE_SOURCE_TYPES, type KnowledgeSourceType } from '@voice-agent/contracts';
 import { SOURCE_TYPE_LABELS } from './knowledge-labels';
 import type { KnowledgeUploadState } from './use-knowledge-upload';
+import { KnowledgeUploadWarnings } from './knowledge-upload-warnings';
 
-const FORMAT_LABELS = { TXT: 'Texto (.txt)', MARKDOWN: 'Markdown', DOCX: 'Word (.docx)' } as const;
+const FORMAT_LABELS = {
+  TXT: 'Texto (.txt)',
+  MARKDOWN: 'Markdown',
+  DOCX: 'Word (.docx)',
+  PDF: 'PDF',
+} as const;
 
 /**
  * Pré-visualização como TEXTO PURO: o React escapa o conteúdo e nada é
@@ -16,15 +22,13 @@ export function KnowledgeUploadPreview({ upload }: { readonly upload: KnowledgeU
   return (
     <div className="space-y-3" data-testid="kb-upload-preview">
       <p className="text-xs text-muted-foreground">
-        {FORMAT_LABELS[preview.format]} · {preview.stats.chars.toLocaleString('pt-BR')} caracteres ·{' '}
+        {FORMAT_LABELS[preview.format]}
+        {preview.stats.pages
+          ? ` · ${preview.stats.pages.toLocaleString('pt-BR')} páginas`
+          : ''} · {preview.stats.chars.toLocaleString('pt-BR')} caracteres ·{' '}
         {preview.stats.lines.toLocaleString('pt-BR')} linhas. Nada foi salvo ainda.
       </p>
-      {preview.warnings.includes('DOCX_MAIN_BODY_ONLY') && (
-        <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-300">
-          Só o corpo principal do documento foi lido: cabeçalhos, rodapés, comentários, notas e
-          imagens não entram.
-        </p>
-      )}
+      <KnowledgeUploadWarnings preview={preview} />
       <label className="block space-y-1 text-xs font-medium" htmlFor="kb-upload-title">
         <span>Título</span>
         <input

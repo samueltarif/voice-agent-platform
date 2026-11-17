@@ -26,8 +26,11 @@ describe('knowledge extraction client (DEC-065)', () => {
   });
 
   it('prechecks extension and size before sending anything', () => {
-    expect(precheckKnowledgeFile(file('a.pdf', 3))?.code).toBe(
-      'KNOWLEDGE_UPLOAD_PDF_NOT_YET_SUPPORTED',
+    // TEST_CHANGE_REASON: DEC-066 aceita PDF até 10 MiB; acima disso continua
+    // recusado antes do envio. ASSERTION_EQUIVALENT (pré-checagem por formato).
+    expect(precheckKnowledgeFile(file('a.pdf', 3))).toBeNull();
+    expect(precheckKnowledgeFile(file('a.pdf', 10 * 1024 * 1024 + 1))?.code).toBe(
+      'KNOWLEDGE_UPLOAD_TOO_LARGE',
     );
     expect(precheckKnowledgeFile(file('a.doc', 3))?.code).toBe('KNOWLEDGE_UPLOAD_LEGACY_DOC');
     expect(precheckKnowledgeFile(file('a.exe', 3))?.code).toBe(

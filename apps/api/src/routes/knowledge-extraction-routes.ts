@@ -14,7 +14,7 @@ import { authorizeTenant } from '../auth/tenant-authorization.js';
 
 const PATH = '/v1/knowledge/extractions';
 
-/** Recusas do arquivo ⇒ 422; tamanho ⇒ 413; limite de concorrência ⇒ 503. */
+/** Recusas do arquivo (inclusive PDF) ⇒ 422; tamanho ⇒ 413; limite de concorrência ⇒ 503. */
 function toHttpError(error: KnowledgeExtractionError): AppError {
   if (error.code === CODES.TOO_LARGE) return new AppError('File too large.', 413, error.code);
   if (error.code === CODES.BUSY) return new AppError('Extraction busy.', 503, error.code);
@@ -66,7 +66,8 @@ export function registerKnowledgeExtractionRoutes(app: OpenAPIHono, deps: ApiDep
     if (!extractor) throw new Error('Knowledge extraction not configured');
     const body = c.req.valid('json' as never) as z.infer<typeof knowledgeExtractionHttpBodySchema>;
     try {
-      return c.json(await extractor.extract(body), 200);
+      // Cliente desconectado ⇒ o processo filho de extração é encerrado (DEC-066).
+      return c.json(await extractor.extract(body, c.req.raw.signal), 200);
     } catch (error) {
       if (error instanceof KnowledgeExtractionError) throw toHttpError(error);
       throw error;

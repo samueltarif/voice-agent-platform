@@ -74,3 +74,9 @@ PDF/URL/Excel são formatos ou canais, não tipos semânticos de conteúdo. Docu
 ## Próxima ação
 
 A #163 está estabilizada e integrada. Próxima entrega: PR A (upload seguro e prévia de extração), mantendo as regras acima.
+
+**Atualização em 17/11/2026:** a PR A foi entregue em duas partes.
+- **A1** (#165, DEC-065): TXT, Markdown e DOCX; integrada na `main` em `7da5758`.
+- **A2** (DEC-066): PDF com texto pesquisável, sem OCR. Todos os formatos passam a ser extraídos em processo filho com `--permission`.
+
+A PR A **não está pronta para exposição pública** enquanto não forem atendidos os requisitos do `docs/SECURITY.md` §11 (isolamento de SO, rede negada, limites rígidos, limites por organização, auditoria). Próxima entrega planejada: PR B.

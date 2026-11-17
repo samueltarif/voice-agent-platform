@@ -70,8 +70,11 @@ describe('Knowledge upload UI (DEC-065)', () => {
         onConfirm={async () => ({ ok: true, isIdempotentDuplicate: false })}
       />,
     );
-    expect(html).toContain('accept=".txt,.md,.markdown,.docx"');
-    expect(html).toContain('PDF ainda não é aceito');
+    // TEST_CHANGE_REASON: DEC-066 — `.pdf` passou a ser aceito; o seletor e os
+    // limites mudaram. ASSERTION_EQUIVALENT (mesma verificação, novo conteúdo).
+    expect(html).toContain('accept=".txt,.md,.markdown,.docx,.pdf"');
+    expect(html).toContain('sem OCR');
+    expect(html).not.toContain('PDF ainda não é aceito');
     expect(html).toContain('Nada é salvo até você confirmar');
   });
 
@@ -81,5 +84,20 @@ describe('Knowledge upload UI (DEC-065)', () => {
     );
     expect(UPLOAD_CONFLICT_MESSAGE).toContain('Editar conteúdo');
     expect(describeUploadConfirmFailure({ ok: false, status: 403 })).toContain('não permite');
+  });
+
+  it('PDF preview: pages, partial-scan warning that does NOT claim all pages were read', () => {
+    const pdf: KnowledgeExtractionResponse = {
+      ...PREVIEW,
+      format: 'PDF',
+      stats: { bytes: 10, chars: 60, lines: 2, pages: 3, pagesWithoutText: 1 },
+      warnings: ['PDF_PAGES_WITHOUT_TEXT', 'PDF_TEXT_ORDER_APPROXIMATE'],
+    };
+    const html = renderToString(<KnowledgeUploadPreview upload={stateWith({ preview: pdf })} />);
+    expect(html).toContain('3<!-- --> páginas');
+    expect(html).toContain('NÃO foram extraídas');
+    expect(html).toContain('ordem do texto é aproximada');
+    expect(html).not.toContain('todas as páginas');
+    expect(html).toContain('&lt;script&gt;');
   });
 });
