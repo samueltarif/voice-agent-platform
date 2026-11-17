@@ -17,7 +17,7 @@ const HEAP_EXHAUSTED = /heap out of memory|Reached heap limit|Array buffer alloc
 const STDERR_TAIL = 4096;
 
 /** RSS do filho pelo pai (só Linux, `/proc`); outros sistemas: só o filho mede. */
-function childRssMb(pid: number | undefined): number {
+export function childRssMb(pid: number | undefined): number {
   if (process.platform !== 'linux' || !pid) return 0;
   try {
     const pages = Number(readFileSync(`/proc/${pid}/statm`, 'utf8').split(' ')[1]);

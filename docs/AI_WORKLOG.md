@@ -19484,3 +19484,4 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - `voice_agent_pr157_test`, banco original da Qualitec e agente v4 intocados.
   - Sem serviços pagos e sem chamadas externas: a instalação de `pdfjs-dist` veio do registro npm já permitido.
   - Gate completo no SHA final informado na PR.
+- **CORREÇÃO ANTES DA PR**: o primeiro gate Linux passou em `fbc442e`, mas o teste de RSS usava `it.runIf(linux)` e no Windows viraria um skip novo (proibido). Agora ele roda em todas as plataformas: no Linux exige RESOURCE_LIMIT medido pelo pai; fora do Linux afirma que o pai não mede (`childRssMb` = 0), limitação documentada como melhor esforço. Nenhuma asserção removida. Gate refeito no SHA final.

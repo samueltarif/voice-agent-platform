@@ -10,6 +10,7 @@ import {
   type ExtractionProcessLimits,
 } from './run-extraction-in-child-process.js';
 import { resolveChildLaunch } from './child-launch.js';
+import { childRssMb } from './watch-extraction-child.js';
 import { buildDocx, documentXml, paragraph } from './test-support/build-docx-fixture.js';
 import { buildPdf } from './test-support/build-pdf-fixture.js';
 
@@ -83,14 +84,17 @@ describe('ExtractionProcessRunner — termination and limits (no orphans)', () =
     expect(await codeOf(runner.run({ format: 'TXT', bytes: A }))).toBe(CODES.RESOURCE_LIMIT);
   }, 60_000);
 
-  it.runIf(process.platform === 'linux')(
-    'Linux: memory outside the heap above maxRssMb is stopped by the parent (best effort)',
-    async () => {
-      const runner = runnerWith('rss-hog-child.mjs', { maxRssMb: 200 });
-      expect(await codeOf(runner.run({ format: 'TXT', bytes: A }))).toBe(CODES.RESOURCE_LIMIT);
-    },
-    30_000,
-  );
+  it('memory outside the heap: stopped by the parent on Linux; elsewhere measured only in the child', async () => {
+    if (process.platform !== 'linux') {
+      // Sem `/proc`: o pai não mede o RSS do filho (limite de MELHOR ESFORÇO, DEC-066);
+      // o filho real confere o próprio RSS entre páginas.
+      expect(childRssMb(process.pid)).toBe(0);
+      return;
+    }
+    expect(childRssMb(process.pid)).toBeGreaterThan(0);
+    const runner = runnerWith('rss-hog-child.mjs', { maxRssMb: 200 });
+    expect(await codeOf(runner.run({ format: 'TXT', bytes: A }))).toBe(CODES.RESOURCE_LIMIT);
+  }, 30_000);
 
   it('output above the limit is cut and refused', async () => {
     const runner = runnerWith('output-flood-child.mjs', { maxOutputBytes: 256 * 1024 });
