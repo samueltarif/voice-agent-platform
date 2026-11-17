@@ -84,6 +84,8 @@ describe('PDF active content and network (real restricted child)', () => {
       useSystemFonts: false,
       useWasm: false,
     });
-    expect(options.cMapUrl.startsWith('/pdfjs')).toBe(true);
+    // TEST_CHANGE_REASON: gate Windows da #166 — a base dos cMaps passou a usar
+    // `/` em qualquer sistema; a asserção exige o valor exato. ASSERTION_STRONGER.
+    expect(options.cMapUrl).toBe('/pdfjs/cmaps/');
   });
 });

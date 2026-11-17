@@ -19485,3 +19485,23 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - Sem serviços pagos e sem chamadas externas: a instalação de `pdfjs-dist` veio do registro npm já permitido.
   - Gate completo no SHA final informado na PR.
 - **CORREÇÃO ANTES DA PR**: o primeiro gate Linux passou em `fbc442e`, mas o teste de RSS usava `it.runIf(linux)` e no Windows viraria um skip novo (proibido). Agora ele roda em todas as plataformas: no Linux exige RESOURCE_LIMIT medido pelo pai; fora do Linux afirma que o pai não mede (`childRssMb` = 0), limitação documentada como melhor esforço. Nenhuma asserção removida. Gate refeito no SHA final.
+
+## 2026-11-17 — PR A2 — Correção do gate Windows: base dos cMaps do pdf.js (DEC-066) — Claude
+
+- **FALHA INFORMADA PELO OPERADOR** (Windows, SHA `75be99a`): fase 1 com 13 FAIL e fase 2 com 1 FAIL. O log apontava `Invalid factory url: "D:\...\pdfjs-dist\cmaps\" must include trailing slash.`
+- **CAUSA RAIZ (reproduzida no Linux)**:
+  - `getFactoryUrlProp` do pdf.js 6.5.438 exige que `cMapUrl` termine em `/`. O código montava `path.join(dir, 'cmaps') + path.sep`, que no Windows termina em `\`.
+  - A forma `D:/.../cmaps/` é aceita.
+  - Uma URL `file://` NÃO serve: o leitor Node do pdf.js concatena base e nome e chama `fs.readFile` com a string; uma string `file://` dá `ENOENT`.
+- **CORREÇÃO**: `localCMapBaseUrl(pdfjsDir, pathApi)` monta o caminho LOCAL com separadores `/` e barra final. Os cMaps continuam habilitados e locais, sem rede.
+- **CONSISTÊNCIA COM AS 14 FALHAS**: todas passam pela validação síncrona do `getDocument`.
+  - `extract-pdf-text`: 9 testes (a bomba Flate é recusada antes do pdf.js).
+  - `pdf-active-content`: 2 (o PDF no filho e a asserção `startsWith('/pdfjs')`, que no Windows recebia `\pdfjs`).
+  - Runner: 1 (PDF).
+  - `extract-knowledge-upload`: 1 (PDF).
+  - Integração da API: 1 (PDF).
+  - Total: 13 + 1.
+  - Nenhuma falha sem relação com a causa foi informada; a confirmação final depende do novo gate Windows.
+- **REGRESSÃO**: `pdf-document-options.test.ts` (5 testes) cobre caminho Windows com unidade, UNC, separador final, POSIX e o pdf.js recusando a forma antiga e aceitando a nova (com `path.win32`, roda em qualquer sistema). `pdf-active-content.test.ts`: TEST_CHANGE_REASON, valor exato `'/pdfjs/cmaps/'`, ASSERTION_STRONGER.
+- **TESTES DIRECIONADOS (Linux)**: `packages/knowledge-extraction` 10 arquivos, 62 PASS. Integração da extração 7 PASS (`of2_test_*`). `check:api-dist`: `COMPILED_EXTRACTION_CHILD=OK FORMATS=DOCX,PDF EGRESS_ATTEMPTS=0`.
+- **SAFETY**: só bancos descartáveis; nenhum banco existente, Qualitec ou agente v4 tocados; sem serviços pagos.
