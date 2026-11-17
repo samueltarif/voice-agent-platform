@@ -4,3 +4,8 @@ packages:
 
 allowBuilds:
   esbuild: true
+
+# DEC-066 — o pdf.js só extrai texto; o componente nativo de renderização
+# (opcional) nunca é instalado nem carregado.
+ignoredOptionalDependencies:
+  - '@napi-rs/canvas'

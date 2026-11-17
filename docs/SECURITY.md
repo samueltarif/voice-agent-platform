@@ -256,3 +256,29 @@ A execução de ferramentas por agentes de voz durante chamadas telefônicas apr
 
 
 
+
+## 11. Extração de Arquivos da Base de Conhecimento (DEC-065 / DEC-066)
+
+A extração de TXT, Markdown, DOCX e PDF roda num **processo filho** do Node, um por arquivo. Ela devolve só uma prévia; nada é gravado até a confirmação do usuário.
+
+**Garantias implementadas e testadas:**
+- **Antes do conteúdo:** autenticação, organização ativa e `knowledge.ingest`, tanto no BFF quanto na API.
+- **Permissões do filho:** `--permission` com leitura apenas do código necessário. O filho não escreve em disco, não cria processos ou workers e não carrega addons nativos. `@napi-rs/canvas` não é instalado.
+- **Ambiente e limites:** ambiente vazio, heap limitado e prioridade baixa. O prazo tem `SIGKILL`; a saída e a concorrência são limitadas. O `stderr` é descartado.
+- **Encerramento:** o filho é morto ao fim do prazo, em erro, em cancelamento da requisição e no encerramento da API. Se o pai morrer, o canal IPC fecha e o filho sai.
+- **Rede:** a guarda dentro do filho faz `fetch`, `net`, `http(s)`, `http2`, `tls`, `dgram`, `dns` e `WebSocket` lançarem erro.
+- **pdf.js:** só dados em memória, sem `eval`, XFA, fontes do sistema ou WebAssembly. Os cMaps são lidos de arquivos locais. Scripts, links, anexos e formulários nunca são lidos.
+
+**Limites conhecidos (não são garantias rígidas):**
+- O modelo de permissões do Node 22/24 **não controla rede** e **não é sandbox** contra código malicioso.
+- A memória só tem teto rígido no heap V8. O limite de RSS (512 MB) é **melhor esforço**: o filho o confere entre páginas e, no Linux, o pai também o mede.
+- Um laço síncrono infinito num filho cujo pai morreu só termina quando o processo é encerrado externamente.
+
+**Requisitos obrigatórios antes de exposição pública (D-B9):**
+1. Extrator em contêiner ou serviço isolado, com **saída de rede negada no sistema operacional** (sem rota ou egress para o usuário do extrator).
+2. **Limites rígidos de recursos** por cgroup ou contêiner: memória, CPU e número de processos.
+3. Limite de concorrência no BFF e limite por organização ou usuário (frequência e cota).
+4. Trilha de auditoria da extração só com metadados: organização, usuário, formato, tamanho, hash e código de resultado. Nunca o conteúdo nem o nome do arquivo.
+5. Decisão do operador sobre antivírus local.
+
+Sem esses requisitos, o envio de arquivo serve apenas para desenvolvimento e homologação.

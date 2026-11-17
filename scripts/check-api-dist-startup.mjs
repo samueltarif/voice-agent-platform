@@ -120,8 +120,11 @@ if (!existsSync(join(apiDir, entry))) {
   if (!process.exitCode) await checkWildcardRefused();
   if (!process.exitCode) {
     const extraction = await checkCompiledExtraction({ apiDir, guard, env: smokeEnv({}) });
-    if (!extraction.ok) fail(`extração no dist falhou (worker).\n${extraction.detail}`);
-    else console.log('[api-dist-startup] COMPILED_EXTRACTION_WORKER=OK EGRESS_ATTEMPTS=0');
+    if (!extraction.ok) fail(`extração no dist falhou (processo filho).\n${extraction.detail}`);
+    else
+      console.log(
+        '[api-dist-startup] COMPILED_EXTRACTION_CHILD=OK FORMATS=DOCX,PDF EGRESS_ATTEMPTS=0',
+      );
   }
   if (!process.exitCode)
     console.log('[api-dist-startup] SUCESSO: API compilada iniciou só em loopback.');

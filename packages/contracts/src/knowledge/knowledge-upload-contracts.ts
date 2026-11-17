@@ -1,12 +1,13 @@
 import { z } from 'zod';
 
 /**
- * PR A1 (DEC-065): envio de arquivo para a Base de Conhecimento em duas etapas.
+ * PR A1/A2 (DEC-065/DEC-066): envio de arquivo para a Base de Conhecimento em
+ * duas etapas.
  * 1) EXTRAÇÃO: o servidor valida o arquivo e devolve só o texto (nada é gravado);
  * 2) CONFIRMAÇÃO: o usuário confirma e a ingestão existente recebe o texto.
- * Sem PDF nesta etapa (A2).
+ * PDF somente com texto pesquisável (sem OCR).
  */
-export const KNOWLEDGE_UPLOAD_FORMATS = ['TXT', 'MARKDOWN', 'DOCX'] as const;
+export const KNOWLEDGE_UPLOAD_FORMATS = ['TXT', 'MARKDOWN', 'DOCX', 'PDF'] as const;
 export type KnowledgeUploadFormat = (typeof KNOWLEDGE_UPLOAD_FORMATS)[number];
 
 /** Extensões aceitas (minúsculas) e o formato esperado do conteúdo. */
@@ -15,13 +16,14 @@ export const KNOWLEDGE_UPLOAD_EXTENSIONS: Readonly<Record<string, KnowledgeUploa
   '.md': 'MARKDOWN',
   '.markdown': 'MARKDOWN',
   '.docx': 'DOCX',
+  '.pdf': 'PDF',
 };
 
 const MiB = 1024 * 1024;
 
 export const KNOWLEDGE_UPLOAD_LIMITS = {
   /** Bytes reais do arquivo, por formato (verificados após decodificar). */
-  maxFileBytes: { TXT: 2 * MiB, MARKDOWN: 2 * MiB, DOCX: 10 * MiB },
+  maxFileBytes: { TXT: 2 * MiB, MARKDOWN: 2 * MiB, DOCX: 10 * MiB, PDF: 10 * MiB },
   /** Base64 de 10 MiB ≈ 13,4 MiB; teto de 15 MiB codificados (D-A3). */
   maxEncodedChars: 15 * MiB,
   /** Corpo HTTP (BFF e API): base64 + JSON + margem. */
@@ -35,7 +37,26 @@ export const KNOWLEDGE_UPLOAD_LIMITS = {
     maxEntryUncompressedBytes: 20 * MiB,
     maxCompressionRatio: 100,
   },
-  worker: { timeoutMs: 15_000, maxOldGenerationSizeMb: 256, maxConcurrent: 2 },
+  pdf: {
+    maxPages: 300,
+    /** Abaixo disso no documento inteiro ⇒ digitalizado/sem texto (sem OCR). */
+    minDocumentTextChars: 20,
+    /** Página com menos caracteres visíveis ⇒ contada como "sem texto". */
+    minPageTextChars: 5,
+    /** Soma descompactada (Flate) de todos os streams, antes do parser. */
+    maxInflatedBytes: 200 * MiB,
+  },
+  /**
+   * Processo filho de extração (DEC-066). `maxRssMb` é MELHOR ESFORÇO: medido
+   * entre páginas e, no Linux, também pelo processo pai; não é limite rígido.
+   */
+  process: {
+    timeoutMs: 20_000,
+    maxOldGenerationSizeMb: 256,
+    maxRssMb: 512,
+    maxOutputBytes: 2 * MiB,
+    maxConcurrent: 2,
+  },
 } as const;
 
 /** Códigos de recusa; a mensagem exibida é montada no cliente (sem detalhes internos). */
@@ -44,7 +65,6 @@ export const KNOWLEDGE_UPLOAD_ERROR_CODES = {
   INVALID_ENCODING: 'KNOWLEDGE_UPLOAD_INVALID_BASE64',
   TOO_LARGE: 'KNOWLEDGE_UPLOAD_TOO_LARGE',
   UNSUPPORTED_FORMAT: 'KNOWLEDGE_UPLOAD_UNSUPPORTED_FORMAT',
-  PDF_NOT_YET_SUPPORTED: 'KNOWLEDGE_UPLOAD_PDF_NOT_YET_SUPPORTED',
   LEGACY_DOC: 'KNOWLEDGE_UPLOAD_LEGACY_DOC',
   FORMAT_MISMATCH: 'KNOWLEDGE_UPLOAD_FORMAT_MISMATCH',
   INVALID_TEXT_ENCODING: 'KNOWLEDGE_UPLOAD_INVALID_TEXT_ENCODING',
@@ -58,6 +78,10 @@ export const KNOWLEDGE_UPLOAD_ERROR_CODES = {
   TIMEOUT: 'KNOWLEDGE_UPLOAD_EXTRACTION_TIMEOUT',
   RESOURCE_LIMIT: 'KNOWLEDGE_UPLOAD_RESOURCE_LIMIT',
   BUSY: 'KNOWLEDGE_UPLOAD_BUSY',
+  PDF_ENCRYPTED: 'KNOWLEDGE_UPLOAD_PDF_ENCRYPTED',
+  PDF_TOO_MANY_PAGES: 'KNOWLEDGE_UPLOAD_PDF_TOO_MANY_PAGES',
+  PDF_NO_TEXT: 'KNOWLEDGE_UPLOAD_PDF_NO_TEXT',
+  PDF_XFA_UNSUPPORTED: 'KNOWLEDGE_UPLOAD_PDF_XFA_UNSUPPORTED',
 } as const;
 
 export type KnowledgeUploadErrorCode =
@@ -72,7 +96,13 @@ export const knowledgeExtractionHttpBodySchema = z
 
 export type KnowledgeExtractionHttpBody = z.infer<typeof knowledgeExtractionHttpBodySchema>;
 
-export const KNOWLEDGE_UPLOAD_WARNINGS = ['DOCX_MAIN_BODY_ONLY'] as const;
+export const KNOWLEDGE_UPLOAD_WARNINGS = [
+  'DOCX_MAIN_BODY_ONLY',
+  /** Algumas páginas não tinham texto (imagem/digitalizadas): não foram extraídas. */
+  'PDF_PAGES_WITHOUT_TEXT',
+  /** A ordem de leitura de PDF (colunas, tabelas) é aproximada. */
+  'PDF_TEXT_ORDER_APPROXIMATE',
+] as const;
 
 export const knowledgeExtractionResponseSchema = z
   .object({
@@ -86,6 +116,9 @@ export const knowledgeExtractionResponseSchema = z
         bytes: z.number().int().positive(),
         chars: z.number().int().positive(),
         lines: z.number().int().positive(),
+        /** Só PDF. */
+        pages: z.number().int().positive().optional(),
+        pagesWithoutText: z.number().int().nonnegative().optional(),
       })
       .strict(),
     warnings: z.array(z.enum(KNOWLEDGE_UPLOAD_WARNINGS)).max(5),

@@ -1,7 +1,12 @@
 const packagesDistDir = new URL('./dist/packages/', import.meta.url);
 const rootPackagesDir = new URL('../../packages/', import.meta.url);
 
-export async function resolve(specifier, context, nextResolve) {
+/**
+ * Lógica síncrona compartilhada: `resolve` (ganchos assíncronos, processo da
+ * API) e `register-dist-sync.js` (ganchos síncronos, processo filho de
+ * extração sob `--permission`, onde a thread de ganchos assíncronos é negada).
+ */
+export function resolveSync(specifier, context, nextResolve) {
   // If importing a workspace package @voice-agent/<pkg>, point to compiled dist
   if (specifier.startsWith('@voice-agent/')) {
     const pkgName = specifier.slice('@voice-agent/'.length);
@@ -34,4 +39,8 @@ export async function resolve(specifier, context, nextResolve) {
   }
 
   return nextResolve(specifier, context);
+}
+
+export async function resolve(specifier, context, nextResolve) {
+  return resolveSync(specifier, context, nextResolve);
 }

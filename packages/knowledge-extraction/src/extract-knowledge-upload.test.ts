@@ -4,10 +4,13 @@ import {
   knowledgeExtractionResponseSchema,
 } from '@voice-agent/contracts';
 import { createKnowledgeUploadExtractor } from './extract-knowledge-upload.js';
-import { ExtractionWorkerRunner } from './run-extraction-in-worker.js';
+import { ExtractionProcessRunner } from './run-extraction-in-child-process.js';
 import { buildDocx, documentXml, paragraph, toBase64 } from './test-support/build-docx-fixture.js';
+import { buildPdf } from './test-support/build-pdf-fixture.js';
 
-const extractor = createKnowledgeUploadExtractor(new ExtractionWorkerRunner());
+// TEST_CHANGE_REASON: DEC-066 — o runner passou de worker_threads para processo
+// filho; mesmas asserções (ASSERTION_EQUIVALENT).
+const extractor = createKnowledgeUploadExtractor(new ExtractionProcessRunner());
 const b64 = (text: string) => Buffer.from(text, 'utf8').toString('base64');
 
 async function codeOf(promise: Promise<unknown>) {
@@ -51,9 +54,11 @@ describe('createKnowledgeUploadExtractor', () => {
     expect(
       await codeOf(extractor.extract({ fileName: 'a.txt', contentBase64: 'not base64!' })),
     ).toBe(CODES.INVALID_ENCODING);
+    // TEST_CHANGE_REASON: DEC-066 — PDF aceito; um PDF truncado (sem `%%EOF`)
+    // é recusado antes do processo filho. ASSERTION_EQUIVALENT (recusa precoce).
     expect(
       await codeOf(extractor.extract({ fileName: 'a.pdf', contentBase64: b64('%PDF-1.7') })),
-    ).toBe(CODES.PDF_NOT_YET_SUPPORTED);
+    ).toBe(CODES.MALFORMED_FILE);
     expect(
       await codeOf(extractor.extract({ fileName: 'a.txt', contentBase64: b64(' \n\t ') })),
     ).toBe(CODES.NO_TEXT);
@@ -64,5 +69,24 @@ describe('createKnowledgeUploadExtractor', () => {
     expect(await codeOf(extractor.extract({ fileName: 'a.md', contentBase64: b64(long) }))).toBe(
       CODES.TEXT_TOO_LONG,
     );
+  }, 30_000);
+
+  it('PDF: preview with pages, partial-scan warning and approximate order warning', async () => {
+    const pdf = buildPdf({
+      pages: [['Transmissores de pressao', 'QT-310 e QT-520'], null],
+      compress: true,
+    });
+    const result = await extractor.extract({
+      fileName: 'Catálogo.pdf',
+      contentBase64: toBase64(pdf),
+    });
+    expect(knowledgeExtractionResponseSchema.parse(result)).toEqual(result);
+    expect(result).toMatchObject({
+      format: 'PDF',
+      suggestedTitle: 'Catálogo',
+      text: 'Transmissores de pressao\nQT-310 e QT-520',
+      stats: { pages: 2, pagesWithoutText: 1 },
+      warnings: ['PDF_PAGES_WITHOUT_TEXT', 'PDF_TEXT_ORDER_APPROXIMATE'],
+    });
   }, 30_000);
 });

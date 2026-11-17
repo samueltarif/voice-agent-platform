@@ -19452,3 +19452,35 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **TESTES EXISTENTES ALTERADOS**: `knowledge-ingest-form.test.tsx` — TEST_CHANGE_REASON: o texto “Upload de arquivos não está disponível” ficou falso com a DEC-065; a asserção passou a exigir o novo texto e a ausência do antigo; ASSERTION_EQUIVALENT. `knowledge-studio.test.tsx` — duas asserções adicionadas (botão presente para OWNER, ausente para OPERATOR); ASSERTION_STRONGER.
 - **LIMITAÇÕES** (registradas na DEC-065): `worker_threads` não isola processo; teto de memória só do heap V8 (melhor esforço); guarda de rede não é sandbox; BFF mantém até ~15 MiB por requisição sem limite próprio de concorrência; sem antivírus; DOCX só corpo principal.
 - **SAFETY**: só bancos `of2_test_*` descartáveis; nenhuma migration em banco existente; `voice_agent_pr157_test`, banco original da Qualitec e agente Qualitec v4 intocados; nenhuma chamada paga ou serviço externo. Gate completo no SHA final informado na PR.
+
+## 2026-11-17 — PR A2 — PDF com texto pesquisável e extração em processo filho (DEC-066) — Claude
+
+- **BASE**: `origin/main` `7da5758` (merge da #165), worktree separado, branch `feat/knowledge-upload-a2-pdf`. Plano aprovado pelo operador (D-B1 a D-B9 com condições). OCR não iniciado.
+- **PROVA TÉCNICA (antes da implementação, Linux, Node 22.23.4)**:
+  - `pdfjs-dist` 6.5.438 instalado com `ignoredOptionalDependencies: ['@napi-rs/canvas']`; o lockfile registra a exclusão e não há o pacote nativo.
+  - O build `legacy` extrai texto sem o componente nativo.
+  - Processo filho com `--permission` e leitura restrita: texto latino e CJK (cMap local).
+  - `OpenAction`/link `/URI` externos: 0 tentativas de rede.
+  - Symlinks do pnpm: OK com `node_modules` do pacote + caminho real.
+  - O build moderno falha no Node 22 (`Promise.try`) ⇒ só `legacy`.
+  - `--permission` não bloqueia `net.connect` (confirmado antes, no plano).
+- **ACHADO DURANTE A IMPLEMENTAÇÃO**: `module.register` é negado sob `--permission` (thread interna de ganchos). Correção: ganchos síncronos (`module.registerHooks`) em `source-mode-loader.mjs` e `apps/api/register-dist-sync.js` (`dist-resolver.js` passou a exportar `resolveSync`, mantendo `resolve`). Consequência: `engines.node >=22.15.0` (D-B7 aprovava `>=22.13.0`; desvio informado ao operador). `.node-version` 24.20.0 inalterado.
+- **FIXTURES PDF REAIS**: gerador determinístico em TypeScript (sem binários no repositório). A criptografia RC4 R2 foi validada fora dos testes com ferramentas locais: o `qpdf --check` recusa o arquivo sem senha e o descriptografa com a senha correta; o `pdftotext` extrai o texto depois disso; a variante só com senha de proprietário abre sem senha. Nos testes, o próprio pdf.js abre com a senha certa e lança `PasswordException` com a errada.
+- **TESTES (direcionados, Linux)**:
+  - `packages/knowledge-extraction`: 9 arquivos, 57 testes PASS (processo filho real: prazo, heap, RSS no Linux, saída, falha sem vazamento de `stderr`, BUSY, cancelamento, pai morto sem órfão, permissões negadas, rede bloqueada e auditada, PDF fiel, CJK, criptografia em três variantes, XFA, digitalizado total e parcial, páginas, bomba Flate, corrompido, texto longo, conteúdo ativo ignorado, opções fixas).
+  - API integração: 7 testes PASS em banco `of2_test_*` (PDF → prévia sem gravação → confirmação → busca; organização B sem acesso; criptografado e digitalizado recusados).
+  - Web (knowledge): 176 testes PASS.
+  - `check:api-dist`: `COMPILED_EXTRACTION_CHILD=OK FORMATS=DOCX,PDF`.
+- **TESTES EXISTENTES ALTERADOS (todos com TEST_CHANGE_REASON)**:
+  - `decode-and-classify-upload.test.ts`: `.pdf` sem cabeçalho ⇒ FORMAT_MISMATCH. ASSERTION_EQUIVALENT.
+  - `extract-knowledge-upload.test.ts`: runner trocado; PDF truncado ⇒ MALFORMED_FILE. ASSERTION_EQUIVALENT.
+  - `knowledge-extraction-api.integration.test.ts`: PDF truncado ⇒ MALFORMED_FILE. ASSERTION_EQUIVALENT.
+  - `knowledge-extraction-client.test.ts`: `.pdf` aceito até 10 MiB, recusado acima. ASSERTION_EQUIVALENT.
+  - `knowledge-upload.test.tsx`: seletor com `.pdf` e ausência do texto antigo. ASSERTION_EQUIVALENT.
+  - O teste do runner `worker_threads` foi substituído por `run-extraction-in-child-process.test.ts`, que cobre os mesmos casos (prazo, memória, BUSY, rede) e acrescenta permissões, saída, cancelamento e órfãos.
+- **LIMITAÇÕES**: ver DEC-066 e `docs/SECURITY.md` §11. Não pronto para exposição pública sem isolamento de SO.
+- **SAFETY**:
+  - Só bancos `of2_test_*`; nenhuma migration em banco existente.
+  - `voice_agent_pr157_test`, banco original da Qualitec e agente v4 intocados.
+  - Sem serviços pagos e sem chamadas externas: a instalação de `pdfjs-dist` veio do registro npm já permitido.
+  - Gate completo no SHA final informado na PR.

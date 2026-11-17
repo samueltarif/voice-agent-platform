@@ -49,11 +49,13 @@ describe('classifyUpload', () => {
     expect(docx).toEqual({ fileName: 'Catálogo.docx', baseName: 'Catálogo', format: 'DOCX' });
   });
 
-  it('refuses PDF (A2), legacy DOC and unknown extensions', () => {
+  // TEST_CHANGE_REASON: DEC-066 (A2) passa a aceitar PDF; a recusa
+  // "PDF_NOT_YET_SUPPORTED" deixou de existir. Um `.pdf` sem cabeçalho PDF
+  // continua recusado (FORMAT_MISMATCH) — ASSERTION_EQUIVALENT para PDF
+  // inválido; aceitação de PDF válido coberta em assert-pdf-envelope.test.ts.
+  it('refuses a .pdf without a PDF header, legacy DOC and unknown extensions', () => {
     const bytes = utf8('x');
-    expect(codeOf(() => classifyUpload({ fileName: 'a.pdf', bytes }))).toBe(
-      CODES.PDF_NOT_YET_SUPPORTED,
-    );
+    expect(codeOf(() => classifyUpload({ fileName: 'a.pdf', bytes }))).toBe(CODES.FORMAT_MISMATCH);
     expect(codeOf(() => classifyUpload({ fileName: 'a.doc', bytes }))).toBe(CODES.LEGACY_DOC);
     expect(codeOf(() => classifyUpload({ fileName: 'a.exe', bytes }))).toBe(
       CODES.UNSUPPORTED_FORMAT,

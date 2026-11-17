@@ -5,6 +5,7 @@ import {
   type KnowledgeUploadFormat,
 } from '@voice-agent/contracts';
 import { KnowledgeExtractionError } from './extraction-error.js';
+import { assertPdfEnvelope } from './assert-pdf-envelope.js';
 
 export interface ClassifiedUpload {
   readonly fileName: string;
@@ -40,7 +41,6 @@ function sanitizeFileName(raw: string): { fileName: string; baseName: string; ex
 }
 
 function formatFromExtension(ext: string): KnowledgeUploadFormat {
-  if (ext === '.pdf') throw new KnowledgeExtractionError(CODES.PDF_NOT_YET_SUPPORTED);
   if (ext === '.doc') throw new KnowledgeExtractionError(CODES.LEGACY_DOC);
   const format = KNOWLEDGE_UPLOAD_EXTENSIONS[ext];
   if (!format) throw new KnowledgeExtractionError(CODES.UNSUPPORTED_FORMAT);
@@ -51,6 +51,7 @@ function formatFromExtension(ext: string): KnowledgeUploadFormat {
 function assertSignatureMatches(format: KnowledgeUploadFormat, bytes: Uint8Array): void {
   if (startsWith(bytes, OLE_SIGNATURE)) throw new KnowledgeExtractionError(CODES.LEGACY_DOC);
   const zip = startsWith(bytes, ZIP_SIGNATURE);
+  if (format === 'PDF') return assertPdfEnvelope(bytes);
   if (format === 'DOCX' && !zip) throw new KnowledgeExtractionError(CODES.FORMAT_MISMATCH);
   if (format !== 'DOCX' && (zip || startsWith(bytes, PDF_SIGNATURE))) {
     throw new KnowledgeExtractionError(CODES.FORMAT_MISMATCH);

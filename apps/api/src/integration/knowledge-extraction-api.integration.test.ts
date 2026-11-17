@@ -9,6 +9,8 @@ import { knowledgeDocuments } from '@voice-agent/database';
 import { createDisposableTestDatabase } from '@voice-agent/database/test-support';
 import {
   buildDocx,
+  buildEncryptedPdf,
+  buildPdf,
   documentXml,
   paragraph,
   toBase64,
@@ -28,10 +30,11 @@ const CATALOG = documentXml(
 );
 
 /**
- * DEC-065 — envio de arquivo: HTTP real + worker real + PostgreSQL descartável.
- * A extração não grava nada; só a confirmação (ingestão existente) persiste.
+ * DEC-065/DEC-066 — envio de arquivo: HTTP real + processo filho real +
+ * PostgreSQL descartável. A extração não grava nada; só a confirmação
+ * (ingestão existente) persiste.
  */
-describe('POST /v1/knowledge/extractions (HTTP + worker + PostgreSQL)', () => {
+describe('POST /v1/knowledge/extractions (HTTP + child process + PostgreSQL)', () => {
   let h: ExtractionHarness;
   const fetchSpy = vi.fn(async () => {
     throw new Error('network is not allowed');
@@ -113,8 +116,10 @@ describe('POST /v1/knowledge/extractions (HTTP + worker + PostgreSQL)', () => {
     const xxeRes = await extract('a.docx', xxe);
     expect(xxeRes.status).toBe(422);
     expect(await errorCode(xxeRes)).toBe(CODES.UNSAFE_XML);
+    // TEST_CHANGE_REASON: DEC-066 aceita PDF; PDF truncado continua recusado
+    // com 422 e código (MALFORMED_FILE). ASSERTION_EQUIVALENT.
     const pdf = await extract('a.pdf', new TextEncoder().encode('%PDF-1.7'));
-    expect(await errorCode(pdf)).toBe(CODES.PDF_NOT_YET_SUPPORTED);
+    expect(await errorCode(pdf)).toBe(CODES.MALFORMED_FILE);
     const bad = await h.call(PATH, { fileName: 'a.txt', contentBase64: 'a b' });
     expect(await errorCode(bad)).toBe(CODES.INVALID_ENCODING);
   }, 60_000);
@@ -130,10 +135,33 @@ describe('POST /v1/knowledge/extractions (HTTP + worker + PostgreSQL)', () => {
     expect(await documentCount()).toBe(1);
   });
 
+  it('PDF → preview → confirmation → retrieval; encrypted and scanned PDFs refused', async () => {
+    const lines = ['Transmissor de pressão diferencial QT-777', 'Faixa de 0 a 25 bar'];
+    const res = await extract('Catalogo-Sigiloso-QT777.pdf', buildPdf({ pages: [lines, null] }));
+    const preview = (await res.json()) as KnowledgeExtractionResponse;
+    expect(preview).toMatchObject({ format: 'PDF', stats: { pages: 2, pagesWithoutText: 1 } });
+    expect(await documentCount()).toBe(1);
+    const ingest = await h.call('/v1/knowledge/documents', {
+      title: preview.suggestedTitle,
+      source: { sourceType: 'PRODUCT_MANUAL', locator: preview.suggestedLocator },
+      rawText: preview.text,
+    });
+    expect(ingest.status).toBe(201);
+    expect((await search('QT-777')).map((hit) => hit.excerpt).join(' ')).toContain('QT-777');
+    expect(await search('QT-777', h.orgB)).toEqual([]);
+    const encrypted = buildEncryptedPdf({ lines, userPassword: '', ownerPassword: 'own' });
+    expect(await errorCode(await extract('a.pdf', encrypted))).toBe(CODES.PDF_ENCRYPTED);
+    expect(await errorCode(await extract('a.pdf', buildPdf({ pages: [null] })))).toBe(
+      CODES.PDF_NO_TEXT,
+    );
+    expect(await documentCount()).toBe(2);
+  }, 60_000);
+
   it('never logs the file name or its content, and never touches the network', () => {
     const all = h.logged.join('\n');
     expect(all).not.toContain('Sigiloso');
     expect(all).not.toContain('QT-310');
+    expect(all).not.toContain('QT-777');
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 });

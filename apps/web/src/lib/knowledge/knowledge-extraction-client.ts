@@ -20,7 +20,6 @@ function refusal(code: string): KnowledgeBffError {
 export function precheckKnowledgeFile(file: File): KnowledgeBffError | null {
   const dot = file.name.lastIndexOf('.');
   const ext = dot >= 0 ? file.name.slice(dot).toLowerCase() : '';
-  if (ext === '.pdf') return refusal(CODES.PDF_NOT_YET_SUPPORTED);
   if (ext === '.doc') return refusal(CODES.LEGACY_DOC);
   const format = KNOWLEDGE_UPLOAD_EXTENSIONS[ext];
   if (!format) return refusal(CODES.UNSUPPORTED_FORMAT);

@@ -1,6 +1,7 @@
-// Smoke da extração na API COMPILADA (DEC-065): prova que `extraction-worker.js`
-// foi emitido em apps/api/dist e é resolvido/iniciado pelo worker_threads com o
-// mesmo resolvedor do dist, sem rede. Usa um DOCX mínimo embutido (sem segredos).
+// Smoke da extração na API COMPILADA (DEC-065/DEC-066): prova que
+// `extraction-child-entry.js` foi emitido em apps/api/dist e é iniciado como
+// processo filho com `--permission`, ganchos síncronos do dist, pdf.js sem
+// componente nativo e sem rede. DOCX e PDF mínimos embutidos (sem segredos).
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
