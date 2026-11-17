@@ -10,3 +10,4 @@ export * from './knowledge-retrieval-preview-contracts.js';
 export * from './knowledge-query-terms.js';
 export * from './knowledge-search-tool-contracts.js';
 export * from './knowledge-simulated-turn-contracts.js';
+export * from './knowledge-upload-contracts.js';

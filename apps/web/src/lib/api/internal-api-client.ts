@@ -19,6 +19,8 @@ export interface InternalApiRequestOptions {
   organizationId: string;
   body?: unknown;
   requestId?: string;
+  /** Prazo desta chamada; padrão o do cliente (ex.: extração de arquivo é mais lenta). */
+  timeoutMs?: number;
 }
 
 async function handleApiError(response: Response, requestId: string): Promise<never> {
@@ -76,7 +78,7 @@ export class InternalApiClient {
     }
 
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    const timer = setTimeout(() => controller.abort(), options.timeoutMs ?? this.timeoutMs);
     requestInit.signal = controller.signal;
 
     try {

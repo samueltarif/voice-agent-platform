@@ -6,6 +6,7 @@ import type { ActiveOrganizationContext } from '../../../lib/organization/active
 import { isSameOriginRequest } from '../agents/is-same-origin-request.js';
 import { mapKnowledgeBffError } from './knowledge-error-response.js';
 import { checkKnowledgeOrgConsistency } from './knowledge-org-consistency.js';
+import { readBoundedJsonBody } from './read-bounded-json-body.js';
 
 /** Forma mínima de um schema do contrato (sem acoplar o app a uma biblioteca). */
 interface BodySchema {
@@ -27,22 +28,39 @@ export interface KnowledgeManagementForward {
   readonly fallbackMessage: string;
   /** Formato da resposta de sucesso; padrão `{ document }` (ou `{ deleted }`). */
   readonly wrapResult?: ((result: unknown) => unknown) | undefined;
+  /**
+   * Corpos grandes (envio de arquivo): o acesso é verificado ANTES de ler o
+   * corpo, e a leitura para ao passar deste teto (413).
+   */
+  readonly maxBodyBytes?: number | undefined;
+  /** Prazo da chamada à API; padrão o do cliente interno. */
+  readonly timeoutMs?: number | undefined;
 }
 
 function json(status: number, error: string, code: string): NextResponse {
   return NextResponse.json({ error, code }, { status });
 }
 
-async function readBody(options: KnowledgeManagementForward): Promise<unknown> {
-  if (!options.bodySchema) return undefined;
-  let raw: unknown;
-  try {
-    raw = await options.req.json();
-  } catch {
-    return null;
+type BodyRead = { readonly body: unknown } | NextResponse;
+
+async function readRawJson(options: KnowledgeManagementForward) {
+  if (options.maxBodyBytes !== undefined) {
+    return readBoundedJsonBody(options.req, options.maxBodyBytes);
   }
-  const parsed = options.bodySchema.safeParse(raw);
-  return parsed.success ? (parsed.data ?? null) : null;
+  try {
+    return { kind: 'OK' as const, value: (await options.req.json()) as unknown };
+  } catch {
+    return { kind: 'INVALID' as const };
+  }
+}
+
+async function readBody(options: KnowledgeManagementForward): Promise<BodyRead> {
+  if (!options.bodySchema) return { body: undefined };
+  const raw = await readRawJson(options);
+  if (raw.kind === 'TOO_LARGE') return json(413, 'Arquivo grande demais.', 'PAYLOAD_TOO_LARGE');
+  const parsed = raw.kind === 'OK' ? options.bodySchema.safeParse(raw.value) : null;
+  if (!parsed?.success) return json(400, 'Dados do documento inválidos.', 'VALIDATION_ERROR');
+  return { body: parsed.data ?? null };
 }
 
 async function resolveAccess(options: KnowledgeManagementForward, requestId?: string) {
@@ -74,18 +92,22 @@ function rejectRequestShape(options: KnowledgeManagementForward): NextResponse |
 /**
  * BFF das operações de gestão (DEC-054): mesma origem, ID válido, sessão,
  * papel, organização da tela = organização ativa e corpo validado pelo contrato.
+ * Com `maxBodyBytes` (DEC-065), o corpo só é lido depois do acesso comprovado.
  */
 export async function forwardKnowledgeManagement(
   options: KnowledgeManagementForward,
 ): Promise<NextResponse> {
   const rejected = rejectRequestShape(options);
   if (rejected) return rejected;
-  const body = await readBody(options);
-  if (body === null) return json(400, 'Dados do documento inválidos.', 'VALIDATION_ERROR');
+  const accessFirst = options.maxBodyBytes !== undefined;
+  const early = accessFirst ? null : await readBody(options);
+  if (early instanceof NextResponse) return early;
   const requestId = options.req.headers.get('x-request-id') ?? undefined;
   const access = await resolveAccess(options, requestId);
   if ('blocked' in access) return access.blocked!;
-  return callTenantApi({ options, access, body, requestId });
+  const read = early ?? (await readBody(options));
+  if (read instanceof NextResponse) return read;
+  return callTenantApi({ options, access, body: read.body, requestId });
 }
 
 interface TenantCall {
@@ -103,6 +125,7 @@ async function callTenantApi({ options, access, body, requestId }: TenantCall) {
       path: options.apiPath,
       ...(body !== undefined ? { body } : {}),
       ...(requestId ? { requestId } : {}),
+      ...(options.timeoutMs !== undefined ? { timeoutMs: options.timeoutMs } : {}),
     });
     if (options.wrapResult) return NextResponse.json(options.wrapResult(result));
     return NextResponse.json(

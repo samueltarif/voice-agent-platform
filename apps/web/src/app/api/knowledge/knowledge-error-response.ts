@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { KNOWLEDGE_UPLOAD_MESSAGES } from '../../../lib/knowledge/knowledge-upload-messages.js';
 
 interface KnowledgeApiErrorDetails {
   readonly code?: string;
@@ -31,6 +32,8 @@ const SAFE_MESSAGES: Readonly<Record<string, string>> = {
   KNOWLEDGE_NOT_RESTORABLE: 'Este documento não pode ser restaurado.',
   KNOWLEDGE_DOCUMENT_IN_USE:
     'Documento ainda associado a um agente ou a uma versão publicada. Restaure, remova a associação e arquive de novo antes de excluir.',
+  // DEC-065 — envio de arquivo.
+  ...KNOWLEDGE_UPLOAD_MESSAGES,
 };
 
 function resolveStatus(status: unknown): number {

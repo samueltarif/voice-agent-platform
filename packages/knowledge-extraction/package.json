@@ -1,0 +1,32 @@
+{
+  "name": "@voice-agent/knowledge-extraction",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./test-support": {
+      "types": "./src/test-support/index.ts",
+      "import": "./src/test-support/index.ts",
+      "default": "./src/test-support/index.ts"
+    }
+  },
+  "dependencies": {
+    "@voice-agent/contracts": "workspace:*",
+    "fflate": "0.8.3"
+  },
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0"
+  }
+}

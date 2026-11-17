@@ -1,5 +1,6 @@
 import type { KnowledgeSimulatedTurnPort } from '../simulation/knowledge-simulated-turn-service.js';
 import type { Logger } from '@voice-agent/logger';
+import type { KnowledgeUploadExtractor } from '@voice-agent/knowledge-extraction';
 import type {
   AgentRepository,
   AgentVersionRepository,
@@ -44,6 +45,8 @@ export interface ApiDependencies {
   readonly knowledgeRetrievalPreview?: KnowledgeRetrievalPreviewPort | undefined;
   /** Simulador do Agent Studio (DEC-061): turno determinístico, sem IA ou provedor. */
   readonly knowledgeSimulatedTurn?: KnowledgeSimulatedTurnPort | undefined;
+  /** Envio de arquivo (DEC-065): extração somente leitura em worker; não grava nada. */
+  readonly knowledgeExtraction?: KnowledgeUploadExtractor | undefined;
   readonly contactRepo?: DrizzleContactRepository | undefined;
   readonly suppressionRepo?: DrizzleContactSuppressionRepository | undefined;
   readonly campaignLifecycleRepo?: DrizzleCampaignLifecycleRepository | undefined;

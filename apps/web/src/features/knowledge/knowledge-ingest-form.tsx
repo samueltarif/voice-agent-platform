@@ -78,7 +78,7 @@ export function KnowledgeIngestForm({ isOpen, onOpenChange, onSubmit }: Props) {
         <SheetHeader>
           <SheetTitle>Adicionar conhecimento</SheetTitle>
           <SheetDescription>
-            Cadastre um documento de texto. Upload de arquivos não está disponível nesta versão.
+            Cole o texto do documento. Para enviar um arquivo, use “Enviar arquivo”.
           </SheetDescription>
         </SheetHeader>
         {success ? (

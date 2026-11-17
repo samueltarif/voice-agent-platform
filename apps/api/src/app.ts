@@ -15,6 +15,7 @@ import { registerKnowledgeMutationRoutes } from './routes/knowledge-mutation-rou
 import { registerKnowledgeManagementRoutes } from './routes/knowledge-management-routes.js';
 import { registerKnowledgeRetrievalPreviewRoutes } from './routes/knowledge-retrieval-preview-routes.js';
 import { registerKnowledgeSimulatedTurnRoutes } from './routes/knowledge-simulated-turn-routes.js';
+import { registerKnowledgeExtractionRoutes } from './routes/knowledge-extraction-routes.js';
 import { registerContactListRoutes } from './routes/contact-list-routes.js';
 import { registerContactSuppressionRoutes } from './routes/contact-suppression-routes.js';
 import { registerCampaignLifecycleRoutes } from './routes/campaign-lifecycle-routes.js';
@@ -50,13 +51,14 @@ function registerOpenApiDocs(app: OpenAPIHono): void {
   });
 }
 
-/** Base de Conhecimento: leitura, ingestão, gestão, pré-visualização e conversa simulada. */
+/** Base de Conhecimento: leitura, ingestão, gestão, pré-visualizações, conversa simulada e envio de arquivo. */
 function registerKnowledgeRoutes(app: OpenAPIHono, deps: ApiDependencies): void {
   registerKnowledgeReadRoutes(app, deps);
   registerKnowledgeMutationRoutes(app, deps);
   registerKnowledgeManagementRoutes(app, deps);
   registerKnowledgeRetrievalPreviewRoutes(app, deps);
   registerKnowledgeSimulatedTurnRoutes(app, deps);
+  registerKnowledgeExtractionRoutes(app, deps);
 }
 
 export function createApp(deps: ApiDependencies): OpenAPIHono {
