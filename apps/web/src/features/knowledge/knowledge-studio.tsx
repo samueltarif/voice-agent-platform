@@ -16,7 +16,7 @@ import { handleDialogCloseAutoFocus, useListFocusTarget } from './knowledge-list
 import { knowledgeManagePermissions } from './knowledge-document-actions';
 import { useKnowledgeManagement, type KnowledgeManagement } from './use-knowledge-management';
 import { KnowledgeManagementDialogs } from './knowledge-management-dialogs';
-import { KnowledgeRetrievalPreviewPanel } from './knowledge-retrieval-preview-panel';
+import { KnowledgeRetrievalSection } from './knowledge-retrieval-section';
 import { useKnowledgeRetrievalPreview } from './use-knowledge-retrieval-preview';
 import type { KnowledgeManageProps } from './knowledge-row-actions-menu';
 
@@ -164,7 +164,7 @@ export function KnowledgeStudio({
           onConfirm={() => void mutations.handleArchive()}
         />
       )}
-      <KnowledgeRetrievalPreviewPanel state={preview} agents={management.agents} />
+      <KnowledgeRetrievalSection {...{ orgSlug, role, preview }} agents={management.agents} />
       <KnowledgeManagementDialogs management={management} />
     </div>
   );

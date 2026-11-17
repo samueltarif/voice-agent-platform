@@ -36,6 +36,11 @@ export function stemKnowledgeTerm(term: string): string {
   return rule ? term.replace(rule[0], rule[1]) : term;
 }
 
+/** Palavra vazia da lista fixa (exposta para a busca v2; a v1 não muda). */
+export function isKnowledgeStopword(term: string): boolean {
+  return STOPWORDS.has(term);
+}
+
 function isSignificant(term: string): boolean {
   if (STOPWORDS.has(term)) return false;
   return term.length > 2 || /^\d{2,}$/.test(term);

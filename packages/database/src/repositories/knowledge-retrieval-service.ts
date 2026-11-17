@@ -1,4 +1,4 @@
-import { and, asc, count, eq, inArray, isNull, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, count, eq } from 'drizzle-orm';
 import {
   type KnowledgeAccessScope,
   type KnowledgeHitRelevance,
@@ -20,64 +20,13 @@ import {
 } from '../schema/knowledge.js';
 import { computeTermWeights, scoreKnowledgeChunk } from './knowledge-retrieval-scoring.js';
 import { toKnowledgeRetrievalHit } from './knowledge-retrieval-hit.js';
+import { retrieveKnowledgeV2 } from './knowledge-retrieval-v2.js';
+import { buildQueryPredicates, buildScopePredicates } from './knowledge-retrieval-predicates.js';
 import { classifyKnowledgeHit, planKnowledgeTerms } from './knowledge-term-relevance.js';
-import {
-  extractKnowledgeQueryTerms,
-  foldKnowledgeText,
-  KNOWLEDGE_ACCENTED_CHARS,
-  KNOWLEDGE_PLAIN_CHARS,
-} from './knowledge-query-terms.js';
+import { extractKnowledgeQueryTerms, foldKnowledgeText } from './knowledge-query-terms.js';
 
 /** Teto de trechos candidatos lidos por consulta (proteção de memória e tempo). */
 export const KNOWLEDGE_RETRIEVAL_MAX_CANDIDATES = 2000;
-
-/** Casa o termo sem distinguir acento nem caixa (o termo já vem normalizado). */
-function termMatches(term: string): SQL {
-  return sql`translate(${knowledgeChunks.text}, ${KNOWLEDGE_ACCENTED_CHARS}, ${KNOWLEDGE_PLAIN_CHARS}) ilike ${`%${term}%`}`;
-}
-
-function buildScopePredicates(scope: KnowledgeAccessScope): SQL[] {
-  const clauses: SQL[] = [
-    eq(knowledgeChunks.organizationId, scope.organizationId),
-    eq(knowledgeDocuments.organizationId, scope.organizationId),
-    eq(knowledgeDocuments.status, 'READY'),
-  ];
-
-  if (scope.collection) {
-    clauses.push(eq(knowledgeDocuments.collection, scope.collection));
-  }
-  if (scope.agentId) {
-    clauses.push(
-      or(isNull(knowledgeDocuments.agentId), eq(knowledgeDocuments.agentId, scope.agentId))!,
-    );
-  }
-  if (scope.agentVersionId) {
-    clauses.push(
-      or(
-        isNull(knowledgeDocuments.agentVersionId),
-        eq(knowledgeDocuments.agentVersionId, scope.agentVersionId),
-      )!,
-    );
-  }
-
-  return clauses;
-}
-
-function buildQueryPredicates(query: KnowledgeRetrievalQuery, tokens: readonly string[]): SQL[] {
-  const clauses: SQL[] = [];
-
-  if (query.documentIds && query.documentIds.length > 0) {
-    clauses.push(inArray(knowledgeDocuments.id, query.documentIds));
-  }
-  if (query.sourceTypes && query.sourceTypes.length > 0) {
-    clauses.push(inArray(knowledgeDocuments.sourceType, query.sourceTypes));
-  }
-  if (tokens.length > 0) {
-    clauses.push(or(...tokens.map(termMatches))!);
-  }
-
-  return clauses;
-}
 
 interface RankInput {
   readonly rows: readonly { chunk: KnowledgeChunkEntity; doc: KnowledgeDocumentEntity }[];
@@ -116,6 +65,8 @@ export class DrizzleKnowledgeRetrievalService implements KnowledgeRetrievalPort 
   async retrieve(request: KnowledgeRetrievalRequest): Promise<KnowledgeRetrievalResult> {
     const scope = knowledgeAccessScopeSchema.parse(request.scope);
     const query = knowledgeRetrievalQuerySchema.parse(request.query);
+    // DEC-067: v2 só com pedido EXPLÍCITO; ausente = v1 (abaixo, inalterada).
+    if (query.retrievalProfile === 'v2') return retrieveKnowledgeV2(this.db, scope, query);
     const tokens = extractKnowledgeQueryTerms(query.queryText);
     const predicates = [...buildScopePredicates(scope), ...buildQueryPredicates(query, tokens)];
 

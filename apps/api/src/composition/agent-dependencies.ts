@@ -21,6 +21,7 @@ import type {
   OutboundRepositoryPort,
   KnowledgeRepositoryPort,
   KnowledgeManagementPort,
+  KnowledgeRetrievalComparisonPort,
   KnowledgeRetrievalPreviewPort,
 } from '@voice-agent/contracts';
 import type { ServiceAssertionVerifier } from '../auth/service-assertion-verifier.js';
@@ -43,6 +44,8 @@ export interface ApiDependencies {
   readonly knowledgeRepo?: KnowledgeRepositoryPort | undefined;
   readonly knowledgeManagement?: KnowledgeManagementPort | undefined;
   readonly knowledgeRetrievalPreview?: KnowledgeRetrievalPreviewPort | undefined;
+  /** Comparação administrativa v1 × v2 (DEC-067). */
+  readonly knowledgeRetrievalComparison?: KnowledgeRetrievalComparisonPort | undefined;
   /** Simulador do Agent Studio (DEC-061): turno determinístico, sem IA ou provedor. */
   readonly knowledgeSimulatedTurn?: KnowledgeSimulatedTurnPort | undefined;
   /** Envio de arquivo (DEC-065): extração somente leitura em worker; não grava nada. */

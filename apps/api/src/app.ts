@@ -14,6 +14,7 @@ import { registerKnowledgeReadRoutes } from './routes/knowledge-read-routes.js';
 import { registerKnowledgeMutationRoutes } from './routes/knowledge-mutation-routes.js';
 import { registerKnowledgeManagementRoutes } from './routes/knowledge-management-routes.js';
 import { registerKnowledgeRetrievalPreviewRoutes } from './routes/knowledge-retrieval-preview-routes.js';
+import { registerKnowledgeRetrievalComparisonRoutes } from './routes/knowledge-retrieval-comparison-routes.js';
 import { registerKnowledgeSimulatedTurnRoutes } from './routes/knowledge-simulated-turn-routes.js';
 import { registerKnowledgeExtractionRoutes } from './routes/knowledge-extraction-routes.js';
 import { registerContactListRoutes } from './routes/contact-list-routes.js';
@@ -57,6 +58,7 @@ function registerKnowledgeRoutes(app: OpenAPIHono, deps: ApiDependencies): void 
   registerKnowledgeMutationRoutes(app, deps);
   registerKnowledgeManagementRoutes(app, deps);
   registerKnowledgeRetrievalPreviewRoutes(app, deps);
+  registerKnowledgeRetrievalComparisonRoutes(app, deps);
   registerKnowledgeSimulatedTurnRoutes(app, deps);
   registerKnowledgeExtractionRoutes(app, deps);
 }

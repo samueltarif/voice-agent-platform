@@ -16,6 +16,7 @@ import {
   DrizzleOutboundRepository,
   DrizzleKnowledgeRepository,
   DrizzleKnowledgeManagementService,
+  DrizzleKnowledgeRetrievalComparisonService,
   DrizzleKnowledgeRetrievalPreviewService,
   DrizzleContactRepository,
   DrizzleContactSuppressionRepository,
@@ -74,6 +75,7 @@ const outboundRepo = new DrizzleOutboundRepository(db);
 const knowledgeRepo = new DrizzleKnowledgeRepository(db);
 const knowledgeManagement = new DrizzleKnowledgeManagementService(db);
 const knowledgeRetrievalPreview = new DrizzleKnowledgeRetrievalPreviewService(db);
+const knowledgeRetrievalComparison = new DrizzleKnowledgeRetrievalComparisonService(db);
 const knowledgeSimulatedTurn = createKnowledgeSimulatedTurnService(db);
 const knowledgeExtraction = createKnowledgeUploadExtractor();
 const contactRepo = new DrizzleContactRepository(db);
@@ -102,6 +104,7 @@ const app = createApp({
   knowledgeRepo,
   knowledgeManagement,
   knowledgeRetrievalPreview,
+  knowledgeRetrievalComparison,
   knowledgeSimulatedTurn,
   knowledgeExtraction,
   contactRepo,

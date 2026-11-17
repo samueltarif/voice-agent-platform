@@ -6,6 +6,7 @@
 export {
   extractKnowledgeQueryTerms,
   foldKnowledgeText,
+  isKnowledgeStopword,
   KNOWLEDGE_ACCENTED_CHARS,
   KNOWLEDGE_MAX_QUERY_TERMS,
   KNOWLEDGE_PLAIN_CHARS,

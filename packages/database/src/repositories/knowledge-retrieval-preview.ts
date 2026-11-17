@@ -18,7 +18,7 @@ import { DrizzleKnowledgeRetrievalService } from './knowledge-retrieval-service.
 import { extractKnowledgeQueryTerms } from './knowledge-query-terms.js';
 import { computeTermWeights } from './knowledge-retrieval-scoring.js';
 
-interface ResolvedScope {
+export interface ResolvedScope {
   readonly scope: KnowledgeAccessScope;
   readonly agentVersionId?: string | undefined;
 }
@@ -28,7 +28,7 @@ interface ResolvedScope {
  * PUBLICADA. Agente inexistente, de outra organização ou arquivado recebem a
  * mesma resposta (não revela existência).
  */
-async function resolveAgentScope(
+export async function resolveAgentScope(
   db: DatabaseInstance,
   organizationId: string,
   agentId: string,

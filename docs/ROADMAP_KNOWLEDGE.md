@@ -80,3 +80,8 @@ A #163 está estabilizada e integrada. Próxima entrega: PR A (upload seguro e p
 - **A2** (DEC-066): PDF com texto pesquisável, sem OCR. Todos os formatos passam a ser extraídos em processo filho com `--permission`.
 
 A PR A **não está pronta para exposição pública** enquanto não forem atendidos os requisitos do `docs/SECURITY.md` §11 (isolamento de SO, rede negada, limites rígidos, limites por organização, auditoria). Próxima entrega planejada: PR B.
+
+**Atualização em 17/11/2026 (PR B):** a PR A2 foi integrada (#166). A PR B foi dividida em B1, B2 e B3; só a **B1** está autorizada (DEC-067).
+- **B1**: busca v2 por passagens, opt-in, usada apenas na comparação administrativa v1 × v2 (OWNER/ADMIN). Todos os agentes continuam na v1. Inclui o corpus de avaliação e os testes de caracterização da v1. Desenho: `docs/architecture/KNOWLEDGE_RETRIEVAL_V2_DESIGN.md`.
+- **B2** (não autorizada): resposta de voz com passagens e filtro de conteúdo hostil (D-RB6, D-RB7) e decisão sobre ativar a v2 por agente (D-RB2).
+- **B3** (não autorizada): D-RB11.

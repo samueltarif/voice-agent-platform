@@ -19505,3 +19505,21 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **REGRESSÃO**: `pdf-document-options.test.ts` (5 testes) cobre caminho Windows com unidade, UNC, separador final, POSIX e o pdf.js recusando a forma antiga e aceitando a nova (com `path.win32`, roda em qualquer sistema). `pdf-active-content.test.ts`: TEST_CHANGE_REASON, valor exato `'/pdfjs/cmaps/'`, ASSERTION_STRONGER.
 - **TESTES DIRECIONADOS (Linux)**: `packages/knowledge-extraction` 10 arquivos, 62 PASS. Integração da extração 7 PASS (`of2_test_*`). `check:api-dist`: `COMPILED_EXTRACTION_CHILD=OK FORMATS=DOCX,PDF EGRESS_ATTEMPTS=0`.
 - **SAFETY**: só bancos descartáveis; nenhum banco existente, Qualitec ou agente v4 tocados; sem serviços pagos.
+
+## 2026-11-17 — PR B1 — Busca v2 por passagens, opt-in, com comparação administrativa (DEC-067) — Claude
+
+- **AUTORIZAÇÃO**: somente B1 (13:24). B2, B3, PR C e OCR não iniciados. Branch `feat/knowledge-retrieval-b1` a partir de `origin/main` `c31cd4a`, em worktree separado.
+- **CARACTERIZAÇÃO PRIMEIRO** (commit `79c9d15`, antes de mudar o fluxo compartilhado): 40 testes da busca e pré-visualização v1 e 39 da conversa simulada fixam as respostas exatas atuais. Empates da v1 são ordenados pelo UUID aleatório do trecho; por isso as projeções ordenam as entradas e usam topK sem corte entre empates (busca 20, pré-visualização 10) e a conversa exclui as linhas de citação numerada. Continuam passando após todas as mudanças.
+- **IMPLEMENTAÇÃO**: ver DEC-067. `retrievalProfile: 'v2'` só é enviado pela comparação; a ferramenta `knowledge.search` e o coordenador de voz montam a consulta com campos explícitos e não repassam o campo; os corpos HTTP são `.strict()`. Predicados de escopo da v1 movidos sem alteração para `knowledge-retrieval-predicates.ts` (evita importação circular).
+- **AJUSTES FEITOS SÓ COM PERGUNTAS DEV** (o holdout não foi usado para ajuste):
+  - nomes realistas das organizações no corpus (o nome da empresa aparece nos documentos e deixa de ser termo central);
+  - radical de infinitivos longos (`calibrar` casa `calibração`);
+  - termo só no título da seção conta como uma ocorrência no ranking;
+  - com código na pergunta, palavras vazias não viram termos;
+  - cabeçalho de tabela vira contexto, não passagem;
+  - DIRECT exige termo central na passagem (texto ou título) e algum termo da pergunta no próprio texto.
+- **LIMIAR DE COBERTURA (D-RB4)**: testados 0,5 (hipótese aprovada) e 0,7; métricas idênticas no corpus. Mantido 0,5, sem desvio da hipótese.
+- **DEFEITOS ACHADOS PELOS TESTES NOVOS E CORRIGIDOS**: (1) a costura não reconhecia sobreposição menor que 60 caracteres (teste unitário); (2) acima de 2.000 candidatos, o corte por ordem de documento podia descartar o trecho com o código pedido (teste de integração falha sem a correção; agora o código vem primeiro); (3) a ordenação sem código gerava `ORDER BY 0` no PostgreSQL.
+- **CORPUS (39 perguntas)**: v1 precisão 0,70, recall@3 0,931, negativas 0,5; v2 precisão 0,73, recall@3 0,966, negativas 0,6, aspectos 0,714; isolamento 0 nas duas. Dev: v1 0,667 / 0,929; v2 0,8 / 0,929. Holdout: v1 0,727 / 0,933 / negativas 0,167; v2 0,667 / 1,0 / negativas 0,333. Melhoram na v2: P02, P07, P11, C01, C02, M02, M03, M05, M06, I04, H03. Falham nas duas: P01, P05, C06, M01, N02, N03, N05, H01, H02. Nenhuma pergunta que passava na v1 falha na v2; a precisão do holdout cai de 0,727 para 0,667.
+- **TEMPO** (escopo sintético de 2.916 trechos, mediana de 5 execuções, Linux local): v1 cerca de 105 ms, v2 cerca de 385 ms.
+- **SAFETY**: só bancos `of2_test_*` descartáveis; nenhuma migration; banco original da Qualitec, `voice_agent_pr157_test` e agente v4 intocados; sem serviços pagos, modelos externos ou telefonia.

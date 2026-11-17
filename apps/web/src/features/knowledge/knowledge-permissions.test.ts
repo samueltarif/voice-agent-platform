@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { canArchiveKnowledge, canIngestKnowledge, canReadKnowledge } from './knowledge-permissions';
+import {
+  canArchiveKnowledge,
+  canCompareKnowledgeRetrieval,
+  canIngestKnowledge,
+  canReadKnowledge,
+} from './knowledge-permissions';
 
 describe('knowledge-permissions (DEC-039 UX mirror)', () => {
   it.each(['OWNER', 'ADMIN'] as const)('%s has full management visibility', (role) => {
@@ -25,6 +30,16 @@ describe('knowledge-permissions (DEC-039 UX mirror)', () => {
       expect(canReadKnowledge(role)).toBe(false);
       expect(canIngestKnowledge(role)).toBe(false);
       expect(canArchiveKnowledge(role)).toBe(false);
+    }
+  });
+});
+
+describe('canCompareKnowledgeRetrieval (DEC-067)', () => {
+  it('only OWNER and ADMIN; everything else fails closed', () => {
+    expect(canCompareKnowledgeRetrieval('OWNER')).toBe(true);
+    expect(canCompareKnowledgeRetrieval('ADMIN')).toBe(true);
+    for (const role of ['MANAGER', 'OPERATOR', 'VIEWER', undefined, null, '', 'owner']) {
+      expect(canCompareKnowledgeRetrieval(role)).toBe(false);
     }
   });
 });

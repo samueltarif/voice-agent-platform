@@ -21,8 +21,10 @@ export async function createKnowledgeEvaluationFixture(
   run: string,
 ): Promise<KnowledgeEvaluationFixture> {
   const orgs = new OrganizationRepository(db);
-  const orgA = (await orgs.createOrganization({ slug: `kbeval-a-${run}`, name: 'A' }))!.id;
-  const orgB = (await orgs.createOrganization({ slug: `kbeval-b-${run}`, name: 'B' }))!.id;
+  // Nomes como os de clientes reais: o nome da empresa aparece nos documentos.
+  const a = { slug: `kbeval-a-${run}`, name: 'Qualitec Instrumentação' };
+  const orgA = (await orgs.createOrganization(a))!.id;
+  const orgB = (await orgs.createOrganization({ slug: `kbeval-b-${run}`, name: 'Aerotec' }))!.id;
   const documentKeys = new Map<string, string>();
   for (const doc of EVALUATION_DOCUMENTS) {
     const result = await ingestKnowledgeDocument(db, {

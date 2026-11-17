@@ -8,6 +8,24 @@ import type { KnowledgeChunkProvenance } from './knowledge-chunk-contracts.js';
 export const KNOWLEDGE_RETRIEVAL_MAX_TOP_K = 20;
 export const KNOWLEDGE_RETRIEVAL_DEFAULT_TOP_K = 5;
 
+/**
+ * Perfil do algoritmo de busca (DEC-067). `v1` (padrão) é o algoritmo atual,
+ * usado por TODOS os agentes. `v2` (passagens, códigos, âncora e aspectos) é
+ * opt-in e, na B1, só existe para comparação administrativa.
+ */
+export const KNOWLEDGE_RETRIEVAL_PROFILES = ['v1', 'v2'] as const;
+export type KnowledgeRetrievalProfile = (typeof KNOWLEDGE_RETRIEVAL_PROFILES)[number];
+
+/** Aspectos comerciais que só contam como informados com valor explícito (D-RB5). */
+export const KNOWLEDGE_COMMERCIAL_ASPECTS = [
+  'PRICE',
+  'LEAD_TIME',
+  'STOCK',
+  'PAYMENT',
+  'WARRANTY',
+] as const;
+export type KnowledgeCommercialAspect = (typeof KNOWLEDGE_COMMERCIAL_ASPECTS)[number];
+
 export const knowledgeRetrievalQuerySchema = z
   .object({
     queryText: z.string().trim().min(1).max(2000),
@@ -19,6 +37,8 @@ export const knowledgeRetrievalQuerySchema = z
       .default(KNOWLEDGE_RETRIEVAL_DEFAULT_TOP_K),
     documentIds: z.array(z.string().uuid()).max(50).optional(),
     sourceTypes: z.array(knowledgeSourceTypeSchema).max(10).optional(),
+    /** Ausente = `v1` (comportamento inalterado). */
+    retrievalProfile: z.enum(KNOWLEDGE_RETRIEVAL_PROFILES).optional(),
   })
   .strict();
 
@@ -56,6 +76,19 @@ export interface KnowledgeRetrievalHit {
   readonly relevance?: KnowledgeHitRelevance | undefined;
   readonly provenance: KnowledgeChunkProvenance;
   readonly citation: KnowledgeCitation;
+  /**
+   * Só v2: o resultado é uma PASSAGEM (seção, par de FAQ, linha de tabela) e
+   * não o trecho inteiro; `textSnapshot` traz só a passagem.
+   */
+  readonly passage?: KnowledgePassageReference | undefined;
+}
+
+export interface KnowledgePassageReference {
+  /** Título de seção mais próximo (dado não confiável). */
+  readonly heading?: string | undefined;
+  /** Trechos gravados que a passagem ocupa (pode atravessar o limite de um trecho). */
+  readonly firstChunkOrdinal: number;
+  readonly lastChunkOrdinal: number;
 }
 
 export interface KnowledgeRetrievalResult {
@@ -63,6 +96,8 @@ export interface KnowledgeRetrievalResult {
   readonly truncated: boolean;
   /** Termos centrais da pergunta que não aparecem em nenhum documento do escopo. */
   readonly unmatchedTerms?: readonly string[] | undefined;
+  /** Só v2: aspectos comerciais pedidos sem valor explícito nas evidências diretas. */
+  readonly aspectsNotFound?: readonly KnowledgeCommercialAspect[] | undefined;
 }
 
 export interface KnowledgeRetrievalRequest {
