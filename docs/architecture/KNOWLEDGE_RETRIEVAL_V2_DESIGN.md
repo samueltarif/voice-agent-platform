@@ -14,6 +14,8 @@
 
 `KnowledgeRetrievalQuery.retrievalProfile?: 'v1' | 'v2'`. Ausente ou `'v1'` executa exatamente a v1. Só `DrizzleKnowledgeRetrievalComparisonService` envia `'v2'`. O campo não existe nos corpos HTTP (`.strict()` recusa) e nenhum agente, ferramenta ou envelope de voz o repassa.
 
+**Atualização da B2a (DEC-071):** além da comparação, `DrizzleKnowledgeAgentProjectionService` também pede `'v2'`, mas devolve **só** a projeção sanitizada da B2b (§8). A ferramenta e a voz continuam sem repassar o campo; um teste de guarda fixa quem chama a v2 detalhada.
+
 ## 3. Fluxo da v2 (sem gravação)
 
 1. **Análise da pergunta** (`knowledge-query-analysis-v2.ts`): extrai códigos (`QT-310`, `QT 310`, `qt310` viram `qt310`; prefixo de até 4 letras seguido de número, exceto artigos e preposições), palavras como a v1 (com radical de infinitivos longos: `calibrar` vira `calibr`), aspectos comerciais pedidos. Com código na pergunta, palavras vazias nunca viram termos.
@@ -112,3 +114,51 @@ Plano aprovado: `claude/KNOWLEDGE_PR_B2_PLAN.md` (revisão 2; D-B2-1 a D-B2-5, D
 - Acima de 2.000 candidatos, a frequência dos termos é calculada sobre os candidatos (limite inferior). Os trechos com o código pedido nunca são cortados.
 - Só os 50 melhores trechos viram passagens. É bem mais que o topK máximo (10).
 - O desempenho foi medido em escopo sintético (2.916 trechos) com 3 perguntas; não há medição com dados reais.
+
+## 8. B2a — perfil de busca na versão publicada (DEC-071; bloqueado por padrão)
+
+**A B2a não ativa a v2 em nenhum agente.** Plano: `claude/KNOWLEDGE_PR_B2A_PLAN.md`.
+
+- **Campo** `knowledge.retrievalProfile: 'v1' | 'v2'` no snapshot (opcional e estrito; ausente = `v1`). Sem migration: chave opcional no JSONB de `agent_versions.configuration`; `configurationSchemaVersion` continua 1. Nenhuma versão publicada é lida para reescrita ou republicada.
+- **Regras puras** (`packages/contracts/src/agents/agent-knowledge-profile.ts`):
+  - perfil resolvido só pelo snapshot carregado no servidor;
+  - rascunho: manter o campo é sempre permitido; mudar exige OWNER/ADMIN, com o papel lido do banco pela rota (nunca do corpo) e comparação com o rascunho **persistido**; gravar exige organização liberada;
+  - publicação: campo presente exige organização liberada; `v2` exige também a chave;
+  - execução `v2`: as duas travas, sempre.
+- **Travas da plataforma** (`apps/api/src/auth/knowledge-v2-agent-policy.ts`):
+  - `KNOWLEDGE_V2_AGENT_ORGANIZATIONS`: constante versionada e **vazia**, com teste de guarda. Incluir uma organização exige PR revisada, DEC e autorização do operador;
+  - `KNOWLEDGE_V2_AGENT_RUNTIME`: só o valor exato `enabled` liga. É lida **uma vez na inicialização**;
+  - o padrão de qualquer composição sem a política real é **fechado** (`CLOSED_KNOWLEDGE_PROFILE_POLICY`).
+- **Ramo v2 de `knowledge.search`** (`packages/agent-tools/src/knowledge-search-tool-v2.ts`):
+  - consome **só** `KnowledgeAgentProjectionPort` (`DrizzleKnowledgeAgentProjectionService`), que descarta `hits` e `suspicious`;
+  - **nunca** chama o `retrieve()` tradicional (trechos brutos);
+  - a saída v2 não tem campo de trecho nem de título; a saída v1 não ganhou campos;
+  - a identidade (organização, agente, versão) é conferida por **ids** do carregador do servidor, não pela referência do objeto.
+- **Falha controlada** (`KNOWLEDGE_PROFILE_UNAVAILABLE`, turno `PROFILE_UNAVAILABLE`) quando:
+  - a chave está desligada ou a organização fora da lista;
+  - a identidade diverge;
+  - há erro ou tempo esgotado (2 s, só no turno simulado v2);
+  - a projeção é inválida;
+  - as vagas estão ocupadas.
+
+  Nunca há fallback para a v1. A consulta pode continuar depois do tempo limite, por isso a vaga só é liberada quando ela termina, e com as vagas cheias (4 por processo) a nova consulta falha na hora, sem fila.
+- **Turno simulado v2:** frases fixas + fatos estruturados; `evidence` sempre vazio. A resposta natural (B2c) e o seletor (B2d) não fazem parte da B2a.
+- **Logs sem conteúdo:**
+  - `knowledge.v2_agent_runtime`, na partida: estado da chave e tamanho da lista;
+  - `knowledge.profile_rejected` e `knowledge.profile_unavailable`: ids, ação e motivo;
+  - auditoria `agent.version_published` com `knowledgeRetrievalProfile`.
+- **Rollback:**
+  1. Desligar a chave: remover `KNOWLEDGE_V2_AGENT_RUNTIME` ou deixá-la diferente de `enabled`.
+  2. **Reiniciar ou reimplantar TODAS as instâncias da API.** A chave é lida só na partida, então processos em execução não mudam sozinhos.
+  3. Conferir em cada instância o log `knowledge.v2_agent_runtime` com `off`.
+
+  Desligar a chave **corta** a consulta das versões v2, sem levá-las à v1. O retorno à v1 é uma nova publicação sem o campo. Reverter o código da B2a é seguro enquanto a lista estiver vazia, porque nenhum snapshot pode ter o campo.
+- **Pré-requisitos ainda abertos para qualquer ativação:**
+  - recall@3 adversarial ≥ 0,95 (hoje 0,917 no dev e 0,909 no holdout);
+  - avaliação adversarial independente;
+  - desempenho em corpus representativo;
+  - governança de fatos falsos;
+  - B2c e B2d;
+  - DEC e autorização.
+
+  O coordenador de voz (`apps/voice/src/voice-knowledge-retrieval-coordinator.ts`, sem chamador) ainda devolve trechos brutos. Antes de qualquer ligação real (B2e/telefonia), ele precisa resolver o perfil pela concessão e usar a mesma projeção.

@@ -18,6 +18,9 @@ const DRAFT_ERROR_MESSAGES: Readonly<Record<string, string>> = {
   INVALID_STATE: 'Não é possível alterar rascunho de um agente inativo.',
   NOT_FOUND: 'Agente ou versão do rascunho não encontrada.',
   FORBIDDEN: 'Permissão insuficiente para gerenciar rascunhos deste agente.',
+  // B2a (DEC-071): mesma mensagem para qualquer motivo (sem oráculo).
+  KNOWLEDGE_PROFILE_NOT_AUTHORIZED:
+    'O perfil de busca da Base de Conhecimento não pode ser alterado ou publicado para esta organização.',
 };
 
 function resolveHttpStatus(status: unknown): number {

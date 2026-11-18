@@ -71,3 +71,9 @@ export {
 } from './knowledge-adversarial-evaluation-sets.js';
 export { adversarialReport } from './knowledge-adversarial-evaluation.js';
 export { auditAgentProjectionFields } from './knowledge-projection-field-audit.js';
+export {
+  createAgentWithKnowledgeProfile,
+  createKnowledgeProfileFixture,
+  openKnowledgeProfilePolicyFor,
+  type KnowledgeProfileFixture,
+} from './knowledge-profile-fixtures.js';

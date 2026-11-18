@@ -20,7 +20,8 @@ function registerCreateDraftRoute(app: OpenAPIHono, deps: ApiDependencies): void
     }),
     async (c) => {
       const auth = getServiceAuth(c);
-      await authorizeTenant({
+      // B2a: o papel (lido do banco) decide se o perfil de busca pode mudar.
+      const tenant = await authorizeTenant({
         sub: auth.sub,
         orgId: auth.orgId,
         requiredPermission: 'agent.edit',
@@ -37,6 +38,7 @@ function registerCreateDraftRoute(app: OpenAPIHono, deps: ApiDependencies): void
         configuration: body.configuration,
         changelog: body.changelog,
         createdBy: auth.sub,
+        actorRole: tenant.role,
       });
 
       return c.json(toAgentVersionMetadataDto(draft), 201);
@@ -59,7 +61,7 @@ function registerPatchDraftRoute(app: OpenAPIHono, deps: ApiDependencies): void 
     }),
     async (c) => {
       const auth = getServiceAuth(c);
-      await authorizeTenant({
+      const tenant = await authorizeTenant({
         sub: auth.sub,
         orgId: auth.orgId,
         requiredPermission: 'agent.edit',
@@ -79,6 +81,7 @@ function registerPatchDraftRoute(app: OpenAPIHono, deps: ApiDependencies): void 
         versionId,
         configuration: body.configuration,
         changelog: body.changelog,
+        actorRole: tenant.role,
       });
 
       return c.json(toAgentVersionMetadataDto(updated), 200);

@@ -11,3 +11,7 @@ export * from './tool-registry.js';
 export * from './voice-knowledge-scope.js';
 export * from './knowledge-search-tool.js';
 export * from './knowledge-turn.js';
+// B2a (DEC-071): ramo `v2` (só projeção sanitizada da B2b; bloqueado por padrão).
+export * from './knowledge-v2-concurrency-limiter.js';
+export * from './knowledge-search-tool-v2.js';
+export * from './knowledge-turn-v2.js';

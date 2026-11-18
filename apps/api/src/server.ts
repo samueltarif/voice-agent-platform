@@ -32,6 +32,7 @@ import { createApp } from './app.js';
 import { createKnowledgeSimulatedTurnService } from './simulation/knowledge-simulated-turn-service.js';
 import { createKnowledgeUploadExtractor } from '@voice-agent/knowledge-extraction';
 import { resolveApiListenOptions, type ApiListenOptions } from './server-listen-options.js';
+import { createProductionKnowledgeV2AgentPolicy } from './auth/knowledge-v2-agent-policy.js';
 
 const logger = createApiLogger('server');
 
@@ -58,6 +59,8 @@ try {
 }
 
 const { db, pool } = createDatabaseConnection();
+// B2a (DEC-071): lista versionada VAZIA + chave lida AGORA (só reinício/reimplantação a muda).
+const knowledgeProfilePolicy = createProductionKnowledgeV2AgentPolicy(process.env, logger);
 
 const entitlementResolver = new CommercialEntitlementResolver(db);
 const publicationPolicy = new DefaultCommercialPublicationPolicy(db, entitlementResolver);
@@ -65,9 +68,13 @@ const publicationPolicy = new DefaultCommercialPublicationPolicy(db, entitlement
 const agentRepo = new AgentRepository(db);
 const versionRepo = new AgentVersionRepository(db);
 const lifecycleService = new AgentLifecycleService(db, entitlementResolver);
-const draftService = new AgentDraftService(db);
+const draftService = new AgentDraftService(db, knowledgeProfilePolicy);
 const discardService = new AgentDraftDiscardService(db);
-const publicationService = new AgentPublicationService(db, publicationPolicy);
+const publicationService = new AgentPublicationService(
+  db,
+  publicationPolicy,
+  knowledgeProfilePolicy,
+);
 const membershipRepo = new MembershipRepository(db);
 const organizationRepo = new OrganizationRepository(db);
 const userOrgContextRepo = new UserOrganizationContextRepository(db);
@@ -76,7 +83,9 @@ const knowledgeRepo = new DrizzleKnowledgeRepository(db);
 const knowledgeManagement = new DrizzleKnowledgeManagementService(db);
 const knowledgeRetrievalPreview = new DrizzleKnowledgeRetrievalPreviewService(db);
 const knowledgeRetrievalComparison = new DrizzleKnowledgeRetrievalComparisonService(db);
-const knowledgeSimulatedTurn = createKnowledgeSimulatedTurnService(db);
+const knowledgeSimulatedTurn = createKnowledgeSimulatedTurnService(db, {
+  policy: knowledgeProfilePolicy,
+});
 const knowledgeExtraction = createKnowledgeUploadExtractor();
 const contactRepo = new DrizzleContactRepository(db);
 const suppressionRepo = new DrizzleContactSuppressionRepository(db);

@@ -36,6 +36,7 @@ export * from './knowledge-document-lock.js';
 export * from './knowledge-management-service.js';
 export * from './knowledge-retrieval-preview.js';
 export * from './knowledge-retrieval-comparison.js';
+export * from './knowledge-agent-projection-service.js';
 export * from './published-agent-simulation-loader.js';
 export * from './knowledge-query-terms.js';
 export * from './outbound-persistence-errors.js';

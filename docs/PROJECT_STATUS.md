@@ -216,6 +216,7 @@ A DEC-067, a DEC-068 e `docs/architecture/KNOWLEDGE_RETRIEVAL_V2_DESIGN.md` est�
 - **Resultado de corpus não é garantia** contra ataques: o detector reconheceu só 1 de 20 ataques desconhecidos, contidos pelas outras camadas.
 
 - **B2a, B2c e B2d:** próximas etapas, **NÃO autorizadas**. **B2e:** opcional, NÃO autorizada. **B3:** NÃO autorizada. A `v2` continua exclusiva da comparação administrativa, e nenhum agente a usa.
+- **Atualização de 18/11/2026 (~13h15): B2a AUTORIZADA e EM REVISÃO** (DEC-071). Perfil `knowledge.retrievalProfile` na versão, travas da plataforma (lista versionada **vazia** + chave `KNOWLEDGE_V2_AGENT_RUNTIME` desligada) e falha controlada. Está em PR aberta da branch `feat/knowledge-b2a-retrieval-profile`, sem merge; gate Windows pendente (operador). **Mesmo integrada, a B2a deixa a v2 bloqueada para todos os agentes.** B2c, B2d, B2e e B3 continuam NÃO autorizadas.
 - **Planejamento original (17/11/2026), mantido como histórico:**
 
 - Perfil `knowledge.retrievalProfile` opcional na versão publicada. **Ausente = `v1`**, preservando o Qualitec v4.

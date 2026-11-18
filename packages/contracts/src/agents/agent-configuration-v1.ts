@@ -78,6 +78,21 @@ export const agentExampleV1Schema = z
   })
   .strict();
 
+/**
+ * B2a (DEC-071): perfil de busca da Base de Conhecimento gravado na versão.
+ * AUSENTE = `v1` (todas as versões existentes, inclusive as publicadas). Só
+ * organizações liberadas pela plataforma podem gravar o campo; publicar ou
+ * executar `v2` exige também a chave global de execução (ambas desligadas).
+ */
+export const AGENT_KNOWLEDGE_RETRIEVAL_PROFILES = ['v1', 'v2'] as const;
+export type AgentKnowledgeRetrievalProfile = (typeof AGENT_KNOWLEDGE_RETRIEVAL_PROFILES)[number];
+
+export const agentKnowledgeConfigurationV1Schema = z
+  .object({
+    retrievalProfile: z.enum(AGENT_KNOWLEDGE_RETRIEVAL_PROFILES),
+  })
+  .strict();
+
 export const agentConfigurationSnapshotV1Schema = z
   .object({
     persona: agentPersonaV1Schema,
@@ -86,6 +101,7 @@ export const agentConfigurationSnapshotV1Schema = z
     playbook: agentPlaybookV1Schema.optional(),
     examples: z.array(agentExampleV1Schema).optional(),
     tools: agentToolsV1Schema.optional(),
+    knowledge: agentKnowledgeConfigurationV1Schema.optional(),
   })
   .strict();
 
@@ -96,3 +112,4 @@ export type AgentRulesV1 = z.infer<typeof agentRulesV1Schema>;
 export type AgentPlaybookV1 = z.infer<typeof agentPlaybookV1Schema>;
 export type AgentExampleV1 = z.infer<typeof agentExampleV1Schema>;
 export type AgentToolsV1 = z.infer<typeof agentToolsV1Schema>;
+export type AgentKnowledgeConfigurationV1 = z.infer<typeof agentKnowledgeConfigurationV1Schema>;

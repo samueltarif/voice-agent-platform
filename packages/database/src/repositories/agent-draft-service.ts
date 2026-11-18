@@ -1,7 +1,10 @@
 import { and, eq } from 'drizzle-orm';
 import {
   agentConfigurationSnapshotV1Schema,
+  CLOSED_KNOWLEDGE_PROFILE_POLICY,
   type AgentConfigurationSnapshotV1,
+  type KnowledgeProfilePolicy,
+  type TenantRole,
 } from '@voice-agent/contracts';
 import { ConflictError, InvalidStateTransitionError, NotFoundError } from '@voice-agent/errors';
 import type { DatabaseInstance } from '../client/connection.js';
@@ -9,6 +12,7 @@ import { agents, agentVersions } from '../schema/agents.js';
 import { auditLogs } from '../schema/audit.js';
 import { resolveNextAgentVersionNumber } from './agent-version-allocator.js';
 import type { DatabaseExecutor } from './database-executor.js';
+import { assertKnowledgeProfileDraftWrite } from './agent-knowledge-profile-guard.js';
 
 export interface CreateDraftInput {
   organizationId: string;
@@ -16,6 +20,8 @@ export interface CreateDraftInput {
   configuration: AgentConfigurationSnapshotV1 | unknown;
   changelog?: string | undefined;
   createdBy: string;
+  /** B2a: papel do contexto AUTENTICADO (servidor); decide se o perfil de busca pode mudar. */
+  actorRole?: TenantRole | undefined;
   at?: Date | undefined;
 }
 
@@ -25,11 +31,17 @@ export interface UpdateDraftConfigurationInput {
   versionId: string;
   configuration: AgentConfigurationSnapshotV1 | unknown;
   changelog?: string | undefined;
+  /** B2a: papel do contexto AUTENTICADO (servidor); decide se o perfil de busca pode mudar. */
+  actorRole?: TenantRole | undefined;
   at?: Date | undefined;
 }
 
 export class AgentDraftService {
-  constructor(private readonly db: DatabaseInstance) {}
+  constructor(
+    private readonly db: DatabaseInstance,
+    /** B2a: travas da plataforma; padrão FECHADO (nenhuma organização liberada). */
+    private readonly knowledgeProfilePolicy: KnowledgeProfilePolicy = CLOSED_KNOWLEDGE_PROFILE_POLICY,
+  ) {}
 
   private async assertAgentActiveAndNoDraft(
     tx: DatabaseExecutor,
@@ -67,6 +79,10 @@ export class AgentDraftService {
   async createDraft(input: CreateDraftInput) {
     const validatedConfig = agentConfigurationSnapshotV1Schema.parse(input.configuration);
     const at = input.at ?? new Date();
+    assertKnowledgeProfileDraftWrite(this.knowledgeProfilePolicy, input, {
+      previous: undefined,
+      next: validatedConfig,
+    });
 
     return this.db.transaction(async (tx) => {
       await this.assertAgentActiveAndNoDraft(tx, input.organizationId, input.agentId);
@@ -137,6 +153,11 @@ export class AgentDraftService {
           `Cannot modify version '${input.versionId}': status is ${version.status} (only DRAFT can be updated)`,
         );
       }
+      // B2a: compara com o rascunho PERSISTIDO (lido sob bloqueio nesta transação).
+      assertKnowledgeProfileDraftWrite(this.knowledgeProfilePolicy, input, {
+        previous: version.configuration as Pick<AgentConfigurationSnapshotV1, 'knowledge'>,
+        next: validatedConfig,
+      });
 
       const [updated] = await tx
         .update(agentVersions)
