@@ -1,5 +1,6 @@
 import { readFileSync, readdirSync } from 'node:fs';
-import { join, relative, resolve } from 'node:path';
+import { join, relative, resolve, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 /**
@@ -9,7 +10,10 @@ import { describe, expect, it } from 'vitest';
  * produção fora de `packages/database` pede `retrievalProfile: 'v2'` à busca
  * tradicional (`retrieve`), que devolve trechos brutos.
  */
-const ROOT = resolve(new URL('.', import.meta.url).pathname, '../../..');
+// `fileURLToPath` produz caminho válido também no Windows (sem `D:\D:\...`).
+const ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)), '../../..');
+/** Caminho relativo sempre com `/`, para as comparações valerem no Windows. */
+const toPosix = (path: string) => path.split(sep).join('/');
 
 function productionSources(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -31,7 +35,7 @@ const sources = ['apps', 'packages'].flatMap((top) =>
         return [];
       }
     })
-    .map((file) => ({ file: relative(ROOT, file), text: readFileSync(file, 'utf8') })),
+    .map((file) => ({ file: toPosix(relative(ROOT, file)), text: readFileSync(file, 'utf8') })),
 );
 
 describe('pontos de entrada da busca v2 (B2a)', () => {

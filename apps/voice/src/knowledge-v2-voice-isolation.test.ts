@@ -1,5 +1,6 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { callBootstrapSchema } from '@voice-agent/contracts';
 
@@ -8,7 +9,8 @@ import { callBootstrapSchema } from '@voice-agent/contracts';
  * registro de ferramentas da voz é o mesmo de antes; o bootstrap só passa a
  * aceitar o campo opcional do snapshot (sem efeito na voz).
  */
-const SRC = new URL('.', import.meta.url).pathname;
+// `fileURLToPath` produz caminho válido também no Windows (sem `D:\D:\...`).
+const SRC = fileURLToPath(new URL('.', import.meta.url));
 
 function productionSources(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
