@@ -19505,3 +19505,50 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **REGRESSÃO**: `pdf-document-options.test.ts` (5 testes) cobre caminho Windows com unidade, UNC, separador final, POSIX e o pdf.js recusando a forma antiga e aceitando a nova (com `path.win32`, roda em qualquer sistema). `pdf-active-content.test.ts`: TEST_CHANGE_REASON, valor exato `'/pdfjs/cmaps/'`, ASSERTION_STRONGER.
 - **TESTES DIRECIONADOS (Linux)**: `packages/knowledge-extraction` 10 arquivos, 62 PASS. Integração da extração 7 PASS (`of2_test_*`). `check:api-dist`: `COMPILED_EXTRACTION_CHILD=OK FORMATS=DOCX,PDF EGRESS_ATTEMPTS=0`.
 - **SAFETY**: só bancos descartáveis; nenhum banco existente, Qualitec ou agente v4 tocados; sem serviços pagos.
+
+## 2026-11-17 — Documentação: `docs/PROJECT_STATUS.md` e `CLAUDE.md` — Claude
+
+- **TAREFA**: somente documentação, a pedido do operador. Cria o painel vivo `docs/PROJECT_STATUS.md` a partir do rascunho do operador e o `CLAUDE.md` da raiz com as regras do adendo. Não existia `CLAUDE.md`; o novo arquivo remete a `AGENTS.md` e `docs/AI_EXECUTION_RULES.md`, sem duplicar nem substituir suas regras.
+- **VERIFICAÇÃO (17/11/2026)**:
+  - `origin/main` = `c31cd4a`.
+  - Estados das PRs #156 a #167 conferidos na API do GitHub.
+  - Árvores conferidas com `git rev-parse`: `7da5758` = `4fc76c6`; `c31cd4a` = `317a976` = `930ee4b…`.
+- **CORREÇÕES EM RELAÇÃO AO RASCUNHO**:
+  - B1 não estava "sem PR": está entregue na #167, aberta e sem merge, com gate Linux PASS no head `c29ee6a` e gate Windows pendente.
+  - A `v2` da B1 roda na comparação administrativa (OWNER/ADMIN), não na pré-visualização.
+  - A DEC-067 existe só na branch da #167.
+  - O `AI_CONTEXT.md` está defasado (11/11, base `0561f39`).
+  - As contagens dos gates Windows da #165 e da #166 vêm do operador; não constam no worklog.
+  - `knowledge.search` só é instanciada na conversa simulada da API; o runtime de voz apenas reexporta a função (inferência por busca no código).
+- **SAFETY**: nenhum código, teste, banco, migration, dependência ou configuração de agente alterado; sem chamadas pagas. Verificação documental com `git diff --check`; gate completo não executado (mudança só de documentação).
+
+## 2026-11-17 — Ajustes na PR documental #168 pedidos pelo operador — Claude
+
+- **PEDIDO** (14:32): registrar o bloqueio de qualidade da #167, registrar a #168 como EM REVISÃO e reforçar o `CLAUDE.md`. Somente documentação.
+- **`docs/PROJECT_STATUS.md`**:
+  - §4 registra a decisão vigente: sem merge da #167 e sem novo gate Windows antes da revisão de qualidade e da definição do SHA final; `v2` só na comparação administrativa.
+  - Registra as metas e a avaliação do operador sobre `c29ee6a` (precisão 0,73; recall@3 0,966; negativas 0,60; aspectos 0,714; ~385 ms × ~105 ms, ~3,7×).
+  - Registra também, separados e com data, os números da revisão `87331ab` (DEC-068), ainda não aceitos pelo operador.
+  - Tabela de PRs: #167 aponta para `87331ab` e #168 aparece como EM REVISÃO, aberta em `78c7904`.
+  - Nova legenda NÃO VERIFICADO; prioridade 1 e §10 atualizados.
+- **`CLAUDE.md`**: leitura obrigatória de `AGENTS.md`, `docs/AI_EXECUTION_RULES.md` e `docs/PROJECT_STATUS.md` no início das tarefas; regra NÃO VERIFICADO quando Git ou GitHub não puderem ser consultados.
+- **VERIFICAÇÃO**: `git diff --check`; somente arquivos `.md`; gate completo não executado (só documentação). Código, testes, bancos e agente v4 intocados.
+
+## 2026-11-17 — PR #168: registro do gate Windows e conclusão da revisão de qualidade da #167 — Claude
+
+- **PEDIDO** (16:58): registrar os resultados confirmados pelo operador para a #167 no SHA `87331abf26d6f8bf5cd407afa1babfca61de9300`. Somente documentação.
+  - Linux: 2.414 PASS, 45 ignorados, 0 falhas.
+  - Windows: 2.414 PASS, 45 ignorados, 0 falhas; build 14/14.
+  - Worktree `D:\vap-pr167` limpo; 0 bancos `of2_test_*` restantes.
+- **VERIFICADO NO GITHUB** (~17h00): #167 aberta, sem merge, head `87331ab`; `origin/main` `c31cd4a`.
+- **`docs/PROJECT_STATUS.md`**:
+  - #167 passa a "revisão de qualidade concluída; gates Linux e Windows aprovados; aberta, sem merge".
+  - SHA final da B1 = `87331ab`; tabela de gates com quem executou e data.
+  - Métricas preservadas: precisão DIRECT 94,4%, negativas 100%, recall@3 96,6%, aspectos 71,4%, desempenho 0,92× a 1,17× da v1.
+  - Falhas residuais por documentos hostis registradas como impedimento à ativação da v2 em agentes; v2 só na comparação administrativa até a B2 e nova autorização.
+- **AFIRMAÇÕES DESATUALIZADAS CORRIGIDAS** (registradas aqui, não apagadas do histórico do worklog):
+  - "aguardando avaliação do operador" e "números ainda não aceitos; SHA final não definido" foram substituídos pela conclusão da revisão e pelo SHA final;
+  - a decisão das 14h10 (sem merge e sem gate Windows antes da revisão) foi mantida como histórico, com a indicação de que suas condições foram cumpridas;
+  - a prioridade 1 passou a ser a decisão de merge da #167.
+  - Os números do `c29ee6a` permanecem como histórico.
+- **VERIFICAÇÃO**: `git diff --check`; somente `.md`; testes não executados (só documentação). Código, bancos, agentes, migrations e dependências intocados.
