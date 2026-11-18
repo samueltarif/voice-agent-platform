@@ -7,8 +7,13 @@ export type KnowledgeManagementPermission =
 export type KnowledgeDocumentManagementPermission =
   'knowledge.update' | 'knowledge.associate' | 'knowledge.restore' | 'knowledge.delete';
 
+/** Comparação administrativa v1 × v2 da busca (DEC-067): só OWNER/ADMIN. */
+export type KnowledgeAdministrationPermission = 'knowledge.compare';
+
 export type KnowledgePermission =
-  KnowledgeManagementPermission | KnowledgeDocumentManagementPermission;
+  | KnowledgeManagementPermission
+  | KnowledgeDocumentManagementPermission
+  | KnowledgeAdministrationPermission;
 
 export const KNOWLEDGE_ROLE_PERMISSIONS: Readonly<
   Record<TenantRole, ReadonlySet<KnowledgeManagementPermission>>
@@ -38,7 +43,10 @@ export const KNOWLEDGE_DOCUMENT_ROLE_PERMISSIONS: Readonly<
   VIEWER: new Set(),
 };
 
+const KNOWLEDGE_ADMINISTRATION_ROLES: ReadonlySet<TenantRole> = new Set(['OWNER', 'ADMIN']);
+
 export function hasKnowledgePermission(role: TenantRole, permission: KnowledgePermission): boolean {
+  if (permission === 'knowledge.compare') return KNOWLEDGE_ADMINISTRATION_ROLES.has(role);
   const base = KNOWLEDGE_ROLE_PERMISSIONS[role];
   const documents = KNOWLEDGE_DOCUMENT_ROLE_PERMISSIONS[role];
   if (!base || !documents) return false;

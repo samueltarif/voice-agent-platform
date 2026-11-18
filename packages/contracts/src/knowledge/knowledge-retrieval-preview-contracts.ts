@@ -1,6 +1,10 @@
 import { z } from 'zod';
 import type { KnowledgeSourceType } from './knowledge-document-contracts.js';
-import type { KnowledgeHitRelevance } from './knowledge-retrieval-contracts.js';
+import type {
+  KnowledgeCommercialAspect,
+  KnowledgeHitRelevance,
+  KnowledgeRetrievalProfile,
+} from './knowledge-retrieval-contracts.js';
 
 /**
  * Pré-visualização OFFLINE da recuperação de conhecimento (DEC-055): mostra quais
@@ -37,6 +41,8 @@ export interface KnowledgeRetrievalPreviewHit {
   readonly score: number;
   /** DIRECT = contém o assunto da pergunta; CONTEXT = só informação geral (preço, prazo…). */
   readonly relevance?: KnowledgeHitRelevance | undefined;
+  /** Só v2: título da seção da passagem (dado não confiável). */
+  readonly passageHeading?: string | undefined;
 }
 
 export interface KnowledgeRetrievalPreview {
@@ -51,6 +57,27 @@ export interface KnowledgeRetrievalPreview {
   readonly unmatchedTerms?: readonly string[] | undefined;
   readonly hits: readonly KnowledgeRetrievalPreviewHit[];
   readonly truncated: boolean;
+  /** Só na comparação (DEC-067): algoritmo que produziu esta lista. */
+  readonly retrievalProfile?: KnowledgeRetrievalProfile | undefined;
+  /** Só v2: aspectos comerciais pedidos sem valor explícito nas evidências diretas. */
+  readonly aspectsNotFound?: readonly KnowledgeCommercialAspect[] | undefined;
+}
+
+/**
+ * Comparação ADMINISTRATIVA v1 × v2 (DEC-067, PR B1): mesma pergunta, mesmo
+ * escopo (organização da asserção; agente ativo + versão publicada quando
+ * informado). Não muda o que nenhum agente usa: todos continuam na v1.
+ */
+export const knowledgeRetrievalComparisonHttpBodySchema = knowledgeRetrievalPreviewHttpBodySchema;
+
+export interface KnowledgeRetrievalComparison {
+  readonly trust: 'UNTRUSTED_DATA';
+  readonly v1: KnowledgeRetrievalPreview;
+  readonly v2: KnowledgeRetrievalPreview;
+}
+
+export interface KnowledgeRetrievalComparisonPort {
+  compare(input: KnowledgeRetrievalPreviewInput): Promise<KnowledgeRetrievalComparison>;
 }
 
 export interface KnowledgeRetrievalPreviewInput {

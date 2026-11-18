@@ -40,3 +40,16 @@ describe('Knowledge Management Permissions RBAC Matrix', () => {
     expect(hasKnowledgePermission('' as unknown as TenantRole, 'knowledge.read')).toBe(false);
   });
 });
+
+describe('Knowledge retrieval comparison permission (DEC-067)', () => {
+  it.each([
+    ['OWNER', true],
+    ['ADMIN', true],
+    ['MANAGER', false],
+    ['OPERATOR', false],
+    ['VIEWER', false],
+    ['GUEST', false],
+  ] as const)('%s → %s', (role, allowed) => {
+    expect(hasKnowledgePermission(role as TenantRole, 'knowledge.compare')).toBe(allowed);
+  });
+});

@@ -12,3 +12,8 @@ export function canIngestKnowledge(role?: TenantRole | string | null): boolean {
 export function canArchiveKnowledge(role?: TenantRole | string | null): boolean {
   return role === 'OWNER' || role === 'ADMIN';
 }
+
+/** Comparação v1 × v2 da busca (DEC-067): administração, como `knowledge.compare` na API. */
+export function canCompareKnowledgeRetrieval(role?: TenantRole | string | null): boolean {
+  return role === 'OWNER' || role === 'ADMIN';
+}
