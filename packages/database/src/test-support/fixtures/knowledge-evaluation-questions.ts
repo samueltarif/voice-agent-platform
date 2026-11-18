@@ -11,8 +11,8 @@
 export type EvaluationKind =
   'POSITIVE' | 'NEGATIVE' | 'CODE' | 'COMMERCIAL' | 'ISOLATION' | 'HOSTILE';
 
-/** A e B: corpus original; C: casos novos de desenvolvimento (revisão da B1). */
-export type EvaluationOrg = 'A' | 'B' | 'C';
+/** A e B: corpus original; C: casos novos da revisão da B1; D: proteção da B2b. */
+export type EvaluationOrg = 'A' | 'B' | 'C' | 'D';
 
 export interface EvaluationQuestion {
   readonly id: string;

@@ -22,6 +22,7 @@ export {
 } from './knowledge-simulation-catalog.js';
 export {
   createKnowledgeEvaluationExtensionFixture,
+  createKnowledgeHostileEvaluationFixture,
   createKnowledgeEvaluationFixture,
   type KnowledgeEvaluationFixture,
 } from './knowledge-evaluation-fixture.js';
@@ -35,6 +36,13 @@ export {
   type EvaluationOrg,
   type EvaluationQuestion,
 } from './fixtures/knowledge-evaluation-questions.js';
+export {
+  HOSTILE_EVALUATION_DOCUMENTS,
+  HOSTILE_EVALUATION_QUESTIONS,
+  type HostileAttackKind,
+  type HostileEvaluationDocument,
+  type HostileEvaluationQuestion,
+} from './fixtures/knowledge-hostile-evaluation-corpus.js';
 export {
   EVALUATION_EXTENSION_DOCUMENTS,
   EVALUATION_EXTENSION_QUESTIONS,

@@ -3,6 +3,7 @@ import { ingestKnowledgeDocument } from '../repositories/knowledge-ingestion-ser
 import { OrganizationRepository } from '../repositories/organization-repository.js';
 import { EVALUATION_DOCUMENTS } from './fixtures/knowledge-evaluation-documents.js';
 import { EVALUATION_EXTENSION_DOCUMENTS } from './fixtures/knowledge-evaluation-extension.js';
+import { HOSTILE_EVALUATION_DOCUMENTS } from './fixtures/knowledge-hostile-evaluation-corpus.js';
 
 /** IDs do corpus de avaliação (PR B1 / DEC-067). */
 export interface KnowledgeEvaluationFixture {
@@ -57,4 +58,24 @@ export async function createKnowledgeEvaluationExtensionFixture(
     documentKeys.set(result.document.id, doc.key);
   }
   return { orgC, documentKeys };
+}
+
+/** Corpus da B2b (organização D): cada documento com o tipo de fonte declarado. */
+export async function createKnowledgeHostileEvaluationFixture(
+  db: DatabaseInstance,
+  run: string,
+): Promise<{ readonly orgD: string; readonly documentKeys: ReadonlyMap<string, string> }> {
+  const org = { slug: `kbeval-d-${run}`, name: 'Fluxtec Automação' };
+  const orgD = (await new OrganizationRepository(db).createOrganization(org))!.id;
+  const documentKeys = new Map<string, string>();
+  for (const doc of HOSTILE_EVALUATION_DOCUMENTS) {
+    const result = await ingestKnowledgeDocument(db, {
+      organizationId: orgD,
+      title: doc.title,
+      source: { sourceType: doc.sourceType, locator: `eval/${run}/${doc.key}` },
+      rawText: doc.text,
+    });
+    documentKeys.set(result.document.id, doc.key);
+  }
+  return { orgD, documentKeys };
 }
