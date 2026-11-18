@@ -30,9 +30,10 @@ describe('voz × busca v2 (B2a)', () => {
     expect(sources.filter((s) => /\.registerTool\(/.test(s.text)).map((s) => s.file)).toEqual([]);
   });
 
-  it('nenhum código de produção da voz usa o ramo v2 ou o perfil de busca', () => {
+  // B2c (DEC-072): o compositor da fala também NÃO entra na voz nem na telefonia.
+  it('nenhum código de produção da voz usa o ramo v2, o perfil de busca ou o compositor', () => {
     const v2 =
-      /createKnowledgeSearchV2ToolDefinition|runKnowledgeTurnV2|KnowledgeV2ConcurrencyLimiter|KnowledgeAgentProjectionPort|resolveKnowledgeRetrievalProfile|retrievalProfile/;
+      /createKnowledgeSearchV2ToolDefinition|runKnowledgeTurnV2|KnowledgeV2ConcurrencyLimiter|KnowledgeAgentProjectionPort|resolveKnowledgeRetrievalProfile|retrievalProfile|composeKnowledgeVoiceReply|knowledgeVoiceReplySchema|verifyReplyAgainstProjection|KNOWLEDGE_VOICE_/;
     expect(sources.filter((s) => v2.test(s.text)).map((s) => s.file)).toEqual([]);
   });
 

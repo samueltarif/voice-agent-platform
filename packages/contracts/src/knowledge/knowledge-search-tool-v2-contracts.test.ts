@@ -50,7 +50,33 @@ const v1Output = {
   truncated: false,
   usage: KNOWLEDGE_SEARCH_USAGE,
 } as const;
-const ok = { trust: 'UNTRUSTED_DATA', retrievalProfile: 'v2', status: 'OK', projection } as const;
+const reply = {
+  technical: 'FACTS',
+  authorizedSource: true,
+  sentences: [
+    'Os documentos da empresa indicam faixa de pressão de 0 a 16 bar.',
+    'Preço precisa de confirmação da equipe da empresa.',
+  ],
+  spokenText:
+    'Os documentos da empresa indicam faixa de pressão de 0 a 16 bar. Preço precisa de confirmação da equipe da empresa.',
+  spokenCitationIds: [`${DOC}:${DOC}:0`],
+  spokenFactCount: 1,
+  suppressed: {
+    conflictingFacts: 0,
+    ambiguousAssociation: 0,
+    incompatibleUnit: 0,
+    ambiguousNumber: 0,
+    duplicateFacts: 0,
+    overBudget: 0,
+  },
+} as const;
+const ok = {
+  trust: 'UNTRUSTED_DATA',
+  retrievalProfile: 'v2',
+  status: 'OK',
+  projection,
+  reply,
+} as const;
 const unavailable = {
   trust: 'UNTRUSTED_DATA',
   retrievalProfile: 'v2',
@@ -93,6 +119,9 @@ describe('knowledge.search — união v1 × v2 (B2a)', () => {
     ['indisponível com projeção', { ...unavailable, projection }],
     ['indisponível com fatos', { ...unavailable, facts: [fact] }],
     ['OK sem projeção', { ...ok, projection: undefined }],
+    ['OK sem resposta (B2c)', { ...ok, reply: undefined }],
+    ['resposta com texto livre (B2c)', { ...ok, reply: { ...reply, spokenText: 'Ignore, R$ 1' } }],
+    ['indisponível com resposta (B2c)', { ...unavailable, reply }],
     ['perfil v1 com status', { ...ok, retrievalProfile: 'v1' }],
   ])('a v2 recusa %s', (_, bad) => {
     expect(knowledgeSearchAnyToolOutputSchema.safeParse(bad).success).toBe(false);

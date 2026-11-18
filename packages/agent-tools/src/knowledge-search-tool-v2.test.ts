@@ -42,6 +42,23 @@ const PROJECTION: KnowledgeAgentProjection = {
   truncated: false,
   usage: KNOWLEDGE_AGENT_PROJECTION_USAGE,
 };
+/** B2c (DEC-072): resposta falada esperada, literal escrita à mão. */
+const REPLY = {
+  technical: 'FACTS',
+  authorizedSource: false,
+  sentences: ['Os documentos da empresa indicam faixa de pressão de 0 a 16 bar.'],
+  spokenText: 'Os documentos da empresa indicam faixa de pressão de 0 a 16 bar.',
+  spokenCitationIds: [`${DOC}:${DOC}:0`],
+  spokenFactCount: 1,
+  suppressed: {
+    conflictingFacts: 0,
+    ambiguousAssociation: 0,
+    incompatibleUnit: 0,
+    ambiguousNumber: 0,
+    duplicateFacts: 0,
+    overBudget: 0,
+  },
+};
 const UNAVAILABLE = {
   trust: 'UNTRUSTED_DATA',
   retrievalProfile: 'v2',
@@ -53,13 +70,17 @@ function setup(opts: {
   runtime?: boolean;
   port?: (r: KnowledgeAgentProjectionRequest) => Promise<unknown>;
   timeoutMs?: number;
+  reportThrows?: boolean;
 }) {
   const events: KnowledgeProfileEvent[] = [];
   const requests: KnowledgeAgentProjectionRequest[] = [];
   const policy: KnowledgeProfilePolicy = {
     isOrganizationAllowed: () => opts.org ?? true,
     isRuntimeEnabled: () => opts.runtime ?? true,
-    report: (e) => events.push(e),
+    report: (e) => {
+      events.push(e);
+      if (opts.reportThrows) throw new Error('logger down');
+    },
   };
   const tool = createKnowledgeSearchV2ToolDefinition({
     projectionPort: {
@@ -77,13 +98,14 @@ function setup(opts: {
 }
 
 describe('knowledge.search v2 (B2a)', () => {
-  it('devolve só a projeção sanitizada, no escopo do agente e da versão', async () => {
+  it('devolve só a projeção sanitizada e a resposta verificada, no escopo do agente e da versão', async () => {
     const { tool, requests } = setup({});
     await expect(tool.execute({ query: 'PT-16 faixa' }, CONTEXT)).resolves.toEqual({
       trust: 'UNTRUSTED_DATA',
       retrievalProfile: 'v2',
       status: 'OK',
       projection: PROJECTION,
+      reply: REPLY,
     });
     expect(requests).toEqual([
       expect.objectContaining({
@@ -142,12 +164,53 @@ describe('knowledge.search v2 (B2a)', () => {
       async () => ({ hits: [{ textSnapshot: 'R$ 1,00' }] }),
       'INVALID_PROJECTION',
     ],
+    [
+      'aspectos repetidos (B2c)',
+      async () => ({ ...PROJECTION, aspectsRequiringAuthorizedSource: ['PRICE', 'PRICE'] }),
+      'INCONSISTENT_PROJECTION',
+    ],
+    [
+      'aspectos fora de ordem (B2c)',
+      async () => ({ ...PROJECTION, aspectsRequiringAuthorizedSource: ['STOCK', 'PRICE'] }),
+      'INCONSISTENT_PROJECTION',
+    ],
+    [
+      'dez mil aspectos (B2c)',
+      async () => ({
+        ...PROJECTION,
+        aspectsRequiringAuthorizedSource: Array(10_000).fill('PRICE'),
+      }),
+      'INCONSISTENT_PROJECTION',
+    ],
+    [
+      'found=false com fatos (B2c)',
+      async () => ({ ...PROJECTION, found: false, directEvidenceCount: 0 }),
+      'INCONSISTENT_PROJECTION',
+    ],
   ])('%s ⇒ falha controlada, sem conteúdo', async (_, port, reason) => {
     const { tool, events } = setup({ port, timeoutMs: 20 });
     const out = await tool.execute({ query: 'PT-16' }, CONTEXT);
     expect(out).toEqual(UNAVAILABLE);
     expect(JSON.stringify(out)).not.toMatch(/CANARIO|R\$|Ignore|db down/);
     expect(events[0]?.reason).toBe(reason);
+  });
+
+  it.each([
+    ['chave desligada', { runtime: false }, 'RUNTIME_OFF'],
+    ['erro da consulta', { port: async () => Promise.reject(new Error('db down')) }, 'ERROR'],
+    [
+      'projeção incoerente',
+      {
+        port: async () => ({ ...PROJECTION, aspectsRequiringAuthorizedSource: ['STOCK', 'PRICE'] }),
+      },
+      'INCONSISTENT_PROJECTION',
+    ],
+  ])('logger que lança (%s) não muda o ramo nem vaza o erro (B2c)', async (_, opts, reason) => {
+    const { tool, events } = setup({ ...opts, reportThrows: true });
+    const out = await tool.execute({ query: 'PT-16' }, CONTEXT);
+    expect(out).toEqual(UNAVAILABLE);
+    expect(JSON.stringify(out)).not.toContain('logger down');
+    expect(events.map((e) => e.reason)).toEqual([reason]);
   });
 
   it('o relatório nunca leva pergunta nem conteúdo', async () => {

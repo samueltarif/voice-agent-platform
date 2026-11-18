@@ -15,3 +15,8 @@ export * from './knowledge-turn.js';
 export * from './knowledge-v2-concurrency-limiter.js';
 export * from './knowledge-search-tool-v2.js';
 export * from './knowledge-turn-v2.js';
+// B2c (DEC-072): compositor determinístico da fala (só caminho v2 simulado).
+export * from './knowledge-voice-reply.js';
+export * from './knowledge-voice-reply-render.js';
+export * from './knowledge-voice-reply-verification.js';
+export * from './knowledge-voice-vocabulary.js';
