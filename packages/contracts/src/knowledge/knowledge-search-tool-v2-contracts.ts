@@ -5,6 +5,7 @@ import {
   type KnowledgeAgentProjection,
 } from './knowledge-agent-projection-contracts.js';
 import { knowledgeSearchToolOutputSchema } from './knowledge-search-tool-contracts.js';
+import { knowledgeVoiceReplySchema } from './knowledge-voice-reply-contracts.js';
 
 /**
  * B2a (DEC-071) — saída de `knowledge.search` para versões com perfil `v2`.
@@ -12,7 +13,7 @@ import { knowledgeSearchToolOutputSchema } from './knowledge-search-tool-contrac
  * NÃO há campo de trecho, título ou texto de documento: o ramo `v2` carrega só
  * a projeção sanitizada da B2b (fatos técnicos com fonte, aspectos que exigem
  * fonte autorizada, contadores e `usage` fixo). Indisponível (travas, erro,
- * tempo esgotado ou projeção inválida) = falha controlada, SEM conteúdo e SEM
+ * tempo esgotado, projeção inválida ou resposta reprovada) = falha controlada, SEM conteúdo e SEM
  * fallback para a v1. O contrato da v1 não muda.
  */
 export const KNOWLEDGE_SEARCH_V2_SIMULATION_TIMEOUT_MS = 2000;
@@ -26,6 +27,8 @@ export const knowledgeSearchV2ToolOutputSchema = z.discriminatedUnion('status', 
       retrievalProfile: z.literal('v2'),
       status: z.literal('OK'),
       projection: knowledgeAgentProjectionSchema,
+      /** B2c (DEC-072): frases faladas montadas e verificadas pela plataforma. */
+      reply: knowledgeVoiceReplySchema,
     })
     .strict(),
   z
@@ -53,7 +56,11 @@ export type KnowledgeSearchV2UnavailableReason =
   | 'BUSY'
   | 'TIMEOUT'
   | 'ERROR'
-  | 'INVALID_PROJECTION';
+  | 'INVALID_PROJECTION'
+  // B2c (DEC-072): projeção incoerente (inclui aspectos fora da forma canônica)
+  | 'INCONSISTENT_PROJECTION'
+  // B2c: exceção do compositor, resposta fora do schema ou reprovada na verificação.
+  | 'REPLY_INVALID';
 
 export interface KnowledgeAgentProjectionRequest {
   readonly scope: KnowledgeAccessScope;

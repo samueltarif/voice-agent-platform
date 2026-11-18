@@ -19687,3 +19687,12 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **TESTES**: novos casos de contratos, regras, limitador, ferramenta v2, turno v2, política, rascunho e publicação (serviço e HTTP), turno simulado por perfil com o corpus hostil da B2b, isolamento da voz e guarda de pontos de entrada da v2. Nenhum teste existente alterado; nenhum skip novo.
 - **SAFETY**: só bancos `of2_test_*`; nenhuma migration; Qualitec, `voice_agent_pr157_test` e agente v4 intocados; sem serviços pagos; `knowledge.search` sem ligação com a telefonia; nenhuma organização na lista de liberação.
 
+## 2026-11-18 — B2c — ETAPA 1 (rótulos congelados) e ETAPA 2 (compositor da fala) (DEC-072) — Claude
+
+- **ETAPA 1** (autorizada às 17:02): branch `test/knowledge-b2c-truth-labels` a partir de `8118a91`; commit isolado `a95a1e13e88de77d4d49902b0cac16155721df78` só com `fixtures/knowledge-voice-truth-labels.ts` e o teste de hash; SHA-256 `4c65699ee81064bf5db60e2b7513f6a37199c18e74b8fb40948c07dd50775dbe`; D24 rotulado FALSO. Conferido independentemente pelo operador antes da etapa 2.
+- **ETAPA 2** (autorizada às 17:13): compositor, vocabulário, elegibilidade, coerência, verificação, contrato `reply` no OK da v2 e turno simulado v2; avaliação M0–M5; documentação. Rótulos congelados não alterados.
+- **CONDIÇÕES DA AUDITORIA 3**: pré-checagem de comprimento antes do `safeParse` sem mudar a B2b; índices de 0 até o último fato (testados 9, 10 e 11; com 12 fatos o estado é PARTIAL); duplicatas só as visíveis; saída literal e mutações independentes do renderizador.
+- **DESVIO DECLARADO DO PLANO**: MATERIAL com valores diferentes no mesmo produto não gera CONFLICT (peças diferentes); nenhum desses materiais é falado. Motivo: condição do operador sobre vedação, rotor e condutor; efeito medido: T19 e T20 passam de CONFLICT a FACTS sem falar material.
+- **TESTES ALTERADOS (TEST_CHANGE_REASON)**: ver mensagem do commit da etapa 2; nenhum skip novo.
+- **SAFETY**: só bancos descartáveis `of2_test_*` no PostgreSQL local; o papel local do banco descartável foi recriado após reinício do contêiner (sem imprimir credenciais); nenhuma migration em ambiente protegido; Qualitec, `voice_agent_pr157_test` e agente v4 intocados; sem serviços pagos; lista de organizações vazia e chave desligada.
+

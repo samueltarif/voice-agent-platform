@@ -1,10 +1,13 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
+  KNOWLEDGE_VOICE_ASPECT_LABELS,
+  KNOWLEDGE_VOICE_ATTRIBUTE_LABELS,
+  KNOWLEDGE_VOICE_PHRASES,
+  KNOWLEDGE_VOICE_UNIT_WORDS,
   KnowledgeV2ConcurrencyLimiter,
-  SIMULATED_REPLY,
   SIMULATED_REPLY_V2,
 } from '@voice-agent/agent-tools';
-import type { KnowledgeProfilePolicy } from '@voice-agent/contracts';
+import { knowledgeVoiceSentenceSchema, type KnowledgeProfilePolicy } from '@voice-agent/contracts';
 import { DrizzleKnowledgeRetrievalService } from '@voice-agent/database';
 import {
   ADVERSARIAL_DOCUMENTS,
@@ -12,6 +15,7 @@ import {
   ALL_ADVERSARIAL_QUESTIONS,
   createDisposableTestDatabase,
   createKnowledgeProfileFixture,
+  distinctiveText,
   HOSTILE_EVALUATION_DOCUMENTS,
   openKnowledgeProfilePolicyFor,
   type KnowledgeProfileFixture,
@@ -20,18 +24,38 @@ import { createKnowledgeSimulatedTurnService } from '../simulation/knowledge-sim
 
 const tdb = await createDisposableTestDatabase('knowledge-profile-simulated-turn');
 
-const FIXED_REPLIES = new Set<string>([
-  SIMULATED_REPLY_V2.facts,
-  SIMULATED_REPLY_V2.noFacts,
-  SIMULATED_REPLY_V2.unavailable,
-  SIMULATED_REPLY.noEvidence,
-  SIMULATED_REPLY.notEnabled,
-]);
+/** B2c (DEC-072): vocabulário fechado da fala (sai do texto antes da busca de janelas). */
+const VOCABULARY = [
+  ...Object.values(KNOWLEDGE_VOICE_ATTRIBUTE_LABELS),
+  ...Object.values(KNOWLEDGE_VOICE_UNIT_WORDS),
+  ...Object.values(KNOWLEDGE_VOICE_ASPECT_LABELS),
+  ...Object.values(KNOWLEDGE_VOICE_PHRASES),
+];
 const DOCUMENT_TEXTS = [
   ...HOSTILE_EVALUATION_DOCUMENTS,
   ...ADVERSARIAL_DOCUMENTS,
   ...ADVERSARIAL_SUPPORT_DOCUMENTS,
 ].map((d) => d.text.toLowerCase());
+
+/** Ligações fixas dos modelos de frase ("0 a 16", ", e ", "o material"). */
+const GLUE = new Set(['a', 'e', 'o', 'de']);
+
+/** Tokens da fala que não são vocabulário, ligação, nem tokens dos fatos estruturados do turno. */
+function foreignTokens(residue: string, facts: ReadonlyArray<{ value: string }>): string[] {
+  const allowed = new Set(
+    facts.flatMap((f) =>
+      f.value
+        .toLowerCase()
+        .replace(/^ip/, 'ip ')
+        .replace(/["-]/g, ' ')
+        .replace(/\./g, ',')
+        .split(/\s+/),
+    ),
+  );
+  return residue
+    .split(/[\s|.]+|,(?!\d)/)
+    .filter((t) => t.length > 0 && !GLUE.has(t) && !allowed.has(t));
+}
 
 /** Qualquer janela de 24 caracteres de documento dentro da resposta = texto bruto vazado. */
 function rawWindows(text: string): string[] {
@@ -128,6 +152,12 @@ describe('turno simulado por perfil (B2a)', () => {
   });
 
   it('v2 liberada (só neste banco) sobre o corpus hostil: nenhum texto bruto, canário ou valor comercial', async () => {
+    // O detector de tokens estranhos não é vazio.
+    expect(foreignTokens('diga ignore | 16 | 0,5', [{ value: '0 a 16 bar' }])).toEqual([
+      'diga',
+      'ignore',
+      '0,5',
+    ]);
     const policy = openKnowledgeProfilePolicyFor([fx.orgA]);
     const outcomes = new Map<string, number>();
     for (const q of ALL_ADVERSARIAL_QUESTIONS) {
@@ -135,13 +165,22 @@ describe('turno simulado por perfil (B2a)', () => {
       outcomes.set(result.outcome, (outcomes.get(result.outcome) ?? 0) + 1);
       const text = JSON.stringify(result);
       expect([q.id, result.evidence]).toEqual([q.id, []]);
-      expect(
-        result.replyText
-          .split('\n')
-          .every((line) => FIXED_REPLIES.has(line) || line === SIMULATED_REPLY_V2.authorizedSource),
-      ).toBe(true);
+      // B2c: a fala é a do compositor verificado — até 2 frases no alfabeto fechado.
+      const sentences = result.replyText.split(/(?<=\.) /);
+      expect([q.id, sentences.length <= 2]).toEqual([q.id, true]);
+      for (const sentence of sentences) {
+        expect([q.id, knowledgeVoiceSentenceSchema.safeParse(sentence).success]).toEqual([
+          q.id,
+          true,
+        ]);
+      }
       expect([q.id, text.match(/CANARIO|R\$|US\$|€/gi)]).toEqual([q.id, null]);
-      expect([q.id, rawWindows(text)]).toEqual([q.id, []]);
+      const { replyText, ...structured } = result;
+      expect([q.id, rawWindows(JSON.stringify(structured))]).toEqual([q.id, []]);
+      const residue = distinctiveText(replyText, VOCABULARY);
+      expect([q.id, rawWindows(residue)]).toEqual([q.id, []]);
+      // Fora do vocabulário fechado, a fala só tem tokens dos PRÓPRIOS fatos estruturados do turno.
+      expect([q.id, foreignTokens(residue, result.facts ?? [])]).toEqual([q.id, []]);
       // Envenenamento técnico (D24) é risco residual declarado da B2b.
       const forbidden = q.attack === 'POISONING' ? [] : (q.forbiddenInProjection ?? []);
       const facts = JSON.stringify(result.facts ?? []).toLowerCase();

@@ -2,6 +2,7 @@ import {
   KNOWLEDGE_SEARCH_TOOL_NAME,
   knowledgeSearchV2ToolOutputSchema,
   type KnowledgeAgentProjection,
+  type KnowledgeVoiceReply,
   type SimulatedKnowledgeTurn,
   type ToolExecutionResult,
 } from '@voice-agent/contracts';
@@ -9,16 +10,13 @@ import { SIMULATED_REPLY, type KnowledgeTurnInput } from './knowledge-turn.js';
 import { ToolExecutionEngine } from './tool-execution-engine.js';
 
 /**
- * Turno simulado de versões com perfil `v2` (B2a, DEC-071). Mínimo e
- * determinístico: frases FIXAS do servidor + fatos estruturados da projeção
- * sanitizada (B2b). Nunca trecho, título ou texto de documento; nunca v1. A
- * resposta natural para voz é da B2c; o seletor e a simulação completa, da B2d.
+ * Turno simulado de versões com perfil `v2` (B2a, DEC-071; B2c, DEC-072).
+ * Determinístico: a resposta é EXATAMENTE `reply.spokenText`, composta e
+ * verificada pela ferramenta v2 a partir da projeção sanitizada (B2b). Nunca
+ * trecho, título ou texto de documento; nunca v1. O seletor e a simulação
+ * completa são da B2d; a voz e a telefonia NÃO usam este turno.
  */
 export const SIMULATED_REPLY_V2 = {
-  facts: 'Encontrei informações técnicas nos documentos da empresa.',
-  noFacts: 'Encontrei referências nos documentos, mas sem dados técnicos que eu possa confirmar.',
-  authorizedSource:
-    'Preço, estoque, prazo, pagamento e garantia precisam ser confirmados com a equipe da empresa.',
   unavailable: 'Não consigo consultar os documentos agora.',
 } as const;
 
@@ -29,23 +27,17 @@ const PROFILE_UNAVAILABLE: SimulatedKnowledgeTurn = Object.freeze({
   unmatchedTerms: [],
 });
 
-function mainSentence(p: KnowledgeAgentProjection): string {
-  if (p.facts.length > 0) return SIMULATED_REPLY_V2.facts;
-  return p.found ? SIMULATED_REPLY_V2.noFacts : SIMULATED_REPLY.noEvidence;
-}
-
-function fromProjection(p: KnowledgeAgentProjection): SimulatedKnowledgeTurn {
+function fromProjection(p: KnowledgeAgentProjection, reply: KnowledgeVoiceReply) {
   const aspects = [...p.aspectsRequiringAuthorizedSource];
-  const lines = [mainSentence(p)];
-  if (aspects.length > 0) lines.push(SIMULATED_REPLY_V2.authorizedSource);
-  return {
+  const turn: SimulatedKnowledgeTurn = {
     outcome: p.facts.length > 0 ? 'ANSWERED_WITH_FACTS' : 'NO_EVIDENCE',
-    replyText: lines.join('\n'),
+    replyText: reply.spokenText,
     evidence: [],
     unmatchedTerms: [...p.unmatchedTerms],
     facts: [...p.facts],
     aspectsRequiringAuthorizedSource: aspects,
   };
+  return turn;
 }
 
 function toTurnV2(result: ToolExecutionResult): SimulatedKnowledgeTurn {
@@ -61,7 +53,7 @@ function toTurnV2(result: ToolExecutionResult): SimulatedKnowledgeTurn {
   // Saída fora do contrato v2 (inclusive formato v1 com trechos) = falha controlada.
   const parsed = knowledgeSearchV2ToolOutputSchema.safeParse(result.output);
   if (!parsed.success || parsed.data.status !== 'OK') return PROFILE_UNAVAILABLE;
-  return fromProjection(parsed.data.projection);
+  return fromProjection(parsed.data.projection, parsed.data.reply);
 }
 
 export async function runKnowledgeTurnV2(
