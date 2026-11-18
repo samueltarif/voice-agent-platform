@@ -66,7 +66,9 @@ describe('detectHostileContent (auxiliar, B2b)', () => {
   });
 
   it('normaliza acentos, caixa, invisíveis e quebras de linha', () => {
-    expect(normalizeForHostileDetection('  ÍGN\u200BORE\n\nas   Regras ')).toBe('ignore. as regras');
+    expect(normalizeForHostileDetection('  ÍGN\u200BORE\n\nas   Regras ')).toBe(
+      'ignore. as regras',
+    );
   });
 
   it('nenhum sinal NÃO prova segurança (paráfrase não reconhecida)', () => {
