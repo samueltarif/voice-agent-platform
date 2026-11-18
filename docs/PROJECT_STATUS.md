@@ -1,0 +1,330 @@
+# Voice Agent Platform — Estado vivo do projeto
+
+> **Última verificação no repositório:** 17/11/2026, por volta das 17h00 (horário de Brasília), contra a `origin/main` `c31cd4ab3e7a6e9d476a5f76bbfbc15d1d0e91da` e a API de PRs do GitHub (#167 e #168 abertas, sem merge). Verificações anteriores: 14h10 e 14h35.
+> Este é um documento de acompanhamento e **não prova o estado em tempo real**. Antes de afirmar status atual, confira Git, PRs e decisões. Em caso de divergência, Git, código, testes observados e `docs/DECISIONS_LOG.md` prevalecem.
+> **Regra de leitura:** distinga sempre INTEGRADO, TESTADO, AUTORIZADO, PLANEJADO, PENDENTE e NÃO VALIDADO. Um plano não é código entregue, e um gate verde não é produto pronto.
+
+## Legenda de status
+
+| Status | Significado |
+| :--- | :--- |
+| **INTEGRADO** | Mergeado na `main`, com SHA do merge conferido. |
+| **TESTADO** | Gate ou testes automatizados executados e aprovados no SHA indicado. A plataforma (Linux ou Windows) é informada. |
+| **EM REVISÃO** | PR aberta, testada, aguardando revisão e merge do operador. |
+| **AUTORIZADO** | O operador autorizou a implementação, mas a entrega ainda não foi integrada. |
+| **PLANEJADO** | Existe plano ou desenho, sem autorização de implementação. |
+| **BACKLOG** | Ideia registrada, sem plano aprovado. |
+| **NÃO VALIDADO** | Sem prova no ambiente real exigido (por exemplo, ligação telefônica real). |
+| **NÃO VERIFICADO** | Git ou GitHub não puderam ser consultados nesta resposta; o último estado registrado não é apresentado como atual. |
+
+## 1. Objetivo e visão do MVP
+
+SaaS multiempresa de agentes de voz:
+- a empresa cria e configura um agente, define ferramentas e fontes de informação, conecta telefonia e atende clientes;
+- o agente consulta dados autorizados;
+- os atendimentos são registrados, e uso e resultados podem ser acompanhados;
+- tudo com segregação entre organizações.
+
+**Escopo aprovado das integrações empresariais (decisão vigente):**
+- Inicialmente **somente consultas**: catálogo, preço, estoque, disponibilidade, pedido existente e informação autorizada de CRM.
+- **Criar pedidos, agendar serviços, atualizar CRM e abrir chamados só DEPOIS dos testes reais de ligações e mediante nova autorização.**
+- A arquitetura pode prever essas ações, mas não deve implementá-las nem ativá-las ainda.
+
+## 2. Entregas integradas (verificadas em 17/11/2026)
+
+- **Base existente:** implementação e testes de:
+  - multi-tenant, autenticação e permissões;
+  - Agent Studio, rascunho e publicação;
+  - simulador e ferramentas de conhecimento e catálogo;
+  - campanhas, contatos e relatórios;
+  - componentes de voz e telefonia.
+
+  **Código e testes não comprovam operação telefônica ponta a ponta em produção.** Ver §6.
+
+### PRs da Base de Conhecimento (estado conferido na API do GitHub em 17/11/2026)
+
+| PR | Estado | Head | Merge na `main` | Assunto |
+| :--- | :--- | :--- | :--- | :--- |
+| #156 | INTEGRADA | `53e8dbb` | `191b146` | Gestão completa de documentos (DEC-054) |
+| #157 | INTEGRADA | `a410172` | `2017443` | Recuperação offline pt-BR e pré-visualização (DEC-055) |
+| #158 | FECHADA sem merge | `c20f85b` | — | Desenho de snapshots; conteúdo recuperado na #164 (DEC-056) |
+| #159 | FECHADA sem merge | `d38b2a9` | — | `knowledge.search` offline; trabalho recuperado na #161 |
+| #160 | INTEGRADA | `9a286db` | `035bf3d` | Termo genérico não é evidência de produto (DEC-058) |
+| #161 | INTEGRADA | `6bd5998` | `72085b8` | `knowledge.search` com DIRECT/CONTEXT e `unmatchedTerms` |
+| #162 | INTEGRADA | `804d72d` | `c7c660c` | Turno simulado offline com `knowledge.search` |
+| #163 | INTEGRADA | `d1d6c79` | `2015da2` | Conversa simulada no Agent Studio com `knowledge.search` |
+| #164 | INTEGRADA | `9615780` | `78b4b3b` | Desenho de snapshots e roadmap da Base de Conhecimento |
+| #165 (A1) | INTEGRADA | `4fc76c6` | `7da5758` | Upload TXT, MD e DOCX: extrair → prévia → confirmar → ingestão (DEC-065) |
+| #166 (A2) | INTEGRADA | `317a976` | `c31cd4a` | PDF com texto pesquisável, sem OCR; extração em processo filho (DEC-066) |
+| #167 (B1) | **EM REVISÃO** (aberta, sem merge): revisão de qualidade concluída; gates Linux e Windows aprovados | `87331ab` (antes `c29ee6a`) | — | Busca v2 por passagens opt-in + comparação administrativa (DEC-067/068, só na branch). Ver §4. |
+| #168 (docs) | **EM REVISÃO** (aberta, sem merge) | `78c7904` na abertura; ver a PR para o head atual | — | Este painel (`docs/PROJECT_STATUS.md`) e `CLAUDE.md` |
+
+**Detalhes conferidos:**
+- **#165:** a árvore do merge `7da5758` é igual à do head `4fc76c6` (`68431416b270…`, conferido com `git rev-parse`).
+  - Gates Linux e Windows informados pelo operador: **2.210 testes PASS, 0 falhas**.
+- **#166:** SHA final `317a9769ba5c9707b30191cbbe96df2e2eac9611`, merge `c31cd4a`. As árvores são iguais: `930ee4b3df9d583f33d41009e3b0d2a728d31703` (conferido com `git rev-parse`).
+  - Inclui a correção do caminho dos cMaps do pdf.js no Windows.
+  - Gates Linux e Windows informados pelo operador: **2.241 PASS** (1.870 sem integração + 371 de integração), 45 ignorados, 0 falhas, build 14/14, extração compilada DOCX/PDF e 0 tentativas de rede no smoke test.
+  - Esses números vêm do operador e não estão no `AI_WORKLOG`. O worklog registra só os testes direcionados.
+- **#168:** aberta em 17/11/2026 com head `78c79046418f703ff18252217318b97e061ddb5c`; recebeu ajustes pedidos pelo operador na mesma branch. Após o merge e a conferência da árvore, mudar para INTEGRADA no próximo registro documental.
+- **`origin/main` na verificação:** `c31cd4a`. **Não presumir que continue sendo a mais recente.**
+- **Fase A da Base de Conhecimento:** INTEGRADA e TESTADA. O upload de arquivos **não está autorizado para exposição pública** (ver §7 e `docs/SECURITY.md` §11).
+
+## 3. Ambientes críticos protegidos (não alterar sem aprovação expressa)
+
+- **Banco original da Qualitec:** `voice_agent_ui_0561f39`. Preservar.
+- **Banco de homologação:** `voice_agent_pr157_test`. Preservar.
+- **Agente Qualitec v4 publicado:** não modificar nem republicar.
+- **Referências locais do operador (Windows):**
+  - `D:\vap-main-ui-0561f39`: original;
+  - `D:\vap-pr163`: homologação;
+  - `D:\voice-agent-platform-git`: repositório principal de operações Git.
+- **Gates de integração exclusivamente com `pnpm check:disposable`:**
+  - `TEST_DATABASE_URL` aponta para o `postgres` administrativo no container Docker local (`127.0.0.1`);
+  - `DATABASE_URL` e `PGDATABASE` ausentes;
+  - sem `.env` de aplicação no worktree do gate;
+  - os bancos efêmeros `of2_test_*` são removidos ao final.
+- **Proibido sem aprovação expressa:**
+  - migration em banco existente;
+  - alteração de dados da Qualitec;
+  - chamadas pagas de IA ou telefonia;
+  - merge.
+- **Outras regras:**
+  - Não registrar segredos.
+  - Após merge, conferir Git limpo, SHA exato e árvore.
+  - Usar *Create a merge commit* enquanto essa política vigorar.
+
+## 4. Base de Conhecimento — desenvolvimento restante
+
+### B1 — AUTORIZADA; PR #167 com revisão de qualidade concluída e gates Linux/Windows aprovados — aberta, sem merge
+
+**Objetivo:** busca `v2` por passagens, com comparação administrativa `v1` × `v2`, **sem mudar o algoritmo dos agentes publicados**.
+
+**Diagnóstico que motivou a B1:**
+- o chunk padrão de 2.000 caracteres pode tratar um catálogo inteiro como DIRECT;
+- `QT-310` pode perder o prefixo e coincidir com `QT-3100`;
+- uma FAQ genérica pode parecer preço específico.
+
+**Condições aprovadas pelo operador (17/11/2026, 13:24):**
+- Testes de caracterização das respostas da `v1` **antes** de qualquer mudança. A `v1` fica intacta.
+- `v2` opt-in **somente na comparação administrativa** (OWNER/ADMIN) durante a B1. Não ativar em agentes nem em versões publicadas.
+- **Agentes novos continuam na `v1`** até aprovação posterior na B2. Isso inverte a proposta inicial de D-RB2.
+- Passagens montadas na hora da consulta.
+- Códigos de produto como tokens inteiros, com pré-filtro SQL compatível com `QT-310`, `QT 310` e `qt310`, sem aceitar `QT-3100`.
+- Ranking, âncoras DIRECT, CONTEXT limitado e aspectos comerciais não comprovados.
+- Corpus offline (~40 perguntas) e medição de desempenho.
+- Nenhuma migration, reindexação automática, alteração de documentos ou de resposta de voz.
+
+**Decisões do operador (17/11/2026):**
+- **Às 14h10:** não fazer merge da #167 nem rodar de novo o gate Windows antes da conclusão da revisão de qualidade e da definição do SHA final. Essas duas condições foram cumpridas: a revisão foi concluída no SHA `87331ab`, e o operador rodou o gate Windows nele (ver abaixo).
+- **Situação às 17h00:** a #167 continua **aberta e sem merge**. O merge depende de decisão expressa do operador.
+- **Vigente:** a busca `v2` continua **exclusiva da comparação administrativa** (OWNER/ADMIN), **sem ativação em agentes**, até a B2 e nova autorização.
+
+**Metas de aceitação definidas pelo operador:**
+- precisão DIRECT 1,00;
+- recall@3 ≥ 0,95;
+- perguntas negativas 1,00;
+- aspectos comerciais corretos;
+- latência da `v2` ≤ 2× a da `v1`.
+
+**Primeira entrega — head `c29ee6a` (avaliação do operador em 17/11/2026: metas NÃO atingidas):**
+- 79 testes de caracterização da `v1` (commit `79c9d15`, anterior às mudanças) e corpus de 39 perguntas (dev/holdout).
+- Gate Linux passou (`check:disposable`, `GATE_EXIT=0`): fase 1 com 1.933 PASS e 45 skips de staging já existentes; fase 2 com 469 PASS.
+- **Gate Linux aprovado não significou qualidade aprovada:**
+
+  | Métrica `v2` | Resultado | Meta |
+  | :--- | :--- | :--- |
+  | Precisão DIRECT | 0,73 | 1,00 |
+  | Recall@3 | 0,966 | ≥ 0,95 (atingida) |
+  | Perguntas negativas | 0,60 | 1,00 |
+  | Aspectos comerciais | 0,714 | — |
+  | Latência | ~385 ms × ~105 ms da `v1` (~3,7×) | ≤ 2× |
+
+  Restavam falsos positivos em consultas negativas e evidências com instruções hostis.
+
+**Revisão de qualidade — head `87331ab` (DEC-068), CONCLUÍDA em 17/11/2026. SHA final da B1: `87331abf26d6f8bf5cd407afa1babfca61de9300`.**
+
+| Métrica `v2` | Resultado | Meta |
+| :--- | :--- | :--- |
+| Precisão DIRECT | 0,944 (dev 0,923; holdout 0,964) | 1,00 — **ainda não atingida** |
+| Recall@3 | 0,966 | ≥ 0,95 |
+| Perguntas negativas | 1,00 | 1,00 |
+| Aspectos comerciais | 0,714 | — **ainda com 2 erros** |
+| Latência | 0,92× a 1,17× da `v1` (2.916 trechos; mediana de 7 execuções) | ≤ 2× |
+
+- Os 16 casos novos de desenvolvimento (organização C) ficaram em 1,00 em todas as métricas. Isolamento 0.
+- **Falhas residuais:** todas (M01, H01 e H02, inclusive os 2 erros de aspecto) vêm de um **documento com instruções hostis**. O filtro é da B2 (D-RB7), não autorizada.
+  - Por isso a precisão DIRECT (94,4%) e os aspectos (71,4%) ficam abaixo das metas.
+  - Isso **impede a ativação da `v2` em agentes**: ela continua exclusiva da comparação administrativa até a B2 e nova autorização.
+
+**Gates no SHA final `87331ab`:**
+
+| Gate | Resultado | Quem executou e quando |
+| :--- | :--- | :--- |
+| Linux (`check:disposable`) | **2.414 PASS** (fase 1: 1.945; fase 2: 469), 45 ignorados (staging já existentes), 0 falhas, `GATE_EXIT=0` | Claude, 17/11/2026 |
+| Windows | **2.414 PASS**, 45 ignorados, 0 falhas; build 14/14 | Operador, confirmado em 17/11/2026 (16h58) |
+| Pós-gate Windows | Git do worktree `D:\vap-pr167` limpo; 0 bancos `of2_test_*` restantes | Operador, 17/11/2026 |
+
+A DEC-067, a DEC-068 e `docs/architecture/KNOWLEDGE_RETRIEVAL_V2_DESIGN.md` existem **apenas na branch da #167** até o merge.
+
+**Riscos e limitações registrados na #167:**
+- **instruções hostis** nos documentos (bloqueio de ativação da `v2`);
+- o núcleo da pergunta é a primeira palavra central, então uma pergunta que começa por verbo específico usa o verbo;
+- acima de 2.000 candidatos, a frequência dos termos é estimada só sobre os candidatos;
+- desempenho e corpus medidos só com dados sintéticos.
+
+### B2 — PLANEJADA, NÃO AUTORIZADA
+
+- Perfil `knowledge.retrievalProfile` opcional na versão publicada. **Ausente = `v1`**, preservando o Qualitec v4.
+- `v2` só após nova publicação, com aprovação.
+- Resposta curta e natural para voz: até 2 frases e 300 caracteres, sem citações faladas.
+- Tratamento da ausência de preço, prazo e estoque.
+- Defesa em camadas contra instruções hostis nos documentos. Uma lista de palavras perigosas não é garantia de segurança.
+- A decisão de tornar a `v2` padrão para agentes novos está **adiada**.
+
+### B3 — OPCIONAL, NÃO AUTORIZADA
+
+- Chunker estrutural na ingestão, por produto, seção e FAQ.
+- Reprocessamento **explícito** e auditado, documento a documento.
+- Sem reprocessamento geral e sem trocar a política padrão `v1`.
+- Os parâmetros do plano aguardam decisão (D-RB11 só na B3).
+
+### Outras etapas da Base de Conhecimento — BACKLOG
+
+- **C:** importar CSV, FAQ e catálogo.
+- **D:** importar URL, com mitigação de SSRF.
+- **E:** governança, versões e validade.
+- Snapshots imutáveis da Base de Conhecimento e migration `0014` estão **adiados** (DEC-056).
+  - **Risco atual:** editar o conhecimento pode mudar as respostas de uma versão publicada, mesmo com o algoritmo `v1` preservado.
+- OCR fica fora do escopo da A2.
+
+**Plano detalhado:** projeto `claude/KNOWLEDGE_PR_B_RETRIEVAL_QUALITY_PLAN.md`. Decisões em `docs/DECISIONS_LOG.md`. Roadmap em `docs/ROADMAP_KNOWLEDGE.md`.
+
+## 5. Integrações empresariais — ROADMAP PROPOSTO, NÃO IMPLEMENTADO
+
+Conectores universais para sistemas heterogêneos:
+- REST/OpenAPI, ERP/CRM, sincronização e webhook;
+- quando imprescindível, agente local de banco com consultas pré-aprovadas.
+
+O agente pede uma **capacidade padronizada**, e o conector adaptador consulta a fonte autorizada daquela organização. **O modelo nunca gera SQL livre nem recebe credenciais.**
+
+| Etapa | Escopo | Status |
+| :--- | :--- | :--- |
+| **I1** | Arquitetura universal: contratos, autenticação, escopos por organização, catálogo de capacidades, timeouts, auditoria e erros | PLANEJADO (plano ainda não confirmado) |
+| **I2** | Conector REST genérico **somente leitura**, primeiro com API simulada e testes offline | PLANEJADO |
+| **I3** | Consultas autorizadas de produto, estoque, preço, disponibilidade e informações de sistemas reais | PLANEJADO |
+| **I4/I5** | Sincronização/webhooks, conectores prontos, legado e arquivos | BACKLOG |
+| **Ações com escrita** | Criar pedidos, agendar serviços, atualizar CRM, abrir chamados | **BLOQUEADO** até testes reais de ligações e nova autorização. Prever confirmação, permissões, idempotência e trilha de auditoria. |
+
+## 6. Ligações reais — NÃO VALIDADAS DE PONTA A PONTA
+
+Falta comprovar um atendimento real autorizado, cobrindo:
+- áudio, entendimento, interrupções e latência;
+- consulta a ferramentas e dados, e falhas de API;
+- transferência, fechamento e logs;
+- custo e consumo;
+- isolamento entre empresas;
+- comportamento quando não há evidência.
+
+É preciso estabelecer critérios mensuráveis. Não fazer chamadas nem usar provedores pagos sem autorização.
+
+**Verificação em 17/11/2026 (`c31cd4a`), inferência por busca no código:**
+- `createKnowledgeSearchToolDefinition` só é instanciada na conversa simulada da API (`apps/api/src/simulation/knowledge-simulated-turn-service.ts`).
+- `apps/voice` apenas reexporta a função.
+- Ou seja, **`knowledge.search` continua sem ligação no runtime de voz de produção**. Revalidar antes de afirmar o contrário.
+
+## 7. Segurança e produção — BLOQUEADORES
+
+**Upload público** (`docs/SECURITY.md` §11, requisitos D-B9):
+- extrator isolado no sistema operacional, com saída de rede negada;
+- limites rígidos de CPU, memória e processos;
+- limite de concorrência no BFF ou proxy;
+- quotas por organização e usuário;
+- auditoria só de metadados;
+- decisão sobre antivírus;
+- monitoramento e possível streaming.
+
+O `--permission` do Node e a guarda de rede **não são sandbox completo**.
+
+**APIs empresariais:**
+- credenciais isoladas, cofre e rotação;
+- capacidade autorizada;
+- TLS, validação e allowlist de destinos, proteção contra SSRF;
+- timeouts, rate limit e resiliência;
+- acesso limitado a dados pessoais;
+- auditoria.
+
+**SaaS:**
+- observabilidade, backups e restore, alertas;
+- operações, LGPD e plano de incidentes;
+- limites e confiabilidade.
+
+**Um gate de testes aprovado não equivale a produção pública liberada.**
+
+## 8. MVP comercial — NÃO CONCLUÍDO
+
+**Critério de conclusão:** uma empresa consegue, sem vazamento entre empresas:
+1. criar conta e organização;
+2. configurar o agente;
+3. conectar uma fonte autorizada;
+4. conectar o telefone;
+5. receber uma ligação real;
+6. obter uma resposta fundamentada;
+7. registrar o atendimento;
+8. ver resultado e uso;
+9. receber cobrança e suporte adequados.
+
+**Pendências:**
+- telefonia e atendimentos reais comprovados;
+- integrações somente leitura com sistema real;
+- hardening de produção;
+- onboarding, planos e cobrança, limites;
+- observabilidade, backups e suporte;
+- piloto controlado.
+
+Componentes de campanha e billing existem no código, mas a operação comercial completa deles **não foi atestada**.
+
+## 9. Prioridades acordadas
+
+1. Decidir o merge da **B1** (#167, SHA final `87331ab`). A revisão de qualidade e os gates Linux e Windows já foram concluídos. Não tocar no Qualitec v4. A `v2` segue só na comparação administrativa.
+2. Avaliar os resultados, aprovar e implementar a **B2**. A B3 é opcional.
+3. Planejar a **I1** e fazer I2/I3 **somente leitura**.
+4. Executar **testes reais de ligações** em ambiente controlado e autorizado.
+5. Concluir segurança, infraestrutura de produção e ciclo comercial, e fazer um piloto.
+6. **Só após testes reais e nova aprovação:** ações com escrita em sistemas externos.
+
+## 10. Como consultar e manter este documento
+
+### Ao iniciar uma tarefa
+
+1. Ler `CLAUDE.md`, `AGENTS.md`, `docs/AI_EXECUTION_RULES.md` e **este documento**.
+2. Ler, conforme a relevância: `docs/ROADMAP_KNOWLEDGE.md`, `docs/DECISIONS_LOG.md`, `docs/AI_WORKLOG.md`, `docs/SECURITY.md` e `docs/AI_CONTEXT.md`.
+   - Na verificação de 17/11/2026, o cabeçalho do `AI_CONTEXT.md` estava **defasado**: `LAST_REFRESHED_AT: 2026-11-11`, base `0561f39`. Para estado atual, este documento e o Git prevalecem.
+3. Conferir `git fetch origin`, `git status`, a `origin/main` e as PRs abertas.
+4. Não apresentar informação antiga como atual. Se Git ou GitHub não puderem ser consultados, marcar o status como **NÃO VERIFICADO** e indicar a data do último registro.
+
+### Ao responder “o que já fizemos?”, “o que falta para concluir o SaaS?” ou “qual a próxima etapa?”
+
+Consultar este documento e o Git, e responder nesta estrutura, com a data da conferência:
+- **Integrado e testado:** PR, merge, SHA e gates;
+- **Autorizado ou em andamento / em revisão;**
+- **Planejado;**
+- **Pendências e bloqueios;**
+- **Próximo passo.**
+
+### Após cada PR integrada e verificada
+
+Atualizar este documento, preferencialmente em PR documental separada, registrando:
+- data da verificação;
+- número da PR, SHA do head, SHA do merge e conferência de árvore;
+- resultados dos gates (Linux e Windows, contagens, falhas e skips) e quem executou;
+- decisões novas (DEC-xxx) e mudanças de status (por exemplo, AUTORIZADO → INTEGRADO);
+- pendências, riscos residuais e próximo passo.
+
+**Regras de edição:**
+- Não reescrever silenciosamente decisões ou fatos antigos. Para correções, indicar o que mudou, o motivo e a data.
+- O histórico detalhado continua append-only no `AI_WORKLOG.md`.
+- Mudança **só de documentação**: rodar `git diff --check` e revisar links e estado. Não repetir o gate completo sem necessidade.
+
+---
+*Criado em 17/11/2026 a partir do rascunho do operador (`PROJECT_STATUS_2026-11-17.md`), conferido contra o Git e a API do GitHub nessa data.*
