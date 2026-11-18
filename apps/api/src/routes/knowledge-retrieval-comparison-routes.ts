@@ -3,6 +3,7 @@ import { knowledgeRetrievalComparisonHttpBodySchema } from '@voice-agent/contrac
 import type { ApiDependencies } from '../composition/agent-dependencies.js';
 import { getServiceAuth } from '../auth/service-auth-middleware.js';
 import { authorizeTenant } from '../auth/tenant-authorization.js';
+import { logKnowledgeComparisonAudit } from './knowledge-retrieval-comparison-audit.js';
 
 /**
  * Comparação ADMINISTRATIVA v1 × v2 da busca (DEC-067, PR B1): só OWNER/ADMIN
@@ -41,6 +42,11 @@ export function registerKnowledgeRetrievalComparisonRoutes(
       typeof knowledgeRetrievalComparisonHttpBodySchema
     >;
     const comparison = await service.compare({ organizationId: auth.orgId, ...body });
+    logKnowledgeComparisonAudit(
+      deps.logger,
+      { organizationId: auth.orgId, agentScoped: body.agentId !== undefined },
+      comparison,
+    );
     return c.json(comparison, 200);
   });
 }

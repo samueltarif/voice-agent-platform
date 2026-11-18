@@ -4,6 +4,10 @@ import { Button } from '@voice-agent/ui';
 import { KnowledgeOperationAlert } from './knowledge-dialog-shell';
 import { KnowledgeRetrievalResults } from './knowledge-retrieval-results';
 import {
+  AgentProjectionView,
+  SuspiciousPassagesNotice,
+} from './knowledge-retrieval-v2-admin-details';
+import {
   useKnowledgeRetrievalComparison,
   type KnowledgeRetrievalComparisonState,
 } from './use-knowledge-retrieval-comparison';
@@ -62,6 +66,8 @@ export function KnowledgeRetrievalComparisonView(props: {
           <div className="space-y-2">
             <h3 className="text-xs font-semibold text-foreground">Nova busca (v2, só avaliação)</h3>
             <KnowledgeRetrievalResults result={state.result.v2} />
+            <AgentProjectionView projection={state.result.v2.agentProjection} />
+            <SuspiciousPassagesNotice passages={state.result.v2.suspiciousPassages} />
           </div>
         </div>
       )}

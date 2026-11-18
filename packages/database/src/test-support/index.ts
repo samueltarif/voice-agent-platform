@@ -49,3 +49,9 @@ export {
 } from './fixtures/knowledge-evaluation-extension.js';
 export { projectPreview, projectRetrieval } from './knowledge-retrieval-projection.js';
 export { scoreQuestion, summarize, type QuestionOutcome } from './knowledge-evaluation-metrics.js';
+export {
+  rawTextLeaks,
+  scoreHostileQuestion,
+  summarizeHostile,
+  type HostileOutcome,
+} from './knowledge-hostile-evaluation-metrics.js';

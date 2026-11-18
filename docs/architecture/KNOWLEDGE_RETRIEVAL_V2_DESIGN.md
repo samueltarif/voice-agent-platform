@@ -56,7 +56,35 @@
   - Reproduziram os mesmos defeitos em outro ramo: família de produto, código inexistente ou parecido, negativa com palavra parcial, duas palavras com uma ausente.
 - Métricas sobre o que a pré-visualização mostra: precisão, recall@3, acerto em negativas, acerto de aspectos e violações de isolamento (asserção dura = 0).
 - As regras foram ajustadas só com perguntas dev e casos novos. O holdout original foi medido depois.
-## 6. Desenho da B2 (somente desenho; sem implementação na B1)
+## 6. B2b — proteção contra documentos hostis e autoridade comercial (DEC-069, só na v2 e na comparação administrativa)
+
+Plano aprovado: `claude/KNOWLEDGE_PR_B2_PLAN.md` (revisão 2; D-B2-1 a D-B2-5, D-B2-7 e D-B2-8). Só a B2b foi implementada. B2a, B2c, B2d, B2e e B3 continuam não autorizadas.
+
+**Premissas.**
+- Documentos recuperados são **dados não confiáveis**, nunca instruções.
+- Nenhum texto controla ferramentas, perfil, organização, regras ou comportamento.
+- O detector **não identifica todos os ataques**, e 100% no corpus **não é garantia** contra *prompt injection*.
+
+**Camadas implementadas:**
+1. **Detector auxiliar** (`knowledge-hostile-content-detector.ts`, versão `b2b-1`).
+   - Reconhece três tipos de sinal: ordem ao assistente, marcador de papel ou prompt, e alegação de autoridade sobre regras.
+   - Antes de comparar, normaliza caracteres invisíveis, acentos, caixa e quebras de linha.
+   - Os padrões exigem verbo + alvo, para não marcar texto técnico legítimo.
+2. **Exclusão total** (`knowledge-passage-trust-v2.ts`). A passagem marcada sai da estatística, do ranking, da evidência, dos aspectos e da projeção. Só volta em `suspiciousPassages`, que aparece apenas na comparação administrativa (OWNER/ADMIN).
+3. **Projeção do agente por fatos** (`knowledge-agent-projection-v2.ts`, contrato `knowledge-agent-projection-contracts.ts`).
+   - Contém só fatos técnicos estruturados, cada um com sua fonte (`citationId`, documento, trecho, tipo de fonte, código do item).
+   - Os valores são **remontados** a partir de gramáticas fechadas: número + unidade permitida, material de lista, grau IP, rosca.
+   - Não leva texto livre nem trecho bruto. O schema é estrito e é validado na saída.
+4. **Autoridade comercial.**
+   - Frases com contexto comercial (preço, desconto, estoque, prazo, pagamento, garantia) não geram fato nenhum.
+   - Aspectos comerciais pedidos vão em `aspectsRequiringAuthorizedSource`.
+   - Trechos de evidência com valor comercial são só **contados** (`withheldCommercialValues`).
+   - Porcentagem só vira fato com palavra de exatidão ("precisão de 0,5%"); "10% de desconto" nunca vira.
+5. **Auditoria.** A rota registra `knowledge.retrieval_comparison` só com metadados e contagens. A pergunta e o texto dos documentos nunca entram no log.
+
+**Ainda não feito (fora da B2b):** perfil no snapshot, travas, falha controlada (B2a); compositor de voz (B2c); seletor e simulação (B2d). Envenenamento técnico (fato falso sem instrução) não é detectável: depende de governança (PR E).
+
+### Desenho original das D-RB6/D-RB7 (B1; mantido como histórico)
 
 ### D-RB6 — resposta de voz com passagens
 - O envelope de voz passaria a receber passagens DIRECT (até 500 caracteres cada) e, no máximo, 1 CONTEXT rotulado como "informação geral".
@@ -69,7 +97,8 @@
 
 ## 7. Limitações conhecidas
 
-- **Bloqueio de ativação:** um documento com instruções hostis ainda aparece como evidência quando trata do mesmo código ou assunto (M01, H01, H02). Ele também faz um aspecto comercial parecer informado ("R$ 1,00", "90% de desconto"). O filtro é da B2 (D-RB7).
+- **Bloqueio de ativação (atualizado pela B2b):** os padrões **conhecidos** de instrução hostil agora são excluídos da v2, e nenhuma informação comercial vinda de documento chega à projeção do agente. Ataques **não reconhecidos** pelo detector (paráfrase, outra língua, homóglifo) continuam podendo aparecer como evidência na tela administrativa, mas a projeção do agente só leva fatos técnicos remontados. A ativação da v2 em agentes continua bloqueada até a B2a–B2d e nova autorização.
+- **A v1, usada hoje por todos os agentes, não tem as proteções da B2b:** ela ainda devolve trechos com instruções hostis e valores comerciais de documentos (comportamento preservado de propósito).
 - O núcleo da pergunta é a primeira palavra central. Perguntas que começam por um verbo não genérico usam o verbo como núcleo.
 - Acima de 2.000 candidatos, a frequência dos termos é calculada sobre os candidatos (limite inferior). Os trechos com o código pedido nunca são cortados.
 - Só os 50 melhores trechos viram passagens. É bem mais que o topK máximo (10).

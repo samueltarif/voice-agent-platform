@@ -19617,3 +19617,33 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - prioridades: B1 concluída; próxima decisão = autorização da B2.
   - O histórico de 17/11 foi preservado.
 - **VERIFICAÇÃO**: `git diff --check`; somente `.md`; gate não repetido. Código, bancos, migrations, dependências e agente Qualitec v4 intocados. B2 e B3 continuam não autorizadas.
+
+## 2026-11-18 — B2b — Proteção contra documentos hostis e autoridade comercial na busca v2 (DEC-069) — Claude
+
+- **AUTORIZAÇÃO** (08:29): somente a B2b. B2a, B2c, B2d, B2e e B3 não autorizadas; D-B2-6 adiada para a telefonia.
+- **BRANCH**: `feat/knowledge-b2b-hostile-protection`, a partir da `origin/main` `c216ed2`, em worktree separado.
+- **ORDEM**: o corpus da organização D (ataques conhecidos, desconhecidos, textos legítimos, comerciais, envenenamento) foi escrito e commitado antes do código (`af08e28`). Os ataques desconhecidos estão no split holdout e não orientaram o detector. Limitação declarada: o mesmo autor escreveu o detector e o corpus.
+- **IMPLEMENTAÇÃO** (ver DEC-069):
+  - detector auxiliar;
+  - exclusão total das passagens marcadas;
+  - projeção do agente por fatos técnicos com fonte e gramática fechada;
+  - autoridade comercial;
+  - `suspiciousPassages` e `agentProjection` só na comparação administrativa;
+  - painel com "O que o agente receberia (v2)" e "Conteúdo suspeito";
+  - auditoria sem conteúdo.
+- **AJUSTES DURANTE O DESENVOLVIMENTO** (só com casos dev ou legítimos):
+  - o marcador de papel passou a exigir início de frase ou linha, porque "energizar o sistema: ele indica…" no manual legítimo seria falso positivo;
+  - a métrica de vazamento deixou de considerar ids/UUIDs, porque "90" casava com dígitos de UUID — falso positivo da métrica, não do código.
+- **TESTES ALTERADOS (TEST_CHANGE_REASON)**:
+  - `knowledge-retrieval-v2-evaluation.integration.test.ts`: tipo do mapa de organizações (ASSERTION_EQUIVALENT);
+  - `knowledge-retrieval-comparison.integration.test.ts`: novo documento hostil ligado só ao agente de suporte e um teste novo de escopo para conteúdo suspeito e projeção; os testes antigos não mudaram (ASSERTION_STRONGER);
+  - corpus: tipo da organização ampliado para D.
+  - Nenhum skip novo; nenhuma asserção enfraquecida.
+- **RESULTADOS**:
+  - sucesso de ataque 0 (conhecidos e desconhecidos); detector 4/4 conhecidos e 0/7 desconhecidos;
+  - 0 valores comerciais e 0 trechos brutos na projeção; recall dos fatos técnicos esperados 1,0;
+  - 0 falsos positivos em textos técnicos legítimos; aspectos listados 9/11 (D14 e D19, holdout, não ajustados);
+  - envenenamento técnico D24 passa (residual);
+  - corpus original v2: 1,00 / 1,00 / 1,00; v1 idêntica;
+  - tempo v2 de 0,90× a 1,23× a v1 (duas rodadas).
+- **SAFETY**: só bancos `of2_test_*`; nenhuma migration; Qualitec, `voice_agent_pr157_test` e agente v4 intocados; sem serviços pagos; `knowledge.search` sem ligação com a telefonia; nenhum campo no snapshot; nenhum compositor de voz.

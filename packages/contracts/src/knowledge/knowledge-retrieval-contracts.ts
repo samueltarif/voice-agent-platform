@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { KnowledgeAgentProjection } from './knowledge-agent-projection-contracts.js';
 import { knowledgeSourceTypeSchema } from './knowledge-document-contracts.js';
 import type { KnowledgeAccessScope } from './knowledge-access-scope-contracts.js';
 import type { KnowledgeChunkProvenance } from './knowledge-chunk-contracts.js';
@@ -98,6 +99,11 @@ export interface KnowledgeRetrievalResult {
   readonly unmatchedTerms?: readonly string[] | undefined;
   /** Só v2: aspectos comerciais pedidos sem valor explícito nas evidências diretas. */
   readonly aspectsNotFound?: readonly KnowledgeCommercialAspect[] | undefined;
+  /**
+   * Só v2 (B2b, DEC-069): o que um AGENTE receberia — fatos técnicos com
+   * fonte, sem texto de documento. Nenhum agente a recebe ainda.
+   */
+  readonly agentProjection?: KnowledgeAgentProjection | undefined;
 }
 
 export interface KnowledgeRetrievalRequest {

@@ -16,7 +16,7 @@ function UnmatchedNotice({ terms }: { readonly terms: readonly string[] | undefi
   );
 }
 
-const ASPECT_LABELS: Readonly<Record<KnowledgeCommercialAspect, string>> = {
+export const ASPECT_LABELS: Readonly<Record<KnowledgeCommercialAspect, string>> = {
   PRICE: 'preço',
   LEAD_TIME: 'prazo',
   STOCK: 'estoque',
