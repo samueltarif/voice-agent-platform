@@ -37,6 +37,15 @@ export {
   type EvaluationQuestion,
 } from './fixtures/knowledge-evaluation-questions.js';
 export {
+  ADVERSARIAL_ATTACKS,
+  ADVERSARIAL_DOCUMENTS,
+  ADVERSARIAL_SUPPORT_DOCUMENTS,
+  COMMERCIAL_VARIATION_QUESTIONS,
+  LEGITIMATE_TRIGGER_PARAGRAPHS,
+  TECHNICAL_QUESTIONS,
+  type AdversarialAttack,
+} from './fixtures/knowledge-adversarial-corpus.js';
+export {
   HOSTILE_EVALUATION_DOCUMENTS,
   HOSTILE_EVALUATION_QUESTIONS,
   type HostileAttackKind,
@@ -55,3 +64,9 @@ export {
   summarizeHostile,
   type HostileOutcome,
 } from './knowledge-hostile-evaluation-metrics.js';
+export {
+  ALL_ADVERSARIAL_QUESTIONS,
+  ATTACK_PARAGRAPHS,
+  LEGITIMATE_PARAGRAPHS,
+} from './knowledge-adversarial-evaluation-sets.js';
+export { adversarialReport } from './knowledge-adversarial-evaluation.js';

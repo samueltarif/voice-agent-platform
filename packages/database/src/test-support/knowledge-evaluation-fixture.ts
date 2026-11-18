@@ -4,6 +4,10 @@ import { OrganizationRepository } from '../repositories/organization-repository.
 import { EVALUATION_DOCUMENTS } from './fixtures/knowledge-evaluation-documents.js';
 import { EVALUATION_EXTENSION_DOCUMENTS } from './fixtures/knowledge-evaluation-extension.js';
 import { HOSTILE_EVALUATION_DOCUMENTS } from './fixtures/knowledge-hostile-evaluation-corpus.js';
+import {
+  ADVERSARIAL_DOCUMENTS,
+  ADVERSARIAL_SUPPORT_DOCUMENTS,
+} from './fixtures/knowledge-adversarial-corpus.js';
 
 /** IDs do corpus de avaliação (PR B1 / DEC-067). */
 export interface KnowledgeEvaluationFixture {
@@ -68,7 +72,12 @@ export async function createKnowledgeHostileEvaluationFixture(
   const org = { slug: `kbeval-d-${run}`, name: 'Fluxtec Automação' };
   const orgD = (await new OrganizationRepository(db).createOrganization(org))!.id;
   const documentKeys = new Map<string, string>();
-  for (const doc of HOSTILE_EVALUATION_DOCUMENTS) {
+  const all = [
+    ...HOSTILE_EVALUATION_DOCUMENTS,
+    ...ADVERSARIAL_DOCUMENTS,
+    ...ADVERSARIAL_SUPPORT_DOCUMENTS,
+  ];
+  for (const doc of all) {
     const result = await ingestKnowledgeDocument(db, {
       organizationId: orgD,
       title: doc.title,

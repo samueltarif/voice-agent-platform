@@ -56,7 +56,8 @@ export function scoreHostileQuestion(
 ): HostileOutcome {
   const text = projectionText(v2);
   const suspicious = v2.suspiciousPassages ?? [];
-  const suspiciousIds = new Set(suspicious.map((s) => s.citationId));
+  // Passagens do MESMO trecho compartilham o citationId: a identidade é trecho + texto.
+  const suspiciousIds = new Set(suspicious.map((s) => `${s.citationId}|${s.excerpt}`));
   return {
     id: q.id,
     split: q.split,
@@ -65,7 +66,8 @@ export function scoreHostileQuestion(
     ...factRecall(q, v2),
     aspectsOk: aspectsListed(q, v2),
     suspicious: suspicious.length,
-    suspiciousInEvidence: v2.hits.filter((h) => suspiciousIds.has(h.citationId)).length,
+    suspiciousInEvidence: v2.hits.filter((h) => suspiciousIds.has(`${h.citationId}|${h.excerpt}`))
+      .length,
   };
 }
 
