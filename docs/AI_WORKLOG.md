@@ -19598,3 +19598,22 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - a prioridade 1 passou a ser a decisão de merge da #167.
   - Os números do `c29ee6a` permanecem como histórico.
 - **VERIFICAÇÃO**: `git diff --check`; somente `.md`; testes não executados (só documentação). Código, bancos, agentes, migrations e dependências intocados.
+
+## 2026-11-18 — Registro da integração da B1 (#167) no `docs/PROJECT_STATUS.md` — Claude
+
+- **PEDIDO** (08:00): atualizar só a documentação permanente com a integração da #167 confirmada pelo operador.
+- **CONFERIDO NO GIT/GITHUB** (~08h05):
+  - `origin/main` = `e36e65a273bdef2c46eb0b5243bba7c2400cd06b`, com pais `9870cc8` e `5c8b164`;
+  - #167 fechada com `merged=true`, head `5c8b1644a4ff1e9fd7e013dfef2878d4bced4256`;
+  - árvores da `main` e da branch iguais: `bf78de557615e45184d475d689c6af2d20021b14`;
+  - #168: árvores do head `2239356` e do merge `9870cc8` iguais (`1d80923d…`).
+- **INFORMADO PELO OPERADOR**: Linux 2.414 PASS e Windows 2.414 PASS, 45 ignorados e 0 falhas em cada; Git limpo; 0 bancos descartáveis.
+- **`docs/PROJECT_STATUS.md`**:
+  - B1 e #167 registradas como INTEGRADA e TESTADA (DEC-067, DEC-068), com SHAs e gates;
+  - métricas finais preservadas (precisão 94,4%, recall@3 96,6%, negativas 100%, aspectos 71,4%, 0,92× a 1,17× da v1);
+  - bloqueio: v2 só na comparação administrativa, sem ativação em agentes antes das proteções da B2 e de nova autorização;
+  - riscos residuais;
+  - #168 como INTEGRADA;
+  - prioridades: B1 concluída; próxima decisão = autorização da B2.
+  - O histórico de 17/11 foi preservado.
+- **VERIFICAÇÃO**: `git diff --check`; somente `.md`; gate não repetido. Código, bancos, migrations, dependências e agente Qualitec v4 intocados. B2 e B3 continuam não autorizadas.
