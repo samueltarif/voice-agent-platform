@@ -6,7 +6,7 @@
  */
 export interface EvaluationDocument {
   readonly key: string;
-  readonly org: 'A' | 'B' | 'C';
+  readonly org: 'A' | 'B' | 'C' | 'D';
   readonly title: string;
   readonly text: string;
 }

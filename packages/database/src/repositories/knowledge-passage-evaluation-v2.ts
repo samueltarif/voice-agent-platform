@@ -27,6 +27,8 @@ import { normalizeScores, rawPassageScore } from './knowledge-passage-ranking.js
 import { aspectsNotFound } from './knowledge-commercial-evidence.js';
 import { toKnowledgeRetrievalHit } from './knowledge-retrieval-hit.js';
 import { KNOWLEDGE_GENERIC_TERMS } from './knowledge-term-relevance.js';
+import { relevantSuspicious, splitByTrust, toSuspiciousHit } from './knowledge-passage-trust-v2.js';
+import type { ProjectionPassage } from './knowledge-agent-projection-v2.js';
 
 export interface EvaluateV2Input {
   readonly rows: readonly ChunkRow[];
@@ -107,10 +109,26 @@ function toHit(s: Scored, score: number): KnowledgeRetrievalHit {
   return { ...base, textSnapshot: s.c.text, passage };
 }
 
-/** Passagens → resultados v2 (pura, determinística; sem acesso ao banco). */
+function toProjectionPassage(hit: KnowledgeRetrievalHit, s: Scored): ProjectionPassage {
+  return {
+    citationId: `${hit.documentId}:${hit.chunkId}:${hit.citation.chunkOrdinal}`,
+    documentId: hit.documentId,
+    chunkOrdinal: hit.citation.chunkOrdinal,
+    sourceType: hit.citation.sourceType,
+    text: s.c.text,
+    foldedText: s.c.foldedText,
+    foldedHeading: s.c.foldedHeading,
+  };
+}
+
+/**
+ * Passagens → resultados v2 (pura, determinística; sem acesso ao banco).
+ * Passagens suspeitas (detector auxiliar, B2b) ficam FORA de toda a avaliação;
+ * só voltam em `suspicious`, para a visão administrativa.
+ */
 export function evaluatePassagesV2(input: EvaluateV2Input) {
   const terms = compileTerms(input.words, input.codes);
-  const cands = buildPassageCandidates(input.rows);
+  const { trusted: cands, suspicious } = splitByTrust(buildPassageCandidates(input.rows));
   const stats = termStats(input, terms, cands);
   const plan = planTermsV2(stats, new Set(input.codes));
   const asked = askedAspectTerms(input.aspects);
@@ -135,9 +153,14 @@ export function evaluatePassagesV2(input: EvaluateV2Input) {
   const direct = chosen
     .filter((s) => s.relevance === 'DIRECT')
     .map((s) => ({ foldedText: s.c.foldedText, foldedHeading: s.c.foldedHeading }));
+  const hits = chosen.map((s, i) => toHit(s, scores[i]!));
   return {
-    hits: chosen.map((s, i) => toHit(s, scores[i]!)),
+    hits,
     unmatchedTerms: plan.unmatched,
     aspectsNotFound: aspectsNotFound(input.aspects, direct),
+    suspicious: relevantSuspicious(suspicious, terms, stats).map(toSuspiciousHit),
+    directPassages: chosen.flatMap((s, i) =>
+      s.relevance === 'DIRECT' ? [toProjectionPassage(hits[i]!, s)] : [],
+    ),
   };
 }

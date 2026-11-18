@@ -187,7 +187,12 @@ A DEC-067, a DEC-068 e `docs/architecture/KNOWLEDGE_RETRIEVAL_V2_DESIGN.md` est�
 - desempenho e corpus medidos só com dados sintéticos;
 - a precisão DIRECT (94,4%) e os aspectos (71,4%) não atingiram as metas; todas as falhas residuais vêm do documento com instruções hostis.
 
-### B2 — PLANEJADA, NÃO AUTORIZADA
+### B2 — plano aprovado como diretriz (18/11/2026); só a **B2b** AUTORIZADA e EM REVISÃO
+
+- **B2b** (DEC-069): proteção contra documentos hostis e autoridade comercial, **só** na busca v2 e na comparação administrativa (OWNER/ADMIN). Está em PR aberta da branch `feat/knowledge-b2b-hostile-protection`, sem merge.
+- **Revisão da B2b** (DEC-070, 18/11/2026): corpus adversarial congelado com holdout, intenção comercial em pt-BR, vocabulário técnico por setor e verificação de todos os campos da projeção. Na mesma PR #170, sem merge; gate Windows pendente (operador).
+- **B2a, B2c, B2d, B2e e B3:** NÃO autorizadas. A `v2` continua exclusiva da comparação administrativa, e nenhum agente a usa.
+- **Planejamento original (17/11/2026), mantido como histórico:**
 
 - Perfil `knowledge.retrievalProfile` opcional na versão publicada. **Ausente = `v1`**, preservando o Qualitec v4.
 - `v2` só após nova publicação, com aprovação.
@@ -301,7 +306,7 @@ Componentes de campanha e billing existem no código, mas a operação comercial
 ## 9. Prioridades acordadas
 
 1. ~~Integrar a **B1** (#167)~~ — **concluído em 18/11/2026** (merge `e36e65a`). A `v2` segue só na comparação administrativa.
-2. Avaliar os resultados da B1 e decidir a autorização da **B2** (filtro de instruções hostis, resposta de voz e perfil por versão publicada). **B2 e B3 não estão autorizadas.** Só depois disso se discute ativar a `v2` em agentes, com nova autorização.
+2. Revisar a **B2b** (DEC-069) e decidir as próximas partes da B2 (B2a, B2c, B2d). **B2a, B2c, B2d, B2e e B3 não estão autorizadas.** Só depois delas se discute ativar a `v2` em agentes, com nova autorização.
 3. Planejar a **I1** e fazer I2/I3 **somente leitura**.
 4. Executar **testes reais de ligações** em ambiente controlado e autorizado.
 5. Concluir segurança, infraestrutura de produção e ciclo comercial, e fazer um piloto.

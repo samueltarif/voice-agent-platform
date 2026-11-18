@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { KnowledgeSourceType } from './knowledge-document-contracts.js';
+import type { KnowledgeAgentProjection } from './knowledge-agent-projection-contracts.js';
 import type {
   KnowledgeCommercialAspect,
   KnowledgeHitRelevance,
@@ -61,6 +62,32 @@ export interface KnowledgeRetrievalPreview {
   readonly retrievalProfile?: KnowledgeRetrievalProfile | undefined;
   /** Só v2: aspectos comerciais pedidos sem valor explícito nas evidências diretas. */
   readonly aspectsNotFound?: readonly KnowledgeCommercialAspect[] | undefined;
+  /**
+   * Só v2, só na comparação ADMINISTRATIVA (B2b, DEC-069): passagens relevantes
+   * marcadas pelo detector auxiliar. Nunca são evidência nem chegam ao agente.
+   */
+  readonly suspiciousPassages?: readonly KnowledgeSuspiciousPreviewPassage[] | undefined;
+  /** Só v2: o que o agente receberia (fatos técnicos com fonte; sem texto de documento). */
+  readonly agentProjection?: KnowledgeAgentProjection | undefined;
+}
+
+export const KNOWLEDGE_HOSTILE_SIGNALS = [
+  'ASSISTANT_COMMAND',
+  'ROLE_MARKER',
+  'AUTHORITY_CLAIM',
+] as const;
+export type KnowledgeHostileSignal = (typeof KNOWLEDGE_HOSTILE_SIGNALS)[number];
+
+export interface KnowledgeSuspiciousPreviewPassage {
+  readonly citationId: string;
+  readonly documentId: string;
+  readonly documentTitle: string;
+  readonly chunkOrdinal: number;
+  readonly sourceType: KnowledgeSourceType;
+  /** Texto do documento (dado não confiável), exibido escapado só ao OWNER/ADMIN. */
+  readonly excerpt: string;
+  readonly passageHeading?: string | undefined;
+  readonly signals: readonly KnowledgeHostileSignal[];
 }
 
 /**

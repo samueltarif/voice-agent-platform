@@ -36,10 +36,10 @@ describe('Knowledge retrieval evaluation corpus — v1 × v2', () => {
     for (const [id, key] of [...fx.documentKeys, ...ext.documentKeys]) {
       orgOf.set(id, docs.find((d) => d.key === key)!.org);
     }
-    const orgIds: Record<EvaluationOrg, string> = { A: fx.orgA, B: fx.orgB, C: ext.orgC };
+    const orgIds: Partial<Record<EvaluationOrg, string>> = { A: fx.orgA, B: fx.orgB, C: ext.orgC };
     const service = new DrizzleKnowledgeRetrievalComparisonService(tdb.db);
     for (const q of all) {
-      const organizationId = orgIds[q.org];
+      const organizationId = orgIds[q.org]!;
       results.set(q.id, await service.compare({ organizationId, queryText: q.query, topK: 10 }));
     }
   }, 180_000);

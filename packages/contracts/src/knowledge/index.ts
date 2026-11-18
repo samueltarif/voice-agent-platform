@@ -11,3 +11,5 @@ export * from './knowledge-query-terms.js';
 export * from './knowledge-search-tool-contracts.js';
 export * from './knowledge-simulated-turn-contracts.js';
 export * from './knowledge-upload-contracts.js';
+export * from './knowledge-agent-projection-contracts.js';
+export * from './knowledge-technical-vocabulary-contracts.js';

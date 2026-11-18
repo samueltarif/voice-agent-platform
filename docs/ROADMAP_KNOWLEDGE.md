@@ -85,3 +85,7 @@ A PR A **não está pronta para exposição pública** enquanto não forem atend
 - **B1**: busca v2 por passagens, opt-in, usada apenas na comparação administrativa v1 × v2 (OWNER/ADMIN). Todos os agentes continuam na v1. Inclui o corpus de avaliação e os testes de caracterização da v1. Desenho: `docs/architecture/KNOWLEDGE_RETRIEVAL_V2_DESIGN.md`.
 - **B2** (não autorizada): resposta de voz com passagens e filtro de conteúdo hostil (D-RB6, D-RB7) e decisão sobre ativar a v2 por agente (D-RB2).
 - **B3** (não autorizada): D-RB11.
+
+**Atualização em 18/11/2026 (B2):** a B1 foi integrada (#167). O plano da B2 (`claude/KNOWLEDGE_PR_B2_PLAN.md`, revisão 2) foi aprovado como diretriz.
+- **B2b** (autorizada; DEC-069): proteção contra documentos hostis e autoridade comercial, **só** na busca v2 e na comparação administrativa.
+- **B2a, B2c, B2d, B2e e B3:** não autorizadas.

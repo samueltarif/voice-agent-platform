@@ -7,15 +7,34 @@ import {
   type KnowledgeRetrievalHit,
   type KnowledgeRetrievalPreview,
   type KnowledgeRetrievalPreviewInput,
+  type KnowledgeSuspiciousPreviewPassage,
+  knowledgeRetrievalQuerySchema,
 } from '@voice-agent/contracts';
 import type { DatabaseInstance } from '../client/connection.js';
-import { DrizzleKnowledgeRetrievalService } from './knowledge-retrieval-service.js';
+import { retrieveKnowledgeV2Detailed } from './knowledge-retrieval-v2.js';
+import type { SuspiciousPassageHit } from './knowledge-passage-trust-v2.js';
 import {
   DrizzleKnowledgeRetrievalPreviewService,
   resolveAgentScope,
   type ResolvedScope,
 } from './knowledge-retrieval-preview.js';
 import { analyzeKnowledgeQueryV2 } from './knowledge-query-analysis-v2.js';
+
+function toSuspiciousPassage(
+  { hit, signals }: SuspiciousPassageHit,
+  priority: readonly string[],
+): KnowledgeSuspiciousPreviewPassage {
+  return {
+    citationId: `${hit.documentId}:${hit.chunkId}:${hit.citation.chunkOrdinal}`,
+    documentId: hit.documentId,
+    documentTitle: hit.documentTitle ?? hit.citation.sourceLocator,
+    chunkOrdinal: hit.citation.chunkOrdinal,
+    sourceType: hit.citation.sourceType,
+    excerpt: buildKnowledgeExcerpt(hit.textSnapshot, priority, KNOWLEDGE_PREVIEW_MAX_EXCERPT_CHARS),
+    ...(hit.passage?.heading ? { passageHeading: hit.passage.heading } : {}),
+    signals,
+  };
+}
 
 function toV2PreviewHit(hit: KnowledgeRetrievalHit, priority: readonly string[]) {
   return {
@@ -40,11 +59,9 @@ function toV2PreviewHit(hit: KnowledgeRetrievalHit, priority: readonly string[])
  */
 export class DrizzleKnowledgeRetrievalComparisonService implements KnowledgeRetrievalComparisonPort {
   private readonly preview: DrizzleKnowledgeRetrievalPreviewService;
-  private readonly retrieval: DrizzleKnowledgeRetrievalService;
 
   constructor(private readonly db: DatabaseInstance) {
     this.preview = new DrizzleKnowledgeRetrievalPreviewService(db);
-    this.retrieval = new DrizzleKnowledgeRetrievalService(db);
   }
 
   async compare(input: KnowledgeRetrievalPreviewInput): Promise<KnowledgeRetrievalComparison> {
@@ -61,14 +78,15 @@ export class DrizzleKnowledgeRetrievalComparisonService implements KnowledgeRetr
       : { scope: { organizationId: input.organizationId } };
     const analysis = analyzeKnowledgeQueryV2(input.queryText);
     const terms = [...analysis.codes, ...analysis.words];
-    const result = await this.retrieval.retrieve({
-      scope: resolved.scope,
-      query: {
+    const { result, suspicious } = await retrieveKnowledgeV2Detailed(
+      this.db,
+      resolved.scope,
+      knowledgeRetrievalQuerySchema.parse({
         queryText: input.queryText,
         topK: input.topK ?? KNOWLEDGE_PREVIEW_DEFAULT_TOP_K,
         retrievalProfile: 'v2',
-      },
-    });
+      }),
+    );
     return {
       trust: 'UNTRUSTED_DATA',
       mode: input.agentId ? 'AGENT' : 'ORGANIZATION',
@@ -79,6 +97,8 @@ export class DrizzleKnowledgeRetrievalComparisonService implements KnowledgeRetr
       truncated: result.truncated,
       retrievalProfile: 'v2',
       aspectsNotFound: result.aspectsNotFound ?? [],
+      suspiciousPassages: suspicious.map((s) => toSuspiciousPassage(s, terms)),
+      ...(result.agentProjection ? { agentProjection: result.agentProjection } : {}),
     };
   }
 }

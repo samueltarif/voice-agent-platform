@@ -1,8 +1,12 @@
 import { createRoute, type OpenAPIHono, z } from '@hono/zod-openapi';
-import { knowledgeRetrievalComparisonHttpBodySchema } from '@voice-agent/contracts';
+import {
+  enforceKnowledgeComparisonProjection,
+  knowledgeRetrievalComparisonHttpBodySchema,
+} from '@voice-agent/contracts';
 import type { ApiDependencies } from '../composition/agent-dependencies.js';
 import { getServiceAuth } from '../auth/service-auth-middleware.js';
 import { authorizeTenant } from '../auth/tenant-authorization.js';
+import { logKnowledgeComparisonAudit } from './knowledge-retrieval-comparison-audit.js';
 
 /**
  * Comparação ADMINISTRATIVA v1 × v2 da busca (DEC-067, PR B1): só OWNER/ADMIN
@@ -40,7 +44,19 @@ export function registerKnowledgeRetrievalComparisonRoutes(
     const body = c.req.valid('json' as never) as z.infer<
       typeof knowledgeRetrievalComparisonHttpBodySchema
     >;
-    const comparison = await service.compare({ organizationId: auth.orgId, ...body });
+    // B2b: a projeção do agente só sai se passar pelo contrato estrito.
+    const { comparison, dropped } = enforceKnowledgeComparisonProjection(
+      await service.compare({ organizationId: auth.orgId, ...body }),
+    );
+    logKnowledgeComparisonAudit(
+      deps.logger,
+      {
+        organizationId: auth.orgId,
+        agentScoped: body.agentId !== undefined,
+        projectionDropped: dropped,
+      },
+      comparison,
+    );
     return c.json(comparison, 200);
   });
 }
