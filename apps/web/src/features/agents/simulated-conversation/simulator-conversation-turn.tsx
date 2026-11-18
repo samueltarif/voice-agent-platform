@@ -14,6 +14,11 @@ const NOTICE: Readonly<
   TOOL_NOT_ENABLED:
     'A ferramenta "Base de Conhecimento" (knowledge.search) não está na versão publicada. Habilite-a no rascunho e publique uma nova versão.',
   TOOL_FAILED: 'A consulta aos documentos falhou. Tente de novo em instantes.',
+  // B2a (DEC-071): só versões com perfil v2 (bloqueado pela plataforma por padrão).
+  ANSWERED_WITH_FACTS:
+    'Busca v2: o agente recebe só fatos técnicos sanitizados, nunca trechos dos documentos.',
+  PROFILE_UNAVAILABLE:
+    'A busca v2 desta versão está indisponível. Nenhum conteúdo dos documentos foi devolvido.',
 };
 
 const NOTICE_STYLE: Readonly<Record<keyof typeof NOTICE, string>> = {
@@ -21,6 +26,9 @@ const NOTICE_STYLE: Readonly<Record<keyof typeof NOTICE, string>> = {
     'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-300',
   TOOL_NOT_ENABLED: 'border-border bg-muted/40 text-muted-foreground',
   TOOL_FAILED:
+    'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950/50 dark:text-rose-300',
+  ANSWERED_WITH_FACTS: 'border-border bg-muted/40 text-muted-foreground',
+  PROFILE_UNAVAILABLE:
     'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950/50 dark:text-rose-300',
 };
 

@@ -1,6 +1,11 @@
 import { z } from 'zod';
 import { KNOWLEDGE_MAX_QUERY_TERMS } from './knowledge-query-terms.js';
 import {
+  KNOWLEDGE_AGENT_PROJECTION_MAX_FACTS,
+  knowledgeTechnicalFactSchema,
+} from './knowledge-agent-projection-contracts.js';
+import { KNOWLEDGE_COMMERCIAL_ASPECTS } from './knowledge-retrieval-contracts.js';
+import {
   KNOWLEDGE_SEARCH_MAX_EXCERPT_CHARS,
   KNOWLEDGE_SEARCH_MAX_RESULTS,
   KNOWLEDGE_SEARCH_MAX_TITLE_CHARS,
@@ -17,6 +22,9 @@ export const SIMULATED_KNOWLEDGE_TURN_OUTCOMES = [
   'NO_EVIDENCE',
   'TOOL_NOT_ENABLED',
   'TOOL_FAILED',
+  // B2a (DEC-071): só versões com perfil `v2` (bloqueadas por padrão).
+  'ANSWERED_WITH_FACTS',
+  'PROFILE_UNAVAILABLE',
 ] as const;
 
 /** Teto da resposta: trechos (≤ 2.000) + títulos + cabeçalhos + termos ausentes. */
@@ -37,6 +45,15 @@ export const simulatedKnowledgeTurnSchema = z
     replyText: z.string().min(1).max(SIMULATED_KNOWLEDGE_REPLY_MAX_CHARS),
     evidence: z.array(simulatedKnowledgeEvidenceSchema).max(KNOWLEDGE_SEARCH_MAX_RESULTS),
     unmatchedTerms: z.array(z.string().min(1).max(64)).max(KNOWLEDGE_MAX_QUERY_TERMS),
+    /** B2a, só perfil `v2`: fatos sanitizados da B2b (nunca trecho de documento). */
+    facts: z
+      .array(knowledgeTechnicalFactSchema)
+      .max(KNOWLEDGE_AGENT_PROJECTION_MAX_FACTS)
+      .optional(),
+    aspectsRequiringAuthorizedSource: z
+      .array(z.enum(KNOWLEDGE_COMMERCIAL_ASPECTS))
+      .max(KNOWLEDGE_COMMERCIAL_ASPECTS.length)
+      .optional(),
   })
   .strict();
 

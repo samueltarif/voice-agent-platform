@@ -1,13 +1,16 @@
 import { and, eq } from 'drizzle-orm';
 import {
   agentConfigurationSnapshotV1Schema,
+  CLOSED_KNOWLEDGE_PROFILE_POLICY,
   type CommercialPublicationPolicy,
+  type KnowledgeProfilePolicy,
 } from '@voice-agent/contracts';
 import { InvalidStateTransitionError, NotFoundError } from '@voice-agent/errors';
 import type { DatabaseInstance } from '../client/connection.js';
 import { agents, agentVersions } from '../schema/agents.js';
 import { auditLogs } from '../schema/audit.js';
 import type { DatabaseExecutor } from './database-executor.js';
+import { assertKnowledgeProfilePublication } from './agent-knowledge-profile-guard.js';
 
 export interface PublishDraftInput {
   organizationId: string;
@@ -21,6 +24,8 @@ export class AgentPublicationService {
   constructor(
     private readonly db: DatabaseInstance,
     private readonly publicationPolicy: CommercialPublicationPolicy,
+    /** B2a: travas da plataforma; padrão FECHADO (nenhuma organização liberada). */
+    private readonly knowledgeProfilePolicy: KnowledgeProfilePolicy = CLOSED_KNOWLEDGE_PROFILE_POLICY,
   ) {}
 
   private async assertCanPublish(tx: DatabaseExecutor, input: PublishDraftInput, at: Date) {
@@ -65,15 +70,20 @@ export class AgentPublicationService {
       );
     }
 
-    agentConfigurationSnapshotV1Schema.parse(draft.configuration);
-    return draft;
+    const snapshot = agentConfigurationSnapshotV1Schema.parse(draft.configuration);
+    const knowledgeRetrievalProfile = assertKnowledgeProfilePublication(
+      this.knowledgeProfilePolicy,
+      { organizationId: input.organizationId, agentId: input.agentId, versionId: draft.id },
+      snapshot,
+    );
+    return { draft, knowledgeRetrievalProfile };
   }
 
   async publishDraft(input: PublishDraftInput) {
     const at = input.at ?? new Date();
 
     return this.db.transaction(async (tx) => {
-      const draft = await this.assertCanPublish(tx, input, at);
+      const { draft, knowledgeRetrievalProfile } = await this.assertCanPublish(tx, input, at);
 
       const [existingPublished] = await tx
         .select({ id: agentVersions.id })
@@ -117,6 +127,7 @@ export class AgentPublicationService {
           versionId: published!.id,
           versionNumber: draft.versionNumber,
           previousPublishedVersionId: existingPublished?.id ?? null,
+          knowledgeRetrievalProfile,
         }),
         createdAt: at,
       });

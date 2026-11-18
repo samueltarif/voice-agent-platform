@@ -96,3 +96,5 @@ A PR A **não está pronta para exposição pública** enquanto não forem atend
 - **B2e:** opcional, não autorizada. **B3:** não autorizada.
 - A v2 **não está ativa em nenhum agente**; o Qualitec v4 e os demais agentes seguem na v1, e `knowledge.search` não está ligado à telefonia real.
 - Antes de qualquer ativação: recall@3 do corpus adversarial (0,917 dev e 0,909 holdout) abaixo da meta de 0,95; fato técnico falso sem instrução hostil depende de governança (etapa E); avaliação adversarial não totalmente independente; desempenho medido só com corpus sintético; v1 sem as proteções da B2b. Resultado de corpus não é garantia contra ataques.
+
+**Atualização em 18/11/2026 (B2a):** a B2a foi autorizada (DEC-071) e está em revisão: perfil `knowledge.retrievalProfile` na versão publicada, travas da plataforma (lista de organizações vazia + chave desligada) e falha controlada. **Nenhum agente usa a v2**, nem depois do merge. B2c, B2d, B2e e B3 continuam não autorizadas.

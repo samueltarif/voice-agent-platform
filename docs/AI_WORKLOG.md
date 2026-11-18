@@ -19671,3 +19671,19 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **PENDÊNCIAS**: v2 não ativa em agentes; Qualitec v4 e demais agentes na v1, sem republicação; `knowledge.search` fora da telefonia real; recall@3 adversarial 0,917 (dev) e 0,909 (holdout), abaixo da meta de 0,95; fato técnico falso sem instrução hostil depende de governança; avaliação adversarial não totalmente independente; desempenho só com corpus sintético; v1 sem as proteções da B2b.
 - **SAFETY**: só documentação; nenhum código, teste, contrato, migration ou configuração alterado; nenhum banco tocado; sem serviços pagos.
 
+## 2026-11-18 — B2a — Perfil de busca na versão publicada, travas e falha controlada (DEC-071) — Claude
+
+- **AUTORIZAÇÃO** (13:15): somente a B2a, conforme `claude/KNOWLEDGE_PR_B2A_PLAN.md` (D-B2a-1 a D-B2a-5; tempo limite de 2 s só no turno simulado v2). B2c, B2d, B2e, B3 e ativação da v2 em agentes NÃO autorizadas.
+- **BRANCH**: `feat/knowledge-b2a-retrieval-profile`, a partir da `origin/main` `ef9640e`, em worktree separado.
+- **IMPLEMENTAÇÃO** (ver DEC-071 e desenho §8):
+  - campo opcional no snapshot e regras puras;
+  - travas no rascunho e na publicação, com papel lido do banco e comparação com o rascunho persistido;
+  - lista de organizações vazia e chave desligada;
+  - ramo v2 de `knowledge.search` só com a projeção da B2b;
+  - limite de concorrência e tempo limite;
+  - turno simulado v2 mínimo;
+  - logs sem conteúdo.
+  - Arquivos da v1 (`knowledge-search-tool.ts`, `knowledge-turn.ts`) não foram alterados.
+- **TESTES**: novos casos de contratos, regras, limitador, ferramenta v2, turno v2, política, rascunho e publicação (serviço e HTTP), turno simulado por perfil com o corpus hostil da B2b, isolamento da voz e guarda de pontos de entrada da v2. Nenhum teste existente alterado; nenhum skip novo.
+- **SAFETY**: só bancos `of2_test_*`; nenhuma migration; Qualitec, `voice_agent_pr157_test` e agente v4 intocados; sem serviços pagos; `knowledge.search` sem ligação com a telefonia; nenhuma organização na lista de liberação.
+
