@@ -217,6 +217,7 @@ A DEC-067, a DEC-068 e `docs/architecture/KNOWLEDGE_RETRIEVAL_V2_DESIGN.md` est�
 
 - **B2a, B2c e B2d:** próximas etapas, **NÃO autorizadas**. **B2e:** opcional, NÃO autorizada. **B3:** NÃO autorizada. A `v2` continua exclusiva da comparação administrativa, e nenhum agente a usa.
 - **Atualização de 18/11/2026 (~13h15): B2a AUTORIZADA e EM REVISÃO** (DEC-071). Perfil `knowledge.retrievalProfile` na versão, travas da plataforma (lista versionada **vazia** + chave `KNOWLEDGE_V2_AGENT_RUNTIME` desligada) e falha controlada. Está em PR aberta da branch `feat/knowledge-b2a-retrieval-profile`, sem merge; gate Windows pendente (operador). **Mesmo integrada, a B2a deixa a v2 bloqueada para todos os agentes.** B2c, B2d, B2e e B3 continuam NÃO autorizadas.
+- **Atualização de 18/11/2026 (~17h): B2c — ETAPA 1 publicada e conferida; ETAPA 2 AUTORIZADA e EM REVISÃO** (DEC-072). Rótulos M2/M3 congelados no commit `a95a1e1` (SHA-256 `4c65699ee81064bf5db60e2b7513f6a37199c18e74b8fb40948c07dd50775dbe`), conferidos pelo operador antes de qualquer código. Compositor determinístico da fala só para o **turno simulado v2**, em PR aberta da branch `test/knowledge-b2c-truth-labels`, sem merge; gate Windows e auditoria independente pendentes. **A v2 continua bloqueada para todos os agentes** (lista vazia, chave desligada). B2d, B2e, B3, telefonia e ativação continuam NÃO autorizadas.
 - **Planejamento original (17/11/2026), mantido como histórico:**
 
 - Perfil `knowledge.retrievalProfile` opcional na versão publicada. **Ausente = `v1`**, preservando o Qualitec v4.
