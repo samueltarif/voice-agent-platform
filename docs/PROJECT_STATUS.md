@@ -1,6 +1,6 @@
 # Voice Agent Platform — Estado vivo do projeto
 
-> **Última verificação no repositório:** 18/11/2026, por volta das 08h05 (horário de Brasília), contra a `origin/main` `e36e65a273bdef2c46eb0b5243bba7c2400cd06b` (merge da #167) e a API de PRs do GitHub. Verificações anteriores: 17/11/2026 às 14h10, 14h35 e 17h00.
+> **Última verificação no repositório:** 18/11/2026, por volta das 12h30 (horário de Brasília), contra a `origin/main` `4806defb33e1736249e6fba8f2ee931c0d961565` (merge da #170, B2b) e a API de PRs do GitHub. Verificações anteriores: 18/11/2026 às 08h05 (`e36e65a`, merge da #167); 17/11/2026 às 14h10, 14h35 e 17h00.
 > Este é um documento de acompanhamento e **não prova o estado em tempo real**. Antes de afirmar status atual, confira Git, PRs e decisões. Em caso de divergência, Git, código, testes observados e `docs/DECISIONS_LOG.md` prevalecem.
 > **Regra de leitura:** distinga sempre INTEGRADO, TESTADO, AUTORIZADO, PLANEJADO, PENDENTE e NÃO VALIDADO. Um plano não é código entregue, e um gate verde não é produto pronto.
 
@@ -58,6 +58,7 @@ SaaS multiempresa de agentes de voz:
 | #166 (A2) | INTEGRADA | `317a976` | `c31cd4a` | PDF com texto pesquisável, sem OCR; extração em processo filho (DEC-066) |
 | #167 (B1) | **INTEGRADA e TESTADA** | `5c8b164` | `e36e65a` | Busca v2 por passagens opt-in + comparação administrativa v1 × v2 (DEC-067, DEC-068). v2 **não ativável em agentes**. Ver §4. |
 | #168 (docs) | INTEGRADA | `2239356` | `9870cc8` | Este painel (`docs/PROJECT_STATUS.md`) e `CLAUDE.md` |
+| #170 (B2b) | **INTEGRADA e TESTADA** | `62bc924` | `4806def` | Proteção contra documentos hostis e projeção sanitizada de fatos técnicos, **só na busca v2** e na comparação administrativa (DEC-069, DEC-070). v2 **não ativada em agentes**. Ver §4. |
 
 **Detalhes conferidos:**
 - **#165:** a árvore do merge `7da5758` é igual à do head `4fc76c6` (`68431416b270…`, conferido com `git rev-parse`).
@@ -70,7 +71,11 @@ SaaS multiempresa de agentes de voz:
 - **#167 (B1):** SHA final da branch `5c8b1644a4ff1e9fd7e013dfef2878d4bced4256`; merge na `main` `e36e65a273bdef2c46eb0b5243bba7c2400cd06b`. As árvores da branch e da `main` são iguais: `bf78de557615e45184d475d689c6af2d20021b14` (conferido com `git rev-parse` em 18/11/2026).
   - O `5c8b164` é o merge da `main` (#168) na branch para resolver um conflito só em `docs/AI_WORKLOG.md`. Seu código funcional é idêntico ao `87331ab`, onde os gates foram executados: zero arquivos fora de `docs/` e `CLAUDE.md` diferem, e as árvores de `apps`, `packages`, `scripts` e dos arquivos do pnpm são as mesmas.
   - Resultados confirmados pelo operador na integração: Linux **2.414 PASS**, Windows **2.414 PASS**, 45 ignorados e 0 falhas em cada; Git limpo após o gate; 0 bancos descartáveis restantes.
-- **`origin/main` na verificação:** `e36e65a` (18/11/2026). **Não presumir que continue sendo a mais recente.**
+- **#170 (B2b):** head aprovado `62bc9240da8e17e8a0e141c0be13de7fcecfd702`; merge na `main` `4806defb33e1736249e6fba8f2ee931c0d961565`. As árvores do head e da `main` são iguais: `d624082138d94271fcc1ac927720a8e9190309d0` (conferido com `git rev-parse` em 18/11/2026).
+  - Gates confirmados pelo operador: Linux **2.579 PASS** (2.102 sem integração + 477 de integração) e Windows **2.579 PASS**, 45 de staging ignorados e 0 falhas em cada.
+  - Banco descartável do gate Windows removido (nenhum `of2_test_*` restante); Git do worktree de validação limpo.
+- **`origin/main` na verificação:** `4806def` (18/11/2026, por volta das 12h30; antes, às 08h05, era `e36e65a`). **Não presumir que continue sendo a mais recente.**
+- **Fase B2b da Base de Conhecimento:** INTEGRADA e TESTADA (#170). A proteção contra documentos hostis e a projeção sanitizada de fatos técnicos existem **só na busca `v2`**, que continua disponível apenas na comparação administrativa (OWNER/ADMIN). Nenhum agente publicado usa a `v2`.
 - **Fase B1 da Base de Conhecimento:** INTEGRADA e TESTADA (#167). A busca `v2` existe só na comparação administrativa e **não pode ser ativada em agentes** antes das proteções da B2 e de nova autorização (ver §4).
 - **Fase A da Base de Conhecimento:** INTEGRADA e TESTADA. O upload de arquivos **não está autorizado para exposição pública** (ver §7 e `docs/SECURITY.md` §11).
 
@@ -187,11 +192,30 @@ A DEC-067, a DEC-068 e `docs/architecture/KNOWLEDGE_RETRIEVAL_V2_DESIGN.md` est�
 - desempenho e corpus medidos só com dados sintéticos;
 - a precisão DIRECT (94,4%) e os aspectos (71,4%) não atingiram as metas; todas as falhas residuais vêm do documento com instruções hostis.
 
-### B2 — plano aprovado como diretriz (18/11/2026); só a **B2b** AUTORIZADA e EM REVISÃO
+### B2 — plano aprovado como diretriz (18/11/2026); **B2b INTEGRADA e TESTADA**; demais partes NÃO autorizadas
 
-- **B2b** (DEC-069): proteção contra documentos hostis e autoridade comercial, **só** na busca v2 e na comparação administrativa (OWNER/ADMIN). Está em PR aberta da branch `feat/knowledge-b2b-hostile-protection`, sem merge.
-- **Revisão da B2b** (DEC-070, 18/11/2026): corpus adversarial congelado com holdout, intenção comercial em pt-BR, vocabulário técnico por setor e verificação de todos os campos da projeção. Na mesma PR #170, sem merge; gate Windows pendente (operador).
-- **B2a, B2c, B2d, B2e e B3:** NÃO autorizadas. A `v2` continua exclusiva da comparação administrativa, e nenhum agente a usa.
+**Atualização de 18/11/2026 (~12h30):** a B2b foi integrada pela PR #170 (head `62bc924`, merge `4806def`, árvores iguais `d6240821…`), com gates Linux e Windows de 2.579 PASS cada, 45 ignorados e 0 falhas. As duas linhas abaixo, de quando a PR estava em revisão, ficam como histórico.
+
+- **B2b** (DEC-069): proteção contra documentos hostis e autoridade comercial, **só** na busca v2 e na comparação administrativa (OWNER/ADMIN). ~~Está em PR aberta da branch `feat/knowledge-b2b-hostile-protection`, sem merge.~~ Integrada (#170).
+- **Revisão da B2b** (DEC-070, 18/11/2026): corpus adversarial congelado com holdout, intenção comercial em pt-BR, vocabulário técnico por setor e verificação de todos os campos da projeção. ~~Na mesma PR #170, sem merge; gate Windows pendente (operador).~~ Integrada na mesma PR #170; gate Windows aprovado pelo operador.
+
+**O que a B2b entregou (só na `v2`, só na comparação administrativa):**
+- detector auxiliar de conteúdo hostil e exclusão total das passagens marcadas;
+- projeção destinada ao agente com fatos técnicos estruturados, cada um com sua fonte, valores remontados por gramática fechada e vocabulário técnico por setor;
+- autoridade comercial: preço, estoque, prazo, desconto, pagamento e garantia nunca saem de documentos; quando pedidos, aparecem como aspectos que exigem fonte autorizada;
+- API e BFF repassam a projeção só se ela passar pelo contrato estrito.
+
+**Pendências e riscos que continuam valendo:**
+- A `v2` **não está ativa em nenhum agente publicado**. O Qualitec v4 e os demais agentes continuam na `v1`, sem republicação.
+- `knowledge.search` **não está ligado ao runtime de telefonia real**.
+- No corpus adversarial da B2b, o recall@3 foi **0,917 no desenvolvimento e 0,909 no holdout**, abaixo da meta de **0,95** para uma futura ativação.
+- Um documento com **fato técnico falso, sem instrução hostil**, ainda pode contaminar a informação. Isso depende de governança documental (etapa E).
+- A avaliação adversarial **não foi totalmente independente**: o mesmo autor escreveu o corpus e as regras.
+- As medições de desempenho ainda dependem de **corpus sintético**.
+- A **`v1` continua sem as proteções da B2b**, para preservar a compatibilidade.
+- **Resultado de corpus não é garantia** contra ataques: o detector reconheceu só 1 de 20 ataques desconhecidos, contidos pelas outras camadas.
+
+- **B2a, B2c e B2d:** próximas etapas, **NÃO autorizadas**. **B2e:** opcional, NÃO autorizada. **B3:** NÃO autorizada. A `v2` continua exclusiva da comparação administrativa, e nenhum agente a usa.
 - **Planejamento original (17/11/2026), mantido como histórico:**
 
 - Perfil `knowledge.retrievalProfile` opcional na versão publicada. **Ausente = `v1`**, preservando o Qualitec v4.
@@ -306,7 +330,7 @@ Componentes de campanha e billing existem no código, mas a operação comercial
 ## 9. Prioridades acordadas
 
 1. ~~Integrar a **B1** (#167)~~ — **concluído em 18/11/2026** (merge `e36e65a`). A `v2` segue só na comparação administrativa.
-2. Revisar a **B2b** (DEC-069) e decidir as próximas partes da B2 (B2a, B2c, B2d). **B2a, B2c, B2d, B2e e B3 não estão autorizadas.** Só depois delas se discute ativar a `v2` em agentes, com nova autorização.
+2. ~~Revisar a **B2b** (DEC-069)~~ — **integrada em 18/11/2026** (#170, merge `4806def`; DEC-069 e DEC-070). Decidir as próximas partes da B2 (B2a, B2c, B2d). **B2a, B2c, B2d, B2e e B3 não estão autorizadas.** Só depois delas se discute ativar a `v2` em agentes, com nova autorização.
 3. Planejar a **I1** e fazer I2/I3 **somente leitura**.
 4. Executar **testes reais de ligações** em ambiente controlado e autorizado.
 5. Concluir segurança, infraestrutura de produção e ciclo comercial, e fazer um piloto.

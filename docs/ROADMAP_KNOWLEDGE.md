@@ -89,3 +89,10 @@ A PR A **não está pronta para exposição pública** enquanto não forem atend
 **Atualização em 18/11/2026 (B2):** a B1 foi integrada (#167). O plano da B2 (`claude/KNOWLEDGE_PR_B2_PLAN.md`, revisão 2) foi aprovado como diretriz.
 - **B2b** (autorizada; DEC-069): proteção contra documentos hostis e autoridade comercial, **só** na busca v2 e na comparação administrativa.
 - **B2a, B2c, B2d, B2e e B3:** não autorizadas.
+
+**Atualização em 18/11/2026 (B2b concluída):** a B2b foi integrada pela PR #170 (head `62bc924`, merge `4806def`; DEC-069 e DEC-070), com gates Linux e Windows aprovados (2.579 PASS cada, 45 ignorados, 0 falhas).
+- **B2b: CONCLUÍDA.** A proteção contra documentos hostis e a projeção sanitizada de fatos técnicos existem **só na busca v2**, disponível apenas na comparação administrativa (OWNER/ADMIN).
+- **Próximas etapas, NÃO autorizadas:** B2a (perfil no snapshot, travas e falha controlada), B2c (compositor de voz) e B2d (seletor e simulação).
+- **B2e:** opcional, não autorizada. **B3:** não autorizada.
+- A v2 **não está ativa em nenhum agente**; o Qualitec v4 e os demais agentes seguem na v1, e `knowledge.search` não está ligado à telefonia real.
+- Antes de qualquer ativação: recall@3 do corpus adversarial (0,917 dev e 0,909 holdout) abaixo da meta de 0,95; fato técnico falso sem instrução hostil depende de governança (etapa E); avaliação adversarial não totalmente independente; desempenho medido só com corpus sintético; v1 sem as proteções da B2b. Resultado de corpus não é garantia contra ataques.

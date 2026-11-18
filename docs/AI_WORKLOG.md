@@ -19662,3 +19662,12 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **RESULTADOS**: ver DEC-070 (antes → depois).
 - **SAFETY**: só bancos `of2_test_*`; nenhuma migration; Qualitec, `voice_agent_pr157_test` e agente v4 intocados; sem serviços pagos; v1 inalterada; v2 só na comparação administrativa.
 
+## 2026-11-18 — Registro da integração da B2b (PR #170) — Claude
+
+- **PEDIDO** (12:27): PR exclusivamente documental para registrar a integração da B2b. Sem testes nem gates novos.
+- **ESTADO INFORMADO PELO OPERADOR**: PR #170 MERGED; merge `4806defb33e1736249e6fba8f2ee931c0d961565`; head aprovado `62bc9240da8e17e8a0e141c0be13de7fcecfd702`; gates Linux e Windows com 2.579 PASS cada (2.102 + 477), 45 de staging ignorados e 0 falhas; banco descartável do gate Windows removido; Git do worktree de validação limpo.
+- **CONFERIDO NESTA SESSÃO**: `origin/main` = `4806def`; o head `62bc924` é ancestral da `main`; árvores de `4806def` e `62bc924` iguais (`d624082138d94271fcc1ac927720a8e9190309d0`, via `git rev-parse`); API do GitHub: #170 `merged=true`, `merge_commit_sha` `4806def`.
+- **REGISTRADO**: `docs/PROJECT_STATUS.md` (B2b INTEGRADA e TESTADA, pendências e riscos) e `docs/ROADMAP_KNOWLEDGE.md` (B2b concluída; B2a, B2c e B2d não autorizadas; B2e opcional; B3 não autorizada). Nenhuma decisão nova: DEC-069 e DEC-070 cobrem o assunto.
+- **PENDÊNCIAS**: v2 não ativa em agentes; Qualitec v4 e demais agentes na v1, sem republicação; `knowledge.search` fora da telefonia real; recall@3 adversarial 0,917 (dev) e 0,909 (holdout), abaixo da meta de 0,95; fato técnico falso sem instrução hostil depende de governança; avaliação adversarial não totalmente independente; desempenho só com corpus sintético; v1 sem as proteções da B2b.
+- **SAFETY**: só documentação; nenhum código, teste, contrato, migration ou configuração alterado; nenhum banco tocado; sem serviços pagos.
+
