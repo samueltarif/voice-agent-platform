@@ -1,6 +1,12 @@
 import { z } from 'zod';
 import { knowledgeSourceTypeSchema } from './knowledge-document-contracts.js';
 import { KNOWLEDGE_COMMERCIAL_ASPECTS } from './knowledge-retrieval-contracts.js';
+import {
+  KNOWLEDGE_TECHNICAL_ATTRIBUTES,
+  KNOWLEDGE_TECHNICAL_MATERIALS,
+  KNOWLEDGE_TECHNICAL_UNITS,
+  type KnowledgeTechnicalAttribute,
+} from './knowledge-technical-vocabulary-contracts.js';
 
 /**
  * Projeção da busca v2 DESTINADA AO AGENTE (B2b, DEC-069). Nunca leva texto
@@ -11,66 +17,8 @@ import { KNOWLEDGE_COMMERCIAL_ASPECTS } from './knowledge-retrieval-contracts.js
  * Valores comerciais (preço, estoque, prazo, desconto, pagamento, políticas)
  * nunca aparecem: pedidos assim vão em `aspectsRequiringAuthorizedSource`.
  * Hoje só a comparação administrativa a exibe; nenhum agente a recebe.
+ * Atributos, unidades e materiais: `knowledge-technical-vocabulary-contracts.ts`.
  */
-export const KNOWLEDGE_TECHNICAL_ATTRIBUTES = [
-  'PRESSURE',
-  'PRESSURE_RANGE',
-  'TEMPERATURE',
-  'TEMPERATURE_RANGE',
-  'OUTPUT_SIGNAL',
-  'SUPPLY_VOLTAGE',
-  'VOLTAGE',
-  'CURRENT',
-  'POWER',
-  'FREQUENCY',
-  'ACCURACY',
-  'DIMENSION',
-  'CABLE_SECTION',
-  'POLES',
-  'SPEED',
-  'MATERIAL',
-  'PROTECTION_RATING',
-  'CONNECTION',
-] as const;
-export type KnowledgeTechnicalAttribute = (typeof KNOWLEDGE_TECHNICAL_ATTRIBUTES)[number];
-
-export const KNOWLEDGE_TECHNICAL_UNITS = [
-  'bar',
-  'psi',
-  'kPa',
-  'MPa',
-  '°C',
-  'mA',
-  'A',
-  'V',
-  'Vcc',
-  'Vca',
-  'W',
-  'kW',
-  'cv',
-  'Hz',
-  '%',
-  'mm',
-  'm',
-  'mm²',
-  'polos',
-  'rpm',
-] as const;
-
-export const KNOWLEDGE_TECHNICAL_MATERIALS = [
-  'aço inox 316',
-  'aço inox 304',
-  'aço carbono',
-  'ferro fundido',
-  'latão',
-  'bronze',
-  'alumínio',
-  'cobre',
-  'PVC',
-  'PTFE',
-  'polipropileno',
-] as const;
-
 const NUMBER = String.raw`-?\d{1,6}(?:[.,]\d{1,4})?`;
 const escapeUnit = (u: string) => u.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const NUMERIC_VALUE = new RegExp(
@@ -134,3 +82,21 @@ export const knowledgeAgentProjectionSchema = z
   })
   .strict();
 export type KnowledgeAgentProjection = z.infer<typeof knowledgeAgentProjectionSchema>;
+
+/**
+ * Defesa em profundidade (API e BFF): a projeção do agente só sai se passar
+ * pelo contrato ESTRITO. Campo extra, valor fora da gramática ou texto livre
+ * derrubam a projeção inteira (nunca há "correção" parcial). Devolve também se
+ * algo foi descartado, para auditoria sem conteúdo.
+ */
+export function enforceKnowledgeComparisonProjection<T>(comparison: T): {
+  readonly comparison: T;
+  readonly dropped: boolean;
+} {
+  const v2 = (comparison as { v2?: Record<string, unknown> } | null)?.v2;
+  if (!v2 || !('agentProjection' in v2)) return { comparison, dropped: false };
+  const parsed = knowledgeAgentProjectionSchema.safeParse(v2.agentProjection);
+  const rest = Object.fromEntries(Object.entries(v2).filter(([k]) => k !== 'agentProjection'));
+  const safeV2 = parsed.success ? { ...rest, agentProjection: parsed.data } : rest;
+  return { comparison: { ...comparison, v2: safeV2 }, dropped: !parsed.success };
+}

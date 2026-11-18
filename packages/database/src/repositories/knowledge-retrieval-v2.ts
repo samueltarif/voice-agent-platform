@@ -1,11 +1,14 @@
 import {
   type KnowledgeAccessScope,
+  type KnowledgeCommercialAspect,
   type KnowledgeRetrievalQuery,
   type KnowledgeRetrievalResult,
+  KNOWLEDGE_COMMERCIAL_ASPECTS,
   KNOWLEDGE_RETRIEVAL_MAX_TOP_K,
 } from '@voice-agent/contracts';
 import type { DatabaseInstance } from '../client/connection.js';
 import { analyzeKnowledgeQueryV2 } from './knowledge-query-analysis-v2.js';
+import { detectCommercialIntent } from './knowledge-commercial-intent.js';
 import { extractKnowledgeQueryTerms } from './knowledge-query-terms.js';
 import { evaluatePassagesV2 } from './knowledge-passage-evaluation-v2.js';
 import { preselectChunksV2 } from './knowledge-chunk-preselection-v2.js';
@@ -58,6 +61,19 @@ export interface KnowledgeRetrievalV2Detailed {
  * ÚNICA saída pensada para um agente; `suspicious` nunca deve sair da
  * comparação administrativa.
  */
+/**
+ * Aspectos que exigem fonte comercial autorizada na projeção do agente: os da
+ * análise (que também orientam o ranking) MAIS a intenção comercial por formas
+ * verbais e coloquiais. O ranking e a evidência continuam só com a análise.
+ */
+function projectionAspects(
+  analyzed: readonly KnowledgeCommercialAspect[],
+  queryText: string,
+): KnowledgeCommercialAspect[] {
+  const merged = new Set([...analyzed, ...detectCommercialIntent(queryText)]);
+  return KNOWLEDGE_COMMERCIAL_ASPECTS.filter((aspect) => merged.has(aspect));
+}
+
 export async function retrieveKnowledgeV2Detailed(
   db: DatabaseInstance,
   scope: KnowledgeAccessScope,
@@ -91,7 +107,7 @@ export async function retrieveKnowledgeV2Detailed(
   const agentProjection = buildAgentProjectionV2({
     direct: evaluated.directPassages.slice(0, topK),
     codes: analysis.codes,
-    aspects: analysis.aspects,
+    aspects: projectionAspects(analysis.aspects, query.queryText),
     unmatchedTerms: evaluated.unmatchedTerms,
     withheldUntrusted: evaluated.suspicious.length,
     truncated,

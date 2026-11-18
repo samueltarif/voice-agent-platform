@@ -84,6 +84,15 @@ Plano aprovado: `claude/KNOWLEDGE_PR_B2_PLAN.md` (revisão 2; D-B2-1 a D-B2-5, D
 
 **Ainda não feito (fora da B2b):** perfil no snapshot, travas, falha controlada (B2a); compositor de voz (B2c); seletor e simulação (B2d). Envenenamento técnico (fato falso sem instrução) não é detectável: depende de governança (PR E).
 
+### 6.1 Revisão da B2b (DEC-070)
+
+- **Corpus congelado** (`knowledge-adversarial-corpus.ts`, hash verificado por teste): 20 ataques conhecidos, 20 desconhecidos pelo detector (holdout), 22 perguntas técnicas de vários setores, 10 variações comerciais e 20 parágrafos legítimos com palavras-gatilho. A medição "antes" foi commitada antes de qualquer ajuste.
+- **Métricas separadas**: sucesso do ataque, reconhecimento pelo detector, vazamento de texto bruto, vazamento de valor comercial, falsos positivos, perda de fatos técnicos e aspectos comerciais listados, cada uma com dev e holdout.
+- **Detector `b2b-2`**: papel atribuído ("você é o diretor…"); marcador de papel só seguido de vocabulário de instrução ("Sistema: hidráulico fechado" é técnico); "prompt" só como alvo de revelação ("Prompt de configuração do inversor" é técnico).
+- **Intenção comercial em pt-BR** (`knowledge-commercial-intent.ts`): famílias de formas verbais e coloquiais ("parcelam", "como eu pago", "quanto cobram", "em quantos dias chega", "pronta entrega"). Serve só para `aspectsRequiringAuthorizedSource`; não muda ranking nem evidência. Formas com sentido técnico exigem contexto ("entrega sinal de 4-20 mA" e "chega a 16 bar" não contam).
+- **Vocabulário por setor** (`knowledge-technical-vocabulary-contracts.ts`, `b2b-vocab-2`): cada setor declara atributos e unidades; um setor novo exige mudança de código revisada, nunca configuração de cliente ou texto de documento.
+- **Defesa em profundidade**: API e BFF repassam a projeção só se ela passar pelo contrato estrito; senão ela é descartada inteira. A ferramenta `knowledge.search` e a simulação (v1) nunca carregam campos da v2.
+
 ### Desenho original das D-RB6/D-RB7 (B1; mantido como histórico)
 
 ### D-RB6 — resposta de voz com passagens

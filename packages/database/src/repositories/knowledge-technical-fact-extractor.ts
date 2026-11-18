@@ -1,6 +1,7 @@
 import {
   isKnowledgeTechnicalValue,
   KNOWLEDGE_PRODUCT_CODE_PATTERN,
+  KNOWLEDGE_TECHNICAL_SECTORS,
   type KnowledgeTechnicalAttribute,
 } from '@voice-agent/contracts';
 import { foldKnowledgeText } from './knowledge-query-terms.js';
@@ -24,8 +25,9 @@ const COMMERCIAL =
   /(r\$|us\$|€|\bpreco|\bvalor|\bcust[ao]|desconto|abatimento|promoc|parcel|pagamento|a vista|\bjuros|estoque|\bunidades\b|\bprazo|\bentrega|\bfrete|garantia|dias uteis|\bcupom|\bgratis|gratuit|\bpor cento\b)/;
 
 const NUM = String.raw`-?\d{1,6}(?:[.,]\d{1,4})?`;
+// Mais longas primeiro ("m³/h" antes de "m", "kVA" antes de "V").
 const UNIT =
-  '(mm²|mm2|°C|ºC|kPa|MPa|bar|psi|mA|Vcc|Vca|Vdc|Vac|VCC|VCA|kW|cv|CV|Hz|rpm|polos|mm|W|V|A|m|%)';
+  '(BTU/h|Btu/h|m³/h|m3/h|L/min|l/min|L/h|l/h|mm²|mm2|°C|ºC|kPa|MPa|kVA|mca|bar|psi|mA|Vcc|Vca|Vdc|Vac|VCC|VCA|kW|kg|cv|CV|Hz|dB|rpm|polos|mm|W|V|A|m|%)';
 const NUMERIC = new RegExp(
   `(?<![\\p{L}\\p{N}.,])(${NUM})(?:\\s*(?:a|até|-|–|to)\\s*(${NUM}))?\\s?${UNIT}(?![\\p{L}\\p{N}²])`,
   'gu',
@@ -38,6 +40,10 @@ const UNIT_ALIASES: Readonly<Record<string, string>> = {
   Vac: 'Vca',
   VCA: 'Vca',
   CV: 'cv',
+  'Btu/h': 'BTU/h',
+  'm3/h': 'm³/h',
+  'l/min': 'L/min',
+  'l/h': 'L/h',
 };
 
 const MATERIALS: ReadonlyArray<readonly [RegExp, string]> = [
@@ -54,18 +60,11 @@ const MATERIALS: ReadonlyArray<readonly [RegExp, string]> = [
   [/\bpolipropileno\b/, 'polipropileno'],
 ];
 
-const SIMPLE_UNITS: Readonly<Record<string, KnowledgeTechnicalAttribute>> = {
-  A: 'CURRENT',
-  W: 'POWER',
-  kW: 'POWER',
-  cv: 'POWER',
-  Hz: 'FREQUENCY',
-  mm: 'DIMENSION',
-  m: 'DIMENSION',
-  'mm²': 'CABLE_SECTION',
-  polos: 'POLES',
-  rpm: 'SPEED',
-};
+/** Unidades de atributo fixo, vindas dos setores do vocabulário fechado. */
+const SIMPLE_UNITS: Readonly<Record<string, KnowledgeTechnicalAttribute>> = Object.assign(
+  {},
+  ...Object.values(KNOWLEDGE_TECHNICAL_SECTORS).map((sector) => sector.unitAttributes),
+);
 
 type Picker = (seg: string, range: boolean) => KnowledgeTechnicalAttribute | null;
 

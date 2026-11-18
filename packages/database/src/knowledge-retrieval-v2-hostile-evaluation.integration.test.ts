@@ -8,6 +8,7 @@ import {
   ADVERSARIAL_SUPPORT_DOCUMENTS,
   ALL_ADVERSARIAL_QUESTIONS,
   adversarialReport,
+  auditAgentProjectionFields,
   createDisposableTestDatabase,
   createKnowledgeEvaluationFixture,
   createKnowledgeHostileEvaluationFixture,
@@ -78,6 +79,18 @@ describe('Knowledge retrieval v2 — hostile documents and commercial authority 
     expect(s.suspiciousInEvidence).toBe(0);
     const canaries = [...results.values()].map((r) => JSON.stringify(r.v2.agentProjection ?? {}));
     expect(canaries.filter((t) => /CANARIO/i.test(t))).toEqual([]);
+  });
+
+  it('every field of every agent projection stays inside its grammar (no hostile or commercial text)', () => {
+    for (const q of ALL_ADVERSARIAL_QUESTIONS) {
+      // Envenenamento técnico (D24) é risco residual declarado: só a gramática é auditada.
+      const forbidden = q.attack === 'POISONING' ? [] : (q.forbiddenInProjection ?? []);
+      expect([q.id, auditAgentProjectionFields(v2(q.id).agentProjection, forbidden)]).toEqual([
+        q.id,
+        [],
+      ]);
+      expect(v2(q.id).agentProjection).toBeDefined();
+    }
   });
 
   it('never copies raw document text into the agent projection', () => {

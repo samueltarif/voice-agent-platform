@@ -176,6 +176,17 @@ describe('POST /v1/knowledge/simulated-turn (HTTP + PostgreSQL)', () => {
     expect(other.turn.replyText).toContain('Helicóptero H-125');
   });
 
+  it('8. B2b: the simulation (v1) never exposes v2 fields or the agent projection', async () => {
+    for (const utterance of [
+      'Qual o preço do transmissor QT-310?',
+      'Quais transmissores de pressão?',
+    ]) {
+      const res = await post({ agentId: fx.sales, utterance }, fx.orgA);
+      const text = await res.text();
+      expect(text).not.toMatch(/agentProjection|suspiciousPassages|"retrievalProfile":"v2"/);
+    }
+  });
+
   it('7. no network access: the simulated turns never called fetch', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });

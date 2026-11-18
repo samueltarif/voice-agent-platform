@@ -70,3 +70,4 @@ export {
   LEGITIMATE_PARAGRAPHS,
 } from './knowledge-adversarial-evaluation-sets.js';
 export { adversarialReport } from './knowledge-adversarial-evaluation.js';
+export { auditAgentProjectionFields } from './knowledge-projection-field-audit.js';

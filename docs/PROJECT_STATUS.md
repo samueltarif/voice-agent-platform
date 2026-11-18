@@ -190,6 +190,7 @@ A DEC-067, a DEC-068 e `docs/architecture/KNOWLEDGE_RETRIEVAL_V2_DESIGN.md` est�
 ### B2 — plano aprovado como diretriz (18/11/2026); só a **B2b** AUTORIZADA e EM REVISÃO
 
 - **B2b** (DEC-069): proteção contra documentos hostis e autoridade comercial, **só** na busca v2 e na comparação administrativa (OWNER/ADMIN). Está em PR aberta da branch `feat/knowledge-b2b-hostile-protection`, sem merge.
+- **Revisão da B2b** (DEC-070, 18/11/2026): corpus adversarial congelado com holdout, intenção comercial em pt-BR, vocabulário técnico por setor e verificação de todos os campos da projeção. Na mesma PR #170, sem merge; gate Windows pendente (operador).
 - **B2a, B2c, B2d, B2e e B3:** NÃO autorizadas. A `v2` continua exclusiva da comparação administrativa, e nenhum agente a usa.
 - **Planejamento original (17/11/2026), mantido como histórico:**
 

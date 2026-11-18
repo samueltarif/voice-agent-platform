@@ -1,5 +1,8 @@
 import type { NextRequest, NextResponse } from 'next/server';
-import { knowledgeRetrievalComparisonHttpBodySchema } from '@voice-agent/contracts';
+import {
+  enforceKnowledgeComparisonProjection,
+  knowledgeRetrievalComparisonHttpBodySchema,
+} from '@voice-agent/contracts';
 import { forwardKnowledgeManagement } from '../forward-knowledge-management.js';
 
 /**
@@ -14,6 +17,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     apiPath: '/v1/knowledge/retrieval-comparison',
     bodySchema: knowledgeRetrievalComparisonHttpBodySchema,
     fallbackMessage: 'Não foi possível comparar as buscas agora.',
-    wrapResult: (result) => ({ comparison: result }),
+    // B2b: defesa em profundidade — projeção fora do contrato estrito não chega ao navegador.
+    wrapResult: (result) => ({
+      comparison: enforceKnowledgeComparisonProjection(result).comparison,
+    }),
   });
 }

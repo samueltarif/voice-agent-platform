@@ -18,12 +18,18 @@ function v2Counts(v2: KnowledgeRetrievalComparison['v2']) {
 
 export function logKnowledgeComparisonAudit(
   logger: Logger,
-  input: { readonly organizationId: string; readonly agentScoped: boolean },
+  input: {
+    readonly organizationId: string;
+    readonly agentScoped: boolean;
+    /** Projeção fora do contrato estrito descartada antes da resposta. */
+    readonly projectionDropped?: boolean;
+  },
   comparison: KnowledgeRetrievalComparison,
 ): void {
   logger.info('knowledge.retrieval_comparison', {
     organizationId: input.organizationId,
     agentScoped: input.agentScoped,
+    v2ProjectionDropped: input.projectionDropped ?? false,
     v1Hits: comparison.v1.hits.length,
     v2Hits: comparison.v2.hits.length,
     v2SuspiciousPassages: comparison.v2.suspiciousPassages?.length ?? 0,

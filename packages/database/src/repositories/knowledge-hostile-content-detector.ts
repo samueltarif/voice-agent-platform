@@ -10,7 +10,7 @@ import { foldKnowledgeText } from './knowledge-query-terms.js';
  * Padrões exigem verbo + alvo (instruções, assistente, regras), para não marcar
  * texto técnico legítimo ("ignore o primeiro alarme", "sistema de vedação").
  */
-export const KNOWLEDGE_HOSTILE_DETECTOR_VERSION = 'b2b-1' as const;
+export const KNOWLEDGE_HOSTILE_DETECTOR_VERSION = 'b2b-2' as const;
 
 export type HostileSignal = KnowledgeHostileSignal;
 
@@ -30,7 +30,7 @@ const PATTERNS: ReadonlyArray<readonly [HostileSignal, RegExp]> = [
   ['ASSISTANT_COMMAND', /\ba partir de agora\b.{0,60}\b(voce|vc)\b/],
   [
     'ASSISTANT_COMMAND',
-    /\b(voce|vc) (agora )?(e|sera|deve ser) (o|a|um|uma) (assistente|gerente|vendedor|atendente|agente|robo|ia)\b/,
+    /\b(voce|vc) (agora )?(e|sera|deve ser) (o|a|um|uma) (assistente|gerente|diretor\w*|supervisor\w*|dono|vendedor\w*|atendente|agente|robo|ia)\b/,
   ],
   [
     'ASSISTANT_COMMAND',
@@ -40,11 +40,22 @@ const PATTERNS: ReadonlyArray<readonly [HostileSignal, RegExp]> = [
     'ASSISTANT_COMMAND',
     /\b(assistente|agente virtual|atendente virtual|chatbot|modelo de linguagem|inteligencia artificial)\b.{0,30}\b(deve|devera|precisa|tem que)\b/,
   ],
-  // Só no início de linha ou frase: "energizar o sistema: ele indica…" é texto técnico.
-  ['ROLE_MARKER', /(^|[.!?] )(sistema|system|assistente|assistant|developer|desenvolvedor) ?:/],
+  // Só no início de linha ou frase E seguido de vocabulário de instrução:
+  // "energizar o sistema: ele indica…" e "Sistema: hidráulico fechado" são texto técnico.
   [
     'ROLE_MARKER',
-    /<\|[^|]{0,20}\|>|\[\/?inst\]|\bsystem prompt\b|\bprompt\b|\binstrucoes do sistema\b/,
+    /(^|[.!?] )(sistema|system|assistente|assistant|developer|desenvolvedor) ?:.{0,60}\b(regras?|instruc\w*|orientac\w*|diretriz\w*|atendimento|clientes?|responda|diga|informe|ignore|revele|reveal|you|voce|novas?|new|modo|mode|prompt)\b/,
+  ],
+  [
+    'ROLE_MARKER',
+    /<\|[^|]{0,20}\|>|\[\/?inst\]|\bsystem prompt\b|\binstrucoes do sistema\b|\bprompt (do|de) sistema\b/,
+  ],
+  // "prompt" só como alvo de revelação ("Prompt de configuração do IV-22" é menu de painel).
+  [
+    'ROLE_MARKER',
+    new RegExp(
+      `\\b(mostre|revele|exiba|imprima|repita|copie|show|reveal|print|repeat)${W}(prompt|instrucoes internas|regras internas)\\b`,
+    ),
   ],
   [
     'AUTHORITY_CLAIM',

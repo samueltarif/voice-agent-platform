@@ -19647,3 +19647,18 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
   - corpus original v2: 1,00 / 1,00 / 1,00; v1 idêntica;
   - tempo v2 de 0,90× a 1,23× a v1 (duas rodadas).
 - **SAFETY**: só bancos `of2_test_*`; nenhuma migration; Qualitec, `voice_agent_pr157_test` e agente v4 intocados; sem serviços pagos; `knowledge.search` sem ligação com a telefonia; nenhum campo no snapshot; nenhum compositor de voz.
+
+## 2026-11-18 — Revisão da B2b na PR #170 (DEC-070) — Claude
+
+- **PEDIDO** (08:59): revisão direcionada, só B2b; sem merge e sem gate Windows.
+- **ORDEM**: corpus completado e congelado (hash SHA-256 por teste) e medição "antes" commitada em `f827377`, antes de qualquer ajuste de regra.
+- **AJUSTES** (só com casos dev e falsos positivos legítimos): detector `b2b-2`; intenção comercial em pt-BR para `aspectsRequiringAuthorizedSource`; vocabulário técnico por setor (`b2b-vocab-2`); contrato estrito aplicado na API e no BFF; métrica de passagem suspeita por citationId + trecho.
+- **TESTES ALTERADOS (TEST_CHANGE_REASON)**:
+  - avaliação hostil integrada ampliada ao corpus congelado, com auditoria de todos os campos (ASSERTION_STRONGER);
+  - comparação: ficha técnica ligada só ao suporte e teste de origem e escopo dos fatos (ASSERTION_STRONGER);
+  - detector: novos casos conhecidos e legítimos (ASSERTION_STRONGER);
+  - API, BFF, painel, simulação e guarda de perfil: casos novos de projeção fora do contrato e de conteúdo escapado (ASSERTION_STRONGER).
+  - Nenhum skip novo; nenhuma asserção enfraquecida.
+- **RESULTADOS**: ver DEC-070 (antes → depois).
+- **SAFETY**: só bancos `of2_test_*`; nenhuma migration; Qualitec, `voice_agent_pr157_test` e agente v4 intocados; sem serviços pagos; v1 inalterada; v2 só na comparação administrativa.
+
