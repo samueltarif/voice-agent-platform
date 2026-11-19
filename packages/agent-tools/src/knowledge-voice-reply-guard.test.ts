@@ -130,9 +130,12 @@ describe('cadeia verificada da resposta (B2c)', () => {
     // compor (≤ 2 com o orçamento) + remontar na verificação (1)
     expect(spy.mock.calls.length).toBeGreaterThanOrEqual(2);
     expect(spy.mock.calls.length).toBeLessThanOrEqual(3);
+    // Só MEDIÇÃO (sem asserção de tempo): 1.000 composições bastam para a média
+    // e cabem no limite padrão mesmo no Windows sob carga (10.000 levaram 7,6 s).
+    const runs = 1_000;
     const started = performance.now();
-    for (let i = 0; i < 10_000; i += 1) buildVerifiedVoiceReply(worst);
-    const perCall = (performance.now() - started) / 10_000;
+    for (let i = 0; i < runs; i += 1) buildVerifiedVoiceReply(worst);
+    const perCall = (performance.now() - started) / runs;
     console.log(
       `[kb-voice-latency] media por composicao verificada: ${perCall.toFixed(4)} ms (relatado, sem gate)`,
     );
