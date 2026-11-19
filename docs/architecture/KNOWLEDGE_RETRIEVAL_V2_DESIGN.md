@@ -170,8 +170,8 @@ Plano aprovado: `claude/KNOWLEDGE_PR_B2_PLAN.md` (revisão 2; D-B2-1 a D-B2-5, D
 - **Cadeia na ferramenta v2** (`packages/agent-tools/src/knowledge-voice-reply-guard.ts`): pré-checagem RASA de comprimento (aspectos > 5 ⇒ `INCONSISTENT_PROJECTION`; fatos > 12 ou termos > 16 ⇒ `INVALID_PROJECTION`) → `safeParse` da projeção → coerência → composição → schema da resposta → verificação por remontagem. Qualquer falha ⇒ `KNOWLEDGE_PROFILE_UNAVAILABLE`, nunca v1. O contrato da B2b não mudou.
 - **Módulos** (todos puros):
   - `knowledge-voice-vocabulary.ts`: rótulos, unidades por extenso, aspectos, frases fixas e matriz atributo × unidade (derivada dos setores do contrato + seletores contextuais do extrator);
-  - `knowledge-voice-value.ts`: regex ancorada, número ambíguo, normalização `,`/`.`, fala do valor;
-  - `knowledge-voice-reply-eligibility.ts`: abstenções, citação única, conflitos, MATERIAL genérico, duplicatas visíveis;
+  - `knowledge-voice-value.ts`: regex ancorada, número ambíguo (`.` ou `,` + 3 dígitos com parte inteira de 1 a 3 dígitos, ajuste A2), normalização `,`/`.`, fala do valor;
+  - `knowledge-voice-reply-eligibility.ts`: abstenções, citação única, conflitos (materiais diferentes do produto ⇒ CONFLICT do produto inteiro, ajuste A1), duplicatas visíveis;
   - `knowledge-voice-reply-render.ts`: modelos de frase (compartilhados com a verificação);
   - `knowledge-voice-reply.ts`: precedência e orçamento;
   - `knowledge-voice-reply-consistency.ts` e `knowledge-voice-reply-verification.ts`.

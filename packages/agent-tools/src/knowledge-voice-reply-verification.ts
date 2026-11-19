@@ -4,7 +4,7 @@ import {
   type KnowledgeVoiceReply,
 } from '@voice-agent/contracts';
 import { hasAmbiguousNumber, hasCompatibleUnit } from './knowledge-voice-value.js';
-import { contestedMaterialKeys, isContestedMaterial } from './knowledge-voice-reply-eligibility.js';
+import { contestedMaterialSubjects } from './knowledge-voice-reply-eligibility.js';
 import { renderSentences, type VoiceReplySelection } from './knowledge-voice-reply-render.js';
 
 /**
@@ -44,11 +44,13 @@ const singleCitation: Check = ({ projection, reply, selection }) => {
   return citations.length <= 1 && sameList(reply.spokenCitationIds, citations);
 };
 
+/** Defesa em profundidade: nada de produto com material contestado (A1), `null`, unidade fora da matriz ou número ambíguo. */
+/** Defesa em profundidade: nada de produto com material contestado (A1), `null`, unidade fora da matriz ou número ambíguo. */
 const speakableFacts: Check = ({ projection, selection }) => {
-  const contested = contestedMaterialKeys(projection.facts);
+  const disputed = contestedMaterialSubjects(projection.facts);
   return selection.factIndexes.every((i) => {
     const fact = projection.facts[i]!;
-    if (fact.subject === null || isContestedMaterial(contested, fact)) return false;
+    if (fact.subject === null || disputed.has(fact.subject)) return false;
     return hasCompatibleUnit(fact) && !hasAmbiguousNumber(fact);
   });
 };

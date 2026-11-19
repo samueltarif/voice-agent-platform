@@ -93,29 +93,72 @@ describe('elegibilidade da fala (B2c)', () => {
     });
   });
 
-  it('MATERIAL genérico: dois materiais do produto não são conflito, mas nenhum é falado', () => {
-    const sameCitation = analyzeVoiceEligibility([
-      F(1, 'VB-25', 'MATERIAL', 'aço inox 304'),
-      F(1, 'VB-25', 'MATERIAL', 'PTFE'),
-    ]);
-    expect(sameCitation).toMatchObject({
-      speakableIndexes: [],
-      suppressed: { ambiguousAssociation: 2, conflictingFacts: 0 },
+  it('A1: materiais diferentes do produto ⇒ CONFLICT, mesmo com outros atributos legítimos', () => {
+    const CF =
+      'Os documentos da empresa trazem valores diferentes para esse dado, e a equipe precisa confirmar.';
+    // Mesma citação (corpo + vedação), sem outra citação: CONFLICT, não NOT_SPEAKABLE.
+    const same = P([F(1, 'VB-25', 'MATERIAL', 'aço inox 304'), F(1, 'VB-25', 'MATERIAL', 'PTFE')]);
+    expect(composeKnowledgeVoiceReply(same).reply).toMatchObject({
+      technical: 'CONFLICT',
+      spokenText: CF,
+      suppressed: { conflictingFacts: 2, ambiguousAssociation: 2 },
     });
+    // Material contestado em citações SEM o atributo falado: ainda CONFLICT do produto.
+    const elsewhere = P([
+      F(1, 'VB-25', 'DIMENSION', '25 mm'),
+      F(2, 'VB-25', 'MATERIAL', 'aço inox 304'),
+      F(3, 'VB-25', 'MATERIAL', 'PTFE'),
+    ]);
+    const out = composeKnowledgeVoiceReply(elsewhere).reply;
+    expect(out).toMatchObject({ technical: 'CONFLICT', spokenFactCount: 0, spokenCitationIds: [] });
+    expect(out.spokenText).not.toMatch(/25|inox|PTFE/);
+    // Envenenamento de material junto da fonte legítima: CONFLICT, a pressão não é falada.
+    const poison = P([
+      F(1, 'PT-16', 'PRESSURE_RANGE', '0 a 16 bar'),
+      F(1, 'PT-16', 'MATERIAL', 'aço inox 316'),
+      F(9, 'PT-16', 'MATERIAL', 'PVC'),
+    ]);
+    expect(composeKnowledgeVoiceReply(poison).reply.spokenText).toBe(CF);
+    // Material contestado de OUTRO produto não bloqueia o produto escolhido.
+    const other = P([
+      F(1, 'MO-4', 'POWER', '4 cv'),
+      F(2, 'VB-25', 'MATERIAL', 'aço inox 304'),
+      F(3, 'VB-25', 'MATERIAL', 'PTFE'),
+    ]);
+    expect(composeKnowledgeVoiceReply(other).reply.spokenText).toBe(
+      'Os documentos da empresa indicam potência de 4 cavalos.',
+    );
+  });
+
+  it('A1: a verificação recusa falar um produto com material contestado', () => {
     const facts = [
       F(1, 'VB-25', 'DIMENSION', '25 mm'),
-      F(1, 'VB-25', 'MATERIAL', 'aço inox 304'),
-      F(2, 'VB-25', 'MATERIAL', 'PTFE'),
+      F(2, 'VB-25', 'MATERIAL', 'aço inox 304'),
+      F(3, 'VB-25', 'MATERIAL', 'PTFE'),
     ];
-    const { reply, selection } = composeKnowledgeVoiceReply(P(facts));
-    expect(reply.spokenText).toBe('Os documentos da empresa indicam dimensão de 25 milímetros.');
-    expect(reply.technical).toBe('FACTS');
-    expect(reply.suppressed).toMatchObject({ conflictingFacts: 0, ambiguousAssociation: 2 });
-    expect(verifyReplyAgainstProjection({ projection: P(facts), reply, selection })).toBe(true);
-    // Forçar a fala de um material contestado é recusado pela verificação.
-    const forced = { ...selection, factIndexes: [0, 1] };
-    expect(verifyReplyAgainstProjection({ projection: P(facts), reply, selection: forced })).toBe(
+    const forged = {
+      technical: 'FACTS' as const,
+      authorizedSource: false,
+      sentences: ['Os documentos da empresa indicam dimensão de 25 milímetros.'],
+      spokenText: 'Os documentos da empresa indicam dimensão de 25 milímetros.',
+      spokenCitationIds: [facts[0]!.citationId],
+      spokenFactCount: 1,
+      suppressed: {
+        conflictingFacts: 0,
+        ambiguousAssociation: 0,
+        incompatibleUnit: 0,
+        ambiguousNumber: 0,
+        duplicateFacts: 0,
+        overBudget: 0,
+      },
+    };
+    const selection = { technical: 'FACTS' as const, factIndexes: [0], aspects: [] };
+    expect(verifyReplyAgainstProjection({ projection: P(facts), reply: forged, selection })).toBe(
       false,
+    );
+    const clean = [facts[0]!];
+    expect(verifyReplyAgainstProjection({ projection: P(clean), reply: forged, selection })).toBe(
+      true,
     );
   });
 
@@ -134,9 +177,43 @@ describe('elegibilidade da fala (B2c)', () => {
     expect(
       analyzeVoiceEligibility([F(1, 'PT-16', 'PRESSURE', '1.000 bar')]).suppressed.ambiguousNumber,
     ).toBe(1);
-    expect(
-      analyzeVoiceEligibility([F(1, 'PT-16', 'PRESSURE', '1,000 bar')]).speakableIndexes,
-    ).toEqual([0]);
+  });
+
+  it.each([
+    '1,000 bar',
+    '1.000 bar',
+    '12,500 kg',
+    '999.999 V',
+    '-1,250 °C',
+    '0 a 1,000 bar',
+    '1,000 a 2 bar',
+  ])('A2: "%s" ⇒ ambíguo (milhar ou decimal), nunca falado', (value) => {
+    const attribute = value.endsWith('kg')
+      ? 'WEIGHT'
+      : value.endsWith('V')
+        ? 'VOLTAGE'
+        : value.endsWith('°C')
+          ? 'TEMPERATURE'
+          : 'PRESSURE';
+    const e = analyzeVoiceEligibility([F(1, 'PT-16', attribute, value)]);
+    expect(e).toMatchObject({ speakableIndexes: [], suppressed: { ambiguousNumber: 1 } });
+    const { reply } = composeKnowledgeVoiceReply(P([F(1, 'PT-16', attribute, value)]));
+    expect(reply.technical).toBe('NOT_SPEAKABLE');
+    expect(reply.spokenText).not.toMatch(/\d/);
+  });
+
+  it.each([
+    ['0,500 mm', 'dimensão de 0,500 milímetros'],
+    ['1,5 bar', 'pressão de 1,5 bar'],
+    ['1,50 bar', 'pressão de 1,50 bar'],
+    ['1,2500 bar', 'pressão de 1,2500 bar'],
+    ['1234,567 bar', 'pressão de 1234,567 bar'],
+    ['1000 bar', 'pressão de 1000 bar'],
+    ['0.5 bar', 'pressão de 0,5 bar'],
+  ])('A2: "%s" é decimal ou inteiro inequívoco e é falado', (value, fragment) => {
+    const attribute = value.endsWith('mm') ? 'DIMENSION' : 'PRESSURE';
+    const { reply } = composeKnowledgeVoiceReply(P([F(1, 'PT-16', attribute, value)]));
+    expect(reply.spokenText).toBe(`Os documentos da empresa indicam ${fragment}.`);
   });
 
   it('unidades diferentes ou número ambíguo na mesma chave ⇒ conflito', () => {

@@ -1,14 +1,23 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
+  composeKnowledgeVoiceReply,
   KNOWLEDGE_VOICE_ASPECT_LABELS,
   KNOWLEDGE_VOICE_ATTRIBUTE_LABELS,
   KNOWLEDGE_VOICE_PHRASES,
   KNOWLEDGE_VOICE_UNIT_WORDS,
   KnowledgeV2ConcurrencyLimiter,
   SIMULATED_REPLY_V2,
+  verifyReplyAgainstProjection,
 } from '@voice-agent/agent-tools';
-import { knowledgeVoiceSentenceSchema, type KnowledgeProfilePolicy } from '@voice-agent/contracts';
-import { DrizzleKnowledgeRetrievalService } from '@voice-agent/database';
+import {
+  knowledgeAgentProjectionSchema,
+  knowledgeVoiceSentenceSchema,
+  type KnowledgeProfilePolicy,
+} from '@voice-agent/contracts';
+import {
+  DrizzleKnowledgeAgentProjectionService,
+  DrizzleKnowledgeRetrievalService,
+} from '@voice-agent/database';
 import {
   ADVERSARIAL_DOCUMENTS,
   ADVERSARIAL_SUPPORT_DOCUMENTS,
@@ -160,9 +169,23 @@ describe('turno simulado por perfil (B2a)', () => {
     ]);
     const policy = openKnowledgeProfilePolicyFor([fx.orgA]);
     const outcomes = new Map<string, number>();
+    // B2c (A4): registra a projeção sanitizada REAL que o turno recebeu da B2b.
+    const projectSpy = vi.spyOn(DrizzleKnowledgeAgentProjectionService.prototype, 'project');
     for (const q of ALL_ADVERSARIAL_QUESTIONS) {
+      projectSpy.mockClear();
       const result = await turn(fx.v2A, q.query, policy);
       outcomes.set(result.outcome, (outcomes.get(result.outcome) ?? 0) + 1);
+      // Igualdade EXATA entre a fala do turno e a saída do compositor para a mesma projeção.
+      expect([q.id, projectSpy.mock.results.length]).toEqual([q.id, 1]);
+      const projection = knowledgeAgentProjectionSchema.parse(
+        await projectSpy.mock.results[0]!.value,
+      );
+      const expected = composeKnowledgeVoiceReply(projection);
+      expect([q.id, result.replyText]).toEqual([q.id, expected.reply.spokenText]);
+      expect([q.id, verifyReplyAgainstProjection({ projection, ...expected })]).toEqual([
+        q.id,
+        true,
+      ]);
       const text = JSON.stringify(result);
       expect([q.id, result.evidence]).toEqual([q.id, []]);
       // B2c: a fala é a do compositor verificado — até 2 frases no alfabeto fechado.
@@ -189,6 +212,7 @@ describe('turno simulado por perfil (B2a)', () => {
     expect(outcomes.get('ANSWERED_WITH_FACTS')).toBeGreaterThan(0);
     expect(outcomes.get('PROFILE_UNAVAILABLE') ?? 0).toBe(0);
     expect(retrieveSpy).not.toHaveBeenCalled();
+    projectSpy.mockRestore();
   }, 300_000);
 
   it.each([

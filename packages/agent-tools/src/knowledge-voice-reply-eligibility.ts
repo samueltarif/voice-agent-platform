@@ -11,9 +11,8 @@ import {
  * - fatos falados vêm de UMA citação; citação com produtos diferentes, `null`
  *   ou o mesmo atributo com valores diferentes é abstida inteira;
  * - conflito = mesmo produto e atributo com valores diferentes em QUALQUER
- *   lugar da projeção (inclusive unidades diferentes e número ambíguo),
- *   EXCETO MATERIAL: materiais diferentes do mesmo produto podem ser peças
- *   diferentes; não geram conflito, mas nenhum deles é falado;
+ *   lugar da projeção (inclusive unidades diferentes e número ambíguo);
+ *   materiais diferentes do produto bloqueiam o produto inteiro (A1);
  * - duplicata = mesmo produto, atributo e valor NORMALIZADO ("0,5 %" e
  *   "0.5 %"). Só conta o que está visível na projeção: a B2b já removeu as
  *   duplicatas exatas antes do corte em 12 fatos.
@@ -43,23 +42,21 @@ function multiValuedKeys(facts: Facts): ReadonlySet<string> {
   return new Set([...values].filter(([, set]) => set.size > 1).map(([key]) => key));
 }
 
-const isMaterialKey = (key: string) => key.endsWith('|MATERIAL');
+const MATERIAL_SUFFIX = '|MATERIAL';
 
 /**
  * MATERIAL é genérico: o extrator não sabe a peça (corpo, vedação, rotor,
- * condutor). Dois materiais do mesmo produto NÃO são conflito (podem ser
- * peças diferentes), mas nenhum deles é falado: a peça é desconhecida.
+ * condutor). Materiais diferentes do mesmo produto, sem proveniência por
+ * componente, são CONFLITO do produto inteiro (DEC-072, ajuste A1): nenhum
+ * valor técnico desse produto é falado, mesmo havendo outros atributos.
  */
-export function contestedMaterialKeys(facts: Facts): ReadonlySet<string> {
-  return new Set([...multiValuedKeys(facts)].filter(isMaterialKey));
+export function contestedMaterialSubjects(facts: Facts): ReadonlySet<string> {
+  return new Set(
+    [...multiValuedKeys(facts)]
+      .filter((key) => key.endsWith(MATERIAL_SUFFIX))
+      .map((key) => key.slice(0, -MATERIAL_SUFFIX.length)),
+  );
 }
-
-function conflictKeys(facts: Facts): ReadonlySet<string> {
-  return new Set([...multiValuedKeys(facts)].filter((key) => !isMaterialKey(key)));
-}
-
-export const isContestedMaterial = (contested: ReadonlySet<string>, f: KnowledgeTechnicalFact) =>
-  f.attribute === 'MATERIAL' && contested.has(conflictKey(f));
 
 function duplicateIndexes(facts: Facts): ReadonlySet<number> {
   const seen = new Set<string>();
@@ -92,28 +89,33 @@ interface Tally {
   ambiguousNumber: number;
 }
 
-interface Context {
-  readonly facts: Facts;
-  readonly contested: ReadonlySet<string>;
-  readonly tally: Tally;
-}
-
-function speakableOf({ facts, contested, tally }: Context, indexes: readonly number[]): number[] {
+function speakableOf(facts: Facts, indexes: readonly number[], tally: Tally): number[] {
   const out: number[] = [];
   for (const i of indexes) {
-    if (isContestedMaterial(contested, facts[i]!)) tally.ambiguousAssociation += 1;
-    else if (!hasCompatibleUnit(facts[i]!)) tally.incompatibleUnit += 1;
+    if (!hasCompatibleUnit(facts[i]!)) tally.incompatibleUnit += 1;
     else if (hasAmbiguousNumber(facts[i]!)) tally.ambiguousNumber += 1;
     else out.push(i);
   }
   return out;
 }
 
+/**
+ * Conflito: chave de um fato escolhido com valores diferentes; OU material
+ * contestado do produto escolhido; OU, sem citação elegível, qualquer
+ * material contestado na projeção.
+ */
+function hasConflict(facts: Facts, chosen: readonly number[]): boolean {
+  const conflicts = multiValuedKeys(facts);
+  if (chosen.some((i) => conflicts.has(conflictKey(facts[i]!)))) return true;
+  const disputed = contestedMaterialSubjects(facts);
+  if (chosen.length === 0) return disputed.size > 0;
+  return disputed.has(facts[chosen[0]!]!.subject ?? '');
+}
+
 export function analyzeVoiceEligibility(facts: Facts): VoiceReplyEligibility {
-  const conflicts = conflictKeys(facts);
+  const conflicts = multiValuedKeys(facts);
   const duplicates = duplicateIndexes(facts);
   const tally: Tally = { ambiguousAssociation: 0, incompatibleUnit: 0, ambiguousNumber: 0 };
-  const context: Context = { facts, contested: contestedMaterialKeys(facts), tally };
   let chosen: number[] = [];
   for (const group of citationGroups(facts)) {
     const visible = group.filter((i) => !duplicates.has(i));
@@ -121,12 +123,12 @@ export function analyzeVoiceEligibility(facts: Facts): VoiceReplyEligibility {
       tally.ambiguousAssociation += visible.length;
       continue;
     }
-    const speakable = speakableOf(context, visible);
+    const speakable = speakableOf(facts, visible, tally);
     if (chosen.length === 0) chosen = speakable;
   }
   return {
     speakableIndexes: chosen,
-    conflict: chosen.some((i) => conflicts.has(conflictKey(facts[i]!))),
+    conflict: hasConflict(facts, chosen),
     suppressed: {
       conflictingFacts: facts.filter((f) => conflicts.has(conflictKey(f))).length,
       ...tally,

@@ -39,8 +39,14 @@ export function parseNumericVoiceValue(fact: Fact): NumericVoiceValue | null {
   return { from: m[1]!, to: m[2] ?? null, unit: m[3] as KnowledgeTechnicalUnit };
 }
 
-/** Ponto seguido de exatamente 3 dígitos ("1.000"): milhar ou decimal? Ambíguo. */
-const isAmbiguousNumber = (n: string) => /\.\d{3}$/.test(n);
+/**
+ * Separador (ponto OU vírgula) seguido de exatamente 3 dígitos, com parte
+ * inteira de 1 a 3 dígitos sem zero à esquerda ("1.000", "1,000", "12,500"):
+ * pode ser milhar ou decimal conforme a localidade ⇒ AMBÍGUO, nunca falado
+ * (DEC-072, ajuste A2). "0,500" (zero à esquerda) e "1234,567" (parte
+ * inteira longa demais para agrupamento de milhar) são decimais.
+ */
+const isAmbiguousNumber = (n: string) => /^-?[1-9]\d{0,2}[.,]\d{3}$/.test(n);
 
 export function hasAmbiguousNumber(fact: Fact): boolean {
   const n = parseNumericVoiceValue(fact);
