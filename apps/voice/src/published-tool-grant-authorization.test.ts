@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from 'node:fs';
+import { readdir, readFile } from 'node:fs/promises';
 import { join, relative, resolve } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import type { AgentConfigurationSnapshotV1, ToolExecutionContext } from '@voice-agent/contracts';
@@ -130,6 +130,51 @@ describe('published tool grant — immutability and execution', () => {
 /** Caminho relativo à raiz com `/`, igual no Linux e no Windows. */
 const toRepoPath = (path: string): string => path.replace(/\\/g, '/');
 
+/** Diretórios gerados ou de terceiros, fora da fronteira (mesma lista de antes). */
+const SKIPPED_DIRECTORIES = ['node_modules', 'dist', '.turbo', '.next'];
+/**
+ * Concorrência LIMITADA de E/S. No Windows cada abertura passa pelo antivírus:
+ * a varredura síncrona (717 arquivos, 143 diretórios) levou 3,4 s só nos
+ * diretórios e 4,3 s nas leituras com a máquina ociosa, estourando o limite
+ * de 5 s; em paralelo limitado, as esperas se sobrepõem.
+ */
+const IO_CONCURRENCY = 16;
+
+async function mapLimited<T, R>(items: readonly T[], work: (item: T) => Promise<R>): Promise<R[]> {
+  const results: R[] = new Array<R>(items.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length) {
+      const index = next++;
+      results[index] = await work(items[index]!);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(IO_CONCURRENCY, items.length) }, worker));
+  return results;
+}
+
+/** Todos os `.ts`/`.tsx` fora de testes, nível a nível, com as mesmas exclusões. */
+async function listProductionSources(roots: readonly string[]): Promise<string[]> {
+  const files: string[] = [];
+  let level = [...roots];
+  while (level.length > 0) {
+    const listings = await mapLimited(level, async (dir) => ({
+      dir,
+      entries: await readdir(dir, { withFileTypes: true }),
+    }));
+    level = [];
+    for (const { dir, entries } of listings) {
+      for (const entry of entries) {
+        if (SKIPPED_DIRECTORIES.includes(entry.name)) continue;
+        const full = join(dir, entry.name);
+        if (entry.isDirectory()) level.push(full);
+        else if (/\.tsx?$/.test(entry.name) && !/\.test\.tsx?$/.test(entry.name)) files.push(full);
+      }
+    }
+  }
+  return files;
+}
+
 describe('published tool grant — issuer import boundary', () => {
   it('normalizes Windows and POSIX separators to the same repository path', () => {
     expect(toRepoPath('apps\\voice\\src\\published-tool-grant.ts')).toBe(
@@ -140,22 +185,13 @@ describe('published tool grant — issuer import boundary', () => {
     );
   });
 
-  it('only the CallLifecycleGateway imports the grant issuer outside tests', () => {
+  it('only the CallLifecycleGateway imports the grant issuer outside tests', async () => {
     const root = resolve(__dirname, '../../..');
-    const importers: string[] = [];
-    const walk = (dir: string): void => {
-      for (const entry of readdirSync(dir, { withFileTypes: true })) {
-        if (['node_modules', 'dist', '.turbo', '.next'].includes(entry.name)) continue;
-        const full = join(dir, entry.name);
-        if (entry.isDirectory()) walk(full);
-        else if (/\.tsx?$/.test(entry.name) && !/\.test\.tsx?$/.test(entry.name)) {
-          const text = readFileSync(full, 'utf8');
-          if (text.includes('issueToolGrantForConsumedBootstrap'))
-            importers.push(toRepoPath(relative(root, full)));
-        }
-      }
-    };
-    for (const top of ['apps', 'packages']) walk(join(root, top));
+    const files = await listProductionSources(['apps', 'packages'].map((top) => join(root, top)));
+    const texts = await mapLimited(files, (file) => readFile(file, 'utf8'));
+    const importers = files
+      .filter((_, i) => texts[i]!.includes('issueToolGrantForConsumedBootstrap'))
+      .map((file) => toRepoPath(relative(root, file)));
     expect(importers.sort()).toEqual([
       'apps/voice/src/call-lifecycle-gateway.ts',
       'apps/voice/src/published-tool-grant.ts',
