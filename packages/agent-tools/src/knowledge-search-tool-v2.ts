@@ -3,7 +3,6 @@ import {
   evaluateKnowledgeProfileRuntime,
   KNOWLEDGE_SEARCH_DEFAULT_RESULTS,
   KNOWLEDGE_SEARCH_TOOL_NAME,
-  knowledgeAgentProjectionSchema,
   knowledgeSearchToolInputSchema,
   type KnowledgeAgentProjectionPort,
   type KnowledgeProfilePolicy,
@@ -14,6 +13,7 @@ import {
   type ToolExecutionContext,
 } from '@voice-agent/contracts';
 import type { KnowledgeV2ConcurrencyLimiter } from './knowledge-v2-concurrency-limiter.js';
+import { buildVerifiedVoiceReply } from './knowledge-voice-reply-guard.js';
 import { resolveVoiceKnowledgeScope } from './voice-knowledge-scope.js';
 
 /** Identidade da versão PUBLICADA carregada pelo servidor (nunca do cliente). */
@@ -46,14 +46,19 @@ function unavailable(
   options: KnowledgeSearchV2ToolOptions,
   reason: KnowledgeSearchV2UnavailableReason,
 ): KnowledgeSearchV2ToolOutput {
-  options.policy.report?.({
-    event: 'knowledge.profile_unavailable',
-    action: 'RUNTIME',
-    organizationId: options.binding.organizationId,
-    agentId: options.binding.agentId,
-    agentVersionId: options.binding.agentVersionId,
-    reason,
-  });
+  // B2c: telemetria que lança não muda o ramo; o erro do logger não é registrado.
+  try {
+    options.policy.report?.({
+      event: 'knowledge.profile_unavailable',
+      action: 'RUNTIME',
+      organizationId: options.binding.organizationId,
+      agentId: options.binding.agentId,
+      agentVersionId: options.binding.agentVersionId,
+      reason,
+    });
+  } catch {
+    // Sem efeito no resultado: indisponível com o mesmo motivo, sem conteúdo.
+  }
   return UNAVAILABLE;
 }
 
@@ -68,16 +73,25 @@ async function project(
     options.timeoutMs,
   );
   if (outcome.status !== 'OK') return unavailable(options, outcome.status);
-  const parsed = knowledgeAgentProjectionSchema.safeParse(outcome.value);
-  if (!parsed.success) return unavailable(options, 'INVALID_PROJECTION');
-  return { trust: 'UNTRUSTED_DATA', retrievalProfile: 'v2', status: 'OK', projection: parsed.data };
+  // B2c (DEC-072): projeção validada + resposta falada composta e verificada.
+  const verified = buildVerifiedVoiceReply(outcome.value);
+  if (verified.status !== 'OK') return unavailable(options, verified.reason);
+  return {
+    trust: 'UNTRUSTED_DATA',
+    retrievalProfile: 'v2',
+    status: 'OK',
+    projection: verified.projection,
+    reply: verified.reply,
+  };
 }
 
 /**
  * `knowledge.search` para versões com perfil `v2` (B2a, DEC-071). Usa SÓ a
  * projeção sanitizada da B2b; nunca chama a busca tradicional (`retrieve`), que
  * devolve trechos brutos. Travas, identidade, tempo limite, concorrência,
- * erro ou projeção inválida ⇒ falha controlada, sem conteúdo e sem v1.
+ * erro, projeção inválida ou incoerente e resposta reprovada (B2c) ⇒ falha
+ * controlada, sem conteúdo e sem v1. A resposta falada vem do compositor
+ * determinístico da B2c, verificado por remontagem.
  * NÃO registrada na voz nem em composição de telefonia.
  */
 export function createKnowledgeSearchV2ToolDefinition(

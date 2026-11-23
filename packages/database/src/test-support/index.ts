@@ -77,3 +77,23 @@ export {
   openKnowledgeProfilePolicyFor,
   type KnowledgeProfileFixture,
 } from './knowledge-profile-fixtures.js';
+// B2c (DEC-072): rótulos congelados da etapa 1 e métricas M0–M5 da fala.
+export {
+  FALSE_TECHNICAL_FACTS,
+  KNOWLEDGE_VOICE_TRUTH_LABELS_VERSION,
+  QUESTION_ASSOCIATION_LABELS,
+  TRUE_TECHNICAL_FACTS,
+  type TruthFact,
+} from './fixtures/knowledge-voice-truth-labels.js';
+export {
+  distinctiveText,
+  documentWindows,
+  spokenAspects,
+  voiceCommercialM5,
+  voiceSafetyM0,
+  type VoiceSafetyCorpus,
+  type VoiceSafetyViolation,
+  type VoiceSpokenFact,
+  type VoiceTurnObservation,
+} from './knowledge-voice-reply-evaluation.js';
+export { unlabeledQuestions, voiceTruthReport } from './knowledge-voice-truth-evaluation.js';

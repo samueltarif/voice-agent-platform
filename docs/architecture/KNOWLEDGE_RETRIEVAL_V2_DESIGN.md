@@ -162,3 +162,23 @@ Plano aprovado: `claude/KNOWLEDGE_PR_B2_PLAN.md` (revisão 2; D-B2-1 a D-B2-5, D
   - DEC e autorização.
 
   O coordenador de voz (`apps/voice/src/voice-knowledge-retrieval-coordinator.ts`, sem chamador) ainda devolve trechos brutos. Antes de qualquer ligação real (B2e/telefonia), ele precisa resolver o perfil pela concessão e usar a mesma projeção.
+
+## 9. B2c — compositor determinístico da fala (DEC-072; só turno simulado v2)
+
+**A B2c não ativa a v2 em nenhum agente.** Plano: `claude/KNOWLEDGE_PR_B2C_PLAN.md` (revisão 3 + condições da terceira auditoria).
+
+- **Cadeia na ferramenta v2** (`packages/agent-tools/src/knowledge-voice-reply-guard.ts`): pré-checagem RASA de comprimento (aspectos > 5 ⇒ `INCONSISTENT_PROJECTION`; fatos > 12 ou termos > 16 ⇒ `INVALID_PROJECTION`) → `safeParse` da projeção → coerência → composição → schema da resposta → verificação por remontagem. Qualquer falha ⇒ `KNOWLEDGE_PROFILE_UNAVAILABLE`, nunca v1. O contrato da B2b não mudou.
+- **Módulos** (todos puros):
+  - `knowledge-voice-vocabulary.ts`: rótulos, unidades por extenso, aspectos, frases fixas e matriz atributo × unidade (derivada dos setores do contrato + seletores contextuais do extrator);
+  - `knowledge-voice-value.ts`: regex ancorada, número ambíguo (`.` ou `,` + 3 dígitos com parte inteira de 1 a 3 dígitos, ajuste A2), normalização `,`/`.`, fala do valor;
+  - `knowledge-voice-reply-eligibility.ts`: abstenções, citação única, conflitos (materiais diferentes do produto ⇒ CONFLICT do produto inteiro, ajuste A1), duplicatas visíveis;
+  - `knowledge-voice-reply-render.ts`: modelos de frase (compartilhados com a verificação);
+  - `knowledge-voice-reply.ts`: precedência e orçamento;
+  - `knowledge-voice-reply-consistency.ts` e `knowledge-voice-reply-verification.ts`.
+- **Contrato** `knowledgeVoiceReplySchema` (`packages/contracts/src/knowledge/knowledge-voice-reply-contracts.ts`): alfabeto fechado por lista explícita, ≤ 2 frases, ≤ 300 caracteres, invariantes internas. É sintático; a prova de correspondência texto × fatos é a remontagem.
+- **Turno simulado v2:** `replyText = reply.spokenText`; `facts` e aspectos continuam no turno para a tela administrativa.
+- **Testes de saída literal** escritos à mão (independentes do renderizador) e mutações (valor, unidade, produto, ordem, contagem, citação, índices, aspectos, estado).
+- **Avaliação M0–M5** (`apps/api/src/integration/knowledge-voice-reply.integration.test.ts`, banco descartável) contra os rótulos congelados da etapa 1; resultados na DEC-072.
+- **Limites declarados:** sanitizar ≠ verificar (D24 isolado é falado); associação produto/fato dentro da passagem depende de proveniência por fato (D-B2c-10); `truncated = false` não prova completude; pronúncia `PROVIDER-UNVERIFIED`; o compositor não lê a pergunta, então pode falar atributos diferentes do perguntado.
+- **Voz e telefonia:** nenhum código de produção da voz importa o compositor (teste de isolamento ampliado). Impor o texto aprovado na telefonia é D-B2-6, fora da B2c.
+
