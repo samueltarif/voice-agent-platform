@@ -1,6 +1,6 @@
 # Voice Agent Platform — Estado vivo do projeto
 
-> **Última verificação no repositório:** 18/11/2026, por volta das 12h30 (horário de Brasília), contra a `origin/main` `4806defb33e1736249e6fba8f2ee931c0d961565` (merge da #170, B2b) e a API de PRs do GitHub. Verificações anteriores: 18/11/2026 às 08h05 (`e36e65a`, merge da #167); 17/11/2026 às 14h10, 14h35 e 17h00.
+> **Última verificação no repositório:** 23/11/2026, por volta das 11h45 (horário de Brasília), contra a `origin/main` `ccfa46f5d96321f78c5193de9f8acf93f333704f` (merge da #173, B2c) e a API de PRs do GitHub. Verificações anteriores: 18/11/2026 às 12h30 (`4806def`) e 08h05 (`e36e65a`); 17/11/2026 às 14h10, 14h35 e 17h00.
 > Este é um documento de acompanhamento e **não prova o estado em tempo real**. Antes de afirmar status atual, confira Git, PRs e decisões. Em caso de divergência, Git, código, testes observados e `docs/DECISIONS_LOG.md` prevalecem.
 > **Regra de leitura:** distinga sempre INTEGRADO, TESTADO, AUTORIZADO, PLANEJADO, PENDENTE e NÃO VALIDADO. Um plano não é código entregue, e um gate verde não é produto pronto.
 
@@ -30,7 +30,7 @@ SaaS multiempresa de agentes de voz:
 - **Criar pedidos, agendar serviços, atualizar CRM e abrir chamados só DEPOIS dos testes reais de ligações e mediante nova autorização.**
 - A arquitetura pode prever essas ações, mas não deve implementá-las nem ativá-las ainda.
 
-## 2. Entregas integradas (verificadas em 17/11/2026)
+## 2. Entregas integradas (verificadas em 17/11/2026; atualizadas em 23/11/2026)
 
 - **Base existente:** implementação e testes de:
   - multi-tenant, autenticação e permissões;
@@ -41,7 +41,7 @@ SaaS multiempresa de agentes de voz:
 
   **Código e testes não comprovam operação telefônica ponta a ponta em produção.** Ver §6.
 
-### PRs da Base de Conhecimento (estado conferido na API do GitHub em 17/11/2026)
+### PRs da Base de Conhecimento (estado conferido na API do GitHub em 17/11/2026 e 23/11/2026)
 
 | PR | Estado | Head | Merge na `main` | Assunto |
 | :--- | :--- | :--- | :--- | :--- |
@@ -59,6 +59,10 @@ SaaS multiempresa de agentes de voz:
 | #167 (B1) | **INTEGRADA e TESTADA** | `5c8b164` | `e36e65a` | Busca v2 por passagens opt-in + comparação administrativa v1 × v2 (DEC-067, DEC-068). v2 **não ativável em agentes**. Ver §4. |
 | #168 (docs) | INTEGRADA | `2239356` | `9870cc8` | Este painel (`docs/PROJECT_STATUS.md`) e `CLAUDE.md` |
 | #170 (B2b) | **INTEGRADA e TESTADA** | `62bc924` | `4806def` | Proteção contra documentos hostis e projeção sanitizada de fatos técnicos, **só na busca v2** e na comparação administrativa (DEC-069, DEC-070). v2 **não ativada em agentes**. Ver §4. |
+| #172 (B2a) | **INTEGRADA** | `c4534e4` | `8118a91` | Perfil `knowledge.retrievalProfile` na versão, travas da plataforma (lista **vazia** + chave `KNOWLEDGE_V2_AGENT_RUNTIME` desligada) e falha controlada (DEC-071). v2 **bloqueada para todos os agentes**. |
+| #174 (teste) | **INTEGRADA e TESTADA** | `2367bfe` | `76dff68` | `auth.integration.test.ts` em banco descartável, na fase serial (antes dependia do banco fixo `voice_agent_dev`) |
+| #175 (teste) | **INTEGRADA e TESTADA** | `62a367d` | `32a2ef3` | Teste de fronteira de importação da voz com varredura assíncrona e concorrência limitada (timeout no Windows) |
+| #173 (B2c) | **INTEGRADA e TESTADA** | `25b7f01` | `ccfa46f` | Compositor determinístico da fala só no **turno simulado v2** (DEC-072); rótulos M2/M3 congelados em `a95a1e1`. v2 **bloqueada para todos os agentes**. Ver §4. |
 
 **Detalhes conferidos:**
 - **#165:** a árvore do merge `7da5758` é igual à do head `4fc76c6` (`68431416b270…`, conferido com `git rev-parse`).
@@ -74,7 +78,28 @@ SaaS multiempresa de agentes de voz:
 - **#170 (B2b):** head aprovado `62bc9240da8e17e8a0e141c0be13de7fcecfd702`; merge na `main` `4806defb33e1736249e6fba8f2ee931c0d961565`. As árvores do head e da `main` são iguais: `d624082138d94271fcc1ac927720a8e9190309d0` (conferido com `git rev-parse` em 18/11/2026).
   - Gates confirmados pelo operador: Linux **2.579 PASS** (2.102 sem integração + 477 de integração) e Windows **2.579 PASS**, 45 de staging ignorados e 0 falhas em cada.
   - Banco descartável do gate Windows removido (nenhum `of2_test_*` restante); Git do worktree de validação limpo.
-- **`origin/main` na verificação:** `4806def` (18/11/2026, por volta das 12h30; antes, às 08h05, era `e36e65a`). **Não presumir que continue sendo a mais recente.**
+- **#172 (B2a):** head `c4534e439bd67ac1f46fb8d0e6538fda449c975b`; merge na `main` `8118a91965a0cc9569ab82636184bf907ef5c88a` (18/11/2026, 15h59). As árvores do head e da `main` são iguais: `38a54e27a30b690a90f08dc4cd459ca0655187ee` (conferido com `git rev-parse` em 23/11/2026).
+  - Inclui a correção de caminhos portáveis nos dois testes de guarda (gate Windows).
+  - **Não registrado aqui:** os números dos gates Linux e Windows da #172 não constam da PR nem do `AI_WORKLOG`; o merge foi feito pelo operador.
+- **#174, #175 e #173 (23/11/2026):** integradas pelo agente, com autorização formal do operador (11h13), nesta ordem e com **merge commit** (sem squash nem rebase). A árvore da `main` foi conferida depois de cada merge:
+
+  | Passo | PR | Head | Merge | Árvore da `main` (esperada = obtida) |
+  | :--- | :--- | :--- | :--- | :--- |
+  | 1 | #174 | `2367bfe9a35638f899e5e39019a0137da9e2a289` | `76dff68b8445472121195ed6a7c194cf15a9b391` | `c4a96bf3bc79707379af3d09bf39fbb0596c0be7` |
+  | 2 | #175 | `62a367d7a67cf62141e56fe3d997f4c66c77f4a8` | `32a2ef3a49dfb2433eeeedefa8abfe61f059f67f` | `100dccac51c0c19febf7566c7ee1ece5fc4f57dc` |
+  | 3 | #173 | `25b7f0127267f983c5ff0cac539360eb700ec830` | `ccfa46f5d96321f78c5193de9f8acf93f333704f` | `9efc53b45b4c1eb830a82b5fd664f2b6f4d2302b` |
+
+  - Commit congelado dos rótulos `a95a1e1` preservado e ancestral da `main`; é o único commit do arquivo de rótulos.
+  - **Gates antes do merge:**
+    - #174 sozinha: Linux exit 0 e Windows exit 0 (operador), 2.671 PASS e 0 falhas em cada.
+    - #173 + #174 + #175 (árvore `9efc53b4…`): Linux exit 0 (2.307 + 505 PASS, 45 ignorados, 0 falhas) e Windows `GATE_EXIT=0` (operador; 311 + 62 arquivos de teste).
+  - **Gate Linux pós-merge na `main` `ccfa46f`** (mesma árvore): `pnpm check:disposable` exit 0.
+    - Fase 1: 2.307 PASS, 45 ignorados. Fase 2: 505 PASS. 0 falhas.
+    - Build 14/14, `api-dist` (0 tentativas de rede), arquitetura e tamanho de arquivo OK.
+    - Banco descartável removido; Git limpo.
+  - Gate Windows pós-merge: **não executado** (mesma árvore do gate Windows da combinação).
+  - Bancos descartáveis antigos remanescentes, mantidos por instrução do operador: `of2_test_868defd0d04e` (ambiente Linux do agente) e `of2_test_c80c316bc08a` (Docker do operador).
+- **`origin/main` na verificação:** `ccfa46f` (23/11/2026, por volta das 11h45; em 18/11/2026 às 12h30 era `4806def`, e às 08h05, `e36e65a`). **Não presumir que continue sendo a mais recente.**
 - **Fase B2b da Base de Conhecimento:** INTEGRADA e TESTADA (#170). A proteção contra documentos hostis e a projeção sanitizada de fatos técnicos existem **só na busca `v2`**, que continua disponível apenas na comparação administrativa (OWNER/ADMIN). Nenhum agente publicado usa a `v2`.
 - **Fase B1 da Base de Conhecimento:** INTEGRADA e TESTADA (#167). A busca `v2` existe só na comparação administrativa e **não pode ser ativada em agentes** antes das proteções da B2 e de nova autorização (ver §4).
 - **Fase A da Base de Conhecimento:** INTEGRADA e TESTADA. O upload de arquivos **não está autorizado para exposição pública** (ver §7 e `docs/SECURITY.md` §11).
@@ -192,7 +217,7 @@ A DEC-067, a DEC-068 e `docs/architecture/KNOWLEDGE_RETRIEVAL_V2_DESIGN.md` est�
 - desempenho e corpus medidos só com dados sintéticos;
 - a precisão DIRECT (94,4%) e os aspectos (71,4%) não atingiram as metas; todas as falhas residuais vêm do documento com instruções hostis.
 
-### B2 — plano aprovado como diretriz (18/11/2026); **B2b INTEGRADA e TESTADA**; demais partes NÃO autorizadas
+### B2 — plano aprovado como diretriz (18/11/2026); **B2b, B2a e B2c INTEGRADAS**; B2d, B2e e B3 NÃO autorizadas
 
 **Atualização de 18/11/2026 (~12h30):** a B2b foi integrada pela PR #170 (head `62bc924`, merge `4806def`, árvores iguais `d6240821…`), com gates Linux e Windows de 2.579 PASS cada, 45 ignorados e 0 falhas. As duas linhas abaixo, de quando a PR estava em revisão, ficam como histórico.
 
@@ -218,6 +243,15 @@ A DEC-067, a DEC-068 e `docs/architecture/KNOWLEDGE_RETRIEVAL_V2_DESIGN.md` est�
 - **B2a, B2c e B2d:** próximas etapas, **NÃO autorizadas**. **B2e:** opcional, NÃO autorizada. **B3:** NÃO autorizada. A `v2` continua exclusiva da comparação administrativa, e nenhum agente a usa.
 - **Atualização de 18/11/2026 (~13h15): B2a AUTORIZADA e EM REVISÃO** (DEC-071). Perfil `knowledge.retrievalProfile` na versão, travas da plataforma (lista versionada **vazia** + chave `KNOWLEDGE_V2_AGENT_RUNTIME` desligada) e falha controlada. Está em PR aberta da branch `feat/knowledge-b2a-retrieval-profile`, sem merge; gate Windows pendente (operador). **Mesmo integrada, a B2a deixa a v2 bloqueada para todos os agentes.** B2c, B2d, B2e e B3 continuam NÃO autorizadas.
 - **Atualização de 18/11/2026 (~17h): B2c — ETAPA 1 publicada e conferida; ETAPA 2 AUTORIZADA e EM REVISÃO** (DEC-072). Rótulos M2/M3 congelados no commit `a95a1e1` (SHA-256 `4c65699ee81064bf5db60e2b7513f6a37199c18e74b8fb40948c07dd50775dbe`), conferidos pelo operador antes de qualquer código. Compositor determinístico da fala só para o **turno simulado v2**, em PR aberta da branch `test/knowledge-b2c-truth-labels`, sem merge; gate Windows e auditoria independente pendentes. **A v2 continua bloqueada para todos os agentes** (lista vazia, chave desligada). B2d, B2e, B3, telefonia e ativação continuam NÃO autorizadas.
+- **Atualização de 23/11/2026: B2a INTEGRADA** (#172, merge `8118a91`, 18/11/2026) **e B2c INTEGRADA e TESTADA** (#173, merge `ccfa46f`; DEC-072).
+  - A resposta falada do turno simulado v2 vem de um compositor determinístico, sem IA. Ela é verificada por remontagem e cai em falha controlada, nunca em v1.
+  - **A v2 continua bloqueada para todos os agentes:** a lista `KNOWLEDGE_V2_AGENT_ORGANIZATIONS` está vazia e a chave `KNOWLEDGE_V2_AGENT_RUNTIME` está desligada. Voz e telefonia não usam o compositor.
+  - Métricas no corpus congelado (dev/holdout):
+    - M0 = 0;
+    - M3: 22/22 e 24/25 verdadeiros (o falso é o D24 isolado, risco declarado);
+    - atributo perguntado falado: 10/14 e 5/13.
+  - **Pendências de ativação acrescentadas pela B2c:** D24 isolado (etapa E), associação dentro da passagem (D-B2c-10), escolha do atributo perguntado, PARTIAL dominante nas perguntas comerciais e avaliação independente dos rótulos.
+  - **B2d, B2e e B3 continuam NÃO autorizadas.**
 - **Planejamento original (17/11/2026), mantido como histórico:**
 
 - Perfil `knowledge.retrievalProfile` opcional na versão publicada. **Ausente = `v1`**, preservando o Qualitec v4.
@@ -332,7 +366,7 @@ Componentes de campanha e billing existem no código, mas a operação comercial
 ## 9. Prioridades acordadas
 
 1. ~~Integrar a **B1** (#167)~~ — **concluído em 18/11/2026** (merge `e36e65a`). A `v2` segue só na comparação administrativa.
-2. ~~Revisar a **B2b** (DEC-069)~~ — **integrada em 18/11/2026** (#170, merge `4806def`; DEC-069 e DEC-070). Decidir as próximas partes da B2 (B2a, B2c, B2d). **B2a, B2c, B2d, B2e e B3 não estão autorizadas.** Só depois delas se discute ativar a `v2` em agentes, com nova autorização.
+2. ~~Revisar a **B2b** (DEC-069)~~ — **integrada em 18/11/2026** (#170, merge `4806def`; DEC-069 e DEC-070). ~~B2a~~ integrada em 18/11/2026 (#172, `8118a91`; DEC-071) e ~~B2c~~ integrada em 23/11/2026 (#173, `ccfa46f`; DEC-072). **B2d, B2e e B3 não estão autorizadas.** Só depois delas, e das pendências de ativação da §4, se discute ativar a `v2` em agentes, com nova autorização.
 3. Planejar a **I1** e fazer I2/I3 **somente leitura**.
 4. Executar **testes reais de ligações** em ambiente controlado e autorizado.
 5. Concluir segurança, infraestrutura de produção e ciclo comercial, e fazer um piloto.

@@ -19697,3 +19697,17 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **TESTES ALTERADOS (TEST_CHANGE_REASON)**: ver mensagem do commit da etapa 2; nenhum skip novo.
 - **SAFETY**: só bancos descartáveis `of2_test_*` no PostgreSQL local; o papel local do banco descartável foi recriado após reinício do contêiner (sem imprimir credenciais); nenhuma migration em ambiente protegido; Qualitec, `voice_agent_pr157_test` e agente v4 intocados; sem serviços pagos; lista de organizações vazia e chave desligada.
 
+## 2026-11-23 — Integração das PRs #174, #175 e #173 (B2c) e registro da B2a (#172) — Claude
+
+- **AUTORIZAÇÃO** (11:13): merges exclusivamente na ordem #174 → #175 → #173, com **merge commit** (sem squash nem rebase), conferência da árvore após cada merge e parada em qualquer divergência. Não autoriza ativar a v2 nem ligações reais.
+- **ANTES DOS MERGES**: descrição da #173 atualizada para a implementação final (A1 revogando a exceção MATERIAL, A2, A4, métricas e SHAs). HEADs reconferidos: #174 `2367bfe`, #175 `62a367d`, #173 `25b7f01`; `origin/main` `8118a91`. Merges feitos com o SHA do head fixado na chamada.
+- **MERGES** (árvore esperada = obtida em cada passo):
+  - #174: merge `76dff68b8445472121195ed6a7c194cf15a9b391`, árvore `c4a96bf3bc79707379af3d09bf39fbb0596c0be7`;
+  - #175: merge `32a2ef3a49dfb2433eeeedefa8abfe61f059f67f`, árvore `100dccac51c0c19febf7566c7ee1ece5fc4f57dc`;
+  - #173: merge `ccfa46f5d96321f78c5193de9f8acf93f333704f`, árvore `9efc53b45b4c1eb830a82b5fd664f2b6f4d2302b`.
+  - Commit congelado dos rótulos `a95a1e1` preservado (único commit do arquivo; ancestral da `main`).
+- **GATE LINUX PÓS-MERGE** (`ccfa46f`): `pnpm check:disposable` exit 0; 2.307 + 505 PASS, 45 ignorados, 0 falhas; build, `api-dist`, arquitetura e tamanho OK; banco descartável removido; Git limpo. Gate Windows pós-merge não executado (mesma árvore aprovada pelo operador antes do merge).
+- **TRAVAS DA V2**: `KNOWLEDGE_V2_AGENT_ORGANIZATIONS = Object.freeze([])` na `main`; `KNOWLEDGE_V2_AGENT_RUNTIME` inalterada (desligada).
+- **REGISTRO TARDIO DA B2a**: #172 integrada em 18/11/2026 (head `c4534e4`, merge `8118a91`, árvores iguais `38a54e27…`). Números dos gates da #172 não registrados.
+- **SAFETY**: sem chamadas pagas; bancos descartáveis antigos (`of2_test_868defd0d04e`, `of2_test_c80c316bc08a`) mantidos; nenhum banco persistente tocado.
+
