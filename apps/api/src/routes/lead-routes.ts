@@ -5,6 +5,7 @@ import {
   leadStatusSchema,
 } from '@voice-agent/contracts';
 import type { ApiDependencies } from '../composition/agent-dependencies.js';
+import { projectLeadView } from './lead-projection.js';
 import {
   authorizeScheduling,
   schedulingDeps,
@@ -78,7 +79,8 @@ function registerReadLeads(app: OpenAPIHono, deps: ApiDependencies): void {
       const ctx = await authorizeScheduling(c, deps, 'leads.read');
       const { leadId } = c.req.valid('param' as never) as z.infer<typeof leadParams>;
       const lead = await schedulingDeps(deps).leads.getLead(ctx.organizationId, leadId);
-      return lead ? c.json(lead, 200) : schedulingRejected(c, 'LEAD_NOT_FOUND');
+      if (!lead) return schedulingRejected(c, 'LEAD_NOT_FOUND');
+      return c.json(projectLeadView(lead, ctx.meetingView), 200);
     },
   );
 }

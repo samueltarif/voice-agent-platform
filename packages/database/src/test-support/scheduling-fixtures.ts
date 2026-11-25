@@ -1,11 +1,12 @@
 import { randomUUID } from 'node:crypto';
+import { and, eq } from 'drizzle-orm';
 import type { DatabaseInstance } from '../client/connection.js';
 import { DrizzleCallAttemptRepository } from '../repositories/call-attempt-repository.js';
 import { DrizzleLeadRepository } from '../repositories/lead-repository.js';
 import { DrizzleSchedulingAvailabilityRepository } from '../repositories/scheduling-availability-repository.js';
 import { DrizzleSchedulingCalendarRepository } from '../repositories/scheduling-calendar-repository.js';
 import type { SchedulingActor } from '../repositories/scheduling-audit-entry.js';
-import { contacts } from '../schema/contacts.js';
+import { contacts, contactSuppressions } from '../schema/contacts.js';
 import { createExtraJob, type TenantFixture } from './durable-outbound-fixtures.js';
 
 /**
@@ -123,4 +124,21 @@ export function createControlledClock(start: Date = SCHEDULING_TEST_NOW) {
       current = next;
     },
   };
+}
+
+/** Linhas da supressão CANÔNICA (a consultada no disparo) para o telefone no tenant. */
+export async function countPhoneSuppressions(
+  db: DatabaseInstance,
+  input: { readonly organizationId: string; readonly phoneE164: string },
+): Promise<number> {
+  const rows = await db
+    .select({ id: contactSuppressions.id })
+    .from(contactSuppressions)
+    .where(
+      and(
+        eq(contactSuppressions.organizationId, input.organizationId),
+        eq(contactSuppressions.phoneE164, input.phoneE164),
+      ),
+    );
+  return rows.length;
 }

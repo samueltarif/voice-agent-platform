@@ -31,6 +31,11 @@ export type AttemptLeadAssociation = 'MATCH' | 'ATTEMPT_NOT_FOUND' | 'ATTEMPT_LE
 /**
  * A tentativa só pode gerar oferta ou reserva para o lead cujo telefone ela
  * efetivamente discou (destino do job durável, no mesmo tenant).
+ *
+ * Trava a linha da tentativa em `FOR KEY SHARE` AQUI, antes da trava do
+ * telefone (2ª auditoria, ordem global): é a mesma trava que a FK da oferta
+ * ou da reunião pediria depois. `claimSend` trava a tentativa e só então o
+ * telefone; pegar a tentativa depois do telefone fecharia um ciclo.
  */
 export async function verifyAttemptDialsLead(
   executor: DatabaseExecutor,
@@ -51,7 +56,8 @@ export async function verifyAttemptDialsLead(
         eq(callAttempts.id, input.attemptId),
         eq(callAttempts.organizationId, input.organizationId),
       ),
-    );
+    )
+    .for('key share', { of: callAttempts });
   if (!attempt) return 'ATTEMPT_NOT_FOUND';
   const leadPhone = await findLeadPhone(executor, input.organizationId, input.leadId);
   return leadPhone !== null && leadPhone === attempt.destination

@@ -96,11 +96,11 @@ describe('E1 audit: offered slot integrity', () => {
     return { status: row!.status, meetings: booked.length };
   }
 
-  /** Espera controlada: a reserva concorrente precisa estar parada na trava do lead. */
+  /** Espera controlada: a reserva precisa estar bloqueada ESPECIFICAMENTE por esta conexão (trava do lead). */
   async function waitForLockWaiter() {
     for (let i = 0; i < 200; i += 1) {
       const { rows } = await locker.query<{ n: number }>(
-        "SELECT count(*)::int AS n FROM pg_stat_activity WHERE datname = current_database() AND wait_event_type = 'Lock'",
+        'SELECT count(*)::int AS n FROM pg_stat_activity WHERE datname = current_database() AND pg_backend_pid() = ANY (pg_blocking_pids(pid))',
       );
       if (rows[0]!.n > 0) return;
       await new Promise((resolve) => setTimeout(resolve, 10));

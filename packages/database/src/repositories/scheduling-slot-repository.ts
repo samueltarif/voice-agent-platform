@@ -1,10 +1,9 @@
-import { and, eq } from 'drizzle-orm';
 import { listAvailableSlots, type TimeInterval } from '@voice-agent/contracts';
 import type { DatabaseInstance } from '../client/connection.js';
-import { leads } from '../schema/leads.js';
 import { meetingSlotOffers, type MeetingSlotOfferEntity } from '../schema/meeting-slot-offers.js';
 import { isLeadPhoneSuppressed, verifyAttemptDialsLead } from './attempt-lead-association.js';
 import type { DatabaseExecutor } from './database-executor.js';
+import { lockLead } from './lead-status-writer.js';
 import {
   findCalendarRow,
   loadBusyIntervals,
@@ -47,16 +46,19 @@ type OfferRefusal = Exclude<OfferSlotsOutcome, { kind: 'OFFERED' }>;
  * Oferta = prospecção ativa: o lead precisa existir, não estar suprimido nem
  * com reunião ativa, e a tentativa (se houver) precisa ter discado EXATAMENTE
  * o telefone do lead — resolvido no servidor (auditoria A3/A4).
+ *
+ * Ordem GLOBAL de travas (2ª auditoria; ver o desenho): lead (`FOR UPDATE`) →
+ * agenda (`FOR KEY SHARE`) → tentativa (`FOR KEY SHARE`) → telefone (sempre a
+ * última). As FKs do INSERT da oferta só pedem travas já obtidas aqui.
  */
 async function refuseOffer(
   executor: DatabaseExecutor,
   command: OfferSlotsCommand,
 ): Promise<OfferRefusal | null> {
-  const [lead] = await executor
-    .select({ status: leads.status })
-    .from(leads)
-    .where(and(eq(leads.id, command.leadId), eq(leads.organizationId, command.organizationId)));
+  const lead = await lockLead(executor, command.organizationId, command.leadId);
   if (!lead) return { kind: 'LEAD_NOT_FOUND' };
+  if (!(await findCalendarRow(executor, { ...command, lock: 'key share' })))
+    return { kind: 'CALENDAR_NOT_FOUND' };
   if (command.sourceAttemptId) {
     const association = await verifyAttemptDialsLead(executor, {
       organizationId: command.organizationId,

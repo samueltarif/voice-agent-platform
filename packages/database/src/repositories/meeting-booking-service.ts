@@ -13,6 +13,7 @@ import {
   type ManualBookingInput,
   type MeetingBookingRequest,
 } from './meeting-booking-steps.js';
+import { BookingDecisionExpired, temporalRefusal } from './meeting-booking-guards.js';
 import { recordBooking } from './meeting-booking-record.js';
 import { resolveBookingTargets } from './meeting-booking-validation.js';
 import { classifyPostgresFailure } from './outbound-persistence-errors.js';
@@ -27,11 +28,12 @@ export interface OfferedSlotBookingInput {
 }
 
 /**
- * E1 (DEC-074) — reserva transacional de reunião. Ordem fixa de travas:
- * chave de idempotência → lead → agenda → oferta (o cancelamento usa
- * lead → reunião; sem ciclo). O instante da decisão vem do relógio injetado
- * e é lido DEPOIS de todas as travas (auditoria A2). O banco ainda recusa
- * sobreposição, duplicidade por lead, por tentativa, por oferta e por chave.
+ * E1 (DEC-074) — reserva transacional de reunião. Ordem GLOBAL de travas
+ * (desenho §2.1): chave de idempotência → lead → agenda → oferta → tentativa
+ * → telefone. O instante da decisão vem do relógio injetado e é lido DEPOIS
+ * de todas elas; uma guarda final reavalia o tempo após a última escrita.
+ * O banco ainda recusa sobreposição e duplicidade por lead, tentativa,
+ * oferta e chave.
  *
  * Dois caminhos, com garantias distintas:
  * - `bookMeeting`: reserva MANUAL de um usuário (ex.: cliente pediu por outro
@@ -55,6 +57,8 @@ export class DrizzleMeetingBookingService {
 
   /** Reserva o horário EXATAMENTE oferecido (oferta do mesmo tenant e tentativa). */
   async bookOfferedSlot(input: OfferedSlotBookingInput): Promise<BookMeetingOutcome> {
+    // Reserva não atribuída a um usuário exige tentativa (2ª auditoria, A3).
+    if (input.actor.type !== 'USER' && !input.sourceAttemptId) return { kind: 'ATTEMPT_REQUIRED' };
     const offer = await findSlotOffer(this.db, {
       organizationId: input.organizationId,
       offerId: input.offerId,
@@ -85,6 +89,7 @@ export class DrizzleMeetingBookingService {
         bookInTransaction(tx, { request, fingerprint, clock: this.clock }),
       );
     } catch (error) {
+      if (error instanceof BookingDecisionExpired) return error.outcome;
       const mapped = mapBookingFailure(classifyPostgresFailure(error));
       if (mapped === 'REREAD') {
         const winner = await findMeetingByKey(
@@ -131,5 +136,10 @@ async function bookInTransaction(
     })
     .returning();
   await recordBooking(tx, { request, lead, meeting: meeting!, offer: targets.offer });
+  // Guarda final (A2): o tempo pode ter passado em esperas DEPOIS da decisão
+  // (escritas, FKs, gatilhos). Reavaliado após a última escrita; se venceu,
+  // a exceção desfaz a transação inteira.
+  const refused = temporalRefusal(targets.temporal, input.clock());
+  if (refused) throw new BookingDecisionExpired(refused);
   return { kind: 'BOOKED', meeting: meeting! };
 }

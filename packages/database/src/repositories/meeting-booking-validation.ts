@@ -1,13 +1,16 @@
-import {
-  evaluateLeadStatusChange,
-  evaluateSlotBookability,
-  type TimeInterval,
-} from '@voice-agent/contracts';
+import { evaluateSlotBookability, type TimeInterval } from '@voice-agent/contracts';
 import type { LeadEntity } from '../schema/leads.js';
 import type { MeetingSlotOfferEntity } from '../schema/meeting-slot-offers.js';
 import type { SchedulingCalendarEntity as CalendarRow } from '../schema/scheduling-calendars.js';
 import { isLeadPhoneSuppressed, verifyAttemptDialsLead } from './attempt-lead-association.js';
 import type { DatabaseExecutor } from './database-executor.js';
+import {
+  offerMatchesSlot,
+  provenanceRefusal,
+  refusalAt,
+  temporalConditions,
+  type TemporalConditions,
+} from './meeting-booking-guards.js';
 import {
   findSlotOffer,
   type BookMeetingOutcome,
@@ -26,7 +29,7 @@ const DAY_MS = 86_400_000;
 export interface BookingContext {
   readonly request: MeetingBookingRequest;
   readonly lead: LeadEntity;
-  /** Relógio da aplicação, lido só depois de todas as travas (auditoria A2). */
+  /** Relógio da aplicação, lido só depois de TODAS as travas, inclusive a do telefone (A2). */
   readonly clock: () => Date;
 }
 
@@ -37,6 +40,7 @@ export type BookingTargets =
       readonly slot: TimeInterval;
       readonly calendarId: string;
       readonly offer: MeetingSlotOfferEntity | null;
+      readonly temporal: TemporalConditions;
     };
 
 type Check<T> =
@@ -61,38 +65,29 @@ async function lockOpenOffer(
 }
 
 /**
- * Prospecção ativa (oferta do agente): telefone suprimido ou lead
- * `DO_NOT_CALL` encerram o fluxo (A4); a tentativa precisa ter discado
- * exatamente o telefone do lead (A3), resolvido no servidor.
+ * Travas da prospecção (só no caminho com oferta/tentativa), NA ORDEM GLOBAL:
+ * tentativa (`FOR KEY SHARE`, ao verificar que discou o telefone do lead, A3)
+ * e, por ÚLTIMO, o telefone (leitura linearizada da supressão, A4). Devolve se
+ * o telefone está suprimido; a decisão só é tomada depois, com o relógio.
  */
-async function checkProspecting(
+async function lockProspecting(
   tx: DatabaseExecutor,
   context: BookingContext,
   offer: MeetingSlotOfferEntity | null,
-): Promise<BookMeetingOutcome | null> {
+): Promise<Check<boolean>> {
   const { request, lead } = context;
-  if (offer) {
-    if (lead.status === 'DO_NOT_CALL') return { kind: 'LEAD_SUPPRESSED' };
-    if (await isLeadPhoneSuppressed(tx, request.organizationId, lead.id))
-      return { kind: 'LEAD_SUPPRESSED' };
+  const refused = provenanceRefusal(request, offer);
+  if (refused) return fail(refused);
+  if (request.sourceAttemptId) {
+    const association = await verifyAttemptDialsLead(tx, {
+      organizationId: request.organizationId,
+      attemptId: request.sourceAttemptId,
+      leadId: lead.id,
+    });
+    if (association !== 'MATCH') return fail({ kind: association });
   }
-  if (!request.sourceAttemptId) return null;
-  const association = await verifyAttemptDialsLead(tx, {
-    organizationId: request.organizationId,
-    attemptId: request.sourceAttemptId,
-    leadId: lead.id,
-  });
-  return association === 'MATCH' ? null : { kind: association };
-}
-
-function checkLeadStatus(lead: LeadEntity): BookMeetingOutcome | null {
-  if (lead.status === 'MEETING_SCHEDULED') return { kind: 'LEAD_HAS_ACTIVE_MEETING' };
-  const verdict = evaluateLeadStatusChange({
-    from: lead.status,
-    to: 'MEETING_SCHEDULED',
-    origin: 'MEETING_BOOKED',
-  });
-  return verdict.ok ? null : { kind: 'LEAD_BLOCKED', reason: verdict.reason };
+  if (!offer) return { ok: true, value: false };
+  return { ok: true, value: await isLeadPhoneSuppressed(tx, request.organizationId, lead.id) };
 }
 
 async function revalidateSlot(
@@ -114,41 +109,34 @@ async function revalidateSlot(
   return { ok: true, value: bookable.slot };
 }
 
-function offerExpiry(offer: MeetingSlotOfferEntity | null, now: Date): BookMeetingOutcome | null {
-  return offer && offer.expiresAt.getTime() <= now.getTime() ? { kind: 'OFFER_EXPIRED' } : null;
-}
-
-/** A1 — a oferta vale só para o intervalo INTEIRO que foi apresentado. */
-function offerMatchesSlot(offer: MeetingSlotOfferEntity | null, slot: TimeInterval): boolean {
-  if (!offer) return true;
-  return (
-    offer.startsAt.getTime() === slot.startsAt.getTime() &&
-    offer.endsAt.getTime() === slot.endsAt.getTime()
-  );
-}
-
 /**
- * Trava agenda e oferta, LÊ O RELÓGIO e só então revalida validade da oferta,
- * supressão, tentativa ↔ lead, status do lead, horário e intervalo ofertado.
- * Nada é escrito aqui: qualquer recusa deixa oferta e lead intactos.
+ * Adquire TODAS as travas (agenda → oferta → tentativa → telefone), só então
+ * LÊ O RELÓGIO e decide: validade da oferta, supressão, status do lead,
+ * horário e intervalo ofertado. Nada é escrito aqui: qualquer recusa deixa
+ * oferta e lead intactos. As condições temporais voltam para a guarda final.
  */
+
 export async function resolveBookingTargets(
   tx: DatabaseExecutor,
   context: BookingContext,
 ): Promise<BookingTargets> {
-  const { request, lead } = context;
+  const { request } = context;
   const row = await findCalendarRow(tx, { ...request, lock: true });
   if (!row) return fail({ kind: 'CALENDAR_NOT_FOUND' });
   const offer = await lockOpenOffer(tx, request);
   if (!offer.ok) return offer;
+  const suppressed = await lockProspecting(tx, context, offer.value);
+  if (!suppressed.ok) return suppressed;
   const decisionNow = context.clock();
-  const refused =
-    offerExpiry(offer.value, decisionNow) ??
-    (await checkProspecting(tx, context, offer.value)) ??
-    checkLeadStatus(lead);
+  const refused = refusalAt(
+    context.lead,
+    { offer: offer.value, phoneSuppressed: suppressed.value },
+    decisionNow,
+  );
   if (refused) return fail(refused);
   const slot = await revalidateSlot(tx, { row, startsAt: request.startsAt, now: decisionNow });
   if (!slot.ok) return slot;
   if (!offerMatchesSlot(offer.value, slot.value)) return fail({ kind: 'OFFER_STALE' });
-  return { ok: true, slot: slot.value, calendarId: row.id, offer: offer.value };
+  const temporal = temporalConditions(row, request, offer.value);
+  return { ok: true, slot: slot.value, calendarId: row.id, offer: offer.value, temporal };
 }

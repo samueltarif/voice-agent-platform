@@ -99,6 +99,7 @@ export {
 export { unlabeledQuestions, voiceTruthReport } from './knowledge-voice-truth-evaluation.js';
 // E1 (DEC-074): leads, agendas e horários sintéticos.
 export {
+  countPhoneSuppressions,
   createControlledClock,
   createSyntheticContact,
   createSyntheticLead,
@@ -110,3 +111,4 @@ export {
   SCHEDULING_TEST_USER,
   WEEKDAY_MORNINGS,
 } from './scheduling-fixtures.js';
+export { createSchedulingLockProbe, type SchedulingLockProbe } from './scheduling-lock-probe.js';

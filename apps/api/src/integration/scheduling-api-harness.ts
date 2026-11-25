@@ -29,6 +29,8 @@ export interface SchedulingApiBody {
   >;
   readonly exceptions?: ReadonlyArray<{ readonly id: string; readonly localDate: string }>;
   readonly error?: { readonly code: string; readonly reason?: string };
+  readonly phoneSuppressed?: boolean;
+  readonly history?: ReadonlyArray<Readonly<Record<string, unknown>>>;
   readonly paths?: Readonly<Record<string, unknown>>;
 }
 

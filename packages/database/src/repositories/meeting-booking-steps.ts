@@ -44,6 +44,7 @@ export type BookMeetingOutcome =
         | 'OFFER_ALREADY_USED'
         | 'OFFER_STALE'
         | 'OFFER_REQUIRED'
+        | 'ATTEMPT_REQUIRED'
         | 'ATTEMPT_NOT_FOUND'
         | 'ATTEMPT_LEAD_MISMATCH'
         | 'LEAD_SUPPRESSED';

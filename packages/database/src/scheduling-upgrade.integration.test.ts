@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
-import { eq, sql } from 'drizzle-orm';
+import { asc, eq, sql } from 'drizzle-orm';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { afterAll, describe, expect, it } from 'vitest';
 import { createDatabaseConnection } from './client/connection.js';
@@ -11,6 +11,7 @@ import { runMigrations } from './client/migrate.js';
 import { DrizzleLeadRepository } from './repositories/lead-repository.js';
 import { DrizzleMeetingBookingService } from './repositories/meeting-booking-service.js';
 import { contacts } from './schema/contacts.js';
+import { outboundCallJobs } from './schema/outbound.js';
 import { createDisposableTestDatabase } from './test-support/disposable-test-database.js';
 import { createDurableOutboundFixture } from './test-support/durable-outbound-fixtures.js';
 import {
@@ -68,10 +69,18 @@ describe('E1 audit: upgrade from migration 0013 to 0014 with existing data', () 
         )
       ).rows[0];
     const populated = await counts();
+    // 2ª auditoria: além das contagens, identidade e conteúdo de cada linha preservada.
+    const rows = async () => ({
+      jobs: await tdb.db.select().from(outboundCallJobs).orderBy(asc(outboundCallJobs.id)),
+      contacts: await tdb.db.select().from(contacts).orderBy(asc(contacts.id)),
+    });
+    const snapshot = await rows();
+    expect(snapshot.jobs.length).toBeGreaterThan(0);
 
     await runMigrations({ connectionString: tdb.url });
 
     expect(await counts()).toEqual(populated);
+    expect(await rows()).toEqual(snapshot);
     const [kept] = await tdb.db.select().from(contacts).where(eq(contacts.id, contact.id));
     expect(kept!.phoneE164).toBe(contact.phoneE164);
     const created = await new DrizzleLeadRepository(tdb.db).createLeadForContact({

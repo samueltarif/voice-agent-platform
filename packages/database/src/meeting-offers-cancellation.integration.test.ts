@@ -140,7 +140,9 @@ describe('E1 meeting offers and cancellation (PostgreSQL)', () => {
         actor: AGENT,
       });
     };
-    expect(await book(first!.id, undefined)).toEqual({ kind: 'OFFER_NOT_FOUND' }); // outra tentativa
+    // TEST_CHANGE_REASON (2ª auditoria, A3): agente sem tentativa continua recusado,
+    // agora com o motivo explícito `ATTEMPT_REQUIRED` (antes: `OFFER_NOT_FOUND`).
+    expect(await book(first!.id, undefined)).toEqual({ kind: 'ATTEMPT_REQUIRED' });
     expect(await book(first!.id, attemptId, at('2026-11-30T11:16:00Z'))).toEqual({
       kind: 'OFFER_EXPIRED',
     });

@@ -20,7 +20,12 @@ import type { DatabaseExecutor } from './database-executor.js';
  */
 export async function findCalendarRow(
   executor: DatabaseExecutor,
-  input: { readonly organizationId: string; readonly calendarId: string; readonly lock?: boolean },
+  input: {
+    readonly organizationId: string;
+    readonly calendarId: string;
+    /** `true` = `FOR UPDATE` (reserva); `'key share'` = só impede a exclusão (oferta). */
+    readonly lock?: boolean | 'key share';
+  },
 ): Promise<SchedulingCalendarEntity | null> {
   const query = executor
     .select()
@@ -31,6 +36,7 @@ export async function findCalendarRow(
         eq(schedulingCalendars.organizationId, input.organizationId),
       ),
     );
+  if (input.lock === 'key share') return (await query.for('key share'))[0] ?? null;
   const [row] = input.lock ? await query.for('update') : await query;
   return row ?? null;
 }

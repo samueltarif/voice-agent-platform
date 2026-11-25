@@ -77,14 +77,16 @@ export class DrizzleLeadRepository {
     });
   }
 
-  /** `DO_NOT_CALL` pedido no painel é um opt-out: passa pela supressão canônica. */
+  /** `DO_NOT_CALL` no painel é opt-out: supressão canônica, sem exigir a versão atual. */
   changeLeadStatus(input: ChangeLeadStatusInput): Promise<ChangeLeadStatusOutcome> {
     return this.db.transaction(async (tx) => {
       const lead = await lockLead(tx, input.organizationId, input.leadId);
       if (!lead) return { kind: 'NOT_FOUND' as const };
+      // Opt-out explícito NUNCA se perde por versão comercial desatualizada
+      // (2ª auditoria, A4): a versão protege só as demais mudanças comerciais.
+      if (input.status === 'DO_NOT_CALL') return recordLeadOptOut(tx, { ...input, lead });
       if (lead.statusVersion !== input.expectedVersion)
         return { kind: 'VERSION_CONFLICT' as const };
-      if (input.status === 'DO_NOT_CALL') return recordLeadOptOut(tx, { ...input, lead });
       return applyLeadStatusChange(tx, {
         lead,
         to: input.status,

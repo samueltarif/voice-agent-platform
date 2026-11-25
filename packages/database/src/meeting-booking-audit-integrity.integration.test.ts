@@ -172,7 +172,7 @@ describe('E1 audit: database integrity', () => {
     await tdb.db.execute(
       sql.raw(`
       CREATE FUNCTION e1_fail_meeting_audit() RETURNS trigger LANGUAGE plpgsql AS $$
-      BEGIN IF NEW.action = 'meeting.booked' THEN RAISE EXCEPTION 'induced failure'; END IF; RETURN NEW; END $$;
+      BEGIN IF NEW.action = 'meeting.booked' THEN RAISE EXCEPTION 'e1_induced_manual_booking_failure' USING ERRCODE = 'P0001'; END IF; RETURN NEW; END $$;
       CREATE TRIGGER e1_fail_meeting_audit BEFORE INSERT ON audit_logs FOR EACH ROW EXECUTE FUNCTION e1_fail_meeting_audit();
     `),
     );
@@ -185,7 +185,19 @@ describe('E1 audit: database integrity', () => {
         idempotencyKey: key(),
         actor: USER,
       });
-      await expect(attempt).rejects.toThrow();
+      // 2ª auditoria: a falha observada é EXATAMENTE a induzida (código e mensagem).
+      const failure = await attempt.then(
+        () => null,
+        (error: unknown) => error,
+      );
+      let pgError: unknown = failure;
+      while (pgError && typeof pgError === 'object' && !('code' in pgError)) {
+        pgError = (pgError as { cause?: unknown }).cause;
+      }
+      expect(pgError).toMatchObject({
+        code: 'P0001',
+        message: 'e1_induced_manual_booking_failure',
+      });
     } finally {
       await tdb.db.execute(
         sql.raw(
