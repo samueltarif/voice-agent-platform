@@ -1,6 +1,6 @@
 # Voice Agent Platform — Estado vivo do projeto
 
-> **Última verificação no repositório:** 23/11/2026, por volta das 11h45 (horário de Brasília), contra a `origin/main` `ccfa46f5d96321f78c5193de9f8acf93f333704f` (merge da #173, B2c) e a API de PRs do GitHub. Verificações anteriores: 18/11/2026 às 12h30 (`4806def`) e 08h05 (`e36e65a`); 17/11/2026 às 14h10, 14h35 e 17h00.
+> **Última verificação no repositório:** 25/11/2026 (registro da E0/E1, `origin/main` `755aa37`); antes, 23/11/2026, por volta das 11h45 (horário de Brasília), contra a `origin/main` `ccfa46f5d96321f78c5193de9f8acf93f333704f` (merge da #173, B2c) e a API de PRs do GitHub. Verificações anteriores: 18/11/2026 às 12h30 (`4806def`) e 08h05 (`e36e65a`); 17/11/2026 às 14h10, 14h35 e 17h00.
 > Este é um documento de acompanhamento e **não prova o estado em tempo real**. Antes de afirmar status atual, confira Git, PRs e decisões. Em caso de divergência, Git, código, testes observados e `docs/DECISIONS_LOG.md` prevalecem.
 > **Regra de leitura:** distinga sempre INTEGRADO, TESTADO, AUTORIZADO, PLANEJADO, PENDENTE e NÃO VALIDADO. Um plano não é código entregue, e um gate verde não é produto pronto.
 
@@ -307,6 +307,12 @@ Falta comprovar um atendimento real autorizado, cobrindo:
 
 É preciso estabelecer critérios mensuráveis. Não fazer chamadas nem usar provedores pagos sem autorização.
 
+**Atualização de 25/11/2026 — primeira ligação real (DEC-073):**
+- Uma ligação supervisionada, feita **fora da plataforma** pelo operador: Twilio (conta paga, número americano) → `<Connect><Stream>` por WSS → Millis, para o celular verificado do operador.
+- 64 s, `user-ended`, custo observado US$ 0,2113; qualidade aprovada pelo operador, com possíveis erros pontuais de reconhecimento e um silêncio de causa não comprovada.
+- **Status: OBSERVED (relato do operador), NÃO VALIDADO de ponta a ponta.** SIP não foi usado nem validado. Nenhuma ferramenta, dado, registro ou cobrança da plataforma participou.
+- Próximo marco planejado: ligação comercial simulada iniciada **pela plataforma**, com qualificação e agendamento de reunião (E1–E6; só E0 e E1 autorizadas).
+
 **Verificação em 17/11/2026 (`c31cd4a`), inferência por busca no código:**
 - `createKnowledgeSearchToolDefinition` só é instanciada na conversa simulada da API (`apps/api/src/simulation/knowledge-simulated-turn-service.ts`).
 - `apps/voice` apenas reexporta a função.
@@ -371,6 +377,20 @@ Componentes de campanha e billing existem no código, mas a operação comercial
 4. Executar **testes reais de ligações** em ambiente controlado e autorizado.
 5. Concluir segurança, infraestrutura de produção e ciclo comercial, e fazer um piloto.
 6. **Só após testes reais e nova aprovação:** ações com escrita em sistemas externos.
+
+### Piloto comercial com agendamento (25/11/2026)
+
+| Etapa | Conteúdo | Status |
+| :--- | :--- | :--- |
+| **E0** | Registro da ligação WSS, decisões, lacunas da Millis, estratégia de segurança e diagnóstico financeiro (DEC-073) | **EM REVISÃO** (PR documental) |
+| **E1** | Leads, agendas, disponibilidade, ofertas e reserva transacional de reuniões, offline (DEC-074) | **EM REVISÃO** (PR da E1; gate Linux registrado no `AI_WORKLOG`) |
+| E2 | Ferramentas do agente (consultar e oferecer horários, marcar com confirmação, resultado do lead, opt-out) | NÃO autorizada |
+| E3 | Telas (agenda, reuniões, lead, ligação de teste) | NÃO autorizada |
+| E4 | Adaptadores Twilio WSS e Millis (agente temporário, webhooks) | NÃO autorizada |
+| E5 | Montagem supervisionada e gateway HTTPS mínimo | NÃO autorizada |
+| E6 | Ligação real pela plataforma | NÃO autorizada |
+
+**Financeiro (requisito futuro, não autorizado):** mensalidade + créditos pré-pagos (Pix/cartão). Hoje existem só tetos de gasto de fornecedor por empresa e global, reservas por tentativa e limites de simultaneidade (008-OF3); não existem carteira de créditos, pagamentos, tarifas de venda, câmbio, margem nem monitoramento de saldo de fornecedores. Diagnóstico em `docs/research/PHASE_8_FIRST_LIVE_CALL_WSS_AND_SCHEDULING_DECISIONS.md` §5.
 
 ## 10. Como consultar e manter este documento
 

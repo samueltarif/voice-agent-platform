@@ -19711,3 +19711,19 @@ Todas as afirmações sobre o provedor TypeSafe foram auditadas individualmente 
 - **REGISTRO TARDIO DA B2a**: #172 integrada em 18/11/2026 (head `c4534e4`, merge `8118a91`, árvores iguais `38a54e27…`). Números dos gates da #172 não registrados.
 - **SAFETY**: sem chamadas pagas; bancos descartáveis antigos (`of2_test_868defd0d04e`, `of2_test_c80c316bc08a`) mantidos; nenhum banco persistente tocado.
 
+
+## 2026-11-25 — E0 — Registro da primeira ligação real por WSS e decisões do piloto comercial (DEC-073) — Claude
+
+- **AUTORIZAÇÃO** (operador, 25/11/2026): exclusivamente E0 e E1. E2–E6, ligações, gastos, configuração de fornecedores, endpoints públicos, v2 e merges NÃO autorizados.
+- **EVIDÊNCIA REGISTRADA** (relato do operador, `OBSERVED`, não homologação): ligação de 25/11/2026 por Calls API + `<Connect><Stream>` (WSS) até a Millis, número americano → celular verificado do operador, 64 s, `user-ended`, US$ 0,2113 observados. SIP não usado nem validado.
+- **DOCUMENTOS**: DEC-073 e DEC-074 no `DECISIONS_LOG`; `docs/research/PHASE_8_FIRST_LIVE_CALL_WSS_AND_SCHEDULING_DECISIONS.md` (evidência, decisões, lacunas M1–M6 da Millis, estratégia de credencial por tentativa, diagnóstico financeiro); `PROJECT_STATUS` §6 e quadro E0–E6.
+- **CONSULTAS EXTERNAS**: só documentação pública (docs.millis.ai, Twilio); nenhuma consulta autenticada a fornecedores.
+
+## 2026-11-25 — E1 — Leads, agendas e reserva transacional de reuniões, offline (DEC-074) — Claude
+
+- **BRANCH**: `feat/scheduling-e1-leads-agenda` a partir da `origin/main` `755aa37`, em worktree separado; PR #177; HEAD `541851cb9893c210454987dde3d38fb1c7663cb7`.
+- **IMPLEMENTAÇÃO**: ver DEC-074 e `docs/architecture/LEADS_SCHEDULING_DESIGN.md` (na PR #177). Migration aditiva `0014_leads_scheduling_meetings` com `btree_gist`, aplicada só em bancos `of2_test_*`.
+- **TESTES**: 20 de contratos + 30 de integração (PostgreSQL real), incluindo concorrência, horário de verão, isolamento e RBAC. `TEST_CHANGE_REASON`: contagem de migrations 14 → 15 em `durable-outbound-schema.integration.test.ts` (`ASSERTION_EQUIVALENT`). Nenhum skip novo.
+- **DEFEITOS ENCONTRADOS PELOS PRÓPRIOS TESTES E CORRIGIDOS ANTES DO COMMIT**: data inválida derrubava o cálculo da impressão digital do pedido (agora `INVALID_START`); repetições concorrentes do mesmo pedido viam o lead já agendado antes da chave de idempotência (a chave passou a ser lida após a trava do lead).
+- **GATE LINUX** no HEAD `541851c`: `pnpm check:disposable` exit 0; fase 1 2.327 PASS / 45 ignorados; fase 2 535 PASS; 0 falhas; build 14/14; `api-dist`, arquitetura e tamanho OK. Execução anterior no mesmo código (antes do arquivo de desenho) também exit 0; a primeira execução falhou só no teste de contagem de migrations, corrigido. Gate Windows pendente (operador).
+- **SAFETY**: só bancos descartáveis (restou apenas o preservado `of2_test_868defd0d04e`); nenhuma migration em banco existente; Qualitec, `voice_agent_pr157_test` e agente v4 intocados; sem chamadas pagas; v2 inalterada.
