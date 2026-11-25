@@ -78,6 +78,30 @@ export async function loadCalendarSnapshot(
   };
 }
 
+/**
+ * Auditoria M1 — exceções com o identificador persistido, para que a API
+ * possa expor o `id` exigido pela remoção (`DELETE .../exceptions/:id`).
+ */
+export async function loadExceptionRecords(
+  executor: DatabaseExecutor,
+  row: SchedulingCalendarEntity,
+) {
+  const exceptions = await executor
+    .select()
+    .from(schedulingAvailabilityExceptions)
+    .where(
+      and(
+        eq(schedulingAvailabilityExceptions.calendarId, row.id),
+        eq(schedulingAvailabilityExceptions.organizationId, row.organizationId),
+      ),
+    )
+    .orderBy(
+      asc(schedulingAvailabilityExceptions.localDate),
+      asc(schedulingAvailabilityExceptions.id),
+    );
+  return exceptions.map((exception) => ({ id: exception.id, ...toException(exception) }));
+}
+
 function toException(
   row: typeof schedulingAvailabilityExceptions.$inferSelect,
 ): AvailabilityException {

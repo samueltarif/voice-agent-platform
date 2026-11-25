@@ -1,6 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 import { contacts, contactSuppressions } from '../schema/contacts.js';
-import { leadStatusChanges, leads, type LeadEntity } from '../schema/leads.js';
+import { leadStatusChanges } from '../schema/lead-status-changes.js';
+import { leads, type LeadEntity } from '../schema/leads.js';
 import type { DatabaseExecutor } from './database-executor.js';
 import { insertSchedulingAudit, type SchedulingActor } from './scheduling-audit-entry.js';
 

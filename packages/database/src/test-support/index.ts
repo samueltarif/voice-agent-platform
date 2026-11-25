@@ -99,8 +99,10 @@ export {
 export { unlabeledQuestions, voiceTruthReport } from './knowledge-voice-truth-evaluation.js';
 // E1 (DEC-074): leads, agendas e horários sintéticos.
 export {
+  createControlledClock,
   createSyntheticContact,
   createSyntheticLead,
+  prepareSyntheticAttempt,
   createWeekdayCalendar,
   nextSyntheticPhone,
   SAO_PAULO_POLICY,

@@ -31,7 +31,7 @@ export function createSchedulingDependencies(
     calendars: new DrizzleSchedulingCalendarRepository(db),
     availability: new DrizzleSchedulingAvailabilityRepository(db),
     slots: new DrizzleSchedulingSlotRepository(db),
-    booking: new DrizzleMeetingBookingService(db),
+    booking: new DrizzleMeetingBookingService(db, now),
     cancellation: new DrizzleMeetingCancellationService(db),
     meetings: new DrizzleMeetingQueries(db),
     now,

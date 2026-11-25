@@ -25,7 +25,7 @@ const TUESDAY_10 = at('2026-12-01T13:00:00.000Z');
 
 /** E1 (DEC-074) — reserva transacional: validação, idempotência e concorrência. */
 describe('E1 meeting booking (PostgreSQL)', () => {
-  const booking = new DrizzleMeetingBookingService(tdb.db);
+  const booking = new DrizzleMeetingBookingService(tdb.db, () => SCHEDULING_TEST_NOW);
   const leads = new DrizzleLeadRepository(tdb.db);
   let fx: DurableOutboundFixture;
   let orgA: string;
@@ -49,7 +49,6 @@ describe('E1 meeting booking (PostgreSQL)', () => {
       startsAt,
       idempotencyKey,
       actor: SCHEDULING_TEST_USER,
-      now: SCHEDULING_TEST_NOW,
     });
     return { calendar, lead, request };
   }

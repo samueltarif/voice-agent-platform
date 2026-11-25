@@ -22,17 +22,24 @@ export type SchedulingActorType = (typeof SCHEDULING_ACTOR_TYPES)[number];
 /**
  * Origem da mudança. `MEETING_SCHEDULED` só é alcançado por reserva de reunião
  * e só é deixado por cancelamento (o painel não pode "fingir" uma reunião).
+ * `OPT_OUT` é o pedido de não receber ligações: a supressão canônica do
+ * telefone é SEMPRE registrada; esta regra decide só o status comercial.
  */
 export const LEAD_STATUS_CHANGE_ORIGINS = [
   'CREATED',
   'MANUAL',
+  'OPT_OUT',
   'MEETING_BOOKED',
   'MEETING_CANCELED',
 ] as const;
 export type LeadStatusChangeOrigin = (typeof LEAD_STATUS_CHANGE_ORIGINS)[number];
 
 export type LeadStatusChangeBlockReason =
-  'SAME_STATUS' | 'LEAD_DO_NOT_CALL' | 'STATUS_MANAGED_BY_SCHEDULING' | 'TRANSITION_NOT_ALLOWED';
+  | 'SAME_STATUS'
+  | 'LEAD_DO_NOT_CALL'
+  | 'STATUS_MANAGED_BY_SCHEDULING'
+  | 'TRANSITION_NOT_ALLOWED'
+  | 'ACTIVE_MEETING_PRESERVED';
 
 export type LeadStatusChangeVerdict =
   { readonly ok: true } | { readonly ok: false; readonly reason: LeadStatusChangeBlockReason };
@@ -47,7 +54,6 @@ const MANUAL_TARGETS: ReadonlySet<LeadStatus> = new Set([
   'CONTACTED',
   'QUALIFIED',
   'NOT_INTERESTED',
-  'DO_NOT_CALL',
 ]);
 
 export interface LeadStatusChangeRequest {
@@ -56,40 +62,66 @@ export interface LeadStatusChangeRequest {
   readonly origin: Exclude<LeadStatusChangeOrigin, 'CREATED'>;
 }
 
+const OK: LeadStatusChangeVerdict = { ok: true };
 const block = (reason: LeadStatusChangeBlockReason): LeadStatusChangeVerdict => ({
   ok: false,
   reason,
 });
 
 function evaluateManual(from: LeadStatus, to: LeadStatus): LeadStatusChangeVerdict {
+  if (from === 'DO_NOT_CALL') return block('LEAD_DO_NOT_CALL');
   if (from === 'MEETING_SCHEDULED' || to === 'MEETING_SCHEDULED') {
     return block('STATUS_MANAGED_BY_SCHEDULING');
   }
-  if (!OPEN_STATUSES.has(from) || !MANUAL_TARGETS.has(to)) {
-    return block('TRANSITION_NOT_ALLOWED');
-  }
-  return { ok: true };
+  // `DO_NOT_CALL` manual é tratado como OPT_OUT pelo repositório.
+  return MANUAL_TARGETS.has(to) ? OK : block('TRANSITION_NOT_ALLOWED');
+}
+
+function evaluateOptOut(from: LeadStatus, to: LeadStatus): LeadStatusChangeVerdict {
+  if (to !== 'DO_NOT_CALL') return block('TRANSITION_NOT_ALLOWED');
+  // Reunião já marcada é preservada até cancelamento explícito.
+  return from === 'MEETING_SCHEDULED' ? block('ACTIVE_MEETING_PRESERVED') : OK;
 }
 
 /**
+ * Reserva: de status aberto ou de `DO_NOT_CALL` (reunião pedida pelo próprio
+ * cliente, registrada por um usuário; a supressão NÃO é removida). O agente
+ * (prospecção ativa) é barrado antes, pela supressão canônica do telefone.
+ */
+function evaluateBooking(from: LeadStatus, to: LeadStatus): LeadStatusChangeVerdict {
+  const allowed = to === 'MEETING_SCHEDULED' && (OPEN_STATUSES.has(from) || from === 'DO_NOT_CALL');
+  return allowed ? OK : block('TRANSITION_NOT_ALLOWED');
+}
+
+function evaluateCancellation(from: LeadStatus, to: LeadStatus): LeadStatusChangeVerdict {
+  const allowed = from === 'MEETING_SCHEDULED' && (to === 'QUALIFIED' || to === 'DO_NOT_CALL');
+  return allowed ? OK : block('TRANSITION_NOT_ALLOWED');
+}
+
+const EVALUATORS = {
+  MANUAL: evaluateManual,
+  OPT_OUT: evaluateOptOut,
+  MEETING_BOOKED: evaluateBooking,
+  MEETING_CANCELED: evaluateCancellation,
+} as const;
+
+/**
  * Regra determinística e única das transições do lead:
- * - `DO_NOT_CALL` é terminal (a supressão não tem remoção nesta fase);
- * - reunião marcada: só reserva leva a `MEETING_SCHEDULED`;
- * - cancelamento devolve `MEETING_SCHEDULED` → `QUALIFIED`;
- * - com reunião ativa, mudanças manuais exigem cancelar a reunião antes.
+ * - mudança manual não sai de `DO_NOT_CALL` nem entra ou sai de `MEETING_SCHEDULED`;
+ * - opt-out leva a `DO_NOT_CALL`, exceto com reunião ativa (preservada);
+ * - cancelamento devolve a `QUALIFIED`, ou a `DO_NOT_CALL` se o telefone estiver suprimido.
  */
 export function evaluateLeadStatusChange(
   request: LeadStatusChangeRequest,
 ): LeadStatusChangeVerdict {
   const { from, to, origin } = request;
-  if (from === 'DO_NOT_CALL') return block('LEAD_DO_NOT_CALL');
   if (from === to) return block('SAME_STATUS');
-  if (origin === 'MANUAL') return evaluateManual(from, to);
-  const allowed =
-    origin === 'MEETING_BOOKED'
-      ? to === 'MEETING_SCHEDULED' && OPEN_STATUSES.has(from)
-      : from === 'MEETING_SCHEDULED' && to === 'QUALIFIED';
-  return allowed ? { ok: true } : block('TRANSITION_NOT_ALLOWED');
+  return EVALUATORS[origin](from, to);
+}
+
+/** Status do lead depois do cancelamento: a supressão do telefone prevalece. */
+export function leadStatusAfterCancellation(phoneSuppressed: boolean): LeadStatus {
+  return phoneSuppressed ? 'DO_NOT_CALL' : 'QUALIFIED';
 }
 
 /** Status inicial de um lead: um telefone já suprimido nasce `DO_NOT_CALL`. */

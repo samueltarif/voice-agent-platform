@@ -5,6 +5,7 @@ import {
   meetingListQuerySchema,
 } from '@voice-agent/contracts';
 import type { ApiDependencies } from '../composition/agent-dependencies.js';
+import { projectMeeting } from './meeting-projection.js';
 import {
   authorizeScheduling,
   schedulingDeps,
@@ -32,15 +33,16 @@ function registerBookMeeting(app: OpenAPIHono, deps: ApiDependencies): void {
       const ctx = await authorizeScheduling(c, deps, 'scheduling.book');
       const body = c.req.valid('json' as never) as z.infer<typeof bookMeetingInputSchema>;
       const scheduling = schedulingDeps(deps);
+      // O instante da decisão é lido pelo serviço, depois das travas (A2).
       const outcome = await scheduling.booking.bookMeeting({
-        ...ctx,
+        organizationId: ctx.organizationId,
+        actor: ctx.actor,
         ...body,
         startsAt: new Date(body.startsAt),
-        now: scheduling.now(),
       });
       if (outcome.kind === 'BOOKED' || outcome.kind === 'REPLAYED') {
         return c.json(
-          { status: outcome.kind, meeting: outcome.meeting },
+          { status: outcome.kind, meeting: projectMeeting(outcome.meeting, ctx.meetingView) },
           outcome.kind === 'BOOKED' ? 201 : 200,
         );
       }
@@ -69,7 +71,7 @@ function registerListMeetings(app: OpenAPIHono, deps: ApiDependencies): void {
         to: new Date(query.to),
       });
       const items = rows.map((row) => ({
-        ...row.meeting,
+        ...projectMeeting(row.meeting, ctx.meetingView),
         contactName: row.contactName,
         leadStatus: row.leadStatus,
       }));
@@ -97,13 +99,15 @@ function registerCancelMeeting(app: OpenAPIHono, deps: ApiDependencies): void {
       const body = c.req.valid('json' as never) as z.infer<typeof cancelMeetingInputSchema>;
       const scheduling = schedulingDeps(deps);
       const outcome = await scheduling.cancellation.cancelMeeting({
-        ...ctx,
+        organizationId: ctx.organizationId,
+        actor: ctx.actor,
         meetingId,
         ...body,
         now: scheduling.now(),
       });
       if (outcome.kind === 'CANCELED' || outcome.kind === 'ALREADY_CANCELED') {
-        return c.json({ status: outcome.kind, meeting: outcome.meeting }, 200);
+        const meeting = projectMeeting(outcome.meeting, ctx.meetingView);
+        return c.json({ status: outcome.kind, meeting }, 200);
       }
       return schedulingRejected(
         c,

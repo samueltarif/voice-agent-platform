@@ -3,6 +3,7 @@ import { listAvailableSlots, type TimeInterval } from '@voice-agent/contracts';
 import type { DatabaseInstance } from '../client/connection.js';
 import { leads } from '../schema/leads.js';
 import { meetingSlotOffers, type MeetingSlotOfferEntity } from '../schema/meeting-slot-offers.js';
+import { isLeadPhoneSuppressed, verifyAttemptDialsLead } from './attempt-lead-association.js';
 import type { DatabaseExecutor } from './database-executor.js';
 import {
   findCalendarRow,
@@ -24,7 +25,51 @@ export const DEFAULT_SLOT_OFFER_TTL_MINUTES = 15;
 
 export type OfferSlotsOutcome =
   | { readonly kind: 'OFFERED'; readonly offers: MeetingSlotOfferEntity[] }
-  | { readonly kind: 'CALENDAR_NOT_FOUND' | 'LEAD_NOT_FOUND' | 'LEAD_NOT_BOOKABLE' };
+  | {
+      readonly kind:
+        | 'CALENDAR_NOT_FOUND'
+        | 'LEAD_NOT_FOUND'
+        | 'LEAD_NOT_BOOKABLE'
+        | 'LEAD_SUPPRESSED'
+        | 'ATTEMPT_NOT_FOUND'
+        | 'ATTEMPT_LEAD_MISMATCH';
+    };
+
+export type OfferSlotsCommand = SlotSearchCommand & {
+  readonly leadId: string;
+  readonly sourceAttemptId?: string | undefined;
+  readonly ttlMinutes?: number | undefined;
+};
+
+type OfferRefusal = Exclude<OfferSlotsOutcome, { kind: 'OFFERED' }>;
+
+/**
+ * Oferta = prospecção ativa: o lead precisa existir, não estar suprimido nem
+ * com reunião ativa, e a tentativa (se houver) precisa ter discado EXATAMENTE
+ * o telefone do lead — resolvido no servidor (auditoria A3/A4).
+ */
+async function refuseOffer(
+  executor: DatabaseExecutor,
+  command: OfferSlotsCommand,
+): Promise<OfferRefusal | null> {
+  const [lead] = await executor
+    .select({ status: leads.status })
+    .from(leads)
+    .where(and(eq(leads.id, command.leadId), eq(leads.organizationId, command.organizationId)));
+  if (!lead) return { kind: 'LEAD_NOT_FOUND' };
+  if (command.sourceAttemptId) {
+    const association = await verifyAttemptDialsLead(executor, {
+      organizationId: command.organizationId,
+      attemptId: command.sourceAttemptId,
+      leadId: command.leadId,
+    });
+    if (association !== 'MATCH') return { kind: association };
+  }
+  if (lead.status === 'DO_NOT_CALL') return { kind: 'LEAD_SUPPRESSED' };
+  if (await isLeadPhoneSuppressed(executor, command.organizationId, command.leadId))
+    return { kind: 'LEAD_SUPPRESSED' };
+  return lead.status === 'MEETING_SCHEDULED' ? { kind: 'LEAD_NOT_BOOKABLE' } : null;
+}
 
 async function searchSlots(executor: DatabaseExecutor, command: SlotSearchCommand) {
   const row = await findCalendarRow(executor, command);
@@ -48,22 +93,10 @@ export class DrizzleSchedulingSlotRepository {
     return searchSlots(this.db, command);
   }
 
-  offerSlots(
-    command: SlotSearchCommand & {
-      readonly leadId: string;
-      readonly sourceAttemptId?: string | undefined;
-      readonly ttlMinutes?: number | undefined;
-    },
-  ): Promise<OfferSlotsOutcome> {
+  offerSlots(command: OfferSlotsCommand): Promise<OfferSlotsOutcome> {
     return this.db.transaction(async (tx) => {
-      const [lead] = await tx
-        .select({ status: leads.status })
-        .from(leads)
-        .where(and(eq(leads.id, command.leadId), eq(leads.organizationId, command.organizationId)));
-      if (!lead) return { kind: 'LEAD_NOT_FOUND' as const };
-      if (lead.status === 'DO_NOT_CALL' || lead.status === 'MEETING_SCHEDULED') {
-        return { kind: 'LEAD_NOT_BOOKABLE' as const };
-      }
+      const refused = await refuseOffer(tx, command);
+      if (refused) return refused;
       const slots = await searchSlots(tx, command);
       if (slots === null) return { kind: 'CALENDAR_NOT_FOUND' as const };
       if (slots.length === 0) return { kind: 'OFFERED' as const, offers: [] };

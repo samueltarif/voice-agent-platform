@@ -8,7 +8,11 @@ import {
 import type { DatabaseExecutor } from './database-executor.js';
 import { classifyPostgresFailure } from './outbound-persistence-errors.js';
 import { insertSchedulingAudit, type SchedulingActor } from './scheduling-audit-entry.js';
-import { findCalendarRow, loadCalendarSnapshot } from './scheduling-calendar-snapshot.js';
+import {
+  findCalendarRow,
+  loadCalendarSnapshot,
+  loadExceptionRecords,
+} from './scheduling-calendar-snapshot.js';
 
 export type CalendarVersionedOutcome =
   | { readonly kind: 'UPDATED'; readonly calendar: SchedulingCalendarEntity }
@@ -98,7 +102,8 @@ export class DrizzleSchedulingCalendarRepository {
     const row = await findCalendarRow(this.db, { organizationId, calendarId });
     if (!row) return null;
     const snapshot = await loadCalendarSnapshot(this.db, row);
-    return { calendar: row, rules: snapshot.rules, exceptions: snapshot.exceptions };
+    const exceptions = await loadExceptionRecords(this.db, row);
+    return { calendar: row, rules: snapshot.rules, exceptions };
   }
 
   updatePolicy(input: CalendarVersionedCommand & { readonly policy: SchedulingPolicy }) {

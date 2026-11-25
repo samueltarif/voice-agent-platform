@@ -104,6 +104,64 @@ describe('E1 slot generation', () => {
   });
 });
 
+describe('E1 audit M2: real start and end must fit the local window across DST', () => {
+  const nyPolicy = {
+    ...policy,
+    timezone: 'America/New_York',
+    minimumNoticeMinutes: 0,
+    slotDurationMinutes: 60,
+  };
+  const search = (calendar: SchedulingCalendarSnapshot, day: string) =>
+    listAvailableSlots({
+      calendar,
+      busy: [],
+      now: at(`${day}T00:00:00Z`),
+      from: at(`${day}T00:00:00Z`),
+      to: at(`${day}T23:59:00Z`),
+      limit: 20,
+    });
+
+  it('spring-forward 2026-03-08, window 01:30–03:00, 60 min: no slot overflows the window', () => {
+    const calendar = {
+      policy: nyPolicy,
+      rules: [{ weekday: 7, startMinute: 90, endMinute: 180 }],
+      exceptions: [],
+    };
+    // 01:30 EST (06:30Z) + 60 min = 07:30Z = 03:30 EDT, depois do fim local 03:00 (07:00Z).
+    expect(starts(search(calendar, '2026-03-08'))).toEqual([]);
+    expect(
+      evaluateSlotBookability({
+        calendar,
+        busy: [],
+        now: at('2026-03-08T00:00:00Z'),
+        startsAt: at('2026-03-08T06:30:00.000Z'),
+      }),
+    ).toEqual({
+      ok: false,
+      reason: 'OUTSIDE_AVAILABILITY',
+    });
+  });
+
+  it('fall-back 2026-11-01: ambiguous starts use the first occurrence and every slot ends inside the window', () => {
+    const calendar = {
+      policy: { ...nyPolicy, slotDurationMinutes: 30 },
+      rules: [{ weekday: 7, startMinute: 60, endMinute: 120 }],
+      exceptions: [],
+    };
+    const slots = search(calendar, '2026-11-01');
+    expect(starts(slots)).toEqual(['2026-11-01T05:00:00.000Z', '2026-11-01T05:30:00.000Z']);
+    const windowEnd = at('2026-11-01T07:00:00.000Z').getTime(); // 02:00 EST
+    expect(slots.every((slot) => slot.endsAt.getTime() <= windowEnd)).toBe(true);
+    const hourLong = {
+      ...calendar,
+      policy: nyPolicy,
+      rules: [{ weekday: 7, startMinute: 30, endMinute: 90 }],
+    };
+    // 00:30 EDT (04:30Z) + 60 = 05:30Z = 01:30 (primeira ocorrência), exatamente o fim da janela.
+    expect(starts(search(hourLong, '2026-11-01'))).toEqual(['2026-11-01T04:30:00.000Z']);
+  });
+});
+
 describe('E1 slot bookability (authoritative re-check)', () => {
   const base = { calendar, busy: [] as TimeInterval[], now };
   it('accepts exactly one grid start and rejects everything else with a reason', () => {

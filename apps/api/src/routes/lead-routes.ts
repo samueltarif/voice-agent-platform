@@ -105,7 +105,9 @@ function registerChangeStatus(app: OpenAPIHono, deps: ApiDependencies): void {
         leadId,
         ...body,
       });
-      if (outcome.kind === 'CHANGED') return c.json({ lead: outcome.lead }, 200);
+      // DO_NOT_CALL é opt-out: a supressão é sempre registrada; com reunião
+      // ativa, ela é preservada até cancelamento explícito (auditoria A4).
+      if ('lead' in outcome) return c.json({ status: outcome.kind, lead: outcome.lead }, 200);
       if (outcome.kind === 'BLOCKED')
         return schedulingRejected(c, 'STATUS_CHANGE_BLOCKED', outcome.reason);
       return schedulingRejected(c, outcome.kind === 'NOT_FOUND' ? 'LEAD_NOT_FOUND' : outcome.kind);

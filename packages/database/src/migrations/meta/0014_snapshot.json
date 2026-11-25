@@ -1,5 +1,5 @@
 {
-  "id": "50b78f97-5b13-4a51-99d4-b38a68674eb0",
+  "id": "a8b69f9b-d8be-4c4d-b958-0ba23a7996a2",
   "prevId": "c168553d-4d73-4c17-80b0-c9720310ef32",
   "version": "7",
   "dialect": "postgresql",
@@ -4735,147 +4735,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.lead_status_changes": {
-      "name": "lead_status_changes",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "organization_id": {
-          "name": "organization_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "lead_id": {
-          "name": "lead_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "from_status": {
-          "name": "from_status",
-          "type": "lead_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "to_status": {
-          "name": "to_status",
-          "type": "lead_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "origin": {
-          "name": "origin",
-          "type": "lead_status_change_origin",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "actor_type": {
-          "name": "actor_type",
-          "type": "scheduling_actor_type",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "actor_id": {
-          "name": "actor_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "reason": {
-          "name": "reason",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "meeting_id": {
-          "name": "meeting_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "lead_status_changes_org_lead_created_idx": {
-          "name": "lead_status_changes_org_lead_created_idx",
-          "columns": [
-            {
-              "expression": "organization_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "lead_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "lead_status_changes_organization_id_organizations_id_fk": {
-          "name": "lead_status_changes_organization_id_organizations_id_fk",
-          "tableFrom": "lead_status_changes",
-          "tableTo": "organizations",
-          "columnsFrom": ["organization_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "lead_status_changes_lead_org_fk": {
-          "name": "lead_status_changes_lead_org_fk",
-          "tableFrom": "lead_status_changes",
-          "tableTo": "leads",
-          "columnsFrom": ["lead_id", "organization_id"],
-          "columnsTo": ["id", "organization_id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "lead_status_changes_reason_chk": {
-          "name": "lead_status_changes_reason_chk",
-          "value": "\"lead_status_changes\".\"reason\" IS NULL OR char_length(\"lead_status_changes\".\"reason\") BETWEEN 1 AND 500"
-        },
-        "lead_status_changes_actor_chk": {
-          "name": "lead_status_changes_actor_chk",
-          "value": "char_length(\"lead_status_changes\".\"actor_id\") BETWEEN 1 AND 200"
-        }
-      },
-      "isRLSEnabled": false
-    },
     "public.leads": {
       "name": "leads",
       "schema": "",
@@ -5102,7 +4961,7 @@
       "checkConstraints": {
         "scheduling_availability_exceptions_window_chk": {
           "name": "scheduling_availability_exceptions_window_chk",
-          "value": "(\"scheduling_availability_exceptions\".\"start_minute\" IS NULL AND \"scheduling_availability_exceptions\".\"end_minute\" IS NULL AND \"scheduling_availability_exceptions\".\"kind\" = 'UNAVAILABLE')\n        OR (\"scheduling_availability_exceptions\".\"start_minute\" >= 0 AND \"scheduling_availability_exceptions\".\"end_minute\" <= 1440\n          AND \"scheduling_availability_exceptions\".\"start_minute\" < \"scheduling_availability_exceptions\".\"end_minute\")"
+          "value": "(\"scheduling_availability_exceptions\".\"start_minute\" IS NULL AND \"scheduling_availability_exceptions\".\"end_minute\" IS NULL AND \"scheduling_availability_exceptions\".\"kind\" = 'UNAVAILABLE')\n        OR (\"scheduling_availability_exceptions\".\"start_minute\" IS NOT NULL AND \"scheduling_availability_exceptions\".\"end_minute\" IS NOT NULL\n          AND \"scheduling_availability_exceptions\".\"start_minute\" >= 0 AND \"scheduling_availability_exceptions\".\"end_minute\" <= 1440\n          AND \"scheduling_availability_exceptions\".\"start_minute\" < \"scheduling_availability_exceptions\".\"end_minute\")"
         },
         "scheduling_availability_exceptions_reason_chk": {
           "name": "scheduling_availability_exceptions_reason_chk",
@@ -5784,6 +5643,156 @@
         }
       },
       "isRLSEnabled": false
+    },
+    "public.lead_status_changes": {
+      "name": "lead_status_changes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lead_id": {
+          "name": "lead_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "from_status": {
+          "name": "from_status",
+          "type": "lead_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "to_status": {
+          "name": "to_status",
+          "type": "lead_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "origin": {
+          "name": "origin",
+          "type": "lead_status_change_origin",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actor_type": {
+          "name": "actor_type",
+          "type": "scheduling_actor_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actor_id": {
+          "name": "actor_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "meeting_id": {
+          "name": "meeting_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "lead_status_changes_org_lead_created_idx": {
+          "name": "lead_status_changes_org_lead_created_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "lead_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "lead_status_changes_organization_id_organizations_id_fk": {
+          "name": "lead_status_changes_organization_id_organizations_id_fk",
+          "tableFrom": "lead_status_changes",
+          "tableTo": "organizations",
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "lead_status_changes_lead_org_fk": {
+          "name": "lead_status_changes_lead_org_fk",
+          "tableFrom": "lead_status_changes",
+          "tableTo": "leads",
+          "columnsFrom": ["lead_id", "organization_id"],
+          "columnsTo": ["id", "organization_id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "lead_status_changes_meeting_org_fk": {
+          "name": "lead_status_changes_meeting_org_fk",
+          "tableFrom": "lead_status_changes",
+          "tableTo": "meetings",
+          "columnsFrom": ["meeting_id", "organization_id"],
+          "columnsTo": ["id", "organization_id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "lead_status_changes_reason_chk": {
+          "name": "lead_status_changes_reason_chk",
+          "value": "\"lead_status_changes\".\"reason\" IS NULL OR char_length(\"lead_status_changes\".\"reason\") BETWEEN 1 AND 500"
+        },
+        "lead_status_changes_actor_chk": {
+          "name": "lead_status_changes_actor_chk",
+          "value": "char_length(\"lead_status_changes\".\"actor_id\") BETWEEN 1 AND 200"
+        }
+      },
+      "isRLSEnabled": false
     }
   },
   "enums": {
@@ -5927,7 +5936,7 @@
     "public.lead_status_change_origin": {
       "name": "lead_status_change_origin",
       "schema": "public",
-      "values": ["CREATED", "MANUAL", "MEETING_BOOKED", "MEETING_CANCELED"]
+      "values": ["CREATED", "MANUAL", "OPT_OUT", "MEETING_BOOKED", "MEETING_CANCELED"]
     },
     "public.lead_status": {
       "name": "lead_status",

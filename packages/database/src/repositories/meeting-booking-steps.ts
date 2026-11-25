@@ -1,16 +1,21 @@
 import { createHash } from 'node:crypto';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import type {
   LeadStatusChangeBlockReason,
   SlotBookabilityBlockReason,
 } from '@voice-agent/contracts';
-import { meetingSlotOffers } from '../schema/meeting-slot-offers.js';
+import { meetingSlotOffers, type MeetingSlotOfferEntity } from '../schema/meeting-slot-offers.js';
 import { meetings, type MeetingEntity } from '../schema/meetings.js';
 import type { DatabaseExecutor } from './database-executor.js';
 import type { PostgresFailure } from './outbound-persistence-errors.js';
 import type { SchedulingActor } from './scheduling-audit-entry.js';
 
-/** E1 (DEC-074) — pedido de reserva já resolvido no servidor. */
+/**
+ * E1 (DEC-074) — pedido de reserva já resolvido no servidor. Não carrega o
+ * instante da decisão: ele é lido do relógio da aplicação DEPOIS das travas
+ * (auditoria A2). `slotOfferId`/`sourceAttemptId` só vêm de uma oferta
+ * registrada (`bookOfferedSlot`), nunca do chamador da reserva manual.
+ */
 export interface MeetingBookingRequest {
   readonly organizationId: string;
   readonly calendarId: string;
@@ -18,10 +23,12 @@ export interface MeetingBookingRequest {
   readonly startsAt: Date;
   readonly idempotencyKey: string;
   readonly actor: SchedulingActor;
-  readonly now: Date;
-  readonly sourceAttemptId?: string | undefined;
+  readonly sourceAttemptId?: string | null | undefined;
   readonly slotOfferId?: string | undefined;
 }
+
+/** Reserva manual (painel): sempre por um usuário, sem tentativa nem oferta. */
+export type ManualBookingInput = Omit<MeetingBookingRequest, 'sourceAttemptId' | 'slotOfferId'>;
 
 export type BookMeetingOutcome =
   | { readonly kind: 'BOOKED' | 'REPLAYED'; readonly meeting: MeetingEntity }
@@ -35,7 +42,11 @@ export type BookMeetingOutcome =
         | 'OFFER_NOT_FOUND'
         | 'OFFER_EXPIRED'
         | 'OFFER_ALREADY_USED'
-        | 'ATTEMPT_NOT_FOUND';
+        | 'OFFER_STALE'
+        | 'OFFER_REQUIRED'
+        | 'ATTEMPT_NOT_FOUND'
+        | 'ATTEMPT_LEAD_MISMATCH'
+        | 'LEAD_SUPPRESSED';
     }
   | { readonly kind: 'LEAD_BLOCKED'; readonly reason: LeadStatusChangeBlockReason }
   | { readonly kind: 'SLOT_UNAVAILABLE'; readonly reason: SlotBookabilityBlockReason };
@@ -53,6 +64,23 @@ export function bookingFingerprint(request: MeetingBookingRequest): string {
     request.slotOfferId ?? '',
   ];
   return createHash('sha256').update(JSON.stringify(parts)).digest('hex');
+}
+
+/**
+ * Auditoria M4 — serializa, por (tenant, chave), pedidos com a MESMA chave de
+ * idempotência, ainda que para leads ou agendas diferentes. Assim o segundo
+ * pedido sempre vê o primeiro e responde repetição ou reuso da chave, nunca
+ * um conflito de horário que mascararia o reuso. Trava transacional (liberada
+ * no commit/rollback); colisões de hash apenas serializam mais.
+ */
+export async function lockIdempotencyKey(
+  executor: DatabaseExecutor,
+  organizationId: string,
+  idempotencyKey: string,
+): Promise<void> {
+  await executor.execute(
+    sql`SELECT pg_advisory_xact_lock(hashtextextended(${organizationId} || ':meeting-key:' || ${idempotencyKey}, 0))`,
+  );
 }
 
 export async function findMeetingByKey(
@@ -75,24 +103,34 @@ export function replayOutcome(existing: MeetingEntity, fingerprint: string): Boo
     : { kind: 'IDEMPOTENCY_KEY_REUSED' };
 }
 
-/** Oferta ainda disponível? Travada para que só uma reserva a consuma. */
-export async function claimSlotOffer(
+/** Oferta do tenant, opcionalmente travada (`FOR UPDATE`) dentro da transação. */
+export async function findSlotOffer(
   executor: DatabaseExecutor,
-  request: MeetingBookingRequest,
-): Promise<'CLAIMED' | 'OFFER_ALREADY_USED'> {
-  if (!request.slotOfferId) return 'CLAIMED';
-  const [offer] = await executor
+  input: { readonly organizationId: string; readonly offerId: string; readonly lock: boolean },
+): Promise<MeetingSlotOfferEntity | null> {
+  const query = executor
+    .select()
+    .from(meetingSlotOffers)
+    .where(
+      and(
+        eq(meetingSlotOffers.id, input.offerId),
+        eq(meetingSlotOffers.organizationId, input.organizationId),
+      ),
+    );
+  const [row] = input.lock ? await query.for('update') : await query;
+  return row ?? null;
+}
+
+export async function markOfferAccepted(executor: DatabaseExecutor, offer: MeetingSlotOfferEntity) {
+  await executor
     .update(meetingSlotOffers)
     .set({ status: 'ACCEPTED' })
     .where(
       and(
-        eq(meetingSlotOffers.id, request.slotOfferId),
-        eq(meetingSlotOffers.organizationId, request.organizationId),
-        eq(meetingSlotOffers.status, 'OFFERED'),
+        eq(meetingSlotOffers.id, offer.id),
+        eq(meetingSlotOffers.organizationId, offer.organizationId),
       ),
-    )
-    .returning({ id: meetingSlotOffers.id });
-  return offer ? 'CLAIMED' : 'OFFER_ALREADY_USED';
+    );
 }
 
 const OUTCOME_BY_CONSTRAINT: Readonly<Record<string, BookMeetingOutcome>> = {
@@ -105,7 +143,8 @@ const OUTCOME_BY_CONSTRAINT: Readonly<Record<string, BookMeetingOutcome>> = {
 
 /**
  * Violações do banco viram resultados de negócio; a chave de idempotência
- * concorrente devolve `'REREAD'` (a outra transação venceu e é relida).
+ * concorrente devolve `'REREAD'` (defesa em profundidade: com a trava da
+ * chave, a outra transação já terá sido vista antes do INSERT).
  */
 export function mapBookingFailure(failure: PostgresFailure): BookMeetingOutcome | 'REREAD' | null {
   if (failure.constraint === 'meetings_org_idempotency_unique') return 'REREAD';

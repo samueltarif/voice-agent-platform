@@ -6,8 +6,10 @@ import {
 } from '@voice-agent/contracts';
 import type { DatabaseInstance } from '../client/connection.js';
 import { contacts, contactSuppressions } from '../schema/contacts.js';
-import { leads, leadStatusChanges, type LeadEntity } from '../schema/leads.js';
+import { leadStatusChanges } from '../schema/lead-status-changes.js';
+import { leads, type LeadEntity } from '../schema/leads.js';
 import type { DatabaseExecutor } from './database-executor.js';
+import { recordLeadOptOut, type LeadOptOutResult } from './lead-opt-out.js';
 import { applyLeadStatusChange, lockLead } from './lead-status-writer.js';
 import type { SchedulingActor } from './scheduling-audit-entry.js';
 import {
@@ -23,7 +25,7 @@ export type CreateLeadOutcome =
   | { readonly kind: 'CONTACT_NOT_FOUND' };
 
 export type ChangeLeadStatusOutcome =
-  | { readonly kind: 'CHANGED'; readonly lead: LeadEntity }
+  | LeadOptOutResult
   | { readonly kind: 'NOT_FOUND' | 'VERSION_CONFLICT' }
   | { readonly kind: 'BLOCKED'; readonly reason: LeadStatusChangeBlockReason };
 
@@ -75,12 +77,14 @@ export class DrizzleLeadRepository {
     });
   }
 
+  /** `DO_NOT_CALL` pedido no painel é um opt-out: passa pela supressão canônica. */
   changeLeadStatus(input: ChangeLeadStatusInput): Promise<ChangeLeadStatusOutcome> {
     return this.db.transaction(async (tx) => {
       const lead = await lockLead(tx, input.organizationId, input.leadId);
       if (!lead) return { kind: 'NOT_FOUND' as const };
       if (lead.statusVersion !== input.expectedVersion)
         return { kind: 'VERSION_CONFLICT' as const };
+      if (input.status === 'DO_NOT_CALL') return recordLeadOptOut(tx, { ...input, lead });
       return applyLeadStatusChange(tx, {
         lead,
         to: input.status,
@@ -88,6 +92,20 @@ export class DrizzleLeadRepository {
         actor: input.actor,
         reason: input.reason,
       });
+    });
+  }
+
+  /** Opt-out sem controle de versão (ex.: pedido do contato): nunca se perde. */
+  recordOptOut(input: {
+    readonly organizationId: string;
+    readonly leadId: string;
+    readonly actor: SchedulingActor;
+    readonly reason?: string | undefined;
+  }): Promise<LeadOptOutResult | { readonly kind: 'NOT_FOUND' }> {
+    return this.db.transaction(async (tx) => {
+      const lead = await lockLead(tx, input.organizationId, input.leadId);
+      if (!lead) return { kind: 'NOT_FOUND' as const };
+      return recordLeadOptOut(tx, { ...input, lead });
     });
   }
 

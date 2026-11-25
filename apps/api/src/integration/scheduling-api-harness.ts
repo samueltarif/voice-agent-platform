@@ -19,9 +19,15 @@ import { createSchedulingDependencies } from '../composition/scheduling-dependen
 export interface SchedulingApiBody {
   readonly status?: string;
   readonly lead?: { readonly id: string; readonly status: string };
-  readonly meeting?: { readonly id: string };
+  readonly meeting?: Readonly<Record<string, unknown>> & {
+    readonly id: string;
+    readonly version: number;
+  };
   readonly calendar?: { readonly id: string };
-  readonly items?: ReadonlyArray<{ readonly id: string; readonly startsAt: string }>;
+  readonly items?: ReadonlyArray<
+    Readonly<Record<string, unknown>> & { readonly id: string; readonly startsAt: string }
+  >;
+  readonly exceptions?: ReadonlyArray<{ readonly id: string; readonly localDate: string }>;
   readonly error?: { readonly code: string; readonly reason?: string };
   readonly paths?: Readonly<Record<string, unknown>>;
 }
@@ -33,9 +39,14 @@ export interface SchedulingApiResponse {
 
 export interface SchedulingApiHarness {
   role: TenantRole;
+  /** Status do vínculo devolvido pelo banco simulado (ex.: `SUSPENDED` = revogado). */
+  membershipStatus: string;
   get(path: string, orgId: string): Promise<SchedulingApiResponse>;
   post(path: string, orgId: string, body: unknown): Promise<SchedulingApiResponse>;
   put(path: string, orgId: string, body: unknown): Promise<SchedulingApiResponse>;
+  delete(path: string, orgId: string): Promise<SchedulingApiResponse>;
+  /** Requisição sem asserção de serviço (não autenticada). */
+  anonymous(method: string, path: string): Promise<SchedulingApiResponse>;
 }
 
 interface SignedRequest {
@@ -70,10 +81,10 @@ async function signAssertion(privateJwk: JWK, orgId: string): Promise<string> {
     .sign(await importJWK(privateJwk, 'EdDSA'));
 }
 
-function tenantStubs(active: ReadonlySet<string>, roleOf: () => TenantRole) {
+function tenantStubs(active: ReadonlySet<string>, harness: SchedulingApiHarness) {
   const findMembership = async (input: { organizationId: string; userId: string }) =>
     active.has(input.organizationId) && input.userId === SUB
-      ? { ...input, role: roleOf(), status: 'ACTIVE' }
+      ? { ...input, role: harness.role, status: harness.membershipStatus }
       : null;
   return {
     organizationRepo: {
@@ -90,12 +101,12 @@ export async function createSchedulingApiHarness(input: {
   readonly now: Date;
 }): Promise<SchedulingApiHarness> {
   const { privateJwk, publicJwk } = await createKeys();
-  const harness = { role: 'OWNER' as TenantRole } as SchedulingApiHarness;
+  const harness = { role: 'OWNER', membershipStatus: 'ACTIVE' } as SchedulingApiHarness;
   const app = createApp({
     logger: createNullLogger(),
     verifier: new ServiceAssertionVerifier({ publicJwks: { keys: [publicJwk] } }),
     bootstrapVerifier: new BootstrapAssertionVerifier({ publicJwks: { keys: [publicJwk] } }),
-    ...tenantStubs(new Set(input.activeOrganizations), () => harness.role),
+    ...tenantStubs(new Set(input.activeOrganizations), harness),
     scheduling: createSchedulingDependencies(input.db, () => input.now),
   } as unknown as ApiDependencies);
   const send = async (request: SignedRequest): Promise<SchedulingApiResponse> => {
@@ -110,5 +121,10 @@ export async function createSchedulingApiHarness(input: {
   harness.get = (path, orgId) => send({ method: 'GET', path, orgId });
   harness.post = (path, orgId, body) => send({ method: 'POST', path, orgId, body });
   harness.put = (path, orgId, body) => send({ method: 'PUT', path, orgId, body });
+  harness.delete = (path, orgId) => send({ method: 'DELETE', path, orgId });
+  harness.anonymous = async (method, path) => {
+    const response = await app.request(path, { method });
+    return { status: response.status, json: (await response.json()) as SchedulingApiBody };
+  };
   return harness;
 }

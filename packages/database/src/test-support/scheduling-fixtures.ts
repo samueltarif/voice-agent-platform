@@ -1,10 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import type { DatabaseInstance } from '../client/connection.js';
+import { DrizzleCallAttemptRepository } from '../repositories/call-attempt-repository.js';
 import { DrizzleLeadRepository } from '../repositories/lead-repository.js';
 import { DrizzleSchedulingAvailabilityRepository } from '../repositories/scheduling-availability-repository.js';
 import { DrizzleSchedulingCalendarRepository } from '../repositories/scheduling-calendar-repository.js';
 import type { SchedulingActor } from '../repositories/scheduling-audit-entry.js';
 import { contacts } from '../schema/contacts.js';
+import { createExtraJob, type TenantFixture } from './durable-outbound-fixtures.js';
 
 /**
  * E1 (DEC-074) — fixtures sintéticas de leads e agendas, criadas dentro de um
@@ -85,4 +87,40 @@ export async function createWeekdayCalendar(
   });
   if (replaced.kind !== 'UPDATED') throw new Error('Availability fixture failed.');
   return replaced.calendar;
+}
+
+/**
+ * Tentativa de ligação durável para o telefone informado (job próprio). Usada
+ * para provar o vínculo tentativa ↔ lead resolvido no servidor (A3).
+ */
+export async function prepareSyntheticAttempt(
+  db: DatabaseInstance,
+  input: { readonly tenant: TenantFixture; readonly destinationPhone: string },
+): Promise<string> {
+  const jobId = await createExtraJob(db, {
+    tenant: input.tenant,
+    tag: 'scheduling',
+    destinationPhone: input.destinationPhone,
+  });
+  const prepared = await new DrizzleCallAttemptRepository(db).prepareAttempt({
+    organizationId: input.tenant.organizationId,
+    jobId,
+    attemptId: randomUUID(),
+    correlationId: randomUUID(),
+    intentEventId: randomUUID(),
+    now: SCHEDULING_TEST_NOW,
+  });
+  if (prepared.kind !== 'PREPARED') throw new Error(prepared.reason);
+  return prepared.record.attempt.id;
+}
+
+/** Relógio controlável para provar decisões tomadas DEPOIS das travas (A2). */
+export function createControlledClock(start: Date = SCHEDULING_TEST_NOW) {
+  let current = start;
+  return {
+    now: () => current,
+    set: (next: Date) => {
+      current = next;
+    },
+  };
 }

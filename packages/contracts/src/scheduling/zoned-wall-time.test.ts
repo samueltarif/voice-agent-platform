@@ -5,6 +5,7 @@ import {
   isValidLocalDate,
   localDateOf,
   localMinuteOf,
+  zonedBoundaryInstant,
   zonedWallTimeToInstant,
 } from './zoned-wall-time.js';
 
@@ -65,5 +66,18 @@ describe('E1 zoned wall time (IANA, DST-safe)', () => {
     expect(isoWeekdayOf('2026-11-30')).toBe(1);
     expect(isoWeekdayOf('2026-11-29')).toBe(7);
     expect(addDaysToLocalDate('2026-12-31', 1)).toBe('2027-01-01');
+  });
+
+  it('resolves a window boundary inside a DST gap to the transition instant', () => {
+    // 02:30 não existe em Nova York em 08/03/2026; a transição é 03:00 EDT = 07:00Z.
+    expect(zonedBoundaryInstant('2026-03-08', 150, 'America/New_York').toISOString()).toBe(
+      '2026-03-08T07:00:00.000Z',
+    );
+    expect(zonedBoundaryInstant('2026-03-08', 120, 'America/New_York').toISOString()).toBe(
+      '2026-03-08T07:00:00.000Z',
+    );
+    expect(zonedBoundaryInstant('2026-12-01', 1440, 'America/Sao_Paulo').toISOString()).toBe(
+      '2026-12-02T03:00:00.000Z',
+    );
   });
 });

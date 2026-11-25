@@ -20,3 +20,4 @@ export * from './leads.js';
 export * from './scheduling-calendars.js';
 export * from './meeting-slot-offers.js';
 export * from './meetings.js';
+export * from './lead-status-changes.js';

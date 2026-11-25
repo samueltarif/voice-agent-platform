@@ -78,3 +78,29 @@ export function zonedWallTimeToInstant(
     .filter((candidate) => candidate + offsetMsAt(new Date(candidate), timeZone) === wall);
   return valid.length === 0 ? null : new Date(Math.min(...valid));
 }
+
+/** Maior pulo de horário de verão considerado na busca de fronteira (minutos). */
+const MAX_DST_GAP_MINUTES = 180;
+
+/**
+ * Instante de uma FRONTEIRA de janela local. Se o horário não existe (pulo do
+ * horário de verão), usa o primeiro minuto local existente depois dele, que é
+ * o instante da transição. Ambíguo: primeira ocorrência (conservador).
+ */
+export function zonedBoundaryInstant(
+  localDate: string,
+  minuteOfDay: number,
+  timeZone: string,
+): Date {
+  for (let delta = 0; delta <= MAX_DST_GAP_MINUTES; delta += 1) {
+    const minute = minuteOfDay + delta;
+    const date = minute > MINUTES_PER_DAY ? addDaysToLocalDate(localDate, 1) : localDate;
+    const instant = zonedWallTimeToInstant(
+      date,
+      minute > MINUTES_PER_DAY ? minute - MINUTES_PER_DAY : minute,
+      timeZone,
+    );
+    if (instant !== null) return instant;
+  }
+  throw new RangeError(`No valid local time near ${localDate} ${minuteOfDay} in ${timeZone}`);
+}

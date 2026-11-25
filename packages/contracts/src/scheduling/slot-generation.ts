@@ -4,7 +4,12 @@ import type {
   SchedulingPolicy,
   WeeklyAvailabilityRule,
 } from './scheduling-policy.js';
-import { addDaysToLocalDate, localDateOf, zonedWallTimeToInstant } from './zoned-wall-time.js';
+import {
+  addDaysToLocalDate,
+  localDateOf,
+  zonedBoundaryInstant,
+  zonedWallTimeToInstant,
+} from './zoned-wall-time.js';
 
 /**
  * E1 (DEC-074) — horários livres de uma agenda. Grade fixa por janela local
@@ -51,15 +56,21 @@ export function conflictsWithBusy(
   );
 }
 
-/** Todos os horários da grade de uma data local, sem filtros de tempo ou ocupação. */
+/**
+ * Todos os horários da grade de uma data local, sem filtros de tempo ou
+ * ocupação. Início e fim REAIS (instantes) precisam caber na janela local,
+ * o que exclui horários que transbordam a janela num dia de horário de verão.
+ */
 export function gridSlotsForLocalDate(
   calendar: SchedulingCalendarSnapshot,
   localDate: string,
 ): TimeInterval[] {
   const { timezone, slotDurationMinutes } = calendar.policy;
-  const windows = resolveLocalDayWindows({ localDate, ...calendar });
-  const slots: TimeInterval[] = [];
-  for (const window of windows) {
+  const duration = slotDurationMinutes * MINUTE_MS;
+  return resolveLocalDayWindows({ localDate, ...calendar }).flatMap((window) => {
+    const windowStart = zonedBoundaryInstant(localDate, window.startMinute, timezone).getTime();
+    const windowEnd = zonedBoundaryInstant(localDate, window.endMinute, timezone).getTime();
+    const slots: TimeInterval[] = [];
     for (
       let m = window.startMinute;
       m + slotDurationMinutes <= window.endMinute;
@@ -67,13 +78,12 @@ export function gridSlotsForLocalDate(
     ) {
       const startsAt = zonedWallTimeToInstant(localDate, m, timezone);
       if (startsAt === null) continue;
-      slots.push({
-        startsAt,
-        endsAt: new Date(startsAt.getTime() + slotDurationMinutes * MINUTE_MS),
-      });
+      const endsAt = new Date(startsAt.getTime() + duration);
+      if (startsAt.getTime() < windowStart || endsAt.getTime() > windowEnd) continue;
+      slots.push({ startsAt, endsAt });
     }
-  }
-  return slots;
+    return slots;
+  });
 }
 
 /** Limites de tempo da política: [agora + antecedência, agora + horizonte]. */

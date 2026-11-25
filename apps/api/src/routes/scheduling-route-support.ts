@@ -4,7 +4,11 @@ import type { ApiDependencies } from '../composition/agent-dependencies.js';
 import type { SchedulingApiDependencies } from '../composition/scheduling-dependencies.js';
 import { getServiceAuth } from '../auth/service-auth-middleware.js';
 import { authorizeTenant } from '../auth/tenant-authorization.js';
-import type { SchedulingPermission } from '../auth/scheduling-permissions.js';
+import {
+  hasSchedulingPermission,
+  type SchedulingPermission,
+} from '../auth/scheduling-permissions.js';
+import type { MeetingView } from './meeting-projection.js';
 
 /** E1 (DEC-074) — peças comuns às rotas de leads, agendas e reuniões. */
 export const schedulingSecurity = [{ internalServiceAssertion: [] }];
@@ -17,6 +21,8 @@ export function schedulingDeps(deps: ApiDependencies): SchedulingApiDependencies
 export interface SchedulingRequestContext {
   readonly organizationId: string;
   readonly actor: SchedulingActor;
+  /** Visão do DTO de reunião pelo papel revalidado no banco (auditoria B1). */
+  readonly meetingView: MeetingView;
 }
 
 /** Revalida organização, vínculo e papel no banco; o ator é sempre o usuário autenticado. */
@@ -33,7 +39,11 @@ export async function authorizeScheduling(
     organizationRepo: deps.organizationRepo,
     membershipRepo: deps.membershipRepo,
   });
-  return { organizationId: tenant.organizationId, actor: { type: 'USER', id: tenant.userId } };
+  return {
+    organizationId: tenant.organizationId,
+    actor: { type: 'USER', id: tenant.userId },
+    meetingView: hasSchedulingPermission(tenant.role, 'scheduling.manage') ? 'MANAGE' : 'BASE',
+  };
 }
 
 const NOT_FOUND_CODES = new Set([

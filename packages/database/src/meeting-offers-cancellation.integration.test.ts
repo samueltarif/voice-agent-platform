@@ -1,23 +1,25 @@
 import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { DrizzleCallAttemptRepository } from './repositories/call-attempt-repository.js';
 import { DrizzleLeadRepository } from './repositories/lead-repository.js';
 import { DrizzleMeetingBookingService } from './repositories/meeting-booking-service.js';
 import { DrizzleMeetingCancellationService } from './repositories/meeting-cancellation-service.js';
 import { DrizzleMeetingQueries } from './repositories/meeting-queries.js';
+import { classifyPostgresFailure } from './repositories/outbound-persistence-errors.js';
 import { DrizzleSchedulingSlotRepository } from './repositories/scheduling-slot-repository.js';
 import { auditLogs } from './schema/audit.js';
+import { meetings } from './schema/meetings.js';
 import { createDisposableTestDatabase } from './test-support/disposable-test-database.js';
 import {
   createDurableOutboundFixture,
-  createExtraJob,
   type DurableOutboundFixture,
   type TenantFixture,
 } from './test-support/durable-outbound-fixtures.js';
 import {
+  createControlledClock,
   createSyntheticLead,
   createWeekdayCalendar,
+  prepareSyntheticAttempt,
   SCHEDULING_TEST_NOW,
   SCHEDULING_TEST_USER,
 } from './test-support/scheduling-fixtures.js';
@@ -30,12 +32,12 @@ const AGENT = { type: 'AGENT' as const, id: 'agent-version-test' };
 
 /** E1 (DEC-074) — cancelamento, ofertas de horário, tentativa de ligação e isolamento. */
 describe('E1 meeting offers and cancellation (PostgreSQL)', () => {
-  const booking = new DrizzleMeetingBookingService(tdb.db);
+  const clock = createControlledClock();
+  const booking = new DrizzleMeetingBookingService(tdb.db, clock.now);
   const cancellation = new DrizzleMeetingCancellationService(tdb.db);
   const slots = new DrizzleSchedulingSlotRepository(tdb.db);
   const leads = new DrizzleLeadRepository(tdb.db);
   const queries = new DrizzleMeetingQueries(tdb.db);
-  const attempts = new DrizzleCallAttemptRepository(tdb.db);
   let fx: DurableOutboundFixture;
   let orgA: string;
 
@@ -48,19 +50,8 @@ describe('E1 meeting offers and cancellation (PostgreSQL)', () => {
     await tdb.drop();
   });
 
-  async function prepareAttempt(tenant: TenantFixture) {
-    const jobId = await createExtraJob(tdb.db, { tenant, tag: 'meeting' });
-    const prepared = await attempts.prepareAttempt({
-      organizationId: tenant.organizationId,
-      jobId,
-      attemptId: randomUUID(),
-      correlationId: randomUUID(),
-      intentEventId: randomUUID(),
-      now: SCHEDULING_TEST_NOW,
-    });
-    if (prepared.kind !== 'PREPARED') throw new Error(prepared.reason);
-    return prepared.record.attempt.id;
-  }
+  const prepareAttemptFor = (tenant: TenantFixture, destinationPhone: string) =>
+    prepareSyntheticAttempt(tdb.db, { tenant, destinationPhone });
 
   async function bookedMeeting() {
     const calendar = await createWeekdayCalendar(tdb.db, { organizationId: orgA });
@@ -70,8 +61,8 @@ describe('E1 meeting offers and cancellation (PostgreSQL)', () => {
       calendarId: calendar.id,
       leadId: lead.id,
       actor: SCHEDULING_TEST_USER,
-      now: SCHEDULING_TEST_NOW,
     };
+    clock.set(SCHEDULING_TEST_NOW);
     const outcome = await booking.bookMeeting({
       ...base,
       startsAt: TUESDAY_10,
@@ -111,10 +102,13 @@ describe('E1 meeting offers and cancellation (PostgreSQL)', () => {
     expect(actions.map((a) => a.action).sort()).toEqual(['meeting.booked', 'meeting.canceled']);
   });
 
+  // TEST_CHANGE_REASON (auditoria A2/A3): o instante vem do relógio injetado
+  // (lido após as travas) e a tentativa precisa ter discado o telefone do lead.
   it('books only the exact offered slot, once, before expiry and for the same attempt', async () => {
+    clock.set(SCHEDULING_TEST_NOW);
     const calendar = await createWeekdayCalendar(tdb.db, { organizationId: orgA });
-    const { lead } = await createSyntheticLead(tdb.db, orgA);
-    const attemptId = await prepareAttempt(fx.tenantA);
+    const { lead, contact } = await createSyntheticLead(tdb.db, orgA);
+    const attemptId = await prepareAttemptFor(fx.tenantA, contact.phoneE164);
     const offered = await slots.offerSlots({
       organizationId: orgA,
       calendarId: calendar.id,
@@ -136,15 +130,16 @@ describe('E1 meeting offers and cancellation (PostgreSQL)', () => {
       sourceAttemptId: string | undefined,
       now = SCHEDULING_TEST_NOW,
       idempotencyKey = key(),
-    ) =>
-      booking.bookOfferedSlot({
+    ) => {
+      clock.set(now);
+      return booking.bookOfferedSlot({
         organizationId: orgA,
         offerId,
         sourceAttemptId,
         idempotencyKey,
         actor: AGENT,
-        now,
       });
+    };
     expect(await book(first!.id, undefined)).toEqual({ kind: 'OFFER_NOT_FOUND' }); // outra tentativa
     expect(await book(first!.id, attemptId, at('2026-11-30T11:16:00Z'))).toEqual({
       kind: 'OFFER_EXPIRED',
@@ -162,39 +157,62 @@ describe('E1 meeting offers and cancellation (PostgreSQL)', () => {
     expect(await book(second!.id, attemptId)).toEqual({ kind: 'LEAD_HAS_ACTIVE_MEETING' });
   });
 
+  // TEST_CHANGE_REASON (auditoria A3): a reserva manual não aceita mais
+  // `sourceAttemptId` do chamador; a tentativa só entra pela oferta registrada.
+  // A unicidade por tentativa continua provada no banco (defesa em profundidade).
   it('allows one active meeting per call attempt and rejects attempts of other tenants', async () => {
-    const { base } = await bookedMeeting();
-    const attemptId = await prepareAttempt(fx.tenantA);
-    const otherLead = await createSyntheticLead(tdb.db, orgA);
-    const third = await createSyntheticLead(tdb.db, orgA);
-    const first = await booking.bookMeeting({
-      ...base,
-      leadId: otherLead.lead.id,
-      startsAt: at('2026-12-02T13:00:00Z'),
-      idempotencyKey: key(),
+    clock.set(SCHEDULING_TEST_NOW);
+    const calendar = await createWeekdayCalendar(tdb.db, { organizationId: orgA });
+    const { lead, contact } = await createSyntheticLead(tdb.db, orgA);
+    const attemptId = await prepareAttemptFor(fx.tenantA, contact.phoneE164);
+    const offer = (sourceAttemptId: string) =>
+      slots.offerSlots({
+        organizationId: orgA,
+        calendarId: calendar.id,
+        leadId: lead.id,
+        sourceAttemptId,
+        now: SCHEDULING_TEST_NOW,
+        from: TUESDAY_10,
+        to: at('2026-12-02T03:00:00Z'),
+        limit: 1,
+      });
+    const offered = await offer(attemptId);
+    if (offered.kind !== 'OFFERED') throw new Error(offered.kind);
+    const first = await booking.bookOfferedSlot({
+      organizationId: orgA,
+      offerId: offered.offers[0]!.id,
       sourceAttemptId: attemptId,
+      idempotencyKey: key(),
+      actor: AGENT,
     });
-    expect(first.kind).toBe('BOOKED');
-    const second = await booking.bookMeeting({
-      ...base,
-      leadId: third.lead.id,
+    if (first.kind !== 'BOOKED') throw new Error(first.kind);
+    const other = await createSyntheticLead(tdb.db, orgA);
+    const duplicate = tdb.db.insert(meetings).values({
+      organizationId: orgA,
+      calendarId: calendar.id,
+      leadId: other.lead.id,
       startsAt: at('2026-12-03T13:00:00Z'),
+      endsAt: at('2026-12-03T13:30:00Z'),
       idempotencyKey: key(),
+      requestFingerprint: 'f'.repeat(64),
       sourceAttemptId: attemptId,
+      bookedByType: 'AGENT',
+      bookedById: AGENT.id,
     });
-    expect(second).toEqual({ kind: 'ATTEMPT_HAS_ACTIVE_MEETING' });
-    const foreignAttempt = await prepareAttempt(fx.tenantB);
-    const crossed = await booking.bookMeeting({
-      ...base,
-      leadId: third.lead.id,
-      startsAt: at('2026-12-04T13:00:00Z'),
-      idempotencyKey: key(),
-      sourceAttemptId: foreignAttempt,
-    });
-    expect(crossed).toEqual({ kind: 'ATTEMPT_NOT_FOUND' });
+    const failure = await duplicate.then(
+      () => null,
+      (error: unknown) => classifyPostgresFailure(error),
+    );
+    expect(failure?.constraint).toBe('meetings_one_active_per_attempt_uidx');
+    const foreignAttempt = await prepareAttemptFor(fx.tenantB, contact.phoneE164);
+    expect(await offer(foreignAttempt)).toEqual({ kind: 'ATTEMPT_NOT_FOUND' });
   });
 
-  it('refuses DO_NOT_CALL leads for offers and bookings', async () => {
+  // TEST_CHANGE_REASON (auditoria A4): telefone suprimido barra a prospecção
+  // (oferta e reserva do agente); a reserva MANUAL pedida pelo próprio cliente
+  // continua possível e a supressão é preservada.
+  it('refuses suppressed leads for agent offers and bookings, keeping manual bookings', async () => {
+    clock.set(SCHEDULING_TEST_NOW);
     const calendar = await createWeekdayCalendar(tdb.db, { organizationId: orgA });
     const { lead } = await createSyntheticLead(tdb.db, orgA);
     await leads.changeLeadStatus({
@@ -213,17 +231,20 @@ describe('E1 meeting offers and cancellation (PostgreSQL)', () => {
       to: at('2026-12-02T03:00:00Z'),
       limit: 2,
     });
-    expect(offered).toEqual({ kind: 'LEAD_NOT_BOOKABLE' });
-    const booked = await booking.bookMeeting({
+    expect(offered).toEqual({ kind: 'LEAD_SUPPRESSED' });
+    const request = {
       organizationId: orgA,
       calendarId: calendar.id,
       leadId: lead.id,
       startsAt: TUESDAY_10,
       idempotencyKey: key(),
-      actor: SCHEDULING_TEST_USER,
-      now: SCHEDULING_TEST_NOW,
+    };
+    expect(await booking.bookMeeting({ ...request, actor: AGENT })).toEqual({
+      kind: 'OFFER_REQUIRED',
     });
-    expect(booked).toEqual({ kind: 'LEAD_BLOCKED', reason: 'LEAD_DO_NOT_CALL' });
+    const manual = await booking.bookMeeting({ ...request, actor: SCHEDULING_TEST_USER });
+    expect(manual.kind).toBe('BOOKED');
+    expect((await leads.getLead(orgA, lead.id))!.phoneSuppressed).toBe(true);
   });
 
   it('isolates bookings, cancellations and listings between organizations', async () => {

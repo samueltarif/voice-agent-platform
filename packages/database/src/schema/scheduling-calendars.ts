@@ -116,7 +116,8 @@ export const schedulingAvailabilityExceptions = pgTable(
     check(
       'scheduling_availability_exceptions_window_chk',
       sql`(${table.startMinute} IS NULL AND ${table.endMinute} IS NULL AND ${table.kind} = 'UNAVAILABLE')
-        OR (${table.startMinute} >= 0 AND ${table.endMinute} <= 1440
+        OR (${table.startMinute} IS NOT NULL AND ${table.endMinute} IS NOT NULL
+          AND ${table.startMinute} >= 0 AND ${table.endMinute} <= 1440
           AND ${table.startMinute} < ${table.endMinute})`,
     ),
     check(

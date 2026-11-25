@@ -1,25 +1,9 @@
-CREATE TYPE "public"."lead_status_change_origin" AS ENUM('CREATED', 'MANUAL', 'MEETING_BOOKED', 'MEETING_CANCELED');--> statement-breakpoint
+CREATE TYPE "public"."lead_status_change_origin" AS ENUM('CREATED', 'MANUAL', 'OPT_OUT', 'MEETING_BOOKED', 'MEETING_CANCELED');--> statement-breakpoint
 CREATE TYPE "public"."lead_status" AS ENUM('NEW', 'CONTACTED', 'QUALIFIED', 'MEETING_SCHEDULED', 'NOT_INTERESTED', 'DO_NOT_CALL');--> statement-breakpoint
 CREATE TYPE "public"."scheduling_actor_type" AS ENUM('USER', 'AGENT', 'SYSTEM');--> statement-breakpoint
 CREATE TYPE "public"."availability_exception_kind" AS ENUM('UNAVAILABLE', 'AVAILABLE');--> statement-breakpoint
 CREATE TYPE "public"."meeting_slot_offer_status" AS ENUM('OFFERED', 'ACCEPTED');--> statement-breakpoint
 CREATE TYPE "public"."meeting_status" AS ENUM('SCHEDULED', 'CANCELED');--> statement-breakpoint
-CREATE TABLE "lead_status_changes" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"organization_id" uuid NOT NULL,
-	"lead_id" uuid NOT NULL,
-	"from_status" "lead_status",
-	"to_status" "lead_status" NOT NULL,
-	"origin" "lead_status_change_origin" NOT NULL,
-	"actor_type" "scheduling_actor_type" NOT NULL,
-	"actor_id" text NOT NULL,
-	"reason" text,
-	"meeting_id" uuid,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "lead_status_changes_reason_chk" CHECK ("lead_status_changes"."reason" IS NULL OR char_length("lead_status_changes"."reason") BETWEEN 1 AND 500),
-	CONSTRAINT "lead_status_changes_actor_chk" CHECK (char_length("lead_status_changes"."actor_id") BETWEEN 1 AND 200)
-);
---> statement-breakpoint
 CREATE TABLE "leads" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"organization_id" uuid NOT NULL,
@@ -44,7 +28,8 @@ CREATE TABLE "scheduling_availability_exceptions" (
 	"reason" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "scheduling_availability_exceptions_window_chk" CHECK (("scheduling_availability_exceptions"."start_minute" IS NULL AND "scheduling_availability_exceptions"."end_minute" IS NULL AND "scheduling_availability_exceptions"."kind" = 'UNAVAILABLE')
-        OR ("scheduling_availability_exceptions"."start_minute" >= 0 AND "scheduling_availability_exceptions"."end_minute" <= 1440
+        OR ("scheduling_availability_exceptions"."start_minute" IS NOT NULL AND "scheduling_availability_exceptions"."end_minute" IS NOT NULL
+          AND "scheduling_availability_exceptions"."start_minute" >= 0 AND "scheduling_availability_exceptions"."end_minute" <= 1440
           AND "scheduling_availability_exceptions"."start_minute" < "scheduling_availability_exceptions"."end_minute")),
 	CONSTRAINT "scheduling_availability_exceptions_reason_chk" CHECK ("scheduling_availability_exceptions"."reason" IS NULL OR char_length("scheduling_availability_exceptions"."reason") BETWEEN 1 AND 200)
 );
@@ -132,8 +117,22 @@ CREATE TABLE "meetings" (
 	CONSTRAINT "meetings_cancel_reason_chk" CHECK ("meetings"."cancel_reason" IS NULL OR char_length("meetings"."cancel_reason") BETWEEN 1 AND 500)
 );
 --> statement-breakpoint
-ALTER TABLE "lead_status_changes" ADD CONSTRAINT "lead_status_changes_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "lead_status_changes" ADD CONSTRAINT "lead_status_changes_lead_org_fk" FOREIGN KEY ("lead_id","organization_id") REFERENCES "public"."leads"("id","organization_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+CREATE TABLE "lead_status_changes" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"organization_id" uuid NOT NULL,
+	"lead_id" uuid NOT NULL,
+	"from_status" "lead_status",
+	"to_status" "lead_status" NOT NULL,
+	"origin" "lead_status_change_origin" NOT NULL,
+	"actor_type" "scheduling_actor_type" NOT NULL,
+	"actor_id" text NOT NULL,
+	"reason" text,
+	"meeting_id" uuid,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "lead_status_changes_reason_chk" CHECK ("lead_status_changes"."reason" IS NULL OR char_length("lead_status_changes"."reason") BETWEEN 1 AND 500),
+	CONSTRAINT "lead_status_changes_actor_chk" CHECK (char_length("lead_status_changes"."actor_id") BETWEEN 1 AND 200)
+);
+--> statement-breakpoint
 ALTER TABLE "leads" ADD CONSTRAINT "leads_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "leads" ADD CONSTRAINT "leads_contact_org_fk" FOREIGN KEY ("contact_id","organization_id") REFERENCES "public"."contacts"("id","organization_id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "scheduling_availability_exceptions" ADD CONSTRAINT "scheduling_availability_exceptions_calendar_org_fk" FOREIGN KEY ("calendar_id","organization_id") REFERENCES "public"."scheduling_calendars"("id","organization_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -148,7 +147,9 @@ ALTER TABLE "meetings" ADD CONSTRAINT "meetings_calendar_org_fk" FOREIGN KEY ("c
 ALTER TABLE "meetings" ADD CONSTRAINT "meetings_lead_org_fk" FOREIGN KEY ("lead_id","organization_id") REFERENCES "public"."leads"("id","organization_id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "meetings" ADD CONSTRAINT "meetings_attempt_org_fk" FOREIGN KEY ("source_attempt_id","organization_id") REFERENCES "public"."call_attempts"("id","organization_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "meetings" ADD CONSTRAINT "meetings_slot_offer_org_fk" FOREIGN KEY ("slot_offer_id","organization_id") REFERENCES "public"."meeting_slot_offers"("id","organization_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-CREATE INDEX "lead_status_changes_org_lead_created_idx" ON "lead_status_changes" USING btree ("organization_id","lead_id","created_at");--> statement-breakpoint
+ALTER TABLE "lead_status_changes" ADD CONSTRAINT "lead_status_changes_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "lead_status_changes" ADD CONSTRAINT "lead_status_changes_lead_org_fk" FOREIGN KEY ("lead_id","organization_id") REFERENCES "public"."leads"("id","organization_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "lead_status_changes" ADD CONSTRAINT "lead_status_changes_meeting_org_fk" FOREIGN KEY ("meeting_id","organization_id") REFERENCES "public"."meetings"("id","organization_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "leads_org_status_updated_idx" ON "leads" USING btree ("organization_id","status","updated_at");--> statement-breakpoint
 CREATE INDEX "scheduling_availability_exceptions_calendar_date_idx" ON "scheduling_availability_exceptions" USING btree ("calendar_id","local_date");--> statement-breakpoint
 CREATE INDEX "scheduling_availability_rules_calendar_idx" ON "scheduling_availability_rules" USING btree ("calendar_id","weekday");--> statement-breakpoint
@@ -157,8 +158,17 @@ CREATE UNIQUE INDEX "meetings_one_active_per_lead_uidx" ON "meetings" USING btre
 CREATE UNIQUE INDEX "meetings_one_active_per_attempt_uidx" ON "meetings" USING btree ("organization_id","source_attempt_id") WHERE "meetings"."status" = 'SCHEDULED' AND "meetings"."source_attempt_id" IS NOT NULL;--> statement-breakpoint
 CREATE UNIQUE INDEX "meetings_slot_offer_uidx" ON "meetings" USING btree ("slot_offer_id") WHERE "meetings"."slot_offer_id" IS NOT NULL;--> statement-breakpoint
 CREATE INDEX "meetings_org_calendar_starts_idx" ON "meetings" USING btree ("organization_id","calendar_id","starts_at");--> statement-breakpoint
+CREATE INDEX "lead_status_changes_org_lead_created_idx" ON "lead_status_changes" USING btree ("organization_id","lead_id","created_at");--> statement-breakpoint
 -- E1 (DEC-074): nenhuma sobreposição de reuniões ATIVAS na mesma agenda,
 -- garantida pelo banco mesmo sob reservas concorrentes. `btree_gist` é
 -- extensão confiável do PostgreSQL (contrib) e permite a igualdade de uuid no GiST.
 CREATE EXTENSION IF NOT EXISTS btree_gist;--> statement-breakpoint
-ALTER TABLE "meetings" ADD CONSTRAINT "meetings_no_overlap_excl" EXCLUDE USING gist ("calendar_id" WITH =, tstzrange("starts_at", "ends_at", '[)') WITH &&) WHERE ("status" = 'SCHEDULED');
+ALTER TABLE "meetings" ADD CONSTRAINT "meetings_no_overlap_excl" EXCLUDE USING gist ("calendar_id" WITH =, tstzrange("starts_at", "ends_at", '[)') WITH &&) WHERE ("status" = 'SCHEDULED');--> statement-breakpoint
+-- E1 (auditoria M5): o CONTEÚDO do histórico de status é imutável no banco.
+-- UPDATE é recusado; DELETE só ocorre pela cascata do lead/organização.
+CREATE FUNCTION "lead_status_changes_reject_update"() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  RAISE EXCEPTION 'lead_status_changes is append-only' USING ERRCODE = 'P0001';
+END
+$$;--> statement-breakpoint
+CREATE TRIGGER "lead_status_changes_no_update" BEFORE UPDATE ON "lead_status_changes" FOR EACH ROW EXECUTE FUNCTION "lead_status_changes_reject_update"();

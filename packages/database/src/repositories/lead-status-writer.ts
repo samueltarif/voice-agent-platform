@@ -6,7 +6,8 @@ import {
   type LeadStatusChangeOrigin,
 } from '@voice-agent/contracts';
 import { contacts, contactSuppressions } from '../schema/contacts.js';
-import { leads, leadStatusChanges, type LeadEntity } from '../schema/leads.js';
+import { leadStatusChanges } from '../schema/lead-status-changes.js';
+import { leads, type LeadEntity } from '../schema/leads.js';
 import type { DatabaseExecutor } from './database-executor.js';
 import { insertSchedulingAudit, type SchedulingActor } from './scheduling-audit-entry.js';
 import { lockSuppressionKey } from './suppression-linearization-lock.js';
@@ -14,8 +15,8 @@ import { lockSuppressionKey } from './suppression-linearization-lock.js';
 /**
  * E1 (DEC-074) — ÚNICO caminho de escrita do status do lead: valida a
  * transição pela regra pura, incrementa a versão, grava o histórico e a
- * auditoria. `DO_NOT_CALL` registra também a supressão `OPT_OUT` do telefone,
- * reaproveitando o bloqueio de envio já existente (008-MVP1).
+ * auditoria. O pedido de não receber ligações NÃO passa por aqui sozinho:
+ * `recordLeadOptOut` registra primeiro a supressão canônica (auditoria A4).
  */
 export async function lockLead(
   executor: DatabaseExecutor,
@@ -43,7 +44,8 @@ export type LeadStatusChangeResult =
   | { readonly kind: 'CHANGED'; readonly lead: LeadEntity }
   | { readonly kind: 'BLOCKED'; readonly reason: LeadStatusChangeBlockReason };
 
-async function suppressLeadPhone(
+/** Supressão canônica `OPT_OUT` do telefone do lead (idempotente; nunca removida aqui). */
+export async function suppressLeadPhone(
   executor: DatabaseExecutor,
   lead: LeadEntity,
   actor: SchedulingActor,
@@ -91,7 +93,6 @@ export async function applyLeadStatusChange(
     reason: command.reason ?? null,
     meetingId: command.meetingId ?? null,
   });
-  if (to === 'DO_NOT_CALL') await suppressLeadPhone(executor, lead, actor);
   await insertSchedulingAudit(executor, {
     organizationId: lead.organizationId,
     actor,

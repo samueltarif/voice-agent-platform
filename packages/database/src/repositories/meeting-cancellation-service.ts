@@ -1,6 +1,8 @@
 import { and, eq, sql } from 'drizzle-orm';
+import { leadStatusAfterCancellation } from '@voice-agent/contracts';
 import type { DatabaseInstance } from '../client/connection.js';
 import { meetings, type MeetingEntity } from '../schema/meetings.js';
+import { isLeadPhoneSuppressed } from './attempt-lead-association.js';
 import type { DatabaseExecutor } from './database-executor.js';
 import { applyLeadStatusChange, lockLead } from './lead-status-writer.js';
 import { insertSchedulingAudit, type SchedulingActor } from './scheduling-audit-entry.js';
@@ -32,7 +34,8 @@ async function findMeeting(executor: DatabaseExecutor, input: CancelMeetingInput
 /**
  * E1 (DEC-074) — cancelamento idempotente: libera o horário (a exclusão e os
  * índices únicos só valem para reuniões `SCHEDULED`) e devolve o lead a
- * `QUALIFIED`. Travas na mesma ordem da reserva: lead → reunião.
+ * `QUALIFIED` — ou a `DO_NOT_CALL` se o telefone estiver suprimido (o
+ * cancelamento nunca reabilita ligações). Travas: lead → reunião.
  */
 export class DrizzleMeetingCancellationService {
   constructor(private readonly db: DatabaseInstance) {}
@@ -60,9 +63,10 @@ export class DrizzleMeetingCancellationService {
         .where(eq(meetings.id, meeting.id))
         .returning();
       if (lead.status === 'MEETING_SCHEDULED') {
+        const suppressed = await isLeadPhoneSuppressed(tx, input.organizationId, lead.id);
         await applyLeadStatusChange(tx, {
           lead,
-          to: 'QUALIFIED',
+          to: leadStatusAfterCancellation(suppressed),
           origin: 'MEETING_CANCELED',
           actor: input.actor,
           meetingId: meeting.id,
