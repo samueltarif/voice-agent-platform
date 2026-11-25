@@ -4,6 +4,7 @@ export type PostgresFailureKind =
   | 'UNIQUE_VIOLATION'
   | 'FOREIGN_KEY_VIOLATION'
   | 'CHECK_VIOLATION'
+  | 'EXCLUSION_VIOLATION'
   | 'INVARIANT_GUARD'
   | 'SERIALIZATION_CONFLICT'
   | 'TECHNICAL';
@@ -17,6 +18,8 @@ const KIND_BY_SQLSTATE: Readonly<Record<string, PostgresFailureKind>> = {
   '23505': 'UNIQUE_VIOLATION',
   '23503': 'FOREIGN_KEY_VIOLATION',
   '23514': 'CHECK_VIOLATION',
+  /** E1 (DEC-074): sobreposição de reuniões ativas (`meetings_no_overlap_excl`). */
+  '23P01': 'EXCLUSION_VIOLATION',
   P0001: 'INVARIANT_GUARD',
   '40001': 'SERIALIZATION_CONFLICT',
   '40P01': 'SERIALIZATION_CONFLICT',

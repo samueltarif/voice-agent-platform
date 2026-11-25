@@ -26,6 +26,7 @@ import type {
 } from '@voice-agent/contracts';
 import type { ServiceAssertionVerifier } from '../auth/service-assertion-verifier.js';
 import type { BootstrapAssertionVerifier } from '../auth/bootstrap-assertion-verifier.js';
+import type { SchedulingApiDependencies } from './scheduling-dependencies.js';
 
 export interface ApiDependencies {
   readonly logger: Logger;
@@ -55,4 +56,6 @@ export interface ApiDependencies {
   readonly campaignLifecycleRepo?: DrizzleCampaignLifecycleRepository | undefined;
   readonly campaignReportRepo?: DrizzleCampaignReportRepository | undefined;
   readonly operationsOverviewRepo?: DrizzleOperationsOverviewRepository | undefined;
+  /** Leads, agendas e reuniões (E1, DEC-074). */
+  readonly scheduling?: SchedulingApiDependencies | undefined;
 }

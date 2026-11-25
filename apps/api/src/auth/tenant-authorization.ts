@@ -5,9 +5,18 @@ import { hasAgentPermission, type AgentPermission } from './agent-permissions.js
 import { hasCampaignPermission, type CampaignPermission } from './campaign-permissions.js';
 import { hasContactPermission, type ContactPermission } from './contact-permissions.js';
 import { hasKnowledgePermission, type KnowledgePermission } from './knowledge-permissions.js';
+import {
+  hasSchedulingPermission,
+  isSchedulingPermission,
+  type SchedulingPermission,
+} from './scheduling-permissions.js';
 
 export type TenantPermission =
-  AgentPermission | KnowledgePermission | ContactPermission | CampaignPermission;
+  | AgentPermission
+  | KnowledgePermission
+  | ContactPermission
+  | CampaignPermission
+  | SchedulingPermission;
 
 function hasTenantPermission(role: TenantRole, permission: TenantPermission): boolean {
   if (permission.startsWith('knowledge.')) {
@@ -19,6 +28,7 @@ function hasTenantPermission(role: TenantRole, permission: TenantPermission): bo
   if (permission.startsWith('campaigns.')) {
     return hasCampaignPermission(role, permission as CampaignPermission);
   }
+  if (isSchedulingPermission(permission)) return hasSchedulingPermission(role, permission);
   return hasAgentPermission(role, permission as AgentPermission);
 }
 
