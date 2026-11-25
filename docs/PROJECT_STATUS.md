@@ -309,9 +309,9 @@ Falta comprovar um atendimento real autorizado, cobrindo:
 
 **Atualização de 25/11/2026 — primeira ligação real (DEC-073):**
 - Uma ligação supervisionada, feita **fora da plataforma** pelo operador: Twilio (conta paga, número americano) → `<Connect><Stream>` por WSS → Millis, para o celular verificado do operador.
-- 64 s, `user-ended`, custo observado US$ 0,2113; qualidade aprovada pelo operador, com possíveis erros pontuais de reconhecimento e um silêncio de causa não comprovada.
+- 64 s, `user-ended` (`OBSERVED`); custo US$ 0,2113 = Millis US$ 0,0699 (exibido pela Millis) + Twilio US$ 0,1414 (**calculado por diferença de saldo**, não é fatura); qualidade aprovada pelo operador, com possíveis erros pontuais de reconhecimento e um silêncio de causa não comprovada.
 - **Status: OBSERVED (relato do operador), NÃO VALIDADO de ponta a ponta.** SIP não foi usado nem validado. Nenhuma ferramenta, dado, registro ou cobrança da plataforma participou.
-- Próximo marco planejado: ligação comercial simulada iniciada **pela plataforma**, com qualificação e agendamento de reunião (E1–E6; só E0 e E1 autorizadas).
+- Próximo marco planejado: ligação comercial simulada iniciada **pela plataforma**, com qualificação e agendamento de reunião (E1–E6). A direção arquitetural das ferramentas foi aprovada, mas **a autorização em vigor cobre só a E0 e a E1 (com as correções da auditoria); a E2 não está autorizada**.
 
 **Verificação em 17/11/2026 (`c31cd4a`), inferência por busca no código:**
 - `createKnowledgeSearchToolDefinition` só é instanciada na conversa simulada da API (`apps/api/src/simulation/knowledge-simulated-turn-service.ts`).
@@ -382,15 +382,15 @@ Componentes de campanha e billing existem no código, mas a operação comercial
 
 | Etapa | Conteúdo | Status |
 | :--- | :--- | :--- |
-| **E0** | Registro da ligação WSS, decisões, lacunas da Millis, estratégia de segurança e diagnóstico financeiro (DEC-073) | **EM REVISÃO** (PR documental) |
-| **E1** | Leads, agendas, disponibilidade, ofertas e reserva transacional de reuniões, offline (DEC-074) | **EM REVISÃO** (PR da E1; gate Linux registrado no `AI_WORKLOG`) |
-| E2 | Ferramentas do agente (consultar e oferecer horários, marcar com confirmação, resultado do lead, opt-out) | NÃO autorizada |
+| **E0** | Registro da ligação WSS, decisões, lacunas da Millis, estratégia de segurança e diagnóstico financeiro (DEC-073) | **EM REVISÃO** (PR #178; auditoria Codex: aprovada com ressalvas, corrigidas) |
+| **E1** | Leads, agendas, disponibilidade, ofertas e reserva transacional de reuniões, offline (DEC-074) | **EM REVISÃO** (PR #177; 1ª auditoria independente do Codex: BLOQUEADA, 10 achados; correções na PR aguardando nova auditoria; gate Linux no `AI_WORKLOG`) |
+| E2 | Ferramentas do agente (consultar e oferecer horários, marcar com confirmação, resultado do lead, opt-out) | NÃO autorizada (só a direção arquitetural foi aprovada) |
 | E3 | Telas (agenda, reuniões, lead, ligação de teste) | NÃO autorizada |
 | E4 | Adaptadores Twilio WSS e Millis (agente temporário, webhooks) | NÃO autorizada |
 | E5 | Montagem supervisionada e gateway HTTPS mínimo | NÃO autorizada |
 | E6 | Ligação real pela plataforma | NÃO autorizada |
 
-**Financeiro (requisito futuro, não autorizado):** mensalidade + créditos pré-pagos (Pix/cartão). Hoje existem só tetos de gasto de fornecedor por empresa e global, reservas por tentativa e limites de simultaneidade (008-OF3); não existem carteira de créditos, pagamentos, tarifas de venda, câmbio, margem nem monitoramento de saldo de fornecedores. Diagnóstico em `docs/research/PHASE_8_FIRST_LIVE_CALL_WSS_AND_SCHEDULING_DECISIONS.md` §5.
+**Financeiro (requisito futuro, não autorizado):** mensalidade + créditos pré-pagos (Pix/cartão). Reserva de custo de fornecedores implementada; obrigatoriedade de reserva válida no disparo real ainda pendente. Hoje existem tetos de gasto de fornecedor por empresa e global, reservas por tentativa e limites de simultaneidade (008-OF3), sem controle financeiro de ponta a ponta; não existem carteira de créditos, pagamentos, tarifas de venda, câmbio, margem nem monitoramento de saldo de fornecedores. Diagnóstico em `docs/research/PHASE_8_FIRST_LIVE_CALL_WSS_AND_SCHEDULING_DECISIONS.md` §5.
 
 ## 10. Como consultar e manter este documento
 

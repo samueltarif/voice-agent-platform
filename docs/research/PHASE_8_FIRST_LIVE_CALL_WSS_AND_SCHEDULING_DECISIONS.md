@@ -7,6 +7,11 @@
 
 **Classificação:** `OBSERVED` pelo operador, ligação única, supervisionada, para o celular verificado do próprio operador. **Não é homologação** de produção, de SIP nem da plataforma.
 
+Três naturezas de informação, que não se misturam:
+- **Fato observado** (`OBSERVED`): o que o operador viu e relatou — a ligação, a duração, o status e os valores exibidos pela Millis.
+- **Custo calculado por diferença de saldo** (`DERIVED`): o custo da Twilio é a diferença entre o saldo antes e depois; **não é fatura** nem lançamento conciliado.
+- **Capacidade não validada** (`NOT VALIDATED`): tudo o que esta ligação não exercitou (lista ao fim da seção).
+
 | Item | Valor informado pelo operador |
 | :--- | :--- |
 | Conta Twilio | Paga (Full), saldo inicial US$ 20, recarga automática desligada |
@@ -15,13 +20,13 @@
 | Parâmetros | `Timeout=30`, `TimeLimit=120`, `Record=false` |
 | Transporte de áudio | Media Streams da Twilio por WebSocket seguro (WSS) até a Millis. **SIP não foi usado**; nenhuma credencial Twilio foi importada na Millis; nenhum webhook existente foi alterado |
 | Agente | Dedicado "TESTE VOZ VAP" (não QUALITEC), modelo `gpt-5.6-luna`, voz Brian (ElevenLabs), pt-BR |
-| Duração registrada pela Millis | 64 s, 418 caracteres, status `user-ended` |
-| Custo Millis | US$ 0,0699 (TTS 0,0418; STT 0,0062; LLM 0,0005; plataforma 0,0214) |
-| Custo Twilio | US$ 0,1414 (diferença de saldo; não é fatura) |
-| Total observado | **US$ 0,2113** |
+| Duração registrada pela Millis | 64 s, 418 caracteres, status `user-ended` (`OBSERVED`) |
+| Custo Millis | US$ 0,0699 (TTS 0,0418; STT 0,0062; LLM 0,0005; plataforma 0,0214) — valores exibidos pela Millis (`OBSERVED`) |
+| Custo Twilio | US$ 0,1414 — **calculado por diferença de saldo** (`DERIVED`; não é fatura) |
+| Total | **US$ 0,2113** = valor exibido pela Millis + diferença de saldo da Twilio |
 | Qualidade | Áudio e conversa aprovados pelo operador; possíveis erros pontuais de reconhecimento e um silêncio percebido, **causa não comprovada** |
 
-**O que esta evidência NÃO prova:** a ligação iniciada pela plataforma, ferramentas e dados do backend durante a chamada, a origem +55, SIP (`<Dial><Sip>`), a escala, a gravação ou transcrição pela plataforma, nem o comportamento com clientes reais.
+**O que esta evidência NÃO prova (`NOT VALIDATED`):** a ligação iniciada pela plataforma, ferramentas e dados do backend durante a chamada, a origem +55, SIP (`<Dial><Sip>`), a escala, a gravação ou transcrição pela plataforma, nem o comportamento com clientes reais.
 
 ## 2. Decisões do operador (25/11/2026) — ver DEC-073
 
@@ -30,7 +35,7 @@
 3. A pilha antiga **#150–#154 não será integrada como está**. Componentes úteis serão reaproveitados em PRs novas sobre a `main` (comunicação HTTP, leitura e conferência de status da Twilio; mapeamento do agente da #153; verificação prévia da #154 adaptada ao WSS).
 4. **#151 e #152 ficam preservadas** como referência para futuras integrações SIP.
 5. **Opção A provisória** — agente temporário na Millis por tentativa de ligação, com credencial própria — condicionada à validação do contrato real da Millis.
-6. Desenvolvimento OFFLINE das ferramentas de agendamento e das futuras escritas de reuniões **autorizado**, com isolamento, permissões e confirmação explícita. Isso abre exceção pontual à regra "integrações empresariais somente leitura", só para a agenda **da própria plataforma**; integrações com sistemas externos continuam somente leitura.
+6. **Direção arquitetural aprovada** para as ferramentas de agendamento e as futuras escritas de reuniões, com isolamento, permissões e confirmação explícita; a exceção à regra "integrações empresariais somente leitura" vale só para a agenda **da própria plataforma** (sistemas externos continuam somente leitura). **A autorização de desenvolvimento em vigor cobre apenas a E0 e a E1, incluindo as correções da auditoria independente; a E2 (ferramentas do agente) e as etapas seguintes continuam NÃO autorizadas** e dependem de autorização própria.
 7. Armazenamento de transcrição **só planejado** e só para o teste supervisionado; gravação e tratamento de conversas de clientes reais continuam proibidos.
 
 ## 3. Lacunas contratuais da Millis (não bloqueiam o desenvolvimento offline)
@@ -48,7 +53,7 @@ Documentação pública consultada em 23 e 25/11/2026 (docs.millis.ai); nenhuma 
 
 As mensagens prontas para os fornecedores foram entregues ao operador em 23/11/2026; o envio fica a critério dele.
 
-## 4. Estratégia de segurança para as ferramentas do piloto (planejamento; implementação na E2/E4)
+## 4. Estratégia de segurança para as ferramentas do piloto (só planejamento; E2/E4 NÃO autorizadas)
 
 - **Credencial por tentativa de ligação** (não por requisição): criada pelo servidor ao preparar a tentativa, guardada só como hash, vinculada a organização, agente, versão publicada e tentativa.
   - Permite **várias** chamadas de ferramentas durante a sessão.
@@ -57,7 +62,7 @@ As mensagens prontas para os fornecedores foram entregues ao operador em 23/11/2
 - A Millis só recebe a credencial no cabeçalho das ferramentas do agente temporário (Opção A); nada vai ao navegador nem a logs.
 - O contexto (empresa, agente, versão, tentativa) vem **sempre** do registro durável da tentativa, nunca do corpo enviado pelo fornecedor (padrão já usado pelo ingresso 008-OF4).
 - Somente as ferramentas concedidas pela versão publicada; limite de tamanho (já existente), limite de requisições e tempo limite.
-- Reservas de reunião pelo agente só a partir de **ofertas registradas** pelo servidor (E1: `meeting_slot_offers`), com reconsulta da agenda na transação e confirmação explícita do lead (E2).
+- Reservas de reunião pelo agente só a partir de **ofertas registradas** pelo servidor (E1: `meeting_slot_offers`), com reconsulta da agenda na transação, intervalo ofertado idêntico ao vigente, tentativa que discou o próprio lead, telefone não suprimido e confirmação explícita do lead (esta última na E2, não autorizada).
 - Exposição pública: um gateway mínimo só com as rotas de webhook, separado da API principal; depende de autorização própria (E5).
 
 ## 5. Diagnóstico do sistema financeiro existente (requisito futuro)
@@ -69,7 +74,7 @@ As mensagens prontas para os fornecedores foram entregues ao operador em 23/11/2
 | Carteira individual por empresa | **Ausente.** Existe `outbound_budget_ledgers` por organização, mas é um **teto de gasto de fornecedor** (centavos de USD), não um saldo de créditos comprados |
 | Histórico financeiro auditável | **Parcial.** `outbound_budget_reservations` (reserva → liquidação/liberação) e `audit_logs`; não há lançamentos de crédito, compra ou estorno |
 | Confirmação idempotente de pagamentos | **Ausente.** Nenhum gateway; DECISIONS_LOG §2: "Gateway de Pagamento / Faturamento SaaS — Pending Decision" |
-| Reserva de saldo antes das chamadas | **Existe** para o custo de fornecedor: reserva por tentativa, global e por empresa, com bloqueio fail-closed (008-OF3, PRs #122–#124) |
+| Reserva de saldo antes das chamadas | **Reserva de custo de fornecedores implementada; obrigatoriedade de reserva válida no disparo real ainda pendente.** Há reserva por tentativa, global e por empresa, com recusa por teto (008-OF3, PRs #122–#124), mas o controle financeiro de ponta a ponta no disparo real **não existe** |
 | Débito e conciliação de consumo | **Parcial.** Liquidação separa custo de operadora e de conversação (`settled_carrier`, `settled_conversational`) por estimativa; não há conciliação com fatura real do fornecedor |
 | Controle de chamadas simultâneas | **Existe:** `max_concurrent_calls` global e por empresa |
 | Tarifas comerciais configuráveis | **Ausente.** `plans.price_cents` (mensalidade) existe; não há tarifa por minuto de venda |
@@ -78,5 +83,7 @@ As mensagens prontas para os fornecedores foram entregues ao operador em 23/11/2
 | Bloqueio por saldo insuficiente | **Existe** para o teto de fornecedor (`INSUFFICIENT_FUNDS`, `GLOBAL_INSUFFICIENT_FUNDS`); não para créditos comprados |
 | Monitoramento de saldo dos fornecedores | **Ausente** |
 | Planos, assinaturas, concessões e direitos | **Existe** (`plans`, `entitlements`, `subscriptions`, `commercial_grants`, DEC-020/021/030), sem cobrança |
+
+**Não há controle financeiro de ponta a ponta** (carteira, cobrança, conciliação e reserva obrigatória no disparo real).
 
 **Compatibilidade das decisões atuais:** a E1 não toca dinheiro; `meetings.source_attempt_id` liga a reunião à tentativa, que já liga à reserva de orçamento, então o custo por reunião será atribuível. Nada na E0/E1 impede uma futura carteira (créditos em BRL + lançamentos append-only + conversão do custo USD com câmbio registrado), que exige decisão própria (gateway, moeda, câmbio, impostos e tratamento contábil).
