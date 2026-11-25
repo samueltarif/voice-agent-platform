@@ -383,7 +383,7 @@ Componentes de campanha e billing existem no código, mas a operação comercial
 | Etapa | Conteúdo | Status |
 | :--- | :--- | :--- |
 | **E0** | Registro da ligação WSS, decisões, lacunas da Millis, estratégia de segurança e diagnóstico financeiro (DEC-073) | **EM REVISÃO** (PR #178; auditoria Codex: aprovada com ressalvas, corrigidas) |
-| **E1** | Leads, agendas, disponibilidade, ofertas e reserva transacional de reuniões, offline (DEC-074) | **EM REVISÃO** (PR #177; 1ª auditoria independente do Codex: BLOQUEADA, 10 achados; correções na PR aguardando nova auditoria; gate Linux no `AI_WORKLOG`) |
+| **E1** | Leads, agendas, disponibilidade, ofertas e reserva transacional de reuniões, offline (DEC-074) | **EM REVISÃO** (PR #177; 1ª auditoria do Codex: BLOQUEADA, 10 achados, corrigidos; 2ª auditoria: 5 correções validadas, 4 caminhos bloqueantes em A2/A3/A4 e 2 ressalvas, corrigidos na PR e aguardando 3ª auditoria; gate Linux no `AI_WORKLOG`; Windows só após a reauditoria) |
 | E2 | Ferramentas do agente (consultar e oferecer horários, marcar com confirmação, resultado do lead, opt-out) | NÃO autorizada (só a direção arquitetural foi aprovada) |
 | E3 | Telas (agenda, reuniões, lead, ligação de teste) | NÃO autorizada |
 | E4 | Adaptadores Twilio WSS e Millis (agente temporário, webhooks) | NÃO autorizada |
