@@ -1,5 +1,5 @@
 {
-  "id": "3b2f4c64-7ecc-441f-a518-aa9bd9dd7b07",
+  "id": "0524e2ec-b806-4c74-8209-67a75129bc0f",
   "prevId": "a8b69f9b-d8be-4c4d-b958-0ba23a7996a2",
   "version": "7",
   "dialect": "postgresql",
@@ -5920,7 +5920,7 @@
       "checkConstraints": {
         "scheduling_session_contexts_resolution_chk": {
           "name": "scheduling_session_contexts_resolution_chk",
-          "value": "(\"scheduling_session_contexts\".\"resolution\" = 'RESOLVED' AND \"scheduling_session_contexts\".\"calendar_id\" IS NOT NULL\n          AND \"scheduling_session_contexts\".\"calendar_source\" IS NOT NULL AND \"scheduling_session_contexts\".\"blocked_reason\" IS NULL)\n        OR (\"scheduling_session_contexts\".\"resolution\" = 'ABSENT' AND \"scheduling_session_contexts\".\"calendar_id\" IS NULL\n          AND \"scheduling_session_contexts\".\"calendar_source\" IS NULL AND \"scheduling_session_contexts\".\"blocked_reason\" IS NULL)\n        OR (\"scheduling_session_contexts\".\"resolution\" = 'BLOCKED' AND \"scheduling_session_contexts\".\"calendar_source\" IS NOT NULL\n          AND \"scheduling_session_contexts\".\"blocked_reason\" IN ('CALENDAR_NOT_FOUND', 'AGENT_CONFIGURATION_INVALID'))"
+          "value": "(\"scheduling_session_contexts\".\"resolution\" = 'RESOLVED' AND \"scheduling_session_contexts\".\"calendar_id\" IS NOT NULL\n          AND \"scheduling_session_contexts\".\"calendar_source\" IS NOT NULL AND \"scheduling_session_contexts\".\"blocked_reason\" IS NULL)\n        OR (\"scheduling_session_contexts\".\"resolution\" = 'ABSENT' AND \"scheduling_session_contexts\".\"calendar_id\" IS NULL\n          AND \"scheduling_session_contexts\".\"calendar_source\" IS NULL AND \"scheduling_session_contexts\".\"blocked_reason\" IS NULL)\n        OR (\"scheduling_session_contexts\".\"resolution\" = 'BLOCKED' AND \"scheduling_session_contexts\".\"calendar_id\" IS NULL\n          AND \"scheduling_session_contexts\".\"calendar_source\" IS NOT NULL AND \"scheduling_session_contexts\".\"blocked_reason\" IS NOT NULL\n          AND \"scheduling_session_contexts\".\"blocked_reason\" IN ('CALENDAR_NOT_FOUND', 'AGENT_CONFIGURATION_INVALID'))"
         }
       },
       "isRLSEnabled": false

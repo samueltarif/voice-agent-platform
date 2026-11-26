@@ -14,7 +14,10 @@ import { contacts } from '../schema/contacts.js';
 import { leads } from '../schema/leads.js';
 import { outboundCallJobs } from '../schema/outbound.js';
 import type { DatabaseExecutor } from './database-executor.js';
-import { pinnedCalendarResolution } from './scheduling-session-context-pin.js';
+import {
+  pinnedCalendarResolution,
+  type CalendarResolutionHooks,
+} from './scheduling-session-context-pin.js';
 
 /**
  * E2 PR 1 (DEC-075) — contexto de agendamento de uma sessão, resolvido SÓ no
@@ -74,7 +77,10 @@ async function leadForDestination(
 }
 
 export class DrizzleSchedulingSessionContextResolver implements SchedulingSessionContextPort {
-  constructor(private readonly db: DatabaseInstance) {}
+  constructor(
+    private readonly db: DatabaseInstance,
+    private readonly options: { readonly hooks?: CalendarResolutionHooks } = {},
+  ) {}
 
   async resolve(query: SchedulingSessionContextQuery): Promise<SchedulingSessionContext> {
     const [session] = await this.db
@@ -126,7 +132,7 @@ export class DrizzleSchedulingSessionContextResolver implements SchedulingSessio
       agentVersionId: session.agentVersionId,
       destinationPhoneE164: job.destination,
     };
-    const calendar = await pinnedCalendarResolution(this.db, binding);
+    const calendar = await pinnedCalendarResolution(this.db, binding, this.options.hooks);
     const leadId = await leadForDestination(
       this.db,
       binding.organizationId,

@@ -115,9 +115,12 @@ async function fromOrganizationDefault(
 export async function computeCalendarResolution(
   executor: DatabaseExecutor,
   scope: CalendarResolutionScope,
+  afterCampaignLookup?: () => Promise<void>,
 ): Promise<SchedulingCalendarResolution> {
+  const campaign = await fromCampaign(executor, scope);
+  await afterCampaignLookup?.();
   return (
-    (await fromCampaign(executor, scope)) ??
+    campaign ??
     (await fromAgentVersion(executor, scope)) ??
     (await fromOrganizationDefault(executor, scope.organizationId)) ?? { kind: 'ABSENT' }
   );

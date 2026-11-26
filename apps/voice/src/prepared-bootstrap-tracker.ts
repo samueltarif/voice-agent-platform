@@ -55,6 +55,9 @@ export class PreparedBootstrapTracker {
       agentId: bootstrap.agentId,
       agentVersionId: bootstrap.agentVersionId,
       snapshot: bootstrap.agentSnapshot,
+      // E2 PR 1 (M2): valor primitivo capturado NO PREPARO confiável; mutações
+      // posteriores do snapshot (referência) não alteram a autoridade da concessão.
+      schedulingCalendarId: bootstrap.agentSnapshot.scheduling?.calendarId ?? null,
     };
     this.entries.set(bootstrap.bootstrapId, { source, expiresAt: bootstrap.expiresAt });
   }

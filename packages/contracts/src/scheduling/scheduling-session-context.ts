@@ -72,7 +72,12 @@ export type SchedulingSessionContext =
   | {
       readonly kind: 'BOUND';
       readonly binding: SchedulingSessionBinding;
-      /** D2 — capacidade de segurança: sempre presente quando o vínculo é verificado. */
+      /**
+       * D2 — capacidade de segurança: sempre presente quando o vínculo é
+       * verificado. Indica que um pedido PODE ser aplicado a este destinatário;
+       * NÃO é prova de que um pedido foi recebido (essa evidência é o evento
+       * do protocolo, `optOutSeq`, e o registro operacional da PR 3).
+       */
       readonly optOut: { readonly available: true };
       readonly scheduling: SchedulingCapability;
       readonly calendar: SchedulingCalendarResolution;

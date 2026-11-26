@@ -30,6 +30,12 @@ export interface PublishedToolGrant {
   readonly snapshot: AgentConfigurationSnapshotV1;
   /** Cópia própria e congelada do toolset no momento da emissão. */
   readonly tools: readonly CanonicalToolName[];
+  /**
+   * E2 PR 1 (M2): agenda da versão publicada capturada como VALOR no preparo
+   * confiável (`null` = snapshot sem agenda). É a autoridade da concessão;
+   * o objeto `snapshot` (referência) não é relido para isso.
+   */
+  readonly schedulingCalendarId: string | null;
 }
 
 /** Registro do que o gateway preparou (mantido em memória pela instância). */
@@ -40,6 +46,7 @@ export interface PreparedToolGrantSource {
   readonly agentId: string;
   readonly agentVersionId: string;
   readonly snapshot: AgentConfigurationSnapshotV1;
+  readonly schedulingCalendarId: string | null;
 }
 
 const issuedGrants = new WeakSet<object>();
@@ -76,6 +83,7 @@ export function issueToolGrantForConsumedBootstrap(
     callId: prepared.callId,
     snapshot: prepared.snapshot,
     tools,
+    schedulingCalendarId: prepared.schedulingCalendarId,
   });
   issuedGrants.add(grant);
   return grant;

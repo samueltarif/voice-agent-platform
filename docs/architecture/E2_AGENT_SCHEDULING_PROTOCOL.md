@@ -44,14 +44,15 @@ Cadeia, resolvida só no servidor (`DrizzleSchedulingSessionContextResolver`):
 - Identidades nunca confundidas: `sessionId` (= `callId`), `attemptId`, `jobId`; a referência do provedor não participa.
 - `REFUSED`: sessão inexistente ou de outro tenant, agente ou versão diferentes, tentativa sem vínculo de volta, tentativa em estado sem chamada.
 - `BOUND`: vínculo verificado ⇒ **opt-out disponível**. Agendamento só com sessão `ACTIVE`, lead do destino e agenda `RESOLVED`; senão `UNAVAILABLE` com motivo.
-- Porta única no runtime de voz: `resolveSchedulingContextForGrant` (`apps/voice`) — concessão copiada, JSON ou fabricada lança erro antes de consultar; agenda vinda da versão publicada precisa coincidir com o snapshot congelado na concessão.
+- Porta única no runtime de voz: `resolveSchedulingContextForGrant` (`apps/voice`) — concessão copiada, JSON ou fabricada lança erro antes de consultar; agenda vinda da versão publicada precisa coincidir com `schedulingCalendarId`, **valor** capturado no preparo confiável e congelado na concessão (M2): mutar o snapshot depois não muda a autoridade.
+- `optOut.available` indica que um pedido pode ser aplicado a este destinatário; não é prova de recebimento de um pedido.
 - Snapshots antigos (sem `scheduling`) continuam válidos e caem para o padrão da empresa ou para `ABSENT`.
 
 **Limite registrado:** hoje o `CallLifecycleGateway` gera o `callId` sozinho; a montagem que faz o `callId` coincidir com a sessão durável pertence à E4/E5. Os testes provam a cadeia com a sessão durável criada com o `callId` da concessão.
 
 ## 5. Máquina de estados controlada pelo servidor (implementada, pura)
 
-Eventos só do servidor/transporte, com `seq` monotônico por sessão atribuído pelo servidor. Texto, booleanos, ordinais, ids de turno ou afirmações do modelo **não são eventos**. A intenção do interlocutor vem de `classifyLeadReply` (pt-BR, conservador, frase inteira; ambiguidade ⇒ esclarecimento).
+Eventos só do servidor/transporte, com `seq` monotônico por sessão atribuído pelo servidor. Texto, booleanos, ordinais, ids de turno ou afirmações do modelo **não são eventos**. A intenção do interlocutor vem de `classifyLeadReply` (pt-BR, conservador): aceite, recusa e escolha só como frase inteira **sem interrogação e sem aspas** ("Pode marcar?", “sim”, "Ele disse que sim" e condicionais viram `AMBIGUOUS`); opt-out avaliado **por cláusula** (pedido explícito, fora de aspas, sem negação na mesma cláusula; pergunta só vale se for pedido, como "Pode tirar meu número?"); menção, citação ou pergunta informativa ⇒ esclarecimento. O estado guarda a maior revisão já vista (`maxRevision`): lista descartada, vencida ou substituída nunca volta, e retry técnico só recupera a lista vigente, sem renovar TTL (M1). `SESSION_CLOSED` é processado antes do filtro de fases terminais; em `CLOSED` nada novo é aceito (nem opt-out), e `meetingId` e `optOutSeq` anteriores são preservados (A3).
 
 | Fase | Evento aceito | Próxima fase | Diretiva |
 | :--- | :--- | :--- | :--- |
@@ -80,9 +81,27 @@ Também: `AMBIGUOUS`/`SILENCE` ⇒ `ASK_CLARIFICATION` (após 2, nova lista); `C
 - **Unidade de trabalho única (A4):** na PR 2 o serviço canônico de reserva da E1 passa a aceitar o executor da transação; consumir a autorização (transição `AUTHORIZED → BOOKING` gravada) e reservar acontecem no **mesmo** `db.transaction`, sem transação aninhada em outra conexão. Rollback desfaz os dois.
 - **Persistência mínima (PR 2):** uma linha por (tenant, sessão) com fase, `last_seq`, revisão da lista, ids das ofertas na ordem apresentada, gerações e `deliveredSeq`, autorização (id, oferta, consumida) e versão otimista; escrita só pelo redutor puro.
 - **Reconciliação (PR 2):** resposta perdida ⇒ repetir com a mesma chave de idempotência derivada da autorização ⇒ `REPLAYED` + conferência da reunião; rollback ⇒ autorização volta a não consumida; revogação/encerramento ⇒ `SESSION_CLOSED` anula autorização não consumida; anúncio de sucesso só após `BOOKED`/`REPLAYED` **e** reunião conferida.
-- **Nesta PR:** o resolvedor só lê e fixa a agenda (`INSERT … ON CONFLICT DO NOTHING`, sem `FOR UPDATE`); a FK da fixação pede `FOR KEY SHARE` na sessão, compatível com a transição de sessão.
+- **Nesta PR:** o resolvedor lê todas as prioridades D1 e fixa a agenda numa única transação `REPEATABLE READ` (mesma visão; auditoria A4), com `INSERT … ON CONFLICT DO NOTHING RETURNING`; perder a disputa pela PK (linha vencedora invisível na visão, ou `40001`) repete a transação (até 3 vezes) e devolve a linha vencedora. Não há `FOR UPDATE`. A FK da fixação pede `FOR KEY SHARE` na linha da sessão: uma transição de sessão (`FOR UPDATE`) concorrente **pode esperar** por ela, e vice-versa; esse par isolado não forma ciclo, pois a fixação não pega outra trava depois. Isso é revisão estática dos fluxos envolvidos, não prova de ausência universal de deadlock (B1).
 
-## 7. Limitações conhecidas
+## 7. Requisitos futuros registrados (não implementados aqui)
+
+**PR 2**
+- `AVAILABLE` é leitura pontual, não autorização definitiva: revalidar sessão ativa e validade **dentro** da transação do efeito.
+- Adquirir S entre A e P, nunca antes de chamar uma operação que começa em K.
+- Consumo da autorização e reserva atômicos (mesma transação).
+- Validar a agenda da versão na publicação antes de habilitar ferramentas.
+- Vincular origem, sessão e geração de cada evento; exigir `deliveredSeq < startedSeq ≤ seq`; rejeitar datas e sequências inválidas.
+- Distinguir recusa definitiva de resultado desconhecido após timeout de commit; reconciliar com a mesma chave antes de comunicar; nunca anunciar ausência de reserva quando o commit pode ter ocorrido.
+
+**PR 3**
+- Opt-out confiável e independente do modelo, com registro operacional.
+- Retry de evidência legítima anterior aceito mesmo após o encerramento; nenhum pedido novo aceito de sessão encerrada.
+- `CALL_OUTCOME` e simulação integrada.
+
+**E4/E5**
+- Associação real do `callId` à sessão durável; autenticação e evidência do transporte real.
+
+## 8. Limitações conhecidas
 
 - O classificador é uma regra fechada em português, não compreensão semântica; ambiguidade sempre pede esclarecimento.
 - O vínculo `callId` da concessão = sessão durável ainda não é montado em produção (E4/E5).

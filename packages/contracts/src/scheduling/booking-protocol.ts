@@ -45,21 +45,20 @@ function validList(list: ProtocolOfferList): boolean {
 
 function onList(state: BookingProtocolState, event: Of<'OFFER_LIST_ISSUED'>): BookingProtocolStep {
   if (state.phase === 'BOOKING') return ignoreStep(state, 'BOOKING_IN_FLIGHT');
-  const current = state.list;
-  if (current && event.list.revision === current.revision) {
-    return ignoreStep(
-      state,
-      event.list.queryKey === current.queryKey ? 'RETRY_SAME_LIST' : 'STALE_LIST',
-    );
+  const { revision, queryKey } = event.list;
+  if (revision <= state.maxRevision) {
+    // Retry técnico só recupera a lista AINDA vigente; nada é renovado (ids, ordem, TTL).
+    const current = state.list;
+    const retry = current?.revision === revision && current.queryKey === queryKey;
+    return ignoreStep(state, retry ? 'RETRY_SAME_LIST' : 'STALE_LIST');
   }
-  if ((current && event.list.revision < current.revision) || !validList(event.list)) {
-    return ignoreStep(state, 'STALE_LIST');
-  }
+  if (!validList(event.list)) return ignoreStep(state, 'STALE_LIST');
   return {
     state: {
       ...state,
       phase: 'PRESENTING',
       list: event.list,
+      maxRevision: revision,
       presentation: null,
       selection: null,
       readback: null,
@@ -147,19 +146,28 @@ function dispatch(state: BookingProtocolState, event: BookingProtocolEvent): Boo
 const isOptOut = (event: BookingProtocolEvent) =>
   event.type === 'LEAD_FINAL_UTTERANCE' && event.intent.kind === 'OPT_OUT';
 
+/**
+ * Ordem de precedência: (1) repetição/fora de ordem; (2) encerramento da
+ * sessão — processado ANTES do filtro de terminais, preservando reunião e
+ * evidência de opt-out anteriores (A3); (3) fases terminais (em `CLOSED`
+ * nada novo é aceito, nem opt-out); (4) opt-out; (5) o resto.
+ */
 export function advanceBookingProtocol(
   previous: BookingProtocolState,
   event: BookingProtocolEvent,
 ): BookingProtocolStep {
   if (event.seq <= previous.lastSeq) return ignoreStep(previous, 'DUPLICATE_OR_OUT_OF_ORDER');
   const state = { ...previous, lastSeq: event.seq };
+  if (event.type === 'SESSION_CLOSED' && state.phase !== 'CLOSED') {
+    return { state: cleared(state, 'CLOSED'), directives: [] };
+  }
   if (TERMINAL.has(state.phase) && !(isOptOut(event) && state.phase === 'BOOKED')) {
     return ignoreStep(state, 'TERMINAL_PHASE');
   }
   if (isOptOut(event)) {
     // Opt-out prevalece; uma reunião já reservada é preservada (E1), a fala de sucesso não.
     return {
-      state: { ...cleared(state, 'OPTED_OUT'), meetingId: state.meetingId },
+      state: { ...cleared(state, 'OPTED_OUT'), optOutSeq: event.seq },
       directives: [{ kind: 'RECORD_OPT_OUT' }],
     };
   }

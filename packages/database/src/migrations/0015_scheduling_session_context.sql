@@ -13,7 +13,8 @@ CREATE TABLE "scheduling_session_contexts" (
           AND "scheduling_session_contexts"."calendar_source" IS NOT NULL AND "scheduling_session_contexts"."blocked_reason" IS NULL)
         OR ("scheduling_session_contexts"."resolution" = 'ABSENT' AND "scheduling_session_contexts"."calendar_id" IS NULL
           AND "scheduling_session_contexts"."calendar_source" IS NULL AND "scheduling_session_contexts"."blocked_reason" IS NULL)
-        OR ("scheduling_session_contexts"."resolution" = 'BLOCKED' AND "scheduling_session_contexts"."calendar_source" IS NOT NULL
+        OR ("scheduling_session_contexts"."resolution" = 'BLOCKED' AND "scheduling_session_contexts"."calendar_id" IS NULL
+          AND "scheduling_session_contexts"."calendar_source" IS NOT NULL AND "scheduling_session_contexts"."blocked_reason" IS NOT NULL
           AND "scheduling_session_contexts"."blocked_reason" IN ('CALENDAR_NOT_FOUND', 'AGENT_CONFIGURATION_INVALID')))
 );
 --> statement-breakpoint

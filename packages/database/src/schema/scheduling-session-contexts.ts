@@ -50,13 +50,18 @@ export const schedulingSessionContexts = pgTable(
       foreignColumns: [callSessions.id, callSessions.organizationId],
       name: 'scheduling_session_contexts_session_org_fk',
     }).onDelete('cascade'),
+    /**
+     * Auditoria M3: cada ramo exige explicitamente NULL/NOT NULL em TODAS as
+     * colunas (um `IN` sobre NULL não pode deixar uma combinação passar).
+     */
     check(
       'scheduling_session_contexts_resolution_chk',
       sql`(${table.resolution} = 'RESOLVED' AND ${table.calendarId} IS NOT NULL
           AND ${table.calendarSource} IS NOT NULL AND ${table.blockedReason} IS NULL)
         OR (${table.resolution} = 'ABSENT' AND ${table.calendarId} IS NULL
           AND ${table.calendarSource} IS NULL AND ${table.blockedReason} IS NULL)
-        OR (${table.resolution} = 'BLOCKED' AND ${table.calendarSource} IS NOT NULL
+        OR (${table.resolution} = 'BLOCKED' AND ${table.calendarId} IS NULL
+          AND ${table.calendarSource} IS NOT NULL AND ${table.blockedReason} IS NOT NULL
           AND ${table.blockedReason} IN ('CALENDAR_NOT_FOUND', 'AGENT_CONFIGURATION_INVALID'))`,
     ),
   ],

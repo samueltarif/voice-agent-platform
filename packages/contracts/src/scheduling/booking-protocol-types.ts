@@ -65,6 +65,10 @@ export interface BookingProtocolState {
   readonly authorization: BookingAuthorization | null;
   readonly clarifications: number;
   readonly meetingId: string | null;
+  /** Maior revisão de lista já vista: lista descartada nunca volta (auditoria M1). */
+  readonly maxRevision: number;
+  /** `seq` do pedido de opt-out reconhecido; preservado após o encerramento (A3). */
+  readonly optOutSeq: number | null;
 }
 
 type SpeechPurpose = 'PRESENTATION' | 'READBACK';
@@ -138,6 +142,8 @@ export const INITIAL_BOOKING_PROTOCOL_STATE: BookingProtocolState = Object.freez
   authorization: null,
   clarifications: 0,
   meetingId: null,
+  maxRevision: 0,
+  optOutSeq: null,
 });
 
 /** Esclarecimentos seguidos antes de desistir da lista (regra conservadora). */

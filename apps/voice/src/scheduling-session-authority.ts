@@ -16,7 +16,8 @@ export const SCHEDULING_GRANT_REQUIRED_MESSAGE =
  * isso é decidido no servidor pelo vínculo durável sessão ↔ tentativa.
  *
  * Coerência da versão fixada: se a agenda vier da versão publicada, ela tem
- * de ser a mesma do snapshot congelado na concessão; divergência recusa.
+ * de ser a capturada como valor no preparo da concessão (M2); divergência
+ * recusa. O objeto `snapshot` não é relido (pode ter sido mutado).
  * Nada aqui está registrado em composição de produção (PR 1 sem efeitos).
  */
 export async function resolveSchedulingContextForGrant(
@@ -31,9 +32,9 @@ export async function resolveSchedulingContextForGrant(
     agentVersionId: grant.agentVersionId,
   });
   if (context.kind !== 'BOUND' || context.calendar.kind !== 'RESOLVED') return context;
-  const fromSnapshot = grant.snapshot.scheduling?.calendarId ?? null;
+  const fromGrant = grant.schedulingCalendarId;
   const pinned = context.calendar;
-  if (pinned.source === 'AGENT_VERSION' && pinned.calendarId !== fromSnapshot) {
+  if (pinned.source === 'AGENT_VERSION' && pinned.calendarId !== fromGrant) {
     return { kind: 'REFUSED', reason: 'AGENT_VERSION_MISMATCH' };
   }
   return context;

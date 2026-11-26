@@ -4,7 +4,9 @@ import {
   schedulingSessionContexts,
   type SchedulingSessionContextEntity,
 } from '../schema/scheduling-session-contexts.js';
+import type { DatabaseInstance } from '../client/connection.js';
 import type { DatabaseExecutor } from './database-executor.js';
+import { classifyPostgresFailure } from './outbound-persistence-errors.js';
 import {
   computeCalendarResolution,
   explicit,
@@ -49,31 +51,79 @@ async function readPinned(executor: DatabaseExecutor, scope: CalendarResolutionS
   return row ?? null;
 }
 
+/** Pontos observáveis do cálculo (testes determinísticos de concorrência). */
+export interface CalendarResolutionHooks {
+  readonly afterCampaignLookup?: (() => Promise<void>) | undefined;
+  readonly beforePin?: (() => Promise<void>) | undefined;
+}
+
+const MAX_PIN_ATTEMPTS = 3;
+
+class PinContention extends Error {}
+
+const retryable = (error: unknown) =>
+  error instanceof PinContention ||
+  classifyPostgresFailure(error).kind === 'SERIALIZATION_CONFLICT';
+
 /**
- * Resolução fixada da sessão: calculada e gravada só na primeira vez (corrida
- * entre resoluções concorrentes decidida pela PK) e devolvida SEMPRE a partir
- * da linha gravada. Agenda fixada que deixou de existir BLOQUEIA, sem trocar
- * a fixação por outra fonte.
+ * Uma tentativa, numa transação REPEATABLE READ: todas as prioridades D1 são
+ * lidas sobre a MESMA visão (auditoria A4) e só o resultado dessa visão é
+ * fixado. Linha já fixada vence; perder a disputa pela PK força nova tentativa.
+ */
+async function pinOnce(
+  db: DatabaseInstance,
+  scope: CalendarResolutionScope,
+  hooks: CalendarResolutionHooks,
+): Promise<SchedulingSessionContextEntity> {
+  return db.transaction(
+    async (tx) => {
+      const existing = await readPinned(tx, scope);
+      if (existing) return existing;
+      const computed = await computeCalendarResolution(tx, scope, hooks.afterCampaignLookup);
+      await hooks.beforePin?.();
+      const [inserted] = await tx
+        .insert(schedulingSessionContexts)
+        .values(toRow(scope, computed))
+        .onConflictDoNothing()
+        .returning();
+      if (!inserted) throw new PinContention('Scheduling context pinned concurrently.');
+      return inserted;
+    },
+    { isolationLevel: 'repeatable read' },
+  );
+}
+
+async function pinWithRetry(
+  db: DatabaseInstance,
+  scope: CalendarResolutionScope,
+  hooks: CalendarResolutionHooks,
+): Promise<SchedulingSessionContextEntity> {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await pinOnce(db, scope, hooks);
+    } catch (error) {
+      if (!retryable(error) || attempt >= MAX_PIN_ATTEMPTS) throw error;
+    }
+  }
+}
+
+/**
+ * Resolução fixada da sessão: calculada e gravada só na primeira vez e
+ * devolvida SEMPRE a partir da linha vencedora. Agenda fixada que deixou de
+ * existir BLOQUEIA, sem trocar a fixação por outra fonte.
  */
 export async function pinnedCalendarResolution(
-  executor: DatabaseExecutor,
+  db: DatabaseInstance,
   scope: CalendarResolutionScope,
+  hooks: CalendarResolutionHooks = {},
 ): Promise<SchedulingCalendarResolution> {
-  let row = await readPinned(executor, scope);
-  if (!row) {
-    const computed = await computeCalendarResolution(executor, scope);
-    await executor
-      .insert(schedulingSessionContexts)
-      .values(toRow(scope, computed))
-      .onConflictDoNothing();
-    row = await readPinned(executor, scope);
-  }
-  if (!row || row.agentVersionId !== scope.agentVersionId) {
+  const row = await pinWithRetry(db, scope, hooks);
+  if (row.agentVersionId !== scope.agentVersionId) {
     throw new Error('Pinned scheduling context does not match the session version.');
   }
   const pinned = fromRow(row);
   if (pinned.kind !== 'RESOLVED') return pinned;
-  return explicit(executor, {
+  return explicit(db, {
     organizationId: scope.organizationId,
     calendarId: pinned.calendarId,
     source: pinned.source,
