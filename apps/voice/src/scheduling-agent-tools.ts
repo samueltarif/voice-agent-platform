@@ -45,7 +45,8 @@ export function schedulingScopeForGrant(grant: unknown): SchedulingAgentScope {
   });
 }
 
-function assertContext(grant: PublishedToolGrant, context: ToolExecutionContext): void {
+/** O contexto de execução tem de ser exatamente o da concessão (inclusive o mesmo snapshot). */
+export function assertGrantContext(grant: PublishedToolGrant, context: ToolExecutionContext): void {
   const same =
     context.organizationId === grant.organizationId &&
     context.agentVersionId === grant.agentVersionId &&
@@ -91,7 +92,7 @@ export function createSchedulingToolDefinitions(
         'Consulta a agenda e registra até 3 horários para oferecer. O servidor fala a lista; não invente horários.',
       validateInput: createZodToolValidator(findSlotsArgumentsSchema),
       execute: async (input, context) => {
-        assertContext(grant, context);
+        assertGrantContext(grant, context);
         return port.findSlots(scope, input);
       },
     },
@@ -101,7 +102,7 @@ export function createSchedulingToolDefinitions(
         'Executa a marcação SOMENTE se o servidor já registrou a confirmação explícita do horário lido. Só anuncie se mayAnnounceBooking for true.',
       validateInput: createZodToolValidator(confirmOfferArgumentsSchema),
       execute: async (_input, context) => {
-        assertContext(grant, context);
+        assertGrantContext(grant, context);
         const result = await port.confirmOffer(scope);
         guard?.observe(result);
         return result;
