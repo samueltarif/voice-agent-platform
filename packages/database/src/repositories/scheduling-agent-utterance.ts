@@ -11,7 +11,7 @@ import {
 } from './scheduling-agent-events.js';
 import { recordCanonicalOptOut, type OptOutSource } from './scheduling-agent-opt-out.js';
 import { protocolView } from './scheduling-agent-view.js';
-import { applyProtocolEvent } from './scheduling-protocol-store.js';
+import { applyProtocolEvent, reserveSeq } from './scheduling-protocol-store.js';
 
 /**
  * E2 PR 3 (DEC-075, D2) — fala FINAL do interlocutor, classificada no
@@ -52,6 +52,19 @@ async function maybeRecordOptOut(
   });
 }
 
+/**
+ * Opt-out JÁ gravado nesta sessão (fala ou ferramenta): nenhuma fala posterior
+ * move o protocolo — nada de lista, releitura ou reserva (autorrevisão PR 3:
+ * pela ferramenta, a fase do redutor não muda e a abordagem poderia seguir).
+ */
+async function afterRecordedOptOut(event: LockedEvent) {
+  const next = await reserveSeq(event.tx, event.locked, { leadSpeechStartedSeq: null });
+  const step = { state: next.row.state, directives: [] };
+  return {
+    view: () => protocolView({ step, row: next.row, timezone: null, refusal: 'OPT_OUT_REQUESTED' }),
+  };
+}
+
 async function handleUtterance(event: LockedEvent, text: string) {
   const { tx, locked, now } = event;
   const startedSeq = locked.row.leadSpeechStartedSeq;
@@ -60,6 +73,7 @@ async function handleUtterance(event: LockedEvent, text: string) {
     const view = protocolView({ step, row: locked.row, timezone: null });
     return { view: () => ({ ...view, ignored: 'UTTERANCE_WITHOUT_START' }) };
   }
+  if (locked.row.optOutRecordedAt) return afterRecordedOptOut(event);
   const decision = decideUtterance(text, locked.row, startedSeq);
   const questionReset = decision.clearQuestion
     ? { optOutQuestionGeneration: null, optOutQuestionDeliveredSeq: null }

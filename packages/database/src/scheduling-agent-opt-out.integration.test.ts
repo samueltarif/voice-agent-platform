@@ -273,4 +273,19 @@ describe('E2 PR3: canonical opt-out, clarification and call outcome', () => {
     expect(await suppressions(s)).toBe(0);
     expect(await leadStatus(s)).toBe('NEW');
   });
+
+  it('after a tool opt-out, later utterances never resume the commercial approach', async () => {
+    const s = await setup();
+    const found = await service.findSlots(s.scope, {});
+    if (found.status !== 'OFFERED') throw new Error(found.status);
+    await s.harness.speak({ purpose: 'PRESENTATION', listRevision: found.listRevision });
+    expect(await service.recordOptOut(s.scope)).toMatchObject({
+      status: 'RECORDED',
+      meetingPreserved: false,
+    });
+    const view = await s.harness.leadSays('A primeira.');
+    expect(view).toMatchObject({ directives: [], refusal: 'OPT_OUT_REQUESTED' });
+    expect(await service.confirmOffer(s.scope)).toMatchObject({ reason: 'OPT_OUT_REQUESTED' });
+    expect(await leadStatus(s)).toBe('DO_NOT_CALL');
+  });
 });
