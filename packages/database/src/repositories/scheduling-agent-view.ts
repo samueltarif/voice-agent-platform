@@ -55,7 +55,8 @@ const SPEECH_RULES: Readonly<Record<Kind, SpeechRule>> = {
   ASK_CLARIFICATION: (_d, input) =>
     input.optOutPending ? SCHEDULING_SPEECH.OPT_OUT_CLARIFICATION : SCHEDULING_SPEECH.CLARIFY,
   REQUEST_NEW_LIST: () => null,
-  RECORD_OPT_OUT: () => renderRefusalSpeech('OPT_OUT_REQUESTED'),
+  // E2 PR 3: o opt-out reconhecido é gravado na MESMA transação do evento.
+  RECORD_OPT_OUT: () => SCHEDULING_SPEECH.OPT_OUT_RECORDED,
   BOOK: () => null,
   ANNOUNCE_BOOKED: announceBooked,
   ANNOUNCE_NOT_BOOKED: () => SCHEDULING_SPEECH.NOT_BOOKED,

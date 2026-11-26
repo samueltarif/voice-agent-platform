@@ -114,6 +114,10 @@ export async function lockProtocol(
 export interface ApplyOptions {
   readonly leadSpeechStartedSeq?: number | null;
   readonly optOutPending?: boolean;
+  readonly optOutQuestionGeneration?: string | null;
+  readonly optOutQuestionDeliveredSeq?: number | null;
+  readonly optOutRecordedAt?: Date | null;
+  readonly optOutSource?: string | null;
 }
 
 /** Atribui o próximo `seq`, aplica o redutor puro e grava, sob a trava já obtida. */
@@ -146,9 +150,7 @@ export async function reserveSeq(
 async function writeRow(
   tx: DatabaseExecutor,
   row: SchedulingProtocolStateEntity,
-  changes: Partial<
-    Pick<SchedulingProtocolStateEntity, 'state' | 'seq' | 'leadSpeechStartedSeq' | 'optOutPending'>
-  >,
+  changes: ApplyOptions & Partial<Pick<SchedulingProtocolStateEntity, 'state' | 'seq'>>,
 ): Promise<SchedulingProtocolStateEntity> {
   const [updated] = await tx
     .update(schedulingProtocolStates)

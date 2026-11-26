@@ -24,6 +24,8 @@ export type ResolvedAgentScope =
   | {
       readonly ok: true;
       readonly binding: SchedulingBinding;
+      /** Destino discado (E.164), interno: base da supressão canônica (E2 PR 3). */
+      readonly destinationPhoneE164: string;
       /** Presente só quando o agendamento está disponível (sessão ativa, lead e agenda). */
       readonly scheduling: { readonly leadId: string; readonly calendarId: string } | null;
       readonly unavailable: SchedulingRefusal | null;
@@ -55,18 +57,30 @@ export async function resolveAgentScope(
   const capability = context.scheduling;
   if (capability.kind === 'AVAILABLE') {
     const scheduling = { leadId: capability.leadId, calendarId: capability.calendarId };
-    return { ok: true, binding: base, scheduling, unavailable: null };
+    return {
+      ok: true,
+      binding: base,
+      destinationPhoneE164: binding.destinationPhoneE164,
+      scheduling,
+      unavailable: null,
+    };
   }
   const unavailable =
     capability.reason === 'SESSION_NOT_ACTIVE' ? 'SESSION_NOT_ACTIVE' : 'SCHEDULING_UNAVAILABLE';
-  return { ok: true, binding: base, scheduling: null, unavailable };
+  return {
+    ok: true,
+    binding: base,
+    destinationPhoneE164: binding.destinationPhoneE164,
+    scheduling: null,
+    unavailable,
+  };
 }
 
 /** Bloqueios do avanço comercial a partir do estado travado (ordem de precedência). */
 export function commercialBlock(locked: LockedProtocol): SchedulingRefusal | null {
   const phase = locked.row.state.phase;
   if (!locked.active || phase === 'CLOSED') return 'SESSION_NOT_ACTIVE';
-  if (phase === 'OPTED_OUT') return 'OPT_OUT_REQUESTED';
+  if (phase === 'OPTED_OUT' || locked.row.optOutRecordedAt) return 'OPT_OUT_REQUESTED';
   if (locked.row.optOutPending) return 'OPT_OUT_CLARIFICATION_PENDING';
   if (phase === 'BOOKED') return 'ALREADY_BOOKED';
   return phase === 'BOOKING' ? 'BOOKING_IN_FLIGHT' : null;

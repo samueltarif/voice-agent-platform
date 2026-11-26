@@ -198,7 +198,9 @@ describe('E2 PR2: offer, contextual confirmation and booking (offline)', () => {
       phase: 'AWAITING_CONFIRMATION',
       optOutClarificationPending: true,
     });
-    expect(view.speech).toContain('você prefere não receber mais ligações');
+    // TEST_CHANGE_REASON (E2 PR 3, ASSERTION_EQUIVALENT): pergunta reescrita sem dupla negação
+    // ("sim" = parar de ligar); a asserção continua exigindo a pergunta de opt-out.
+    expect(view.speech).toContain('você quer que a gente pare de ligar para você?');
     // Um aceite posterior não autoriza nada enquanto o pedido não for esclarecido.
     expect((await harness.leadSays('Sim, pode marcar.')).directives).not.toContainEqual(
       expect.objectContaining({ kind: 'BOOK' }),

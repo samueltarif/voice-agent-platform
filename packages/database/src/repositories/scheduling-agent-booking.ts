@@ -126,8 +126,8 @@ async function book(deps: BookingDeps, ctx: BookingContext): Promise<ConfirmOffe
 /** Leitura pontual do estado: o que NÃO pode virar reserva nova. */
 function preBookingRefusal(row: SchedulingProtocolStateEntity): SchedulingRefusal | null {
   const { phase, authorization } = row.state;
+  if (phase === 'OPTED_OUT' || row.optOutRecordedAt) return 'OPT_OUT_REQUESTED';
   if (row.optOutPending) return 'OPT_OUT_CLARIFICATION_PENDING';
-  if (phase === 'OPTED_OUT') return 'OPT_OUT_REQUESTED';
   if (phase === 'CLOSED') return 'SESSION_NOT_ACTIVE';
   return phase === 'AUTHORIZED' && authorization ? null : 'NOT_AUTHORIZED';
 }

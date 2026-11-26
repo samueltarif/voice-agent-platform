@@ -5,6 +5,7 @@ import {
   foreignKey,
   integer,
   jsonb,
+  text,
   pgTable,
   primaryKey,
   timestamp,
@@ -39,6 +40,12 @@ export const schedulingProtocolStates = pgTable(
     seq: integer('seq').notNull().default(0),
     leadSpeechStartedSeq: integer('lead_speech_started_seq'),
     optOutPending: boolean('opt_out_pending').notNull().default(false),
+    /** E2 PR 3: pergunta de esclarecimento em fala (geração) e `seq` da entrega completa. */
+    optOutQuestionGeneration: text('opt_out_question_generation'),
+    optOutQuestionDeliveredSeq: integer('opt_out_question_delivered_seq'),
+    /** E2 PR 3: opt-out gravado na supressão canônica nesta sessão (e a origem da evidência). */
+    optOutRecordedAt: timestamp('opt_out_recorded_at', { withTimezone: true }),
+    optOutSource: text('opt_out_source'),
     version: integer('version').notNull().default(1),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
@@ -53,6 +60,12 @@ export const schedulingProtocolStates = pgTable(
       foreignColumns: [callSessions.id, callSessions.organizationId],
       name: 'scheduling_protocol_states_session_org_fk',
     }).onDelete('cascade'),
+    check(
+      'scheduling_protocol_states_opt_out_source_chk',
+      sql`(${table.optOutRecordedAt} IS NULL AND ${table.optOutSource} IS NULL)
+        OR (${table.optOutRecordedAt} IS NOT NULL
+          AND ${table.optOutSource} IN ('LEAD_UTTERANCE', 'CLARIFICATION', 'AGENT_TOOL'))`,
+    ),
     check('scheduling_protocol_states_seq_chk', sql`${table.seq} >= 0 AND ${table.version} >= 1`),
     check(
       'scheduling_protocol_states_speech_start_chk',

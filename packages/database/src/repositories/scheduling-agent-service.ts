@@ -1,5 +1,9 @@
 import type {
   ConfirmOfferResult,
+  LeadAgentPort,
+  RecordOptOutResult,
+  RecordOutcomeArguments,
+  RecordOutcomeResult,
   FindSlotsArguments,
   FindSlotsResult,
   SchedulingAgentPort,
@@ -7,15 +11,13 @@ import type {
   SchedulingProtocolView,
   SchedulingSpeechEvent,
 } from '@voice-agent/contracts';
-import { findSlotsArgumentsSchema } from '@voice-agent/contracts';
+import { findSlotsArgumentsSchema, recordOutcomeArgumentsSchema } from '@voice-agent/contracts';
 import type { DatabaseInstance } from '../client/connection.js';
 import { DrizzleMeetingBookingService } from './meeting-booking-service.js';
 import { confirmOffer, type BookingDeps } from './scheduling-agent-booking.js';
-import {
-  recordLeadSpeechStarted,
-  recordLeadUtterance,
-  recordSpeech,
-} from './scheduling-agent-events.js';
+import { recordLeadSpeechStarted, recordSpeech } from './scheduling-agent-events.js';
+import { recordOptOut, recordOutcome } from './scheduling-agent-lead-tools.js';
+import { recordLeadUtterance } from './scheduling-agent-utterance.js';
 import { findSlots } from './scheduling-agent-offers.js';
 import { DrizzleSchedulingSessionContextResolver } from './scheduling-session-context-resolver.js';
 import { DrizzleSchedulingSlotRepository } from './scheduling-slot-repository.js';
@@ -26,13 +28,13 @@ export interface SchedulingAgentServiceOptions {
 }
 
 /**
- * E2 PR 2 (DEC-075) — serviço canônico do agendamento pelo agente, OFFLINE:
+ * E2 PR 2/3 (DEC-075) — serviço canônico do agendamento e do lead pelo agente, OFFLINE:
  * nenhuma composição de produção, rota ou telefonia o registra. Reutiliza a
  * E1 (`offerSlots`, `bookOfferedSlot` com ganchos na mesma transação) e o
  * protocolo puro da PR 1 (`advanceBookingProtocol`), persistido em
  * `scheduling_protocol_states`.
  */
-export class DrizzleSchedulingAgentService implements SchedulingAgentPort {
+export class DrizzleSchedulingAgentService implements SchedulingAgentPort, LeadAgentPort {
   private readonly deps: BookingDeps & { readonly slots: DrizzleSchedulingSlotRepository };
 
   constructor(db: DatabaseInstance, options: SchedulingAgentServiceOptions = {}) {
@@ -69,5 +71,16 @@ export class DrizzleSchedulingAgentService implements SchedulingAgentPort {
 
   recordLeadUtterance(scope: SchedulingAgentScope, text: string): Promise<SchedulingProtocolView> {
     return recordLeadUtterance(this.deps, scope, text);
+  }
+
+  recordOutcome(
+    scope: SchedulingAgentScope,
+    args: RecordOutcomeArguments,
+  ): Promise<RecordOutcomeResult> {
+    return recordOutcome(this.deps, scope, recordOutcomeArgumentsSchema.parse(args));
+  }
+
+  recordOptOut(scope: SchedulingAgentScope): Promise<RecordOptOutResult> {
+    return recordOptOut(this.deps, scope);
   }
 }
