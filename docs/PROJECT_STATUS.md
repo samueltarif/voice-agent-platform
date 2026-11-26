@@ -1,6 +1,6 @@
 # Voice Agent Platform — Estado vivo do projeto
 
-> **Última verificação no repositório:** 26/11/2026 (merge da #179, registro da E0/E1: `origin/main` `05d0252f2c0d56ac45abdc5d80338f4f3b75db18`, só `docs/` em relação a `e0cded7`; início da E2 PR 1); antes, 26/11/2026 (integração da E0/E1; `origin/main` `e0cded7d1279104e07928a896b495e0c2da1ff36`); antes, 26/11/2026 (autorização condicionada de merge; `origin/main` `755aa37` antes da integração); 25/11/2026 (registro da E0/E1, `origin/main` `755aa37`); antes, 23/11/2026, por volta das 11h45 (horário de Brasília), contra a `origin/main` `ccfa46f5d96321f78c5193de9f8acf93f333704f` (merge da #173, B2c) e a API de PRs do GitHub. Verificações anteriores: 18/11/2026 às 12h30 (`4806def`) e 08h05 (`e36e65a`); 17/11/2026 às 14h10, 14h35 e 17h00.
+> **Última verificação no repositório:** 26/11/2026 (merge da #180, E2 PR 1: `origin/main` `210014539c0f1bb5c2a7535548f6a8852015f35a`, árvore idêntica à do HEAD auditado `5b1c1c3`; gate Linux pós-merge 3.017 / 45 / 0); antes, 26/11/2026 (merge da #179, registro da E0/E1: `origin/main` `05d0252f2c0d56ac45abdc5d80338f4f3b75db18`, só `docs/` em relação a `e0cded7`; início da E2 PR 1); antes, 26/11/2026 (integração da E0/E1; `origin/main` `e0cded7d1279104e07928a896b495e0c2da1ff36`); antes, 26/11/2026 (autorização condicionada de merge; `origin/main` `755aa37` antes da integração); 25/11/2026 (registro da E0/E1, `origin/main` `755aa37`); antes, 23/11/2026, por volta das 11h45 (horário de Brasília), contra a `origin/main` `ccfa46f5d96321f78c5193de9f8acf93f333704f` (merge da #173, B2c) e a API de PRs do GitHub. Verificações anteriores: 18/11/2026 às 12h30 (`4806def`) e 08h05 (`e36e65a`); 17/11/2026 às 14h10, 14h35 e 17h00.
 > Este é um documento de acompanhamento e **não prova o estado em tempo real**. Antes de afirmar status atual, confira Git, PRs e decisões. Em caso de divergência, Git, código, testes observados e `docs/DECISIONS_LOG.md` prevalecem.
 > **Regra de leitura:** distinga sempre INTEGRADO, TESTADO, AUTORIZADO, PLANEJADO, PENDENTE e NÃO VALIDADO. Um plano não é código entregue, e um gate verde não é produto pronto.
 
@@ -42,6 +42,9 @@ SaaS multiempresa de agentes de voz:
   **Código e testes não comprovam operação telefônica ponta a ponta em produção.** Ver §6.
 
 - **E1 — leads, agendas e reserva de reuniões, OFFLINE (26/11/2026):** PR #177, head `7f18423db6e84c2921bc12d2284e47be5bd3849c`, merge `1f30bc4d69ffbf900e00ef56fefcd22839c4ebaa` (árvore idêntica à do head aprovado, `b511489`). **E0 — registro e decisões:** PR #178, head `1510b493ac21103c9fa14cca2687765e8536cb82`, merge `e0cded7d1279104e07928a896b495e0c2da1ff36` (só documentação). Sem ferramentas do agente, telas, ligações ou endpoint público: **E2–E6 não autorizadas**.
+- **E2 PR 1 — contexto de sessão de agendamento e protocolo de reserva, OFFLINE (26/11/2026; DEC-075):** PR #180, HEAD `5b1c1c3a3d8c9885dc4a9751924e57f8b9e28950`, merge `210014539c0f1bb5c2a7535548f6a8852015f35a` (pais `05d0252` e `5b1c1c3`; árvore `c518985` idêntica à do HEAD auditado, `git diff` vazio). Entrega: contexto de sessão fixado (migration 0015), política D1 de concorrência, autorização de reserva vinculada à concessão publicada, máquina de estados pura do protocolo e classificador determinístico das respostas do lead (aceite, recusa, escolha, opt-out). **Sem ferramentas operacionais do agente, rotas, telas, ligações ou endpoint público.** Auditorias independentes: Codex (1ª a 4ª) e Antigravity (5ª, bloqueada só por N1; revalidação final: **APROVADA PARA GATE WINDOWS**); todos os achados bloqueantes resolvidos (8 originais, N1, interrogação isolada e o defeito dos ordinais). Gates no HEAD `5b1c1c3`: Linux (Claude) e Windows (operador, `VITEST_MAX_WORKERS=1`, 406 arquivos de teste, typecheck/build 14/14, banco descartável `of2_test_f1eeeb616be8` removido) — **3.017 aprovados / 45 ignorados / 0 falhas**, exit 0. Gate Linux pós-merge na main `2100145`: **3.017 / 45 / 0**, exit 0, banco descartável removido. **E2 PR 2 e PR 3 não iniciadas; E3–E6 não autorizadas.**
+  - **Limitações conhecidas (gramática fechada, desenho §8):** só formas explícitas do vocabulário (`lead-reply-lexicon.ts`) produzem aceite ou opt-out; qualquer cláusula desconhecida, condição, citação, aspa sem par, palavra fora do alfabeto do português, acento trocado ou interrogação perdida leva a esclarecimento (falso negativo seguro). Exemplos que pedem esclarecimento mesmo sendo inofensivos: "Não, não me ligue mais.", "Me descadastre. Ok.", "Me descadastre. Nunca mais.", "¿Me descadastre?". Símbolos sem palavra não bloqueiam o opt-out (viés de cumprir a supressão). Não há cobertura semântica universal do português.
+  - **Requisito obrigatório da PR 3 (desenho §7):** um possível pedido de opt-out não reconhecido deve **interromper a abordagem comercial** enquanto o agente esclarece o pedido; validar com eventos reais de voz antes de qualquer prospecção real. Não implementado.
 
 ### PRs da Base de Conhecimento (estado conferido na API do GitHub em 17/11/2026 e 23/11/2026)
 
@@ -313,7 +316,7 @@ Falta comprovar um atendimento real autorizado, cobrindo:
 - Uma ligação supervisionada, feita **fora da plataforma** pelo operador: Twilio (conta paga, número americano) → `<Connect><Stream>` por WSS → Millis, para o celular verificado do operador.
 - 64 s, `user-ended` (`OBSERVED`); custo US$ 0,2113 = Millis US$ 0,0699 (exibido pela Millis) + Twilio US$ 0,1414 (**calculado por diferença de saldo**, não é fatura); qualidade aprovada pelo operador, com possíveis erros pontuais de reconhecimento e um silêncio de causa não comprovada.
 - **Status: OBSERVED (relato do operador), NÃO VALIDADO de ponta a ponta.** SIP não foi usado nem validado. Nenhuma ferramenta, dado, registro ou cobrança da plataforma participou.
-- Próximo marco planejado: ligação comercial simulada iniciada **pela plataforma**, com qualificação e agendamento de reunião (E1–E6). A direção arquitetural das ferramentas foi aprovada, mas **a autorização em vigor cobre só a E0 e a E1 (com as correções da auditoria); a E2 não está autorizada**.
+- Próximo marco planejado: ligação comercial simulada iniciada **pela plataforma**, com qualificação e agendamento de reunião (E1–E6). A direção arquitetural das ferramentas foi aprovada, mas **a autorização em vigor cobre só a E0 e a E1 (com as correções da auditoria); a E2 não está autorizada**. *(Atualização de 26/11/2026: a E2 PR 1 foi autorizada e integrada — #180, merge `2100145`, offline; E2 PR 2/PR 3 e E3–E6 seguem não autorizadas.)*
 
 **Verificação em 17/11/2026 (`c31cd4a`), inferência por busca no código:**
 - `createKnowledgeSearchToolDefinition` só é instanciada na conversa simulada da API (`apps/api/src/simulation/knowledge-simulated-turn-service.ts`).
@@ -386,13 +389,23 @@ Componentes de campanha e billing existem no código, mas a operação comercial
 | :--- | :--- | :--- |
 | **E0** | Registro da ligação WSS, decisões, lacunas da Millis, estratégia de segurança e diagnóstico financeiro (DEC-073) | **INTEGRADA em 26/11/2026** (PR #178, merge `e0cded7`; só documentação) |
 | **E1** | Leads, agendas, disponibilidade, ofertas e reserva transacional de reuniões, offline (DEC-074) | **INTEGRADA e TESTADA em 26/11/2026** (PR #177, HEAD `7f18423`, merge `1f30bc4`; gate Linux pós-merge na main `e0cded7`: 2.917 aprovados / 45 ignorados / 0 falhas; 1ª auditoria: BLOQUEADA, 10 achados corrigidos; 2ª: 4 bloqueantes corrigidos; 3ª: aprovada; gates Linux e Windows: 2.917 aprovados / 45 ignorados / 0 falhas no mesmo SHA — Windows com `VITEST_MAX_WORKERS=1` após 1ª execução com 7 timeouts fora da E1) |
-| **E2** | Ferramentas do agente (consultar e oferecer horários, marcar com confirmação, resultado do lead, opt-out), em 3 PRs (DEC-075) | **PR 1 EM REVISÃO** (contexto, política D1, autorização, máquina de estados; sem ferramentas operacionais); PR 2 e PR 3 NÃO autorizadas |
+| **E2** | Ferramentas do agente (consultar e oferecer horários, marcar com confirmação, resultado do lead, opt-out), em 3 PRs (DEC-075) | **PR 1 INTEGRADA e TESTADA em 26/11/2026** (PR #180, HEAD `5b1c1c3`, merge `2100145`, árvore idêntica; contexto, política D1, autorização, máquina de estados e classificador; sem ferramentas operacionais; auditorias Codex 1ª–4ª e Antigravity 5ª + revalidação final aprovada; gates Linux e Windows 3.017 / 45 / 0; Linux pós-merge 3.017 / 45 / 0); **PR 2 e PR 3 NÃO iniciadas nem autorizadas** |
 | E3 | Telas (agenda, reuniões, lead, ligação de teste) | NÃO autorizada |
 | E4 | Adaptadores Twilio WSS e Millis (agente temporário, webhooks) | NÃO autorizada |
 | E5 | Montagem supervisionada e gateway HTTPS mínimo | NÃO autorizada |
 | E6 | Ligação real pela plataforma | NÃO autorizada |
 
 **Financeiro (requisito futuro, não autorizado):** mensalidade + créditos pré-pagos (Pix/cartão). Reserva de custo de fornecedores implementada; obrigatoriedade de reserva válida no disparo real ainda pendente. Hoje existem tetos de gasto de fornecedor por empresa e global, reservas por tentativa e limites de simultaneidade (008-OF3), sem controle financeiro de ponta a ponta; não existem carteira de créditos, pagamentos, tarifas de venda, câmbio, margem nem monitoramento de saldo de fornecedores. Diagnóstico em `docs/research/PHASE_8_FIRST_LIVE_CALL_WSS_AND_SCHEDULING_DECISIONS.md` §5.
+
+### Metodologia de validação proporcional ao risco (26/11/2026)
+
+Acordada pelo operador ao encerrar a E2 PR 1:
+- **Claude:** implementação, autorrevisão adversarial do próprio diff e testes (direcionados e gate Linux completo). A autorrevisão **não substitui** a auditoria independente.
+- **Antigravity:** auditorias direcionadas a achados específicos e revalidações enxutas do diff corrigido.
+- **Codex:** preferencialmente componentes críticos e auditorias consolidadas.
+- **Auditoria consolidada da E2** (PR 1 a PR 3) antes de iniciar a E3.
+- **Não repetir auditorias** de componentes inalterados sem evidência concreta de regressão.
+- Gate Windows executado pelo operador no HEAD aprovado antes de cada merge de código; mudança só de documentação não repete o gate completo (§10).
 
 ## 10. Como consultar e manter este documento
 
