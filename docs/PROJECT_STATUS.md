@@ -1,6 +1,6 @@
 # Voice Agent Platform — Estado vivo do projeto
 
-> **Última verificação no repositório:** 25/11/2026 (registro da E0/E1, `origin/main` `755aa37`); antes, 23/11/2026, por volta das 11h45 (horário de Brasília), contra a `origin/main` `ccfa46f5d96321f78c5193de9f8acf93f333704f` (merge da #173, B2c) e a API de PRs do GitHub. Verificações anteriores: 18/11/2026 às 12h30 (`4806def`) e 08h05 (`e36e65a`); 17/11/2026 às 14h10, 14h35 e 17h00.
+> **Última verificação no repositório:** 26/11/2026 (autorização condicionada de merge da E0/E1; `origin/main` `755aa37` antes da integração); 25/11/2026 (registro da E0/E1, `origin/main` `755aa37`); antes, 23/11/2026, por volta das 11h45 (horário de Brasília), contra a `origin/main` `ccfa46f5d96321f78c5193de9f8acf93f333704f` (merge da #173, B2c) e a API de PRs do GitHub. Verificações anteriores: 18/11/2026 às 12h30 (`4806def`) e 08h05 (`e36e65a`); 17/11/2026 às 14h10, 14h35 e 17h00.
 > Este é um documento de acompanhamento e **não prova o estado em tempo real**. Antes de afirmar status atual, confira Git, PRs e decisões. Em caso de divergência, Git, código, testes observados e `docs/DECISIONS_LOG.md` prevalecem.
 > **Regra de leitura:** distinga sempre INTEGRADO, TESTADO, AUTORIZADO, PLANEJADO, PENDENTE e NÃO VALIDADO. Um plano não é código entregue, e um gate verde não é produto pronto.
 
@@ -382,9 +382,9 @@ Componentes de campanha e billing existem no código, mas a operação comercial
 
 | Etapa | Conteúdo | Status |
 | :--- | :--- | :--- |
-| **E0** | Registro da ligação WSS, decisões, lacunas da Millis, estratégia de segurança e diagnóstico financeiro (DEC-073) | **EM REVISÃO** (PR #178; auditoria Codex: aprovada com ressalvas, corrigidas) |
-| **E1** | Leads, agendas, disponibilidade, ofertas e reserva transacional de reuniões, offline (DEC-074) | **EM REVISÃO** (PR #177; 1ª auditoria do Codex: BLOQUEADA, 10 achados, corrigidos; 2ª auditoria: 5 correções validadas, 4 caminhos bloqueantes em A2/A3/A4 e 2 ressalvas, corrigidos na PR e aguardando 3ª auditoria; gate Linux no `AI_WORKLOG`; Windows só após a reauditoria) |
-| E2 | Ferramentas do agente (consultar e oferecer horários, marcar com confirmação, resultado do lead, opt-out) | NÃO autorizada (só a direção arquitetural foi aprovada) |
+| **E0** | Registro da ligação WSS, decisões, lacunas da Millis, estratégia de segurança e diagnóstico financeiro (DEC-073) | **MERGE AUTORIZADO em 26/11/2026** (PR #178; 3ª auditoria do Codex: aprovada com ressalvas não bloqueantes, corrigidas; integração e verificação pós-merge registradas no `AI_WORKLOG`) |
+| **E1** | Leads, agendas, disponibilidade, ofertas e reserva transacional de reuniões, offline (DEC-074) | **MERGE AUTORIZADO em 26/11/2026** (PR #177, HEAD `7f18423`; 1ª auditoria: BLOQUEADA, 10 achados corrigidos; 2ª: 4 bloqueantes corrigidos; 3ª: aprovada; gates Linux e Windows: 2.917 aprovados / 45 ignorados / 0 falhas no mesmo SHA — Windows com `VITEST_MAX_WORKERS=1` após 1ª execução com 7 timeouts fora da E1) |
+| E2 | Ferramentas do agente (consultar e oferecer horários, marcar com confirmação, resultado do lead, opt-out) | NÃO autorizada (só a direção arquitetural foi aprovada; plano técnico a apresentar após o merge da E1) |
 | E3 | Telas (agenda, reuniões, lead, ligação de teste) | NÃO autorizada |
 | E4 | Adaptadores Twilio WSS e Millis (agente temporário, webhooks) | NÃO autorizada |
 | E5 | Montagem supervisionada e gateway HTTPS mínimo | NÃO autorizada |
