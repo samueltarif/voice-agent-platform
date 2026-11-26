@@ -97,17 +97,26 @@ function knownForm(normalized: string): LeadReplyIntent | null {
   return selection(normalized);
 }
 
-/** Cláusula reconhecida que não impede o opt-out: cortesia, lista fechada ou aceite/recusa inteiros. */
-function isKnownCompanion(clause: ReplySentence): boolean {
-  if (isIndependentClause(clause)) return true;
-  return !clause.quoted && !clause.question && knownForm(clause.normalized) !== null;
+/**
+ * Cláusula que acompanha o pedido sem impedi-lo (5ª auditoria, N1). A posição
+ * importa: aceite, recusa ou escolha inteiros só ANTES do primeiro pedido e
+ * sem contraste ("Sim, pode marcar, mas depois não me liguem mais"). Depois
+ * do pedido, ou aberta por contraste, só cortesia e trechos independentes
+ * permitidos — "Me descadastre, só que não." é retratação, não acompanhante.
+ */
+function isCompanion(clause: ReplySentence, beforeRequest: boolean): boolean {
+  if (isIndependentClause(clause, beforeRequest)) return true;
+  if (!beforeRequest || clause.contrast || clause.quoted || clause.question) return false;
+  return knownForm(clause.normalized) !== null;
 }
 
 /** Opt-out só se há pedido atual e NENHUMA cláusula desconhecida na fala inteira. */
 function isOptOutUtterance(clauses: readonly ReplySentence[]): boolean {
-  const requests = clauses.filter(isOptOutRequest);
-  if (requests.length === 0) return false;
-  return clauses.every((clause) => requests.includes(clause) || isKnownCompanion(clause));
+  const first = clauses.findIndex(isOptOutRequest);
+  if (first < 0) return false;
+  return clauses.every(
+    (clause, index) => isOptOutRequest(clause) || isCompanion(clause, index < first),
+  );
 }
 
 /**

@@ -113,29 +113,41 @@ export function wholePattern(forms: readonly string[]): RegExp {
 }
 
 export interface ReplySentence {
-  /** Cláusula na forma de comparação. */
+  /** Cláusula na forma de comparação (`?` = interrogação sem palavras). */
   readonly normalized: string;
-  /** A frase termina em interrogação. */
+  /** A frase tem interrogação. */
   readonly question: boolean;
   /** Conteúdo citado, ou fala com aspa sem par: nunca é pedido nem trecho independente. */
   readonly quoted: boolean;
+  /** A cláusula foi aberta por conectivo de contraste ("mas não", "só que não"). */
+  readonly contrast: boolean;
 }
 
-/** Frase: termina em pontuação forte; dentro dela, `;` e conectivos de contraste separam cláusulas. */
-const SENTENCE = /[^.!?¿؟⸮‽…\n]+[.!?¿؟⸮‽…\n]*/gu;
+/**
+ * Frase: trecho até a pontuação forte, cobrindo TODO o texto (5ª auditoria):
+ * uma interrogação isolada ou de abertura ("Me descadastre. ?", "¿…") vira
+ * frase própria e nunca é descartada.
+ */
+const SENTENCE = /[^.!?¿؟⸮‽…\n]*(?:[.!?¿؟⸮‽…\n]+|$)/gu;
 const CONTRAST = wordsPattern('mas|porém|só que|entretanto|contudo');
 const CLAUSE = new RegExp(CONTRAST.source, 'gu');
+/** Marcador de interrogação sem palavras: não casa com nenhuma forma. */
+const BARE_QUESTION = '?';
+
+function clausesOfSentence(sentence: string, quoted: boolean): ReplySentence[] {
+  const question = QUESTION.test(sentence);
+  const clauses = sentence.split(';').flatMap((part) =>
+    toMatchForm(part)
+      .split(CLAUSE)
+      .map((text, index) => ({ normalized: text.trim(), question, quoted, contrast: index > 0 }))
+      .filter((clause) => clause.normalized.length > 0),
+  );
+  if (clauses.length > 0 || !question) return clauses;
+  return [{ normalized: BARE_QUESTION, question, quoted, contrast: false }];
+}
 
 function clausesOf(text: string, quoted: boolean): ReplySentence[] {
-  return (text.match(SENTENCE) ?? []).flatMap((sentence) => {
-    const question = QUESTION.test(sentence);
-    return sentence
-      .split(';')
-      .flatMap((part) => toMatchForm(part).split(CLAUSE))
-      .map((part) => part.trim())
-      .filter((part) => part.length > 0)
-      .map((normalized) => ({ normalized, question, quoted }));
-  });
+  return (text.match(SENTENCE) ?? []).flatMap((sentence) => clausesOfSentence(sentence, quoted));
 }
 
 /**

@@ -45,6 +45,7 @@ const sequenceOf = (items: readonly string[]) =>
 const PREFIX_OK = sequenceOf(LEAD_INS);
 const TAIL_OK = sequenceOf(TAILS);
 const COURTESY_ONLY = sequenceOf(COURTESY);
+const AFTER_REQUEST_COURTESY = sequenceOf(COURTESY.filter((item) => !item.startsWith('não')));
 const MODAL = wordsPattern(MODALS.join('|'));
 
 function isCurrentRequest(clause: ReplySentence, form: RegExp): boolean {
@@ -61,10 +62,15 @@ export function isOptOutRequest(clause: ReplySentence): boolean {
   return !clause.quoted && FORMS.some((form) => isCurrentRequest(clause, form));
 }
 
-/** Cortesia ou trecho independente completo da lista fechada (nunca citação). */
-export function isIndependentClause(clause: ReplySentence): boolean {
+/**
+ * Cortesia ou trecho independente completo da lista fechada (nunca citação).
+ * Depois do pedido, cortesias negativas ("não, obrigado") podem ser
+ * retratação e não acompanham o pedido (5ª auditoria, N1).
+ */
+export function isIndependentClause(clause: ReplySentence, beforeRequest: boolean): boolean {
   if (clause.quoted) return false;
-  return COURTESY_ONLY.test(clause.normalized) || INDEPENDENT.test(clause.normalized);
+  const courtesy = beforeRequest ? COURTESY_ONLY : AFTER_REQUEST_COURTESY;
+  return courtesy.test(clause.normalized) || INDEPENDENT.test(clause.normalized);
 }
 
 const DESCADASTRO = wordsPattern('descadastr\\S*');

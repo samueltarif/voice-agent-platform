@@ -182,3 +182,85 @@ describe('I7 — the whole utterance decides; no clause is silently ignored', ()
     );
   });
 });
+
+describe('fifth audit (N1) — a retraction after the request is never an opt-out', () => {
+  it('exact cases', () =>
+    expectAll(
+      [
+        'Me descadastre, só que não.',
+        'Me descadastre. Só que não.',
+        'Tire meu número da lista, mas não.',
+        'Me descadastre. Não. Pode marcar.',
+        'Me descadastre. Não.',
+      ],
+      CLARIFY,
+    ));
+
+  const AFTER = ['não', 'sim', 'pode marcar', 'a segunda', 'não, obrigado', 'nenhum desses'];
+  const after: ReadonlyArray<(r: string, a: string) => string> = [
+    (r, a) => `${r}. ${a.charAt(0).toUpperCase()}${a.slice(1)}.`,
+    (r, a) => `${r}, ${a}.`,
+    (r, a) => `${r}, mas ${a}.`,
+    (r, a) => `${r}. Mas ${a}.`,
+    (r, a) => `${r}, só que ${a}.`,
+  ];
+  it(`whole answers after the request, with or without contrast (${REQUESTS.length * AFTER.length * after.length} occurrences)`, () =>
+    expectAll(
+      REQUESTS.flatMap((r) => AFTER.flatMap((a) => after.map((at) => at(r, a)))),
+      CLARIFY,
+    ));
+
+  it('a whole answer introduced by contrast before the request is not a companion', () =>
+    expectAll(['Mas não. Me descadastre.', 'Só que sim. Não me ligue mais.'], CLARIFY));
+
+  it('a request introduced by contrast stays a request', () =>
+    expectAll(
+      [
+        'Não precisa confirmar a reunião, mas não me ligue mais.',
+        'Não se preocupe, mas me descadastre.',
+        'Sim, pode marcar, mas depois não me liguem mais.',
+        'Obrigado, mas não me ligue mais.',
+        'Hoje não posso. Mas me descadastre.',
+      ],
+      OPT_OUT,
+    ));
+
+  it('mandatory positive controls', () =>
+    expectAll(
+      [
+        'Não me ligue mais.',
+        'Retire meu número da lista.',
+        'Pode tirar meu número da lista?',
+        'Pode, por favor, tirar meu número da lista?',
+        'Retire meu número da lista. Se eu precisar, ligo para vocês.',
+        'Me descadastre. Tchau.',
+        'Não. Me descadastre.',
+        'A segunda. Me descadastre.',
+      ],
+      OPT_OUT,
+    ));
+});
+
+describe('fifth audit — a question mark is never lost by segmentation', () => {
+  it('an isolated or opening question mark keeps the utterance a question', () =>
+    expectAll(
+      [
+        'Me descadastre. ?',
+        '¿Me descadastre.',
+        'Não me ligue mais! ?',
+        'Me descadastre ?',
+        '¿Me descadastre?',
+      ],
+      CLARIFY,
+    ));
+
+  it('legitimate interrogative requests keep working', () =>
+    expectAll(
+      [
+        'Pode me descadastrar?',
+        'Pode tirar meu número da lista ?',
+        'Vocês podem parar de me ligar??',
+      ],
+      OPT_OUT,
+    ));
+});
