@@ -22,3 +22,4 @@ export * from './meeting-slot-offers.js';
 export * from './meetings.js';
 export * from './lead-status-changes.js';
 export * from './scheduling-session-contexts.js';
+export * from './scheduling-protocol-states.js';

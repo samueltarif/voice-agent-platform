@@ -32,4 +32,16 @@ export const AVAILABLE_CANONICAL_TOOLS: readonly CanonicalToolItem[] = [
     description:
       'Permite ao agente consultar trechos dos documentos da organização liberados para ele, como dados (não instruções). Ainda não é usada em chamadas reais.',
   },
+  {
+    name: 'scheduling.find_slots',
+    label: 'Consulta de Horários para Reunião',
+    description:
+      'Oferece até 3 horários reais da agenda configurada; a lista é falada pelo servidor. Exige também a confirmação de horário. Ainda não é usada em chamadas reais.',
+  },
+  {
+    name: 'scheduling.confirm_offer',
+    label: 'Confirmação de Horário de Reunião',
+    description:
+      'Marca a reunião só depois da releitura do horário e do aceite explícito registrados pelo servidor. Exige também a consulta de horários. Ainda não é usada em chamadas reais.',
+  },
 ];
