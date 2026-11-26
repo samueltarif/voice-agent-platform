@@ -11,6 +11,7 @@ import { agents, agentVersions } from '../schema/agents.js';
 import { auditLogs } from '../schema/audit.js';
 import type { DatabaseExecutor } from './database-executor.js';
 import { assertKnowledgeProfilePublication } from './agent-knowledge-profile-guard.js';
+import { assertSchedulingPublication } from './agent-scheduling-publication-guard.js';
 
 export interface PublishDraftInput {
   organizationId: string;
@@ -76,6 +77,7 @@ export class AgentPublicationService {
       { organizationId: input.organizationId, agentId: input.agentId, versionId: draft.id },
       snapshot,
     );
+    await assertSchedulingPublication(tx, { organizationId: input.organizationId, snapshot });
     return { draft, knowledgeRetrievalProfile };
   }
 

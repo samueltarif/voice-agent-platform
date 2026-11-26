@@ -1,7 +1,7 @@
 # E2 — Agendamento pelo agente: protocolo, contexto e autorização (DEC-075)
 
-> Estado: **PR 1 em revisão** (contratos, contexto, política D1, fundamentos da autorização e máquina de estados). **PR 2 e PR 3 NÃO iniciadas.** Nenhuma ferramenta operacional, rota ou composição de produção. Tudo offline.
-> Base: main `05d0252f2c0d56ac45abdc5d80338f4f3b75db18` (E0 e E1 integradas).
+> Estado: **PR 1 integrada** (#180, merge `2100145`). **PR 2 em revisão** (oferta, confirmação e reserva operacional OFFLINE; §9). **PR 3 NÃO iniciada.** Nenhuma rota, composição de produção ou telefonia. Tudo offline.
+> Base da PR 2: main `e842ea9609e271604c113be3b6d8d18246dee407`.
 
 ## 1. Objetivo e divisão aprovada
 
@@ -9,8 +9,8 @@ O agente, numa chamada (simulada offline nesta etapa), poderá consultar e ofere
 
 | PR | Escopo | Estado |
 | :--- | :--- | :--- |
-| **PR 1** | Contexto sessão–tentativa–tenant–lead–agenda, D1, fundamentos da autorização, precedência do opt-out, contratos de eventos e estados, máquina de estados, projeto de persistência e fronteiras transacionais | **esta PR** |
-| PR 2 | Oferta, confirmação, reserva, persistência do estado, atomicidade, replay, controle da fala transacional | não autorizada |
+| **PR 1** | Contexto sessão–tentativa–tenant–lead–agenda, D1, fundamentos da autorização, precedência do opt-out, contratos de eventos e estados, máquina de estados, projeto de persistência e fronteiras transacionais | integrada (#180) |
+| **PR 2** | Oferta, confirmação, reserva, persistência do estado, atomicidade, replay, controle da fala transacional | **em revisão** (§9) |
 | PR 3 | Opt-out operacional, `CALL_OUTCOME`, simulação offline integrada | não autorizada |
 
 ## 2. Decisões aprovadas (D1–D5) e como a PR 1 as trata
@@ -90,15 +90,9 @@ Também: `AMBIGUOUS`/`SILENCE` ⇒ `ASK_CLARIFICATION` (após 2, nova lista); `C
 - **Reconciliação (PR 2):** resposta perdida ⇒ repetir com a mesma chave de idempotência derivada da autorização ⇒ `REPLAYED` + conferência da reunião; rollback ⇒ autorização volta a não consumida; revogação/encerramento ⇒ `SESSION_CLOSED` anula autorização não consumida; anúncio de sucesso só após `BOOKED`/`REPLAYED` **e** reunião conferida.
 - **Nesta PR:** o resolvedor lê todas as prioridades D1 e fixa a agenda numa única transação `REPEATABLE READ` (mesma visão; auditoria A4), com `INSERT … ON CONFLICT DO NOTHING RETURNING`; perder a disputa pela PK (linha vencedora invisível na visão, ou `40001`) repete a transação (até 3 vezes) e devolve a linha vencedora. Não há `FOR UPDATE`. A FK da fixação pede `FOR KEY SHARE` na linha da sessão: uma transição de sessão (`FOR UPDATE`) concorrente **pode esperar** por ela, e vice-versa; esse par isolado não forma ciclo, pois a fixação não pega outra trava depois. Isso é revisão estática dos fluxos envolvidos, não prova de ausência universal de deadlock (B1).
 
-## 7. Requisitos futuros registrados (não implementados aqui)
+## 7. Requisitos futuros registrados
 
-**PR 2**
-- `AVAILABLE` é leitura pontual, não autorização definitiva: revalidar sessão ativa e validade **dentro** da transação do efeito.
-- Adquirir S entre A e P, nunca antes de chamar uma operação que começa em K.
-- Consumo da autorização e reserva atômicos (mesma transação).
-- Validar a agenda da versão na publicação antes de habilitar ferramentas.
-- Vincular origem, sessão e geração de cada evento; exigir `deliveredSeq < startedSeq ≤ seq`; rejeitar datas e sequências inválidas.
-- Distinguir recusa definitiva de resultado desconhecido após timeout de commit; reconciliar com a mesma chave antes de comunicar; nunca anunciar ausência de reserva quando o commit pode ter ocorrido.
+**PR 2** — tratados na §9 (revalidação dentro da transação do efeito; S entre A e P; consumo e reserva atômicos; agenda validada na publicação; `seq`/`at`/início de fala atribuídos pelo servidor; recusa definitiva × resultado desconhecido com reconciliação pela mesma chave).
 
 **PR 3**
 - Opt-out confiável e independente do modelo, com registro operacional.
@@ -120,5 +114,41 @@ Também: `AMBIGUOUS`/`SILENCE` ⇒ `ASK_CLARIFICATION` (após 2, nova lista); `C
 - Mudança de comportamento: o `e` aceito antes como introdução não casa com `é` ("É, me descadastre" vira esclarecimento); `ü` e acentos fora da posição da forma permitida também não casam.
 - Palavra com qualquer letra fora do alfabeto do português (outros alfabetos, homóglifos, `ñ`, `ß`, `ì`) vira `_`: impede aceite e também tira o pedido de opt-out da lista de complementos (vira esclarecimento). Variantes de largura total (ex.: `Ｓｉｍ`) continuam aceitas após NFKC.
 - O vínculo `callId` da concessão = sessão durável ainda não é montado em produção (E4/E5).
-- A publicação de versão ainda não valida `scheduling.calendarId` contra o tenant (a resolução bloqueia); validação na publicação fica para a PR 2/E3.
+- ~~A publicação de versão ainda não valida `scheduling.calendarId` contra o tenant~~ — validada na publicação desde a PR 2 (§9).
 - Remover uma agenda fixada é detectado e bloqueia; agenda da campanha não pode ser excluída enquanto configurada (`RESTRICT`).
+
+## 9. PR 2 — oferta, confirmação e reserva operacional (offline)
+
+**Ferramentas canônicas** (`CANONICAL_TOOL_NAMES`, ampliação compatível): `scheduling.find_slots` (argumento único, sem autoridade: `day` local opcional) e `scheduling.confirm_offer` (nenhum argumento: o consentimento é o estado do protocolo). Ligadas a uma `PublishedToolGrant` legítima (`apps/voice/src/scheduling-agent-tools.ts`); o motor ainda exige a ferramenta no toolset publicado. **Nenhuma composição de produção as registra.** O Agent Studio lista as duas, com o aviso "Ainda não é usada em chamadas reais".
+
+**Publicação** (`agent-scheduling-publication-guard.ts`, na transação da publicação): as duas ferramentas só juntas; a `scheduling.calendarId` da versão precisa existir no mesmo tenant (`FOR KEY SHARE`).
+
+**Autoridade:** o escopo vem só da concessão (tenant, sessão = `callId`, agente, versão, agenda da versão como valor); o resolvedor da PR 1 deriva tentativa, job, destino, lead e agenda fixada; cada efeito revalida sob a trava S (`lockProtocol`): tentativa com vínculo de volta, sessão `ACTIVE` da mesma tentativa, agente e versão. Sessão inativa ⇒ `SESSION_CLOSED` gravado.
+
+**Persistência:** `scheduling_protocol_states` (migration **0016**, aditiva): uma linha por (tenant, sessão) com o estado do redutor puro (`jsonb`), `seq` do servidor, início de fala pendente, `opt_out_pending` e contador de escritas; FK composta para a sessão.
+
+**Eventos do harness** (`scheduling-agent-events.ts`): `SPEECH_STARTED/COMPLETED/INTERRUPTED` (formato conferido), início da fala do interlocutor (marca do servidor) e fala final (classificada no servidor). `seq` e `at` sempre do servidor; fala final sem início registrado é ignorada. Falas determinísticas (lista, releitura com data, hora e fuso, resultado) renderizadas pelo servidor (`scheduling-speech.ts`).
+
+**Oferta** (`scheduling-agent-offers.ts`): (1) transação S curta: bloqueios comerciais e retry técnico (mesma `queryKey`, lista viva ⇒ mesmos ids, ordem e prazo, sem novas ofertas); (2) E1 `offerSlots` (L → C → A → P), até 3, TTL 15 min; (3) transação S: revalida, repete o retry (duplicatas concorrentes convergem) e emite `OFFER_LIST_ISSUED` com revisão nova. Ofertas de uma lista que não entrou no protocolo nunca são apresentadas nem reservadas; só vencem.
+
+**Reserva** (`scheduling-agent-booking*.ts`): executor canônico da E1 refatorado para aceitar ganchos **na mesma transação** (`meeting-booking-transaction.ts`; sem ganchos, comportamento idêntico):
+- ordem efetiva **K → L → C → O → A → S → P** (S = tentativa `FOR KEY SHARE` → sessão `FOR SHARE` → linha de estado `FOR UPDATE`), seguida do relógio, das escritas da E1, do registro do resultado e da guarda temporal final;
+- `afterAttemptLock` (entre A e P): revalida sessão, vínculo, opt-out e a MESMA autorização não consumida e não vencida; grava `AUTHORIZED → BOOKING`;
+- `beforeCommit` (todo resultado): grava `BOOKING_RESULT`; `BOOKED` só com reunião da mesma oferta e tentativa; repetição concorrente da mesma autorização vira recuperação;
+- recusa do protocolo lança `ProtocolAbort` e desfaz a transação inteira; recusa definitiva da E1 consome a autorização e volta a `IDLE` na mesma transação; nunca há reunião sem autorização consumida, nem autorização consumida com sucesso sem reunião.
+- Interações verificadas: transição de sessão (só S `FOR UPDATE`) e eventos de tentativa (A `FOR UPDATE` → S `FOR UPDATE`) seguem A antes de S; nenhum caminho pega S antes de K/L. Revisão estática dos fluxos envolvidos mais testes com travas reais; não é prova universal de ausência de deadlock.
+
+**Idempotência e reconciliação:** chave derivada de (tenant, sessão, autorização). Erro antes do fim da transação ⇒ rollback certo (`NOT_BOOKED`/`TECHNICAL_FAILURE`, autorização intacta); erro depois de `beforeCommit` (inclusive no COMMIT ou na resposta) ⇒ `UNKNOWN`, sem anúncio de sucesso nem de fracasso; a chamada seguinte reconcilia sob K (`REPLAYED` ⇒ recuperação; nada commitado ⇒ reserva normal). Sessão encerrada nunca autoriza reserva nova.
+
+**Verdade da fala (A5):** `mayAnnounceBooking` só com estado commitado `BOOKED`, reunião `SCHEDULED` da mesma oferta, tentativa e lead, e sessão ativa. O modelo recebe só motivos grossos (`SLOT_UNAVAILABLE`, `OFFER_EXPIRED`, `NOT_BOOKABLE`, `TECHNICAL_FAILURE`), nunca supressão ou dados do lead. `createSchedulingReplyGuard` + `createBookingClaimFilter`: no streaming do modelo, frases sobre marcar/agendar/confirmar são descartadas até um `BOOKED` verificado.
+
+**Opt-out (D2) nesta PR:** pedido reconhecido prevalece no protocolo; **possível** opt-out (`mentionsOptOut`: menção não reconhecida como pedido) liga `opt_out_pending`, neutraliza intenções comerciais seguintes (viram esclarecimento) e bloqueia oferta e reserva pelo resto da sessão (resolução = PR 3). Registro operacional, `CALL_OUTCOME` e simulação integrada continuam na PR 3; prospecção real continua proibida até lá.
+
+**Limitações da PR 2:**
+- `opt_out_pending` não é liberado nesta PR (falso negativo comercial seguro).
+- A guarda de streaming é um componente testado, não ligado a uma composição real (ativação = E4/E5).
+- A trava S não cobre a primeira transação da oferta: ofertas órfãs podem existir até vencer (sem efeito comercial).
+- `find_slots` repetido com consultas diferentes cria ofertas novas a cada chamada (sem limite de taxa nesta PR).
+- O estado do protocolo é `jsonb` versionado pelo código; mudança futura do redutor exige compatibilidade com linhas de sessões em curso.
+- Validade da oferta limitada pela sessão via `SESSION_CLOSED` (não há prazo absoluto de sessão no modelo atual).
+
