@@ -81,7 +81,13 @@ describe('booking claim filter (streaming output guard)', () => {
     ]) {
       expect([claim, isBookingClaim(claim)]).toEqual([claim, true]);
     }
-    for (const neutral of ['Tudo bem?', 'Obrigado pela atenção.', 'Qual o melhor dia?']) {
+    for (const neutral of [
+      'Tudo bem?',
+      'Obrigado pela atenção.',
+      'Qual o melhor dia?',
+      'Vocês usam algum sistema de agendamento?',
+      'Posso marcar para você?',
+    ]) {
       expect([neutral, isBookingClaim(neutral)]).toEqual([neutral, false]);
     }
   });

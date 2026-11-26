@@ -1,11 +1,15 @@
-import type { SchedulingAgentScope, SchedulingProtocolView } from '@voice-agent/contracts';
+import type {
+  BookingProtocolStep,
+  SchedulingAgentScope,
+  SchedulingProtocolView,
+} from '@voice-agent/contracts';
 import { decideUtterance } from './scheduling-agent-clarification.js';
 import {
   withLockedProtocol,
   type LockedEvent,
   type SchedulingEventDeps,
 } from './scheduling-agent-events.js';
-import { recordCanonicalOptOut } from './scheduling-agent-opt-out.js';
+import { recordCanonicalOptOut, type OptOutSource } from './scheduling-agent-opt-out.js';
 import { protocolView } from './scheduling-agent-view.js';
 import { applyProtocolEvent } from './scheduling-protocol-store.js';
 
@@ -15,6 +19,38 @@ import { applyProtocolEvent } from './scheduling-protocol-store.js';
  * esclarecimento entregue) é gravado na supressão canônica NA MESMA
  * transação, sem depender do modelo nem do toolset.
  */
+
+/**
+ * "Não" claro à pergunta de esclarecimento: a abordagem comercial recomeça do
+ * zero. Se o protocolo já estava parado (`IDLE`), o harness ainda recebe o
+ * pedido de nova lista — nunca o consentimento anterior à pergunta.
+ */
+function resumedStep(step: BookingProtocolStep, resumed: boolean): BookingProtocolStep {
+  if (!resumed || step.state.phase !== 'IDLE' || step.directives.length > 0) return step;
+  return { state: step.state, directives: [{ kind: 'REQUEST_NEW_LIST' }] };
+}
+
+/** Opt-out reconhecido pelo protocolo NESTA fala: supressão canônica na mesma transação. */
+async function maybeRecordOptOut(
+  event: LockedEvent,
+  input: {
+    readonly applied: Awaited<ReturnType<typeof applyProtocolEvent>>;
+    readonly source: OptOutSource | null;
+  },
+) {
+  const { applied, source } = input;
+  const optedOut = applied.step.directives.some((directive) => directive.kind === 'RECORD_OPT_OUT');
+  if (!optedOut || !source) return null;
+  return recordCanonicalOptOut(event.tx, applied.locked, {
+    lead: event.lead,
+    organizationId: event.binding.organizationId,
+    sessionId: event.binding.sessionId,
+    phoneE164: event.phoneE164,
+    actor: { type: 'AGENT', id: event.binding.agentId },
+    source,
+    now: event.now,
+  });
+}
 
 async function handleUtterance(event: LockedEvent, text: string) {
   const { tx, locked, now } = event;
@@ -33,21 +69,13 @@ async function handleUtterance(event: LockedEvent, text: string) {
     now,
     options: { leadSpeechStartedSeq: null, optOutPending: decision.pending, ...questionReset },
   });
-  const optedOut = applied.step.directives.some((directive) => directive.kind === 'RECORD_OPT_OUT');
-  const recorded =
-    optedOut && decision.recordOptOut
-      ? await recordCanonicalOptOut(tx, applied.locked, {
-          lead: event.lead,
-          organizationId: event.binding.organizationId,
-          sessionId: event.binding.sessionId,
-          phoneE164: event.phoneE164,
-          actor: { type: 'AGENT', id: event.binding.agentId },
-          source: decision.recordOptOut,
-          now,
-        })
-      : null;
+  const recorded = await maybeRecordOptOut(event, { applied, source: decision.recordOptOut });
   const row = recorded?.locked.row ?? applied.locked.row;
-  return { view: (timezone: string | null) => protocolView({ step: applied.step, row, timezone }) };
+  const step = resumedStep(
+    applied.step,
+    locked.row.optOutPending && !decision.pending && !decision.recordOptOut,
+  );
+  return { view: (timezone: string | null) => protocolView({ step, row, timezone }) };
 }
 
 export function recordLeadUtterance(

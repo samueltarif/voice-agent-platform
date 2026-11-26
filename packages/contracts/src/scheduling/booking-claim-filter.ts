@@ -6,13 +6,20 @@
  * ou confirmar é descartada — o anúncio de sucesso é a fala determinística do
  * servidor (`renderBookedSpeech`), nunca o texto do modelo.
  *
- * Conservador: também descarta perguntas do modelo sobre marcar ("posso
- * marcar?"); a releitura e a pergunta de confirmação são do servidor.
+ * Perguntas e substantivos ("posso marcar?", "agendamento") passam: a
+ * releitura e a confirmação continuam sendo falas do servidor.
  */
 
 const SENTENCE_END = /[.!?…\n]/u;
+/**
+ * Formas de AFIRMAÇÃO de reserva (passado, particípio, 1ª pessoa do plural):
+ * "agendei", "agendada", "marquei", "marcado", "reservamos", "confirmado"…
+ * e "a reunião está/ficou/foi…". Substantivos e perguntas ("agendamento",
+ * "posso marcar?") não são afirmação (E2 PR 3: a versão anterior descartava
+ * até "vocês usam algum sistema de agendamento?").
+ */
 const SCHEDULING_CLAIM =
-  /(agend|marca|marco|marcá|marqu|reserv|confirm|reuni[aã]o\s+(?:est[aá]|ficou|foi))/u;
+  /\b(?:agend|marc|marq|reserv|confirm)(?:ei|ad[oa]s?|amos|ou|uei)\b|reuni[aã]o\s+(?:est[aá]|ficou|foi)/u;
 
 export function isBookingClaim(sentence: string): boolean {
   return SCHEDULING_CLAIM.test(sentence.normalize('NFC').toLowerCase());
