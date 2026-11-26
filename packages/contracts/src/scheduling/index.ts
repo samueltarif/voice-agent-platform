@@ -7,6 +7,7 @@ export * from './slot-bookability.js';
 export * from './scheduling-inputs.js';
 export * from './lead-reply-intent.js';
 export * from './lead-reply-opt-out.js';
+export * from './lead-reply-text.js';
 export * from './booking-protocol-types.js';
 export * from './booking-protocol.js';
 export * from './scheduling-session-context.js';

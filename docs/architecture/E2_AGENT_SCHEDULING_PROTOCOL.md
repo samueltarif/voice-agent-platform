@@ -52,7 +52,11 @@ Cadeia, resolvida só no servidor (`DrizzleSchedulingSessionContextResolver`):
 
 ## 5. Máquina de estados controlada pelo servidor (implementada, pura)
 
-Eventos só do servidor/transporte, com `seq` monotônico por sessão atribuído pelo servidor. Texto, booleanos, ordinais, ids de turno ou afirmações do modelo **não são eventos**. A intenção do interlocutor vem de `classifyLeadReply` (pt-BR, conservador): aceite, recusa e escolha só como frase inteira **sem interrogação e sem aspas** ("Pode marcar?", “sim”, "Ele disse que sim" e condicionais viram `AMBIGUOUS`); opt-out avaliado **por cláusula** (pedido explícito, fora de aspas, sem negação na mesma cláusula; pergunta só vale se for pedido, como "Pode tirar meu número?"); menção, citação ou pergunta informativa ⇒ esclarecimento. O estado guarda a maior revisão já vista (`maxRevision`): lista descartada, vencida ou substituída nunca volta, e retry técnico só recupera a lista vigente, sem renovar TTL (M1). `SESSION_CLOSED` é processado antes do filtro de fases terminais; em `CLOSED` nada novo é aceito (nem opt-out), e `meetingId` e `optOutSeq` anteriores são preservados (A3).
+Eventos só do servidor/transporte, com `seq` monotônico por sessão atribuído pelo servidor. Texto, booleanos, ordinais, ids de turno ou afirmações do modelo **não são eventos**. A intenção do interlocutor vem de `classifyLeadReply` (pt-BR, determinístico, conservador; 2ª auditoria A1/A2):
+- **Preparação:** NFKC unifica variantes de compatibilidade (`？` → `?`); caracteres invisíveis, de formatação ou de controle são detectados **antes** de qualquer limpeza.
+- **Aceite, recusa e escolha:** só se o texto inteiro passa numa **gramática de permissão** — palavras, vírgula entre palavras e `.`/`!` no fim — e, reduzido, é uma forma conhecida. Aspas de qualquer tipo (inclusive `'…'` e tipográficas), interrogação de qualquer tipo, invisíveis e símbolos tiram o texto do aceite. Condicionais, discurso relatado e conteúdo extra viram `AMBIGUOUS`.
+- **Opt-out:** unidade = frase (pontuação terminal), dividida só por conectivo de contraste; a vírgula não é fronteira. Pedido atual = forma explícita com, antes dela, só cortesia, interpelação, modal de pedido ou conectivo simples, e, depois, só complementos permitidos; em pergunta exige modal de pedido ("Pode, por favor, tirar meu número da lista?"). Pergunta informativa, hipótese, intenção futura, negação, relato ou aspas na frase ⇒ menção ⇒ esclarecimento.
+O estado guarda a maior revisão já vista (`maxRevision`): lista descartada, vencida ou substituída nunca volta, e retry técnico só recupera a lista vigente, sem renovar TTL (M1). `SESSION_CLOSED` é processado antes do filtro de fases terminais; em `CLOSED` nada novo é aceito (nem opt-out), e `meetingId` e `optOutSeq` anteriores são preservados (A3).
 
 | Fase | Evento aceito | Próxima fase | Diretiva |
 | :--- | :--- | :--- | :--- |
@@ -104,6 +108,9 @@ Também: `AMBIGUOUS`/`SILENCE` ⇒ `ASK_CLARIFICATION` (após 2, nova lista); `C
 ## 8. Limitações conhecidas
 
 - O classificador é uma regra fechada em português, não compreensão semântica; ambiguidade sempre pede esclarecimento.
+- Opt-out com prefixo fora da lista de permissão (ex.: "Escuta aqui, moço, já falei: me tira da lista") ou com forma fora da lista fechada não é reconhecido como pedido: vira esclarecimento (falso negativo seguro), nunca aceite. Ampliar listas exige teste novo.
+- Aspas na frase anulam qualquer pedido nela (inclusive apóstrofo ASCII), mesmo quando o pedido seria legítimo; também vira esclarecimento.
+- Variantes de largura total (ex.: `Ｓｉｍ`) são aceitas após NFKC; letras de outros alfabetos parecidas com latinas não formam palavra conhecida e viram esclarecimento.
 - O vínculo `callId` da concessão = sessão durável ainda não é montado em produção (E4/E5).
 - A publicação de versão ainda não valida `scheduling.calendarId` contra o tenant (a resolução bloqueia); validação na publicação fica para a PR 2/E3.
 - Remover uma agenda fixada é detectado e bloqueia; agenda da campanha não pode ser excluída enquanto configurada (`RESTRICT`).

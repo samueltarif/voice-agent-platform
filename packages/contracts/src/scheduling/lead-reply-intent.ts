@@ -1,4 +1,5 @@
-import { isOptOutMention, isOptOutRequest, splitClauses } from './lead-reply-opt-out.js';
+import { isOptOutMention, isOptOutRequest } from './lead-reply-opt-out.js';
+import { prepareReply, splitSentences, toMatchForm } from './lead-reply-text.js';
 
 /**
  * E2 PR 1 (DEC-075) — classificação CONSERVADORA, determinística e offline da
@@ -24,19 +25,10 @@ export type LeadReplyIntent =
   | { readonly kind: 'AMBIGUOUS' }
   | { readonly kind: 'SILENCE' };
 
+/** Forma de comparação (minúsculas, sem acentos e sem pontuação), após NFKC. */
 export function normalizeLeadReply(text: string): string {
-  return text
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9 ]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  return toMatchForm(text.normalize('NFKC'));
 }
-
-/** Sinais que a normalização apagaria e que impedem um aceite: pergunta e citação. */
-export const QUOTE_MARKS = /["“”«»„‘’]/;
-const QUESTION_MARK = /[?¿]/;
 
 const AFFIRM = new Set(
   (
@@ -88,20 +80,18 @@ function knownForm(normalized: string): LeadReplyIntent | null {
   return selection(normalized);
 }
 
-/** Formas de frase inteira; só valem sem interrogação e sem aspas (A1). */
-function wholeForm(text: string, normalized: string): LeadReplyIntent | null {
-  const form = knownForm(normalized);
-  if (!form) return null;
-  return QUESTION_MARK.test(text) || QUOTE_MARKS.test(text) ? { kind: 'AMBIGUOUS' } : form;
-}
-
+/**
+ * Aceite, recusa e escolha: só quando o texto INTEIRO passa na gramática de
+ * permissão (`prepareReply`) e, reduzido, é uma forma conhecida (A1).
+ */
 export function classifyLeadReply(text: string): LeadReplyIntent {
-  const normalized = normalizeLeadReply(text);
+  const prepared = prepareReply(text);
+  const normalized = toMatchForm(prepared.text);
   if (normalized.length === 0) return { kind: 'SILENCE' };
-  const clauses = splitClauses(text);
+  const clauses = splitSentences(prepared.text);
   if (clauses.some(isOptOutRequest)) return { kind: 'OPT_OUT' };
   if (clauses.some(isOptOutMention)) return { kind: 'AMBIGUOUS' };
-  const exact = wholeForm(text, normalized);
-  if (exact) return exact;
+  const form = prepared.plainSurface ? knownForm(normalized) : null;
+  if (form) return form;
   return TIME_CHANGE.test(normalized) ? { kind: 'TIME_CHANGE' } : { kind: 'AMBIGUOUS' };
 }
