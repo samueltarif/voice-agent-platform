@@ -28,7 +28,6 @@ import {
   createPublishedVersionToolAuthorizer,
 } from './published-version-toolset.js';
 import {
-  createSchedulingReplyGuard,
   createSchedulingToolDefinitions,
   schedulingScopeForGrant,
 } from './scheduling-agent-tools.js';
@@ -61,7 +60,7 @@ const snapshot: AgentConfigurationSnapshotV1 = {
 /**
  * E2 PR 3 (DEC-075) — simulação comercial OFFLINE de ponta a ponta: concessão
  * emitida pelo gateway → sessão durável → motor de ferramentas → serviços
- * canônicos → protocolo persistido → guarda de saída. O "modelo" é um roteiro
+ * canônicos → protocolo persistido → autoridade de saída no servidor. O "modelo" é um roteiro
  * determinístico: sem IA, ligação ou crédito.
  */
 describe('E2 PR3: integrated offline commercial simulation', () => {
@@ -96,9 +95,8 @@ describe('E2 PR3: integrated offline commercial simulation', () => {
       campaignId: session.campaignId!,
       calendarId: calendar.id,
     });
-    const guard = createSchedulingReplyGuard();
     const registry = new InMemoryToolRegistry();
-    const [findSlots, confirmOffer] = createSchedulingToolDefinitions(grant, service, guard);
+    const [findSlots, confirmOffer] = createSchedulingToolDefinitions(grant, service);
     const [recordOutcome, recordOptOut] = createLeadToolDefinitions(grant, service);
     registry.registerTool(findSlots);
     registry.registerTool(confirmOffer);
@@ -114,7 +112,6 @@ describe('E2 PR3: integrated offline commercial simulation', () => {
       scope,
       engine,
       context: buildPublishedVersionToolExecutionContext(grant),
-      guard,
     });
     const orgLead = { organizationId: tenant.organizationId, leadId: lead.id };
     return { simulation, scope, orgLead, phone: contact.phoneE164 };
@@ -137,10 +134,10 @@ describe('E2 PR3: integrated offline commercial simulation', () => {
     ];
     const result = await simulation.run(script);
     const agentLines = result.transcript.filter((line) => line.speaker === 'AGENT');
-    // A frase prematura do modelo ("já agendei") foi descartada; a final passou depois do BOOKED.
+    // O modelo nunca AFIRMA nada sobre agenda (filtro sempre ligado) e, depois da reserva, não
+    // fala livremente: o anúncio é só a fala do servidor ligada à reunião conferida (A6).
     expect(agentLines.map((line) => [line.source, line.text])).toEqual([
       ['MODEL', 'Olá! Vocês usam algum sistema de agendamento hoje?'],
-      ['MODEL', 'Vou ver horários.'],
       [
         'SERVER',
         expect.stringContaining('opção 2: segunda-feira, 30 de novembro de 2026, às 09:30'),
@@ -157,8 +154,8 @@ describe('E2 PR3: integrated offline commercial simulation', () => {
           'Pronto, a reunião está marcada para segunda-feira, 30 de novembro de 2026, às 09:30',
         ),
       ],
-      ['MODEL', 'Sua reunião está confirmada. Obrigado!'],
     ]);
+    expect(result.withheld).toEqual([{ kind: 'MODEL_TEXT', reason: 'TRANSACTIONAL_PHASE' }]);
     expect(result.toolResults.map((r) => [r.toolName, r.status])).toEqual([
       ['lead.record_outcome', 'SUCCESS'],
       ['scheduling.find_slots', 'SUCCESS'],
@@ -187,12 +184,12 @@ describe('E2 PR3: integrated offline commercial simulation', () => {
       { kind: 'tool', toolName: 'lead.record_outcome', args: { outcome: 'QUALIFIED' } },
       { kind: 'model', text: 'Marquei uma reunião para amanhã.' },
     ]);
-    expect(result.transcript.at(-1)?.text).toBe(
-      'Tudo bem, não vamos mais seguir com o agendamento.',
-    );
-    expect(result.transcript.some((line) => line.text.includes('Registrei o seu pedido'))).toBe(
-      true,
-    );
+    // Depois do opt-out, só a confirmação do opt-out é falada; o resto é retido pelo servidor.
+    expect(result.transcript.at(-1)?.text).toContain('Registrei o seu pedido');
+    expect(result.withheld).toEqual([
+      { kind: 'NOTICE', reason: 'OPT_OUT_REQUESTED' },
+      { kind: 'MODEL_TEXT', reason: 'OPT_OUT_REQUESTED' },
+    ]);
     expect(
       result.toolResults
         .slice(1)
@@ -205,6 +202,37 @@ describe('E2 PR3: integrated offline commercial simulation', () => {
       }),
     ).toBe(1);
     expect(await statusOf(orgLead)).toBe('DO_NOT_CALL');
+    expect(await meetingsOfLead(tdb.db, orgLead.organizationId, orgLead.leadId)).toHaveLength(0);
+  });
+
+  it('A1: an intervening model question is withheld; a reported agent utterance voids the consent', async () => {
+    const { simulation, orgLead, scope } = await setup();
+    const first = await simulation.run([
+      { kind: 'tool', toolName: 'scheduling.find_slots', args: {} },
+      { kind: 'lead', text: 'A primeira.' },
+      { kind: 'model', text: 'Posso explicar o plano?' },
+    ]);
+    expect(first.withheld).toEqual([{ kind: 'MODEL_TEXT', reason: 'TRANSACTIONAL_PHASE' }]);
+    expect(first.transcript.some((line) => line.text === 'Posso explicar o plano?')).toBe(false);
+    // O transporte real informa uma fala do agente entre a releitura e a resposta.
+    await service.recordSpeech(scope, {
+      type: 'SPEECH_STARTED',
+      generationId: 'escaped',
+      purpose: 'AGENT',
+    });
+    await service.recordSpeech(scope, { type: 'SPEECH_COMPLETED', generationId: 'escaped' });
+    const second = await simulation.run([{ kind: 'lead', text: 'Sim.' }]);
+    expect(second.toolResults.map((r) => r.toolName)).toEqual(['scheduling.find_slots']);
+    expect(await meetingsOfLead(tdb.db, orgLead.organizationId, orgLead.leadId)).toHaveLength(0);
+  });
+
+  it('A6: a false scheduling statement by the model is never spoken, before or after booking', async () => {
+    const { simulation, orgLead } = await setup();
+    const result = await simulation.run([
+      { kind: 'model', text: 'Seu horário já consta na agenda.' },
+      { kind: 'model', text: 'Tenho outros horários amanhã. Obrigado!' },
+    ]);
+    expect(result.transcript.map((line) => line.text)).toEqual(['Obrigado!']);
     expect(await meetingsOfLead(tdb.db, orgLead.organizationId, orgLead.leadId)).toHaveLength(0);
   });
 

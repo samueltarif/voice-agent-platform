@@ -56,30 +56,17 @@ export function assertGrantContext(grant: PublishedToolGrant, context: ToolExecu
 }
 
 /**
- * Guarda da saída do modelo para UMA chamada (A5): frases sobre marcar,
- * agendar ou confirmar só passam depois que `confirm_offer` devolveu `BOOKED`
- * com `mayAnnounceBooking` (reunião conferida no banco e sessão ativa).
+ * Filtro de streaming do texto livre do modelo (A5/A6). SEMPRE ligado: não
+ * existe mais o booleano "reservado" que o destravava. É defesa adicional;
+ * a autoridade sobre o que pode ser falado é `authorizeOutput` no servidor.
  */
-export interface SchedulingReplyGuard {
-  observe(result: ConfirmOfferResult): void;
-  /** Filtro de streaming para o texto do modelo (ver `createBookingClaimFilter`). */
-  createReplyFilter(): BookingClaimFilter;
-}
-
-export function createSchedulingReplyGuard(): SchedulingReplyGuard {
-  let booked = false;
-  return {
-    observe(result) {
-      if (result.status === 'BOOKED' && result.mayAnnounceBooking === true) booked = true;
-    },
-    createReplyFilter: () => createBookingClaimFilter(() => booked),
-  };
+export function createSchedulingReplyFilter(): BookingClaimFilter {
+  return createBookingClaimFilter();
 }
 
 export function createSchedulingToolDefinitions(
   grant: PublishedToolGrant,
   port: SchedulingAgentPort,
-  guard?: SchedulingReplyGuard,
 ): readonly [
   ToolDefinition<FindSlotsArguments, FindSlotsResult>,
   ToolDefinition<ConfirmOfferArguments, ConfirmOfferResult>,
@@ -99,13 +86,11 @@ export function createSchedulingToolDefinitions(
     {
       name: SCHEDULING_CONFIRM_OFFER_TOOL,
       description:
-        'Executa a marcação SOMENTE se o servidor já registrou a confirmação explícita do horário lido. Só anuncie se mayAnnounceBooking for true.',
+        'Executa a marcação SOMENTE se o servidor já registrou a confirmação explícita do horário lido. O resultado é anunciado pelo servidor; não fale sobre a reserva.',
       validateInput: createZodToolValidator(confirmOfferArgumentsSchema),
       execute: async (_input, context) => {
         assertGrantContext(grant, context);
-        const result = await port.confirmOffer(scope);
-        guard?.observe(result);
-        return result;
+        return port.confirmOffer(scope);
       },
     },
   ];
