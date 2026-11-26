@@ -1,6 +1,6 @@
 # E2 — Agendamento pelo agente: protocolo, contexto e autorização (DEC-075)
 
-> Estado: **PR 1 integrada** (#180, merge `2100145`). **PR 2 em revisão** (oferta, confirmação e reserva operacional OFFLINE; §9). **PR 3 NÃO iniciada.** Nenhuma rota, composição de produção ou telefonia. Tudo offline.
+> Estado: **PR 1 integrada** (#180, merge `2100145`). **PR 2 em revisão** (#182; oferta, confirmação e reserva operacional OFFLINE; §9). **PR 3 em revisão** (PR empilhada sobre a #182; opt-out operacional, `CALL_OUTCOME` e simulação comercial offline; §10). Ambas sem merge até a auditoria consolidada da E2. Nenhuma rota, composição de produção ou telefonia. Tudo offline.
 > Base da PR 2: main `e842ea9609e271604c113be3b6d8d18246dee407`.
 
 ## 1. Objetivo e divisão aprovada
@@ -11,7 +11,7 @@ O agente, numa chamada (simulada offline nesta etapa), poderá consultar e ofere
 | :--- | :--- | :--- |
 | **PR 1** | Contexto sessão–tentativa–tenant–lead–agenda, D1, fundamentos da autorização, precedência do opt-out, contratos de eventos e estados, máquina de estados, projeto de persistência e fronteiras transacionais | integrada (#180) |
 | **PR 2** | Oferta, confirmação, reserva, persistência do estado, atomicidade, replay, controle da fala transacional | **em revisão** (§9) |
-| PR 3 | Opt-out operacional, `CALL_OUTCOME`, simulação offline integrada | não autorizada |
+| **PR 3** | Opt-out operacional, `CALL_OUTCOME`, simulação offline integrada | **em revisão** (§10) |
 
 ## 2. Decisões aprovadas (D1–D5) e como a PR 1 as trata
 
@@ -94,11 +94,8 @@ Também: `AMBIGUOUS`/`SILENCE` ⇒ `ASK_CLARIFICATION` (após 2, nova lista); `C
 
 **PR 2** — tratados na §9 (revalidação dentro da transação do efeito; S entre A e P; consumo e reserva atômicos; agenda validada na publicação; `seq`/`at`/início de fala atribuídos pelo servidor; recusa definitiva × resultado desconhecido com reconciliação pela mesma chave).
 
-**PR 3**
-- Opt-out confiável e independente do modelo, com registro operacional.
-- Retry de evidência legítima anterior aceito mesmo após o encerramento; nenhum pedido novo aceito de sessão encerrada.
+**PR 3** — tratados na §10 (opt-out gravado pelo servidor na mesma transação da fala, independente do modelo e do toolset; sessão encerrada não aceita pedido novo — como o registro é atômico com a evidência, não há evidência pendente para repetir; possível opt-out interrompe a abordagem até esclarecimento; `CALL_OUTCOME`; simulação integrada). **A validação com eventos reais de voz continua obrigatória antes de qualquer prospecção real.** Registro original:
 - **Possível opt-out não reconhecido interrompe a abordagem comercial:** quando o classificador devolver esclarecimento por menção a opt-out (forma fora da lista, cláusula desconhecida na fala, citação, aspa sem par, palavra fora do alfabeto), o agente deve suspender oferta e argumentação e só perguntar se a pessoa quer deixar de receber ligações. Validar com eventos reais de voz antes de qualquer prospecção real. Não implementado nesta PR.
-- `CALL_OUTCOME` e simulação integrada.
 
 **E4/E5**
 - Associação real do `callId` à sessão durável; autenticação e evidência do transporte real.
@@ -151,4 +148,26 @@ Também: `AMBIGUOUS`/`SILENCE` ⇒ `ASK_CLARIFICATION` (após 2, nova lista); `C
 - `find_slots` repetido com consultas diferentes cria ofertas novas a cada chamada (sem limite de taxa nesta PR).
 - O estado do protocolo é `jsonb` versionado pelo código; mudança futura do redutor exige compatibilidade com linhas de sessões em curso.
 - Validade da oferta limitada pela sessão via `SESSION_CLOSED` (não há prazo absoluto de sessão no modelo atual).
+
+## 10. PR 3 — opt-out operacional, `CALL_OUTCOME` e simulação comercial (offline)
+
+**D2 — opt-out gravado pelo servidor:** a fala final do interlocutor é classificada no servidor; pedido reconhecido (ou "sim" à pergunta de esclarecimento) grava a **supressão canônica** NA MESMA transação do evento (`recordCanonicalOptOut`; ordem **L → A → S → P**), sem depender do modelo nem do toolset. Com lead: `recordLeadOptOut` da E1 (`DO_NOT_CALL`, ou reunião ativa preservada). Sem lead para o destino: o telefone discado é suprimido mesmo assim. A sessão guarda `opt_out_recorded_at` e a origem (`LEAD_UTTERANCE`, `CLARIFICATION`, `AGENT_TOOL`). Depois do registro, nenhuma fala move o protocolo e oferta, reserva e resultado comercial são recusados. Sessão encerrada não aceita pedido novo.
+
+**Possível opt-out (requisito desta PR):** menção não reconhecida como pedido liga `opt_out_pending`; intenções comerciais viram esclarecimento; a pergunta é sem dupla negação ("você quer que a gente pare de ligar para você? Responda sim ou não") e tem entrega própria (`SPEECH_*` com propósito `OPT_OUT_QUESTION`, fora do redutor). Só vale resposta que **começou depois da entrega completa** da pergunta: lista fechada de "sim" ⇒ opt-out (`CLARIFICATION`); exatamente "não" ⇒ a abordagem recomeça com **nova lista** (o consentimento anterior não é reaproveitado); qualquer outra resposta (inclusive "sim, pode marcar", "não, obrigado", "talvez") mantém o bloqueio e exige perguntar de novo. Ambiguidade nunca autoriza continuar.
+
+**D5 — `CALL_OUTCOME`** (migration **0017**, aditiva: valor de enum + colunas nulas, com teste de upgrade): o agente registra `CONTACTED` (só a partir de `NEW`), `QUALIFIED` ou `NOT_INTERESTED`; nunca sai de `DO_NOT_CALL`, nunca entra/sai de `MEETING_SCHEDULED` nem leva a `DO_NOT_CALL`. Sem resposta/falha técnica não são resultado do agente. Matriz de transições estendida (180 células).
+
+**Ferramentas:** `lead.record_outcome` (argumento único: o resultado) e `lead.record_opt_out` (nenhum), ligadas à concessão; ordem L → A → S (→ P); idempotentes (`ALREADY_RECORDED`; opt-out já gravado devolve `RECORDED` sem nova escrita).
+
+**Simulação comercial offline** (`apps/voice/src/offline-commercial-simulation.ts`): "modelo" = roteiro determinístico; motor de ferramentas com concessão, serviços canônicos, protocolo persistido e guarda de saída reais; o harness reage às diretivas (apresentar, reler, marcar, perguntar). Fluxos testados: qualificação → oferta → escolha → releitura → reserva → resultado; opt-out falado; possível opt-out com esclarecimento ("sim" e "não"); sessão encerrada; frase prematura do modelo descartada.
+
+**Guarda de saída (ajuste):** descarta AFIRMAÇÕES de reserva ("agendei", "marcado", "confirmamos", "a reunião está…") até `BOOKED` verificado; substantivos e perguntas ("agendamento", "posso marcar?") passam.
+
+**Autorrevisão adversarial consolidada (PR 1–3):** ordem de travas por caminho (fala L → A → S → P; resultado L → A → S; reserva K → L → C → O → A → S → P; eventos e oferta A → S; aplicador de tentativa A → S) — nenhum caminho pega S antes de L/K. Achados corrigidos: (1) depois de opt-out pela ferramenta, uma fala posterior ainda gerava releitura (protocolo agora congelado; teste falha sem a correção); (2) a guarda descartava perguntas legítimas; (3) "sim, pode marcar" não pode confirmar opt-out (lista fechada de "sim").
+
+**Limitações da PR 3:**
+- O roteiro da simulação substitui o modelo: não mede a qualidade de um LLM real.
+- Esclarecimento sem resposta clara mantém o bloqueio até o fim da sessão (falso negativo comercial seguro).
+- A guarda de saída e a simulação não estão ligadas a composição real (E4/E5).
+- Validação com eventos reais de voz é obrigatória antes de qualquer prospecção real.
 
