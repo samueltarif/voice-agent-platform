@@ -11,3 +11,4 @@ export * from './telephony/index.js';
 export * from './knowledge/index.js';
 export * from './contacts/index.js';
 export * from './commercial/index.js';
+export * from './scheduling/index.js';

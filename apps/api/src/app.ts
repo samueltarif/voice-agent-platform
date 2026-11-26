@@ -22,6 +22,10 @@ import { registerContactSuppressionRoutes } from './routes/contact-suppression-r
 import { registerCampaignLifecycleRoutes } from './routes/campaign-lifecycle-routes.js';
 import { registerCampaignReportRoutes } from './routes/campaign-report-routes.js';
 import { registerOperationsOverviewRoutes } from './routes/operations-overview-routes.js';
+import { registerLeadRoutes } from './routes/lead-routes.js';
+import { registerSchedulingCalendarRoutes } from './routes/scheduling-calendar-routes.js';
+import { registerSchedulingAvailabilityRoutes } from './routes/scheduling-availability-routes.js';
+import { registerMeetingRoutes } from './routes/meeting-routes.js';
 import { serviceAuthMiddleware } from './auth/service-auth-middleware.js';
 
 import { bootstrapAuthMiddleware } from './auth/bootstrap-auth-middleware.js';
@@ -63,6 +67,31 @@ function registerKnowledgeRoutes(app: OpenAPIHono, deps: ApiDependencies): void 
   registerKnowledgeExtractionRoutes(app, deps);
 }
 
+/** Leads, agendas e reuniões (E1, DEC-074). */
+function registerSchedulingRoutes(app: OpenAPIHono, deps: ApiDependencies): void {
+  registerLeadRoutes(app, deps);
+  registerSchedulingCalendarRoutes(app, deps);
+  registerSchedulingAvailabilityRoutes(app, deps);
+  registerMeetingRoutes(app, deps);
+}
+
+/** Asserção interna assimétrica obrigatória em todas as rotas de tenant. */
+function registerTenantRouteAuthentication(app: OpenAPIHono, deps: ApiDependencies): void {
+  app.use('/v1/agents', serviceAuthMiddleware(deps.verifier));
+  app.use('/v1/agents/*', serviceAuthMiddleware(deps.verifier));
+  app.use('/v1/campaigns', serviceAuthMiddleware(deps.verifier));
+  app.use('/v1/campaigns/*', serviceAuthMiddleware(deps.verifier));
+  app.use('/v1/knowledge', serviceAuthMiddleware(deps.verifier));
+  app.use('/v1/knowledge/*', serviceAuthMiddleware(deps.verifier));
+  app.use('/v1/contact-lists', serviceAuthMiddleware(deps.verifier));
+  app.use('/v1/contact-lists/*', serviceAuthMiddleware(deps.verifier));
+  app.use('/v1/contact-suppressions', serviceAuthMiddleware(deps.verifier));
+  app.use('/v1/operations/*', serviceAuthMiddleware(deps.verifier));
+  app.use('/v1/leads', serviceAuthMiddleware(deps.verifier));
+  app.use('/v1/leads/*', serviceAuthMiddleware(deps.verifier));
+  app.use('/v1/scheduling/*', serviceAuthMiddleware(deps.verifier));
+}
+
 export function createApp(deps: ApiDependencies): OpenAPIHono {
   const app = new OpenAPIHono({
     defaultHook: openApiDefaultHook,
@@ -78,16 +107,7 @@ export function createApp(deps: ApiDependencies): OpenAPIHono {
   registerOpenApiDocs(app);
 
   // 4. Asymmetric internal service authentication for tenant routes
-  app.use('/v1/agents', serviceAuthMiddleware(deps.verifier));
-  app.use('/v1/agents/*', serviceAuthMiddleware(deps.verifier));
-  app.use('/v1/campaigns', serviceAuthMiddleware(deps.verifier));
-  app.use('/v1/campaigns/*', serviceAuthMiddleware(deps.verifier));
-  app.use('/v1/knowledge', serviceAuthMiddleware(deps.verifier));
-  app.use('/v1/knowledge/*', serviceAuthMiddleware(deps.verifier));
-  app.use('/v1/contact-lists', serviceAuthMiddleware(deps.verifier));
-  app.use('/v1/contact-lists/*', serviceAuthMiddleware(deps.verifier));
-  app.use('/v1/contact-suppressions', serviceAuthMiddleware(deps.verifier));
-  app.use('/v1/operations/*', serviceAuthMiddleware(deps.verifier));
+  registerTenantRouteAuthentication(app, deps);
 
   // 5. Asymmetric bootstrap authentication for user-scoped routes
   app.use('/v1/me/*', bootstrapAuthMiddleware(deps.bootstrapVerifier));
@@ -106,6 +126,7 @@ export function createApp(deps: ApiDependencies): OpenAPIHono {
   registerCampaignLifecycleRoutes(app, deps);
   registerCampaignReportRoutes(app, deps);
   registerOperationsOverviewRoutes(app, deps);
+  registerSchedulingRoutes(app, deps);
 
   // 6. Global error handler & not found handler with canonical error envelopes
   app.onError(createApiErrorHandler(deps.logger));

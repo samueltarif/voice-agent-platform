@@ -16,3 +16,8 @@ export * from './outbound-budget-reservations.js';
 export * from './platform-global-budget-ledger.js';
 export * from './contacts.js';
 export * from './campaign-audiences.js';
+export * from './leads.js';
+export * from './scheduling-calendars.js';
+export * from './meeting-slot-offers.js';
+export * from './meetings.js';
+export * from './lead-status-changes.js';

@@ -97,3 +97,18 @@ export {
   type VoiceTurnObservation,
 } from './knowledge-voice-reply-evaluation.js';
 export { unlabeledQuestions, voiceTruthReport } from './knowledge-voice-truth-evaluation.js';
+// E1 (DEC-074): leads, agendas e horários sintéticos.
+export {
+  countPhoneSuppressions,
+  createControlledClock,
+  createSyntheticContact,
+  createSyntheticLead,
+  prepareSyntheticAttempt,
+  createWeekdayCalendar,
+  nextSyntheticPhone,
+  SAO_PAULO_POLICY,
+  SCHEDULING_TEST_NOW,
+  SCHEDULING_TEST_USER,
+  WEEKDAY_MORNINGS,
+} from './scheduling-fixtures.js';
+export { createSchedulingLockProbe, type SchedulingLockProbe } from './scheduling-lock-probe.js';

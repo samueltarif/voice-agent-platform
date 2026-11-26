@@ -29,6 +29,7 @@ import { ServiceAssertionVerifier } from './auth/service-assertion-verifier.js';
 import { BootstrapAssertionVerifier } from './auth/bootstrap-assertion-verifier.js';
 import { createApiLogger } from './logging/api-logger.js';
 import { createApp } from './app.js';
+import { createSchedulingDependencies } from './composition/scheduling-dependencies.js';
 import { createKnowledgeSimulatedTurnService } from './simulation/knowledge-simulated-turn-service.js';
 import { createKnowledgeUploadExtractor } from '@voice-agent/knowledge-extraction';
 import { resolveApiListenOptions, type ApiListenOptions } from './server-listen-options.js';
@@ -92,6 +93,7 @@ const suppressionRepo = new DrizzleContactSuppressionRepository(db);
 const campaignLifecycleRepo = new DrizzleCampaignLifecycleRepository(db);
 const campaignReportRepo = new DrizzleCampaignReportRepository(db);
 const operationsOverviewRepo = new DrizzleOperationsOverviewRepository(db);
+const scheduling = createSchedulingDependencies(db);
 
 const verifier = new ServiceAssertionVerifier({ publicJwks });
 const bootstrapVerifier = new BootstrapAssertionVerifier({ publicJwks });
@@ -121,6 +123,7 @@ const app = createApp({
   campaignLifecycleRepo,
   campaignReportRepo,
   operationsOverviewRepo,
+  scheduling,
 });
 
 const server = serve({ fetch: app.fetch, ...listenOptions }, (info) => {

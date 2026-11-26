@@ -13,7 +13,12 @@ export function isValidIanaTimezone(timeZone: string): boolean {
   }
 }
 
-function offsetMsAt(instant: Date, timeZone: string): number {
+/**
+ * Deslocamento (ms) do fuso IANA no instante informado (precisão de segundo).
+ * Reutilizado pela agenda (`scheduling/zoned-wall-time.ts`) para converter
+ * horário local em instante UTC sem duplicar a leitura do `Intl`.
+ */
+export function offsetMsAt(instant: Date, timeZone: string): number {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone,
     hourCycle: 'h23',
