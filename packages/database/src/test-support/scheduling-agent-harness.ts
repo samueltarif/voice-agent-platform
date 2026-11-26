@@ -102,9 +102,9 @@ export class SchedulingHarness {
   }
 
   /** O interlocutor começa e termina de falar (transcrição final). */
-  async leadSays(text: string): Promise<SchedulingProtocolView> {
-    await this.service.recordLeadSpeechStarted(this.scope);
-    return this.service.recordLeadUtterance(this.scope, text);
+  async leadSays(text: string, turnId = `turn-${randomUUID()}`): Promise<SchedulingProtocolView> {
+    await this.service.recordLeadSpeechStarted(this.scope, { turnId });
+    return this.service.recordLeadUtterance(this.scope, { turnId, text });
   }
 
   /** Consulta → apresentação completa → escolha → releitura completa. Devolve a oferta lida. */

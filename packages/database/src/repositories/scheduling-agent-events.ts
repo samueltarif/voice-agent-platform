@@ -1,8 +1,8 @@
 import type {
+  LeadTurn,
   SchedulingAgentScope,
   SchedulingProtocolView,
   SchedulingSessionContextPort,
-  SchedulingSpeechEvent,
 } from '@voice-agent/contracts';
 import type { DatabaseInstance } from '../client/connection.js';
 import type { LeadEntity } from '../schema/leads.js';
@@ -96,73 +96,30 @@ async function closeProtocol(tx: DatabaseExecutor, locked: LockedProtocol, now: 
   };
 }
 
-const SPEECH_TYPES = new Set(['SPEECH_STARTED', 'SPEECH_COMPLETED', 'SPEECH_INTERRUPTED']);
 const MAX_ID_CHARS = 128;
-const isId = (value: unknown) =>
-  typeof value === 'string' && value.length > 0 && value.length <= MAX_ID_CHARS;
 
-function validStart(event: SchedulingSpeechEvent): boolean {
-  if (event.type !== 'SPEECH_STARTED' || event.purpose === 'OPT_OUT_QUESTION') return true;
-  const offerOk = event.offerId === undefined || isId(event.offerId);
-  return Number.isSafeInteger(event.listRevision) && event.listRevision > 0 && offerOk;
-}
-
-/** O harness é confiável, mas o formato é conferido antes de entrar no estado persistido. */
-function assertSpeechEvent(event: SchedulingSpeechEvent): void {
-  if (!SPEECH_TYPES.has(event.type) || !isId(event.generationId) || !validStart(event)) {
-    throw new TypeError('Invalid speech event from the transport.');
-  }
+/** Identificadores do TRANSPORTE (geração de fala, turno): formato conferido antes de persistir. */
+export function assertTransportId(value: unknown, what: string): void {
+  const ok = typeof value === 'string' && value.length > 0 && value.length <= MAX_ID_CHARS;
+  if (!ok) throw new TypeError(`Invalid ${what} from the transport.`);
 }
 
 /**
- * Pergunta de esclarecimento de possível opt-out (E2 PR 3): fora do redutor.
- * Início registra a geração; conclusão da MESMA geração marca a entrega;
- * interrupção exige perguntar de novo. Sem esclarecimento pendente, é ignorada.
+ * O interlocutor começou a falar no turno `turnId` (do transporte). Um turno
+ * NOVO substitui um início pendente de outro turno (que não terminou); o
+ * mesmo turno repetido não muda nada.
  */
-async function onQuestionSpeech(event: LockedEvent, speech: SchedulingSpeechEvent) {
-  const row = event.locked.row;
-  const isStart = speech.type === 'SPEECH_STARTED';
-  const options = !row.optOutPending
-    ? {}
-    : isStart
-      ? { optOutQuestionGeneration: speech.generationId, optOutQuestionDeliveredSeq: null }
-      : { optOutQuestionDeliveredSeq: speech.type === 'SPEECH_COMPLETED' ? row.seq + 1 : null };
-  const next = await reserveSeq(event.tx, event.locked, options);
-  const step = { state: next.row.state, directives: [] };
-  return { view: (timezone: string | null) => protocolView({ step, row: next.row, timezone }) };
-}
-
-function isQuestionSpeech(row: LockedProtocol['row'], speech: SchedulingSpeechEvent): boolean {
-  if (speech.type === 'SPEECH_STARTED') return speech.purpose === 'OPT_OUT_QUESTION';
-  return (
-    row.optOutQuestionGeneration !== null && speech.generationId === row.optOutQuestionGeneration
-  );
-}
-
-export function recordSpeech(
-  deps: SchedulingEventDeps,
-  scope: SchedulingAgentScope,
-  speech: SchedulingSpeechEvent,
-): Promise<SchedulingProtocolView> {
-  assertSpeechEvent(speech);
-  return withLockedProtocol(deps, { scope, lockLead: false }, async (event) => {
-    if (isQuestionSpeech(event.locked.row, speech)) return onQuestionSpeech(event, speech);
-    const body = { ...speech } as Parameters<typeof applyProtocolEvent>[2]['body'];
-    const applied = await applyProtocolEvent(event.tx, event.locked, { body, now: event.now });
-    return {
-      view: (timezone) => protocolView({ ...applied, row: applied.locked.row, timezone }),
-    };
-  });
-}
-
 export function recordLeadSpeechStarted(
   deps: SchedulingEventDeps,
   scope: SchedulingAgentScope,
+  turn: LeadTurn,
 ): Promise<SchedulingProtocolView> {
+  assertTransportId(turn?.turnId, 'lead turn id');
   return withLockedProtocol(deps, { scope, lockLead: false }, async ({ tx, locked }) => {
-    // Vários inícios sem fala final: vale o PRIMEIRO (mais conservador).
-    const started = locked.row.leadSpeechStartedSeq ?? locked.row.seq + 1;
-    const next = await reserveSeq(tx, locked, { leadSpeechStartedSeq: started });
+    const row = locked.row;
+    const same = row.leadTurnId === turn.turnId && row.leadSpeechStartedSeq !== null;
+    const options = same ? {} : { leadSpeechStartedSeq: row.seq + 1, leadTurnId: turn.turnId };
+    const next = await reserveSeq(tx, locked, options);
     const step = { state: next.row.state, directives: [] };
     return { view: (timezone) => protocolView({ step, row: next.row, timezone }) };
   });

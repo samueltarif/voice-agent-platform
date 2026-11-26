@@ -113,6 +113,9 @@ export async function lockProtocol(
 
 export interface ApplyOptions {
   readonly leadSpeechStartedSeq?: number | null;
+  readonly leadTurnId?: string | null;
+  readonly lastFinalTurnId?: string | null;
+  readonly leadFinalUtterances?: number;
   readonly optOutPending?: boolean;
   readonly optOutQuestionGeneration?: string | null;
   readonly optOutQuestionDeliveredSeq?: number | null;

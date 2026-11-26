@@ -1,5 +1,8 @@
 import type {
+  AgentOutput,
   ConfirmOfferResult,
+  LeadTurn,
+  OutputDecision,
   LeadAgentPort,
   RecordOptOutResult,
   RecordOutcomeArguments,
@@ -15,10 +18,12 @@ import { findSlotsArgumentsSchema, recordOutcomeArgumentsSchema } from '@voice-a
 import type { DatabaseInstance } from '../client/connection.js';
 import { DrizzleMeetingBookingService } from './meeting-booking-service.js';
 import { confirmOffer, type BookingDeps } from './scheduling-agent-booking.js';
-import { recordLeadSpeechStarted, recordSpeech } from './scheduling-agent-events.js';
+import { recordLeadSpeechStarted } from './scheduling-agent-events.js';
+import { recordSpeech } from './scheduling-agent-speech.js';
 import { recordOptOut, recordOutcome } from './scheduling-agent-lead-tools.js';
 import { recordLeadUtterance } from './scheduling-agent-utterance.js';
 import { findSlots } from './scheduling-agent-offers.js';
+import { authorizeOutput } from './scheduling-agent-output.js';
 import { DrizzleSchedulingSessionContextResolver } from './scheduling-session-context-resolver.js';
 import { DrizzleSchedulingSlotRepository } from './scheduling-slot-repository.js';
 
@@ -65,12 +70,22 @@ export class DrizzleSchedulingAgentService implements SchedulingAgentPort, LeadA
     return recordSpeech(this.deps, scope, event);
   }
 
-  recordLeadSpeechStarted(scope: SchedulingAgentScope): Promise<SchedulingProtocolView> {
-    return recordLeadSpeechStarted(this.deps, scope);
+  recordLeadSpeechStarted(
+    scope: SchedulingAgentScope,
+    turn: LeadTurn,
+  ): Promise<SchedulingProtocolView> {
+    return recordLeadSpeechStarted(this.deps, scope, turn);
   }
 
-  recordLeadUtterance(scope: SchedulingAgentScope, text: string): Promise<SchedulingProtocolView> {
-    return recordLeadUtterance(this.deps, scope, text);
+  recordLeadUtterance(
+    scope: SchedulingAgentScope,
+    utterance: LeadTurn & { readonly text: string },
+  ): Promise<SchedulingProtocolView> {
+    return recordLeadUtterance(this.deps, scope, utterance);
+  }
+
+  authorizeOutput(scope: SchedulingAgentScope, output: AgentOutput): Promise<OutputDecision> {
+    return authorizeOutput(this.deps, scope, output);
   }
 
   recordOutcome(

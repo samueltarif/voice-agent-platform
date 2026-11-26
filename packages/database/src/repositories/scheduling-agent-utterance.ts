@@ -1,10 +1,12 @@
 import type {
   BookingProtocolStep,
+  LeadTurn,
   SchedulingAgentScope,
   SchedulingProtocolView,
 } from '@voice-agent/contracts';
 import { decideUtterance } from './scheduling-agent-clarification.js';
 import {
+  assertTransportId,
   withLockedProtocol,
   type LockedEvent,
   type SchedulingEventDeps,
@@ -14,19 +16,22 @@ import { protocolView } from './scheduling-agent-view.js';
 import { applyProtocolEvent, reserveSeq } from './scheduling-protocol-store.js';
 
 /**
- * E2 PR 3 (DEC-075, D2) — fala FINAL do interlocutor, classificada no
- * servidor. Opt-out reconhecido (pedido inequívoco ou "sim" à pergunta de
- * esclarecimento entregue) é gravado na supressão canônica NA MESMA
- * transação, sem depender do modelo nem do toolset.
+ * E2 PR 3 (DEC-075, D2) + auditoria consolidada — fala FINAL do interlocutor,
+ * classificada no servidor e VINCULADA ao turno do transporte que a iniciou
+ * (A1): final de outro turno, repetida ou sem início é ignorada sem efeito.
+ * Opt-out reconhecido é gravado na supressão canônica NA MESMA transação.
+ * Com possível opt-out pendente, a única saída é o esclarecimento (A3).
  */
 
-/**
- * "Não" claro à pergunta de esclarecimento: a abordagem comercial recomeça do
- * zero. Se o protocolo já estava parado (`IDLE`), o harness ainda recebe o
- * pedido de nova lista — nunca o consentimento anterior à pergunta.
- */
-function resumedStep(step: BookingProtocolStep, resumed: boolean): BookingProtocolStep {
-  if (!resumed || step.state.phase !== 'IDLE' || step.directives.length > 0) return step;
+type Utterance = LeadTurn & { readonly text: string };
+
+/** Pendente: só o esclarecimento. "Não" claro em `IDLE`: pedido de nova lista. */
+function guidedStep(
+  step: BookingProtocolStep,
+  flags: { readonly pending: boolean; readonly resumed: boolean },
+): BookingProtocolStep {
+  if (flags.pending) return { state: step.state, directives: [{ kind: 'ASK_CLARIFICATION' }] };
+  if (!flags.resumed || step.state.phase !== 'IDLE' || step.directives.length > 0) return step;
   return { state: step.state, directives: [{ kind: 'REQUEST_NEW_LIST' }] };
 }
 
@@ -52,53 +57,76 @@ async function maybeRecordOptOut(
   });
 }
 
+/** Turno da fala final: o pendente, repetido ou outro. */
+function turnRefusal(event: LockedEvent, turnId: string): string | null {
+  const row = event.locked.row;
+  if (row.lastFinalTurnId === turnId) return 'DUPLICATE_FINAL';
+  if (row.leadSpeechStartedSeq === null) return 'UTTERANCE_WITHOUT_START';
+  return row.leadTurnId === turnId ? null : 'TURN_MISMATCH';
+}
+
+function ignoredView(event: LockedEvent, ignored: string) {
+  const row = event.locked.row;
+  const view = protocolView({ step: { state: row.state, directives: [] }, row, timezone: null });
+  return { view: () => ({ ...view, ignored }) };
+}
+
+/** Fecha o turno: limpa o início pendente e conta a interlocução (A7). */
+function closedTurn(event: LockedEvent, turnId: string) {
+  return {
+    leadSpeechStartedSeq: null,
+    leadTurnId: null,
+    lastFinalTurnId: turnId,
+    leadFinalUtterances: event.locked.row.leadFinalUtterances + 1,
+  };
+}
+
 /**
- * Opt-out JÁ gravado nesta sessão (fala ou ferramenta): nenhuma fala posterior
- * move o protocolo — nada de lista, releitura ou reserva (autorrevisão PR 3:
- * pela ferramenta, a fase do redutor não muda e a abordagem poderia seguir).
+ * Opt-out JÁ gravado nesta sessão: nenhuma fala posterior move o protocolo —
+ * nada de lista, releitura ou reserva (o turno ainda é fechado e contado).
  */
-async function afterRecordedOptOut(event: LockedEvent) {
-  const next = await reserveSeq(event.tx, event.locked, { leadSpeechStartedSeq: null });
+async function afterRecordedOptOut(event: LockedEvent, turnId: string) {
+  const next = await reserveSeq(event.tx, event.locked, closedTurn(event, turnId));
   const step = { state: next.row.state, directives: [] };
   return {
     view: () => protocolView({ step, row: next.row, timezone: null, refusal: 'OPT_OUT_REQUESTED' }),
   };
 }
 
-async function handleUtterance(event: LockedEvent, text: string) {
+async function handleUtterance(event: LockedEvent, utterance: Utterance) {
   const { tx, locked, now } = event;
-  const startedSeq = locked.row.leadSpeechStartedSeq;
-  if (startedSeq === null) {
-    const step = { state: locked.row.state, directives: [] };
-    const view = protocolView({ step, row: locked.row, timezone: null });
-    return { view: () => ({ ...view, ignored: 'UTTERANCE_WITHOUT_START' }) };
-  }
-  if (locked.row.optOutRecordedAt) return afterRecordedOptOut(event);
-  const decision = decideUtterance(text, locked.row, startedSeq);
+  const refusal = turnRefusal(event, utterance.turnId);
+  if (refusal) return ignoredView(event, refusal);
+  if (locked.row.optOutRecordedAt) return afterRecordedOptOut(event, utterance.turnId);
+  const startedSeq = locked.row.leadSpeechStartedSeq!;
+  const decision = decideUtterance(utterance.text, locked.row, startedSeq);
   const questionReset = decision.clearQuestion
     ? { optOutQuestionGeneration: null, optOutQuestionDeliveredSeq: null }
     : {};
   const applied = await applyProtocolEvent(tx, locked, {
     body: { type: 'LEAD_FINAL_UTTERANCE', startedSeq, intent: decision.intent },
     now,
-    options: { leadSpeechStartedSeq: null, optOutPending: decision.pending, ...questionReset },
+    options: {
+      ...closedTurn(event, utterance.turnId),
+      optOutPending: decision.pending,
+      ...questionReset,
+    },
   });
   const recorded = await maybeRecordOptOut(event, { applied, source: decision.recordOptOut });
   const row = recorded?.locked.row ?? applied.locked.row;
-  const step = resumedStep(
-    applied.step,
-    locked.row.optOutPending && !decision.pending && !decision.recordOptOut,
-  );
+  const resumed = locked.row.optOutPending && !decision.pending && !decision.recordOptOut;
+  const step = guidedStep(applied.step, { pending: decision.pending, resumed });
   return { view: (timezone: string | null) => protocolView({ step, row, timezone }) };
 }
 
 export function recordLeadUtterance(
   deps: SchedulingEventDeps,
   scope: SchedulingAgentScope,
-  text: string,
+  utterance: Utterance,
 ): Promise<SchedulingProtocolView> {
-  if (typeof text !== 'string') throw new TypeError('A final utterance must be text.');
+  assertTransportId(utterance?.turnId, 'lead turn id');
+  if (typeof utterance.text !== 'string') throw new TypeError('A final utterance must be text.');
   return withLockedProtocol(deps, { scope, lockLead: true }, (event) =>
-    handleUtterance(event, text),
+    handleUtterance(event, utterance),
   );
 }

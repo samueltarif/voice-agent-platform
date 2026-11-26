@@ -149,6 +149,12 @@ describe('E2 PR3: canonical opt-out, clarification and call outcome', () => {
 
   it('records the call outcome under D5 and never reopens DO_NOT_CALL or touches a meeting', async () => {
     const s = await setup();
+    // A7: só depois de uma fala final confiável do interlocutor nesta sessão.
+    expect(await service.recordOutcome(s.scope, { outcome: 'CONTACTED' })).toMatchObject({
+      status: 'REFUSED',
+      reason: 'NO_INTERLOCUTION',
+    });
+    await s.harness.leadSays('Alô, quem fala?');
     expect(await service.recordOutcome(s.scope, { outcome: 'CONTACTED' })).toEqual({
       status: 'RECORDED',
       outcome: 'CONTACTED',
@@ -188,6 +194,8 @@ describe('E2 PR3: canonical opt-out, clarification and call outcome', () => {
     const s = await setup();
     await s.harness.reachAuthorization();
     expect(await service.confirmOffer(s.scope)).toMatchObject({ status: 'BOOKED' });
+    // A2: a ferramenta só conclui um pedido reconhecido pelo servidor na fala.
+    expect((await s.harness.leadSays('Não me ligue mais.')).phase).toBe('OPTED_OUT');
     expect(await service.recordOptOut(s.scope)).toMatchObject({
       status: 'RECORDED',
       meetingPreserved: true,
@@ -205,7 +213,7 @@ describe('E2 PR3: canonical opt-out, clarification and call outcome', () => {
     await advanceSession(new DrizzleCallSessionRepository(tdb.db), closed.scope, 'ENDED');
     expect(await service.recordOptOut(closed.scope)).toMatchObject({
       status: 'REFUSED',
-      reason: 'SESSION_NOT_ACTIVE',
+      reason: 'NO_OPT_OUT_EVIDENCE',
     });
     expect((await closed.harness.leadSays('Não me ligue mais.')).refusal).toBe(
       'SESSION_NOT_ACTIVE',
@@ -232,11 +240,11 @@ describe('E2 PR3: canonical opt-out, clarification and call outcome', () => {
   it('booking wins the race: the meeting is kept and the phone is still suppressed', async () => {
     const s = await setup();
     await s.harness.reachAuthorization();
-    await service.recordLeadSpeechStarted(s.scope);
+    await service.recordLeadSpeechStarted(s.scope, { turnId: 'race' });
     const [booked, optedOut] = await race(
       s,
       () => service.confirmOffer(s.scope),
-      () => service.recordLeadUtterance(s.scope, 'Não me ligue mais.'),
+      () => service.recordLeadUtterance(s.scope, { turnId: 'race', text: 'Não me ligue mais.' }),
     );
     expect(booked).toMatchObject({ status: 'BOOKED' });
     expect(optedOut).toMatchObject({ phase: 'OPTED_OUT' });
@@ -247,10 +255,10 @@ describe('E2 PR3: canonical opt-out, clarification and call outcome', () => {
   it('opt-out wins the race: the booking is refused and nothing is announced', async () => {
     const s = await setup();
     await s.harness.reachAuthorization();
-    await service.recordLeadSpeechStarted(s.scope);
+    await service.recordLeadSpeechStarted(s.scope, { turnId: 'race' });
     const [optedOut, booked] = await race(
       s,
-      () => service.recordLeadUtterance(s.scope, 'Não me ligue mais.'),
+      () => service.recordLeadUtterance(s.scope, { turnId: 'race', text: 'Não me ligue mais.' }),
       () => service.confirmOffer(s.scope),
     );
     expect(optedOut).toMatchObject({ phase: 'OPTED_OUT' });
@@ -274,11 +282,17 @@ describe('E2 PR3: canonical opt-out, clarification and call outcome', () => {
     expect(await leadStatus(s)).toBe('NEW');
   });
 
-  it('after a tool opt-out, later utterances never resume the commercial approach', async () => {
+  it('after an opt-out, the tool only confirms it and later utterances never resume the approach', async () => {
     const s = await setup();
     const found = await service.findSlots(s.scope, {});
     if (found.status !== 'OFFERED') throw new Error(found.status);
     await s.harness.speak({ purpose: 'PRESENTATION', listRevision: found.listRevision });
+    expect(await service.recordOptOut(s.scope)).toMatchObject({
+      status: 'REFUSED',
+      reason: 'NO_OPT_OUT_EVIDENCE',
+    });
+    expect(await suppressions(s)).toBe(0);
+    expect((await s.harness.leadSays('Me descadastre.')).phase).toBe('OPTED_OUT');
     expect(await service.recordOptOut(s.scope)).toMatchObject({
       status: 'RECORDED',
       meetingPreserved: false,

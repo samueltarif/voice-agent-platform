@@ -90,6 +90,15 @@ export function decideUtterance(
   row: SchedulingProtocolStateEntity,
   startedSeq: number,
 ): UtteranceDecision {
+  // A4: fala acima do limite nunca decide pelo prefixo — pendência, sem efeito comercial.
+  if (text.length > MAX_UTTERANCE_CHARS) {
+    return {
+      intent: AMBIGUOUS,
+      pending: true,
+      recordOptOut: null,
+      clearQuestion: row.optOutPending,
+    };
+  }
   const intent = classify(text);
   if (intent.kind === 'OPT_OUT') {
     return { intent, pending: false, recordOptOut: 'LEAD_UTTERANCE', clearQuestion: true };

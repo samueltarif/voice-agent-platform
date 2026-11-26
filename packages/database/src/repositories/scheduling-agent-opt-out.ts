@@ -18,7 +18,8 @@ import { lockSuppressionKey } from './suppression-linearization-lock.js';
  * A supressão nunca é removida; nada aqui depende do modelo nem do toolset.
  */
 
-export type OptOutSource = 'LEAD_UTTERANCE' | 'CLARIFICATION' | 'AGENT_TOOL';
+/** `RECOVERY` = conclusão posterior de um pedido já reconhecido na fala (nunca criação). */
+export type OptOutSource = 'LEAD_UTTERANCE' | 'CLARIFICATION' | 'RECOVERY';
 
 /** Lead do destino discado (contato com o mesmo telefone no tenant), sem trava. */
 export async function leadIdForPhone(
