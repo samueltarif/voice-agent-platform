@@ -56,9 +56,8 @@ describe('deterministic speech includes date, time and time zone', () => {
 });
 
 describe('booking claim filter (streaming output guard)', () => {
-  it('drops claims split across deltas until the server confirms the booking', () => {
-    let booked = false;
-    const filter = createBookingClaimFilter(() => booked);
+  it('drops claims split across deltas and never unlocks (no "booked" boolean)', () => {
+    const filter = createBookingClaimFilter();
     const out = [
       filter.push('Ótimo! Sua reunião es'),
       filter.push('tá marcada para amanhã. '),
@@ -67,8 +66,8 @@ describe('booking claim filter (streaming output guard)', () => {
     ].join('');
     expect(out).toBe('Ótimo! Posso ajudar em mais algo?');
     expect(filter.dropped).toBe(1);
-    booked = true;
-    expect(filter.push('Agendei para você. ') + filter.flush()).toBe('Agendei para você. ');
+    expect((filter.push('Agendei para você. ') + filter.flush()).trim()).toBe('');
+    expect(filter.dropped).toBe(2);
   });
 
   it('classifies scheduling claims conservatively', () => {
@@ -78,6 +77,9 @@ describe('booking claim filter (streaming output guard)', () => {
       'Reservado!',
       'Está confirmado.',
       'A reunião está ok.',
+      'Seu horário já consta na agenda.',
+      'Tenho outros horários amanhã.',
+      'Sua agenda está livre na quinta',
     ]) {
       expect([claim, isBookingClaim(claim)]).toEqual([claim, true]);
     }
@@ -87,6 +89,7 @@ describe('booking claim filter (streaming output guard)', () => {
       'Qual o melhor dia?',
       'Vocês usam algum sistema de agendamento?',
       'Posso marcar para você?',
+      'Qual horário fica melhor para você?',
     ]) {
       expect([neutral, isBookingClaim(neutral)]).toEqual([neutral, false]);
     }

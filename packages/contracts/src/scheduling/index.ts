@@ -12,6 +12,7 @@ export * from './booking-protocol-types.js';
 export * from './booking-protocol.js';
 export * from './scheduling-session-context.js';
 export * from './scheduling-agent-port.js';
+export * from './scheduling-agent-output.js';
 export * from './scheduling-speech.js';
 export * from './booking-claim-filter.js';
 export * from './lead-reply-opt-out-mention.js';

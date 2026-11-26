@@ -8,9 +8,10 @@ import type { SchedulingAgentScope } from './scheduling-agent-port.js';
  *
  * - `lead.record_outcome`: resultado comercial (origem `CALL_OUTCOME`), sem
  *   nunca sair de `DO_NOT_CALL` nem tocar `MEETING_SCHEDULED`.
- * - `lead.record_opt_out`: supressão canônica do telefone. O opt-out
- *   reconhecido na FALA do interlocutor é gravado pelo servidor sem depender
- *   desta ferramenta nem do toolset (ver `recordLeadUtterance`).
+ * - `lead.record_opt_out`: só CONCLUI ou RECUPERA um pedido que o servidor
+ *   reconheceu na fala do interlocutor nesta sessão (evidência do protocolo);
+ *   nunca suprime sem essa evidência (auditoria consolidada A2). O caminho
+ *   obrigatório é automático, na fala final (`recordLeadUtterance`).
  */
 
 export const LEAD_RECORD_OUTCOME_TOOL = 'lead.record_outcome' as const;
@@ -30,6 +31,10 @@ export type RecordOptOutArguments = z.infer<typeof recordOptOutArgumentsSchema>;
 
 export type LeadToolRefusal =
   | 'CONTEXT_REFUSED'
+  /** A2: a ferramenta só conclui ou recupera um pedido RECONHECIDO pelo servidor nesta sessão. */
+  | 'NO_OPT_OUT_EVIDENCE'
+  /** A7: resultado comercial exige interlocução confiável (fala final processada) nesta sessão. */
+  | 'NO_INTERLOCUTION'
   | 'NO_LEAD_FOR_DESTINATION'
   | 'SESSION_NOT_ACTIVE'
   | 'OPT_OUT_REQUESTED'

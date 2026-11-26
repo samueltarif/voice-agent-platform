@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { BookingProtocolDirective, BookingProtocolPhase } from './booking-protocol-types.js';
 import type { SchedulingSessionContextQuery } from './scheduling-session-context.js';
 import { isValidLocalDate } from './zoned-wall-time.js';
+import type { AgentOutput, LeadTurn, OutputDecision } from './scheduling-agent-output.js';
 
 /**
  * E2 PR 2 (DEC-075) — porta das ferramentas de agendamento do agente.
@@ -113,10 +114,14 @@ export type SchedulingSpeechEvent =
       readonly offerId?: string | undefined;
     }
   | {
-      /** E2 PR 3: pergunta de esclarecimento de um POSSÍVEL opt-out (sim/não). */
+      /**
+       * E2 PR 3: pergunta de esclarecimento de um POSSÍVEL opt-out (sim/não);
+       * auditoria consolidada (A1): `AGENT` = qualquer OUTRA fala do agente
+       * (texto do modelo), que invalida a pergunta transacional em aberto.
+       */
       readonly type: 'SPEECH_STARTED';
       readonly generationId: string;
-      readonly purpose: 'OPT_OUT_QUESTION';
+      readonly purpose: 'OPT_OUT_QUESTION' | 'AGENT';
     }
   | { readonly type: 'SPEECH_COMPLETED'; readonly generationId: string }
   | { readonly type: 'SPEECH_INTERRUPTED'; readonly generationId: string };
@@ -139,8 +144,19 @@ export interface SchedulingAgentPort {
     scope: SchedulingAgentScope,
     event: SchedulingSpeechEvent,
   ): Promise<SchedulingProtocolView>;
-  /** O interlocutor COMEÇOU a falar: o servidor atribui o `seq` de início. */
-  recordLeadSpeechStarted(scope: SchedulingAgentScope): Promise<SchedulingProtocolView>;
-  /** Fala FINAL do interlocutor: classificada no servidor (`classifyLeadReply`). */
-  recordLeadUtterance(scope: SchedulingAgentScope, text: string): Promise<SchedulingProtocolView>;
+  /** O interlocutor COMEÇOU a falar (turno do transporte): o servidor atribui o `seq` de início. */
+  recordLeadSpeechStarted(
+    scope: SchedulingAgentScope,
+    turn: LeadTurn,
+  ): Promise<SchedulingProtocolView>;
+  /**
+   * Fala FINAL do MESMO turno, classificada no servidor (`classifyLeadReply`).
+   * Final de outro turno, repetida ou sem início registrado é ignorada.
+   */
+  recordLeadUtterance(
+    scope: SchedulingAgentScope,
+    utterance: LeadTurn & { readonly text: string },
+  ): Promise<SchedulingProtocolView>;
+  /** Autoriza (ou não) uma saída do agente AGORA. */
+  authorizeOutput(scope: SchedulingAgentScope, output: AgentOutput): Promise<OutputDecision>;
 }

@@ -1,3 +1,4 @@
+import { onAgentSpeech, onList, onQueryEmpty } from './booking-protocol-interventions.js';
 import { ignoreStep, onLeadReply, resetToNewList } from './booking-protocol-replies.js';
 import {
   onSpeechCompleted,
@@ -6,11 +7,9 @@ import {
 } from './booking-protocol-speech.js';
 import {
   INITIAL_BOOKING_PROTOCOL_STATE,
-  MAX_OFFERS_PER_LIST,
   type BookingProtocolEvent,
   type BookingProtocolState,
   type BookingProtocolStep,
-  type ProtocolOfferList,
 } from './booking-protocol-types.js';
 
 /**
@@ -36,38 +35,6 @@ const cleared = (state: BookingProtocolState, phase: 'OPTED_OUT' | 'CLOSED') => 
   readback: null,
   authorization: null,
 });
-
-function validList(list: ProtocolOfferList): boolean {
-  const ids = new Set(list.offers.map((offer) => offer.offerId));
-  const count = list.offers.length;
-  return count >= 1 && count <= MAX_OFFERS_PER_LIST && ids.size === count && list.revision > 0;
-}
-
-function onList(state: BookingProtocolState, event: Of<'OFFER_LIST_ISSUED'>): BookingProtocolStep {
-  if (state.phase === 'BOOKING') return ignoreStep(state, 'BOOKING_IN_FLIGHT');
-  const { revision, queryKey } = event.list;
-  if (revision <= state.maxRevision) {
-    // Retry técnico só recupera a lista AINDA vigente; nada é renovado (ids, ordem, TTL).
-    const current = state.list;
-    const retry = current?.revision === revision && current.queryKey === queryKey;
-    return ignoreStep(state, retry ? 'RETRY_SAME_LIST' : 'STALE_LIST');
-  }
-  if (!validList(event.list)) return ignoreStep(state, 'STALE_LIST');
-  return {
-    state: {
-      ...state,
-      phase: 'PRESENTING',
-      list: event.list,
-      maxRevision: revision,
-      presentation: null,
-      selection: null,
-      readback: null,
-      authorization: null,
-      clarifications: 0,
-    },
-    directives: [{ kind: 'PRESENT_LIST', listRevision: event.list.revision }],
-  };
-}
 
 function offerExpiredAt(state: BookingProtocolState, at: string): boolean {
   const offerId = state.authorization?.offerId ?? state.selection?.offerId;
@@ -136,6 +103,8 @@ const HANDLERS: Readonly<Record<BookingProtocolEvent['type'], Handler>> = {
   AUTHORIZATION_CONSUMED: onConsumed,
   BOOKING_RESULT: onBookingResult,
   CLOCK: onClock,
+  AGENT_SPEECH_STARTED: onAgentSpeech,
+  QUERY_EMPTY: onQueryEmpty,
   SESSION_CLOSED: (state) => ({ state: cleared(state, 'CLOSED'), directives: [] }),
 };
 
