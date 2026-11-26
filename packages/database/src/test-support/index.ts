@@ -112,3 +112,9 @@ export {
   WEEKDAY_MORNINGS,
 } from './scheduling-fixtures.js';
 export { createSchedulingLockProbe, type SchedulingLockProbe } from './scheduling-lock-probe.js';
+export {
+  advanceSession,
+  createBoundCallSession,
+  setCampaignSchedulingCalendar,
+  type BoundCallSession,
+} from './scheduling-session-fixtures.js';

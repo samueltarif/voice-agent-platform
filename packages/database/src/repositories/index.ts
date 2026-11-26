@@ -78,3 +78,4 @@ export * from './meeting-booking-steps.js';
 export * from './meeting-booking-service.js';
 export * from './meeting-cancellation-service.js';
 export * from './meeting-queries.js';
+export * from './scheduling-session-context-resolver.js';

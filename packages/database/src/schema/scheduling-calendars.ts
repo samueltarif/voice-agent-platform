@@ -1,5 +1,6 @@
 import { sql, type InferSelectModel } from 'drizzle-orm';
 import {
+  boolean,
   check,
   date,
   foreignKey,
@@ -11,6 +12,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
 import { AVAILABILITY_EXCEPTION_KINDS } from '@voice-agent/contracts';
@@ -35,10 +37,15 @@ export const schedulingCalendars = pgTable(
     minimumNoticeMinutes: integer('minimum_notice_minutes').notNull().default(0),
     bookingHorizonDays: integer('booking_horizon_days').notNull(),
     version: integer('version').notNull().default(1),
+    /** E2 PR 1 (D1): agenda padrão EXPLÍCITA da empresa (no máximo uma). */
+    isOrganizationDefault: boolean('is_organization_default').notNull().default(false),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
+    uniqueIndex('scheduling_calendars_org_default_uidx')
+      .on(table.organizationId)
+      .where(sql`${table.isOrganizationDefault}`),
     unique('scheduling_calendars_org_name_unique').on(table.organizationId, table.name),
     unique('scheduling_calendars_id_org_unique').on(table.id, table.organizationId),
     check('scheduling_calendars_name_chk', sql`char_length(${table.name}) BETWEEN 1 AND 120`),
