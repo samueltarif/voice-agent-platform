@@ -1,15 +1,25 @@
-import { isOptOutMention, isOptOutRequest } from './lead-reply-opt-out.js';
-import { prepareReply, splitSentences, toMatchForm } from './lead-reply-text.js';
+import { isIndependentClause, isOptOutMention, isOptOutRequest } from './lead-reply-opt-out.js';
+import {
+  type ReplySentence,
+  prepareReply,
+  splitSentences,
+  toMatchForm,
+  wholePattern,
+  wordsPattern,
+} from './lead-reply-text.js';
 
 /**
  * E2 PR 1 (DEC-075) — classificação CONSERVADORA, determinística e offline da
  * resposta FINAL do interlocutor, em português do Brasil, feita pelo servidor
  * ANTES de qualquer roteamento ao modelo. Nunca usa texto do modelo.
  *
- * Regras (auditoria A1/A2):
- * - opt-out é avaliado POR CLÁUSULA: um pedido explícito numa cláusula vale
- *   mesmo com negações em outras; negação, citação ou pergunta informativa
- *   na MESMA cláusula não é pedido (vira `AMBIGUOUS`);
+ * Regras (auditorias A1/A2):
+ * - opt-out é decidido pela FALA INTEIRA: há ao menos um pedido atual e TODA
+ *   outra cláusula é trecho independente conhecido (cortesia, lista fechada
+ *   ou forma inteira de aceite/recusa). Qualquer cláusula desconhecida, em
+ *   qualquer posição, leva a esclarecimento; nenhuma é ignorada;
+ * - a comparação preserva acentos: só a omissão de acento de uma forma
+ *   permitida é aceita (`pôde marcar` nunca é `pode marcar`);
  * - aceite, recusa e escolha só quando a frase INTEIRA é uma forma conhecida,
  *   SEM interrogação e SEM aspas: "Pode marcar?" e “sim” nunca são aceite;
  * - qualquer conteúdo extra ("sim, mas não marque") vira `AMBIGUOUS`;
@@ -25,59 +35,79 @@ export type LeadReplyIntent =
   | { readonly kind: 'AMBIGUOUS' }
   | { readonly kind: 'SILENCE' };
 
-/** Forma de comparação (minúsculas, sem acentos e sem pontuação), após NFKC. */
+/** Forma de comparação (minúsculas, NFC, com acentos, sem pontuação), após NFKC. */
 export function normalizeLeadReply(text: string): string {
   return toMatchForm(text.normalize('NFKC'));
 }
 
-const AFFIRM = new Set(
+const AFFIRM = wholePattern(
   (
     'sim|sim pode|pode|pode sim|pode marcar|pode agendar|confirmo|confirmado|isso|isso mesmo|' +
-    'exatamente|correto|certo|fechado|combinado|pode ser|ok|ta bom|esta bom|perfeito|beleza|' +
+    'exatamente|correto|certo|fechado|combinado|pode ser|ok|tá bom|está bom|perfeito|beleza|' +
     'sim por favor|sim confirmo|sim isso mesmo|sim pode marcar|pode confirmar'
   ).split('|'),
 );
 
-const NEGATE = new Set(
+const NEGATE = wholePattern(
   (
-    'nao|nao obrigado|nao obrigada|nao quero|nao posso|nao da|nenhum|nenhuma|nenhum desses|' +
-    'nenhuma dessas|nao pode ser|nao serve|nao nao'
+    'não|não obrigado|não obrigada|não quero|não posso|não dá|nenhum|nenhuma|nenhum desses|' +
+    'nenhuma dessas|não pode ser|não serve|não não'
   ).split('|'),
 );
 
-const ORDINALS: Readonly<Record<string, 1 | 2 | 3>> = {
-  primeira: 1,
-  primeiro: 1,
-  '1': 1,
-  um: 1,
-  uma: 1,
-  segunda: 2,
-  segundo: 2,
-  '2': 2,
-  dois: 2,
-  duas: 2,
-  terceira: 3,
-  terceiro: 3,
-  '3': 3,
-  tres: 3,
-};
+/**
+ * Ordinais; a omissão do acento em `três` é a variante declarada. `Map` (e não
+ * objeto) para que chaves do protótipo, como `constructor`, nunca virem escolha.
+ */
+const ORDINALS: ReadonlyMap<string, 1 | 2 | 3> = new Map<string, 1 | 2 | 3>([
+  ['primeira', 1],
+  ['primeiro', 1],
+  ['1', 1],
+  ['um', 1],
+  ['uma', 1],
+  ['segunda', 2],
+  ['segundo', 2],
+  ['2', 2],
+  ['dois', 2],
+  ['duas', 2],
+  ['terceira', 3],
+  ['terceiro', 3],
+  ['3', 3],
+  ['três', 3],
+  ['tres', 3],
+]);
 
-const SELECT_PATTERN =
-  /^(?:(?:quero|prefiro|pode ser|fico com|vou de|escolho) )?(?:a |o )?(?:opcao |numero |horario )?([a-z0-9]+)(?: opcao| horario)?$/;
+const SELECT_PATTERN = wholePattern([
+  '(?:(?:quero|prefiro|pode ser|fico com|vou de|escolho) )?(?:a |o )?(?:opção |número |horário )?(\\S+)(?: opção| horário)?',
+]);
 
-const TIME_CHANGE =
-  /\b(outro horario|outro dia|outra data|outra hora|mais tarde|mais cedo|outra semana|outro periodo)\b/;
+const TIME_CHANGE = wordsPattern(
+  'outro horário|outro dia|outra data|outra hora|mais tarde|mais cedo|outra semana|outro período',
+);
 
 function selection(normalized: string): LeadReplyIntent | null {
   const match = SELECT_PATTERN.exec(normalized);
-  const ordinal = match ? ORDINALS[match[1]!] : undefined;
+  const ordinal = match ? ORDINALS.get(match[1]!) : undefined;
   return ordinal ? { kind: 'SELECT', ordinal } : null;
 }
 
 function knownForm(normalized: string): LeadReplyIntent | null {
-  if (AFFIRM.has(normalized)) return { kind: 'AFFIRM' };
-  if (NEGATE.has(normalized)) return { kind: 'NEGATE' };
+  if (AFFIRM.test(normalized)) return { kind: 'AFFIRM' };
+  if (NEGATE.test(normalized)) return { kind: 'NEGATE' };
   return selection(normalized);
+}
+
+/** Cláusula reconhecida que não impede o opt-out: cortesia, lista fechada ou aceite/recusa inteiros. */
+function isKnownCompanion(clause: ReplySentence): boolean {
+  if (isIndependentClause(clause)) return true;
+  return !clause.quoted && !clause.question && knownForm(clause.normalized) !== null;
+}
+
+/** Opt-out só se há pedido atual e NENHUMA cláusula desconhecida na fala inteira. */
+function isOptOutUtterance(clauses: readonly ReplySentence[]): boolean {
+  const requests = clauses.filter(isOptOutRequest);
+  if (requests.length === 0) return false;
+  return clauses.every((clause) => requests.includes(clause) || isKnownCompanion(clause));
 }
 
 /**
@@ -89,7 +119,7 @@ export function classifyLeadReply(text: string): LeadReplyIntent {
   const normalized = toMatchForm(prepared.text);
   if (normalized.length === 0) return { kind: 'SILENCE' };
   const clauses = splitSentences(prepared.text);
-  if (clauses.some(isOptOutRequest)) return { kind: 'OPT_OUT' };
+  if (isOptOutUtterance(clauses)) return { kind: 'OPT_OUT' };
   if (clauses.some(isOptOutMention)) return { kind: 'AMBIGUOUS' };
   const form = prepared.plainSurface ? knownForm(normalized) : null;
   if (form) return form;

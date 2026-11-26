@@ -1,132 +1,51 @@
-import type { ReplySentence } from './lead-reply-text.js';
+import { COURTESY, INDEPENDENT_FORMS, LEAD_INS, MODALS, TAILS } from './lead-reply-lexicon.js';
+import { type ReplySentence, lexical, wholePattern, wordsPattern } from './lead-reply-text.js';
 
 /**
- * E2 PR 1 (DEC-075, 2ª auditoria A2) — reconhecimento de opt-out com ESCOPO.
+ * E2 PR 1 (DEC-075, 4ª auditoria A2) — gramática FECHADA do opt-out.
  *
- * Causa estrutural corrigida: a vírgula era tratada como fronteira semântica,
- * separando "caso precise", "se eu mudar de ideia" ou "por favor" do pedido.
- * Agora a unidade é a frase (pontuação terminal), dividida só por conectivo de
- * contraste ("mas", "porém"…), e um PEDIDO ATUAL exige, na mesma cláusula:
- * - uma forma explícita de pedido (lista fechada);
- * - antes dela, SÓ elementos permitidos (cortesia, interpelação, modal de
- *   pedido, conectivo simples). Qualquer outra coisa — "como faço para", "se
- *   eu mudar de ideia, vou pedir para", "meu sócio disse para", "não precisa" —
- *   tira o pedido do escopo atual;
- * - depois dela, SÓ complementos permitidos ("da lista", "por favor"…);
- *   "caso precise", "amanhã", "se…" ficam fora;
+ * A fala inteira decide (`lead-reply-intent.ts`): cada cláusula precisa ser
+ * reconhecida como PEDIDO ATUAL ou como TRECHO INDEPENDENTE conhecido; uma
+ * única cláusula desconhecida (condição, ressalva, hipótese, citação) em
+ * qualquer posição tira a fala do opt-out e leva a esclarecimento. Não há
+ * lista de palavras proibidas: o que não está na gramática não autoriza nada.
+ *
+ * PEDIDO ATUAL, na mesma cláusula:
+ * - uma forma explícita (lista fechada `FORMS`);
+ * - antes dela, só cortesia, interpelação, modal de pedido ou conectivo
+ *   simples (`LEAD_INS`); depois, só complementos permitidos (`TAILS`);
  * - em pergunta, um modal de pedido ("pode", "poderia", "tem como"…);
- * - fora de citação (escopo resolvido antes da segmentação, ver
- *   `lead-reply-quotes.ts`) e sem aspa sem par na fala;
- * - nenhuma OUTRA cláusula da mesma frase com marcador de restrição
- *   ("mas só se eu confirmar amanhã", "mas talvez…", "mas depende…"): a
- *   segmentação não pode descartar a condição (3ª auditoria, I3). Negação ou
- *   contraste sozinhos NÃO bloqueiam ("Não precisa confirmar, mas não me
- *   ligue mais" continua pedido).
- * Menções não reconhecidas como pedido viram esclarecimento, nunca aceite.
+ * - fora de citação e sem aspa sem par na fala.
+ * As formas são escritas com a ortografia correta; a omissão de acento é a
+ * única variante aceita (`lexical`).
  */
 
 const FORMS: readonly RegExp[] = [
-  /\bnao (?:me )?(?:ligue|liguem|ligam|liga|ligar) mais\b/,
-  /\b(?:para|pare|parem|parar) de (?:me )?ligar\b/,
-  /\b(?:tira|tire|tirar|retira|retire|retirar|remove|remova|remover|exclui|exclua|excluir|apaga|apague|apagar) (?:o )?meu (?:numero|telefone|contato)\b/,
-  /\bnao quero (?:mais )?receber (?:ligacao|ligacoes|chamada|chamadas)\b/,
-  /\bme descadastr(?:a|e|ar|em)\b/,
-  /\bdescadastr(?:a|e|ar|em) (?:o )?meu (?:numero|telefone|contato)\b/,
-  /\bquero (?:ser )?descadastrad[oa]\b/,
-  /\bme (?:tira|tire|tirar|retira|retire|retirar|remove|remova|remover|exclui|exclua|excluir) da (?:sua |de |dessa |desta )?lista\b/,
-];
+  'não (?:me )?(?:ligue|liguem|ligam|liga|ligar) mais',
+  '(?:para|pare|parem|parar) de (?:me )?ligar',
+  '(?:tira|tire|tirar|retira|retire|retirar|remove|remova|remover|exclui|exclua|excluir|apaga|apague|apagar) (?:o )?meu (?:número|telefone|contato)',
+  'não quero (?:mais )?receber (?:ligação|ligações|chamada|chamadas)',
+  'me descadastr(?:a|e|ar|em)',
+  'descadastr(?:a|e|ar|em) (?:o )?meu (?:número|telefone|contato)',
+  'quero (?:ser )?descadastrad(?:o|a)',
+  'me (?:tira|tire|tirar|retira|retire|retirar|remove|remova|remover|exclui|exclua|excluir) da (?:sua |de |dessa |desta )?lista',
+].map(wordsPattern);
 
-const MODALS = [
-  'pode',
-  'podem',
-  'poderia',
-  'poderiam',
-  'da pra',
-  'tem como',
-  'consegue',
-  'conseguem',
-];
-
-const LEAD_INS = [
-  ...MODALS,
-  'por favor',
-  'pfv',
-  'favor',
-  'obrigado',
-  'obrigada',
-  'obrigado pela ligacao',
-  'obrigada pela ligacao',
-  'olha',
-  'escuta',
-  'oi',
-  'ola',
-  'ah',
-  'bom dia',
-  'boa tarde',
-  'boa noite',
-  'entao',
-  'e',
-  'agora',
-  'depois',
-  'ja',
-  'sim',
-  'nao obrigado',
-  'nao obrigada',
-  'moco',
-  'moca',
-  'senhor',
-  'senhora',
-  'o senhor',
-  'a senhora',
-  'voce',
-  'voces',
-  'quero que',
-  'eu quero que',
-  'preciso que',
-  'gostaria que',
-  'eu gostaria que',
-  'quero',
-  'eu quero',
-  'gostaria de',
-  'eu gostaria de',
-  'preciso',
-];
-
-const TAILS = [
-  'da lista',
-  'de lista',
-  'dessa lista',
-  'desta lista',
-  'da sua lista',
-  'na lista',
-  'do cadastro',
-  'do seu cadastro',
-  'dos contatos',
-  'por favor',
-  'obrigado',
-  'obrigada',
-  'agora',
-  'ja',
-  'de vez',
-  'mais',
-  'nunca mais',
-  'para mim',
-  'pra mim',
-  'de voces',
-  'daqui pra frente',
-  'tambem',
-];
+const INDEPENDENT = wholePattern(INDEPENDENT_FORMS);
 
 const sequenceOf = (items: readonly string[]) =>
-  new RegExp(`^(?:(?:${[...items].sort((a, b) => b.length - a.length).join('|')})(?: |$))*$`);
+  new RegExp(
+    `^(?:(?:${[...items]
+      .sort((a, b) => b.length - a.length)
+      .map(lexical)
+      .join('|')})(?: |$))*$`,
+    'u',
+  );
 
 const PREFIX_OK = sequenceOf(LEAD_INS);
 const TAIL_OK = sequenceOf(TAILS);
-const MODAL = new RegExp(`(?:^| )(?:${MODALS.join('|')})(?: |$)`);
-
-/** Condição, exceção, hipótese ou dependência que limita o que foi pedido. */
-const RESTRICTION =
-  /(?:^| )(?:se|caso|so|somente|apenas|desde que|a menos que|exceto|salvo|quando|talvez|depende|dependendo)(?: |$)/;
+const COURTESY_ONLY = sequenceOf(COURTESY);
+const MODAL = wordsPattern(MODALS.join('|'));
 
 function isCurrentRequest(clause: ReplySentence, form: RegExp): boolean {
   const match = form.exec(clause.normalized);
@@ -137,12 +56,20 @@ function isCurrentRequest(clause: ReplySentence, form: RegExp): boolean {
   return !clause.question || MODAL.test(prefix);
 }
 
+/** A cláusula, sozinha, é um pedido atual de opt-out. */
 export function isOptOutRequest(clause: ReplySentence): boolean {
-  if (clause.quoted || clause.siblings.some((other) => RESTRICTION.test(other))) return false;
-  return FORMS.some((form) => isCurrentRequest(clause, form));
+  return !clause.quoted && FORMS.some((form) => isCurrentRequest(clause, form));
 }
+
+/** Cortesia ou trecho independente completo da lista fechada (nunca citação). */
+export function isIndependentClause(clause: ReplySentence): boolean {
+  if (clause.quoted) return false;
+  return COURTESY_ONLY.test(clause.normalized) || INDEPENDENT.test(clause.normalized);
+}
+
+const DESCADASTRO = wordsPattern('descadastr\\S*');
 
 /** Qualquer referência a opt-out que NÃO é pedido atual: leva a esclarecimento. */
 export function isOptOutMention(clause: ReplySentence): boolean {
-  return FORMS.some((form) => form.test(clause.normalized)) || /descadastr/.test(clause.normalized);
+  return FORMS.some((form) => form.test(clause.normalized)) || DESCADASTRO.test(clause.normalized);
 }

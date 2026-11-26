@@ -59,19 +59,57 @@ export const FOREIGN_WORD = '_';
 
 function matchWord(word: string): string {
   const lower = word.normalize('NFC').toLowerCase();
-  if (!PORTUGUESE_WORD.test(lower)) return FOREIGN_WORD;
-  return lower.normalize('NFD').replace(/\p{M}/gu, '');
+  return PORTUGUESE_WORD.test(lower) ? lower : FOREIGN_WORD;
 }
 
 /**
- * Forma de comparação (3ª auditoria A1, invariante I1): uma palavra de saída
- * por palavra lexical de entrada. Acentos do português são removidos; qualquer
- * palavra com outro alfabeto, diacrítico estranho ao português ou marca
- * combinante sobrando vira `_` — nunca desaparece. Pontuação e símbolos não
- * são palavras (já tiram o texto da gramática do aceite em `prepareReply`).
+ * Forma de comparação SEM PERDA (3ª e 4ª auditorias, I1/I6): uma palavra de
+ * saída por palavra lexical de entrada, em minúsculas e NFC, COM os acentos.
+ * Palavra com outro alfabeto, diacrítico estranho ao português ou marca
+ * combinante sobrando vira `_`. Nenhum diacrítico é removido aqui: `pôde`
+ * continua diferente de `pode`. Pontuação e símbolos não são palavras (já
+ * tiram o texto da gramática do aceite em `prepareReply`).
  */
 export function toMatchForm(text: string): string {
   return (text.match(LEXICAL) ?? []).map(matchWord).join(' ');
+}
+
+/** Letra acentuada → a própria letra OU a letra sem acento (omissão declarada). */
+const OMITTABLE: Readonly<Record<string, string>> = {
+  á: '[áa]',
+  à: '[àa]',
+  â: '[âa]',
+  ã: '[ãa]',
+  é: '[ée]',
+  ê: '[êe]',
+  í: '[íi]',
+  ó: '[óo]',
+  ô: '[ôo]',
+  õ: '[õo]',
+  ú: '[úu]',
+  ü: '[üu]',
+  ç: '[çc]',
+};
+
+/**
+ * Padrão de comparação a partir de formas escritas COM a ortografia correta.
+ * Variante legítima declarada: a OMISSÃO de um acento da forma permitida
+ * (`nao`, `ta bom`, `numero`), comum em transcrição e digitação. Acento
+ * trocado ou acrescentado nunca casa (`pôde` ≠ `pode`, `dá lista` ≠ `da lista`).
+ * As formas não podem ter letra acentuada dentro de classe `[...]`.
+ */
+export function lexical(source: string): string {
+  return [...source].map((char) => OMITTABLE[char] ?? char).join('');
+}
+
+/** Forma(s) como palavras inteiras dentro da cláusula. */
+export function wordsPattern(source: string): RegExp {
+  return new RegExp(`(?:^| )(?:${lexical(source)})(?= |$)`, 'u');
+}
+
+/** A cláusula inteira é exatamente uma das formas. */
+export function wholePattern(forms: readonly string[]): RegExp {
+  return new RegExp(`^(?:${forms.map(lexical).join('|')})$`, 'u');
 }
 
 export interface ReplySentence {
@@ -79,61 +117,38 @@ export interface ReplySentence {
   readonly normalized: string;
   /** A frase termina em interrogação. */
   readonly question: boolean;
-  /** Conteúdo citado, ou fala com aspa sem par: nunca é pedido. */
+  /** Conteúdo citado, ou fala com aspa sem par: nunca é pedido nem trecho independente. */
   readonly quoted: boolean;
-  /** As OUTRAS cláusulas da mesma frase (para restrições posteriores ou anteriores). */
-  readonly siblings: readonly string[];
 }
 
-/** Frase: termina em pontuação forte. `;` e conectivos de contraste só separam cláusulas. */
+/** Frase: termina em pontuação forte; dentro dela, `;` e conectivos de contraste separam cláusulas. */
 const SENTENCE = /[^.!?¿؟⸮‽…\n]+[.!?¿؟⸮‽…\n]*/gu;
-const CLAUSE = /;|\b(?:mas|porem|so que|entretanto|contudo)\b/;
-const STARTS_WITH_CONTRAST = /^(?:mas|porem|so que|entretanto|contudo)\b/;
+const CONTRAST = wordsPattern('mas|porém|só que|entretanto|contudo');
+const CLAUSE = new RegExp(CONTRAST.source, 'gu');
 
-interface Group {
-  readonly clauses: string[];
-  question: boolean;
-}
-
-/** Frases; uma frase que começa por contraste ("Mas só se…") continua a anterior (I3). */
-function groupSentences(own: string): Group[] {
-  const groups: Group[] = [];
-  for (const sentence of own.match(SENTENCE) ?? []) {
-    const clauses = sentence
+function clausesOf(text: string, quoted: boolean): ReplySentence[] {
+  return (text.match(SENTENCE) ?? []).flatMap((sentence) => {
+    const question = QUESTION.test(sentence);
+    return sentence
       .split(';')
       .flatMap((part) => toMatchForm(part).split(CLAUSE))
       .map((part) => part.trim())
-      .filter((part) => part.length > 0);
-    const previous = groups[groups.length - 1];
-    if (previous && clauses.length > 0 && STARTS_WITH_CONTRAST.test(toMatchForm(sentence))) {
-      previous.clauses.push(...clauses);
-      previous.question ||= QUESTION.test(sentence);
-    } else groups.push({ clauses, question: QUESTION.test(sentence) });
-  }
-  return groups;
-}
-
-function clausesOf(group: Group, quoted: boolean): ReplySentence[] {
-  return group.clauses.map((normalized, index) => ({
-    normalized,
-    question: group.question,
-    quoted,
-    siblings: group.clauses.filter((_, other) => other !== index),
-  }));
+      .filter((part) => part.length > 0)
+      .map((normalized) => ({ normalized, question, quoted }));
+  });
 }
 
 /**
- * Cláusulas da fala (3ª auditoria A2): o escopo das citações é resolvido ANTES
- * da segmentação (`scopeQuotes`); o conteúdo citado vira cláusulas `quoted`
- * (só menção). Aspa sem par marca TODAS as cláusulas como `quoted`.
- * Invisíveis são removidos aqui; a decisão de aceite já os considerou.
+ * TODAS as cláusulas da fala, sem descartar nenhuma (4ª auditoria A2): o
+ * escopo das citações é resolvido antes da segmentação (`scopeQuotes`); o
+ * conteúdo citado vira cláusulas `quoted`; aspa sem par marca todas como
+ * `quoted`. Quem decide é a fala inteira (`lead-reply-intent.ts`).
  */
 export function splitSentences(text: string): ReplySentence[] {
   const visible = text.replace(new RegExp(INVISIBLE_OR_CONTROL.source, 'gu'), '');
   const scope = scopeQuotes(visible);
-  const own = groupSentences(scope.own).flatMap((group) => clausesOf(group, scope.unbalanced));
-  const cited = scope.quoted.flatMap((quote) =>
-    groupSentences(quote).flatMap((group) => clausesOf(group, true)),
-  );
-  return [...own, ...cited];
+  return [
+    ...clausesOf(scope.own, scope.unbalanced),
+    ...scope.quoted.flatMap((quote) => clausesOf(quote, true)),
+  ];
 }
