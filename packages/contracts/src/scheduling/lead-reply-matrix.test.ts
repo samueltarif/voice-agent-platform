@@ -266,10 +266,10 @@ describe('A2 matrix — questions, hypotheses, intentions, negations, reports an
         'O que significa descadastrar?',
         'Eu não pedi para ser descadastrado.',
         'Não é para tirar meu número.',
+        'Hoje não posso.',
       ],
       'AMBIGUOUS',
       NOT_CONSENT_FLOW,
     );
-    expect(classifyLeadReply('Hoje não posso.').kind).toBe('AMBIGUOUS');
   });
 });

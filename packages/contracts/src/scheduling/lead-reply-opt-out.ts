@@ -15,7 +15,13 @@ import type { ReplySentence } from './lead-reply-text.js';
  * - depois dela, SÓ complementos permitidos ("da lista", "por favor"…);
  *   "caso precise", "amanhã", "se…" ficam fora;
  * - em pergunta, um modal de pedido ("pode", "poderia", "tem como"…);
- * - nenhuma aspa na frase (citação nunca é pedido).
+ * - fora de citação (escopo resolvido antes da segmentação, ver
+ *   `lead-reply-quotes.ts`) e sem aspa sem par na fala;
+ * - nenhuma OUTRA cláusula da mesma frase com marcador de restrição
+ *   ("mas só se eu confirmar amanhã", "mas talvez…", "mas depende…"): a
+ *   segmentação não pode descartar a condição (3ª auditoria, I3). Negação ou
+ *   contraste sozinhos NÃO bloqueiam ("Não precisa confirmar, mas não me
+ *   ligue mais" continua pedido).
  * Menções não reconhecidas como pedido viram esclarecimento, nunca aceite.
  */
 
@@ -118,6 +124,10 @@ const PREFIX_OK = sequenceOf(LEAD_INS);
 const TAIL_OK = sequenceOf(TAILS);
 const MODAL = new RegExp(`(?:^| )(?:${MODALS.join('|')})(?: |$)`);
 
+/** Condição, exceção, hipótese ou dependência que limita o que foi pedido. */
+const RESTRICTION =
+  /(?:^| )(?:se|caso|so|somente|apenas|desde que|a menos que|exceto|salvo|quando|talvez|depende|dependendo)(?: |$)/;
+
 function isCurrentRequest(clause: ReplySentence, form: RegExp): boolean {
   const match = form.exec(clause.normalized);
   if (!match) return false;
@@ -128,7 +138,8 @@ function isCurrentRequest(clause: ReplySentence, form: RegExp): boolean {
 }
 
 export function isOptOutRequest(clause: ReplySentence): boolean {
-  return !clause.quoted && FORMS.some((form) => isCurrentRequest(clause, form));
+  if (clause.quoted || clause.siblings.some((other) => RESTRICTION.test(other))) return false;
+  return FORMS.some((form) => isCurrentRequest(clause, form));
 }
 
 /** Qualquer referência a opt-out que NÃO é pedido atual: leva a esclarecimento. */

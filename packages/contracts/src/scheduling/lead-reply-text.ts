@@ -1,3 +1,5 @@
+import { scopeQuotes } from './lead-reply-quotes.js';
+
 /**
  * E2 PR 1 (DEC-075, 2ª auditoria A1/A2) — preparação do texto da fala final.
  *
@@ -20,8 +22,7 @@ const INVISIBLE_OR_CONTROL = /[\p{Cf}\p{Co}\p{Cn}]|(?![\t\n\r])\p{Cc}/u;
 /** Gramática de permissão do aceite: `Sim`, `Sim, pode marcar.`, `Isso mesmo!`. */
 const PLAIN_SURFACE = /^[\p{L}\p{N}]+(?:,? [\p{L}\p{N}]+)*(?: ?[.!]+)?$/u;
 
-/** Aspas e delimitadores de citação (inclui apóstrofos e iniciais/finais Unicode). */
-export const QUOTATION = /["'`´“”„‟‘’‚‛«»‹›「」『』〝〞〟]|\p{Pi}|\p{Pf}/u;
+export { QUOTATION } from './lead-reply-quotes.js';
 
 /** Interrogação em qualquer forma conhecida (após NFKC). */
 export const QUESTION = /[?¿؟⸮‽]/u;
@@ -45,15 +46,32 @@ export function prepareReply(raw: string): PreparedReply {
   };
 }
 
-/** Forma de comparação: minúsculas, sem acentos, sem pontuação, espaços únicos. */
+/**
+ * Palavra lexical: letra ou dígito, seguida de letras, dígitos e marcas
+ * combinantes; `_` é o marcador de citação retirada (`scopeQuotes`) e também
+ * conta como palavra, para que uma citação nunca desapareça da cláusula.
+ */
+const LEXICAL = /_|[\p{L}\p{N}][\p{L}\p{N}\p{M}]*/gu;
+/** Alfabeto do português: ASCII e as letras acentuadas da ortografia. */
+const PORTUGUESE_WORD = /^[a-z0-9áàâãéêíóôõúüç]+$/u;
+/** Marcador de palavra FORA do alfabeto: nunca casa com forma conhecida. */
+export const FOREIGN_WORD = '_';
+
+function matchWord(word: string): string {
+  const lower = word.normalize('NFC').toLowerCase();
+  if (!PORTUGUESE_WORD.test(lower)) return FOREIGN_WORD;
+  return lower.normalize('NFD').replace(/\p{M}/gu, '');
+}
+
+/**
+ * Forma de comparação (3ª auditoria A1, invariante I1): uma palavra de saída
+ * por palavra lexical de entrada. Acentos do português são removidos; qualquer
+ * palavra com outro alfabeto, diacrítico estranho ao português ou marca
+ * combinante sobrando vira `_` — nunca desaparece. Pontuação e símbolos não
+ * são palavras (já tiram o texto da gramática do aceite em `prepareReply`).
+ */
 export function toMatchForm(text: string): string {
-  return text
-    .normalize('NFD')
-    .replace(/\p{M}/gu, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9 ]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  return (text.match(LEXICAL) ?? []).map(matchWord).join(' ');
 }
 
 export interface ReplySentence {
@@ -61,28 +79,61 @@ export interface ReplySentence {
   readonly normalized: string;
   /** A frase termina em interrogação. */
   readonly question: boolean;
-  /** A frase contém qualquer aspa: o que estiver nela é citação, nunca pedido. */
+  /** Conteúdo citado, ou fala com aspa sem par: nunca é pedido. */
   readonly quoted: boolean;
+  /** As OUTRAS cláusulas da mesma frase (para restrições posteriores ou anteriores). */
+  readonly siblings: readonly string[];
 }
 
-const SENTENCE = /[^.!?¿؟⸮‽;…\n]+[.!?¿؟⸮‽;…\n]*/gu;
-/** Só conectivos de CONTRASTE separam cláusulas; vírgula NÃO é fronteira. */
-const CONTRAST = /\b(?:mas|porem|so que|entretanto|contudo)\b/;
+/** Frase: termina em pontuação forte. `;` e conectivos de contraste só separam cláusulas. */
+const SENTENCE = /[^.!?¿؟⸮‽…\n]+[.!?¿؟⸮‽…\n]*/gu;
+const CLAUSE = /;|\b(?:mas|porem|so que|entretanto|contudo)\b/;
+const STARTS_WITH_CONTRAST = /^(?:mas|porem|so que|entretanto|contudo)\b/;
+
+interface Group {
+  readonly clauses: string[];
+  question: boolean;
+}
+
+/** Frases; uma frase que começa por contraste ("Mas só se…") continua a anterior (I3). */
+function groupSentences(own: string): Group[] {
+  const groups: Group[] = [];
+  for (const sentence of own.match(SENTENCE) ?? []) {
+    const clauses = sentence
+      .split(';')
+      .flatMap((part) => toMatchForm(part).split(CLAUSE))
+      .map((part) => part.trim())
+      .filter((part) => part.length > 0);
+    const previous = groups[groups.length - 1];
+    if (previous && clauses.length > 0 && STARTS_WITH_CONTRAST.test(toMatchForm(sentence))) {
+      previous.clauses.push(...clauses);
+      previous.question ||= QUESTION.test(sentence);
+    } else groups.push({ clauses, question: QUESTION.test(sentence) });
+  }
+  return groups;
+}
+
+function clausesOf(group: Group, quoted: boolean): ReplySentence[] {
+  return group.clauses.map((normalized, index) => ({
+    normalized,
+    question: group.question,
+    quoted,
+    siblings: group.clauses.filter((_, other) => other !== index),
+  }));
+}
 
 /**
- * Frases (por pontuação terminal) e, dentro delas, cláusulas separadas só por
- * conectivo de contraste. Invisíveis são removidos aqui (para o opt-out, que
- * é protetivo); a decisão de aceite já os considerou em `prepareReply`.
+ * Cláusulas da fala (3ª auditoria A2): o escopo das citações é resolvido ANTES
+ * da segmentação (`scopeQuotes`); o conteúdo citado vira cláusulas `quoted`
+ * (só menção). Aspa sem par marca TODAS as cláusulas como `quoted`.
+ * Invisíveis são removidos aqui; a decisão de aceite já os considerou.
  */
 export function splitSentences(text: string): ReplySentence[] {
   const visible = text.replace(new RegExp(INVISIBLE_OR_CONTROL.source, 'gu'), '');
-  return (visible.match(SENTENCE) ?? []).flatMap((sentence) => {
-    const question = QUESTION.test(sentence);
-    const quoted = QUOTATION.test(sentence);
-    return toMatchForm(sentence)
-      .split(CONTRAST)
-      .map((part) => part.trim())
-      .filter((part) => part.length > 0)
-      .map((normalized) => ({ normalized, question, quoted }));
-  });
+  const scope = scopeQuotes(visible);
+  const own = groupSentences(scope.own).flatMap((group) => clausesOf(group, scope.unbalanced));
+  const cited = scope.quoted.flatMap((quote) =>
+    groupSentences(quote).flatMap((group) => clausesOf(group, true)),
+  );
+  return [...own, ...cited];
 }
