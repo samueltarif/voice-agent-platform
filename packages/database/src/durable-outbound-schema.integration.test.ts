@@ -29,7 +29,7 @@ async function failureOf(work: Promise<unknown>) {
 }
 
 describe('008-OF2 migration on a brand-new disposable database', () => {
-  it('applies all migrations (0000–0015) from empty and is idempotent on re-run', async () => {
+  it('applies all migrations (0000–0016) from empty and is idempotent on re-run', async () => {
     // `tdb` foi criado vazio e migrado do zero; a nova execução prova idempotência.
     await runMigrations({ connectionString: tdb.url });
     const fresh = tdb;
@@ -52,8 +52,8 @@ describe('008-OF2 migration on a brand-new disposable database', () => {
       const applied = await fresh.db.execute<{ total: string }>(
         sql`SELECT count(*)::text AS total FROM drizzle.__drizzle_migrations`,
       );
-      // TEST_CHANGE_REASON (E2 PR 1, ASSERTION_EQUIVALENT): 0015 aditiva; 0000–0015 = 16.
-      expect(applied.rows[0]?.total).toBe('16');
+      // TEST_CHANGE_REASON (E2 PR 2, ASSERTION_EQUIVALENT): 0016 aditiva; 0000–0016 = 17.
+      expect(applied.rows[0]?.total).toBe('17');
       const audiences = await fresh.db.execute<{ name: string }>(sql`
         SELECT tablename AS name FROM pg_tables
           WHERE schemaname = 'public' AND tablename = 'outbound_campaign_audiences'`);
