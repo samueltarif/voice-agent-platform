@@ -7,7 +7,7 @@ import {
 } from './lead-status.js';
 
 /**
- * 2ª auditoria E1 — matriz COMPLETA (6 × 6 × 4 = 144 células) das transições
+ * 2ª auditoria E1 — matriz COMPLETA (6 × 6 × 5 = 180 células; E2 PR 3 acrescentou `CALL_OUTCOME`) das transições
  * comerciais sob a regra de opt-out, escrita de forma independente da
  * implementação. Colunas na ordem de `LEAD_STATUSES`:
  * NEW, CONTACTED, QUALIFIED, MEETING_SCHEDULED, NOT_INTERESTED, DO_NOT_CALL.
@@ -48,6 +48,16 @@ const MATRIX: Record<Exclude<LeadStatusChangeOrigin, 'CREATED'>, readonly string
     'T T O S T O', // volta a QUALIFIED, ou a DO_NOT_CALL com telefone suprimido
     'T T T T S T',
     'T T T T T S',
+  ],
+  // TEST_CHANGE_REASON (E2 PR 3, D5): nova origem `CALL_OUTCOME` — linhas acrescentadas;
+  // as 144 células anteriores não mudaram. Resultado do agente só avança entre abertos.
+  CALL_OUTCOME: [
+    'S O O T O T', // NEW
+    'T S O T O T', // CONTACTED: nunca volta a NEW
+    'T T S T O T', // QUALIFIED: não rebaixa para CONTACTED
+    'P P P S P P', // MEETING_SCHEDULED: reunião preservada
+    'T T O T S T', // NOT_INTERESTED: pode ser requalificado na conversa
+    'D D D D D S', // DO_NOT_CALL: nunca reaberto pelo agente
   ],
 };
 

@@ -31,6 +31,8 @@ export const LEAD_STATUS_CHANGE_ORIGINS = [
   'OPT_OUT',
   'MEETING_BOOKED',
   'MEETING_CANCELED',
+  // E2 PR 3 (DEC-075, D5): resultado comercial registrado pelo agente numa chamada.
+  'CALL_OUTCOME',
 ] as const;
 export type LeadStatusChangeOrigin = (typeof LEAD_STATUS_CHANGE_ORIGINS)[number];
 
@@ -98,11 +100,26 @@ function evaluateCancellation(from: LeadStatus, to: LeadStatus): LeadStatusChang
   return allowed ? OK : block('TRANSITION_NOT_ALLOWED');
 }
 
+/**
+ * D5 — resultado do agente: só avança entre status ABERTOS e nunca sai de
+ * `DO_NOT_CALL` nem entra/sai de `MEETING_SCHEDULED` (reserva e cancelamento
+ * são os únicos caminhos) nem leva a `DO_NOT_CALL` (só o opt-out). `CONTACTED`
+ * só a partir de `NEW` (não rebaixa uma qualificação). Sem resposta ou falha
+ * técnica não são resultados do agente (nunca viram `NOT_INTERESTED`).
+ */
+function evaluateCallOutcome(from: LeadStatus, to: LeadStatus): LeadStatusChangeVerdict {
+  if (from === 'DO_NOT_CALL') return block('LEAD_DO_NOT_CALL');
+  if (from === 'MEETING_SCHEDULED') return block('ACTIVE_MEETING_PRESERVED');
+  if (to === 'CONTACTED') return from === 'NEW' ? OK : block('TRANSITION_NOT_ALLOWED');
+  return to === 'QUALIFIED' || to === 'NOT_INTERESTED' ? OK : block('TRANSITION_NOT_ALLOWED');
+}
+
 const EVALUATORS = {
   MANUAL: evaluateManual,
   OPT_OUT: evaluateOptOut,
   MEETING_BOOKED: evaluateBooking,
   MEETING_CANCELED: evaluateCancellation,
+  CALL_OUTCOME: evaluateCallOutcome,
 } as const;
 
 /**

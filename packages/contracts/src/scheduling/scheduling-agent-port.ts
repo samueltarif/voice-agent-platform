@@ -112,6 +112,12 @@ export type SchedulingSpeechEvent =
       readonly listRevision: number;
       readonly offerId?: string | undefined;
     }
+  | {
+      /** E2 PR 3: pergunta de esclarecimento de um POSSÍVEL opt-out (sim/não). */
+      readonly type: 'SPEECH_STARTED';
+      readonly generationId: string;
+      readonly purpose: 'OPT_OUT_QUESTION';
+    }
   | { readonly type: 'SPEECH_COMPLETED'; readonly generationId: string }
   | { readonly type: 'SPEECH_INTERRUPTED'; readonly generationId: string };
 

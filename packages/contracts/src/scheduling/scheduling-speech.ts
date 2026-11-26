@@ -54,8 +54,10 @@ export const SCHEDULING_SPEECH = Object.freeze({
   UNKNOWN:
     'Ainda estou verificando a marcação da reunião e não posso confirmar agora. Vou conferir antes de seguir.',
   CLARIFY: 'Desculpe, não entendi. Pode repetir, por favor?',
+  // Pergunta SEM dupla negação: "sim" = parar de ligar; "não" = continuar.
   OPT_OUT_CLARIFICATION:
-    'Antes de continuar: você prefere não receber mais ligações nossas? Pode responder sim ou não.',
+    'Antes de continuar: você quer que a gente pare de ligar para você? Responda sim ou não.',
+  OPT_OUT_RECORDED: 'Tudo bem. Registrei o seu pedido e não vamos mais ligar para você.',
 } as const);
 
 const REFUSAL_SPEECH: Readonly<Record<SchedulingRefusal, string>> = {
