@@ -1,6 +1,6 @@
 # Voice Agent Platform — Estado vivo do projeto
 
-> **Última verificação no repositório:** 26/11/2026 (integração da E0/E1; `origin/main` `e0cded7d1279104e07928a896b495e0c2da1ff36`); antes, 26/11/2026 (autorização condicionada de merge; `origin/main` `755aa37` antes da integração); 25/11/2026 (registro da E0/E1, `origin/main` `755aa37`); antes, 23/11/2026, por volta das 11h45 (horário de Brasília), contra a `origin/main` `ccfa46f5d96321f78c5193de9f8acf93f333704f` (merge da #173, B2c) e a API de PRs do GitHub. Verificações anteriores: 18/11/2026 às 12h30 (`4806def`) e 08h05 (`e36e65a`); 17/11/2026 às 14h10, 14h35 e 17h00.
+> **Última verificação no repositório:** 26/11/2026 (merge da #179, registro da E0/E1: `origin/main` `05d0252f2c0d56ac45abdc5d80338f4f3b75db18`, só `docs/` em relação a `e0cded7`; início da E2 PR 1); antes, 26/11/2026 (integração da E0/E1; `origin/main` `e0cded7d1279104e07928a896b495e0c2da1ff36`); antes, 26/11/2026 (autorização condicionada de merge; `origin/main` `755aa37` antes da integração); 25/11/2026 (registro da E0/E1, `origin/main` `755aa37`); antes, 23/11/2026, por volta das 11h45 (horário de Brasília), contra a `origin/main` `ccfa46f5d96321f78c5193de9f8acf93f333704f` (merge da #173, B2c) e a API de PRs do GitHub. Verificações anteriores: 18/11/2026 às 12h30 (`4806def`) e 08h05 (`e36e65a`); 17/11/2026 às 14h10, 14h35 e 17h00.
 > Este é um documento de acompanhamento e **não prova o estado em tempo real**. Antes de afirmar status atual, confira Git, PRs e decisões. Em caso de divergência, Git, código, testes observados e `docs/DECISIONS_LOG.md` prevalecem.
 > **Regra de leitura:** distinga sempre INTEGRADO, TESTADO, AUTORIZADO, PLANEJADO, PENDENTE e NÃO VALIDADO. Um plano não é código entregue, e um gate verde não é produto pronto.
 
@@ -386,7 +386,7 @@ Componentes de campanha e billing existem no código, mas a operação comercial
 | :--- | :--- | :--- |
 | **E0** | Registro da ligação WSS, decisões, lacunas da Millis, estratégia de segurança e diagnóstico financeiro (DEC-073) | **INTEGRADA em 26/11/2026** (PR #178, merge `e0cded7`; só documentação) |
 | **E1** | Leads, agendas, disponibilidade, ofertas e reserva transacional de reuniões, offline (DEC-074) | **INTEGRADA e TESTADA em 26/11/2026** (PR #177, HEAD `7f18423`, merge `1f30bc4`; gate Linux pós-merge na main `e0cded7`: 2.917 aprovados / 45 ignorados / 0 falhas; 1ª auditoria: BLOQUEADA, 10 achados corrigidos; 2ª: 4 bloqueantes corrigidos; 3ª: aprovada; gates Linux e Windows: 2.917 aprovados / 45 ignorados / 0 falhas no mesmo SHA — Windows com `VITEST_MAX_WORKERS=1` após 1ª execução com 7 timeouts fora da E1) |
-| E2 | Ferramentas do agente (consultar e oferecer horários, marcar com confirmação, resultado do lead, opt-out) | NÃO autorizada (só a direção arquitetural foi aprovada; plano técnico a apresentar após o merge da E1) |
+| **E2** | Ferramentas do agente (consultar e oferecer horários, marcar com confirmação, resultado do lead, opt-out), em 3 PRs (DEC-075) | **PR 1 EM REVISÃO** (contexto, política D1, autorização, máquina de estados; sem ferramentas operacionais); PR 2 e PR 3 NÃO autorizadas |
 | E3 | Telas (agenda, reuniões, lead, ligação de teste) | NÃO autorizada |
 | E4 | Adaptadores Twilio WSS e Millis (agente temporário, webhooks) | NÃO autorizada |
 | E5 | Montagem supervisionada e gateway HTTPS mínimo | NÃO autorizada |

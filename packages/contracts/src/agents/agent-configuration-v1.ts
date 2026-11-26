@@ -93,6 +93,18 @@ export const agentKnowledgeConfigurationV1Schema = z
   })
   .strict();
 
+/**
+ * E2 PR 1 (DEC-075, D1): agenda configurada NA VERSÃO publicada (2ª na
+ * prioridade, depois da campanha). AUSENTE em todas as versões existentes —
+ * snapshots antigos continuam válidos e sem agenda. O id é só configuração:
+ * a resolução no servidor bloqueia agenda inexistente ou de outro tenant.
+ */
+export const agentSchedulingConfigurationV1Schema = z
+  .object({
+    calendarId: z.string().uuid(),
+  })
+  .strict();
+
 export const agentConfigurationSnapshotV1Schema = z
   .object({
     persona: agentPersonaV1Schema,
@@ -102,6 +114,7 @@ export const agentConfigurationSnapshotV1Schema = z
     examples: z.array(agentExampleV1Schema).optional(),
     tools: agentToolsV1Schema.optional(),
     knowledge: agentKnowledgeConfigurationV1Schema.optional(),
+    scheduling: agentSchedulingConfigurationV1Schema.optional(),
   })
   .strict();
 
@@ -113,3 +126,4 @@ export type AgentPlaybookV1 = z.infer<typeof agentPlaybookV1Schema>;
 export type AgentExampleV1 = z.infer<typeof agentExampleV1Schema>;
 export type AgentToolsV1 = z.infer<typeof agentToolsV1Schema>;
 export type AgentKnowledgeConfigurationV1 = z.infer<typeof agentKnowledgeConfigurationV1Schema>;
+export type AgentSchedulingConfigurationV1 = z.infer<typeof agentSchedulingConfigurationV1Schema>;

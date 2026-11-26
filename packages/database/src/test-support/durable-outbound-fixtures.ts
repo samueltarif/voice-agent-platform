@@ -20,7 +20,7 @@ export interface DurableOutboundFixture {
   readonly tenantB: TenantFixture;
 }
 
-async function createPublishedAgent(db: DatabaseInstance, orgId: string, userId: string) {
+export async function createPublishedAgent(db: DatabaseInstance, orgId: string, userId: string) {
   const [agent] = await db
     .insert(agents)
     .values({

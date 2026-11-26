@@ -14,6 +14,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { organizations } from './organizations.js';
 import { agents, agentVersions } from './agents.js';
+import { schedulingCalendars } from './scheduling-calendars.js';
 
 export const outboundCampaignStatusEnum = pgEnum('outbound_campaign_status', [
   'DRAFT',
@@ -49,6 +50,11 @@ export const outboundCampaigns = pgTable(
     name: text('name').notNull(),
     description: text('description'),
     status: outboundCampaignStatusEnum('status').notNull().default('DRAFT'),
+    /**
+     * E2 PR 1 (D1): agenda da campanha (1ª na prioridade). FK composta: só
+     * agenda do MESMO tenant; RESTRICT impede excluir agenda configurada.
+     */
+    schedulingCalendarId: uuid('scheduling_calendar_id'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true })
       .defaultNow()
@@ -61,6 +67,11 @@ export const outboundCampaigns = pgTable(
       columns: [table.agentVersionId, table.agentId, table.organizationId],
       foreignColumns: [agentVersions.id, agentVersions.agentId, agentVersions.organizationId],
       name: 'outbound_campaigns_agent_version_org_fk',
+    }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.schedulingCalendarId, table.organizationId],
+      foreignColumns: [schedulingCalendars.id, schedulingCalendars.organizationId],
+      name: 'outbound_campaigns_scheduling_calendar_org_fk',
     }).onDelete('restrict'),
     index('outbound_campaigns_org_idx').on(table.organizationId),
     index('outbound_campaigns_org_status_idx').on(table.organizationId, table.status),

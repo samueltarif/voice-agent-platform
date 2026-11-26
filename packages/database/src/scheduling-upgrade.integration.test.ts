@@ -13,7 +13,7 @@ import { DrizzleMeetingBookingService } from './repositories/meeting-booking-ser
 import { contacts } from './schema/contacts.js';
 import { outboundCallJobs } from './schema/outbound.js';
 import { createDisposableTestDatabase } from './test-support/disposable-test-database.js';
-import { createDurableOutboundFixture } from './test-support/durable-outbound-fixtures.js';
+import { insertLegacyOutboundTenant } from './test-support/legacy-schema-fixtures.js';
 import {
   createSyntheticContact,
   createWeekdayCalendar,
@@ -60,7 +60,11 @@ describe('E1 audit: upgrade from migration 0013 to 0014 with existing data', () 
   it('keeps existing tenants, contacts and jobs and enables leads and meetings', async () => {
     const before = await tdb.db.execute(sql`SELECT to_regclass('public.meetings') AS t`);
     expect(before.rows[0]?.t).toBeNull();
-    const fx = await createDurableOutboundFixture(tdb.db);
+    // TEST_CHANGE_REASON (E2 PR 1, FIXTURE_ONLY): o banco pré-upgrade é populado em SQL
+    // explícito; o ORM atual lista colunas da 0015 que não existem na 0013. Asserções mantidas.
+    const tenantA = await insertLegacyOutboundTenant(tdb.db, { tag: 'a' });
+    await insertLegacyOutboundTenant(tdb.db, { tag: 'b' });
+    const fx = { tenantA };
     const contact = await createSyntheticContact(tdb.db, fx.tenantA.organizationId);
     const counts = async () =>
       (
@@ -76,11 +80,19 @@ describe('E1 audit: upgrade from migration 0013 to 0014 with existing data', () 
     });
     const snapshot = await rows();
     expect(snapshot.jobs.length).toBeGreaterThan(0);
+    const legacyCampaigns = sql`SELECT id, organization_id, agent_id, agent_version_id, name, status FROM outbound_campaigns ORDER BY id`;
+    const campaignsBefore = (await tdb.db.execute(legacyCampaigns)).rows;
 
     await runMigrations({ connectionString: tdb.url });
 
     expect(await counts()).toEqual(populated);
     expect(await rows()).toEqual(snapshot);
+    // E2 PR 1 (0015): campanhas preservadas e SEM agenda configurada após o upgrade.
+    expect((await tdb.db.execute(legacyCampaigns)).rows).toEqual(campaignsBefore);
+    const configured = await tdb.db.execute(
+      sql`SELECT count(*)::int AS n FROM outbound_campaigns WHERE scheduling_calendar_id IS NOT NULL`,
+    );
+    expect(configured.rows[0]?.n).toBe(0);
     const [kept] = await tdb.db.select().from(contacts).where(eq(contacts.id, contact.id));
     expect(kept!.phoneE164).toBe(contact.phoneE164);
     const created = await new DrizzleLeadRepository(tdb.db).createLeadForContact({
@@ -107,6 +119,7 @@ describe('E1 audit: upgrade from migration 0013 to 0014 with existing data', () 
     const applied = await tdb.db.execute(
       sql`SELECT count(*)::int AS n FROM drizzle.__drizzle_migrations`,
     );
-    expect(applied.rows[0]?.n).toBe(15);
+    // TEST_CHANGE_REASON (E2 PR 1, ASSERTION_EQUIVALENT): a 0015 aditiva entra no upgrade; 0000–0015 = 16.
+    expect(applied.rows[0]?.n).toBe(16);
   });
 });

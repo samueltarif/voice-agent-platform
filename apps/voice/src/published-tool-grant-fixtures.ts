@@ -14,6 +14,8 @@ export interface TestToolGrantInput {
   readonly organizationId: string;
   readonly snapshot: AgentConfigurationSnapshotV1;
   readonly agentVersionId?: string;
+  /** Agente real de um banco descartável (padrão: id sintético fixo). */
+  readonly agentId?: string;
 }
 
 /**
@@ -29,7 +31,7 @@ export async function issueTestToolGrantBinding(
   });
   const bootstrap = await gateway.prepareCall({
     organizationId: input.organizationId,
-    agentId: GRANT_FIXTURE_IDS.agentId,
+    agentId: input.agentId ?? GRANT_FIXTURE_IDS.agentId,
     agentVersionId: input.agentVersionId ?? GRANT_FIXTURE_IDS.agentVersionId,
     agentSnapshot: input.snapshot,
     agentVersionStatus: 'PUBLISHED',
