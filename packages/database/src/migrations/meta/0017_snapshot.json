@@ -1,5 +1,5 @@
 {
-  "id": "6a8a779e-f9f5-4cb6-adb8-f624d869669d",
+  "id": "ccd4cc0c-dc86-4cd7-98a1-f0f253ba66a2",
   "prevId": "3310c713-6a7f-4446-8060-e3461f5c0c0a",
   "version": "7",
   "dialect": "postgresql",
@@ -5960,6 +5960,25 @@
           "primaryKey": false,
           "notNull": false
         },
+        "lead_turn_id": {
+          "name": "lead_turn_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_final_turn_id": {
+          "name": "last_final_turn_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lead_final_utterances": {
+          "name": "lead_final_utterances",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
         "opt_out_pending": {
           "name": "opt_out_pending",
           "type": "boolean",
@@ -6045,7 +6064,15 @@
       "checkConstraints": {
         "scheduling_protocol_states_opt_out_source_chk": {
           "name": "scheduling_protocol_states_opt_out_source_chk",
-          "value": "(\"scheduling_protocol_states\".\"opt_out_recorded_at\" IS NULL AND \"scheduling_protocol_states\".\"opt_out_source\" IS NULL)\n        OR (\"scheduling_protocol_states\".\"opt_out_recorded_at\" IS NOT NULL\n          AND \"scheduling_protocol_states\".\"opt_out_source\" IN ('LEAD_UTTERANCE', 'CLARIFICATION', 'AGENT_TOOL'))"
+          "value": "(\"scheduling_protocol_states\".\"opt_out_recorded_at\" IS NULL AND \"scheduling_protocol_states\".\"opt_out_source\" IS NULL)\n        OR (\"scheduling_protocol_states\".\"opt_out_recorded_at\" IS NOT NULL AND \"scheduling_protocol_states\".\"opt_out_source\" IS NOT NULL\n          AND \"scheduling_protocol_states\".\"opt_out_source\" IN ('LEAD_UTTERANCE', 'CLARIFICATION', 'RECOVERY'))"
+        },
+        "scheduling_protocol_states_lead_turn_chk": {
+          "name": "scheduling_protocol_states_lead_turn_chk",
+          "value": "(\"scheduling_protocol_states\".\"lead_speech_started_seq\" IS NULL AND \"scheduling_protocol_states\".\"lead_turn_id\" IS NULL)\n        OR (\"scheduling_protocol_states\".\"lead_speech_started_seq\" IS NOT NULL AND \"scheduling_protocol_states\".\"lead_turn_id\" IS NOT NULL)"
+        },
+        "scheduling_protocol_states_finals_chk": {
+          "name": "scheduling_protocol_states_finals_chk",
+          "value": "\"scheduling_protocol_states\".\"lead_final_utterances\" >= 0"
         },
         "scheduling_protocol_states_seq_chk": {
           "name": "scheduling_protocol_states_seq_chk",
