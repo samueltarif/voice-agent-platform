@@ -1,4 +1,4 @@
-import { and, eq, isNull, lt } from 'drizzle-orm';
+import { and, eq, isNotNull, isNull, lt, or } from 'drizzle-orm';
 import { postCallReconciliations } from '../schema/post-call-reconciliations.js';
 import { decideIntent, lockPendingIntent } from './booking-intent-store.js';
 import type { EffectsDeps } from './post-call-effects.js';
@@ -6,9 +6,11 @@ import { lockReconciliation, updateReconciliation } from './post-call-reconcilia
 
 /**
  * E2 simplificada (DEC-077) — relatório AUSENTE ou ATRASADO e decisão humana.
- * - `expireOverdue`: sessões sem relatório além do prazo vão para revisão
- *   (`REPORT_MISSING`); a intenção pendente também (nunca vira reunião). O
- *   telefone continua bloqueado até a decisão humana.
+ * - `expireOverdue`: sessões sem relatório além do prazo (`REPORT_MISSING`)
+ *   ou com relatório registrado cujo processamento não terminou
+ *   (`REPORT_PROCESSING_INCOMPLETE`) vão para revisão; a intenção pendente
+ *   também (nunca vira reunião). O telefone continua bloqueado até a decisão
+ *   humana.
  * - `resolveReview`: um usuário registra a decisão; só então o telefone é
  *   liberado. Não reserva nem desfaz nada (reserva manual = E1 `bookMeeting`).
  */
@@ -36,8 +38,16 @@ export async function expireOverdue(
     .where(
       and(
         eq(postCallReconciliations.status, 'AWAITING_REPORT'),
-        isNull(postCallReconciliations.reportDigest),
-        lt(postCallReconciliations.createdAt, cutoff),
+        or(
+          and(
+            isNull(postCallReconciliations.reportDigest),
+            lt(postCallReconciliations.createdAt, cutoff),
+          ),
+          and(
+            isNotNull(postCallReconciliations.reportDigest),
+            lt(postCallReconciliations.reportReceivedAt, cutoff),
+          ),
+        ),
       ),
     );
   let expired = 0;
@@ -45,14 +55,11 @@ export async function expireOverdue(
     const done = await deps.db.transaction(async (tx) => {
       const pending = await lockPendingIntent(tx, key);
       const row = await lockReconciliation(tx, key);
-      if (!row || row.status !== 'AWAITING_REPORT' || row.reportDigest) return false;
-      const decision = {
-        status: 'NEEDS_REVIEW' as const,
-        reason: 'REPORT_MISSING',
-        now: deps.clock(),
-      };
+      if (!row || row.status !== 'AWAITING_REPORT') return false;
+      const reason = row.reportDigest ? 'REPORT_PROCESSING_INCOMPLETE' : 'REPORT_MISSING';
+      const decision = { status: 'NEEDS_REVIEW' as const, reason, now: deps.clock() };
       if (pending) await decideIntent(tx, pending, decision);
-      const reviewReasons = [...new Set([...row.reviewReasons, 'REPORT_MISSING'])];
+      const reviewReasons = [...new Set([...row.reviewReasons, reason])];
       await updateReconciliation(tx, key, { status: 'NEEDS_REVIEW', reviewReasons });
       return true;
     });

@@ -67,9 +67,17 @@ function stableJson(value: unknown): string {
 export const reportDigest = (report: PostCallReport) =>
   createHash('sha256').update(stableJson(report)).digest('hex');
 
-async function sessionPhone(tx: DatabaseExecutor, attempt: PostCallAttempt, sessionId: string) {
+type SessionPhone =
+  | { readonly phone: string; readonly reason: null }
+  | { readonly phone: null; readonly reason: 'SESSION_NOT_FOUND' | 'SESSION_ATTEMPT_MISMATCH' };
+
+async function sessionPhone(
+  tx: DatabaseExecutor,
+  attempt: PostCallAttempt,
+  sessionId: string,
+): Promise<SessionPhone> {
   const [session] = await tx
-    .select({ id: callSessions.id })
+    .select({ attemptId: callSessions.currentAttemptId })
     .from(callSessions)
     .where(
       and(eq(callSessions.id, sessionId), eq(callSessions.organizationId, attempt.organizationId)),
@@ -83,7 +91,12 @@ async function sessionPhone(tx: DatabaseExecutor, attempt: PostCallAttempt, sess
         eq(outboundCallJobs.organizationId, attempt.organizationId),
       ),
     );
-  return session && job ? job.phone : null;
+  if (!session || !job?.phone) return { phone: null, reason: 'SESSION_NOT_FOUND' };
+  // A sessão tem de estar vinculada a ESTA tentativa (o par vem do servidor, mas é revalidado).
+  if (session.attemptId !== attempt.attemptId) {
+    return { phone: null, reason: 'SESSION_ATTEMPT_MISMATCH' };
+  }
+  return { phone: job.phone, reason: null };
 }
 
 async function pendingOf(tx: DatabaseExecutor, intent: BookingIntentEntity | null) {
@@ -122,8 +135,9 @@ export function recordReport(
   const sessionId = attempt.callSessionId;
   if (!sessionId) return Promise.resolve(stop('REJECTED', 'NO_SESSION'));
   return db.transaction(async (tx): Promise<RecordStep> => {
-    const phoneE164 = await sessionPhone(tx, attempt, sessionId);
-    if (!phoneE164) return stop('REJECTED', 'SESSION_NOT_FOUND');
+    const resolved = await sessionPhone(tx, attempt, sessionId);
+    if (resolved.phone === null) return stop('REJECTED', resolved.reason);
+    const phoneE164 = resolved.phone;
     const leadId = await leadIdForPhone(tx, { organizationId: attempt.organizationId, phoneE164 });
     const binding = { ...attempt, sessionId };
     const key = { organizationId: attempt.organizationId, sessionId };

@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DrizzlePostCallReconciliationService } from './repositories/post-call-reconciliation-service.js';
 import { DrizzleSchedulingAgentService } from './repositories/scheduling-agent-service.js';
@@ -176,6 +177,24 @@ describe('E2 simplified: opt-out, call outcome and post-call report robustness',
     expect(await s.meetings()).toHaveLength(0);
   });
 
+  it('a report whose processing never finished also goes to review after the deadline', async () => {
+    const s = await setup();
+    const { listRevision } = await offerAndRequest(service, s.scope);
+    const report = postCallReport(bookingTimeline({ listRevision }));
+    // Simula falha entre o registro (digest) e os efeitos: a linha fica pendente com digest.
+    await tdb.db
+      .execute(sql`UPDATE post_call_reconciliations SET report_digest = 'x', report_received_at = ${SCHEDULING_TEST_NOW}
+      WHERE organization_id = ${s.scope.organizationId} AND session_id = ${s.sessionId}`);
+    clock.set(new Date(SCHEDULING_TEST_NOW.getTime() + 60 * 60_000));
+    await reports.expireOverdue({ olderThanMinutes: 30 });
+    expect(await s.reconciliation()).toMatchObject({
+      status: 'NEEDS_REVIEW',
+      reviewReasons: ['REPORT_PROCESSING_INCOMPLETE'],
+    });
+    expect((await reports.ingest(s.attempt, report)).status).toBe('NEEDS_REVIEW');
+    expect(await s.meetings()).toHaveLength(0);
+  });
+
   it('a report for another session, attempt or tenant has no effect', async () => {
     const a = await setup();
     const { listRevision } = await offerAndRequest(service, a.scope);
@@ -190,7 +209,7 @@ describe('E2 simplified: opt-out, call outcome and post-call report robustness',
     const otherAttempt = { ...sameTenant.attempt, callSessionId: a.sessionId };
     expect(await reports.ingest(otherAttempt, report)).toEqual({
       status: 'REJECTED',
-      reasons: ['ATTEMPT_MISMATCH'],
+      reasons: ['SESSION_ATTEMPT_MISMATCH'],
     });
     expect(await reports.ingest({ ...a.attempt, callSessionId: null }, report)).toEqual({
       status: 'REJECTED',
