@@ -1,0 +1,260 @@
+{
+  "chat": [
+    {
+      "role": "assistant",
+      "content": "Olá! Como posso ajudar?"
+    },
+    {
+      "role": "user",
+      "content": "Quais horários estão disponíveis para uma reunião?"
+    },
+    {
+      "role": "assistant",
+      "content": "Para qual dia ou período você gostaria de verificar a disponibilidade?"
+    },
+    {
+      "role": "user",
+      "content": "Qualquer dia e período disponível."
+    },
+    {
+      "role": "assistant",
+      "content": "Vou verificar os horários disponíveis para você.",
+      "tool_calls": [
+        {
+          "id": "chatcmpl-tool-example-01",
+          "type": "function",
+          "function": {
+            "name": "e2v_consultar_agenda",
+            "arguments": "{\"preferencia\": \"qualquer dia e per\\u00edodo dispon\\u00edvel\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "name": "e2v_consultar_agenda",
+      "tool_call_id": "chatcmpl-tool-example-01",
+      "content": "{\"result\":\"NO_AVAILABILITY\",\"status\":\"NO_AVAILABILITY\",\"fictitious\":true,\"slots\":[],\"instructions\":\"Não há horários no período pedido. Ofereça consultar outro período.\"}"
+    },
+    {
+      "role": "assistant",
+      "content": "Não encontrei horários disponíveis no momento. Gostaria de consultar algum outro período específico?"
+    },
+    {
+      "role": "assistant",
+      "content": "Você ainda"
+    },
+    {
+      "role": "user",
+      "content": "Pode consultar pode consultar novamente para a sextafeira?"
+    },
+    {
+      "role": "assistant",
+      "content": "Vou consultar a disponibilidade para sexta-feira agora mesmo.",
+      "tool_calls": [
+        {
+          "id": "chatcmpl-tool-example-02",
+          "type": "function",
+          "function": {
+            "name": "e2v_consultar_agenda",
+            "arguments": "{\"preferencia\": \"sexta-feira\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "name": "e2v_consultar_agenda",
+      "tool_call_id": "chatcmpl-tool-example-02",
+      "content": "{\"result\":\"TECHNICAL_ERROR\",\"status\":\"ERROR\",\"instructions\":\"A consulta FALHOU. Isto NÃO significa falta de horários. Diga que não foi possível consultar a agenda agora e ofereça retornar depois.\"}"
+    },
+    {
+      "role": "assistant",
+      "content": "Sinto muito, mas não consegui consultar a agenda agora. Podemos tentar novamente mais tarde?"
+    },
+    {
+      "role": "user",
+      "content": "Por que você não conseguiu?"
+    },
+    {
+      "role": "assistant",
+      "content": "Houve uma instabilidade técnica no sistema de consulta. Podemos tentar novamente daqui a pouco?"
+    },
+    {
+      "role": "user",
+      "content": "E pra segundafeira."
+    },
+    {
+      "role": "assistant",
+      "content": "Vou verificar a disponibilidade para segunda-feira.",
+      "tool_calls": [
+        {
+          "id": "chatcmpl-tool-example-03",
+          "type": "function",
+          "function": {
+            "name": "e2v_consultar_agenda",
+            "arguments": "{\"preferencia\": \"segunda-feira\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "name": "e2v_consultar_agenda",
+      "tool_call_id": "chatcmpl-tool-example-03",
+      "content": "Failed to execute function call {\"preferencia\": \"segunda-feira\"}: Timed out"
+    },
+    {
+      "role": "assistant",
+      "content": "Sinto muito, mas ocorreu um erro de conexão e não consegui consultar a agenda agora. Gostaria de tentar novamente mais tarde?"
+    },
+    {
+      "role": "assistant",
+      "content": "Você ainda está aí?"
+    },
+    {
+      "role": "assistant",
+      "content": "Como não ouvi resposta, vou encerrar por agora. Obrigado e até logo!"
+    }
+  ],
+  "function_calls": [
+    {
+      "name": "e2v_consultar_agenda",
+      "params": {
+        "preferencia": "qualquer dia e período disponível",
+        "session_id": "provider-session-07"
+      },
+      "result": "{\"result\":\"NO_AVAILABILITY\",\"status\":\"NO_AVAILABILITY\",\"fictitious\":true,\"slots\":[],\"instructions\":\"Não há horários no período pedido. Ofereça consultar outro período.\"}",
+      "run_after_call": false
+    },
+    {
+      "name": "e2v_consultar_agenda",
+      "params": {
+        "preferencia": "sexta-feira",
+        "session_id": "provider-session-07"
+      },
+      "result": "{\"result\":\"TECHNICAL_ERROR\",\"status\":\"ERROR\",\"instructions\":\"A consulta FALHOU. Isto NÃO significa falta de horários. Diga que não foi possível consultar a agenda agora e ofereça retornar depois.\"}",
+      "run_after_call": false
+    },
+    {
+      "name": "e2v_consultar_agenda",
+      "params": {
+        "preferencia": "segunda-feira",
+        "session_id": "provider-session-07"
+      },
+      "result": "Failed to execute function call {\"preferencia\": \"segunda-feira\"}: Timed out",
+      "run_after_call": false
+    }
+  ],
+  "ts": 1795788778.8482013,
+  "duration": 96.09253096580505,
+  "agent_config": {
+    "prompt": "",
+    "voice": {
+      "provider": "elevenlabs",
+      "voice_id": "vibfi5nlk3hs8Mtvf9Oy",
+      "model": null,
+      "settings": null
+    },
+    "flow": {
+      "user_start_first": null,
+      "interruption": {
+        "allowed": true,
+        "keep_interruption_message": true,
+        "first_messsage": null
+      },
+      "response_delay": null,
+      "auto_fill_responses": null,
+      "agent_terminate_call": {
+        "enabled": true,
+        "instruction": "Encerre a ligação somente quando o interlocutor se despedir ou pedir para encerrar. Nunca encerre por causa de silêncio e nunca trate silêncio como falta de interesse: a inatividade é tratada automaticamente pela plataforma.",
+        "messages": [
+          "Obrigado pelo seu tempo. Até logo!"
+        ]
+      },
+      "voicemail": null,
+      "call_transfer": null,
+      "inactivity_handling": {
+        "idle_time": 7,
+        "message": "Você ainda está aí?"
+      },
+      "dtmf_dial": null
+    },
+    "first_message": "Olá! Como posso ajudar?",
+    "tools": [],
+    "millis_functions": null,
+    "app_functions": null,
+    "custom_llm_websocket": null,
+    "language": "pt-BR",
+    "vad_threshold": null,
+    "llm": {
+      "model": "gpt-4o",
+      "temperature": 0,
+      "history_settings": null
+    },
+    "session_timeout": {
+      "max_duration": 180,
+      "max_idle": 14,
+      "message": "Como não ouvi resposta, vou encerrar por agora. Obrigado e até logo!"
+    },
+    "session_data_webhook": "https://example.invalid/session/e2v-report?t=[REDACTED]",
+    "privacy_settings": null,
+    "custom_vocabulary": null,
+    "extra_prompt_webhook": null,
+    "switch_language": null,
+    "knowledge_base": null,
+    "speech_to_text": null,
+    "call_settings": null,
+    "memory": null,
+    "timezone": null,
+    "status": "active"
+  },
+  "agent_id": null,
+  "call_id": null,
+  "chars_used": 771,
+  "session_id": "provider-session-07",
+  "cost_breakdown": [
+    {
+      "type": "tts",
+      "provider": "elevenlabs",
+      "credit": 7.71
+    },
+    {
+      "type": "stt",
+      "provider": "millis",
+      "credit": 0.9288944660027821
+    },
+    {
+      "type": "llm",
+      "provider": "deepinfra",
+      "prompt_tokens": "[REDACTED]",
+      "completion_tokens": "[REDACTED]",
+      "credit": 0.15474000000000002
+    },
+    {
+      "type": "millis",
+      "provider": "millis",
+      "credit": 3.203084365526835
+    }
+  ],
+  "voip": {},
+  "recording": {},
+  "metadata": {
+    "experiment": "E2-V",
+    "session_id": "e2v-00000000-0000-4000-8000-000000000007",
+    "started_at": "2026-11-27T14:12:57.201Z",
+    "commercial_effects": "NONE"
+  },
+  "call_status": "timeout",
+  "error_message": null,
+  "call_analysis": {},
+  "carrier_call_log": null,
+  "call_metrics/utterance_latency": {
+    "count": 10,
+    "sum": 64423.94,
+    "min": 744.72,
+    "max": 23215.9,
+    "avg": 6442.39
+  },
+  "call_metrics/call_end_ts": 1795788875.2679985
+}

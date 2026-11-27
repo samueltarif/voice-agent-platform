@@ -2,3 +2,6 @@
 *.{cmd,[cC][mM][dD]} text eol=crlf
 *.{bat,[bB][aA][tT]} text eol=crlf
 *.{ps1,[pP][sS]1} text eol=crlf
+
+# Evidências E2-V preservadas byte a byte (SHA-256 em docs/research/e2v/README.md)
+docs/research/e2v/** -text

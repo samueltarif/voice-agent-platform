@@ -199,7 +199,7 @@ Substitui, para a integração real, os controles de fala das §§5, 10 e 11 (ma
 
 **Resultado.** Proposto pela ferramenta; aplicado (D5, origem `CALL_OUTCOME`) só com fala do lead no histórico e sem opt-out.
 
-**Barreira.** `post_call_reconciliations` aberta (relatório pendente/ausente/conflitante, revisão) ⇒ claim de envio recusa novas tentativas ao mesmo telefone (`POST_CALL_RECONCILIATION_PENDING`, sem cancelar). Relatório ausente além do prazo ⇒ `REPORT_MISSING`; relatório registrado cujo processamento não terminou no prazo ⇒ `REPORT_PROCESSING_INCOMPLETE` (ambos revisão). Relatório de sessão cujo `current_attempt_id` não é a tentativa informada ⇒ `SESSION_ATTEMPT_MISMATCH` (rejeitado). Só `resolveReview` (usuário) libera uma revisão.
+**Barreira.** `post_call_reconciliations` aberta (relatório pendente/ausente/conflitante, revisão) ⇒ claim de envio recusa novas tentativas ao mesmo telefone (`POST_CALL_RECONCILIATION_PENDING`, sem cancelar). Relatório ausente além do prazo ⇒ `REPORT_MISSING`; relatório registrado cujo processamento não terminou no prazo ⇒ `REPORT_PROCESSING_INCOMPLETE` (ambos revisão). Relatório de sessão cujo `current_attempt_id` não é a tentativa informada ⇒ `SESSION_ATTEMPT_MISMATCH` (rejeitado). Adaptador do relatório real da Millis e autenticação por token na URL: `E2V_RESEARCH_AND_VALIDATION.md` §4.4. Só `resolveReview` (usuário) libera uma revisão.
 
 **Travas.** K → L → C → O → A → S → I → R → P. `request_booking` trava o lead primeiro (a FK da intenção pega `KEY SHARE` no lead; sem isso, impasse com o opt-out — encontrado e corrigido no teste de concorrência).
 

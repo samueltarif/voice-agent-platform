@@ -1,0 +1,4683 @@
+{
+  "meta": {
+    "experiment": "E2-V",
+    "session_id": "e2v-00000000-0000-4000-8000-000000000006",
+    "started_at": "2026-11-27T13:57:34.370Z",
+    "commercial_effects": "NONE"
+  },
+  "entries": [
+    {
+      "seq": 1,
+      "t_ms": 4.2,
+      "wall": "2026-11-27T13:57:34.370Z",
+      "origin": "LOCAL",
+      "type": "start",
+      "known": true,
+      "data": {
+        "session_id": "e2v-00000000-0000-4000-8000-000000000006",
+        "agent": {
+          "mode": "agent_config",
+          "llm": "gpt-4o",
+          "voice": {
+            "provider": "elevenlabs",
+            "voice_id": "vibfi5nlk3hs8Mtvf9Oy"
+          },
+          "language": "pt-BR",
+          "inactivity": {
+            "idle_time": 7,
+            "message": "Você ainda está aí?"
+          },
+          "max_idle": 14,
+          "tools": [
+            {
+              "name": "e2v_consultar_agenda",
+              "method": "POST",
+              "response_mode": "strict",
+              "execute_after_message": true,
+              "timeout": 5,
+              "messages": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "seq": 2,
+      "t_ms": 252.2,
+      "wall": "2026-11-27T13:57:34.618Z",
+      "origin": "LOCAL",
+      "type": "ws_connecting",
+      "known": true,
+      "data": {
+        "url": "wss://api-west.millis.ai:8080/millis"
+      }
+    },
+    {
+      "seq": 3,
+      "t_ms": 858.5,
+      "wall": "2026-11-27T13:57:35.224Z",
+      "origin": "DERIVED",
+      "type": "ws_open",
+      "known": true,
+      "data": null
+    },
+    {
+      "seq": 4,
+      "t_ms": 858.9,
+      "wall": "2026-11-27T13:57:35.225Z",
+      "origin": "CLIENT",
+      "type": "initiate",
+      "known": true,
+      "data": {
+        "data": {
+          "agent": {
+            "agent_config": {
+              "prompt": "Você é um agente de teste. Fale português brasileiro, com respostas curtas. Consulte a ferramenta e2v_consultar_agenda quando solicitado. Se houver falha técnica ou timeout, diga que não conseguiu consultar a agenda. Nunca confunda falha técnica com falta de horários. Não confirme reservas.",
+              "first_message": "Olá! Como posso ajudar?",
+              "language": "pt-BR",
+              "session_timeout": {
+                "max_duration": 150,
+                "max_idle": 14,
+                "message": "Como não ouvi resposta, vou encerrar por agora. Obrigado e até logo!"
+              },
+              "flow": {
+                "interruption": {
+                  "allowed": true,
+                  "keep_interruption_message": true
+                },
+                "inactivity_handling": {
+                  "idle_time": 7,
+                  "message": "Você ainda está aí?"
+                },
+                "agent_terminate_call": {
+                  "enabled": true,
+                  "instruction": "Encerre a ligação somente quando o interlocutor se despedir ou pedir para encerrar. Nunca encerre por causa de silêncio e nunca trate silêncio como falta de interesse: a inatividade é tratada automaticamente pela plataforma.",
+                  "messages": [
+                    "Obrigado pelo seu tempo. Até logo!"
+                  ]
+                }
+              },
+              "llm": {
+                "model": "gpt-4o"
+              },
+              "voice": {
+                "provider": "elevenlabs",
+                "voice_id": "vibfi5nlk3hs8Mtvf9Oy"
+              },
+              "tools": [
+                {
+                  "name": "e2v_consultar_agenda",
+                  "description": "TESTE E2-V. Consulta horários FICTÍCIOS de reunião; não marca nada. Use quando o interlocutor quiser saber horários disponíveis. Leia o campo \"result\" da resposta: \"AVAILABLE\" = ofereça no máximo dois dos horários listados, sem confirmar reserva; \"NO_AVAILABILITY\" = não há horários no período pedido; ofereça consultar outro período; \"TECHNICAL_ERROR\" ou qualquer falha, erro, resposta vazia ou demora da ferramenta = diga que não conseguiu consultar a agenda agora e ofereça retornar depois. NUNCA diga que não há horários quando a consulta falhar.",
+                  "webhook": "https://example.invalid/tool/e2v-agenda",
+                  "header": {
+                    "x-e2v-token": "[REDACTED]"
+                  },
+                  "params": [
+                    {
+                      "name": "preferencia",
+                      "type": "string",
+                      "description": "Dia ou período desejado, nas palavras do interlocutor",
+                      "required": false
+                    }
+                  ],
+                  "method": "POST",
+                  "response_mode": "strict",
+                  "execute_after_message": true,
+                  "messages": [
+                    "Um momento, vou consultar."
+                  ],
+                  "timeout": 5
+                }
+              ]
+            }
+          },
+          "public_key": "[REDACTED]",
+          "metadata": {
+            "experiment": "E2-V",
+            "session_id": "e2v-00000000-0000-4000-8000-000000000006",
+            "started_at": "2026-11-27T13:57:34.370Z",
+            "commercial_effects": "NONE"
+          },
+          "include_metadata_in_prompt": false
+        }
+      }
+    },
+    {
+      "seq": 5,
+      "t_ms": 862.8,
+      "wall": "2026-11-27T13:57:35.228Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 82,
+        "bytes": 20992,
+        "span_ms": 650
+      }
+    },
+    {
+      "seq": 6,
+      "t_ms": 1518.5,
+      "wall": "2026-11-27T13:57:35.884Z",
+      "origin": "PROVIDER",
+      "type": "onready",
+      "known": true,
+      "data": {
+        "data": null,
+        "payload": {
+          "session_id": "provider-session-06"
+        }
+      }
+    },
+    {
+      "seq": 7,
+      "t_ms": 1518.7,
+      "wall": "2026-11-27T13:57:35.884Z",
+      "origin": "DERIVED",
+      "type": "sdk_agent_state",
+      "known": true,
+      "data": {
+        "state": "idle"
+      }
+    },
+    {
+      "seq": 8,
+      "t_ms": 1518.7,
+      "wall": "2026-11-27T13:57:35.884Z",
+      "origin": "DERIVED",
+      "type": "sdk_ready",
+      "known": true,
+      "data": null
+    },
+    {
+      "seq": 9,
+      "t_ms": 1518.7,
+      "wall": "2026-11-27T13:57:35.884Z",
+      "origin": "PROVIDER",
+      "type": "start_answering",
+      "known": true,
+      "data": {
+        "data": null,
+        "payload": {}
+      }
+    },
+    {
+      "seq": 10,
+      "t_ms": 1518.7,
+      "wall": "2026-11-27T13:57:35.884Z",
+      "origin": "DERIVED",
+      "type": "sdk_agent_state",
+      "known": true,
+      "data": {
+        "state": "prepare_answer"
+      }
+    },
+    {
+      "seq": 11,
+      "t_ms": 1522.6,
+      "wall": "2026-11-27T13:57:35.888Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 32,
+        "bytes": 8192,
+        "span_ms": 240
+      }
+    },
+    {
+      "seq": 12,
+      "t_ms": 1765.7,
+      "wall": "2026-11-27T13:57:36.131Z",
+      "origin": "PROVIDER",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 1,
+        "bytes": 500,
+        "span_ms": 0
+      }
+    },
+    {
+      "seq": 13,
+      "t_ms": 1765.9,
+      "wall": "2026-11-27T13:57:36.131Z",
+      "origin": "DERIVED",
+      "type": "sdk_latency",
+      "known": true,
+      "data": {
+        "ms": 247
+      }
+    },
+    {
+      "seq": 14,
+      "t_ms": 1765.9,
+      "wall": "2026-11-27T13:57:36.132Z",
+      "origin": "DERIVED",
+      "type": "sdk_agent_state",
+      "known": true,
+      "data": {
+        "state": "answer"
+      }
+    },
+    {
+      "seq": 15,
+      "t_ms": 1766.1,
+      "wall": "2026-11-27T13:57:36.132Z",
+      "origin": "PROVIDER",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 14,
+        "bytes": 6758,
+        "span_ms": 2
+      }
+    },
+    {
+      "seq": 16,
+      "t_ms": 1768.5,
+      "wall": "2026-11-27T13:57:36.134Z",
+      "origin": "PROVIDER",
+      "type": "timestamp",
+      "known": true,
+      "data": {
+        "data": null,
+        "payload": {
+          "character_start_time_seconds": [
+            0,
+            186,
+            255,
+            464,
+            580
+          ],
+          "character_end_time_seconds": [
+            186,
+            255,
+            464,
+            580,
+            789
+          ],
+          "chars": [
+            "O",
+            "l",
+            "á",
+            "!",
+            " "
+          ]
+        }
+      }
+    },
+    {
+      "seq": 17,
+      "t_ms": 1772.7,
+      "wall": "2026-11-27T13:57:36.138Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 47,
+        "bytes": 12032,
+        "span_ms": 370
+      }
+    },
+    {
+      "seq": 18,
+      "t_ms": 1941.7,
+      "wall": "2026-11-27T13:57:36.307Z",
+      "origin": "PROVIDER",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 96,
+        "bytes": 47050,
+        "span_ms": 203
+      }
+    },
+    {
+      "seq": 19,
+      "t_ms": 2144.1,
+      "wall": "2026-11-27T13:57:36.510Z",
+      "origin": "PROVIDER",
+      "type": "timestamp",
+      "known": true,
+      "data": {
+        "data": null,
+        "payload": {
+          "character_start_time_seconds": [
+            789,
+            893,
+            975,
+            1033,
+            1091,
+            1149,
+            1195,
+            1288,
+            1323,
+            1369,
+            1416,
+            1439,
+            1462,
+            1520,
+            1590,
+            1671,
+            1787,
+            1880,
+            1973
+          ],
+          "character_end_time_seconds": [
+            893,
+            975,
+            1033,
+            1091,
+            1149,
+            1195,
+            1288,
+            1323,
+            1369,
+            1416,
+            1439,
+            1462,
+            1520,
+            1590,
+            1671,
+            1787,
+            1880,
+            1973,
+            2229
+          ],
+          "chars": [
+            "C",
+            "o",
+            "m",
+            "o",
+            " ",
+            "p",
+            "o",
+            "s",
+            "s",
+            "o",
+            " ",
+            "a",
+            "j",
+            "u",
+            "d",
+            "a",
+            "r",
+            "?",
+            " "
+          ]
+        }
+      }
+    },
+    {
+      "seq": 20,
+      "t_ms": 2144.3,
+      "wall": "2026-11-27T13:57:36.510Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Ol",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 21,
+      "t_ms": 2152.7,
+      "wall": "2026-11-27T13:57:36.518Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 21,
+        "bytes": 5376,
+        "span_ms": 160
+      }
+    },
+    {
+      "seq": 22,
+      "t_ms": 2316,
+      "wall": "2026-11-27T13:57:36.682Z",
+      "origin": "PROVIDER",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 35,
+        "bytes": 17024,
+        "span_ms": 2
+      }
+    },
+    {
+      "seq": 23,
+      "t_ms": 2317.9,
+      "wall": "2026-11-27T13:57:36.683Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Olá",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 24,
+      "t_ms": 2322.8,
+      "wall": "2026-11-27T13:57:36.688Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 9,
+        "bytes": 2304,
+        "span_ms": 60
+      }
+    },
+    {
+      "seq": 25,
+      "t_ms": 2390.7,
+      "wall": "2026-11-27T13:57:36.756Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Olá!",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 26,
+      "t_ms": 2392.7,
+      "wall": "2026-11-27T13:57:36.758Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 39,
+        "bytes": 9984,
+        "span_ms": 300
+      }
+    },
+    {
+      "seq": 27,
+      "t_ms": 2695.1,
+      "wall": "2026-11-27T13:57:37.061Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Olá! C",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 28,
+      "t_ms": 2702.7,
+      "wall": "2026-11-27T13:57:37.068Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 6,
+        "bytes": 1536,
+        "span_ms": 40
+      }
+    },
+    {
+      "seq": 29,
+      "t_ms": 2743.2,
+      "wall": "2026-11-27T13:57:37.109Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Olá! Co",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 30,
+      "t_ms": 2752.7,
+      "wall": "2026-11-27T13:57:37.118Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 13,
+        "bytes": 3328,
+        "span_ms": 90
+      }
+    },
+    {
+      "seq": 31,
+      "t_ms": 2843.4,
+      "wall": "2026-11-27T13:57:37.209Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Olá! Com",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 32,
+      "t_ms": 2852.6,
+      "wall": "2026-11-27T13:57:37.218Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 6,
+        "bytes": 1536,
+        "span_ms": 40
+      }
+    },
+    {
+      "seq": 33,
+      "t_ms": 2894,
+      "wall": "2026-11-27T13:57:37.260Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Olá! Como",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 34,
+      "t_ms": 2903.2,
+      "wall": "2026-11-27T13:57:37.269Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 12,
+        "bytes": 3072,
+        "span_ms": 90
+      }
+    },
+    {
+      "seq": 35,
+      "t_ms": 2995.4,
+      "wall": "2026-11-27T13:57:37.361Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Olá! Como p",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 36,
+      "t_ms": 3003.4,
+      "wall": "2026-11-27T13:57:37.369Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 13,
+        "bytes": 3328,
+        "span_ms": 89
+      }
+    },
+    {
+      "seq": 37,
+      "t_ms": 3096,
+      "wall": "2026-11-27T13:57:37.462Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Olá! Como pos",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 38,
+      "t_ms": 3102.9,
+      "wall": "2026-11-27T13:57:37.469Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 6,
+        "bytes": 1536,
+        "span_ms": 40
+      }
+    },
+    {
+      "seq": 39,
+      "t_ms": 3145.8,
+      "wall": "2026-11-27T13:57:37.511Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Olá! Como poss",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 40,
+      "t_ms": 3152.8,
+      "wall": "2026-11-27T13:57:37.518Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 6,
+        "bytes": 1536,
+        "span_ms": 40
+      }
+    },
+    {
+      "seq": 41,
+      "t_ms": 3195.8,
+      "wall": "2026-11-27T13:57:37.561Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Olá! Como posso",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 42,
+      "t_ms": 3202.8,
+      "wall": "2026-11-27T13:57:37.568Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 7,
+        "bytes": 1792,
+        "span_ms": 41
+      }
+    },
+    {
+      "seq": 43,
+      "t_ms": 3245.1,
+      "wall": "2026-11-27T13:57:37.611Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Olá! Como posso a",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 44,
+      "t_ms": 3252.9,
+      "wall": "2026-11-27T13:57:37.618Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 6,
+        "bytes": 1536,
+        "span_ms": 40
+      }
+    },
+    {
+      "seq": 45,
+      "t_ms": 3296.1,
+      "wall": "2026-11-27T13:57:37.662Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Olá! Como posso aj",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 46,
+      "t_ms": 3303.3,
+      "wall": "2026-11-27T13:57:37.669Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 12,
+        "bytes": 3072,
+        "span_ms": 89
+      }
+    },
+    {
+      "seq": 47,
+      "t_ms": 3395.5,
+      "wall": "2026-11-27T13:57:37.761Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Olá! Como posso aju",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 48,
+      "t_ms": 3402.8,
+      "wall": "2026-11-27T13:57:37.768Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 7,
+        "bytes": 1792,
+        "span_ms": 40
+      }
+    },
+    {
+      "seq": 49,
+      "t_ms": 3446.2,
+      "wall": "2026-11-27T13:57:37.812Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Olá! Como posso ajud",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 50,
+      "t_ms": 3453.5,
+      "wall": "2026-11-27T13:57:37.819Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 18,
+        "bytes": 4608,
+        "span_ms": 139
+      }
+    },
+    {
+      "seq": 51,
+      "t_ms": 3595.9,
+      "wall": "2026-11-27T13:57:37.961Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Olá! Como posso ajuda",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 52,
+      "t_ms": 3603.3,
+      "wall": "2026-11-27T13:57:37.969Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 7,
+        "bytes": 1792,
+        "span_ms": 40
+      }
+    },
+    {
+      "seq": 53,
+      "t_ms": 3645.2,
+      "wall": "2026-11-27T13:57:38.011Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Olá! Como posso ajudar",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 54,
+      "t_ms": 3653.8,
+      "wall": "2026-11-27T13:57:38.019Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 12,
+        "bytes": 3072,
+        "span_ms": 89
+      }
+    },
+    {
+      "seq": 55,
+      "t_ms": 3746.1,
+      "wall": "2026-11-27T13:57:38.112Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Olá! Como posso ajudar?",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 56,
+      "t_ms": 3752.7,
+      "wall": "2026-11-27T13:57:38.118Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 31,
+        "bytes": 7936,
+        "span_ms": 240
+      }
+    },
+    {
+      "seq": 57,
+      "t_ms": 3997.7,
+      "wall": "2026-11-27T13:57:38.363Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Olá! Como posso ajudar? ",
+        "payload": {
+          "is_final": true
+        }
+      }
+    },
+    {
+      "seq": 58,
+      "t_ms": 4002.8,
+      "wall": "2026-11-27T13:57:38.368Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 1,
+        "bytes": 256,
+        "span_ms": 0
+      }
+    },
+    {
+      "seq": 59,
+      "t_ms": 4003,
+      "wall": "2026-11-27T13:57:38.369Z",
+      "origin": "DERIVED",
+      "type": "sdk_agent_state",
+      "known": true,
+      "data": {
+        "state": "idle"
+      }
+    },
+    {
+      "seq": 60,
+      "t_ms": 4003.1,
+      "wall": "2026-11-27T13:57:38.369Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 152,
+        "bytes": 38912,
+        "span_ms": 1210
+      }
+    },
+    {
+      "seq": 61,
+      "t_ms": 5214.6,
+      "wall": "2026-11-27T13:57:39.580Z",
+      "origin": "PROVIDER",
+      "type": "ontranscript",
+      "known": true,
+      "data": {
+        "data": "Quais horas",
+        "payload": {
+          "is_final": false
+        }
+      }
+    },
+    {
+      "seq": 62,
+      "t_ms": 5223,
+      "wall": "2026-11-27T13:57:39.589Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 124,
+        "bytes": 31744,
+        "span_ms": 980
+      }
+    },
+    {
+      "seq": 63,
+      "t_ms": 6211.2,
+      "wall": "2026-11-27T13:57:40.577Z",
+      "origin": "PROVIDER",
+      "type": "ontranscript",
+      "known": true,
+      "data": {
+        "data": "Quais horários estão disponíveis para",
+        "payload": {
+          "is_final": false
+        }
+      }
+    },
+    {
+      "seq": 64,
+      "t_ms": 6213.9,
+      "wall": "2026-11-27T13:57:40.580Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 127,
+        "bytes": 32512,
+        "span_ms": 1009
+      }
+    },
+    {
+      "seq": 65,
+      "t_ms": 7226.2,
+      "wall": "2026-11-27T13:57:41.592Z",
+      "origin": "PROVIDER",
+      "type": "ontranscript",
+      "known": true,
+      "data": {
+        "data": "Quais horários estão disponíveis para uma reunião?",
+        "payload": {
+          "is_final": false
+        }
+      }
+    },
+    {
+      "seq": 66,
+      "t_ms": 7233.2,
+      "wall": "2026-11-27T13:57:41.599Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 1,
+        "bytes": 256,
+        "span_ms": 0
+      }
+    },
+    {
+      "seq": 67,
+      "t_ms": 7239.9,
+      "wall": "2026-11-27T13:57:41.606Z",
+      "origin": "PROVIDER",
+      "type": "start_answering",
+      "known": true,
+      "data": {
+        "data": null,
+        "payload": {}
+      }
+    },
+    {
+      "seq": 68,
+      "t_ms": 7240,
+      "wall": "2026-11-27T13:57:41.606Z",
+      "origin": "DERIVED",
+      "type": "sdk_agent_state",
+      "known": true,
+      "data": {
+        "state": "prepare_answer"
+      }
+    },
+    {
+      "seq": 69,
+      "t_ms": 7243.5,
+      "wall": "2026-11-27T13:57:41.609Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 15,
+        "bytes": 3840,
+        "span_ms": 109
+      }
+    },
+    {
+      "seq": 70,
+      "t_ms": 7354.5,
+      "wall": "2026-11-27T13:57:41.720Z",
+      "origin": "PROVIDER",
+      "type": "ontranscript",
+      "known": true,
+      "data": {
+        "data": "Quais horários estão disponíveis para uma reunião?",
+        "payload": {
+          "is_final": true
+        }
+      }
+    },
+    {
+      "seq": 71,
+      "t_ms": 7363.2,
+      "wall": "2026-11-27T13:57:41.729Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 115,
+        "bytes": 29440,
+        "span_ms": 910
+      }
+    },
+    {
+      "seq": 72,
+      "t_ms": 8273,
+      "wall": "2026-11-27T13:57:42.639Z",
+      "origin": "CLIENT",
+      "type": "ping",
+      "known": true,
+      "data": {
+        "data": "1795787862639"
+      }
+    },
+    {
+      "seq": 73,
+      "t_ms": 8283.5,
+      "wall": "2026-11-27T13:57:42.649Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 22,
+        "bytes": 5632,
+        "span_ms": 160
+      }
+    },
+    {
+      "seq": 74,
+      "t_ms": 8449.5,
+      "wall": "2026-11-27T13:57:42.815Z",
+      "origin": "PROVIDER",
+      "type": "pong",
+      "known": true,
+      "data": {
+        "data": "1795787862639"
+      }
+    },
+    {
+      "seq": 75,
+      "t_ms": 8453.4,
+      "wall": "2026-11-27T13:57:42.819Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 47,
+        "bytes": 12032,
+        "span_ms": 370
+      }
+    },
+    {
+      "seq": 76,
+      "t_ms": 8832.3,
+      "wall": "2026-11-27T13:57:43.198Z",
+      "origin": "PROVIDER",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 1,
+        "bytes": 500,
+        "span_ms": 0
+      }
+    },
+    {
+      "seq": 77,
+      "t_ms": 8832.4,
+      "wall": "2026-11-27T13:57:43.198Z",
+      "origin": "DERIVED",
+      "type": "sdk_latency",
+      "known": true,
+      "data": {
+        "ms": 1592
+      }
+    },
+    {
+      "seq": 78,
+      "t_ms": 8832.4,
+      "wall": "2026-11-27T13:57:43.198Z",
+      "origin": "DERIVED",
+      "type": "sdk_agent_state",
+      "known": true,
+      "data": {
+        "state": "answer"
+      }
+    },
+    {
+      "seq": 79,
+      "t_ms": 8832.5,
+      "wall": "2026-11-27T13:57:43.198Z",
+      "origin": "PROVIDER",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 82,
+        "bytes": 40646,
+        "span_ms": 13
+      }
+    },
+    {
+      "seq": 80,
+      "t_ms": 8837.1,
+      "wall": "2026-11-27T13:57:43.203Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 1,
+        "bytes": 256,
+        "span_ms": 0
+      }
+    },
+    {
+      "seq": 81,
+      "t_ms": 8845.1,
+      "wall": "2026-11-27T13:57:43.211Z",
+      "origin": "PROVIDER",
+      "type": "timestamp",
+      "known": true,
+      "data": {
+        "data": null,
+        "payload": {
+          "character_start_time_seconds": [
+            0,
+            128,
+            151,
+            174,
+            197,
+            290,
+            360,
+            453,
+            511,
+            592,
+            627,
+            650,
+            673,
+            720,
+            789,
+            813,
+            859,
+            894,
+            975,
+            1045,
+            1115,
+            1184,
+            1231,
+            1324,
+            1416,
+            1533,
+            1579
+          ],
+          "character_end_time_seconds": [
+            128,
+            151,
+            174,
+            197,
+            290,
+            360,
+            453,
+            511,
+            592,
+            627,
+            650,
+            673,
+            720,
+            789,
+            813,
+            859,
+            894,
+            975,
+            1045,
+            1115,
+            1184,
+            1231,
+            1324,
+            1416,
+            1533,
+            1579,
+            1858
+          ],
+          "chars": [
+            "U",
+            "m",
+            " ",
+            "m",
+            "o",
+            "m",
+            "e",
+            "n",
+            "t",
+            "o",
+            ",",
+            " ",
+            "v",
+            "o",
+            "u",
+            " ",
+            "c",
+            "o",
+            "n",
+            "s",
+            "u",
+            "l",
+            "t",
+            "a",
+            "r",
+            ".",
+            " "
+          ]
+        }
+      }
+    },
+    {
+      "seq": 82,
+      "t_ms": 8845.3,
+      "wall": "2026-11-27T13:57:43.211Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 23,
+        "bytes": 5888,
+        "span_ms": 168
+      }
+    },
+    {
+      "seq": 83,
+      "t_ms": 9012.7,
+      "wall": "2026-11-27T13:57:43.378Z",
+      "origin": "PROVIDER",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 37,
+        "bytes": 18298,
+        "span_ms": 5
+      }
+    },
+    {
+      "seq": 84,
+      "t_ms": 9017.7,
+      "wall": "2026-11-27T13:57:43.383Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Um ",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 85,
+      "t_ms": 9017.8,
+      "wall": "2026-11-27T13:57:43.383Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Um m",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 86,
+      "t_ms": 9017.8,
+      "wall": "2026-11-27T13:57:43.383Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Um mo",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 87,
+      "t_ms": 9026.2,
+      "wall": "2026-11-27T13:57:43.392Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 1,
+        "bytes": 256,
+        "span_ms": 0
+      }
+    },
+    {
+      "seq": 88,
+      "t_ms": 9026.3,
+      "wall": "2026-11-27T13:57:43.392Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Um mom",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 89,
+      "t_ms": 9032.9,
+      "wall": "2026-11-27T13:57:43.399Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 13,
+        "bytes": 3328,
+        "span_ms": 91
+      }
+    },
+    {
+      "seq": 90,
+      "t_ms": 9124.1,
+      "wall": "2026-11-27T13:57:43.490Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Um mome",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 91,
+      "t_ms": 9133.1,
+      "wall": "2026-11-27T13:57:43.499Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 6,
+        "bytes": 1536,
+        "span_ms": 40
+      }
+    },
+    {
+      "seq": 92,
+      "t_ms": 9174.6,
+      "wall": "2026-11-27T13:57:43.540Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Um momen",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 93,
+      "t_ms": 9182.8,
+      "wall": "2026-11-27T13:57:43.548Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 12,
+        "bytes": 3072,
+        "span_ms": 90
+      }
+    },
+    {
+      "seq": 94,
+      "t_ms": 9276.3,
+      "wall": "2026-11-27T13:57:43.642Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Um moment",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 95,
+      "t_ms": 9283,
+      "wall": "2026-11-27T13:57:43.649Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 7,
+        "bytes": 1792,
+        "span_ms": 40
+      }
+    },
+    {
+      "seq": 96,
+      "t_ms": 9325.6,
+      "wall": "2026-11-27T13:57:43.691Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Um momento, ",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 97,
+      "t_ms": 9332.8,
+      "wall": "2026-11-27T13:57:43.698Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 6,
+        "bytes": 1536,
+        "span_ms": 40
+      }
+    },
+    {
+      "seq": 98,
+      "t_ms": 9375.5,
+      "wall": "2026-11-27T13:57:43.741Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Um momento, v",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 99,
+      "t_ms": 9382.8,
+      "wall": "2026-11-27T13:57:43.748Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 12,
+        "bytes": 3072,
+        "span_ms": 90
+      }
+    },
+    {
+      "seq": 100,
+      "t_ms": 9476.3,
+      "wall": "2026-11-27T13:57:43.842Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Um momento, vou",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 101,
+      "t_ms": 9483.4,
+      "wall": "2026-11-27T13:57:43.849Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 13,
+        "bytes": 3328,
+        "span_ms": 90
+      }
+    },
+    {
+      "seq": 102,
+      "t_ms": 9576.4,
+      "wall": "2026-11-27T13:57:43.942Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Um momento, vou c",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 103,
+      "t_ms": 9583.4,
+      "wall": "2026-11-27T13:57:43.949Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 6,
+        "bytes": 1536,
+        "span_ms": 40
+      }
+    },
+    {
+      "seq": 104,
+      "t_ms": 9627.1,
+      "wall": "2026-11-27T13:57:43.993Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Um momento, vou co",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 105,
+      "t_ms": 9632.8,
+      "wall": "2026-11-27T13:57:43.998Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 13,
+        "bytes": 3328,
+        "span_ms": 91
+      }
+    },
+    {
+      "seq": 106,
+      "t_ms": 9726.3,
+      "wall": "2026-11-27T13:57:44.092Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Um momento, vou con",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 107,
+      "t_ms": 9732.9,
+      "wall": "2026-11-27T13:57:44.099Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 6,
+        "bytes": 1536,
+        "span_ms": 40
+      }
+    },
+    {
+      "seq": 108,
+      "t_ms": 9776.4,
+      "wall": "2026-11-27T13:57:44.142Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Um momento, vou cons",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 109,
+      "t_ms": 9782.8,
+      "wall": "2026-11-27T13:57:44.148Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 12,
+        "bytes": 3072,
+        "span_ms": 90
+      }
+    },
+    {
+      "seq": 110,
+      "t_ms": 9875.8,
+      "wall": "2026-11-27T13:57:44.241Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Um momento, vou consu",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 111,
+      "t_ms": 9882.9,
+      "wall": "2026-11-27T13:57:44.249Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 7,
+        "bytes": 1792,
+        "span_ms": 40
+      }
+    },
+    {
+      "seq": 112,
+      "t_ms": 9926.7,
+      "wall": "2026-11-27T13:57:44.292Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Um momento, vou consul",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 113,
+      "t_ms": 9936.1,
+      "wall": "2026-11-27T13:57:44.302Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 6,
+        "bytes": 1536,
+        "span_ms": 37
+      }
+    },
+    {
+      "seq": 114,
+      "t_ms": 9977.2,
+      "wall": "2026-11-27T13:57:44.343Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Um momento, vou consult",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 115,
+      "t_ms": 9985,
+      "wall": "2026-11-27T13:57:44.351Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 12,
+        "bytes": 3072,
+        "span_ms": 88
+      }
+    },
+    {
+      "seq": 116,
+      "t_ms": 10077.4,
+      "wall": "2026-11-27T13:57:44.443Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Um momento, vou consulta",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 117,
+      "t_ms": 10087.6,
+      "wall": "2026-11-27T13:57:44.453Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 19,
+        "bytes": 4864,
+        "span_ms": 135
+      }
+    },
+    {
+      "seq": 118,
+      "t_ms": 10229.1,
+      "wall": "2026-11-27T13:57:44.595Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Um momento, vou consultar.",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 119,
+      "t_ms": 10232.8,
+      "wall": "2026-11-27T13:57:44.598Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 38,
+        "bytes": 9728,
+        "span_ms": 290
+      }
+    },
+    {
+      "seq": 120,
+      "t_ms": 10531.2,
+      "wall": "2026-11-27T13:57:44.897Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Um momento, vou consultar. ",
+        "payload": {
+          "is_final": true
+        }
+      }
+    },
+    {
+      "seq": 121,
+      "t_ms": 10531.2,
+      "wall": "2026-11-27T13:57:44.897Z",
+      "origin": "PROVIDER",
+      "type": "start_answering",
+      "known": true,
+      "data": {
+        "data": null,
+        "payload": {}
+      }
+    },
+    {
+      "seq": 122,
+      "t_ms": 10531.3,
+      "wall": "2026-11-27T13:57:44.897Z",
+      "origin": "DERIVED",
+      "type": "sdk_agent_state",
+      "known": true,
+      "data": {
+        "state": "prepare_answer"
+      }
+    },
+    {
+      "seq": 123,
+      "t_ms": 10532.8,
+      "wall": "2026-11-27T13:57:44.898Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 53,
+        "bytes": 13568,
+        "span_ms": 420
+      }
+    },
+    {
+      "seq": 124,
+      "t_ms": 10957.2,
+      "wall": "2026-11-27T13:57:45.323Z",
+      "origin": "PROVIDER",
+      "type": "onfunction",
+      "known": true,
+      "data": {
+        "data": null,
+        "payload": {
+          "name": "e2v_consultar_agenda",
+          "params": {
+            "preferencia": "horários disponíveis",
+            "session_id": "provider-session-06"
+          },
+          "result": "{\"result\":\"AVAILABLE\",\"status\":\"OFFERED\",\"fictitious\":true,\"slots\":[{\"id\":\"fict-1\",\"label\":\"terça-feira, 10h\",\"start\":\"2026-12-01T10:00:00-03:00\"},{\"id\":\"fict-2\",\"label\":\"terça-feira, 15h30\",\"start\":\"2026-12-01T15:30:00-03:00\"},{\"id\":\"fict-3\",\"label\":\"quarta-feira, 9h\",\"start\":\"2026-12-02T09:00:00-03:00\"}],\"instructions\":\"Horários de TESTE. Ofereça no máximo dois e não confirme reserva.\"}"
+        }
+      }
+    },
+    {
+      "seq": 125,
+      "t_ms": 10962.9,
+      "wall": "2026-11-27T13:57:45.329Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 429,
+        "bytes": 109824,
+        "span_ms": 3421
+      }
+    },
+    {
+      "seq": 126,
+      "t_ms": 14392.3,
+      "wall": "2026-11-27T13:57:48.758Z",
+      "origin": "PROVIDER",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 1,
+        "bytes": 500,
+        "span_ms": 0
+      }
+    },
+    {
+      "seq": 127,
+      "t_ms": 14392.3,
+      "wall": "2026-11-27T13:57:48.758Z",
+      "origin": "DERIVED",
+      "type": "sdk_latency",
+      "known": true,
+      "data": {
+        "ms": 3861
+      }
+    },
+    {
+      "seq": 128,
+      "t_ms": 14392.3,
+      "wall": "2026-11-27T13:57:48.758Z",
+      "origin": "DERIVED",
+      "type": "sdk_agent_state",
+      "known": true,
+      "data": {
+        "state": "answer"
+      }
+    },
+    {
+      "seq": 129,
+      "t_ms": 14392.4,
+      "wall": "2026-11-27T13:57:48.758Z",
+      "origin": "PROVIDER",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 101,
+        "bytes": 50330,
+        "span_ms": 173
+      }
+    },
+    {
+      "seq": 130,
+      "t_ms": 14399.4,
+      "wall": "2026-11-27T13:57:48.765Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 23,
+        "bytes": 5888,
+        "span_ms": 164
+      }
+    },
+    {
+      "seq": 131,
+      "t_ms": 14565.8,
+      "wall": "2026-11-27T13:57:48.931Z",
+      "origin": "PROVIDER",
+      "type": "timestamp",
+      "known": true,
+      "data": {
+        "data": null,
+        "payload": {
+          "character_start_time_seconds": [
+            0,
+            116,
+            197,
+            255,
+            313,
+            337,
+            383,
+            406,
+            441,
+            522,
+            592,
+            662,
+            685,
+            720,
+            743,
+            778,
+            801,
+            871,
+            929,
+            987,
+            1057,
+            1115,
+            1207,
+            1265,
+            1300,
+            1324,
+            1358,
+            1405,
+            1440,
+            1486,
+            1533,
+            1579,
+            1649,
+            1695,
+            1753,
+            1811,
+            1892,
+            1962,
+            2055,
+            2090,
+            2148,
+            2264,
+            2345,
+            2670,
+            2798,
+            2856,
+            2914,
+            3030,
+            3146,
+            3355,
+            3379,
+            3413,
+            3471,
+            3506,
+            3553,
+            3622,
+            3738,
+            3855,
+            3901,
+            4110,
+            4354,
+            4470
+          ],
+          "character_end_time_seconds": [
+            116,
+            197,
+            255,
+            313,
+            337,
+            383,
+            406,
+            441,
+            522,
+            592,
+            662,
+            685,
+            720,
+            743,
+            778,
+            801,
+            871,
+            929,
+            987,
+            1057,
+            1115,
+            1207,
+            1265,
+            1300,
+            1324,
+            1358,
+            1405,
+            1440,
+            1486,
+            1533,
+            1579,
+            1649,
+            1695,
+            1753,
+            1811,
+            1892,
+            1962,
+            2055,
+            2090,
+            2148,
+            2264,
+            2345,
+            2670,
+            2798,
+            2856,
+            2914,
+            3030,
+            3146,
+            3355,
+            3379,
+            3413,
+            3471,
+            3506,
+            3553,
+            3622,
+            3738,
+            3855,
+            3901,
+            4110,
+            4354,
+            4470,
+            4783
+          ],
+          "chars": [
+            "T",
+            "e",
+            "m",
+            "o",
+            "s",
+            " ",
+            "h",
+            "o",
+            "r",
+            "á",
+            "r",
+            "i",
+            "o",
+            "s",
+            " ",
+            "d",
+            "i",
+            "s",
+            "p",
+            "o",
+            "n",
+            "í",
+            "v",
+            "e",
+            "i",
+            "s",
+            " ",
+            "n",
+            "a",
+            " ",
+            "t",
+            "e",
+            "r",
+            "ç",
+            "a",
+            "-",
+            "f",
+            "e",
+            "i",
+            "r",
+            "a",
+            ",",
+            " ",
+            "à",
+            "s",
+            " ",
+            "1",
+            "0",
+            "h",
+            " ",
+            "e",
+            " ",
+            "à",
+            "s",
+            " ",
+            "1",
+            "5",
+            "h",
+            "3",
+            "0",
+            ".",
+            " "
+          ]
+        }
+      }
+    },
+    {
+      "seq": 132,
+      "t_ms": 14572.3,
+      "wall": "2026-11-27T13:57:48.938Z",
+      "origin": "PROVIDER",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 207,
+        "bytes": 102236,
+        "span_ms": 175
+      }
+    },
+    {
+      "seq": 133,
+      "t_ms": 14574.3,
+      "wall": "2026-11-27T13:57:48.940Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 22,
+        "bytes": 5632,
+        "span_ms": 169
+      }
+    },
+    {
+      "seq": 134,
+      "t_ms": 14747.3,
+      "wall": "2026-11-27T13:57:49.113Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "T",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 135,
+      "t_ms": 14747.4,
+      "wall": "2026-11-27T13:57:49.113Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Te",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 136,
+      "t_ms": 14747.4,
+      "wall": "2026-11-27T13:57:49.113Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Tem",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 137,
+      "t_ms": 14747.5,
+      "wall": "2026-11-27T13:57:49.113Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 138,
+      "t_ms": 14747.5,
+      "wall": "2026-11-27T13:57:49.113Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos ho",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 139,
+      "t_ms": 14753.2,
+      "wall": "2026-11-27T13:57:49.119Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 2,
+        "bytes": 512,
+        "span_ms": 14
+      }
+    },
+    {
+      "seq": 140,
+      "t_ms": 14767.6,
+      "wall": "2026-11-27T13:57:49.133Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos hor",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 141,
+      "t_ms": 14767.8,
+      "wall": "2026-11-27T13:57:49.133Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 6,
+        "bytes": 1536,
+        "span_ms": 35
+      }
+    },
+    {
+      "seq": 142,
+      "t_ms": 14812.5,
+      "wall": "2026-11-27T13:57:49.178Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horá",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 143,
+      "t_ms": 14812.6,
+      "wall": "2026-11-27T13:57:49.178Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 13,
+        "bytes": 3328,
+        "span_ms": 100
+      }
+    },
+    {
+      "seq": 144,
+      "t_ms": 14913.2,
+      "wall": "2026-11-27T13:57:49.279Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horári",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 145,
+      "t_ms": 14923.1,
+      "wall": "2026-11-27T13:57:49.289Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 7,
+        "bytes": 1792,
+        "span_ms": 40
+      }
+    },
+    {
+      "seq": 146,
+      "t_ms": 14963.5,
+      "wall": "2026-11-27T13:57:49.329Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 147,
+      "t_ms": 14972.8,
+      "wall": "2026-11-27T13:57:49.338Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 6,
+        "bytes": 1536,
+        "span_ms": 40
+      }
+    },
+    {
+      "seq": 148,
+      "t_ms": 15014,
+      "wall": "2026-11-27T13:57:49.380Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários d",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 149,
+      "t_ms": 15022.8,
+      "wall": "2026-11-27T13:57:49.388Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 12,
+        "bytes": 3072,
+        "span_ms": 91
+      }
+    },
+    {
+      "seq": 150,
+      "t_ms": 15114.9,
+      "wall": "2026-11-27T13:57:49.481Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários di",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 151,
+      "t_ms": 15122.8,
+      "wall": "2026-11-27T13:57:49.488Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 7,
+        "bytes": 1792,
+        "span_ms": 40
+      }
+    },
+    {
+      "seq": 152,
+      "t_ms": 15164.7,
+      "wall": "2026-11-27T13:57:49.530Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários dis",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 153,
+      "t_ms": 15172.9,
+      "wall": "2026-11-27T13:57:49.538Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 6,
+        "bytes": 1536,
+        "span_ms": 40
+      }
+    },
+    {
+      "seq": 154,
+      "t_ms": 15215.2,
+      "wall": "2026-11-27T13:57:49.581Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disp",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 155,
+      "t_ms": 15222.9,
+      "wall": "2026-11-27T13:57:49.589Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 6,
+        "bytes": 1536,
+        "span_ms": 40
+      }
+    },
+    {
+      "seq": 156,
+      "t_ms": 15265.6,
+      "wall": "2026-11-27T13:57:49.631Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários dispo",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 157,
+      "t_ms": 15273,
+      "wall": "2026-11-27T13:57:49.639Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 13,
+        "bytes": 3328,
+        "span_ms": 90
+      }
+    },
+    {
+      "seq": 158,
+      "t_ms": 15366,
+      "wall": "2026-11-27T13:57:49.732Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários dispon",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 159,
+      "t_ms": 15372.8,
+      "wall": "2026-11-27T13:57:49.738Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 6,
+        "bytes": 1536,
+        "span_ms": 40
+      }
+    },
+    {
+      "seq": 160,
+      "t_ms": 15417.4,
+      "wall": "2026-11-27T13:57:49.783Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponí",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 161,
+      "t_ms": 15422.9,
+      "wall": "2026-11-27T13:57:49.789Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 12,
+        "bytes": 3072,
+        "span_ms": 90
+      }
+    },
+    {
+      "seq": 162,
+      "t_ms": 15517.5,
+      "wall": "2026-11-27T13:57:49.883Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíve",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 163,
+      "t_ms": 15523.4,
+      "wall": "2026-11-27T13:57:49.889Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 7,
+        "bytes": 1792,
+        "span_ms": 40
+      }
+    },
+    {
+      "seq": 164,
+      "t_ms": 15567.8,
+      "wall": "2026-11-27T13:57:49.933Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 165,
+      "t_ms": 15573,
+      "wall": "2026-11-27T13:57:49.939Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 12,
+        "bytes": 3072,
+        "span_ms": 90
+      }
+    },
+    {
+      "seq": 166,
+      "t_ms": 15668.4,
+      "wall": "2026-11-27T13:57:50.034Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis n",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 167,
+      "t_ms": 15674.7,
+      "wall": "2026-11-27T13:57:50.040Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 6,
+        "bytes": 1536,
+        "span_ms": 39
+      }
+    },
+    {
+      "seq": 168,
+      "t_ms": 15717.3,
+      "wall": "2026-11-27T13:57:50.083Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 169,
+      "t_ms": 15722.9,
+      "wall": "2026-11-27T13:57:50.088Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 13,
+        "bytes": 3328,
+        "span_ms": 90
+      }
+    },
+    {
+      "seq": 170,
+      "t_ms": 15818.8,
+      "wall": "2026-11-27T13:57:50.184Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na t",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 171,
+      "t_ms": 15823,
+      "wall": "2026-11-27T13:57:50.189Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 6,
+        "bytes": 1536,
+        "span_ms": 40
+      }
+    },
+    {
+      "seq": 172,
+      "t_ms": 15868.7,
+      "wall": "2026-11-27T13:57:50.234Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na te",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 173,
+      "t_ms": 15872.7,
+      "wall": "2026-11-27T13:57:50.238Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 10,
+        "bytes": 2560,
+        "span_ms": 70
+      }
+    },
+    {
+      "seq": 174,
+      "t_ms": 15949.4,
+      "wall": "2026-11-27T13:57:50.315Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na ter",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 175,
+      "t_ms": 15955.1,
+      "wall": "2026-11-27T13:57:50.321Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 3,
+        "bytes": 768,
+        "span_ms": 8
+      }
+    },
+    {
+      "seq": 176,
+      "t_ms": 15970.1,
+      "wall": "2026-11-27T13:57:50.336Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terç",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 177,
+      "t_ms": 15972.8,
+      "wall": "2026-11-27T13:57:50.338Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 6,
+        "bytes": 1536,
+        "span_ms": 40
+      }
+    },
+    {
+      "seq": 178,
+      "t_ms": 16020.6,
+      "wall": "2026-11-27T13:57:50.386Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 179,
+      "t_ms": 16022.6,
+      "wall": "2026-11-27T13:57:50.388Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 12,
+        "bytes": 3072,
+        "span_ms": 90
+      }
+    },
+    {
+      "seq": 180,
+      "t_ms": 16120,
+      "wall": "2026-11-27T13:57:50.486Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 181,
+      "t_ms": 16125.9,
+      "wall": "2026-11-27T13:57:50.492Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 13,
+        "bytes": 3328,
+        "span_ms": 87
+      }
+    },
+    {
+      "seq": 182,
+      "t_ms": 16220.7,
+      "wall": "2026-11-27T13:57:50.586Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-f",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 183,
+      "t_ms": 16226.4,
+      "wall": "2026-11-27T13:57:50.592Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 6,
+        "bytes": 1536,
+        "span_ms": 36
+      }
+    },
+    {
+      "seq": 184,
+      "t_ms": 16270.8,
+      "wall": "2026-11-27T13:57:50.636Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-fe",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 185,
+      "t_ms": 16272.7,
+      "wall": "2026-11-27T13:57:50.638Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 1,
+        "bytes": 256,
+        "span_ms": 0
+      }
+    },
+    {
+      "seq": 186,
+      "t_ms": 16272.8,
+      "wall": "2026-11-27T13:57:50.638Z",
+      "origin": "CLIENT",
+      "type": "ping",
+      "known": true,
+      "data": {
+        "data": "1795787870638"
+      }
+    },
+    {
+      "seq": 187,
+      "t_ms": 16286.3,
+      "wall": "2026-11-27T13:57:50.652Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 5,
+        "bytes": 1280,
+        "span_ms": 27
+      }
+    },
+    {
+      "seq": 188,
+      "t_ms": 16320.4,
+      "wall": "2026-11-27T13:57:50.686Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-fei",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 189,
+      "t_ms": 16326.2,
+      "wall": "2026-11-27T13:57:50.692Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 7,
+        "bytes": 1792,
+        "span_ms": 37
+      }
+    },
+    {
+      "seq": 190,
+      "t_ms": 16370.9,
+      "wall": "2026-11-27T13:57:50.737Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feir",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 191,
+      "t_ms": 16372.6,
+      "wall": "2026-11-27T13:57:50.738Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 13,
+        "bytes": 3328,
+        "span_ms": 100
+      }
+    },
+    {
+      "seq": 192,
+      "t_ms": 16480,
+      "wall": "2026-11-27T13:57:50.846Z",
+      "origin": "PROVIDER",
+      "type": "pong",
+      "known": true,
+      "data": {
+        "data": "1795787870638"
+      }
+    },
+    {
+      "seq": 193,
+      "t_ms": 16483,
+      "wall": "2026-11-27T13:57:50.849Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 5,
+        "bytes": 1280,
+        "span_ms": 30
+      }
+    },
+    {
+      "seq": 194,
+      "t_ms": 16521.1,
+      "wall": "2026-11-27T13:57:50.887Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feira",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 195,
+      "t_ms": 16527.5,
+      "wall": "2026-11-27T13:57:50.893Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 7,
+        "bytes": 1792,
+        "span_ms": 35
+      }
+    },
+    {
+      "seq": 196,
+      "t_ms": 16572.4,
+      "wall": "2026-11-27T13:57:50.938Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feira,",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 197,
+      "t_ms": 16572.8,
+      "wall": "2026-11-27T13:57:50.938Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 57,
+        "bytes": 14592,
+        "span_ms": 450
+      }
+    },
+    {
+      "seq": 198,
+      "t_ms": 17024.1,
+      "wall": "2026-11-27T13:57:51.390Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feira, à",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 199,
+      "t_ms": 17033.4,
+      "wall": "2026-11-27T13:57:51.399Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 26,
+        "bytes": 6656,
+        "span_ms": 201
+      }
+    },
+    {
+      "seq": 200,
+      "t_ms": 17226.3,
+      "wall": "2026-11-27T13:57:51.592Z",
+      "origin": "PROVIDER",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 92,
+        "bytes": 45988,
+        "span_ms": 10
+      }
+    },
+    {
+      "seq": 201,
+      "t_ms": 17236,
+      "wall": "2026-11-27T13:57:51.602Z",
+      "origin": "PROVIDER",
+      "type": "timestamp",
+      "known": true,
+      "data": {
+        "data": null,
+        "payload": {
+          "character_start_time_seconds": [
+            4783,
+            4899,
+            4946,
+            4992,
+            5073,
+            5120,
+            5155,
+            5178,
+            5294,
+            5317,
+            5352,
+            5433,
+            5456,
+            5480,
+            5514,
+            5631,
+            5689,
+            5735,
+            5770,
+            5816,
+            5863,
+            5909,
+            5956,
+            5990,
+            6025,
+            6072,
+            6153,
+            6223,
+            6397,
+            6490
+          ],
+          "character_end_time_seconds": [
+            4899,
+            4946,
+            4992,
+            5073,
+            5120,
+            5155,
+            5178,
+            5294,
+            5317,
+            5352,
+            5433,
+            5456,
+            5480,
+            5514,
+            5631,
+            5689,
+            5735,
+            5770,
+            5816,
+            5863,
+            5909,
+            5956,
+            5990,
+            6025,
+            6072,
+            6153,
+            6223,
+            6397,
+            6490,
+            6780
+          ],
+          "chars": [
+            "A",
+            "l",
+            "g",
+            "u",
+            "m",
+            " ",
+            "d",
+            "e",
+            "s",
+            "s",
+            "e",
+            "s",
+            " ",
+            "s",
+            "e",
+            "r",
+            "v",
+            "e",
+            " ",
+            "p",
+            "a",
+            "r",
+            "a",
+            " ",
+            "v",
+            "o",
+            "c",
+            "ê",
+            "?",
+            " "
+          ]
+        }
+      }
+    },
+    {
+      "seq": 202,
+      "t_ms": 17236.3,
+      "wall": "2026-11-27T13:57:51.602Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feira, às ",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 203,
+      "t_ms": 17236.3,
+      "wall": "2026-11-27T13:57:51.602Z",
+      "origin": "PROVIDER",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 36,
+        "bytes": 17914,
+        "span_ms": 1
+      }
+    },
+    {
+      "seq": 204,
+      "t_ms": 17242.7,
+      "wall": "2026-11-27T13:57:51.608Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 5,
+        "bytes": 1280,
+        "span_ms": 31
+      }
+    },
+    {
+      "seq": 205,
+      "t_ms": 17277.2,
+      "wall": "2026-11-27T13:57:51.643Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feira, às 1",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 206,
+      "t_ms": 17283.4,
+      "wall": "2026-11-27T13:57:51.649Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 13,
+        "bytes": 3328,
+        "span_ms": 89
+      }
+    },
+    {
+      "seq": 207,
+      "t_ms": 17377.1,
+      "wall": "2026-11-27T13:57:51.743Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feira, às 10",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 208,
+      "t_ms": 17384.1,
+      "wall": "2026-11-27T13:57:51.750Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 25,
+        "bytes": 6400,
+        "span_ms": 189
+      }
+    },
+    {
+      "seq": 209,
+      "t_ms": 17577.2,
+      "wall": "2026-11-27T13:57:51.943Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feira, às 10h",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 210,
+      "t_ms": 17583.4,
+      "wall": "2026-11-27T13:57:51.949Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 6,
+        "bytes": 1536,
+        "span_ms": 39
+      }
+    },
+    {
+      "seq": 211,
+      "t_ms": 17628.3,
+      "wall": "2026-11-27T13:57:51.994Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feira, às 10h e",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 212,
+      "t_ms": 17634.8,
+      "wall": "2026-11-27T13:57:52.000Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 13,
+        "bytes": 3328,
+        "span_ms": 88
+      }
+    },
+    {
+      "seq": 213,
+      "t_ms": 17727.7,
+      "wall": "2026-11-27T13:57:52.093Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feira, às 10h e à",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 214,
+      "t_ms": 17734.3,
+      "wall": "2026-11-27T13:57:52.100Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 6,
+        "bytes": 1536,
+        "span_ms": 39
+      }
+    },
+    {
+      "seq": 215,
+      "t_ms": 17777.3,
+      "wall": "2026-11-27T13:57:52.143Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feira, às 10h e às",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 216,
+      "t_ms": 17783.3,
+      "wall": "2026-11-27T13:57:52.149Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 25,
+        "bytes": 6400,
+        "span_ms": 190
+      }
+    },
+    {
+      "seq": 217,
+      "t_ms": 17978.8,
+      "wall": "2026-11-27T13:57:52.344Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feira, às 10h e às 1",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 218,
+      "t_ms": 17985.4,
+      "wall": "2026-11-27T13:57:52.351Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 12,
+        "bytes": 3072,
+        "span_ms": 88
+      }
+    },
+    {
+      "seq": 219,
+      "t_ms": 18079.7,
+      "wall": "2026-11-27T13:57:52.445Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feira, às 10h e às 15",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 220,
+      "t_ms": 18086.7,
+      "wall": "2026-11-27T13:57:52.452Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 7,
+        "bytes": 1792,
+        "span_ms": 36
+      }
+    },
+    {
+      "seq": 221,
+      "t_ms": 18128.8,
+      "wall": "2026-11-27T13:57:52.494Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feira, às 10h e às 15h",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 222,
+      "t_ms": 18135.5,
+      "wall": "2026-11-27T13:57:52.501Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 25,
+        "bytes": 6400,
+        "span_ms": 188
+      }
+    },
+    {
+      "seq": 223,
+      "t_ms": 18328.9,
+      "wall": "2026-11-27T13:57:52.694Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feira, às 10h e às 15h3",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 224,
+      "t_ms": 18335.8,
+      "wall": "2026-11-27T13:57:52.701Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 31,
+        "bytes": 7936,
+        "span_ms": 237
+      }
+    },
+    {
+      "seq": 225,
+      "t_ms": 18581,
+      "wall": "2026-11-27T13:57:52.947Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feira, às 10h e às 15h30",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 226,
+      "t_ms": 18588,
+      "wall": "2026-11-27T13:57:52.954Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 12,
+        "bytes": 3072,
+        "span_ms": 85
+      }
+    },
+    {
+      "seq": 227,
+      "t_ms": 18681.2,
+      "wall": "2026-11-27T13:57:53.047Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feira, às 10h e às 15h30.",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 228,
+      "t_ms": 18689.6,
+      "wall": "2026-11-27T13:57:53.055Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 58,
+        "bytes": 14848,
+        "span_ms": 443
+      }
+    },
+    {
+      "seq": 229,
+      "t_ms": 19135.9,
+      "wall": "2026-11-27T13:57:53.501Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feira, às 10h e às 15h30. A",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 230,
+      "t_ms": 19142.6,
+      "wall": "2026-11-27T13:57:53.508Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 6,
+        "bytes": 1536,
+        "span_ms": 40
+      }
+    },
+    {
+      "seq": 231,
+      "t_ms": 19183.8,
+      "wall": "2026-11-27T13:57:53.549Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feira, às 10h e às 15h30. Al",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 232,
+      "t_ms": 19193.3,
+      "wall": "2026-11-27T13:57:53.559Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 6,
+        "bytes": 1536,
+        "span_ms": 40
+      }
+    },
+    {
+      "seq": 233,
+      "t_ms": 19234.3,
+      "wall": "2026-11-27T13:57:53.600Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feira, às 10h e às 15h30. Alg",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 234,
+      "t_ms": 19243.2,
+      "wall": "2026-11-27T13:57:53.609Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 7,
+        "bytes": 1792,
+        "span_ms": 40
+      }
+    },
+    {
+      "seq": 235,
+      "t_ms": 19284.8,
+      "wall": "2026-11-27T13:57:53.650Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feira, às 10h e às 15h30. Algu",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 236,
+      "t_ms": 19292.9,
+      "wall": "2026-11-27T13:57:53.658Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 6,
+        "bytes": 1536,
+        "span_ms": 40
+      }
+    },
+    {
+      "seq": 237,
+      "t_ms": 19334.6,
+      "wall": "2026-11-27T13:57:53.700Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feira, às 10h e às 15h30. Algum",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 238,
+      "t_ms": 19343.1,
+      "wall": "2026-11-27T13:57:53.709Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 12,
+        "bytes": 3072,
+        "span_ms": 90
+      }
+    },
+    {
+      "seq": 239,
+      "t_ms": 19434.7,
+      "wall": "2026-11-27T13:57:53.800Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feira, às 10h e às 15h30. Algum d",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 240,
+      "t_ms": 19442.7,
+      "wall": "2026-11-27T13:57:53.808Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 13,
+        "bytes": 3328,
+        "span_ms": 90
+      }
+    },
+    {
+      "seq": 241,
+      "t_ms": 19535.5,
+      "wall": "2026-11-27T13:57:53.901Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feira, às 10h e às 15h30. Algum des",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 242,
+      "t_ms": 19542.9,
+      "wall": "2026-11-27T13:57:53.908Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 6,
+        "bytes": 1536,
+        "span_ms": 40
+      }
+    },
+    {
+      "seq": 243,
+      "t_ms": 19585,
+      "wall": "2026-11-27T13:57:53.951Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feira, às 10h e às 15h30. Algum dess",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 244,
+      "t_ms": 19592.6,
+      "wall": "2026-11-27T13:57:53.958Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 13,
+        "bytes": 3328,
+        "span_ms": 90
+      }
+    },
+    {
+      "seq": 245,
+      "t_ms": 19685.8,
+      "wall": "2026-11-27T13:57:54.051Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feira, às 10h e às 15h30. Algum desses",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 246,
+      "t_ms": 19692.8,
+      "wall": "2026-11-27T13:57:54.058Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 6,
+        "bytes": 1536,
+        "span_ms": 40
+      }
+    },
+    {
+      "seq": 247,
+      "t_ms": 19735.6,
+      "wall": "2026-11-27T13:57:54.101Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feira, às 10h e às 15h30. Algum desses s",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 248,
+      "t_ms": 19742.7,
+      "wall": "2026-11-27T13:57:54.108Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 19,
+        "bytes": 4864,
+        "span_ms": 140
+      }
+    },
+    {
+      "seq": 249,
+      "t_ms": 19885.8,
+      "wall": "2026-11-27T13:57:54.251Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feira, às 10h e às 15h30. Algum desses se",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 250,
+      "t_ms": 19892.7,
+      "wall": "2026-11-27T13:57:54.258Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 6,
+        "bytes": 1536,
+        "span_ms": 40
+      }
+    },
+    {
+      "seq": 251,
+      "t_ms": 19937.2,
+      "wall": "2026-11-27T13:57:54.303Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feira, às 10h e às 15h30. Algum desses ser",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 252,
+      "t_ms": 19942.6,
+      "wall": "2026-11-27T13:57:54.308Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 6,
+        "bytes": 1536,
+        "span_ms": 40
+      }
+    },
+    {
+      "seq": 253,
+      "t_ms": 19987.6,
+      "wall": "2026-11-27T13:57:54.353Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feira, às 10h e às 15h30. Algum desses serve",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 254,
+      "t_ms": 19992.8,
+      "wall": "2026-11-27T13:57:54.358Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 13,
+        "bytes": 3328,
+        "span_ms": 90
+      }
+    },
+    {
+      "seq": 255,
+      "t_ms": 20088.2,
+      "wall": "2026-11-27T13:57:54.454Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feira, às 10h e às 15h30. Algum desses serve p",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 256,
+      "t_ms": 20094.7,
+      "wall": "2026-11-27T13:57:54.460Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 6,
+        "bytes": 1536,
+        "span_ms": 38
+      }
+    },
+    {
+      "seq": 257,
+      "t_ms": 20138,
+      "wall": "2026-11-27T13:57:54.504Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feira, às 10h e às 15h30. Algum desses serve pa",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 258,
+      "t_ms": 20142.8,
+      "wall": "2026-11-27T13:57:54.508Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 6,
+        "bytes": 1536,
+        "span_ms": 40
+      }
+    },
+    {
+      "seq": 259,
+      "t_ms": 20189.7,
+      "wall": "2026-11-27T13:57:54.555Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feira, às 10h e às 15h30. Algum desses serve par",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 260,
+      "t_ms": 20192.7,
+      "wall": "2026-11-27T13:57:54.558Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 6,
+        "bytes": 1536,
+        "span_ms": 40
+      }
+    },
+    {
+      "seq": 261,
+      "t_ms": 20238.6,
+      "wall": "2026-11-27T13:57:54.604Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feira, às 10h e às 15h30. Algum desses serve para ",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 262,
+      "t_ms": 20242.7,
+      "wall": "2026-11-27T13:57:54.608Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 7,
+        "bytes": 1792,
+        "span_ms": 40
+      }
+    },
+    {
+      "seq": 263,
+      "t_ms": 20289,
+      "wall": "2026-11-27T13:57:54.655Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feira, às 10h e às 15h30. Algum desses serve para v",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 264,
+      "t_ms": 20292.8,
+      "wall": "2026-11-27T13:57:54.658Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 12,
+        "bytes": 3072,
+        "span_ms": 90
+      }
+    },
+    {
+      "seq": 265,
+      "t_ms": 20390.1,
+      "wall": "2026-11-27T13:57:54.756Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feira, às 10h e às 15h30. Algum desses serve para vo",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 266,
+      "t_ms": 20396.9,
+      "wall": "2026-11-27T13:57:54.763Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 6,
+        "bytes": 1536,
+        "span_ms": 36
+      }
+    },
+    {
+      "seq": 267,
+      "t_ms": 20440.2,
+      "wall": "2026-11-27T13:57:54.806Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feira, às 10h e às 15h30. Algum desses serve para voc",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 268,
+      "t_ms": 20443.2,
+      "wall": "2026-11-27T13:57:54.809Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 25,
+        "bytes": 6400,
+        "span_ms": 190
+      }
+    },
+    {
+      "seq": 269,
+      "t_ms": 20640.4,
+      "wall": "2026-11-27T13:57:55.006Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feira, às 10h e às 15h30. Algum desses serve para você",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 270,
+      "t_ms": 20648,
+      "wall": "2026-11-27T13:57:55.014Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 13,
+        "bytes": 3328,
+        "span_ms": 85
+      }
+    },
+    {
+      "seq": 271,
+      "t_ms": 20740.3,
+      "wall": "2026-11-27T13:57:55.106Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feira, às 10h e às 15h30. Algum desses serve para você?",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 272,
+      "t_ms": 20747.6,
+      "wall": "2026-11-27T13:57:55.113Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 31,
+        "bytes": 7936,
+        "span_ms": 236
+      }
+    },
+    {
+      "seq": 273,
+      "t_ms": 20989.5,
+      "wall": "2026-11-27T13:57:55.355Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Temos horários disponíveis na terça-feira, às 10h e às 15h30. Algum desses serve para você? ",
+        "payload": {
+          "is_final": true
+        }
+      }
+    },
+    {
+      "seq": 274,
+      "t_ms": 20996.8,
+      "wall": "2026-11-27T13:57:55.362Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 23,
+        "bytes": 5888,
+        "span_ms": 166
+      }
+    },
+    {
+      "seq": 275,
+      "t_ms": 21163.2,
+      "wall": "2026-11-27T13:57:55.529Z",
+      "origin": "DERIVED",
+      "type": "sdk_agent_state",
+      "known": true,
+      "data": {
+        "state": "idle"
+      }
+    },
+    {
+      "seq": 276,
+      "t_ms": 21172.9,
+      "wall": "2026-11-27T13:57:55.538Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 388,
+        "bytes": 99328,
+        "span_ms": 3100
+      }
+    },
+    {
+      "seq": 277,
+      "t_ms": 24273.2,
+      "wall": "2026-11-27T13:57:58.639Z",
+      "origin": "CLIENT",
+      "type": "ping",
+      "known": true,
+      "data": {
+        "data": "1795787878639"
+      }
+    },
+    {
+      "seq": 278,
+      "t_ms": 24282.9,
+      "wall": "2026-11-27T13:57:58.649Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 24,
+        "bytes": 6144,
+        "span_ms": 180
+      }
+    },
+    {
+      "seq": 279,
+      "t_ms": 24463.1,
+      "wall": "2026-11-27T13:57:58.829Z",
+      "origin": "PROVIDER",
+      "type": "pong",
+      "known": true,
+      "data": {
+        "data": "1795787878639"
+      }
+    },
+    {
+      "seq": 280,
+      "t_ms": 24473.4,
+      "wall": "2026-11-27T13:57:58.839Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 440,
+        "bytes": 112640,
+        "span_ms": 3510
+      }
+    },
+    {
+      "seq": 281,
+      "t_ms": 27991.4,
+      "wall": "2026-11-27T13:58:02.357Z",
+      "origin": "PROVIDER",
+      "type": "start_answering",
+      "known": true,
+      "data": {
+        "data": null,
+        "payload": {}
+      }
+    },
+    {
+      "seq": 282,
+      "t_ms": 27991.5,
+      "wall": "2026-11-27T13:58:02.357Z",
+      "origin": "DERIVED",
+      "type": "sdk_agent_state",
+      "known": true,
+      "data": {
+        "state": "prepare_answer"
+      }
+    },
+    {
+      "seq": 283,
+      "t_ms": 27998.9,
+      "wall": "2026-11-27T13:58:02.365Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 44,
+        "bytes": 11264,
+        "span_ms": 334
+      }
+    },
+    {
+      "seq": 284,
+      "t_ms": 28336.6,
+      "wall": "2026-11-27T13:58:02.703Z",
+      "origin": "PROVIDER",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 1,
+        "bytes": 500,
+        "span_ms": 0
+      }
+    },
+    {
+      "seq": 285,
+      "t_ms": 28336.7,
+      "wall": "2026-11-27T13:58:02.703Z",
+      "origin": "DERIVED",
+      "type": "sdk_latency",
+      "known": true,
+      "data": {
+        "ms": 346
+      }
+    },
+    {
+      "seq": 286,
+      "t_ms": 28336.7,
+      "wall": "2026-11-27T13:58:02.703Z",
+      "origin": "DERIVED",
+      "type": "sdk_agent_state",
+      "known": true,
+      "data": {
+        "state": "answer"
+      }
+    },
+    {
+      "seq": 287,
+      "t_ms": 28336.9,
+      "wall": "2026-11-27T13:58:02.703Z",
+      "origin": "PROVIDER",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 58,
+        "bytes": 28544,
+        "span_ms": 10
+      }
+    },
+    {
+      "seq": 288,
+      "t_ms": 28346,
+      "wall": "2026-11-27T13:58:02.712Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 1,
+        "bytes": 256,
+        "span_ms": 0
+      }
+    },
+    {
+      "seq": 289,
+      "t_ms": 28347.3,
+      "wall": "2026-11-27T13:58:02.713Z",
+      "origin": "PROVIDER",
+      "type": "timestamp",
+      "known": true,
+      "data": {
+        "data": null,
+        "payload": {
+          "character_start_time_seconds": [
+            0,
+            116,
+            186,
+            267,
+            325,
+            360,
+            395,
+            418,
+            464,
+            522,
+            557,
+            580,
+            615,
+            673,
+            755,
+            848,
+            871,
+            917,
+            1068,
+            1161
+          ],
+          "character_end_time_seconds": [
+            116,
+            186,
+            267,
+            325,
+            360,
+            395,
+            418,
+            464,
+            522,
+            557,
+            580,
+            615,
+            673,
+            755,
+            848,
+            871,
+            917,
+            1068,
+            1161,
+            1440
+          ],
+          "chars": [
+            "V",
+            "o",
+            "c",
+            "ê",
+            " ",
+            "a",
+            "i",
+            "n",
+            "d",
+            "a",
+            " ",
+            "e",
+            "s",
+            "t",
+            "á",
+            " ",
+            "a",
+            "í",
+            "?",
+            " "
+          ]
+        }
+      }
+    },
+    {
+      "seq": 290,
+      "t_ms": 28347.4,
+      "wall": "2026-11-27T13:58:02.713Z",
+      "origin": "PROVIDER",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 35,
+        "bytes": 17024,
+        "span_ms": 2
+      }
+    },
+    {
+      "seq": 291,
+      "t_ms": 28349,
+      "wall": "2026-11-27T13:58:02.715Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "V",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 292,
+      "t_ms": 28352.7,
+      "wall": "2026-11-27T13:58:02.719Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 3,
+        "bytes": 768,
+        "span_ms": 15
+      }
+    },
+    {
+      "seq": 293,
+      "t_ms": 28371.5,
+      "wall": "2026-11-27T13:58:02.737Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Vo",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 294,
+      "t_ms": 28373.2,
+      "wall": "2026-11-27T13:58:02.739Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 12,
+        "bytes": 3072,
+        "span_ms": 90
+      }
+    },
+    {
+      "seq": 295,
+      "t_ms": 28471.5,
+      "wall": "2026-11-27T13:58:02.837Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Voc",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 296,
+      "t_ms": 28480.5,
+      "wall": "2026-11-27T13:58:02.846Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 6,
+        "bytes": 1536,
+        "span_ms": 33
+      }
+    },
+    {
+      "seq": 297,
+      "t_ms": 28521.3,
+      "wall": "2026-11-27T13:58:02.887Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Você ",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 298,
+      "t_ms": 28529,
+      "wall": "2026-11-27T13:58:02.895Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 7,
+        "bytes": 1792,
+        "span_ms": 34
+      }
+    },
+    {
+      "seq": 299,
+      "t_ms": 28571.4,
+      "wall": "2026-11-27T13:58:02.937Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Você a",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 300,
+      "t_ms": 28579.2,
+      "wall": "2026-11-27T13:58:02.945Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 6,
+        "bytes": 1536,
+        "span_ms": 34
+      }
+    },
+    {
+      "seq": 301,
+      "t_ms": 28622.2,
+      "wall": "2026-11-27T13:58:02.988Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Você ain",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 302,
+      "t_ms": 28630,
+      "wall": "2026-11-27T13:58:02.996Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 12,
+        "bytes": 3072,
+        "span_ms": 83
+      }
+    },
+    {
+      "seq": 303,
+      "t_ms": 28721.8,
+      "wall": "2026-11-27T13:58:03.088Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Você ainda",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 304,
+      "t_ms": 28729.3,
+      "wall": "2026-11-27T13:58:03.095Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 13,
+        "bytes": 3328,
+        "span_ms": 84
+      }
+    },
+    {
+      "seq": 305,
+      "t_ms": 28822.2,
+      "wall": "2026-11-27T13:58:03.188Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Você ainda e",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 306,
+      "t_ms": 28829.6,
+      "wall": "2026-11-27T13:58:03.196Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 6,
+        "bytes": 1536,
+        "span_ms": 33
+      }
+    },
+    {
+      "seq": 307,
+      "t_ms": 28871.3,
+      "wall": "2026-11-27T13:58:03.237Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Você ainda es",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 308,
+      "t_ms": 28879.2,
+      "wall": "2026-11-27T13:58:03.245Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 6,
+        "bytes": 1536,
+        "span_ms": 34
+      }
+    },
+    {
+      "seq": 309,
+      "t_ms": 28922,
+      "wall": "2026-11-27T13:58:03.288Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Você ainda est",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 310,
+      "t_ms": 28929.1,
+      "wall": "2026-11-27T13:58:03.295Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 14,
+        "bytes": 3584,
+        "span_ms": 94
+      }
+    },
+    {
+      "seq": 311,
+      "t_ms": 29023.8,
+      "wall": "2026-11-27T13:58:03.390Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Você ainda está",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 312,
+      "t_ms": 29033.2,
+      "wall": "2026-11-27T13:58:03.399Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 13,
+        "bytes": 3328,
+        "span_ms": 90
+      }
+    },
+    {
+      "seq": 313,
+      "t_ms": 29124.4,
+      "wall": "2026-11-27T13:58:03.490Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Você ainda está a",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 314,
+      "t_ms": 29132.9,
+      "wall": "2026-11-27T13:58:03.499Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 12,
+        "bytes": 3072,
+        "span_ms": 90
+      }
+    },
+    {
+      "seq": 315,
+      "t_ms": 29224.8,
+      "wall": "2026-11-27T13:58:03.591Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Você ainda está aí",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 316,
+      "t_ms": 29233,
+      "wall": "2026-11-27T13:58:03.599Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 13,
+        "bytes": 3328,
+        "span_ms": 90
+      }
+    },
+    {
+      "seq": 317,
+      "t_ms": 29325.7,
+      "wall": "2026-11-27T13:58:03.692Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Você ainda está aí?",
+        "payload": {}
+      }
+    },
+    {
+      "seq": 318,
+      "t_ms": 29332.9,
+      "wall": "2026-11-27T13:58:03.699Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 37,
+        "bytes": 9472,
+        "span_ms": 290
+      }
+    },
+    {
+      "seq": 319,
+      "t_ms": 29630.7,
+      "wall": "2026-11-27T13:58:03.997Z",
+      "origin": "PROVIDER",
+      "type": "onresponsetext",
+      "known": true,
+      "data": {
+        "data": "Você ainda está aí? ",
+        "payload": {
+          "is_final": true
+        }
+      }
+    },
+    {
+      "seq": 320,
+      "t_ms": 29641.1,
+      "wall": "2026-11-27T13:58:04.007Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 19,
+        "bytes": 4864,
+        "span_ms": 132
+      }
+    },
+    {
+      "seq": 321,
+      "t_ms": 29773,
+      "wall": "2026-11-27T13:58:04.139Z",
+      "origin": "DERIVED",
+      "type": "sdk_agent_state",
+      "known": true,
+      "data": {
+        "state": "idle"
+      }
+    },
+    {
+      "seq": 322,
+      "t_ms": 29782.7,
+      "wall": "2026-11-27T13:58:04.149Z",
+      "origin": "CLIENT",
+      "type": "audio_burst",
+      "known": true,
+      "data": {
+        "frames": 136,
+        "bytes": 34816,
+        "span_ms": 1080
+      }
+    },
+    {
+      "seq": 323,
+      "t_ms": 30871.3,
+      "wall": "2026-11-27T13:58:05.237Z",
+      "origin": "LOCAL",
+      "type": "stop",
+      "known": true,
+      "data": {
+        "reason": "operator"
+      }
+    },
+    {
+      "seq": 324,
+      "t_ms": 31047.7,
+      "wall": "2026-11-27T13:58:05.414Z",
+      "origin": "DERIVED",
+      "type": "ws_close",
+      "known": true,
+      "data": {
+        "code": 1005,
+        "reason": ""
+      }
+    },
+    {
+      "seq": 325,
+      "t_ms": 31047.7,
+      "wall": "2026-11-27T13:58:05.414Z",
+      "origin": "DERIVED",
+      "type": "sdk_agent_state",
+      "known": true,
+      "data": {
+        "state": "idle"
+      }
+    }
+  ]
+}
