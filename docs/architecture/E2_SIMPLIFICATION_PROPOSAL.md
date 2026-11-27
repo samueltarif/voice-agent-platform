@@ -1,6 +1,6 @@
 # E2 — Proposta de simplificação após a E2-V (Millis nativa)
 
-Status: **PROPOSTA** (27/11/2026). Nada da E2 foi alterado. Base: DEC-076; código da E2 em `cc68b9f` (PR #183, empilhada na #182, ambas sem merge); evidências da E2-V em `exp/e2v-millis-native` (`experiments/e2v-millis-native/FINDINGS.md`).
+Status: **ADOTADA (DEC-077) e implementada na PR "E2 simplificada"** (27/11/2026). Ajustes do operador em relação a esta proposta: a reserva NÃO acontece durante a chamada — só intenção pendente, efetivada na reconciliação pós-chamada; opt-out preventivo e barreira de novas tentativas até reconciliar. Documento central: [E2V_RESEARCH_AND_VALIDATION.md](E2V_RESEARCH_AND_VALIDATION.md). Texto original abaixo, preservado. Base: DEC-076; código da E2 em `cc68b9f` (PR #183, empilhada na #182, ambas sem merge); evidências da E2-V em `exp/e2v-millis-native` (`experiments/e2v-millis-native/FINDINGS.md`).
 
 Classificação: **[REAL]** observado em experimento autorizado; **[DOC]** documentação oficial; **[HIP]** hipótese; **[LACUNA]** não confirmado.
 

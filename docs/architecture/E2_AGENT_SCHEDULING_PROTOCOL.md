@@ -186,3 +186,25 @@ Aplicadas na branch da PR 3 (#183), sem merge; reprodução antes da correção 
 - **Migration 0017 (integridade).** CHECK corrigido: `opt_out_recorded_at` e `opt_out_source` ambos nulos ou ambos preenchidos com origem conhecida (`LEAD_UTTERANCE`, `CLARIFICATION`, `RECOVERY`); novos CHECKs de turno (início e id juntos) e contagem ≥ 0. SQL, ORM e metadados coerentes. Upgrade conservador: início de fala legado sem turno é descartado (a próxima final é ignorada); linha legada `OPTED_OUT` sem supressão **não** é suprimida automaticamente nem ganha evidência inventada — continua comercialmente bloqueada e pode ser recuperada pela ferramenta (origem `RECOVERY`), inclusive após o fim da sessão. Sessões legadas começam com `lead_final_utterances = 0` (resultado comercial só após nova fala final).
 
 **Limitações remanescentes:** texto livre do modelo em `IDLE` é autorizado e só passa pelo filtro estrutural (não é prova de veracidade); depois da reserva, o modelo não fala livremente (só falas do servidor) — a experiência de encerramento depende da composição real (E4/E5); a validação com eventos reais de voz continua obrigatória antes de qualquer prospecção real.
+
+## 12. E2 simplificada — conexão direta (DEC-077)
+
+Substitui, para a integração real, os controles de fala das §§5, 10 e 11 (mantidos acima como histórico). Evidências: [E2V_RESEARCH_AND_VALIDATION.md](E2V_RESEARCH_AND_VALIDATION.md).
+
+**Fluxo.** `scheduling.find_slots` (inalterada: oferta da E1, lista com revisão, A5) → `scheduling.request_booking({ listRevision, option, leadConfirmation })` registra intenção `PENDING_EVIDENCE` (oferta desta sessão, vigente, sem opt-out, telefone não suprimido; um novo pedido substitui o anterior) → fim da chamada → relatório pós-chamada (canal `SESSION_REPORT` do pipeline de webhooks) → `DrizzlePostCallReconciliationService.ingest`: registro idempotente (digest) → avaliação PURA do histórico (`evaluatePostCallReport`) → efeitos → fechamento `RECONCILED` ou `NEEDS_REVIEW`.
+
+**Aceite.** Só com: chamada da ferramenta no histórico para a MESMA lista/opção; ordem provada (`TIMELINE`); última fala do lead antes dela = `AFFIRM` do classificador da PR 1; fala do agente imediatamente anterior citando dia da semana e hora da oferta (`mentionsSlot`); nenhuma fala posterior contraditória. Recusa ⇒ `REJECTED`; qualquer dúvida ⇒ `NEEDS_REVIEW`. Aceite ⇒ `bookOfferedSlot` da E1 com chave `booking-intent:<id>`, intenção travada no gancho (I) e marcada `BOOKED` na mesma transação; oferta vencida, horário ocupado ou lead bloqueado ⇒ revisão, nada reservado.
+
+**Opt-out.** Ferramenta: supressão canônica imediata (`TOOL`), intenção pendente `CANCELED`. Histórico: pedido sem ferramenta ⇒ supressão (`POST_CALL`); menção ambígua ⇒ revisão; ferramenta sem pedido no histórico ⇒ supressão mantida e revisão.
+
+**Resultado.** Proposto pela ferramenta; aplicado (D5, origem `CALL_OUTCOME`) só com fala do lead no histórico e sem opt-out.
+
+**Barreira.** `post_call_reconciliations` aberta (relatório pendente/ausente/conflitante, revisão) ⇒ claim de envio recusa novas tentativas ao mesmo telefone (`POST_CALL_RECONCILIATION_PENDING`, sem cancelar). Relatório ausente além do prazo ⇒ `REPORT_MISSING`; relatório registrado cujo processamento não terminou no prazo ⇒ `REPORT_PROCESSING_INCOMPLETE` (ambos revisão). Relatório de sessão cujo `current_attempt_id` não é a tentativa informada ⇒ `SESSION_ATTEMPT_MISMATCH` (rejeitado). Só `resolveReview` (usuário) libera uma revisão.
+
+**Travas.** K → L → C → O → A → S → I → R → P. `request_booking` trava o lead primeiro (a FK da intenção pega `KEY SHARE` no lead; sem isso, impasse com o opt-out — encontrado e corrigido no teste de concorrência).
+
+**Persistência (0016/0017 regeneradas).** `scheduling_protocol_states` sem colunas de fala; `opt_out_recorded_at`/`opt_out_source` (`TOOL`|`POST_CALL`, CHECK sem brecha de NULL); `booking_intents` (uma pendente por sessão; `BOOKED` ⇔ reunião); `post_call_reconciliations` (status, digest, motivo de fim, motivos de revisão, resultado proposto/aplicado; o histórico NÃO é armazenado).
+
+**Removido.** `recordSpeech`, `recordLeadSpeechStarted`, `recordLeadUtterance`, `authorizeOutput`, `confirm_offer`, filtro de afirmações, esclarecimento de opt-out por fala, simulação de fala e respectivos testes (substituídos por testes no nível da ferramenta, do relatório e da concorrência). As fases de fala do redutor da PR 1 ficam inertes (nenhum evento as aciona); remoção candidata numa limpeza futura, para não reabrir a PR 1 auditada.
+
+**Pendências.** Adaptador do relatório real (depende da amostra anonimizada); composição/rotas (E3+); autenticação do relatório pela Millis [LACUNA].
