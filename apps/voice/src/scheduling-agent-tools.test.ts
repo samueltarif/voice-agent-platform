@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type {
   AgentConfigurationSnapshotV1,
-  ConfirmOfferResult,
   FindSlotsResult,
+  RequestBookingResult,
   SchedulingAgentPort,
   SchedulingAgentScope,
 } from '@voice-agent/contracts';
@@ -12,7 +12,6 @@ import {
   createPublishedVersionToolAuthorizer,
 } from './published-version-toolset.js';
 import {
-  createSchedulingReplyFilter,
   createSchedulingToolDefinitions,
   SCHEDULING_CONTEXT_MISMATCH_MESSAGE,
   schedulingScopeForGrant,
@@ -42,7 +41,8 @@ function snapshotWith(tools: AgentConfigurationSnapshotV1['tools']): AgentConfig
   };
 }
 
-const BOTH = ['scheduling.find_slots', 'scheduling.confirm_offer'] as const;
+const BOTH = ['scheduling.find_slots', 'scheduling.request_booking'] as const;
+const VALID_REQUEST = { listRevision: 1, option: 2, leadConfirmation: 'Sim, pode marcar.' };
 
 function recordingPort() {
   const calls: { method: string; scope: SchedulingAgentScope; args?: unknown }[] = [];
@@ -51,26 +51,13 @@ function recordingPort() {
       calls.push({ method: 'findSlots', scope, args });
       return { status: 'NO_AVAILABILITY', speech: 'x' } satisfies FindSlotsResult;
     },
-    confirmOffer: async (scope) => {
-      calls.push({ method: 'confirmOffer', scope });
+    requestBooking: async (scope, args) => {
+      calls.push({ method: 'requestBooking', scope, args });
       return {
         status: 'REFUSED',
-        reason: 'NOT_AUTHORIZED',
-        mayAnnounceBooking: false,
+        reason: 'OFFER_NOT_CURRENT',
         speech: 'x',
-      } satisfies ConfirmOfferResult;
-    },
-    recordSpeech: async () => {
-      throw new Error('not used');
-    },
-    recordLeadSpeechStarted: async () => {
-      throw new Error('not used');
-    },
-    recordLeadUtterance: async () => {
-      throw new Error('not used');
-    },
-    authorizeOutput: async () => {
-      throw new Error('not used');
+      } satisfies RequestBookingResult;
     },
   };
   return { port, calls };
@@ -80,9 +67,9 @@ async function engineFor(tools: AgentConfigurationSnapshotV1['tools']) {
   const grant = await issueTestToolGrant({ organizationId: ORG, snapshot: snapshotWith(tools) });
   const { port, calls } = recordingPort();
   const registry = new InMemoryToolRegistry();
-  const [findSlots, confirmOffer] = createSchedulingToolDefinitions(grant, port);
+  const [findSlots, requestBooking] = createSchedulingToolDefinitions(grant, port);
   registry.registerTool(findSlots);
-  registry.registerTool(confirmOffer);
+  registry.registerTool(requestBooking);
   const engine = new ToolExecutionEngine({
     registry,
     isToolAllowed: createPublishedVersionToolAuthorizer(grant),
@@ -90,7 +77,7 @@ async function engineFor(tools: AgentConfigurationSnapshotV1['tools']) {
   return { grant, engine, calls, context: buildPublishedVersionToolExecutionContext(grant) };
 }
 
-describe('E2 PR2 — scheduling tools bound to a legitimate grant', () => {
+describe('E2 (DEC-077) — scheduling tools bound to a legitimate grant', () => {
   it('the scope comes only from the grant (session = callId, calendar captured as value)', async () => {
     const { grant, engine, calls, context } = await engineFor([...BOTH]);
     const result = await engine.executeTool(
@@ -113,17 +100,18 @@ describe('E2 PR2 — scheduling tools bound to a legitimate grant', () => {
     ]);
   });
 
-  it('the model cannot pass ids, consent booleans, ordinals or turn ids', async () => {
+  it('the model cannot pass ids or consent booleans; only list, option and the phrase', async () => {
     const { engine, calls, context } = await engineFor([...BOTH]);
     for (const rawArguments of [
-      { confirmed: true },
-      { ordinal: 1 },
-      { offerId: 'o' },
-      { turnId: 't' },
-      { sessionId: 's' },
+      {},
+      { ...VALID_REQUEST, confirmed: true },
+      { ...VALID_REQUEST, offerId: 'o' },
+      { ...VALID_REQUEST, leadId: 'l' },
+      { ...VALID_REQUEST, sessionId: 's' },
+      { ...VALID_REQUEST, option: 9 },
     ]) {
       const result = await engine.executeTool(
-        { toolName: 'scheduling.confirm_offer', rawArguments },
+        { toolName: 'scheduling.request_booking', rawArguments },
         context,
       );
       expect([rawArguments, result.status]).toEqual([rawArguments, 'REJECTED']);
@@ -134,12 +122,20 @@ describe('E2 PR2 — scheduling tools bound to a legitimate grant', () => {
     );
     expect(findWithIds.status).toBe('REJECTED');
     expect(calls).toHaveLength(0);
+    const valid = await engine.executeTool(
+      { toolName: 'scheduling.request_booking', rawArguments: VALID_REQUEST },
+      context,
+    );
+    expect(valid.status).toBe('SUCCESS');
+    expect(calls.map((call) => [call.method, call.args])).toEqual([
+      ['requestBooking', VALID_REQUEST],
+    ]);
   });
 
   it('a tool outside the published toolset is rejected before the port', async () => {
     const { engine, calls, context } = await engineFor(['catalog.search']);
     const result = await engine.executeTool(
-      { toolName: 'scheduling.confirm_offer', rawArguments: {} },
+      { toolName: 'scheduling.request_booking', rawArguments: VALID_REQUEST },
       context,
     );
     expect(result).toMatchObject({ status: 'REJECTED', reason: 'UNAUTHORIZED_TOOL' });
@@ -167,31 +163,5 @@ describe('E2 PR2 — scheduling tools bound to a legitimate grant', () => {
       findSlots.execute({}, buildPublishedVersionToolExecutionContext(other)),
     ).rejects.toThrow(SCHEDULING_CONTEXT_MISMATCH_MESSAGE);
     expect(calls).toHaveLength(0);
-  });
-
-  it('the reply filter never unlocks, not even after a verified BOOKED (no "booked" boolean)', async () => {
-    const grant = await issueTestToolGrant({
-      organizationId: ORG,
-      snapshot: snapshotWith([...BOTH]),
-    });
-    const booked: ConfirmOfferResult = {
-      status: 'BOOKED',
-      recovered: false,
-      mayAnnounceBooking: true,
-      speech: 'x',
-    };
-    const port = { ...recordingPort().port, confirmOffer: async () => booked };
-    const [, confirmOffer] = createSchedulingToolDefinitions(grant, port);
-    const say = (text: string) => {
-      const filter = createSchedulingReplyFilter();
-      return (filter.push(text) + filter.flush()).trim();
-    };
-    expect(say('Sua reunião está marcada! Até logo.')).toBe('Até logo.');
-    expect(await confirmOffer.execute({}, buildPublishedVersionToolExecutionContext(grant))).toBe(
-      booked,
-    );
-    expect(say('Sua reunião está marcada!')).toBe('');
-    expect(say('Seu horário já consta na agenda.')).toBe('');
-    expect(say('Tenho outros horários amanhã.')).toBe('');
   });
 });

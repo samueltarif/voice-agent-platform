@@ -15,11 +15,11 @@ import type { PublishedToolGrant } from './published-tool-grant.js';
 import { assertGrantContext, schedulingScopeForGrant } from './scheduling-agent-tools.js';
 
 /**
- * E2 PR 3 (DEC-075, D2/D5) — `lead.record_outcome` e `lead.record_opt_out`,
+ * E2 (DEC-075 D2/D5; DEC-077) — `lead.record_outcome` e `lead.record_opt_out`,
  * ligadas a uma concessão legítima. Lead, telefone e tenant vêm só do
- * contexto confiável; o modelo informa apenas o resultado (lista fechada).
- * O opt-out DITO pelo interlocutor é gravado pelo servidor na fala final,
- * com ou sem esta ferramenta. Nada aqui entra em composição de produção.
+ * contexto confiável. O opt-out suprime na hora (preventivo); o resultado é
+ * só proposto e aplicado na reconciliação pós-chamada, com evidência no
+ * histórico. Nada aqui entra em composição de produção.
  */
 export function createLeadToolDefinitions(
   grant: PublishedToolGrant,
@@ -33,7 +33,7 @@ export function createLeadToolDefinitions(
     {
       name: LEAD_RECORD_OUTCOME_TOOL,
       description:
-        'Registra o resultado comercial da conversa (CONTACTED, QUALIFIED ou NOT_INTERESTED). Não use para ausência de resposta ou falha técnica.',
+        'Propõe o resultado comercial da conversa (CONTACTED, QUALIFIED ou NOT_INTERESTED). Não use para silêncio, ausência de resposta, inatividade ou falha técnica.',
       validateInput: createZodToolValidator(recordOutcomeArgumentsSchema),
       execute: async (input, context) => {
         assertGrantContext(grant, context);
@@ -43,11 +43,11 @@ export function createLeadToolDefinitions(
     {
       name: LEAD_RECORD_OPT_OUT_TOOL,
       description:
-        'Registra que a pessoa não quer mais receber ligações (supressão do telefone). Fale apenas o texto devolvido.',
+        'Use assim que a pessoa pedir para não receber mais ligações: suprime o telefone na hora. Informe a frase dita (leadPhrase). Depois, não ofereça mais nada.',
       validateInput: createZodToolValidator(recordOptOutArgumentsSchema),
-      execute: async (_input, context) => {
+      execute: async (input, context) => {
         assertGrantContext(grant, context);
-        return port.recordOptOut(scope);
+        return port.recordOptOut(scope, input);
       },
     },
   ];

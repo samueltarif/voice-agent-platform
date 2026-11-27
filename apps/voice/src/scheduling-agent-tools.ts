@@ -1,15 +1,13 @@
 import {
-  createBookingClaimFilter,
-  confirmOfferArgumentsSchema,
   createZodToolValidator,
   findSlotsArgumentsSchema,
-  SCHEDULING_CONFIRM_OFFER_TOOL,
+  requestBookingArgumentsSchema,
   SCHEDULING_FIND_SLOTS_TOOL,
-  type ConfirmOfferArguments,
-  type BookingClaimFilter,
-  type ConfirmOfferResult,
+  SCHEDULING_REQUEST_BOOKING_TOOL,
   type FindSlotsArguments,
   type FindSlotsResult,
+  type RequestBookingArguments,
+  type RequestBookingResult,
   type SchedulingAgentPort,
   type SchedulingAgentScope,
   type ToolDefinition,
@@ -19,15 +17,15 @@ import { isIssuedPublishedToolGrant, type PublishedToolGrant } from './published
 import { SCHEDULING_GRANT_REQUIRED_MESSAGE } from './scheduling-session-authority.js';
 
 /**
- * E2 PR 2 (DEC-075) — ferramentas canônicas de agendamento, LIGADAS a uma
- * concessão emitida pelo `CallLifecycleGateway`. O escopo (tenant, sessão,
- * agente, versão e agenda da versão) vem só da concessão; o contexto de
- * execução precisa coincidir com ela (o motor também confere, via
- * `createPublishedVersionToolAuthorizer`). O modelo não passa ids,
- * booleanos de consentimento nem ordinais: `find_slots` aceita só um dia
- * preferido; `confirm_offer`, nada.
+ * E2 (DEC-075; simplificada pela DEC-077) — ferramentas canônicas de
+ * agendamento, LIGADAS a uma concessão emitida pelo `CallLifecycleGateway`.
+ * O escopo (tenant, sessão, agente, versão e agenda da versão) vem só da
+ * concessão; o contexto de execução precisa coincidir com ela (o motor
+ * também confere, via `createPublishedVersionToolAuthorizer`). O modelo não
+ * passa ids de tenant, lead ou oferta. `request_booking` só registra a
+ * intenção: a reunião depende da reconciliação pós-chamada.
  *
- * Nada aqui é registrado na composição de produção (offline, PR 2).
+ * Nada aqui é registrado na composição de produção (offline).
  */
 
 export const SCHEDULING_CONTEXT_MISMATCH_MESSAGE =
@@ -55,28 +53,19 @@ export function assertGrantContext(grant: PublishedToolGrant, context: ToolExecu
   if (!same) throw new Error(SCHEDULING_CONTEXT_MISMATCH_MESSAGE);
 }
 
-/**
- * Filtro de streaming do texto livre do modelo (A5/A6). SEMPRE ligado: não
- * existe mais o booleano "reservado" que o destravava. É defesa adicional;
- * a autoridade sobre o que pode ser falado é `authorizeOutput` no servidor.
- */
-export function createSchedulingReplyFilter(): BookingClaimFilter {
-  return createBookingClaimFilter();
-}
-
 export function createSchedulingToolDefinitions(
   grant: PublishedToolGrant,
   port: SchedulingAgentPort,
 ): readonly [
   ToolDefinition<FindSlotsArguments, FindSlotsResult>,
-  ToolDefinition<ConfirmOfferArguments, ConfirmOfferResult>,
+  ToolDefinition<RequestBookingArguments, RequestBookingResult>,
 ] {
   const scope = schedulingScopeForGrant(grant);
   return [
     {
       name: SCHEDULING_FIND_SLOTS_TOOL,
       description:
-        'Consulta a agenda e registra até 3 horários para oferecer. O servidor fala a lista; não invente horários.',
+        'Consulta a agenda e devolve até 3 horários (listRevision e opções numeradas). Ofereça só esses horários, com dia da semana e hora; não invente horários.',
       validateInput: createZodToolValidator(findSlotsArgumentsSchema),
       execute: async (input, context) => {
         assertGrantContext(grant, context);
@@ -84,13 +73,13 @@ export function createSchedulingToolDefinitions(
       },
     },
     {
-      name: SCHEDULING_CONFIRM_OFFER_TOOL,
+      name: SCHEDULING_REQUEST_BOOKING_TOOL,
       description:
-        'Executa a marcação SOMENTE se o servidor já registrou a confirmação explícita do horário lido. O resultado é anunciado pelo servidor; não fale sobre a reserva.',
-      validateInput: createZodToolValidator(confirmOfferArgumentsSchema),
-      execute: async (_input, context) => {
+        'Use SOMENTE depois de repetir o dia da semana e a hora escolhidos e o interlocutor dizer claramente que aceita. Informe listRevision, a opção e a frase exata de aceite. NÃO marca a reunião: diga apenas que o pedido foi anotado e que a confirmação vem depois da ligação.',
+      validateInput: createZodToolValidator(requestBookingArgumentsSchema),
+      execute: async (input, context) => {
         assertGrantContext(grant, context);
-        return port.confirmOffer(scope);
+        return port.requestBooking(scope, input);
       },
     },
   ];
