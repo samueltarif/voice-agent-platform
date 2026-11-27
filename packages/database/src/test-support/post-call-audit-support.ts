@@ -88,7 +88,7 @@ export async function nextClaim(
 }
 
 function constraintOf(error: unknown): string | undefined {
-  for (let e = error as { constraint?: string; cause?: unknown } | undefined; e; ) {
+  for (let e = error as { constraint?: string; cause?: unknown } | undefined; e;) {
     if (e.constraint) return e.constraint;
     e = e.cause as typeof e;
   }
