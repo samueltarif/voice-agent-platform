@@ -94,3 +94,14 @@ Total ≈ 4,5–5 min de conversa; operador ≈ 30–40 min. Custo estimado: ≈
 Conexão **direta** Twilio–Millis para a E2 simplificada e o piloto; proteções da VAP na **execução das ferramentas** (oferta emitida nesta sessão + aceite citado classificado pelo classificador da PR 1 + reserva transacional verificada) e na **auditoria pós-chamada** (opt-out faltante, reserva sem aceite no histórico); **Media Bridge** só por gatilho objetivo (transcrição exigida, falhas não explicadas no piloto, relatório pós-chamada indisponível). Detalhes, revisão arquivo a arquivo e plano agrupado: `docs/architecture/E2_SIMPLIFICATION_PROPOSAL.md` (PR #183).
 
 **Próxima sessão real (uma, ≈ 2–3 min):** `unavailable`, `error_200`, timeout da ferramenta (`timeout: 5`, webhook 15 s), despedida com o cliente corrigido e captura do **relatório pós-chamada** (`session_data_webhook`).
+
+## 7. 5º experimento real (final, 27/11/2026) e encerramento da E2-V
+
+| Item | Classe | Resultado |
+| :- | :- | :- |
+| Relatório pós-chamada (`session_data_webhook`) | REAL | Recebido por POST com histórico por interlocutor, `function_calls`, `session_id`, metadados, duração, status e custos por serviço |
+| Indisponibilidade, `error_200`, timeout da ferramenta | REAL | Tratados corretamente (nenhuma falha falada como "sem horários") |
+| Inatividade nativa | REAL | Aviso e **despedida ouvidos** pelo operador (após a correção do cliente da 4ª rodada) |
+| Consumo | REAL | 96,09 s; 11,9967 créditos |
+
+**Encerramento:** experimentos E2-V concluídos. A arquitetura decidida (DEC-077: conexão direta, intenção pendente, reconciliação pós-chamada) e o histórico completo estão no documento central `docs/architecture/E2V_RESEARCH_AND_VALIDATION.md` (PR "E2 simplificada"). Pendente do operador: amostra anonimizada do relatório real e exportações das linhas do tempo, para o adaptador do provedor.
