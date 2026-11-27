@@ -3,7 +3,10 @@ import type {
   ProviderWebhookNormalizer,
   ToolPort,
 } from '@voice-agent/contracts';
-import type { DrizzleProviderEventAttemptStore } from '@voice-agent/database';
+import type {
+  DrizzlePostCallReconciliationService,
+  DrizzleProviderEventAttemptStore,
+} from '@voice-agent/database';
 import type { Logger } from '@voice-agent/logger';
 
 /** Autenticador + normalizador de UM provedor (contratos oficiais: 008-OF5). */
@@ -26,6 +29,8 @@ export interface ProviderWebhookDependencies {
   readonly toolTimeoutMs: number;
   readonly logger: Logger;
   readonly now: () => Date;
+  /** DEC-077: reconciliação pós-chamada; ausente = relatórios ignorados (fail-closed para efeitos). */
+  readonly reports?: Pick<DrizzlePostCallReconciliationService, 'ingest'>;
 }
 
 /** Resposta HTTP neutra produzida pelo pipeline (independente do framework). */

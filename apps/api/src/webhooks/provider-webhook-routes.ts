@@ -6,9 +6,13 @@ import type { ProviderWebhookDependencies } from './provider-webhook-ports.js';
 /** Teto do corpo bruto; entregas maiores são recusadas antes de qualquer parsing. */
 export const PROVIDER_WEBHOOK_MAX_BODY_BYTES = 64 * 1024;
 
-const CHANNEL_PATHS: ReadonlyArray<readonly [string, ProviderWebhookChannel]> = [
-  ['events', 'CALL_STATUS'],
-  ['tools', 'TOOL_INVOCATION'],
+/** DEC-077: relatório pós-chamada com histórico inteiro (E2-V: dezenas de KB). */
+export const PROVIDER_SESSION_REPORT_MAX_BODY_BYTES = 512 * 1024;
+
+const CHANNEL_PATHS: ReadonlyArray<readonly [string, ProviderWebhookChannel, number]> = [
+  ['events', 'CALL_STATUS', PROVIDER_WEBHOOK_MAX_BODY_BYTES],
+  ['tools', 'TOOL_INVOCATION', PROVIDER_WEBHOOK_MAX_BODY_BYTES],
+  ['session-reports', 'SESSION_REPORT', PROVIDER_SESSION_REPORT_MAX_BODY_BYTES],
 ];
 
 function lowerCaseHeaders(headers: Headers): Record<string, string> {
@@ -25,11 +29,11 @@ function lowerCaseHeaders(headers: Headers): Record<string, string> {
  * = 0). Usadas apenas por testes offline e pela futura composição autorizada.
  */
 export function registerProviderWebhookRoutes(app: Hono, deps: ProviderWebhookDependencies): void {
-  const limit = bodyLimit({
-    maxSize: PROVIDER_WEBHOOK_MAX_BODY_BYTES,
-    onError: (c) => c.json({ error: 'PAYLOAD_TOO_LARGE' }, 413),
-  });
-  for (const [path, channel] of CHANNEL_PATHS) {
+  for (const [path, channel, maxSize] of CHANNEL_PATHS) {
+    const limit = bodyLimit({
+      maxSize,
+      onError: (c) => c.json({ error: 'PAYLOAD_TOO_LARGE' }, 413),
+    });
     app.post(`/v1/provider-webhooks/:provider/${path}`, limit, async (c) => {
       const response = await handleProviderWebhook(
         deps,
