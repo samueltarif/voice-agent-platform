@@ -5,6 +5,7 @@ import {
   MILLIS_NATIVE_ENDPOINT,
   newSessionMetadata,
   resolveAgent,
+  validateAgentConfig,
 } from '../src/session-config.mjs';
 import {
   buildExperimentalTool,
@@ -34,7 +35,11 @@ test('exactly one of agent_id or agent_config', () => {
   assert.throws(() => resolveAgent({}), /exatamente um/);
   assert.throws(() => resolveAgent({ agentId: 'abcd', agentConfig: CONFIG }), /exatamente um/);
   assert.throws(() => resolveAgent({ agentConfig: '{x' }), /JSON/);
-  assert.throws(() => resolveAgent({ agentConfig: { voice: { voice_id: 'v' } } }), /prompt/);
+  // Validação final só depois dos ajustes da página (3ª rodada).
+  const partial = resolveAgent({ agentConfig: { prompt: 'p' } });
+  assert.deepEqual(partial, { prompt: 'p' });
+  assert.throws(() => validateAgentConfig(partial), /voice_id/);
+  assert.throws(() => validateAgentConfig({ voice: { voice_id: 'v' } }), /prompt/);
   assert.throws(() => resolveAgent({ agentId: 'a b' }), /formato/);
 });
 
@@ -55,7 +60,11 @@ test('experimental tool has no reachable webhook and only forwards defined optio
   assert.ok(new URL(plain.webhook).hostname.endsWith('.invalid'));
   assert.equal('response_mode' in plain, false);
   assert.equal('execute_after_message' in plain, false);
-  const strict = buildExperimentalTool({ responseMode: 'strict', executeAfterMessage: true });
+  const strict = buildExperimentalTool({
+    responseMode: 'strict',
+    executeAfterMessage: true,
+    messages: ['Um momento.'],
+  });
   assert.equal(strict.response_mode, 'strict');
   assert.equal(strict.execute_after_message, true);
   assert.equal(buildExperimentalTool({ executeAfterMessage: false }).execute_after_message, false);

@@ -6,9 +6,12 @@
  *
  * Autenticação: cabeçalho `x-e2v-token` (campo `header` da ferramenta no
  * SDK). O token é efêmero, digitado na página e nunca registrado.
- * `response_mode` / `execute_after_message`: só enviados se definidos
- * (PROVIDER-UNVERIFIED — objeto da investigação).
+ * Opções nativas (`method`, `response_mode`, `execute_after_message`,
+ * `messages`, `timeout`): `tool-options.mjs` — esquema documentado; o
+ * EFEITO de cada uma é o objeto da investigação.
  */
+
+import { applyToolOptions } from './tool-options.mjs';
 
 export const AGENDA_TOOL_NAME = 'e2v_consultar_agenda';
 export const AGENDA_TOOL_PATH = '/tool/e2v-agenda';
@@ -22,19 +25,30 @@ export function agendaWebhookUrl(baseUrl) {
   return url.toString();
 }
 
-export function buildAgendaTool({ baseUrl, token, responseMode, executeAfterMessage }) {
+/**
+ * Instruções de uso (3ª rodada): no 2º experimento um HTTP 404 foi falado como
+ * "sem horários". A descrição separa explicitamente os três desfechos; o
+ * webhook devolve `result` com o mesmo vocabulário.
+ */
+export const AGENDA_TOOL_DESCRIPTION = [
+  'TESTE E2-V. Consulta horários FICTÍCIOS de reunião; não marca nada.',
+  'Use quando o interlocutor quiser saber horários disponíveis.',
+  'Leia o campo "result" da resposta:',
+  '"AVAILABLE" = ofereça no máximo dois dos horários listados, sem confirmar reserva;',
+  '"NO_AVAILABILITY" = não há horários no período pedido; ofereça consultar outro período;',
+  '"TECHNICAL_ERROR" ou qualquer falha, erro, resposta vazia ou demora da ferramenta =',
+  'diga que não conseguiu consultar a agenda agora e ofereça retornar depois.',
+  'NUNCA diga que não há horários quando a consulta falhar.',
+].join(' ');
+
+export function buildAgendaTool({ baseUrl, token, ...options }) {
   if (typeof token !== 'string' || token.length < 32) {
     throw new Error('token do webhook ausente ou curto (mínimo 32 caracteres)');
   }
   const tool = {
     name: AGENDA_TOOL_NAME,
-    description:
-      'TESTE E2-V. Consulta horários FICTÍCIOS de reunião. Use quando o interlocutor quiser ' +
-      'saber horários disponíveis. Não marca nada.',
+    description: AGENDA_TOOL_DESCRIPTION,
     webhook: agendaWebhookUrl(baseUrl),
-    // 2º experimento real: sem `method`, a Millis chamou via GET. Campo explícito
-    // (nome PROVIDER-UNVERIFIED; conferir na próxima sessão real).
-    method: 'POST',
     header: { [TOKEN_HEADER]: token },
     params: [
       {
@@ -45,9 +59,7 @@ export function buildAgendaTool({ baseUrl, token, responseMode, executeAfterMess
       },
     ],
   };
-  if (responseMode !== undefined && responseMode !== '') tool.response_mode = responseMode;
-  if (executeAfterMessage !== undefined) tool.execute_after_message = Boolean(executeAfterMessage);
-  return tool;
+  return applyToolOptions(tool, options);
 }
 
 export function withAgendaTool(agentConfig, options) {

@@ -9,6 +9,10 @@
  * inundar o registro. Nenhum segredo é gravado.
  */
 
+import { redact } from './redaction.mjs';
+
+export { redact };
+
 export const ORIGINS = Object.freeze(['PROVIDER', 'CLIENT', 'DERIVED', 'LOCAL']);
 
 /** Métodos de texto observados no SDK 1.0.12 e no jambonz (outros são registrados como vieram). */
@@ -25,25 +29,9 @@ export const KNOWN_PROVIDER_METHODS = Object.freeze([
   'pong',
   // Observado no 1º experimento real (27/11/2026): marcações temporais por caractere.
   'timestamp',
+  // 3º experimento real: chamada de ferramenta com nome, parâmetros e resultado.
+  'onfunction',
 ]);
-
-const SECRET_KEYS = new Set([
-  'public_key',
-  'publicKey',
-  'api_key',
-  'authorization',
-  'token',
-  'x-e2v-token',
-  'cookie',
-]);
-
-export function redact(value) {
-  if (Array.isArray(value)) return value.map(redact);
-  if (!value || typeof value !== 'object') return value;
-  return Object.fromEntries(
-    Object.entries(value).map(([key, v]) => [key, SECRET_KEYS.has(key) ? '[REDACTED]' : redact(v)]),
-  );
-}
 
 function byteLength(data) {
   if (typeof data === 'string') return null;
@@ -56,11 +44,17 @@ export class EventLog {
   #clock;
   #wall;
   #listeners = new Set();
+  #secrets = [];
 
   constructor({ clock = () => performance.now(), wall = () => new Date() } = {}) {
     this.#clock = clock;
     this.#wall = wall;
     this.t0 = clock();
+  }
+
+  /** Valor secreto conhecido (chave, token): removido de qualquer texto registrado. */
+  addSecret(value) {
+    if (typeof value === 'string' && value.length >= 8) this.#secrets.push(value);
   }
 
   get entries() {
@@ -83,7 +77,7 @@ export class EventLog {
       type,
       known:
         origin !== 'PROVIDER' || KNOWN_PROVIDER_METHODS.includes(type) || type === 'audio_burst',
-      data: redact(data),
+      data: redact(data, this.#secrets),
     };
     this.#entries.push(entry);
     for (const listener of this.#listeners) listener(entry);
@@ -133,6 +127,6 @@ export class EventLog {
   /** Exportação para análise posterior (JSON sem segredos). */
   export(meta = {}) {
     this.#closeBursts();
-    return { meta: redact(meta), entries: this.entries };
+    return redact({ meta, entries: this.entries }, this.#secrets);
   }
 }

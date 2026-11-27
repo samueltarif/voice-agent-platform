@@ -32,18 +32,26 @@ function parseAgentConfig(raw) {
   if (!config || typeof config !== 'object' || Array.isArray(config)) {
     throw new Error('agent_config deve ser um objeto');
   }
+  return config;
+}
+
+/**
+ * Validação FINAL, depois dos ajustes da página (correção da 3ª rodada: o
+ * `voice_id` pode vir só do campo da página, sem duplicar no JSON).
+ */
+export function validateAgentConfig(config) {
   if (typeof config.prompt !== 'string' || !config.prompt.trim()) {
     throw new Error('agent_config.prompt é obrigatório');
   }
-  if (!config.voice || typeof config.voice.voice_id !== 'string') {
-    throw new Error('agent_config.voice.voice_id é obrigatório');
+  if (!config.voice || typeof config.voice.voice_id !== 'string' || !config.voice.voice_id.trim()) {
+    throw new Error('voice_id é obrigatório (no JSON ou no campo da página)');
   }
   return config;
 }
 
 /**
  * Devolve o primeiro argumento de `client.start`: string (agent_id) ou objeto
- * (agent_config). Exatamente um dos dois.
+ * (agent_config, ainda NÃO validado — ver `validateAgentConfig`). Exatamente um.
  */
 export function resolveAgent({ agentId, agentConfig }) {
   const hasId = typeof agentId === 'string' && agentId.trim() !== '';

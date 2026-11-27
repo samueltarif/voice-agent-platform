@@ -7,6 +7,9 @@
  * até a sessão real responder.
  */
 
+import { validateAgentConfig } from './session-config.mjs';
+import { applyInactivityPolicy } from './inactivity-policy.mjs';
+
 const VOICE_PROVIDERS = ['elevenlabs', 'rime', 'openai', 'cartesia', 'playht'];
 
 const filled = (value) => typeof value === 'string' && value.trim() !== '';
@@ -40,11 +43,26 @@ export function describeAgent(agent) {
     llm: agent.llm?.model ?? null,
     voice: agent.voice ? { provider: agent.voice.provider, voice_id: agent.voice.voice_id } : null,
     language: agent.language ?? null,
+    inactivity: agent.flow?.inactivity_handling ?? null,
+    max_idle: agent.session_timeout?.max_idle ?? null,
     tools: (agent.tools ?? []).map((tool) => ({
       name: tool.name,
       method: tool.method ?? null,
       response_mode: tool.response_mode ?? null,
       execute_after_message: tool.execute_after_message ?? null,
+      timeout: tool.timeout ?? null,
+      messages: tool.messages?.length ?? 0,
     })),
   };
+}
+
+/**
+ * Montagem FINAL (3ª rodada): ajustes da página → política de inatividade →
+ * ferramentas → validação. Assim o `voice_id` pode vir só do campo da página.
+ */
+export function buildFinalAgentConfig(parsed, { overrides, inactivity, tools = [] } = {}) {
+  let config = applyAgentOverrides(parsed, overrides);
+  if (inactivity) config = applyInactivityPolicy(config, inactivity);
+  for (const addTool of tools) config = addTool(config);
+  return validateAgentConfig(config);
 }

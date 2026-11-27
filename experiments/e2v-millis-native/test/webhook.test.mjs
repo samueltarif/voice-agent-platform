@@ -44,7 +44,7 @@ test('rejects missing or wrong token without running the scenario or logging it'
     assert.equal((await s.call({}, { 'x-e2v-token': `${s.token}x` })).status, 401);
     assert.equal(s.log.entries.filter((e) => e.kind === 'request').length, 0);
     assert.deepEqual(
-      s.log.entries.map((e) => [e.kind, e.status, e.token_present]),
+      s.log.entries.map((e) => [e.kind, e.status, e.auth_header_present]),
       [
         ['rejected', 401, false],
         ['rejected', 401, true],

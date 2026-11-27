@@ -18,7 +18,7 @@ const state = { scenario: initial };
 const provided = process.env.E2V_WEBHOOK_TOKEN;
 const token = provided ?? newWebhookToken();
 const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-const log = createRequestLog({ file: `logs/webhook-${stamp}.jsonl` });
+const log = createRequestLog({ secrets: [token], file: `logs/webhook-${stamp}.jsonl` });
 const timeoutMs = Number(process.env.E2V_TIMEOUT_MS ?? 30_000);
 
 const acceptGet = process.env.E2V_ACCEPT_GET === '1';

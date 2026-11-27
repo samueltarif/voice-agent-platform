@@ -90,6 +90,16 @@
       <label>first_message: <input id="firstMessage" size="60" /></label>
     </fieldset>
     <fieldset>
+      <legend>Inatividade nativa (flow.inactivity_handling + session_timeout.max_idle)</legend>
+      <label><input id="withInactivity" type="checkbox" checked /> aplicar política</label>
+      <label
+        >perguntar após (s): <input id="idlePrompt" type="number" value="7" min="3" max="120"
+      /></label>
+      <label
+        >encerrar após mais (s): <input id="idleEnd" type="number" value="7" min="3" max="120"
+      /></label>
+    </fieldset>
+    <fieldset>
       <legend>Consulta de agenda FICTÍCIA via webhook (só após autorização do túnel)</legend>
       <label
         ><input id="withAgenda" type="checkbox" /> incluir ferramenta e2v_consultar_agenda</label
@@ -107,8 +117,13 @@
       <legend>Ferramentas experimentais — opções comuns (sem efeito real)</legend>
       <label><input id="withTool" type="checkbox" /> incluir ferramenta</label>
       <label
-        >response_mode: <input id="responseMode" placeholder="ex.: strict (vazio = não enviar)"
-      /></label>
+        >response_mode:
+        <select id="responseMode">
+          <option value="">não enviar</option>
+          <option>strict</option>
+          <option>flexible</option>
+        </select></label
+      >
       <label
         >execute_after_message:
         <select id="executeAfterMessage">
@@ -118,6 +133,14 @@
         </select>
       </label>
     </fieldset>
+    <label
+      >Mensagens predefinidas da ferramenta (uma por linha; exigidas por execute_after_message):
+      <textarea id="toolMessages" style="height: 48px"></textarea>
+    </label>
+    <label
+      >timeout da ferramenta (s, vazio = padrão):
+      <input id="toolTimeout" type="number" min="1" max="60" /></label
+    ><br />
     <label
       ><input id="confirmRealUse" type="checkbox" /> Confirmo que este experimento real foi
       AUTORIZADO</label

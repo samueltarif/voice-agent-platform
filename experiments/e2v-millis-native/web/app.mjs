@@ -14,7 +14,8 @@ import {
   resolveAgent,
 } from '../src/session-config.mjs';
 import { withExperimentalTool } from '../src/experimental-tool.mjs';
-import { applyAgentOverrides, describeAgent } from '../src/agent-builder.mjs';
+import { buildFinalAgentConfig, describeAgent } from '../src/agent-builder.mjs';
+import { redact } from '../src/redaction.mjs';
 import { withAgendaTool } from '../src/agenda-tool.mjs';
 
 const $ = (id) => document.getElementById(id);
@@ -46,28 +47,43 @@ function toolOptions() {
   return {
     responseMode: mode === '' ? undefined : mode,
     executeAfterMessage: after === '' ? undefined : after === 'true',
+    messages: $('toolMessages').value.split('\n'),
+    timeoutSeconds: $('toolTimeout').value.trim() || undefined,
   };
 }
 
-function buildAgent() {
+function inactivityOptions() {
+  if (!$('withInactivity').checked) return null;
+  return {
+    promptAfterSeconds: $('idlePrompt').value || 7,
+    endAfterSeconds: $('idleEnd').value || 7,
+  };
+}
+
+/** Ajustes da página ANTES da validação final (o voice_id pode vir só do campo). */
+function buildAgent(secrets) {
   const agent = resolveAgent({ agentId: $('agentId').value, agentConfig: $('agentConfig').value });
   if (typeof agent === 'string') return agent;
-  let config = applyAgentOverrides(agent, {
-    llmModel: $('llmModel').value,
-    voiceProvider: $('voiceProvider').value,
-    voiceId: $('voiceId').value,
-    language: $('language').value,
-    firstMessage: $('firstMessage').value,
-  });
-  if ($('withTool').checked) config = withExperimentalTool(config, toolOptions());
+  const tools = [];
+  if ($('withTool').checked) tools.push((c) => withExperimentalTool(c, toolOptions()));
   if ($('withAgenda').checked) {
-    config = withAgendaTool(config, {
-      baseUrl: $('webhookBase').value.trim(),
-      token: $('webhookToken').value,
-      ...toolOptions(),
-    });
+    const token = $('webhookToken').value;
+    secrets.push(token);
+    tools.push((c) =>
+      withAgendaTool(c, { baseUrl: $('webhookBase').value.trim(), token, ...toolOptions() }),
+    );
   }
-  return config;
+  return buildFinalAgentConfig(agent, {
+    overrides: {
+      llmModel: $('llmModel').value,
+      voiceProvider: $('voiceProvider').value,
+      voiceId: $('voiceId').value,
+      language: $('language').value,
+      firstMessage: $('firstMessage').value,
+    },
+    inactivity: inactivityOptions(),
+    tools,
+  });
 }
 
 function wireDerived(sdk) {
@@ -85,13 +101,15 @@ async function start() {
   }
   const publicKey = $('publicKey').value.trim();
   if (!publicKey) return alertBox('Informe a chave pública (não é salva).');
+  const secrets = [publicKey];
   let agent;
   try {
-    agent = buildAgent();
+    agent = buildAgent(secrets);
   } catch (error) {
-    return alertBox(error.message);
+    return alertBox(redact(String(error?.message ?? error), secrets));
   }
   log = new EventLog();
+  for (const secret of secrets) log.addSecret(secret);
   unsubscribe();
   unsubscribe = log.subscribe(render);
   $('events').replaceChildren();
@@ -133,7 +151,9 @@ function download() {
   link.click();
 }
 
-$('start').addEventListener('click', () => start().catch((e) => alertBox(String(e?.message ?? e))));
+$('start').addEventListener('click', () =>
+  start().catch(() => alertBox('Falha ao iniciar a sessão (detalhes omitidos por segurança).')),
+);
 $('stop').addEventListener('click', () => stop());
 $('mute').addEventListener('click', () => {
   client?.mute();

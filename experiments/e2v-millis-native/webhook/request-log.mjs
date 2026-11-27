@@ -6,7 +6,7 @@
  */
 import { appendFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { redact } from '../src/event-log.mjs';
+import { redact } from '../src/redaction.mjs';
 
 const KEPT_HEADERS = ['content-type', 'content-length', 'user-agent', 'x-forwarded-for', 'cf-ray'];
 
@@ -17,6 +17,7 @@ export function safeHeaders(headers) {
 }
 
 export function createRequestLog({
+  secrets = [],
   file = null,
   clock = () => performance.now(),
   wall = () => new Date(),
@@ -32,7 +33,7 @@ export function createRequestLog({
         t_ms: Math.round(clock() - t0),
         origin: 'WEBHOOK',
         kind,
-        ...redact(data),
+        ...redact(data, secrets),
       };
       entries.push(entry);
       if (file) appendFileSync(file, `${JSON.stringify(entry)}\n`);

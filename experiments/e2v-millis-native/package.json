@@ -9,7 +9,8 @@
     "start": "node server.mjs",
     "test": "node --test \"test/*.test.mjs\"",
     "webhook": "node webhook/main.mjs",
-    "timeline": "node tools/merge-timeline.mjs"
+    "timeline": "node tools/merge-timeline.mjs",
+    "correlate": "node tools/correlate.mjs"
   },
   "dependencies": {
     "@millisai/web-sdk": "1.0.12"

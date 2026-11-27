@@ -76,8 +76,8 @@ async function admit(req, res, ctx, base) {
     return reply(res, 404, { status: 'NOT_FOUND' }) ?? null;
   }
   if (!sameToken(req.headers[TOKEN_HEADER], ctx.token)) {
-    const token_present = req.headers[TOKEN_HEADER] !== undefined;
-    ctx.log.write('rejected', { ...base, status: 401, token_present });
+    const auth_header_present = req.headers[TOKEN_HEADER] !== undefined;
+    ctx.log.write('rejected', { ...base, status: 401, auth_header_present });
     return reply(res, 401, { status: 'UNAUTHORIZED' }) ?? null;
   }
   if (req.method === 'GET' && ctx.acceptGet) return { ok: true, value: queryOf(req) };

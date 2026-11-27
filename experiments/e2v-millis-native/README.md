@@ -120,3 +120,15 @@ Restrições: nunca expor as portas 5173 e 8788; o túnel fica aberto só durant
 **Regressão:** `npm test` — **27 aprovados** (25 + 2 novos: GET autenticado ⇒ 405 registrado e a contingência GET). O teste de reconexão e o de método falhavam antes da correção. As asserções de `method: "POST"` nas duas ferramentas foram acrescentadas aos testes existentes.
 
 **Limitações:** se a Millis ignorar `method`, as chamadas continuarão chegando via GET (agora visíveis como 405 no registro, ou atendidas com `E2V_ACCEPT_GET=1`); o formato exato dos parâmetros enviados pela Millis segue não verificado; a causa do encerramento por inatividade é inferida.
+
+---
+
+# 3ª rodada — consolidação (offline)
+
+Evidências, implementação desta rodada, **proposta de simplificação da E2** e plano do próximo experimento: [`FINDINGS.md`](FINDINGS.md).
+
+Novidades de uso:
+- Página: política de **inatividade nativa** (padrão 7 s + 7 s), `response_mode` (`strict`/`flexible`), mensagens predefinidas e `timeout` da ferramenta; ajustes aplicados antes da validação final.
+- Webhook: cenário novo `error_200` (falha técnica com HTTP 200); todos os cenários devolvem `result`.
+- `npm run correlate -- e2v-<sessão>.json logs/webhook-<data>.jsonl` → pares `onfunction` × webhook e classificação do fim da sessão.
+- Testes: **37 aprovados** (`npm test`).

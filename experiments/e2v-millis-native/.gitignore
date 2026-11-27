@@ -4,3 +4,4 @@ dist/
 e2v-*.json
 logs/
 timeline*.json
+correlation*.json

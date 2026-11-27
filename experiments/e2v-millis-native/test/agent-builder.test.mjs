@@ -72,6 +72,8 @@ test('the description sent to the log never includes the webhook token', () => {
       method: 'POST',
       response_mode: 'strict',
       execute_after_message: null,
+      timeout: null,
+      messages: 0,
     },
   ]);
   assert.deepEqual(describeAgent('abcd'), { mode: 'agent_id', agent_id: 'abcd' });

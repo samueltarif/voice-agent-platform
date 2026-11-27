@@ -7,25 +7,22 @@
  * e quando o motor decide chamar a ferramenta (eventos `ai_action`, texto e
  * áudio ao redor), não o efeito — que não existe.
  *
- * `response_mode` e `execute_after_message` são PROVIDER-UNVERIFIED: nomes e
- * valores vêm do pedido do operador e devem ser conferidos na documentação e
- * no comportamento real. São repassados sem interpretação, só quando
- * definidos, para que o experimento compare as variantes.
+ * Opções nativas (`method`, `response_mode`, `execute_after_message`,
+ * `messages`, `timeout`): `tool-options.mjs`.
  */
+
+import { applyToolOptions } from './tool-options.mjs';
 
 export const EXPERIMENTAL_TOOL_NAME = 'e2v_registrar_interesse_teste';
 export const NOOP_WEBHOOK = 'https://e2v-tool.invalid/noop';
 
-export function buildExperimentalTool({ responseMode, executeAfterMessage } = {}) {
+export function buildExperimentalTool(options = {}) {
   const tool = {
     name: EXPERIMENTAL_TOOL_NAME,
     description:
       'TESTE E2-V. Chame somente quando o interlocutor disser claramente que quer receber um ' +
       'contato de teste. Não marca reunião, não grava dados e não tem efeito real.',
     webhook: NOOP_WEBHOOK,
-    // 2º experimento real: sem `method`, a Millis chamou via GET. Campo explícito
-    // (nome PROVIDER-UNVERIFIED; conferir na próxima sessão real).
-    method: 'POST',
     header: {},
     params: [
       {
@@ -36,9 +33,7 @@ export function buildExperimentalTool({ responseMode, executeAfterMessage } = {}
       },
     ],
   };
-  if (responseMode !== undefined && responseMode !== '') tool.response_mode = responseMode;
-  if (executeAfterMessage !== undefined) tool.execute_after_message = Boolean(executeAfterMessage);
-  return tool;
+  return applyToolOptions(tool, options);
 }
 
 /** Acrescenta a ferramenta a uma cópia do agent_config (nunca muta a entrada). */
