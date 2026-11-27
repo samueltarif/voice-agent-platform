@@ -12,7 +12,11 @@ import type { LeadEntity } from '../schema/leads.js';
 import { closePendingIntent } from './booking-intent-store.js';
 import type { DatabaseExecutor } from './database-executor.js';
 import { lockLead } from './lead-status-writer.js';
-import { ensureReconciliation, updateReconciliation } from './post-call-reconciliation-store.js';
+import {
+  ensureReconciliation,
+  lockReconciliation,
+  updateReconciliation,
+} from './post-call-reconciliation-store.js';
 import type { SchedulingEventDeps } from './scheduling-agent-deps.js';
 import { leadIdForPhone, recordCanonicalOptOut } from './scheduling-agent-opt-out.js';
 import { resolveAgentScope } from './scheduling-agent-scope.js';
@@ -29,7 +33,8 @@ import {
  *   evidência; cancela a intenção de agendamento pendente; aceito também com
  *   a sessão encerrada. Ordem L → A → S → I → R → P.
  * - resultado: só PROPOSTO (R); aplicado na reconciliação pós-chamada com
- *   interlocução comprovada no histórico. Ordem A → S → R.
+ *   interlocução comprovada no histórico; recusado depois do relatório final
+ *   (A6). Ordem A → S → R. O opt-out tardio continua preventivo.
  */
 
 interface LeadTx {
@@ -79,6 +84,9 @@ async function proposeOutcome(
     leadId: ctx.leadId,
     now: ctx.now,
   });
+  // A6: relatório final já registrado — nenhuma nova operação comercial na sessão.
+  const row = await lockReconciliation(ctx.tx, keyOf(ctx.binding));
+  if (row?.reportDigest) return { status: 'REFUSED', reason: 'SESSION_NOT_ACTIVE' };
   await updateReconciliation(ctx.tx, keyOf(ctx.binding), { proposedOutcome: outcome });
   return { status: 'PROPOSED', outcome };
 }

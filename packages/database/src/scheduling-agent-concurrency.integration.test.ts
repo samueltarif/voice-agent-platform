@@ -5,6 +5,7 @@ import { DrizzleOutboundRepository } from './repositories/outbound-repository.js
 import { DrizzlePostCallReconciliationService } from './repositories/post-call-reconciliation-service.js';
 import { DrizzleSchedulingAgentService } from './repositories/scheduling-agent-service.js';
 import { createDisposableTestDatabase } from './test-support/disposable-test-database.js';
+import { closeAttempt } from './test-support/post-call-audit-support.js';
 import {
   createDurableOutboundFixture,
   type DurableOutboundFixture,
@@ -138,6 +139,9 @@ describe('E2 simplified: concurrency, idempotency and the dialing barrier', () =
       reason: 'POST_CALL_RECONCILIATION_PENDING',
     });
     expect((await reports.ingest(s.attempt, report)).status).toBe('RECONCILED');
+    // Auditoria #184 A5: a tentativa anterior ainda em curso também ocupa o destino.
+    expect(await claimAgain()).toMatchObject({ kind: 'REJECTED', reason: 'DESTINATION_IN_FLIGHT' });
+    await closeAttempt(tdb.db, { organizationId: s.scope.organizationId, attemptId: s.attemptId });
     expect((await claimAgain()).kind).toBe('CLAIMED');
   });
 });

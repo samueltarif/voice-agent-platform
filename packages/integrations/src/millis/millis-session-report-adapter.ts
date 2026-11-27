@@ -18,6 +18,8 @@ import {
  * - Referência da chamada = `session_id` do PROVEDOR. `metadata`, `call_id` e
  *   `agent_id` NÃO identificam a tentativa (metadata é ecoada do que enviamos;
  *   os outros vieram nulos). O tenant continua resolvido só no servidor.
+ * - Integridade (A3): truncamento ou mensagem fora do formato ⇒ `INCOMPLETE`
+ *   (uma fala pode ter sido perdida), separado da confiança na ordem.
  * - Ordem: o `chat` coincidiu, mensagem a mensagem, com a linha do tempo do
  *   exp. 5; `TIMELINE` só quando o formato e a conferência cruzada passam,
  *   senão `UNKNOWN` (revisão). Não há timestamps nem marca de interrupção.
@@ -39,6 +41,13 @@ export interface MillisSessionReportAdaptation {
 }
 
 const MAX_DURATION_SECONDS = 86_400;
+/** Desvios em que uma FALA pode ter sido perdida (A3): histórico incompleto, além de fora de ordem. */
+const SPEECH_LOSS_ISSUES = new Set([
+  'TEXT_TRUNCATED',
+  'ENTRIES_TRUNCATED',
+  'UNRECOGNIZED_MESSAGE',
+  'TOOL_ARGUMENTS_INVALID',
+]);
 /** 2000-01-01 … 2100-01-01: fora disso a época não é plausível (usa o recebimento). */
 const EPOCH_RANGE = [946_684_800, 4_102_444_800] as const;
 
@@ -75,6 +84,9 @@ export function adaptMillisSessionReport(
     occurredAt: occurredAtOf(report, request.receivedAt),
     report: {
       ordering: issues.size === 0 ? 'TIMELINE' : 'UNKNOWN',
+      integrity: [...issues].some((issue) => SPEECH_LOSS_ISSUES.has(issue))
+        ? 'INCOMPLETE'
+        : 'COMPLETE',
       entries,
       endReason: endReasonOf(report),
       durationSeconds: durationOf(report),

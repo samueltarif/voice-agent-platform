@@ -48,6 +48,7 @@ describe('Millis session report adapter — real anonymized sample (exp. 5)', ()
     });
     expect(result.event.report).toMatchObject({
       ordering: 'TIMELINE',
+      integrity: 'COMPLETE',
       endReason: 'TIMEOUT_UNSPECIFIED',
       durationSeconds: 96.09253096580505,
     });
@@ -147,13 +148,32 @@ describe('Millis session report adapter — ordering is never assumed', () => {
     unknownWith((b) => (b.chat[1]!.content = 'a'.repeat(5000)), 'TEXT_TRUNCATED');
   });
 
-  it('caps the number of entries', () => {
+  it('caps the number of entries and flags the history as incomplete (audit #184 A3)', () => {
     const body = sample();
-    body.chat = Array.from({ length: 501 }, () => ({ role: 'user', content: 'sim' }));
+    body.chat = Array.from({ length: 500 }, () => ({ role: 'user', content: 'sim' }));
+    body.chat.push({ role: 'user', content: 'Não me ligue mais.' });
     body.function_calls = [];
     const out = adapt(body)!;
     expect(out.event.report.entries).toHaveLength(500);
-    expect(out.event.report.ordering).toBe('UNKNOWN');
+    expect(out.event.report).toMatchObject({ ordering: 'UNKNOWN', integrity: 'INCOMPLETE' });
+    expect(evaluatePostCallReport(out.event.report, null)).toMatchObject({ complete: false });
+  });
+
+  it('speech possibly lost ⇒ INCOMPLETE; only a cross-check mismatch ⇒ order unknown but complete', () => {
+    const integrityOf = (mutate: (b: Body) => void) => {
+      const body = sample();
+      mutate(body);
+      return adapt(body)!.event.report.integrity;
+    };
+    expect(integrityOf((b) => b.chat.splice(1, 0, { role: 'system', content: 'x' }))).toBe(
+      'INCOMPLETE',
+    );
+    expect(integrityOf((b) => (b.chat[1]!.content = [{ type: 'text', text: 'pare' }]))).toBe(
+      'INCOMPLETE',
+    );
+    expect(integrityOf((b) => (b.chat[1]!.content = 'a'.repeat(5000)))).toBe('INCOMPLETE');
+    expect(integrityOf((b) => (callOf(b, 4).function.arguments = '{'))).toBe('INCOMPLETE');
+    expect(integrityOf((b) => fc(b).pop())).toBe('COMPLETE');
   });
 });
 

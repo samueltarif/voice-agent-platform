@@ -32,6 +32,7 @@ const accept: ProviderWebhookAuthenticator = {
 };
 const REPORT: PostCallReport = {
   ordering: 'TIMELINE',
+  integrity: 'COMPLETE',
   entries: [{ kind: 'LEAD', text: 'Alô?' }],
   endReason: 'INACTIVITY_TIMEOUT',
   durationSeconds: 96,

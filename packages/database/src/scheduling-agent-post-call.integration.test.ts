@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DrizzlePostCallReconciliationService } from './repositories/post-call-reconciliation-service.js';
+import { recordReport } from './repositories/post-call-record.js';
 import { DrizzleSchedulingAgentService } from './repositories/scheduling-agent-service.js';
 import { createDisposableTestDatabase } from './test-support/disposable-test-database.js';
 import {
@@ -110,8 +111,11 @@ describe('E2 simplified: opt-out, call outcome and post-call report robustness',
 
   it('suppresses the dialed phone even without a lead or a calendar', async () => {
     const s = await setup({ calendarId: null });
+    // Sem lead DE VERDADE (o fixture sempre cria um): o telefone discado deixa de ter lead.
+    await tdb.db.execute(sql`DELETE FROM leads WHERE id = ${s.leadId}`);
     expect((await service.recordOptOut(s.scope, {})).status).toBe('RECORDED');
     expect(await s.suppressions()).toBe(1);
+    expect((await s.reconciliation())?.leadId).toBeNull();
   });
 
   it('a proposed outcome applies only with the lead speaking in the history (D5)', async () => {
@@ -181,18 +185,22 @@ describe('E2 simplified: opt-out, call outcome and post-call report robustness',
     const s = await setup();
     const { listRevision } = await offerAndRequest(service, s.scope);
     const report = postCallReport(bookingTimeline({ listRevision }));
-    // Simula falha entre o registro (digest) e os efeitos: a linha fica pendente com digest.
-    await tdb.db
-      .execute(sql`UPDATE post_call_reconciliations SET report_digest = 'x', report_received_at = ${SCHEDULING_TEST_NOW}
-      WHERE organization_id = ${s.scope.organizationId} AND session_id = ${s.sessionId}`);
+    // Falha REAL entre o registro e os efeitos: o MESMO relatório foi registrado (digest real).
+    const step = await recordReport(tdb.db, { attempt: s.attempt, report, now: clock.now() });
+    expect(step.kind).toBe('PROCESS');
     clock.set(new Date(SCHEDULING_TEST_NOW.getTime() + 60 * 60_000));
     await reports.expireOverdue({ olderThanMinutes: 30 });
     expect(await s.reconciliation()).toMatchObject({
       status: 'NEEDS_REVIEW',
       reviewReasons: ['REPORT_PROCESSING_INCOMPLETE'],
     });
-    expect((await reports.ingest(s.attempt, report)).status).toBe('NEEDS_REVIEW');
+    // A reentrega do mesmo relatório é duplicada (não conflito) e não reserva nada.
+    expect(await reports.ingest(s.attempt, report)).toEqual({
+      status: 'DUPLICATE',
+      reasons: ['NEEDS_REVIEW'],
+    });
     expect(await s.meetings()).toHaveLength(0);
+    expect((await intentsOf(tdb.db, s.scope)).map((i) => i.status)).toEqual(['NEEDS_REVIEW']);
   });
 
   it('a report for another session, attempt or tenant has no effect', async () => {

@@ -30,7 +30,7 @@ const byKey = (key: ReconciliationKey) =>
 /** Idempotente: nunca reabre nem altera uma linha existente. */
 export async function ensureReconciliation(
   tx: DatabaseExecutor,
-  binding: SchedulingBinding,
+  binding: Pick<SchedulingBinding, 'organizationId' | 'sessionId' | 'attemptId'>,
   input: { readonly phoneE164: string; readonly leadId: string | null; readonly now: Date },
 ): Promise<void> {
   await tx
@@ -54,6 +54,36 @@ export async function lockReconciliation(
 ): Promise<PostCallReconciliationEntity | null> {
   const [row] = await tx.select().from(postCallReconciliations).where(byKey(key)).for('update');
   return row ?? null;
+}
+
+/**
+ * A4 — o relatório `digest` ainda é o vigente desta reconciliação? (trava R;
+ * chamar DEPOIS de I). Falso quando outro relatório entrou em conflito, um
+ * humano já decidiu ou a reconciliação já fechou: nenhum efeito comercial.
+ */
+export async function lockCurrentReport(
+  tx: DatabaseExecutor,
+  key: ReconciliationKey,
+  digest: string,
+): Promise<PostCallReconciliationEntity | null> {
+  const row = await lockReconciliation(tx, key);
+  const current =
+    row?.reportDigest === digest &&
+    row.status !== 'RECONCILED' &&
+    !row.reviewReasons.includes('REPORT_CONFLICT');
+  return current ? row : null;
+}
+
+/** A6 — relatório final já registrado: a sessão não aceita novas operações comerciais. */
+export async function isSessionSealed(
+  executor: DatabaseExecutor,
+  key: ReconciliationKey,
+): Promise<boolean> {
+  const [row] = await executor
+    .select({ digest: postCallReconciliations.reportDigest })
+    .from(postCallReconciliations)
+    .where(byKey(key));
+  return Boolean(row?.digest);
 }
 
 export async function updateReconciliation(

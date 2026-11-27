@@ -1,7 +1,7 @@
 import { classifyLeadReply, type LeadReplyIntent } from './lead-reply-intent.js';
 import { mentionsOptOut } from './lead-reply-opt-out-mention.js';
 import type { PostCallEntry, PostCallReport } from './post-call-report.js';
-import { mentionsSlot } from './post-call-slot-mention.js';
+import { proposesSlot } from './post-call-slot-mention.js';
 import { SCHEDULING_REQUEST_BOOKING_TOOL } from './scheduling-agent-port.js';
 
 /**
@@ -12,10 +12,11 @@ import { SCHEDULING_REQUEST_BOOKING_TOOL } from './scheduling-agent-port.js';
  *   não prova interlocução);
  * - opt-out: alguma fala classificada como pedido (`OPT_OUT`) ou menção não
  *   resolvida (revisão);
- * - aceite do agendamento: a chamada da ferramenta para a MESMA lista e
- *   opção está no histórico; a última fala do interlocutor antes dela é um
- *   aceite inteiro (`AFFIRM`); a fala do agente imediatamente anterior cita
- *   o dia da semana e a hora da oferta; nada depois a contradiz.
+ * - aceite do agendamento: histórico COMPLETO e em ordem; o ÚLTIMO pedido
+ *   de reserva do histórico é o da MESMA lista e opção da intenção (A2); a
+ *   última fala do interlocutor antes dele é um aceite inteiro (`AFFIRM`); a
+ *   fala do agente imediatamente anterior é uma proposta afirmativa com um
+ *   único horário igual ao da oferta (A1); nada depois a contradiz.
  * Qualquer outra situação vai para revisão humana — nunca para reserva.
  */
 
@@ -31,6 +32,8 @@ export type OptOutEvidence = 'REQUESTED' | 'MENTIONED' | 'NONE';
 
 export interface PostCallEvaluation {
   readonly interlocution: boolean;
+  /** Histórico sem fala potencialmente perdida (A3). */
+  readonly complete: boolean;
   readonly optOut: OptOutEvidence;
   readonly booking: { readonly decision: BookingEvidence; readonly reason: string };
 }
@@ -46,9 +49,11 @@ function optOutOf(entries: readonly PostCallEntry[]): OptOutEvidence {
   return leads.some((entry) => mentionsOptOut(entry.text)) ? 'MENTIONED' : 'NONE';
 }
 
+const isBookingRequest = (entry: PostCallEntry) =>
+  entry.kind === 'TOOL_CALL' && entry.toolName === SCHEDULING_REQUEST_BOOKING_TOOL;
+
 function matchesIntent(entry: PostCallEntry, intent: PendingBookingIntent): boolean {
-  if (entry.kind !== 'TOOL_CALL' || entry.toolName !== SCHEDULING_REQUEST_BOOKING_TOOL)
-    return false;
+  if (entry.kind !== 'TOOL_CALL' || !isBookingRequest(entry)) return false;
   const args = entry.arguments as { listRevision?: unknown; option?: unknown } | null;
   return args?.listRevision === intent.listRevision && args?.option === intent.option;
 }
@@ -80,7 +85,7 @@ function judgeReply(
   if (reply.kind !== 'AFFIRM') return review('ACCEPTANCE_UNCLEAR');
   const agentAt = lastIndex(entries, (entry) => entry.kind === 'AGENT', leadAt);
   const readback = agentAt >= 0 ? (entries[agentAt] as { text: string }).text : '';
-  if (!mentionsSlot(readback, intent.startsAt, intent.timeZone)) {
+  if (!proposesSlot(readback, intent.startsAt, intent.timeZone)) {
     return review('READBACK_NOT_EVIDENT');
   }
   return { decision: 'ACCEPTED', reason: 'LEAD_AFFIRMED_READBACK' };
@@ -91,10 +96,13 @@ function bookingOf(
   intent: PendingBookingIntent | null,
 ): PostCallEvaluation['booking'] {
   if (!intent) return { decision: 'NONE', reason: 'NO_PENDING_INTENT' };
+  if (report.integrity !== 'COMPLETE') return review('HISTORY_INCOMPLETE');
   if (report.ordering !== 'TIMELINE') return review('ORDERING_UNKNOWN');
   const { entries } = report;
   const callAt = lastIndex(entries, (entry) => matchesIntent(entry, intent));
   if (callAt < 0) return review('TOOL_CALL_NOT_IN_REPORT');
+  // A2: um pedido posterior (outra opção) torna a intenção sobrevivente duvidosa.
+  if (lastIndex(entries, isBookingRequest) !== callAt) return review('LAST_REQUEST_MISMATCH');
   if (contradictedAfter(entries, callAt)) return review('LEAD_REPLY_AFTER_REQUEST');
   const leadAt = lastIndex(entries, spoke, callAt);
   if (leadAt < 0) return review('NO_LEAD_REPLY');
@@ -113,5 +121,6 @@ export function evaluatePostCallReport(
       : optOut === 'MENTIONED'
         ? review('OPT_OUT_MENTION_UNCLEAR')
         : bookingOf(report, intent);
-  return { interlocution: report.entries.some(spoke), optOut, booking };
+  const complete = report.integrity === 'COMPLETE';
+  return { interlocution: report.entries.some(spoke), complete, optOut, booking };
 }

@@ -1,29 +1,27 @@
-import { createHash } from 'node:crypto';
-import { and, eq } from 'drizzle-orm';
 import type { PendingBookingIntent, PostCallReport } from '@voice-agent/contracts';
+import { pendingOf, reportDigest, sessionPhone } from './post-call-record-support.js';
 import type { DatabaseInstance } from '../client/connection.js';
 import type { BookingIntentEntity } from '../schema/booking-intents.js';
-import { callSessions } from '../schema/call-sessions.js';
-import { meetingSlotOffers } from '../schema/meeting-slot-offers.js';
-import { outboundCallJobs } from '../schema/outbound.js';
-import { lockPendingIntent } from './booking-intent-store.js';
+import { sessionIntents } from './booking-intent-store.js';
 import type { DatabaseExecutor } from './database-executor.js';
 import {
   ensureReconciliation,
   lockReconciliation,
   updateReconciliation,
+  type ReconciliationKey,
 } from './post-call-reconciliation-store.js';
 import { leadIdForPhone } from './scheduling-agent-opt-out.js';
-import { calendarTimezone } from './scheduling-agent-scope.js';
 
 /**
  * E2 simplificada (DEC-077) — 1ª etapa do relatório pós-chamada (trava R):
  * valida a sessão da tentativa resolvida PELO SERVIDOR (nunca pelo
- * relatório), registra o digest (idempotência) e carrega a intenção
- * pendente. Mesmo digest com reconciliação concluída = duplicado (sem
- * efeito); digest diferente = conflito (revisão humana, sem efeito); mesmo
- * digest ainda pendente = reprocessamento idempotente (entrega repetida
- * depois de falha).
+ * relatório), registra o digest — que também SELA a sessão para novas
+ * operações comerciais (A6) — e só DEPOIS de R lê a intenção pendente e os
+ * motivos de revisão já decididos (A4: o reprocessamento após falha parcial
+ * não os perde). Mesmo digest com reconciliação concluída = duplicado;
+ * digest diferente = conflito (revisão humana, sem efeito), com a identidade
+ * guardada (M2: a reentrega de um conflito já decidido não reabre a revisão);
+ * relatório que chega depois de uma decisão humana = revisão.
  */
 
 export interface PostCallAttempt {
@@ -47,85 +45,61 @@ export type RecordStep =
       readonly sessionId: string;
       readonly phoneE164: string;
       readonly leadId: string | null;
+      readonly digest: string;
+      /** Motivos de revisão já persistidos nas intenções da sessão (A4). */
+      readonly priorReviewReasons: readonly string[];
       readonly intent: BookingIntentEntity | null;
       readonly pending: PendingBookingIntent | null;
       readonly optOutByTool: boolean;
       readonly proposedOutcome: string | null;
     };
 
-function stableJson(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
-  if (value && typeof value === 'object') {
-    const entries = Object.entries(value as Record<string, unknown>).sort(([a], [b]) =>
-      a < b ? -1 : 1,
-    );
-    return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${stableJson(v)}`).join(',')}}`;
-  }
-  return JSON.stringify(value ?? null);
-}
-
-export const reportDigest = (report: PostCallReport) =>
-  createHash('sha256').update(stableJson(report)).digest('hex');
-
-type SessionPhone =
-  | { readonly phone: string; readonly reason: null }
-  | { readonly phone: null; readonly reason: 'SESSION_NOT_FOUND' | 'SESSION_ATTEMPT_MISMATCH' };
-
-async function sessionPhone(
-  tx: DatabaseExecutor,
-  attempt: PostCallAttempt,
-  sessionId: string,
-): Promise<SessionPhone> {
-  const [session] = await tx
-    .select({ attemptId: callSessions.currentAttemptId })
-    .from(callSessions)
-    .where(
-      and(eq(callSessions.id, sessionId), eq(callSessions.organizationId, attempt.organizationId)),
-    );
-  const [job] = await tx
-    .select({ phone: outboundCallJobs.destinationPhone })
-    .from(outboundCallJobs)
-    .where(
-      and(
-        eq(outboundCallJobs.id, attempt.jobId),
-        eq(outboundCallJobs.organizationId, attempt.organizationId),
-      ),
-    );
-  if (!session || !job?.phone) return { phone: null, reason: 'SESSION_NOT_FOUND' };
-  // A sessão tem de estar vinculada a ESTA tentativa (o par vem do servidor, mas é revalidado).
-  if (session.attemptId !== attempt.attemptId) {
-    return { phone: null, reason: 'SESSION_ATTEMPT_MISMATCH' };
-  }
-  return { phone: job.phone, reason: null };
-}
-
-async function pendingOf(tx: DatabaseExecutor, intent: BookingIntentEntity | null) {
-  if (!intent) return null;
-  const [offer] = await tx
-    .select({ startsAt: meetingSlotOffers.startsAt, calendarId: meetingSlotOffers.calendarId })
-    .from(meetingSlotOffers)
-    .where(
-      and(
-        eq(meetingSlotOffers.id, intent.offerId),
-        eq(meetingSlotOffers.organizationId, intent.organizationId),
-      ),
-    );
-  const timeZone = offer
-    ? await calendarTimezone(tx, {
-        organizationId: intent.organizationId,
-        calendarId: offer.calendarId,
-      })
-    : null;
-  if (!offer || !timeZone) return null;
-  const startsAt = offer.startsAt.toISOString();
-  return { listRevision: intent.listRevision, option: intent.option, startsAt, timeZone };
-}
-
 const stop = (status: 'DUPLICATE' | 'REJECTED' | 'NEEDS_REVIEW', reason: string): RecordStep => ({
   kind: 'STOP',
   status,
   reason,
 });
+
+type Reconciliation = NonNullable<Awaited<ReturnType<typeof lockReconciliation>>>;
+
+type Verdict = 'PROCESS' | 'CONFLICT' | 'AFTER_RESOLUTION' | RecordStep;
+
+/** Classificação pura da entrega diante da reconciliação travada. */
+function verdictOf(row: Reconciliation, digest: string): Verdict {
+  if (row.reportDigest === digest) {
+    return row.status === 'AWAITING_REPORT' ? 'PROCESS' : stop('DUPLICATE', row.status);
+  }
+  if (row.conflictDigests.includes(digest)) {
+    return row.status === 'NEEDS_REVIEW'
+      ? stop('NEEDS_REVIEW', 'REPORT_CONFLICT')
+      : stop('DUPLICATE', 'CONFLICT_ALREADY_DECIDED');
+  }
+  if (row.reportDigest) return 'CONFLICT';
+  // Sem relatório anterior: pendente ou já em revisão (atrasado) segue; decidida por humano, não.
+  return row.status === 'RECONCILED' ? 'AFTER_RESOLUTION' : 'PROCESS';
+}
+
+/** Conflito (M2: identidade guardada) ou relatório depois de decisão humana: revisão, sem efeito. */
+async function settledStop(
+  tx: DatabaseExecutor,
+  ctx: { readonly row: Reconciliation; readonly digest: string; readonly key: ReconciliationKey },
+): Promise<RecordStep | null> {
+  const { row, digest, key } = ctx;
+  const verdict = verdictOf(row, digest);
+  if (verdict === 'PROCESS') return null;
+  if (typeof verdict !== 'string') return verdict;
+  const reason = verdict === 'CONFLICT' ? 'REPORT_CONFLICT' : 'REPORT_AFTER_RESOLUTION';
+  await updateReconciliation(tx, key, {
+    status: 'NEEDS_REVIEW',
+    reviewReasons: [...new Set([...row.reviewReasons, reason])],
+    conflictDigests:
+      verdict === 'CONFLICT' ? [...row.conflictDigests, digest] : row.conflictDigests,
+    reportDigest: row.reportDigest ?? digest,
+    reconciledAt: null,
+    reconciledBy: null,
+  });
+  return stop('NEEDS_REVIEW', reason);
+}
 
 export function recordReport(
   db: DatabaseInstance,
@@ -139,40 +113,38 @@ export function recordReport(
     if (resolved.phone === null) return stop('REJECTED', resolved.reason);
     const phoneE164 = resolved.phone;
     const leadId = await leadIdForPhone(tx, { organizationId: attempt.organizationId, phoneE164 });
-    const binding = { ...attempt, sessionId };
     const key = { organizationId: attempt.organizationId, sessionId };
-    const intent = await lockPendingIntent(tx, key);
-    await ensureReconciliation(tx, binding, { phoneE164, leadId, now: input.now });
+    await ensureReconciliation(
+      tx,
+      { ...attempt, sessionId },
+      { phoneE164, leadId, now: input.now },
+    );
     const row = (await lockReconciliation(tx, key))!;
     if (row.attemptId !== attempt.attemptId) return stop('REJECTED', 'ATTEMPT_MISMATCH');
     const digest = reportDigest(input.report);
-    if (row.reportDigest && row.reportDigest !== digest) {
-      const reviewReasons = [...new Set([...row.reviewReasons, 'REPORT_CONFLICT'])];
-      await updateReconciliation(tx, key, {
-        status: 'NEEDS_REVIEW',
-        reviewReasons,
-        reconciledAt: null,
-      });
-      return stop('NEEDS_REVIEW', 'REPORT_CONFLICT');
-    }
-    if (row.reportDigest && row.status !== 'AWAITING_REPORT') return stop('DUPLICATE', row.status);
+    const settled = await settledStop(tx, { row, digest, key });
+    if (settled) return settled;
     await updateReconciliation(tx, key, {
       reportDigest: digest,
       reportReceivedAt: input.now,
       reportEndReason: input.report.endReason,
     });
-    const pending = await pendingOf(tx, intent);
-    const optOutByTool = row.optOutToolAt !== null;
+    // Depois de R: ferramenta concorrente já gravou (visível) ou verá o selo e desistirá.
+    const intents = await sessionIntents(tx, key);
     return {
       kind: 'PROCESS',
       organizationId: attempt.organizationId,
       sessionId,
       phoneE164,
       leadId,
-      intent,
-      pending,
-      optOutByTool,
+      digest,
+      priorReviewReasons: intents.reviewReasons,
+      intent: intents.pending,
+      pending: await pendingOf(tx, intents.pending),
+      optOutByTool: row.optOutToolAt !== null,
       proposedOutcome: row.proposedOutcome,
     };
   });
 }
+
+export { reportDigest } from './post-call-record-support.js';

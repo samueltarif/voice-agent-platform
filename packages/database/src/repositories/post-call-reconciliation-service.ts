@@ -1,16 +1,21 @@
 import { evaluatePostCallReport, type PostCallReport } from '@voice-agent/contracts';
 import type { DatabaseInstance } from '../client/connection.js';
+import { closePendingIntent } from './booking-intent-store.js';
 import { DrizzleMeetingBookingService } from './meeting-booking-service.js';
 import {
   applyPostCallBooking,
   applyPostCallOptOut,
-  applyPostCallOutcome,
   optOutReviewReasons,
   type EffectsDeps,
   type Processing,
 } from './post-call-effects.js';
+import { applyPostCallOutcome } from './post-call-outcome.js';
 import { recordReport, type PostCallAttempt } from './post-call-record.js';
-import { lockReconciliation, updateReconciliation } from './post-call-reconciliation-store.js';
+import {
+  lockCurrentReport,
+  lockReconciliation,
+  updateReconciliation,
+} from './post-call-reconciliation-store.js';
 import { expireOverdue, resolveReview, type ReviewResolution } from './post-call-review.js';
 
 /**
@@ -22,6 +27,8 @@ import { expireOverdue, resolveReview, type ReviewResolution } from './post-call
  * (`RECONCILED` sem pendências; senão `NEEDS_REVIEW`). Enquanto não fechar,
  * o claim de envio recusa novas tentativas para o telefone.
  */
+
+const HOLDS_INTENT = new Set(['REPORT_CONFLICT', 'REPORT_AFTER_RESOLUTION']);
 
 export type PostCallIngestResult =
   | { readonly status: 'RECONCILED' | 'NEEDS_REVIEW'; readonly reasons: readonly string[] }
@@ -37,15 +44,32 @@ export class DrizzlePostCallReconciliationService {
 
   async ingest(attempt: PostCallAttempt, report: PostCallReport): Promise<PostCallIngestResult> {
     const step = await recordReport(this.deps.db, { attempt, report, now: this.deps.clock() });
-    if (step.kind === 'STOP') return { status: step.status, reasons: [step.reason] };
+    if (step.kind === 'STOP') {
+      if (HOLDS_INTENT.has(step.reason)) await this.holdPendingIntent(attempt, step.reason);
+      return { status: step.status, reasons: [step.reason] };
+    }
     const evaluation = evaluatePostCallReport(report, step.pending);
     const input = { attempt, step, evaluation };
-    const reasons = optOutReviewReasons(step, evaluation);
+    const reasons = [...step.priorReviewReasons, ...optOutReviewReasons(step, evaluation)];
+    if (!evaluation.complete) reasons.push('HISTORY_INCOMPLETE');
     if (evaluation.optOut === 'REQUESTED') await applyPostCallOptOut(this.deps, input);
     const booking = await applyPostCallBooking(this.deps, input);
     if (booking) reasons.push(booking);
     const outcome = await applyPostCallOutcome(this.deps, input);
-    return this.close(step, { reasons, outcome });
+    if (outcome.review) reasons.push(outcome.review);
+    return this.close(step, { reasons, outcome: outcome.applied });
+  }
+
+  /**
+   * A4: conflito (ou relatório após decisão humana) — a intenção pendente sai
+   * de `PENDING_EVIDENCE` para revisão numa transação própria (I), na ordem
+   * global: uma reserva concorrente ou já viu o conflito em R e desistiu, ou
+   * reservou antes dele (reunião confirmada continua com a revisão humana).
+   */
+  private holdPendingIntent(attempt: PostCallAttempt, reason: string): Promise<void> {
+    const key = { organizationId: attempt.organizationId, sessionId: attempt.callSessionId! };
+    const decision = { status: 'NEEDS_REVIEW' as const, reason, now: this.deps.clock() };
+    return this.deps.db.transaction((tx) => closePendingIntent(tx, key, decision));
   }
 
   private close(
@@ -54,7 +78,15 @@ export class DrizzlePostCallReconciliationService {
   ): Promise<PostCallIngestResult> {
     const key = { organizationId: step.organizationId, sessionId: step.sessionId };
     return this.deps.db.transaction(async (tx) => {
-      const row = (await lockReconciliation(tx, key))!;
+      const row = await lockCurrentReport(tx, key, step.digest);
+      if (!row) {
+        // A4: outro relatório (conflito) ou uma decisão humana prevaleceu: nada a fechar.
+        const now = (await lockReconciliation(tx, key))!;
+        return {
+          status: now.status === 'RECONCILED' ? 'RECONCILED' : 'NEEDS_REVIEW',
+          reasons: now.reviewReasons,
+        };
+      }
       const reasons = [...new Set([...row.reviewReasons, ...input.reasons])];
       const status = reasons.length > 0 ? 'NEEDS_REVIEW' : 'RECONCILED';
       await updateReconciliation(tx, key, {

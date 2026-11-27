@@ -1,5 +1,6 @@
 import type { BookingIntentEntity } from '../schema/booking-intents.js';
 import { decideIntent, lockIntent } from './booking-intent-store.js';
+import type { DatabaseExecutor } from './database-executor.js';
 import type { DrizzleMeetingBookingService } from './meeting-booking-service.js';
 import type { BookMeetingOutcome } from './meeting-booking-steps.js';
 
@@ -10,7 +11,9 @@ import type { BookMeetingOutcome } from './meeting-booking-steps.js';
  * K → L → C → O → A → I → P: a intenção é travada no gancho entre a
  * tentativa e o telefone e só é marcada `BOOKED` na MESMA transação da
  * reunião. Oferta vencida, horário ocupado, lead suprimido ou bloqueado: nada
- * é reservado e o resultado volta para a revisão humana.
+ * é reservado e o resultado volta para a revisão humana. A4: na MESMA
+ * transação, depois de I, a reconciliação (R) precisa continuar com este
+ * relatório vigente (sem conflito nem decisão humana); senão, nada é reservado.
  */
 
 class IntentNotPending extends Error {
@@ -20,9 +23,17 @@ class IntentNotPending extends Error {
   }
 }
 
+class ReportNotCurrent extends Error {
+  constructor() {
+    super('Post-call report is no longer the current one');
+    this.name = 'ReportNotCurrent';
+  }
+}
+
 export type IntentBookingResult =
   | { readonly kind: 'BOOKED'; readonly meetingId: string }
   | { readonly kind: 'NOT_PENDING' }
+  | { readonly kind: 'NOT_CURRENT' }
   | { readonly kind: 'REFUSED'; readonly reason: string };
 
 const booked = (outcome: BookMeetingOutcome) =>
@@ -38,6 +49,8 @@ export async function bookAcceptedIntent(
     readonly intent: BookingIntentEntity;
     readonly agentId: string;
     readonly now: () => Date;
+    /** Confere R depois de I (relatório ainda vigente). */
+    readonly reportCurrent: (tx: DatabaseExecutor) => Promise<boolean>;
   },
 ): Promise<IntentBookingResult> {
   const { intent } = input;
@@ -55,6 +68,7 @@ export async function bookAcceptedIntent(
         afterAttemptLock: async (tx) => {
           const locked = await lockIntent(tx, key);
           if (locked?.status !== 'PENDING_EVIDENCE') throw new IntentNotPending();
+          if (!(await input.reportCurrent(tx))) throw new ReportNotCurrent();
         },
         beforeCommit: async (tx, result) => {
           const meeting = booked(result);
@@ -68,6 +82,7 @@ export async function bookAcceptedIntent(
     return meeting ? { kind: 'BOOKED', meetingId: meeting.id } : refusedOf(outcome);
   } catch (error) {
     if (error instanceof IntentNotPending) return { kind: 'NOT_PENDING' };
+    if (error instanceof ReportNotCurrent) return { kind: 'NOT_CURRENT' };
     throw error;
   }
 }

@@ -33,6 +33,8 @@ export type ClaimRejectionReason =
   | 'DESTINATION_SUPPRESSED'
   /** DEC-077: sessão anterior para o mesmo telefone ainda sem reconciliação pós-chamada. */
   | 'POST_CALL_RECONCILIATION_PENDING'
+  /** Auditoria #184 A5: outra tentativa ao mesmo telefone já enviada e não terminada. */
+  | 'DESTINATION_IN_FLIGHT'
   | 'CAMPAIGN_PAUSED'
   | 'CAMPAIGN_CANCELED'
   | 'CLAIM_TRANSITION_REJECTED';

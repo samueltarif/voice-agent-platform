@@ -57,6 +57,11 @@ export const postCallReconciliations = pgTable(
     reportDigest: text('report_digest'),
     reportReceivedAt: timestamp('report_received_at', { withTimezone: true }),
     reportEndReason: text('report_end_reason'),
+    /** M2: digests de relatórios CONFLITANTES já registrados (a reentrega preserva a decisão humana). */
+    conflictDigests: text('conflict_digests')
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     reviewReasons: text('review_reasons')
       .array()
       .notNull()

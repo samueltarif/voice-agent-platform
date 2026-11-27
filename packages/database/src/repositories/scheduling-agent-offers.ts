@@ -19,7 +19,7 @@ import {
   windowOf,
   type GateInput,
 } from './scheduling-agent-offer-steps.js';
-import { ensureReconciliation } from './post-call-reconciliation-store.js';
+import { ensureReconciliation, isSessionSealed } from './post-call-reconciliation-store.js';
 import { calendarTimezone, resolveAgentScope } from './scheduling-agent-scope.js';
 import {
   applyProtocolEvent,
@@ -110,6 +110,9 @@ function preGate(
   const { binding, phoneE164 } = input;
   return deps.db.transaction(async (tx) => {
     const locked = await lockProtocol(tx, binding);
+    // A6: relatório final já registrado — nenhuma nova consulta comercial na sessão.
+    const key = { organizationId: binding.organizationId, sessionId: binding.sessionId };
+    if (await isSessionSealed(tx, key)) return { done: refused('SESSION_NOT_ACTIVE') };
     // DEC-077: ferramenta usada ⇒ a sessão passa a exigir reconciliação pós-chamada.
     const leadId = input.gate.leadId;
     if (locked?.active)

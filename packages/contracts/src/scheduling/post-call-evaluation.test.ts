@@ -9,7 +9,7 @@ import {
   type PostCallEntry,
   type PostCallReport,
 } from './post-call-report.js';
-import { mentionsSlot } from './post-call-slot-mention.js';
+import { proposesSlot } from './post-call-slot-mention.js';
 
 /** DEC-077 — avaliação PURA do relatório pós-chamada (linhas do tempo sintéticas). */
 
@@ -29,6 +29,7 @@ const lead = (text: string): PostCallEntry => ({ kind: 'LEAD', text });
 
 const report = (entries: PostCallEntry[], over: Partial<PostCallReport> = {}): PostCallReport => ({
   ordering: 'TIMELINE',
+  integrity: 'COMPLETE',
   entries,
   endReason: 'COMPLETED',
   durationSeconds: 60,
@@ -113,6 +114,7 @@ describe('opt-out and interlocution evidence', () => {
     const silent = evaluatePostCallReport(report([READBACK, lead(''), CALL]), null);
     expect(silent).toEqual({
       interlocution: false,
+      complete: true,
       optOut: 'NONE',
       booking: { decision: 'NONE', reason: 'NO_PENDING_INTENT' },
     });
@@ -120,23 +122,92 @@ describe('opt-out and interlocution evidence', () => {
   });
 });
 
-describe('slot mention rule', () => {
-  it('matches weekday and hour in common written forms, accent-insensitive', () => {
-    const at = INTENT.startsAt;
+describe('readback rule: affirmative proposal of exactly the offered slot (audit #184 A1)', () => {
+  const at = INTENT.startsAt;
+  const proposes = (text: string, startsAt = at) => proposesSlot(text, startsAt, INTENT.timeZone);
+
+  it('accepts one weekday and one complete time equal to the offer, with a proposal verb', () => {
     for (const text of [
-      'segunda às 9h',
-      'Segunda-feira, 09:00',
-      'na segunda as 9 horas',
-      'segunda, às 9',
+      'Confirma segunda às 9h?',
+      'Posso marcar segunda-feira, 09:00?',
+      'Posso agendar na segunda as 9 horas?',
+      'Confirmando: segunda, às 9.',
+      'Só para confirmar: segunda-feira, 30 de novembro, às 9h. Posso marcar?',
+      'Confirma segunda, dia 30, às 9h?',
     ]) {
-      expect([text, mentionsSlot(text, at, INTENT.timeZone)]).toEqual([text, true]);
-    }
-    for (const text of ['segunda às dez', 'terça às 9h', 'segunda às 19h', 'às 9h']) {
-      expect([text, mentionsSlot(text, at, INTENT.timeZone)]).toEqual([text, false]);
+      expect([text, proposes(text)]).toEqual([text, true]);
     }
     const half = '2026-11-30T12:30:00.000Z';
-    expect(mentionsSlot('segunda às 9h30', half, INTENT.timeZone)).toBe(true);
-    expect(mentionsSlot('segunda às 9h', half, INTENT.timeZone)).toBe(false);
+    expect(proposes('Confirma segunda às 9h30?', half)).toBe(true);
+    expect(proposes('Confirma segunda às 9 e meia?', half)).toBe(true);
+    expect(proposes('Confirma segunda às 9h?', half)).toBe(false);
+  });
+
+  it('rejects another minute, alternatives, negation, new queries and conflicting dates', () => {
+    for (const text of [
+      'Confirma segunda às 9:30?',
+      'Confirma segunda às 9h30?',
+      'Segunda às 9h está indisponível. Posso consultar terça?',
+      'Segunda às 9h não dá. Posso marcar?',
+      'Posso marcar segunda às 9h ou às 10h?',
+      'Posso marcar segunda ou terça às 9h?',
+      'Confirma terça às 9h?',
+      'Confirma segunda às 19h?',
+      'Confirma segunda às dez?',
+      'Confirma às 9h?',
+      'Segunda às 9h.',
+      'Confirma segunda, dia 7, às 9h?',
+      'Confirma segunda, 07/12, às 9h?',
+      'Confirma amanhã, segunda, às 9h?',
+      'Posso verificar outro horário na segunda às 9h?',
+    ]) {
+      expect([text, proposes(text)]).toEqual([text, false]);
+    }
+  });
+
+  it('the Codex scenarios never become an acceptance', () => {
+    for (const readback of [
+      'Confirma segunda às 9:30?',
+      'Segunda às 9h está indisponível. Posso consultar terça?',
+    ]) {
+      const agent: PostCallEntry = { kind: 'AGENT', text: readback };
+      expect(booking([agent, lead('Sim.'), CALL])).toEqual({
+        decision: 'REVIEW',
+        reason: 'READBACK_NOT_EVIDENT',
+      });
+    }
+  });
+});
+
+describe('last request and history integrity (audit #184 A2/A3)', () => {
+  const callFor = (option: number): PostCallEntry => ({
+    kind: 'TOOL_CALL',
+    toolName: 'scheduling.request_booking',
+    arguments: { listRevision: 2, option, leadConfirmation: 'sim' },
+  });
+
+  it('a later request for another option makes the surviving intent doubtful', () => {
+    const later = { kind: 'AGENT' as const, text: 'Confirma segunda às 9h30?' };
+    const entries = [READBACK, lead('Sim.'), CALL, later, lead('Sim.'), callFor(2)];
+    expect(booking(entries)).toEqual({ decision: 'REVIEW', reason: 'LAST_REQUEST_MISMATCH' });
+  });
+
+  it('an incomplete history never accepts, whatever it contains', () => {
+    const entries = [READBACK, lead('Sim, pode marcar.'), CALL];
+    expect(booking(entries, { integrity: 'INCOMPLETE' })).toEqual({
+      decision: 'REVIEW',
+      reason: 'HISTORY_INCOMPLETE',
+    });
+    const evaluation = evaluatePostCallReport(
+      report([lead('Não me ligue mais.')], { integrity: 'INCOMPLETE' }),
+      null,
+    );
+    expect(evaluation).toMatchObject({ complete: false, optOut: 'REQUESTED' });
+  });
+
+  it('the integrity flag is mandatory in the normalized contract', () => {
+    const { integrity: _omit, ...withoutIntegrity } = report([lead('Sim.')]);
+    expect(postCallReportSchema.safeParse(withoutIntegrity).success).toBe(false);
   });
 });
 

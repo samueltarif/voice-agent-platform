@@ -10,10 +10,16 @@ import {
 } from '@voice-agent/contracts';
 import { bookingIntents } from '../schema/booking-intents.js';
 import { isLeadPhoneSuppressed } from './attempt-lead-association.js';
-import { closePendingIntent } from './booking-intent-store.js';
+import type { BookingIntentEntity } from '../schema/booking-intents.js';
+import {
+  decideIntent,
+  hasEarlierRequest,
+  lockPendingIntent,
+  sessionIntents,
+} from './booking-intent-store.js';
 import type { DatabaseExecutor } from './database-executor.js';
 import { lockLead } from './lead-status-writer.js';
-import { ensureReconciliation } from './post-call-reconciliation-store.js';
+import { ensureReconciliation, lockReconciliation } from './post-call-reconciliation-store.js';
 import type { SchedulingEventDeps } from './scheduling-agent-deps.js';
 import { calendarTimezone, commercialBlock, resolveAgentScope } from './scheduling-agent-scope.js';
 import {
@@ -29,7 +35,17 @@ import {
  * não suprimido. Ordem: L → A → S → I → R → P; a supressão é lida por último e,
  * se houver, desfaz tudo. A reserva transacional só acontece na
  * reconciliação pós-chamada, com aceite comprovado no histórico.
+ *
+ * Auditoria #184 — sem identificador de invocação comprovado do provedor:
+ * - A2: o MESMO pedido da intenção pendente é idempotente; um pedido igual a
+ *   outro JÁ substituído (reentrega técnica OU mudança de ideia —
+ *   indistinguíveis) nunca substitui a escolha mais recente: a intenção
+ *   pendente vai para revisão (`REQUEST_ORDER_AMBIGUOUS`) e a sessão não
+ *   registra novas intenções;
+ * - A6: relatório final já registrado (R selada) ⇒ `SESSION_NOT_ACTIVE`.
  */
+
+const AMBIGUOUS = 'REQUEST_ORDER_AMBIGUOUS';
 
 class RequestAbort extends Error {
   constructor(readonly refusal: SchedulingRefusal) {
@@ -67,10 +83,22 @@ interface RecordInput {
   readonly now: Date;
 }
 
-async function recordIntent(tx: DatabaseExecutor, offer: Offer, input: RecordInput) {
+const sameChoice = (intent: BookingIntentEntity | null, args: RequestBookingArguments) =>
+  intent?.listRevision === args.listRevision && intent.option === args.option;
+
+/** I: novo pedido, pedido repetido (idempotente) ou reentrega ambígua (revisão). */
+async function applyRequest(tx: DatabaseExecutor, offer: Offer, input: RecordInput) {
   const { binding, args, now } = input;
   const key = { organizationId: binding.organizationId, sessionId: binding.sessionId };
-  await closePendingIntent(tx, key, { status: 'SUPERSEDED', reason: 'NEW_REQUEST', now });
+  const pending = await lockPendingIntent(tx, key);
+  if (sameChoice(pending, args)) return;
+  if (pending && (await hasEarlierRequest(tx, key, args))) {
+    await decideIntent(tx, pending, { status: 'NEEDS_REVIEW', reason: AMBIGUOUS, now });
+    return;
+  }
+  if ((await sessionIntents(tx, key)).reviewReasons.length > 0) return;
+  if (pending)
+    await decideIntent(tx, pending, { status: 'SUPERSEDED', reason: 'NEW_REQUEST', now });
   await tx.insert(bookingIntents).values({
     organizationId: binding.organizationId,
     sessionId: binding.sessionId,
@@ -81,11 +109,19 @@ async function recordIntent(tx: DatabaseExecutor, offer: Offer, input: RecordInp
     option: args.option,
     leadConfirmation: args.leadConfirmation,
   });
+}
+
+async function recordIntent(tx: DatabaseExecutor, offer: Offer, input: RecordInput) {
+  const { binding, now } = input;
+  await applyRequest(tx, offer, input);
   await ensureReconciliation(tx, binding, {
     phoneE164: input.phoneE164,
     leadId: input.leadId,
     now,
   });
+  const key = { organizationId: binding.organizationId, sessionId: binding.sessionId };
+  if ((await lockReconciliation(tx, key))?.reportDigest)
+    throw new RequestAbort('SESSION_NOT_ACTIVE');
   if (await isLeadPhoneSuppressed(tx, binding.organizationId, input.leadId)) {
     throw new RequestAbort('LEAD_NOT_BOOKABLE');
   }

@@ -13,6 +13,13 @@ import { z } from 'zod';
  * - `UNKNOWN`: o adaptador não conseguiu provar a ordem — nenhuma decisão que
  *   dependa de ordem é tomada (revisão humana).
  *
+ * `integrity` (auditoria #184 A3) — independente da ordem:
+ * - `COMPLETE`: nenhuma fala foi descartada ou truncada pelo adaptador;
+ * - `INCOMPLETE`: alguma fala pode ter sido perdida (truncamento, formato
+ *   desconhecido) — nada que dependa da ausência de uma fala é decidido
+ *   (aceite, resultado comercial) e a reconciliação vai para revisão humana,
+ *   mantendo a barreira de discagem; um opt-out preservado ainda é aplicado.
+ *
  * O histórico é evidência TEXTUAL de STT/LLM: não prova reprodução do áudio
  * nem compreensão do interlocutor (limitação registrada no desenho).
  */
@@ -51,6 +58,7 @@ export type PostCallEntry = z.infer<typeof postCallEntrySchema>;
 export const postCallReportSchema = z
   .object({
     ordering: z.enum(['TIMELINE', 'UNKNOWN']),
+    integrity: z.enum(['COMPLETE', 'INCOMPLETE']),
     entries: z.array(postCallEntrySchema).max(POST_CALL_MAX_ENTRIES),
     endReason: z.enum(POST_CALL_END_REASONS),
     durationSeconds: z.number().nonnegative().max(86_400).nullable(),

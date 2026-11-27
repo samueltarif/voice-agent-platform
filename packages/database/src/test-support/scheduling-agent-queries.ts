@@ -108,6 +108,7 @@ export function postCallReport(
 ): PostCallReport {
   return {
     ordering: 'TIMELINE',
+    integrity: 'COMPLETE',
     entries: [...entries],
     endReason: 'COMPLETED',
     durationSeconds: 96,

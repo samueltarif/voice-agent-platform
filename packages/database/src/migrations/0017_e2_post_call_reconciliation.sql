@@ -36,6 +36,7 @@ CREATE TABLE "post_call_reconciliations" (
 	"report_digest" text,
 	"report_received_at" timestamp with time zone,
 	"report_end_reason" text,
+	"conflict_digests" text[] DEFAULT '{}'::text[] NOT NULL,
 	"review_reasons" text[] DEFAULT '{}'::text[] NOT NULL,
 	"reconciled_at" timestamp with time zone,
 	"reconciled_by" text,
