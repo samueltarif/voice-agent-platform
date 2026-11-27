@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { OutboundAttemptEventType } from './outbound-attempt-event.js';
 import { originationRejectionReasonSchema } from './outbound-attempt-event.js';
+import { postCallReportSchema } from '../scheduling/post-call-report.js';
 
 /**
  * 008-OF4 — Ingress de webhooks PROVIDER-NEUTRAL.
@@ -70,6 +71,18 @@ export const normalizedProviderEventSchema = z.discriminatedUnion('kind', [
       arguments: z.unknown(),
     })
     .strict(),
+  /**
+   * DEC-077 — relatório PÓS-CHAMADA do motor conversacional (histórico,
+   * chamadas de função, fim). Um por chamada; o tenant e a sessão vêm da
+   * tentativa resolvida no servidor, nunca do relatório.
+   */
+  z
+    .object({
+      kind: z.literal('SESSION_REPORT'),
+      ...baseNormalizedEvent,
+      report: postCallReportSchema,
+    })
+    .strict(),
 ]);
 
 export type NormalizedProviderEvent = z.infer<typeof normalizedProviderEventSchema>;
@@ -77,6 +90,10 @@ export type NormalizedCallStatusEvent = Extract<NormalizedProviderEvent, { kind:
 export type NormalizedToolInvocationEvent = Extract<
   NormalizedProviderEvent,
   { kind: 'TOOL_INVOCATION' }
+>;
+export type NormalizedSessionReportEvent = Extract<
+  NormalizedProviderEvent,
+  { kind: 'SESSION_REPORT' }
 >;
 
 /** Tradução do formato do provedor; `null` = entrega ininteligível (quarentena). */
@@ -103,6 +120,11 @@ export function providerDeliveryKey(provider: string, event: NormalizedProviderE
   if (event.providerEventId) {
     return `${provider}|id|${event.providerCallReference}|${event.providerEventId}`;
   }
-  const transition = event.kind === 'CALL_STATUS' ? event.status : `TOOL:${event.invocationId}`;
+  const transition =
+    event.kind === 'CALL_STATUS'
+      ? event.status
+      : event.kind === 'TOOL_INVOCATION'
+        ? `TOOL:${event.invocationId}`
+        : 'SESSION_REPORT';
   return `${provider}|ref|${event.providerCallReference}|${transition}`;
 }

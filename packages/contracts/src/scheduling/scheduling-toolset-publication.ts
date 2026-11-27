@@ -1,4 +1,5 @@
 import type { AgentConfigurationSnapshotV1 } from '../agents/agent-configuration-v1.js';
+import { LEAD_RECORD_OPT_OUT_TOOL } from './lead-agent-port.js';
 import { SCHEDULING_TOOL_NAMES } from './scheduling-agent-port.js';
 
 /**
@@ -6,7 +7,9 @@ import { SCHEDULING_TOOL_NAMES } from './scheduling-agent-port.js';
  * PUBLICAÇÃO (regra pura; a existência da agenda no tenant é conferida no
  * banco pelo serviço de publicação):
  * - as duas ferramentas de agendamento só existem JUNTAS (consultar sem poder
- *   confirmar, ou confirmar sem consultar, não é um fluxo válido);
+ *   pedir, ou pedir sem consultar, não é um fluxo válido);
+ * - DEC-077: com agendamento, `lead.record_opt_out` é obrigatória — a
+ *   supressão preventiva durante a chamada depende dela (conexão direta);
  * - a agenda configurada na versão é conferida mesmo sem as ferramentas: a
  *   versão publicada não pode apontar para agenda inexistente.
  */
@@ -17,9 +20,10 @@ export function evaluateSchedulingToolset(
 ): SchedulingToolsetRejection | null {
   const tools = snapshot.tools ?? [];
   const present = SCHEDULING_TOOL_NAMES.filter((name) => tools.includes(name)).length;
-  return present === 0 || present === SCHEDULING_TOOL_NAMES.length
-    ? null
-    : 'SCHEDULING_TOOLS_INCOMPLETE';
+  if (present === 0) return null;
+  const complete =
+    present === SCHEDULING_TOOL_NAMES.length && tools.includes(LEAD_RECORD_OPT_OUT_TOOL);
+  return complete ? null : 'SCHEDULING_TOOLS_INCOMPLETE';
 }
 
 export function schedulingCalendarToVerify(

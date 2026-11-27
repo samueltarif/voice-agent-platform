@@ -103,12 +103,6 @@ export type BookingProtocolEvent = Base &
       }
     | { readonly type: 'CLOCK' }
     | { readonly type: 'SESSION_CLOSED' }
-    /**
-     * Auditoria consolidada E2 (A1): OUTRA fala do agente (não a lista nem a
-     * releitura do servidor) começou. A pergunta transacional em aberto perde
-     * a validade: a resposta seguinte poderia responder à outra fala.
-     */
-    | { readonly type: 'AGENT_SPEECH_STARTED'; readonly generationId: string }
     /** A5: consulta NOVA sem vagas — a lista e a autorização anteriores são descartadas. */
     | { readonly type: 'QUERY_EMPTY'; readonly revision: number; readonly queryKey: string }
   );

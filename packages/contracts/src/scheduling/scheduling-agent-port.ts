@@ -1,25 +1,30 @@
 import { z } from 'zod';
-import type { BookingProtocolDirective, BookingProtocolPhase } from './booking-protocol-types.js';
 import type { SchedulingSessionContextQuery } from './scheduling-session-context.js';
 import { isValidLocalDate } from './zoned-wall-time.js';
-import type { AgentOutput, LeadTurn, OutputDecision } from './scheduling-agent-output.js';
 
 /**
- * E2 PR 2 (DEC-075) — porta das ferramentas de agendamento do agente.
+ * E2 (DEC-075; simplificada pela DEC-077) — porta das ferramentas de
+ * agendamento do agente, na conexão DIRETA telefonia → motor conversacional:
+ * a plataforma só vê a EXECUÇÃO das ferramentas e o relatório pós-chamada.
  *
  * Autoridade: o escopo vem SÓ de uma concessão legítima (`PublishedToolGrant`)
  * — tenant, sessão (= `callId`), agente, versão e a agenda da versão capturada
  * como valor. Tentativa, job, telefone, contato, lead e agenda fixada são
  * derivados e revalidados no servidor, sob trava, no momento do efeito.
- * O modelo nunca fornece identificadores, booleanos de consentimento, ordinais
- * ou ids de turno: os argumentos aceitos estão abaixo e não têm autoridade.
+ * O modelo nunca fornece identificadores de tenant, lead ou oferta: os
+ * argumentos aceitos estão abaixo e não têm autoridade.
+ *
+ * `scheduling.request_booking` NÃO reserva: registra uma intenção PENDENTE,
+ * vinculada à oferta desta sessão. A reserva transacional só acontece depois
+ * da validação do aceite no histórico pós-chamada (`post-call-evaluation`);
+ * casos ambíguos vão para revisão humana.
  */
 
 export const SCHEDULING_FIND_SLOTS_TOOL = 'scheduling.find_slots' as const;
-export const SCHEDULING_CONFIRM_OFFER_TOOL = 'scheduling.confirm_offer' as const;
+export const SCHEDULING_REQUEST_BOOKING_TOOL = 'scheduling.request_booking' as const;
 export const SCHEDULING_TOOL_NAMES = [
   SCHEDULING_FIND_SLOTS_TOOL,
-  SCHEDULING_CONFIRM_OFFER_TOOL,
+  SCHEDULING_REQUEST_BOOKING_TOOL,
 ] as const;
 
 export interface SchedulingAgentScope extends SchedulingSessionContextQuery {
@@ -39,9 +44,18 @@ export const findSlotsArgumentsSchema = z
   .strict();
 export type FindSlotsArguments = z.infer<typeof findSlotsArgumentsSchema>;
 
-/** Confirmar não recebe NADA do modelo: o consentimento é o estado do protocolo. */
-export const confirmOfferArgumentsSchema = z.object({}).strict();
-export type ConfirmOfferArguments = z.infer<typeof confirmOfferArgumentsSchema>;
+/**
+ * Pedido de agendamento: a lista e a opção ofertadas NESTA sessão. A frase do
+ * interlocutor é só registro para revisão — nunca prova de aceite.
+ */
+export const requestBookingArgumentsSchema = z
+  .object({
+    listRevision: z.number().int().min(1),
+    option: z.number().int().min(1).max(3),
+    leadConfirmation: z.string().trim().min(1).max(300),
+  })
+  .strict();
+export type RequestBookingArguments = z.infer<typeof requestBookingArgumentsSchema>;
 
 /** Motivo de não seguir; nunca expõe ids nem dados do lead. */
 export type SchedulingRefusal =
@@ -49,15 +63,9 @@ export type SchedulingRefusal =
   | 'SCHEDULING_UNAVAILABLE'
   | 'SESSION_NOT_ACTIVE'
   | 'OPT_OUT_REQUESTED'
-  | 'OPT_OUT_CLARIFICATION_PENDING'
-  | 'BOOKING_IN_FLIGHT'
-  | 'ALREADY_BOOKED'
   | 'LEAD_NOT_BOOKABLE'
-  | 'NOT_AUTHORIZED';
-
-/** Motivo GROSSO de não reserva para o modelo (sem supressão, reunião ativa ou outros dados do lead). */
-export type NotBookedReason =
-  'SLOT_UNAVAILABLE' | 'OFFER_EXPIRED' | 'NOT_BOOKABLE' | 'TECHNICAL_FAILURE';
+  | 'OFFER_NOT_CURRENT'
+  | 'OFFER_EXPIRED';
 
 export interface OfferedOption {
   readonly ordinal: number;
@@ -78,85 +86,22 @@ export type FindSlotsResult =
   | { readonly status: 'REFUSED'; readonly reason: SchedulingRefusal; readonly speech: string };
 
 /**
- * Resultado da confirmação. `mayAnnounceBooking` só é `true` com `BOOKED`
- * (reserva nova ou recuperada) conferida no banco para a MESMA oferta e com a
- * sessão ainda ativa. `UNKNOWN` = o commit pode ter ocorrido: não anunciar
- * nem sucesso nem fracasso; a próxima chamada reconcilia com a mesma chave.
+ * `PENDING_CONFIRMATION`: intenção registrada; NADA foi reservado. O texto do
+ * servidor diz isso ao interlocutor (a confirmação vem depois da ligação).
  */
-export type ConfirmOfferResult =
+export type RequestBookingResult =
   | {
-      readonly status: 'BOOKED';
-      readonly recovered: boolean;
-      readonly mayAnnounceBooking: true;
-      readonly speech: string;
-    }
-  | {
-      readonly status: 'NOT_BOOKED';
-      readonly outcome: NotBookedReason;
-      readonly mayAnnounceBooking: false;
-      readonly speech: string;
-    }
-  | { readonly status: 'UNKNOWN'; readonly mayAnnounceBooking: false; readonly speech: string }
-  | {
-      readonly status: 'REFUSED';
-      readonly reason: SchedulingRefusal;
-      readonly mayAnnounceBooking: false;
-      readonly speech: string;
-    };
-
-/** Eventos do HARNESS confiável (transporte/TTS), nunca do modelo. */
-export type SchedulingSpeechEvent =
-  | {
-      readonly type: 'SPEECH_STARTED';
-      readonly generationId: string;
-      readonly purpose: 'PRESENTATION' | 'READBACK';
+      readonly status: 'PENDING_CONFIRMATION';
       readonly listRevision: number;
-      readonly offerId?: string | undefined;
+      readonly option: number;
+      readonly speech: string;
     }
-  | {
-      /**
-       * E2 PR 3: pergunta de esclarecimento de um POSSÍVEL opt-out (sim/não);
-       * auditoria consolidada (A1): `AGENT` = qualquer OUTRA fala do agente
-       * (texto do modelo), que invalida a pergunta transacional em aberto.
-       */
-      readonly type: 'SPEECH_STARTED';
-      readonly generationId: string;
-      readonly purpose: 'OPT_OUT_QUESTION' | 'AGENT';
-    }
-  | { readonly type: 'SPEECH_COMPLETED'; readonly generationId: string }
-  | { readonly type: 'SPEECH_INTERRUPTED'; readonly generationId: string };
-
-export interface SchedulingProtocolView {
-  readonly phase: BookingProtocolPhase;
-  readonly directives: readonly BookingProtocolDirective[];
-  /** Texto determinístico que o harness deve falar (lista, releitura, resultado). */
-  readonly speech: string | null;
-  readonly ignored: string | null;
-  /** Possível opt-out em esclarecimento: abordagem comercial e reserva bloqueadas. */
-  readonly optOutClarificationPending: boolean;
-  readonly refusal: SchedulingRefusal | null;
-}
+  | { readonly status: 'REFUSED'; readonly reason: SchedulingRefusal; readonly speech: string };
 
 export interface SchedulingAgentPort {
   findSlots(scope: SchedulingAgentScope, args: FindSlotsArguments): Promise<FindSlotsResult>;
-  confirmOffer(scope: SchedulingAgentScope): Promise<ConfirmOfferResult>;
-  recordSpeech(
+  requestBooking(
     scope: SchedulingAgentScope,
-    event: SchedulingSpeechEvent,
-  ): Promise<SchedulingProtocolView>;
-  /** O interlocutor COMEÇOU a falar (turno do transporte): o servidor atribui o `seq` de início. */
-  recordLeadSpeechStarted(
-    scope: SchedulingAgentScope,
-    turn: LeadTurn,
-  ): Promise<SchedulingProtocolView>;
-  /**
-   * Fala FINAL do MESMO turno, classificada no servidor (`classifyLeadReply`).
-   * Final de outro turno, repetida ou sem início registrado é ignorada.
-   */
-  recordLeadUtterance(
-    scope: SchedulingAgentScope,
-    utterance: LeadTurn & { readonly text: string },
-  ): Promise<SchedulingProtocolView>;
-  /** Autoriza (ou não) uma saída do agente AGORA. */
-  authorizeOutput(scope: SchedulingAgentScope, output: AgentOutput): Promise<OutputDecision>;
+    args: RequestBookingArguments,
+  ): Promise<RequestBookingResult>;
 }

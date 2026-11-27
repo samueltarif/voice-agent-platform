@@ -13,9 +13,6 @@ import {
  *   só recupera a lista ainda vigente, sem renovar nada.
  * - `QUERY_EMPTY` (auditoria consolidada A5): consulta NOVA sem vagas descarta a
  *   lista, a seleção e a autorização anteriores; a revisão é consumida.
- * - `AGENT_SPEECH_STARTED` (A1): outra fala do agente durante uma pergunta
- *   transacional invalida a entrega — a pergunta precisa ser falada de novo
- *   pelo servidor, por inteiro, antes de qualquer resposta valer.
  */
 
 type Of<T extends BookingProtocolEvent['type']> = Extract<BookingProtocolEvent, { type: T }>;
@@ -64,24 +61,4 @@ export function onQueryEmpty(
     state: { ...state, ...discarded, phase: 'IDLE', list: null, maxRevision: event.revision },
     directives: [],
   };
-}
-
-export function onAgentSpeech(state: BookingProtocolState): BookingProtocolStep {
-  const revision = state.list?.revision;
-  if (revision === undefined) return { state, directives: [] };
-  if (state.phase === 'PRESENTING' || state.phase === 'AWAITING_SELECTION') {
-    return {
-      state: { ...state, phase: 'PRESENTING', presentation: null },
-      directives: [{ kind: 'PRESENT_LIST', listRevision: revision }],
-    };
-  }
-  const offerId = state.selection?.offerId;
-  const readbackPhases = ['READBACK_PENDING', 'READBACK_SPEAKING', 'AWAITING_CONFIRMATION'];
-  if (offerId && readbackPhases.includes(state.phase)) {
-    return {
-      state: { ...state, phase: 'READBACK_PENDING', readback: null },
-      directives: [{ kind: 'READ_BACK', offerId, listRevision: revision }],
-    };
-  }
-  return { state, directives: [] };
 }

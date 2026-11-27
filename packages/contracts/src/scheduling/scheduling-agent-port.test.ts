@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { createBookingClaimFilter, isBookingClaim } from './booking-claim-filter.js';
 import { mentionsOptOut } from './lead-reply-opt-out-mention.js';
-import { confirmOfferArgumentsSchema, findSlotsArgumentsSchema } from './scheduling-agent-port.js';
 import {
+  findSlotsArgumentsSchema,
+  requestBookingArgumentsSchema,
+} from './scheduling-agent-port.js';
+import {
+  renderBookingPendingSpeech,
   renderOfferListSpeech,
   renderReadbackSpeech,
   renderSlotLabel,
@@ -26,16 +29,21 @@ describe('tool arguments carry no authority', () => {
     }
   });
 
-  it('confirm_offer accepts nothing: no booleans, ordinals, ids or turn ids', () => {
-    expect(confirmOfferArgumentsSchema.safeParse({}).success).toBe(true);
+  it('request_booking accepts only the list revision, option and a bounded phrase', () => {
+    const ok = { listRevision: 2, option: 1, leadConfirmation: 'Sim, pode marcar.' };
+    expect(requestBookingArgumentsSchema.safeParse(ok).success).toBe(true);
     for (const bad of [
-      { confirmed: true },
-      { ordinal: 1 },
-      { offerId: 'x' },
-      { turnId: 't' },
-      { authorizationId: 'a' },
+      {},
+      { ...ok, offerId: 'x' },
+      { ...ok, confirmed: true },
+      { ...ok, leadId: 'x' },
+      { ...ok, option: 4 },
+      { ...ok, option: 0 },
+      { ...ok, listRevision: 0 },
+      { ...ok, leadConfirmation: '' },
+      { ...ok, leadConfirmation: 'x'.repeat(301) },
     ]) {
-      expect([bad, confirmOfferArgumentsSchema.safeParse(bad).success]).toEqual([bad, false]);
+      expect([bad, requestBookingArgumentsSchema.safeParse(bad).success]).toEqual([bad, false]);
     }
   });
 });
@@ -50,49 +58,11 @@ describe('deterministic speech includes date, time and time zone', () => {
       'às 12:00, fuso UTC (GMT+00:00)',
     );
     expect(renderReadbackSpeech(label)).toContain(label);
+    // DEC-077: a intenção registrada NUNCA afirma reserva.
+    expect(renderBookingPendingSpeech(label)).toContain(label);
+    expect(renderBookingPendingSpeech(label)).not.toMatch(/marcada|confirmada|agendad/i);
     expect(renderOfferListSpeech([label, label])).toContain('opção 2: segunda-feira');
     expect(() => renderSlotLabel('not a date', 'UTC')).toThrow(RangeError);
-  });
-});
-
-describe('booking claim filter (streaming output guard)', () => {
-  it('drops claims split across deltas and never unlocks (no "booked" boolean)', () => {
-    const filter = createBookingClaimFilter();
-    const out = [
-      filter.push('Ótimo! Sua reunião es'),
-      filter.push('tá marcada para amanhã. '),
-      filter.push('Posso ajudar em mais algo?'),
-      filter.flush(),
-    ].join('');
-    expect(out).toBe('Ótimo! Posso ajudar em mais algo?');
-    expect(filter.dropped).toBe(1);
-    expect((filter.push('Agendei para você. ') + filter.flush()).trim()).toBe('');
-    expect(filter.dropped).toBe(2);
-  });
-
-  it('classifies scheduling claims conservatively', () => {
-    for (const claim of [
-      'Já agendei.',
-      'Marquei sua reunião.',
-      'Reservado!',
-      'Está confirmado.',
-      'A reunião está ok.',
-      'Seu horário já consta na agenda.',
-      'Tenho outros horários amanhã.',
-      'Sua agenda está livre na quinta',
-    ]) {
-      expect([claim, isBookingClaim(claim)]).toEqual([claim, true]);
-    }
-    for (const neutral of [
-      'Tudo bem?',
-      'Obrigado pela atenção.',
-      'Qual o melhor dia?',
-      'Vocês usam algum sistema de agendamento?',
-      'Posso marcar para você?',
-      'Qual horário fica melhor para você?',
-    ]) {
-      expect([neutral, isBookingClaim(neutral)]).toEqual([neutral, false]);
-    }
   });
 });
 
@@ -113,17 +83,17 @@ describe('possible opt-out mention (blocks commercial progress)', () => {
 });
 
 describe('scheduling toolset publication rule', () => {
-  it('requires both scheduling tools together', () => {
+  it('requires both scheduling tools together, plus the opt-out tool (DEC-077)', () => {
     expect(evaluateSchedulingToolset({ tools: [] })).toBeNull();
     expect(evaluateSchedulingToolset({})).toBeNull();
-    expect(
-      evaluateSchedulingToolset({ tools: ['scheduling.find_slots', 'scheduling.confirm_offer'] }),
-    ).toBeNull();
+    const both = ['scheduling.find_slots', 'scheduling.request_booking'] as const;
+    expect(evaluateSchedulingToolset({ tools: [...both, 'lead.record_opt_out'] })).toBeNull();
+    expect(evaluateSchedulingToolset({ tools: [...both] })).toBe('SCHEDULING_TOOLS_INCOMPLETE');
     expect(evaluateSchedulingToolset({ tools: ['scheduling.find_slots'] })).toBe(
       'SCHEDULING_TOOLS_INCOMPLETE',
     );
     expect(
-      evaluateSchedulingToolset({ tools: ['scheduling.confirm_offer', 'catalog.search'] }),
+      evaluateSchedulingToolset({ tools: ['scheduling.request_booking', 'catalog.search'] }),
     ).toBe('SCHEDULING_TOOLS_INCOMPLETE');
   });
 });

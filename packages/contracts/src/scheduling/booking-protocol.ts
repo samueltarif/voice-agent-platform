@@ -1,4 +1,4 @@
-import { onAgentSpeech, onList, onQueryEmpty } from './booking-protocol-interventions.js';
+import { onList, onQueryEmpty } from './booking-protocol-interventions.js';
 import { ignoreStep, onLeadReply, resetToNewList } from './booking-protocol-replies.js';
 import {
   onSpeechCompleted,
@@ -103,7 +103,6 @@ const HANDLERS: Readonly<Record<BookingProtocolEvent['type'], Handler>> = {
   AUTHORIZATION_CONSUMED: onConsumed,
   BOOKING_RESULT: onBookingResult,
   CLOCK: onClock,
-  AGENT_SPEECH_STARTED: onAgentSpeech,
   QUERY_EMPTY: onQueryEmpty,
   SESSION_CLOSED: (state) => ({ state: cleared(state, 'CLOSED'), directives: [] }),
 };
