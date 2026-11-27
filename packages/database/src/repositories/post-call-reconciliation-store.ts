@@ -1,6 +1,4 @@
-import { and, eq, ne, sql } from 'drizzle-orm';
-import { outboundCallJobs } from '../schema/outbound.js';
-import type { CallAttemptEntity } from '../schema/call-attempts.js';
+import { and, eq, sql } from 'drizzle-orm';
 import {
   postCallReconciliations,
   type PostCallReconciliationEntity,
@@ -74,16 +72,54 @@ export async function lockCurrentReport(
   return current ? row : null;
 }
 
-/** A6 — relatório final já registrado: a sessão não aceita novas operações comerciais. */
-export async function isSessionSealed(
-  executor: DatabaseExecutor,
+/**
+ * A6 (reauditoria) — relatório final já registrado: a sessão não aceita novas
+ * operações comerciais. Sob a trava R (chamar depois de S/I).
+ */
+export async function isSessionSealedLocked(
+  tx: DatabaseExecutor,
   key: ReconciliationKey,
 ): Promise<boolean> {
-  const [row] = await executor
-    .select({ digest: postCallReconciliations.reportDigest })
+  return Boolean((await lockReconciliation(tx, key))?.reportDigest);
+}
+
+/** Pela tentativa (chave primária); `lock` = FOR UPDATE. */
+export async function reconciliationByAttempt(
+  executor: DatabaseExecutor,
+  key: { readonly organizationId: string; readonly attemptId: string },
+  lock = false,
+): Promise<PostCallReconciliationEntity | null> {
+  const query = executor
+    .select()
     .from(postCallReconciliations)
-    .where(byKey(key));
-  return Boolean(row?.digest);
+    .where(
+      and(
+        eq(postCallReconciliations.organizationId, key.organizationId),
+        eq(postCallReconciliations.attemptId, key.attemptId),
+      ),
+    );
+  const [row] = lock ? await query.for('update') : await query;
+  return row ?? null;
+}
+
+export async function updateReconciliationByAttempt(
+  tx: DatabaseExecutor,
+  row: Pick<PostCallReconciliationEntity, 'organizationId' | 'attemptId'>,
+  changes: Partial<Omit<PostCallReconciliationEntity, 'organizationId' | 'attemptId'>>,
+): Promise<void> {
+  await tx
+    .update(postCallReconciliations)
+    .set({
+      ...changes,
+      version: sql`${postCallReconciliations.version} + 1`,
+      updatedAt: sql`now()`,
+    })
+    .where(
+      and(
+        eq(postCallReconciliations.organizationId, row.organizationId),
+        eq(postCallReconciliations.attemptId, row.attemptId),
+      ),
+    );
 }
 
 export async function updateReconciliation(
@@ -99,30 +135,4 @@ export async function updateReconciliation(
       updatedAt: sql`now()`,
     })
     .where(byKey(key));
-}
-
-/** Barreira do claim de envio: há reconciliação em aberto para o destino desta tentativa? */
-export async function isDestinationAwaitingReconciliation(
-  executor: DatabaseExecutor,
-  row: CallAttemptEntity,
-): Promise<boolean> {
-  const [hit] = await executor
-    .select({ hit: sql<number>`1` })
-    .from(postCallReconciliations)
-    .innerJoin(
-      outboundCallJobs,
-      and(
-        eq(outboundCallJobs.id, row.jobId),
-        eq(outboundCallJobs.organizationId, row.organizationId),
-        eq(outboundCallJobs.destinationPhone, postCallReconciliations.phoneE164),
-      ),
-    )
-    .where(
-      and(
-        eq(postCallReconciliations.organizationId, row.organizationId),
-        ne(postCallReconciliations.status, 'RECONCILED'),
-      ),
-    )
-    .limit(1);
-  return hit !== undefined;
 }

@@ -3,7 +3,12 @@ import { postCallReconciliations } from '../schema/post-call-reconciliations.js'
 import { decideIntent, lockPendingIntent } from './booking-intent-store.js';
 import type { EffectsDeps } from './post-call-effects.js';
 import { adoptOrphanSessions } from './post-call-orphans.js';
-import { lockReconciliation, updateReconciliation } from './post-call-reconciliation-store.js';
+import {
+  lockReconciliation,
+  reconciliationByAttempt,
+  updateReconciliation,
+  updateReconciliationByAttempt,
+} from './post-call-reconciliation-store.js';
 
 /**
  * E2 simplificada (DEC-077) — relatório AUSENTE ou ATRASADO e decisão humana.
@@ -22,14 +27,14 @@ import { lockReconciliation, updateReconciliation } from './post-call-reconcilia
  *   falhou em abri-la) são adotadas antes, para seguirem o mesmo prazo.
  */
 
-export interface ReviewResolution {
+/** Pela sessão ou, para tentativa encerrada sem sessão vinculada, pela tentativa. */
+export type ReviewResolution = {
   readonly organizationId: string;
-  readonly sessionId: string;
   readonly userId: string;
-}
+} & ({ readonly sessionId: string } | { readonly attemptId: string });
 
 export type ReviewResolutionResult =
-  'RESOLVED' | 'NOT_FOUND' | 'ALREADY_RECONCILED' | 'INTENT_PENDING' | 'NOT_IN_REVIEW';
+  'RESOLVED' | 'NOT_FOUND' | 'ALREADY_RECONCILED' | 'NOT_IN_REVIEW';
 
 type Row = NonNullable<Awaited<ReturnType<typeof lockReconciliation>>>;
 
@@ -55,6 +60,7 @@ export async function expireOverdue(
     .where(
       and(
         eq(postCallReconciliations.status, 'AWAITING_REPORT'),
+        isNotNull(postCallReconciliations.sessionId),
         or(
           and(
             isNull(postCallReconciliations.reportDigest),
@@ -68,7 +74,8 @@ export async function expireOverdue(
       ),
     );
   let expired = 0;
-  for (const key of due) {
+  for (const { organizationId, sessionId } of due) {
+    const key = { organizationId, sessionId: sessionId! };
     const done = await deps.db.transaction(async (tx) => {
       const pending = await lockPendingIntent(tx, key);
       const row = await lockReconciliation(tx, key);
@@ -85,21 +92,41 @@ export async function expireOverdue(
   return expired;
 }
 
-export function resolveReview(
+async function sessionOf(deps: EffectsDeps, input: ReviewResolution): Promise<string | null> {
+  if ('sessionId' in input) return input.sessionId;
+  const row = await reconciliationByAttempt(deps.db, input);
+  return row?.sessionId ?? null;
+}
+
+/**
+ * Reauditoria A4: a decisão humana também encerra uma intenção que ficou
+ * pendente (queda entre o registro do conflito e a retenção da intenção) —
+ * I → R na mesma transação, sem depender de nova entrega do relatório.
+ */
+export async function resolveReview(
   deps: EffectsDeps,
   input: ReviewResolution,
 ): Promise<ReviewResolutionResult> {
-  const key = { organizationId: input.organizationId, sessionId: input.sessionId };
+  const sessionId = await sessionOf(deps, input);
   return deps.db.transaction(async (tx) => {
-    const pending = await lockPendingIntent(tx, key);
-    const row = await lockReconciliation(tx, key);
+    const sessionKey = sessionId ? { organizationId: input.organizationId, sessionId } : null;
+    const pending = sessionKey ? await lockPendingIntent(tx, sessionKey) : null;
+    const row = sessionKey
+      ? await lockReconciliation(tx, sessionKey)
+      : await reconciliationByAttempt(
+          tx,
+          input as { organizationId: string; attemptId: string },
+          true,
+        );
     if (!row) return 'NOT_FOUND';
     if (row.status === 'RECONCILED') return 'ALREADY_RECONCILED';
     if (row.status !== 'NEEDS_REVIEW') return 'NOT_IN_REVIEW';
-    if (pending) return 'INTENT_PENDING';
-    await updateReconciliation(tx, key, {
+    const now = deps.clock();
+    if (pending)
+      await decideIntent(tx, pending, { status: 'CANCELED', reason: 'REVIEW_RESOLVED', now });
+    await updateReconciliationByAttempt(tx, row, {
       status: 'RECONCILED',
-      reconciledAt: deps.clock(),
+      reconciledAt: now,
       reconciledBy: `user:${input.userId}`,
     });
     return 'RESOLVED';

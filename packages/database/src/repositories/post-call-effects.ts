@@ -13,7 +13,7 @@ import type { DrizzleMeetingBookingService } from './meeting-booking-service.js'
 import { bookAcceptedIntent } from './post-call-booking.js';
 import { lockCurrentReport } from './post-call-reconciliation-store.js';
 import type { DatabaseExecutor } from './database-executor.js';
-import type { PostCallAttempt, RecordStep } from './post-call-record.js';
+import type { OptOutTarget, PostCallAttempt, RecordStep } from './post-call-record.js';
 import { recordCanonicalOptOut } from './scheduling-agent-opt-out.js';
 import { lockProtocol } from './scheduling-protocol-store.js';
 
@@ -48,10 +48,13 @@ export interface EffectInput {
   readonly evaluation: PostCallEvaluation;
 }
 
-const lockOptionalLead = (tx: Parameters<typeof lockLead>[0], step: Processing, org: string) =>
+const lockOptionalLead = (tx: Parameters<typeof lockLead>[0], step: OptOutTarget, org: string) =>
   step.leadId ? lockLead(tx, org, step.leadId) : Promise.resolve(null as LeadEntity | null);
 
-export async function applyPostCallOptOut(deps: EffectsDeps, input: EffectInput): Promise<void> {
+export async function applyPostCallOptOut(
+  deps: EffectsDeps,
+  input: { readonly attempt: PostCallAttempt; readonly step: OptOutTarget },
+): Promise<void> {
   const { attempt, step } = input;
   const organizationId = attempt.organizationId;
   await deps.db.transaction(async (tx) => {

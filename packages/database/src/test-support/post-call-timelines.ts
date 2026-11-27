@@ -1,4 +1,4 @@
-import type { PostCallEntry } from '@voice-agent/contracts';
+import { canonicalReadback, type PostCallEntry } from '@voice-agent/contracts';
 
 /**
  * DEC-077 — linhas do tempo SINTÉTICAS do relatório pós-chamada para os
@@ -6,9 +6,9 @@ import type { PostCallEntry } from '@voice-agent/contracts';
  * 30/11/2026, opções às 09:00, 09:30 e 10:00 (America/Sao_Paulo).
  */
 
-export const READBACK_09H =
-  'Só para confirmar: segunda-feira, 30 de novembro, às 9h. Posso marcar?';
-export const READBACK_09H30 = 'Confirmando: segunda-feira às 9h30. Pode ser?';
+/** Pergunta CANÔNICA de confirmação (a que `find_slots` devolve em `confirmationQuestion`). */
+export const READBACK_09H = canonicalReadback('2026-11-30T12:00:00.000Z', 'America/Sao_Paulo');
+export const READBACK_09H30 = canonicalReadback('2026-11-30T12:30:00.000Z', 'America/Sao_Paulo');
 
 export function bookingTimeline(input: {
   readonly listRevision: number;

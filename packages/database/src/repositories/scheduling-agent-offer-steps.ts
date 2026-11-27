@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import {
   renderOfferListSpeech,
+  renderReadbackSpeech,
   renderRefusalSpeech,
   renderSlotLabel,
   zonedBoundaryInstant,
@@ -63,7 +64,11 @@ export function offered(
     status: 'OFFERED',
     listRevision: list.revision,
     retry,
-    options: labels.map((label, index) => ({ ordinal: index + 1, label })),
+    options: labels.map((label, index) => ({
+      ordinal: index + 1,
+      label,
+      confirmationQuestion: renderReadbackSpeech(label),
+    })),
     speech: renderOfferListSpeech(labels),
   };
 }

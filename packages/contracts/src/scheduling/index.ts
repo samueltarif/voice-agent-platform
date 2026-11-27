@@ -18,4 +18,4 @@ export * from './scheduling-toolset-publication.js';
 export * from './lead-agent-port.js';
 export * from './post-call-report.js';
 export * from './post-call-evaluation.js';
-export * from './post-call-slot-mention.js';
+export * from './post-call-readback.js';

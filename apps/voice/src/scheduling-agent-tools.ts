@@ -65,7 +65,7 @@ export function createSchedulingToolDefinitions(
     {
       name: SCHEDULING_FIND_SLOTS_TOOL,
       description:
-        'Consulta a agenda e devolve até 3 horários (listRevision e opções numeradas). Ofereça só esses horários, com dia da semana e hora; não invente horários.',
+        'Consulta a agenda e devolve até 3 horários (listRevision e opções numeradas, cada uma com a confirmationQuestion canônica). Ofereça só esses horários; para confirmar a escolha, leia a confirmationQuestion da opção sem alterar nenhuma palavra; não invente horários.',
       validateInput: createZodToolValidator(findSlotsArgumentsSchema),
       execute: async (input, context) => {
         assertGrantContext(grant, context);
@@ -75,7 +75,7 @@ export function createSchedulingToolDefinitions(
     {
       name: SCHEDULING_REQUEST_BOOKING_TOOL,
       description:
-        'Use SOMENTE depois de repetir o dia da semana e a hora escolhidos e o interlocutor dizer claramente que aceita. Informe listRevision, a opção e a frase exata de aceite. NÃO marca a reunião: diga apenas que o pedido foi anotado e que a confirmação vem depois da ligação.',
+        'Use SOMENTE depois de ler, palavra por palavra, a confirmationQuestion da opção escolhida (devolvida por scheduling.find_slots) como sua última frase e o interlocutor dizer claramente que aceita. Informe listRevision, a opção e a frase exata de aceite. NÃO marca a reunião: diga apenas que o pedido foi anotado e que a confirmação vem depois da ligação.',
       validateInput: createZodToolValidator(requestBookingArgumentsSchema),
       execute: async (input, context) => {
         assertGrantContext(grant, context);

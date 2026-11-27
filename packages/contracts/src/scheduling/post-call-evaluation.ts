@@ -1,7 +1,7 @@
 import { classifyLeadReply, type LeadReplyIntent } from './lead-reply-intent.js';
 import { mentionsOptOut } from './lead-reply-opt-out-mention.js';
 import type { PostCallEntry, PostCallReport } from './post-call-report.js';
-import { proposesSlot } from './post-call-slot-mention.js';
+import { endsWithCanonicalReadback } from './post-call-readback.js';
 import { SCHEDULING_REQUEST_BOOKING_TOOL } from './scheduling-agent-port.js';
 
 /**
@@ -15,8 +15,10 @@ import { SCHEDULING_REQUEST_BOOKING_TOOL } from './scheduling-agent-port.js';
  * - aceite do agendamento: histórico COMPLETO e em ordem; o ÚLTIMO pedido
  *   de reserva do histórico é o da MESMA lista e opção da intenção (A2); a
  *   última fala do interlocutor antes dele é um aceite inteiro (`AFFIRM`); a
- *   fala do agente imediatamente anterior é uma proposta afirmativa com um
- *   único horário igual ao da oferta (A1); nada depois a contradiz.
+ *   fala do agente imediatamente anterior termina com a pergunta CANÔNICA de
+ *   confirmação da oferta (A1, `post-call-readback`); nada depois a contradiz.
+ * - opt-out (reauditoria A3): pedido só de fala ÍNTEGRA; fala truncada que
+ *   pede ou menciona opt-out vira menção (revisão), nunca supressão definitiva.
  * Qualquer outra situação vai para revisão humana — nunca para reserva.
  */
 
@@ -43,10 +45,13 @@ const isLead = (entry: PostCallEntry): entry is LeadEntry => entry.kind === 'LEA
 const intentOf = (entry: LeadEntry): LeadReplyIntent => classifyLeadReply(entry.text);
 const spoke = (entry: PostCallEntry) => isLead(entry) && intentOf(entry).kind !== 'SILENCE';
 
+const asksOptOut = (entry: LeadEntry) => intentOf(entry).kind === 'OPT_OUT';
+
 function optOutOf(entries: readonly PostCallEntry[]): OptOutEvidence {
   const leads = entries.filter(isLead);
-  if (leads.some((entry) => intentOf(entry).kind === 'OPT_OUT')) return 'REQUESTED';
-  return leads.some((entry) => mentionsOptOut(entry.text)) ? 'MENTIONED' : 'NONE';
+  if (leads.some((entry) => !entry.truncated && asksOptOut(entry))) return 'REQUESTED';
+  const mentioned = (entry: LeadEntry) => asksOptOut(entry) || mentionsOptOut(entry.text);
+  return leads.some(mentioned) ? 'MENTIONED' : 'NONE';
 }
 
 const isBookingRequest = (entry: PostCallEntry) =>
@@ -85,7 +90,7 @@ function judgeReply(
   if (reply.kind !== 'AFFIRM') return review('ACCEPTANCE_UNCLEAR');
   const agentAt = lastIndex(entries, (entry) => entry.kind === 'AGENT', leadAt);
   const readback = agentAt >= 0 ? (entries[agentAt] as { text: string }).text : '';
-  if (!proposesSlot(readback, intent.startsAt, intent.timeZone)) {
+  if (!endsWithCanonicalReadback(readback, intent.startsAt, intent.timeZone)) {
     return review('READBACK_NOT_EVIDENT');
   }
   return { decision: 'ACCEPTED', reason: 'LEAD_AFFIRMED_READBACK' };

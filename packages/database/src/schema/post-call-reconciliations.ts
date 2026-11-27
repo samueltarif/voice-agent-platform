@@ -8,6 +8,7 @@ import {
   primaryKey,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
 import { callAttempts } from './call-attempts.js';
@@ -15,7 +16,8 @@ import { callSessions } from './call-sessions.js';
 import { organizations } from './organizations.js';
 
 /**
- * E2 simplificada (DEC-077) — RECONCILIAÇÃO pós-chamada de uma sessão.
+ * E2 simplificada (DEC-077) — RECONCILIAÇÃO pós-chamada de uma TENTATIVA
+ * (chave por tentativa; no máximo uma por sessão — reauditoria #184 A5).
  *
  * Enquanto `status` não for `RECONCILED`, nenhuma nova tentativa para o
  * mesmo telefone é liberada (barreira no claim de envio): relatório pendente,
@@ -42,7 +44,8 @@ export const postCallReconciliations = pgTable(
     organizationId: uuid('organization_id')
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
-    sessionId: uuid('session_id').notNull(),
+    /** Nulo só para tentativa da E2 encerrada SEM sessão vinculada (revisão; reauditoria A5). */
+    sessionId: uuid('session_id'),
     attemptId: uuid('attempt_id').notNull(),
     leadId: uuid('lead_id'),
     phoneE164: text('phone_e164').notNull(),
@@ -75,8 +78,15 @@ export const postCallReconciliations = pgTable(
   (table) => [
     primaryKey({
       name: 'post_call_reconciliations_pk',
-      columns: [table.organizationId, table.sessionId],
+      columns: [table.organizationId, table.attemptId],
     }),
+    uniqueIndex('post_call_reconciliations_session_uidx')
+      .on(table.organizationId, table.sessionId)
+      .where(sql`${table.sessionId} IS NOT NULL`),
+    check(
+      'post_call_reconciliations_unbound_chk',
+      sql`${table.sessionId} IS NOT NULL OR ${table.status} <> 'AWAITING_REPORT'`,
+    ),
     foreignKey({
       columns: [table.sessionId, table.organizationId],
       foreignColumns: [callSessions.id, callSessions.organizationId],

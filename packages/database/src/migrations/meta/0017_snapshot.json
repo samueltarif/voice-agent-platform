@@ -1,5 +1,5 @@
 {
-  "id": "f6acc59f-f9bc-42e9-ac57-efb5207fd654",
+  "id": "36db5e8d-2b0b-487d-abf5-67ab371341a2",
   "prevId": "3310c713-6a7f-4446-8060-e3461f5c0c0a",
   "version": "7",
   "dialect": "postgresql",
@@ -6270,7 +6270,7 @@
           "name": "session_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "attempt_id": {
           "name": "attempt_id",
@@ -6388,6 +6388,28 @@
         }
       },
       "indexes": {
+        "post_call_reconciliations_session_uidx": {
+          "name": "post_call_reconciliations_session_uidx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "session_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"post_call_reconciliations\".\"session_id\" IS NOT NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "post_call_reconciliations_open_phone_idx": {
           "name": "post_call_reconciliations_open_phone_idx",
           "columns": [
@@ -6443,12 +6465,16 @@
       "compositePrimaryKeys": {
         "post_call_reconciliations_pk": {
           "name": "post_call_reconciliations_pk",
-          "columns": ["organization_id", "session_id"]
+          "columns": ["organization_id", "attempt_id"]
         }
       },
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {
+        "post_call_reconciliations_unbound_chk": {
+          "name": "post_call_reconciliations_unbound_chk",
+          "value": "\"post_call_reconciliations\".\"session_id\" IS NOT NULL OR \"post_call_reconciliations\".\"status\" <> 'AWAITING_REPORT'"
+        },
         "post_call_reconciliations_status_chk": {
           "name": "post_call_reconciliations_status_chk",
           "value": "\"post_call_reconciliations\".\"status\" IN ('AWAITING_REPORT', 'NEEDS_REVIEW', 'RECONCILED')"

@@ -2,7 +2,6 @@ import type { CallAttemptEntity } from '../schema/call-attempts.js';
 import type { ClaimRejectionReason } from './call-attempt-claims.js';
 import type { DatabaseExecutor } from './database-executor.js';
 import { destinationOccupancy } from './post-call-destination.js';
-import { isDestinationAwaitingReconciliation } from './post-call-reconciliation-store.js';
 import { applyCampaignSendRefusal, campaignSendRefusal } from './send-time-campaign-gate.js';
 import {
   cancelSuppressedAttempt,
@@ -25,8 +24,6 @@ export async function sendTimeRefusal(
     return 'DESTINATION_SUPPRESSED';
   }
   // DEC-077: nada é cancelado — a tentativa volta a ser elegível quando a reconciliação fechar.
-  const pending = await isDestinationAwaitingReconciliation(executor, row);
-  if (pending) return 'POST_CALL_RECONCILIATION_PENDING';
-  // A5: destino ocupado por outra tentativa já enviada (ou sessão E2 sem reconciliação).
+  // Reauditoria A5: reconciliação aberta, tentativa em curso e órfã num ÚNICO retrato (sob P).
   return destinationOccupancy(executor, row);
 }

@@ -47,6 +47,7 @@ const SPEECH_LOSS_ISSUES = new Set([
   'ENTRIES_TRUNCATED',
   'UNRECOGNIZED_MESSAGE',
   'TOOL_ARGUMENTS_INVALID',
+  'SPEECH_UNREADABLE',
 ]);
 /** 2000-01-01 … 2100-01-01: fora disso a época não é plausível (usa o recebimento). */
 const EPOCH_RANGE = [946_684_800, 4_102_444_800] as const;

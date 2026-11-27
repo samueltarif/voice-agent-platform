@@ -62,6 +62,8 @@ const REFUSAL_SPEECH: Readonly<Record<SchedulingRefusal, string>> = {
   LEAD_NOT_BOOKABLE: 'Não consigo marcar uma nova reunião neste momento.',
   OFFER_NOT_CURRENT: 'Essa opção não está mais valendo. Posso consultar os horários de novo?',
   OFFER_EXPIRED: 'Esse horário não está mais reservado para você. Posso consultar de novo?',
+  REQUEST_UNDER_REVIEW:
+    'Não consegui registrar esse pedido automaticamente. Nossa equipe vai confirmar o horário com você.',
 };
 
 export function renderRefusalSpeech(reason: SchedulingRefusal): string {

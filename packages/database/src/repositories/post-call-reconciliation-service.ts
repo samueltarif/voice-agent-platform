@@ -10,7 +10,7 @@ import {
   type Processing,
 } from './post-call-effects.js';
 import { applyPostCallOutcome } from './post-call-outcome.js';
-import { recordReport, type PostCallAttempt } from './post-call-record.js';
+import { recordReport, type PostCallAttempt, type RecordStep } from './post-call-record.js';
 import {
   lockCurrentReport,
   lockReconciliation,
@@ -28,7 +28,7 @@ import { expireOverdue, resolveReview, type ReviewResolution } from './post-call
  * o claim de envio recusa novas tentativas para o telefone.
  */
 
-const HOLDS_INTENT = new Set(['REPORT_CONFLICT', 'REPORT_AFTER_RESOLUTION']);
+const LATE_OPT_OUT = new Set(['REPORT_CONFLICT', 'REPORT_AFTER_RESOLUTION']);
 
 export type PostCallIngestResult =
   | { readonly status: 'RECONCILED' | 'NEEDS_REVIEW'; readonly reasons: readonly string[] }
@@ -45,7 +45,7 @@ export class DrizzlePostCallReconciliationService {
   async ingest(attempt: PostCallAttempt, report: PostCallReport): Promise<PostCallIngestResult> {
     const step = await recordReport(this.deps.db, { attempt, report, now: this.deps.clock() });
     if (step.kind === 'STOP') {
-      if (HOLDS_INTENT.has(step.reason)) await this.holdPendingIntent(attempt, step.reason);
+      await this.afterStop(attempt, report, step);
       return { status: step.status, reasons: [step.reason] };
     }
     const evaluation = evaluatePostCallReport(report, step.pending);
@@ -58,6 +58,34 @@ export class DrizzlePostCallReconciliationService {
     const outcome = await applyPostCallOutcome(this.deps, input);
     if (outcome.review) reasons.push(outcome.review);
     return this.close(step, { reasons, outcome: outcome.applied });
+  }
+
+  /**
+   * Paradas depois do registro (conflito, relatório após decisão humana,
+   * reentrega de algo já em revisão):
+   * - reauditoria A4: a intenção ainda pendente é retida para revisão em TODA
+   *   parada com a reconciliação em revisão — uma queda entre o registro do
+   *   conflito e a retenção se recupera em qualquer reentrega (e, sem
+   *   reentrega, na decisão humana: `resolveReview`);
+   * - reauditoria (relatório tardio): decisões anteriores são preservadas,
+   *   mas um opt-out EXPLÍCITO de fala íntegra é aplicado (idempotente).
+   */
+  private async afterStop(
+    attempt: PostCallAttempt,
+    report: PostCallReport,
+    step: Extract<RecordStep, { kind: 'STOP' }>,
+  ): Promise<void> {
+    if (!step.target) return;
+    const inReview =
+      step.status === 'NEEDS_REVIEW' ||
+      (step.status === 'DUPLICATE' && step.reason === 'NEEDS_REVIEW');
+    if (inReview) {
+      const reason = step.status === 'NEEDS_REVIEW' ? step.reason : 'REVIEW_PENDING';
+      await this.holdPendingIntent(attempt, reason);
+    }
+    if (!LATE_OPT_OUT.has(step.reason)) return;
+    if (evaluatePostCallReport(report, null).optOut !== 'REQUESTED') return;
+    await applyPostCallOptOut(this.deps, { attempt, step: step.target });
   }
 
   /**

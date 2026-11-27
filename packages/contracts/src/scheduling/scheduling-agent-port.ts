@@ -65,12 +65,20 @@ export type SchedulingRefusal =
   | 'OPT_OUT_REQUESTED'
   | 'LEAD_NOT_BOOKABLE'
   | 'OFFER_NOT_CURRENT'
-  | 'OFFER_EXPIRED';
+  | 'OFFER_EXPIRED'
+  /** Reauditoria #184 A2: pedido não registrado porque a sessão já está em revisão humana. */
+  | 'REQUEST_UNDER_REVIEW';
 
 export interface OfferedOption {
   readonly ordinal: number;
   /** Texto exato, renderizado pelo servidor, com data, hora e fuso. */
   readonly label: string;
+  /**
+   * Pergunta CANÔNICA de confirmação desta opção (reauditoria #184 A1): o
+   * aceite só é reconhecido depois da chamada se a fala do agente terminar
+   * com ela; qualquer outra redação vai para revisão humana.
+   */
+  readonly confirmationQuestion: string;
 }
 
 export type FindSlotsResult =

@@ -42,9 +42,15 @@ export const POST_CALL_MAX_TEXT = 4000;
 
 const text = z.string().max(POST_CALL_MAX_TEXT);
 
+/**
+ * `truncated` (reauditoria #184 A3): o adaptador cortou esta fala. Fala
+ * truncada nunca sustenta decisão definitiva (opt-out vira menção ⇒ revisão).
+ */
+const truncated = z.literal(true).optional();
+
 export const postCallEntrySchema = z.discriminatedUnion('kind', [
-  z.object({ kind: z.literal('LEAD'), text }).strict(),
-  z.object({ kind: z.literal('AGENT'), text }).strict(),
+  z.object({ kind: z.literal('LEAD'), text, truncated }).strict(),
+  z.object({ kind: z.literal('AGENT'), text, truncated }).strict(),
   z
     .object({
       kind: z.literal('TOOL_CALL'),

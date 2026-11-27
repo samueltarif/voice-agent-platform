@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
+  canonicalReadback,
   evaluatePostCallReport,
   normalizedProviderEventSchema,
   type ProviderWebhookRequest,
@@ -175,15 +176,45 @@ describe('Millis session report adapter — ordering is never assumed', () => {
     expect(integrityOf((b) => (callOf(b, 4).function.arguments = '{'))).toBe('INCOMPLETE');
     expect(integrityOf((b) => fc(b).pop())).toBe('COMPLETE');
   });
+
+  it('re-audit A3: a user item whose speech is not in `content` is a loss, never silently dropped', () => {
+    const body = sample();
+    body.chat.push({ role: 'user', text: 'Não me ligue mais.' });
+    const out = adapt(body)!;
+    expect(out.issues).toContain('SPEECH_UNREADABLE');
+    expect(out.event.report.integrity).toBe('INCOMPLETE');
+    // Fala vazia legítima ("") não é perda.
+    const silent = sample();
+    silent.chat.push({ role: 'user', content: '' });
+    expect(adapt(silent)!.event.report.integrity).toBe('COMPLETE');
+  });
+
+  it('re-audit A3: a cut utterance keeps its truncation mark and never yields an opt-out request', () => {
+    const body = sample();
+    body.chat.push({
+      role: 'user',
+      content: `Não me ligue mais${' '.repeat(3990)} se não for urgente.`,
+    });
+    const out = adapt(body)!;
+    const last = out.event.report.entries.at(-1)!;
+    expect(last).toMatchObject({ kind: 'LEAD', truncated: true });
+    expect(evaluatePostCallReport(out.event.report, null).optOut).toBe('MENTIONED');
+  });
 });
 
 describe('Millis session report adapter — no invented consent', () => {
+  const intent = {
+    listRevision: 1,
+    option: 2,
+    startsAt: '2026-12-04T12:00:00.000Z',
+    timeZone: 'America/Sao_Paulo',
+  };
   /** Aceite verdadeiro só quando a fala do lead está no chat; frase do modelo não conta. */
   const bookingBody = (leadReply: string | null) => {
     const body = sample();
     const args = { listRevision: 1, option: 2, leadConfirmation: 'o lead confirmou sexta 9h' };
     const chat: Array<Record<string, unknown>> = [
-      { role: 'assistant', content: 'Posso confirmar sexta-feira às 9h?' },
+      { role: 'assistant', content: canonicalReadback(intent.startsAt, intent.timeZone) },
       ...(leadReply === null ? [] : [{ role: 'user', content: leadReply }]),
       {
         role: 'assistant',
@@ -215,12 +246,6 @@ describe('Millis session report adapter — no invented consent', () => {
     return body;
   };
   const toolNames = new Map([['scheduling_request_booking', 'scheduling.request_booking']]);
-  const intent = {
-    listRevision: 1,
-    option: 2,
-    startsAt: '2026-12-04T12:00:00.000Z',
-    timeZone: 'America/Sao_Paulo',
-  };
 
   it('accepts only with the lead affirmation present in the chat', () => {
     const report = adapt(bookingBody('Sim, pode marcar.'), toolNames)!.event.report;

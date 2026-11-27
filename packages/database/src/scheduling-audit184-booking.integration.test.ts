@@ -106,8 +106,10 @@ describe('audit #184: acceptance, retries, partial failure, conflicts and late t
       [2, 'PENDING_EVIDENCE'],
     ]);
     // Reentrega técnica do 1º pedido: ambígua (sem id de invocação comprovado) ⇒ revisão.
-    expect((await service.requestBooking(s.scope, args(1))).status).toBe('PENDING_CONFIRMATION');
-    expect((await service.requestBooking(s.scope, args(3))).status).toBe('PENDING_CONFIRMATION');
+    // Reauditoria A2: a resposta corresponde ao estado persistido (nenhuma intenção nova).
+    const underReview = { status: 'REFUSED', reason: 'REQUEST_UNDER_REVIEW' };
+    expect(await service.requestBooking(s.scope, args(1))).toMatchObject(underReview);
+    expect(await service.requestBooking(s.scope, args(3))).toMatchObject(underReview);
     await s.endCall();
     const readback2 = { kind: 'AGENT' as const, text: 'Confirma segunda às 9h30?' };
     const entries = [

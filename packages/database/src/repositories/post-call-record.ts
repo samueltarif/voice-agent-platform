@@ -33,11 +33,19 @@ export interface PostCallAttempt {
   readonly agentVersionId: string;
 }
 
+export interface OptOutTarget {
+  readonly sessionId: string;
+  readonly phoneE164: string;
+  readonly leadId: string | null;
+}
+
 export type RecordStep =
   | {
       readonly kind: 'STOP';
       readonly status: 'DUPLICATE' | 'REJECTED' | 'NEEDS_REVIEW';
       readonly reason: string;
+      /** Sessão validada (paradas depois do registro): retenção da intenção e opt-out tardio. */
+      readonly target?: OptOutTarget;
     }
   | {
       readonly kind: 'PROCESS';
@@ -123,7 +131,7 @@ export function recordReport(
     if (row.attemptId !== attempt.attemptId) return stop('REJECTED', 'ATTEMPT_MISMATCH');
     const digest = reportDigest(input.report);
     const settled = await settledStop(tx, { row, digest, key });
-    if (settled) return settled;
+    if (settled?.kind === 'STOP') return { ...settled, target: { sessionId, phoneE164, leadId } };
     await updateReconciliation(tx, key, {
       reportDigest: digest,
       reportReceivedAt: input.now,

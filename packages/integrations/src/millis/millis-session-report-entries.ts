@@ -9,6 +9,8 @@ import type { MillisChatMessage, MillisSessionReport } from './millis-session-re
  * E2-V / DEC-077 — `chat` → entradas neutras, sem inventar evidência:
  * - `user` → LEAD; `assistant` → AGENT (texto como veio, inclusive mensagens
  *   parciais/interrompidas, que o relatório NÃO marca; texto não prova reprodução);
+ *   fala cortada no limite leva `truncated` (reauditoria A3); fala sem texto
+ *   legível é perda (`SPEECH_UNREADABLE` ⇒ histórico incompleto);
  * - `assistant.tool_calls` → TOOL_CALL logo após o texto da mesma mensagem
  *   (a ordem texto × execução DENTRO da mensagem não é cronológica: exp. 5);
  * - mensagens `tool` (resultados) nunca viram fala; servem só para conferir o
@@ -52,13 +54,21 @@ function parseArguments(raw: string, issues: Set<string>): Record<string, unknow
 }
 
 function pushText(walk: Walk, message: Speech): void {
-  if (!message.content) return;
-  let text = message.content;
-  if (text.length > POST_CALL_MAX_TEXT) {
-    walk.issues.add('TEXT_TRUNCATED');
-    text = text.slice(0, POST_CALL_MAX_TEXT);
+  const kind = message.role === 'user' ? 'LEAD' : 'AGENT';
+  if (message.content === null) {
+    // Reauditoria A3: fala do interlocutor sem texto legível (ex.: campo `text`
+    // no lugar de `content`) ou do agente sem texto nem ferramenta = possível perda.
+    if (kind === 'LEAD' || message.toolCalls.length === 0) walk.issues.add('SPEECH_UNREADABLE');
+    return;
   }
-  walk.entries.push({ kind: message.role === 'user' ? 'LEAD' : 'AGENT', text });
+  if (!message.content) return;
+  if (message.content.length <= POST_CALL_MAX_TEXT) {
+    walk.entries.push({ kind, text: message.content });
+    return;
+  }
+  // A fala fica marcada como truncada: nunca sustenta decisão definitiva.
+  walk.issues.add('TEXT_TRUNCATED');
+  walk.entries.push({ kind, text: message.content.slice(0, POST_CALL_MAX_TEXT), truncated: true });
 }
 
 function pushToolCalls(walk: Walk, message: Speech): void {

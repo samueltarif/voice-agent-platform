@@ -24,7 +24,7 @@ CREATE TABLE "booking_intents" (
 --> statement-breakpoint
 CREATE TABLE "post_call_reconciliations" (
 	"organization_id" uuid NOT NULL,
-	"session_id" uuid NOT NULL,
+	"session_id" uuid,
 	"attempt_id" uuid NOT NULL,
 	"lead_id" uuid,
 	"phone_e164" text NOT NULL,
@@ -43,7 +43,8 @@ CREATE TABLE "post_call_reconciliations" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"version" integer DEFAULT 1 NOT NULL,
-	CONSTRAINT "post_call_reconciliations_pk" PRIMARY KEY("organization_id","session_id"),
+	CONSTRAINT "post_call_reconciliations_pk" PRIMARY KEY("organization_id","attempt_id"),
+	CONSTRAINT "post_call_reconciliations_unbound_chk" CHECK ("post_call_reconciliations"."session_id" IS NOT NULL OR "post_call_reconciliations"."status" <> 'AWAITING_REPORT'),
 	CONSTRAINT "post_call_reconciliations_status_chk" CHECK ("post_call_reconciliations"."status" IN ('AWAITING_REPORT', 'NEEDS_REVIEW', 'RECONCILED')),
 	CONSTRAINT "post_call_reconciliations_outcome_chk" CHECK (("post_call_reconciliations"."proposed_outcome" IS NULL OR "post_call_reconciliations"."proposed_outcome" IN ('CONTACTED', 'QUALIFIED', 'NOT_INTERESTED'))
         AND ("post_call_reconciliations"."outcome_applied" IS NULL OR "post_call_reconciliations"."outcome_applied" IN ('CONTACTED', 'QUALIFIED', 'NOT_INTERESTED'))),
@@ -65,6 +66,7 @@ ALTER TABLE "post_call_reconciliations" ADD CONSTRAINT "post_call_reconciliation
 ALTER TABLE "post_call_reconciliations" ADD CONSTRAINT "post_call_reconciliations_attempt_org_fk" FOREIGN KEY ("attempt_id","organization_id") REFERENCES "public"."call_attempts"("id","organization_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "booking_intents_one_pending_per_session_uidx" ON "booking_intents" USING btree ("organization_id","session_id") WHERE "booking_intents"."status" = 'PENDING_EVIDENCE';--> statement-breakpoint
 CREATE INDEX "booking_intents_org_lead_idx" ON "booking_intents" USING btree ("organization_id","lead_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "post_call_reconciliations_session_uidx" ON "post_call_reconciliations" USING btree ("organization_id","session_id") WHERE "post_call_reconciliations"."session_id" IS NOT NULL;--> statement-breakpoint
 CREATE INDEX "post_call_reconciliations_open_phone_idx" ON "post_call_reconciliations" USING btree ("organization_id","phone_e164") WHERE "post_call_reconciliations"."status" <> 'RECONCILED';--> statement-breakpoint
 ALTER TABLE "scheduling_protocol_states" ADD CONSTRAINT "scheduling_protocol_states_opt_out_source_chk" CHECK (("scheduling_protocol_states"."opt_out_recorded_at" IS NULL AND "scheduling_protocol_states"."opt_out_source" IS NULL)
         OR ("scheduling_protocol_states"."opt_out_recorded_at" IS NOT NULL AND "scheduling_protocol_states"."opt_out_source" IS NOT NULL

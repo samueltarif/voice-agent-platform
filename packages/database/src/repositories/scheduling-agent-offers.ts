@@ -19,7 +19,8 @@ import {
   windowOf,
   type GateInput,
 } from './scheduling-agent-offer-steps.js';
-import { ensureReconciliation, isSessionSealed } from './post-call-reconciliation-store.js';
+import type { DatabaseExecutor } from './database-executor.js';
+import { ensureReconciliation, isSessionSealedLocked } from './post-call-reconciliation-store.js';
 import { calendarTimezone, resolveAgentScope } from './scheduling-agent-scope.js';
 import {
   applyProtocolEvent,
@@ -42,7 +43,14 @@ export interface OfferDeps extends SchedulingEventDeps {
   readonly slots: DrizzleSchedulingSlotRepository;
 }
 
-/** Segunda transação (S): a lista entra no protocolo com revisão nova, se nada mudou. */
+/** A6 (reauditoria): selo conferido sob R em TODAS as transações de `find_slots`. */
+const sealed = (tx: DatabaseExecutor, binding: SchedulingBinding) =>
+  isSessionSealedLocked(tx, {
+    organizationId: binding.organizationId,
+    sessionId: binding.sessionId,
+  });
+
+/** Segunda transação (S → R): a lista entra no protocolo com revisão nova, se nada mudou. */
 function issueList(
   deps: OfferDeps,
   input: {
@@ -55,6 +63,7 @@ function issueList(
     const locked = await lockProtocol(tx, input.binding);
     const post = await gate(tx, locked, { ...input.gate, now: deps.clock() });
     if (post.done) return post.done;
+    if (await sealed(tx, input.binding)) return refused('SESSION_NOT_ACTIVE');
     const list: ProtocolOfferList = {
       revision: locked!.row.state.maxRevision + 1,
       queryKey: input.gate.queryKey,
@@ -93,6 +102,7 @@ function voidPrevious(
     const locked = await lockProtocol(tx, input.binding);
     const post = await gate(tx, locked, { ...input.gate, now: deps.clock() });
     if (post.done) return post.done;
+    if (await sealed(tx, input.binding)) return refused('SESSION_NOT_ACTIVE');
     const applied = await voidLists(tx, locked!, deps.clock());
     return applied.step.ignored ? refused('OFFER_NOT_CURRENT') : input.result;
   });
@@ -110,13 +120,11 @@ function preGate(
   const { binding, phoneE164 } = input;
   return deps.db.transaction(async (tx) => {
     const locked = await lockProtocol(tx, binding);
-    // A6: relatório final já registrado — nenhuma nova consulta comercial na sessão.
-    const key = { organizationId: binding.organizationId, sessionId: binding.sessionId };
-    if (await isSessionSealed(tx, key)) return { done: refused('SESSION_NOT_ACTIVE') };
     // DEC-077: ferramenta usada ⇒ a sessão passa a exigir reconciliação pós-chamada.
     const leadId = input.gate.leadId;
     if (locked?.active)
       await ensureReconciliation(tx, binding, { phoneE164, leadId, now: deps.clock() });
+    if (await sealed(tx, binding)) return { done: refused('SESSION_NOT_ACTIVE') };
     return gate(tx, locked, { ...input.gate, now: deps.clock() });
   });
 }
