@@ -16,6 +16,12 @@ export interface ProviderWebhookRequest {
   readonly headers: Readonly<Record<string, string>>;
   /** Corpo bruto exatamente como recebido (assinaturas dependem dele). */
   readonly rawBody: string;
+  /**
+   * Parâmetros da URL com valor ÚNICO (repetidos são omitidos). Alguns
+   * provedores só autenticam por token na URL (E2-V: relatório pós-chamada);
+   * nunca registrar em log.
+   */
+  readonly query?: Readonly<Record<string, string>>;
   readonly receivedAt: Date;
 }
 

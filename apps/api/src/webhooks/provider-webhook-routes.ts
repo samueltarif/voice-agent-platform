@@ -23,6 +23,15 @@ function lowerCaseHeaders(headers: Headers): Record<string, string> {
   return result;
 }
 
+/** Só parâmetros com valor único: repetição torna a credencial ambígua (omitida). */
+function singleValuedQuery(queries: Record<string, string[]>): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const [key, values] of Object.entries(queries)) {
+    if (values.length === 1) result[key] = values[0]!;
+  }
+  return result;
+}
+
 /**
  * 008-OF4 — rotas de ingress de provedores. NÃO são montadas em `createApp`:
  * expor endpoint público exige autorização humana explícita (webhooks públicos
@@ -41,6 +50,7 @@ export function registerProviderWebhookRoutes(app: Hono, deps: ProviderWebhookDe
           provider: c.req.param('provider'),
           headers: lowerCaseHeaders(c.req.raw.headers),
           rawBody: await c.req.text(),
+          query: singleValuedQuery(c.req.queries()),
           receivedAt: deps.now(),
         },
         channel,
