@@ -103,6 +103,8 @@ export type BookingProtocolEvent = Base &
       }
     | { readonly type: 'CLOCK' }
     | { readonly type: 'SESSION_CLOSED' }
+    /** A5: consulta NOVA sem vagas — a lista e a autorização anteriores são descartadas. */
+    | { readonly type: 'QUERY_EMPTY'; readonly revision: number; readonly queryKey: string }
   );
 
 export type BookingProtocolDirective =

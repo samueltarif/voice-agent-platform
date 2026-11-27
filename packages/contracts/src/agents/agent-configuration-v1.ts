@@ -8,6 +8,13 @@ export const CANONICAL_TOOL_NAMES = [
   'catalog.item_detail',
   // DEC-056: ampliação compatível — snapshots antigos continuam válidos e não ganham a ferramenta.
   'knowledge.search',
+  // E2 PR 2 (DEC-075): agendamento pelo agente. Snapshots antigos não ganham as ferramentas;
+  // a publicação exige o par completo e agenda válida (`evaluateSchedulingToolset`).
+  'scheduling.find_slots',
+  'scheduling.request_booking',
+  // E2 PR 3 (DEC-075, D2/D5): resultado comercial e opt-out pelo agente.
+  'lead.record_outcome',
+  'lead.record_opt_out',
 ] as const;
 export type CanonicalToolName = (typeof CANONICAL_TOOL_NAMES)[number];
 

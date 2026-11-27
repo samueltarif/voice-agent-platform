@@ -13,11 +13,8 @@ import {
   type DurableApplyOutcome,
 } from './durable-attempt-event-applier.js';
 import { buildInternalAttemptEvent } from './durable-attempt-event-factory.js';
-import { applyCampaignSendRefusal, campaignSendRefusal } from './send-time-campaign-gate.js';
-import {
-  cancelSuppressedAttempt,
-  isAttemptDestinationSuppressed,
-} from './send-time-suppression-guard.js';
+import { sendTimeRefusal } from './send-time-gates.js';
+import type { CallAttemptEntity } from '../schema/call-attempts.js';
 
 export interface ClaimInput {
   readonly organizationId: string;
@@ -34,6 +31,10 @@ export type ClaimRejectionReason =
   | 'CLAIM_HELD_BY_ANOTHER_OWNER'
   | 'MANUAL_REVIEW_REQUIRED'
   | 'DESTINATION_SUPPRESSED'
+  /** DEC-077: sessão anterior para o mesmo telefone ainda sem reconciliação pós-chamada. */
+  | 'POST_CALL_RECONCILIATION_PENDING'
+  /** Auditoria #184 A5: outra tentativa ao mesmo telefone já enviada e não terminada. */
+  | 'DESTINATION_IN_FLIGHT'
   | 'CAMPAIGN_PAUSED'
   | 'CAMPAIGN_CANCELED'
   | 'CLAIM_TRANSITION_REJECTED';
@@ -79,15 +80,17 @@ export async function claimSendInTransaction(
   if (row.state !== 'ORIGINATION_PENDING') {
     return { kind: 'REJECTED', reason: 'NOT_CLAIMABLE_IN_STATE' };
   }
-  const refusal = await campaignSendRefusal(executor, row);
-  if (refusal) {
-    await applyCampaignSendRefusal(executor, row, { refusal, now: input.now });
-    return { kind: 'REJECTED', reason: refusal };
-  }
-  if (await isAttemptDestinationSuppressed(executor, row)) {
-    await cancelSuppressedAttempt(executor, row, input.now);
-    return { kind: 'REJECTED', reason: 'DESTINATION_SUPPRESSED' };
-  }
+  const refusal = await sendTimeRefusal(executor, row, input.now);
+  if (refusal) return { kind: 'REJECTED', reason: refusal };
+  return startSend(executor, row, input);
+}
+
+/** SEND_STARTED com novo fencing token (o efeito externo acontece fora da transação). */
+export async function startSend(
+  executor: DatabaseExecutor,
+  row: CallAttemptEntity,
+  input: ClaimInput,
+): Promise<ClaimResult> {
   const fence = { ownerId: input.ownerId, fencingToken: row.fencingToken + 1 };
   const event = buildInternalAttemptEvent({
     attempt: { id: row.id, organizationId: row.organizationId, jobId: row.jobId },

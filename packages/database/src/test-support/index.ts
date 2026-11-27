@@ -118,3 +118,24 @@ export {
   setCampaignSchedulingCalendar,
   type BoundCallSession,
 } from './scheduling-session-fixtures.js';
+// E2 (DEC-075/DEC-077): harness offline do agendamento pelo agente e da reconciliação.
+export {
+  createAgentScenario,
+  intentsOf,
+  leadStatusOf,
+  leadStatusOrigins,
+  meetingsOfLead,
+  offerAndRequest,
+  postCallAttemptOf,
+  postCallReport,
+  protocolPhase,
+  reconciliationOf,
+  suppressionsOf,
+  type AgentScenario,
+} from './scheduling-agent-harness.js';
+export {
+  bookingTimeline,
+  READBACK_09H,
+  READBACK_09H30,
+  SILENT_TIMELINE,
+} from './post-call-timelines.js';

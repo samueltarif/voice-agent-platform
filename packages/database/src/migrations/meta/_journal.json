@@ -113,6 +113,20 @@
       "when": 1795700641512,
       "tag": "0015_scheduling_session_context",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1795716545962,
+      "tag": "0016_scheduling_protocol_state",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1795800680850,
+      "tag": "0017_e2_post_call_reconciliation",
+      "breakpoints": true
     }
   ]
 }

@@ -1,21 +1,17 @@
 import type { DatabaseInstance } from '../client/connection.js';
-import { meetings } from '../schema/meetings.js';
-import type { DatabaseExecutor } from './database-executor.js';
-import { lockLead } from './lead-status-writer.js';
+import { BookingDecisionExpired } from './meeting-booking-guards.js';
 import {
   bookingFingerprint,
   findMeetingByKey,
   findSlotOffer,
-  lockIdempotencyKey,
   mapBookingFailure,
   replayOutcome,
   type BookMeetingOutcome,
   type ManualBookingInput,
   type MeetingBookingRequest,
 } from './meeting-booking-steps.js';
-import { BookingDecisionExpired, temporalRefusal } from './meeting-booking-guards.js';
-import { recordBooking } from './meeting-booking-record.js';
-import { resolveBookingTargets } from './meeting-booking-validation.js';
+import { bookInTransaction } from './meeting-booking-transaction.js';
+import type { OfferedBookingHooks } from './meeting-booking-validation.js';
 import { classifyPostgresFailure } from './outbound-persistence-errors.js';
 import type { SchedulingActor } from './scheduling-audit-entry.js';
 
@@ -55,8 +51,14 @@ export class DrizzleMeetingBookingService {
     return this.book({ ...input, sourceAttemptId: null });
   }
 
-  /** Reserva o horário EXATAMENTE oferecido (oferta do mesmo tenant e tentativa). */
-  async bookOfferedSlot(input: OfferedSlotBookingInput): Promise<BookMeetingOutcome> {
+  /**
+   * Reserva o horário EXATAMENTE oferecido (oferta do mesmo tenant e tentativa).
+   * `hooks` (E2 PR 2) participam da MESMA transação; sem eles, nada muda.
+   */
+  async bookOfferedSlot(
+    input: OfferedSlotBookingInput,
+    hooks?: OfferedBookingHooks,
+  ): Promise<BookMeetingOutcome> {
     // Reserva não atribuída a um usuário exige tentativa (2ª auditoria, A3).
     if (input.actor.type !== 'USER' && !input.sourceAttemptId) return { kind: 'ATTEMPT_REQUIRED' };
     const offer = await findSlotOffer(this.db, {
@@ -67,26 +69,32 @@ export class DrizzleMeetingBookingService {
     if (!offer || offer.sourceAttemptId !== (input.sourceAttemptId ?? null))
       return { kind: 'OFFER_NOT_FOUND' };
     // Campos imutáveis da oferta; status e validade são decididos sob trava.
-    return this.book({
-      organizationId: input.organizationId,
-      idempotencyKey: input.idempotencyKey,
-      actor: input.actor,
-      calendarId: offer.calendarId,
-      leadId: offer.leadId,
-      startsAt: offer.startsAt,
-      sourceAttemptId: offer.sourceAttemptId,
-      slotOfferId: offer.id,
-    });
+    return this.book(
+      {
+        organizationId: input.organizationId,
+        idempotencyKey: input.idempotencyKey,
+        actor: input.actor,
+        calendarId: offer.calendarId,
+        leadId: offer.leadId,
+        startsAt: offer.startsAt,
+        sourceAttemptId: offer.sourceAttemptId,
+        slotOfferId: offer.id,
+      },
+      hooks,
+    );
   }
 
-  private async book(request: MeetingBookingRequest): Promise<BookMeetingOutcome> {
+  private async book(
+    request: MeetingBookingRequest,
+    hooks?: OfferedBookingHooks,
+  ): Promise<BookMeetingOutcome> {
     if (!Number.isFinite(request.startsAt.getTime())) {
       return { kind: 'SLOT_UNAVAILABLE', reason: 'INVALID_START' };
     }
     const fingerprint = bookingFingerprint(request);
     try {
       return await this.db.transaction((tx) =>
-        bookInTransaction(tx, { request, fingerprint, clock: this.clock }),
+        bookInTransaction(tx, { request, fingerprint, clock: this.clock, hooks }),
       );
     } catch (error) {
       if (error instanceof BookingDecisionExpired) return error.outcome;
@@ -103,43 +111,4 @@ export class DrizzleMeetingBookingService {
       throw error;
     }
   }
-}
-
-async function bookInTransaction(
-  tx: DatabaseExecutor,
-  input: { request: MeetingBookingRequest; fingerprint: string; clock: () => Date },
-): Promise<BookMeetingOutcome> {
-  const { request, fingerprint } = input;
-  await lockIdempotencyKey(tx, request.organizationId, request.idempotencyKey);
-  const lead = await lockLead(tx, request.organizationId, request.leadId);
-  // A chave é lida depois das travas: repetições concorrentes veem a vencedora,
-  // e uma reserva válida é repetida mesmo que a oferta já tenha vencido.
-  const existing = await findMeetingByKey(tx, request.organizationId, request.idempotencyKey);
-  if (existing) return replayOutcome(existing, fingerprint);
-  if (!lead) return { kind: 'LEAD_NOT_FOUND' };
-  const targets = await resolveBookingTargets(tx, { request, lead, clock: input.clock });
-  if (!targets.ok) return targets.outcome;
-  const [meeting] = await tx
-    .insert(meetings)
-    .values({
-      organizationId: request.organizationId,
-      calendarId: targets.calendarId,
-      leadId: lead.id,
-      startsAt: targets.slot.startsAt,
-      endsAt: targets.slot.endsAt,
-      idempotencyKey: request.idempotencyKey,
-      requestFingerprint: fingerprint,
-      sourceAttemptId: request.sourceAttemptId ?? null,
-      slotOfferId: targets.offer?.id ?? null,
-      bookedByType: request.actor.type,
-      bookedById: request.actor.id,
-    })
-    .returning();
-  await recordBooking(tx, { request, lead, meeting: meeting!, offer: targets.offer });
-  // Guarda final (A2): o tempo pode ter passado em esperas DEPOIS da decisão
-  // (escritas, FKs, gatilhos). Reavaliado após a última escrita; se venceu,
-  // a exceção desfaz a transação inteira.
-  const refused = temporalRefusal(targets.temporal, input.clock());
-  if (refused) throw new BookingDecisionExpired(refused);
-  return { kind: 'BOOKED', meeting: meeting! };
 }

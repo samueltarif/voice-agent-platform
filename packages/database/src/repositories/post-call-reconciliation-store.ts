@@ -1,0 +1,138 @@
+import { and, eq, sql } from 'drizzle-orm';
+import {
+  postCallReconciliations,
+  type PostCallReconciliationEntity,
+} from '../schema/post-call-reconciliations.js';
+import type { DatabaseExecutor } from './database-executor.js';
+import type { SchedulingBinding } from './scheduling-protocol-store.js';
+
+/**
+ * E2 simplificada (DEC-077) — linha de reconciliação pós-chamada (trava R).
+ * Criada na primeira ferramenta da sessão (ou pela composição ao iniciar a
+ * chamada) e mantida aberta até o relatório ser reconciliado ou um humano
+ * decidir. Enquanto aberta, o claim de envio recusa novas tentativas para o
+ * mesmo telefone.
+ */
+
+export interface ReconciliationKey {
+  readonly organizationId: string;
+  readonly sessionId: string;
+}
+
+const byKey = (key: ReconciliationKey) =>
+  and(
+    eq(postCallReconciliations.organizationId, key.organizationId),
+    eq(postCallReconciliations.sessionId, key.sessionId),
+  );
+
+/** Idempotente: nunca reabre nem altera uma linha existente. */
+export async function ensureReconciliation(
+  tx: DatabaseExecutor,
+  binding: Pick<SchedulingBinding, 'organizationId' | 'sessionId' | 'attemptId'>,
+  input: { readonly phoneE164: string; readonly leadId: string | null; readonly now: Date },
+): Promise<void> {
+  await tx
+    .insert(postCallReconciliations)
+    .values({
+      organizationId: binding.organizationId,
+      sessionId: binding.sessionId,
+      attemptId: binding.attemptId,
+      leadId: input.leadId,
+      phoneE164: input.phoneE164,
+      // Relógio da aplicação (o mesmo do prazo de relatório ausente).
+      createdAt: input.now,
+      updatedAt: input.now,
+    })
+    .onConflictDoNothing();
+}
+
+export async function lockReconciliation(
+  tx: DatabaseExecutor,
+  key: ReconciliationKey,
+): Promise<PostCallReconciliationEntity | null> {
+  const [row] = await tx.select().from(postCallReconciliations).where(byKey(key)).for('update');
+  return row ?? null;
+}
+
+/**
+ * A4 — o relatório `digest` ainda é o vigente desta reconciliação? (trava R;
+ * chamar DEPOIS de I). Falso quando outro relatório entrou em conflito, um
+ * humano já decidiu ou a reconciliação já fechou: nenhum efeito comercial.
+ */
+export async function lockCurrentReport(
+  tx: DatabaseExecutor,
+  key: ReconciliationKey,
+  digest: string,
+): Promise<PostCallReconciliationEntity | null> {
+  const row = await lockReconciliation(tx, key);
+  const current =
+    row?.reportDigest === digest &&
+    row.status !== 'RECONCILED' &&
+    !row.reviewReasons.includes('REPORT_CONFLICT');
+  return current ? row : null;
+}
+
+/**
+ * A6 (reauditoria) — relatório final já registrado: a sessão não aceita novas
+ * operações comerciais. Sob a trava R (chamar depois de S/I).
+ */
+export async function isSessionSealedLocked(
+  tx: DatabaseExecutor,
+  key: ReconciliationKey,
+): Promise<boolean> {
+  return Boolean((await lockReconciliation(tx, key))?.reportDigest);
+}
+
+/** Pela tentativa (chave primária); `lock` = FOR UPDATE. */
+export async function reconciliationByAttempt(
+  executor: DatabaseExecutor,
+  key: { readonly organizationId: string; readonly attemptId: string },
+  lock = false,
+): Promise<PostCallReconciliationEntity | null> {
+  const query = executor
+    .select()
+    .from(postCallReconciliations)
+    .where(
+      and(
+        eq(postCallReconciliations.organizationId, key.organizationId),
+        eq(postCallReconciliations.attemptId, key.attemptId),
+      ),
+    );
+  const [row] = lock ? await query.for('update') : await query;
+  return row ?? null;
+}
+
+export async function updateReconciliationByAttempt(
+  tx: DatabaseExecutor,
+  row: Pick<PostCallReconciliationEntity, 'organizationId' | 'attemptId'>,
+  changes: Partial<Omit<PostCallReconciliationEntity, 'organizationId' | 'attemptId'>>,
+): Promise<void> {
+  await tx
+    .update(postCallReconciliations)
+    .set({
+      ...changes,
+      version: sql`${postCallReconciliations.version} + 1`,
+      updatedAt: sql`now()`,
+    })
+    .where(
+      and(
+        eq(postCallReconciliations.organizationId, row.organizationId),
+        eq(postCallReconciliations.attemptId, row.attemptId),
+      ),
+    );
+}
+
+export async function updateReconciliation(
+  tx: DatabaseExecutor,
+  key: ReconciliationKey,
+  changes: Partial<Omit<PostCallReconciliationEntity, 'organizationId' | 'sessionId'>>,
+): Promise<void> {
+  await tx
+    .update(postCallReconciliations)
+    .set({
+      ...changes,
+      version: sql`${postCallReconciliations.version} + 1`,
+      updatedAt: sql`now()`,
+    })
+    .where(byKey(key));
+}

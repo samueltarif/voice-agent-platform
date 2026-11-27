@@ -31,6 +31,22 @@ export interface BookingContext {
   readonly lead: LeadEntity;
   /** Relógio da aplicação, lido só depois de TODAS as travas, inclusive a do telefone (A2). */
   readonly clock: () => Date;
+  readonly hooks?: OfferedBookingHooks | undefined;
+}
+
+/**
+ * E2 PR 2 (DEC-075, desenho §6) — pontos de extensão da MESMA transação da
+ * reserva por oferta, sem transação aninhada nem outra conexão:
+ * - `afterAttemptLock`: depois da trava da tentativa (A) e ANTES da do
+ *   telefone (P) — onde entra a trava da sessão (S) na ordem
+ *   K → L → C → O → A → S → P. Lançar um erro desfaz a transação inteira.
+ * - `beforeCommit`: para TODO resultado (reserva, repetição ou recusa), depois
+ *   da última escrita da E1 e ANTES da guarda temporal final; o que for
+ *   escrito aqui é desfeito junto com a reserva se a guarda recusar.
+ */
+export interface OfferedBookingHooks {
+  readonly afterAttemptLock: (tx: DatabaseExecutor) => Promise<void>;
+  readonly beforeCommit: (tx: DatabaseExecutor, outcome: BookMeetingOutcome) => Promise<void>;
 }
 
 export type BookingTargets =
@@ -85,6 +101,7 @@ async function lockProspecting(
       leadId: lead.id,
     });
     if (association !== 'MATCH') return fail({ kind: association });
+    await context.hooks?.afterAttemptLock(tx);
   }
   if (!offer) return { ok: true, value: false };
   return { ok: true, value: await isLeadPhoneSuppressed(tx, request.organizationId, lead.id) };

@@ -1,7 +1,7 @@
 # E2 — Agendamento pelo agente: protocolo, contexto e autorização (DEC-075)
 
-> Estado: **PR 1 em revisão** (contratos, contexto, política D1, fundamentos da autorização e máquina de estados). **PR 2 e PR 3 NÃO iniciadas.** Nenhuma ferramenta operacional, rota ou composição de produção. Tudo offline.
-> Base: main `05d0252f2c0d56ac45abdc5d80338f4f3b75db18` (E0 e E1 integradas).
+> Estado: **PR 1 integrada** (#180, merge `2100145`). **PR 2 em revisão** (#182; oferta, confirmação e reserva operacional OFFLINE; §9). **PR 3 em revisão** (PR empilhada sobre a #182; opt-out operacional, `CALL_OUTCOME` e simulação comercial offline; §10). Ambas sem merge até a auditoria consolidada da E2. Nenhuma rota, composição de produção ou telefonia. Tudo offline.
+> Base da PR 2: main `e842ea9609e271604c113be3b6d8d18246dee407`.
 
 ## 1. Objetivo e divisão aprovada
 
@@ -9,9 +9,9 @@ O agente, numa chamada (simulada offline nesta etapa), poderá consultar e ofere
 
 | PR | Escopo | Estado |
 | :--- | :--- | :--- |
-| **PR 1** | Contexto sessão–tentativa–tenant–lead–agenda, D1, fundamentos da autorização, precedência do opt-out, contratos de eventos e estados, máquina de estados, projeto de persistência e fronteiras transacionais | **esta PR** |
-| PR 2 | Oferta, confirmação, reserva, persistência do estado, atomicidade, replay, controle da fala transacional | não autorizada |
-| PR 3 | Opt-out operacional, `CALL_OUTCOME`, simulação offline integrada | não autorizada |
+| **PR 1** | Contexto sessão–tentativa–tenant–lead–agenda, D1, fundamentos da autorização, precedência do opt-out, contratos de eventos e estados, máquina de estados, projeto de persistência e fronteiras transacionais | integrada (#180) |
+| **PR 2** | Oferta, confirmação, reserva, persistência do estado, atomicidade, replay, controle da fala transacional | **em revisão** (§9) |
+| **PR 3** | Opt-out operacional, `CALL_OUTCOME`, simulação offline integrada | **em revisão** (§10) |
 
 ## 2. Decisões aprovadas (D1–D5) e como a PR 1 as trata
 
@@ -90,21 +90,12 @@ Também: `AMBIGUOUS`/`SILENCE` ⇒ `ASK_CLARIFICATION` (após 2, nova lista); `C
 - **Reconciliação (PR 2):** resposta perdida ⇒ repetir com a mesma chave de idempotência derivada da autorização ⇒ `REPLAYED` + conferência da reunião; rollback ⇒ autorização volta a não consumida; revogação/encerramento ⇒ `SESSION_CLOSED` anula autorização não consumida; anúncio de sucesso só após `BOOKED`/`REPLAYED` **e** reunião conferida.
 - **Nesta PR:** o resolvedor lê todas as prioridades D1 e fixa a agenda numa única transação `REPEATABLE READ` (mesma visão; auditoria A4), com `INSERT … ON CONFLICT DO NOTHING RETURNING`; perder a disputa pela PK (linha vencedora invisível na visão, ou `40001`) repete a transação (até 3 vezes) e devolve a linha vencedora. Não há `FOR UPDATE`. A FK da fixação pede `FOR KEY SHARE` na linha da sessão: uma transição de sessão (`FOR UPDATE`) concorrente **pode esperar** por ela, e vice-versa; esse par isolado não forma ciclo, pois a fixação não pega outra trava depois. Isso é revisão estática dos fluxos envolvidos, não prova de ausência universal de deadlock (B1).
 
-## 7. Requisitos futuros registrados (não implementados aqui)
+## 7. Requisitos futuros registrados
 
-**PR 2**
-- `AVAILABLE` é leitura pontual, não autorização definitiva: revalidar sessão ativa e validade **dentro** da transação do efeito.
-- Adquirir S entre A e P, nunca antes de chamar uma operação que começa em K.
-- Consumo da autorização e reserva atômicos (mesma transação).
-- Validar a agenda da versão na publicação antes de habilitar ferramentas.
-- Vincular origem, sessão e geração de cada evento; exigir `deliveredSeq < startedSeq ≤ seq`; rejeitar datas e sequências inválidas.
-- Distinguir recusa definitiva de resultado desconhecido após timeout de commit; reconciliar com a mesma chave antes de comunicar; nunca anunciar ausência de reserva quando o commit pode ter ocorrido.
+**PR 2** — tratados na §9 (revalidação dentro da transação do efeito; S entre A e P; consumo e reserva atômicos; agenda validada na publicação; `seq`/`at`/início de fala atribuídos pelo servidor; recusa definitiva × resultado desconhecido com reconciliação pela mesma chave).
 
-**PR 3**
-- Opt-out confiável e independente do modelo, com registro operacional.
-- Retry de evidência legítima anterior aceito mesmo após o encerramento; nenhum pedido novo aceito de sessão encerrada.
+**PR 3** — tratados na §10 (opt-out gravado pelo servidor na mesma transação da fala, independente do modelo e do toolset; sessão encerrada não aceita pedido novo — como o registro é atômico com a evidência, não há evidência pendente para repetir; possível opt-out interrompe a abordagem até esclarecimento; `CALL_OUTCOME`; simulação integrada). **A validação com eventos reais de voz continua obrigatória antes de qualquer prospecção real.** Registro original:
 - **Possível opt-out não reconhecido interrompe a abordagem comercial:** quando o classificador devolver esclarecimento por menção a opt-out (forma fora da lista, cláusula desconhecida na fala, citação, aspa sem par, palavra fora do alfabeto), o agente deve suspender oferta e argumentação e só perguntar se a pessoa quer deixar de receber ligações. Validar com eventos reais de voz antes de qualquer prospecção real. Não implementado nesta PR.
-- `CALL_OUTCOME` e simulação integrada.
 
 **E4/E5**
 - Associação real do `callId` à sessão durável; autenticação e evidência do transporte real.
@@ -120,5 +111,135 @@ Também: `AMBIGUOUS`/`SILENCE` ⇒ `ASK_CLARIFICATION` (após 2, nova lista); `C
 - Mudança de comportamento: o `e` aceito antes como introdução não casa com `é` ("É, me descadastre" vira esclarecimento); `ü` e acentos fora da posição da forma permitida também não casam.
 - Palavra com qualquer letra fora do alfabeto do português (outros alfabetos, homóglifos, `ñ`, `ß`, `ì`) vira `_`: impede aceite e também tira o pedido de opt-out da lista de complementos (vira esclarecimento). Variantes de largura total (ex.: `Ｓｉｍ`) continuam aceitas após NFKC.
 - O vínculo `callId` da concessão = sessão durável ainda não é montado em produção (E4/E5).
-- A publicação de versão ainda não valida `scheduling.calendarId` contra o tenant (a resolução bloqueia); validação na publicação fica para a PR 2/E3.
+- ~~A publicação de versão ainda não valida `scheduling.calendarId` contra o tenant~~ — validada na publicação desde a PR 2 (§9).
 - Remover uma agenda fixada é detectado e bloqueia; agenda da campanha não pode ser excluída enquanto configurada (`RESTRICT`).
+
+## 9. PR 2 — oferta, confirmação e reserva operacional (offline)
+
+**Ferramentas canônicas** (`CANONICAL_TOOL_NAMES`, ampliação compatível): `scheduling.find_slots` (argumento único, sem autoridade: `day` local opcional) e `scheduling.confirm_offer` (nenhum argumento: o consentimento é o estado do protocolo). Ligadas a uma `PublishedToolGrant` legítima (`apps/voice/src/scheduling-agent-tools.ts`); o motor ainda exige a ferramenta no toolset publicado. **Nenhuma composição de produção as registra.** O Agent Studio lista as duas, com o aviso "Ainda não é usada em chamadas reais".
+
+**Publicação** (`agent-scheduling-publication-guard.ts`, na transação da publicação): as duas ferramentas só juntas; a `scheduling.calendarId` da versão precisa existir no mesmo tenant (`FOR KEY SHARE`).
+
+**Autoridade:** o escopo vem só da concessão (tenant, sessão = `callId`, agente, versão, agenda da versão como valor); o resolvedor da PR 1 deriva tentativa, job, destino, lead e agenda fixada; cada efeito revalida sob a trava S (`lockProtocol`): tentativa com vínculo de volta, sessão `ACTIVE` da mesma tentativa, agente e versão. Sessão inativa ⇒ `SESSION_CLOSED` gravado.
+
+**Persistência:** `scheduling_protocol_states` (migration **0016**, aditiva): uma linha por (tenant, sessão) com o estado do redutor puro (`jsonb`), `seq` do servidor, início de fala pendente, `opt_out_pending` e contador de escritas; FK composta para a sessão.
+
+**Eventos do harness** (`scheduling-agent-events.ts`): `SPEECH_STARTED/COMPLETED/INTERRUPTED` (formato conferido), início da fala do interlocutor (marca do servidor) e fala final (classificada no servidor). `seq` e `at` sempre do servidor; fala final sem início registrado é ignorada. Falas determinísticas (lista, releitura com data, hora e fuso, resultado) renderizadas pelo servidor (`scheduling-speech.ts`).
+
+**Oferta** (`scheduling-agent-offers.ts`): (1) transação S curta: bloqueios comerciais e retry técnico (mesma `queryKey`, lista viva ⇒ mesmos ids, ordem e prazo, sem novas ofertas); (2) E1 `offerSlots` (L → C → A → P), até 3, TTL 15 min; (3) transação S: revalida, repete o retry (duplicatas concorrentes convergem) e emite `OFFER_LIST_ISSUED` com revisão nova. Ofertas de uma lista que não entrou no protocolo nunca são apresentadas nem reservadas; só vencem.
+
+**Reserva** (`scheduling-agent-booking*.ts`): executor canônico da E1 refatorado para aceitar ganchos **na mesma transação** (`meeting-booking-transaction.ts`; sem ganchos, comportamento idêntico):
+- ordem efetiva **K → L → C → O → A → S → P** (S = tentativa `FOR KEY SHARE` → sessão `FOR SHARE` → linha de estado `FOR UPDATE`), seguida do relógio, das escritas da E1, do registro do resultado e da guarda temporal final;
+- `afterAttemptLock` (entre A e P): revalida sessão, vínculo, opt-out e a MESMA autorização não consumida e não vencida; grava `AUTHORIZED → BOOKING`;
+- `beforeCommit` (todo resultado): grava `BOOKING_RESULT`; `BOOKED` só com reunião da mesma oferta e tentativa; repetição concorrente da mesma autorização vira recuperação;
+- recusa do protocolo lança `ProtocolAbort` e desfaz a transação inteira; recusa definitiva da E1 consome a autorização e volta a `IDLE` na mesma transação; nunca há reunião sem autorização consumida, nem autorização consumida com sucesso sem reunião.
+- Interações verificadas: transição de sessão (só S `FOR UPDATE`) e eventos de tentativa (A `FOR UPDATE` → S `FOR UPDATE`) seguem A antes de S; nenhum caminho pega S antes de K/L. Revisão estática dos fluxos envolvidos mais testes com travas reais; não é prova universal de ausência de deadlock.
+
+**Idempotência e reconciliação:** chave derivada de (tenant, sessão, autorização). Erro antes do fim da transação ⇒ rollback certo (`NOT_BOOKED`/`TECHNICAL_FAILURE`, autorização intacta); erro depois de `beforeCommit` (inclusive no COMMIT ou na resposta) ⇒ `UNKNOWN`, sem anúncio de sucesso nem de fracasso; a chamada seguinte reconcilia sob K (`REPLAYED` ⇒ recuperação; nada commitado ⇒ reserva normal). Sessão encerrada nunca autoriza reserva nova.
+
+**Verdade da fala (A5):** `mayAnnounceBooking` só com estado commitado `BOOKED`, reunião `SCHEDULED` da mesma oferta, tentativa e lead, e sessão ativa. O modelo recebe só motivos grossos (`SLOT_UNAVAILABLE`, `OFFER_EXPIRED`, `NOT_BOOKABLE`, `TECHNICAL_FAILURE`), nunca supressão ou dados do lead. `createSchedulingReplyGuard` + `createBookingClaimFilter`: no streaming do modelo, frases sobre marcar/agendar/confirmar são descartadas até um `BOOKED` verificado.
+
+**Opt-out (D2) nesta PR:** pedido reconhecido prevalece no protocolo; **possível** opt-out (`mentionsOptOut`: menção não reconhecida como pedido) liga `opt_out_pending`, neutraliza intenções comerciais seguintes (viram esclarecimento) e bloqueia oferta e reserva pelo resto da sessão (resolução = PR 3). Registro operacional, `CALL_OUTCOME` e simulação integrada continuam na PR 3; prospecção real continua proibida até lá.
+
+**Limitações da PR 2:**
+- `opt_out_pending` não é liberado nesta PR (falso negativo comercial seguro).
+- A guarda de streaming é um componente testado, não ligado a uma composição real (ativação = E4/E5).
+- A trava S não cobre a primeira transação da oferta: ofertas órfãs podem existir até vencer (sem efeito comercial).
+- `find_slots` repetido com consultas diferentes cria ofertas novas a cada chamada (sem limite de taxa nesta PR).
+- O estado do protocolo é `jsonb` versionado pelo código; mudança futura do redutor exige compatibilidade com linhas de sessões em curso.
+- Validade da oferta limitada pela sessão via `SESSION_CLOSED` (não há prazo absoluto de sessão no modelo atual).
+
+## 10. PR 3 — opt-out operacional, `CALL_OUTCOME` e simulação comercial (offline)
+
+**D2 — opt-out gravado pelo servidor:** a fala final do interlocutor é classificada no servidor; pedido reconhecido (ou "sim" à pergunta de esclarecimento) grava a **supressão canônica** NA MESMA transação do evento (`recordCanonicalOptOut`; ordem **L → A → S → P**), sem depender do modelo nem do toolset. Com lead: `recordLeadOptOut` da E1 (`DO_NOT_CALL`, ou reunião ativa preservada). Sem lead para o destino: o telefone discado é suprimido mesmo assim. A sessão guarda `opt_out_recorded_at` e a origem (`LEAD_UTTERANCE`, `CLARIFICATION`, `RECOVERY` — ver §11). Depois do registro, nenhuma fala move o protocolo e oferta, reserva e resultado comercial são recusados. Sessão encerrada não aceita pedido novo.
+
+**Possível opt-out (requisito desta PR):** menção não reconhecida como pedido liga `opt_out_pending`; intenções comerciais viram esclarecimento; a pergunta é sem dupla negação ("você quer que a gente pare de ligar para você? Responda sim ou não") e tem entrega própria (`SPEECH_*` com propósito `OPT_OUT_QUESTION`, fora do redutor). Só vale resposta que **começou depois da entrega completa** da pergunta: lista fechada de "sim" ⇒ opt-out (`CLARIFICATION`); exatamente "não" ⇒ a abordagem recomeça com **nova lista** (o consentimento anterior não é reaproveitado); qualquer outra resposta (inclusive "sim, pode marcar", "não, obrigado", "talvez") mantém o bloqueio e exige perguntar de novo. Ambiguidade nunca autoriza continuar.
+
+**D5 — `CALL_OUTCOME`** (migration **0017**, aditiva: valor de enum + colunas nulas, com teste de upgrade): o agente registra `CONTACTED` (só a partir de `NEW`), `QUALIFIED` ou `NOT_INTERESTED`; nunca sai de `DO_NOT_CALL`, nunca entra/sai de `MEETING_SCHEDULED` nem leva a `DO_NOT_CALL`. Sem resposta/falha técnica não são resultado do agente. Matriz de transições estendida (180 células).
+
+**Ferramentas:** `lead.record_outcome` (argumento único: o resultado) e `lead.record_opt_out` (nenhum), ligadas à concessão; ordem L → A → S (→ P); idempotentes (`ALREADY_RECORDED`; opt-out já gravado devolve `RECORDED` sem nova escrita). Após a auditoria consolidada, `lead.record_opt_out` só conclui ou recupera pedido reconhecido pelo servidor, e `lead.record_outcome` exige interlocução (§11).
+
+**Simulação comercial offline** (`apps/voice/src/offline-commercial-simulation.ts`): "modelo" = roteiro determinístico; motor de ferramentas com concessão, serviços canônicos, protocolo persistido e guarda de saída reais; o harness reage às diretivas (apresentar, reler, marcar, perguntar). Fluxos testados: qualificação → oferta → escolha → releitura → reserva → resultado; opt-out falado; possível opt-out com esclarecimento ("sim" e "não"); sessão encerrada; frase prematura do modelo descartada.
+
+**Guarda de saída:** substituída na auditoria consolidada pela autoridade de saída no servidor (§11); o filtro lexical ficou sempre ligado e é só defesa adicional.
+
+**Autorrevisão adversarial consolidada (PR 1–3):** ordem de travas por caminho (fala L → A → S → P; resultado L → A → S; reserva K → L → C → O → A → S → P; eventos e oferta A → S; aplicador de tentativa A → S) — nenhum caminho pega S antes de L/K. Achados corrigidos: (1) depois de opt-out pela ferramenta, uma fala posterior ainda gerava releitura (protocolo agora congelado; teste falha sem a correção); (2) a guarda descartava perguntas legítimas; (3) "sim, pode marcar" não pode confirmar opt-out (lista fechada de "sim").
+
+**Limitações da PR 3:**
+- O roteiro da simulação substitui o modelo: não mede a qualidade de um LLM real.
+- Esclarecimento sem resposta clara mantém o bloqueio até o fim da sessão (falso negativo comercial seguro).
+- A guarda de saída e a simulação não estão ligadas a composição real (E4/E5).
+- Validação com eventos reais de voz é obrigatória antes de qualquer prospecção real.
+
+
+## 11. Correções consolidadas da E2 (auditoria Codex: BLOQUEADA)
+
+Aplicadas na branch da PR 3 (#183), sem merge; reprodução antes da correção em teste de integração dedicado (`scheduling-agent-audit-e2.integration.test.ts`), com efeitos persistidos conferidos.
+
+- **A1 — consentimento ligado à pergunta certa.** Toda fala do agente é informada ao servidor (`SPEECH_*` com propósito `AGENT`); fala do agente entre a pergunta transacional e a resposta anula a releitura/apresentação (o redutor volta a `READBACK_PENDING`/`PRESENTING` e exige nova fala completa). Início e fim de fala do interlocutor levam o **id de turno do transporte** (`LeadTurn`): final de outro turno (`TURN_MISMATCH`), repetido (`DUPLICATE_FINAL`) ou sem início (`UTTERANCE_WITHOUT_START`) é ignorado. Ids nunca vêm do modelo.
+- **A2 — opt-out sem evidência.** `lead.record_opt_out({})` só conclui/recupera pedido com evidência do protocolo (`optOutSeq`, escrita só pelo redutor a partir do classificador); sem evidência: `NO_OPT_OUT_EVIDENCE`. O caminho obrigatório continua automático na fala final, inclusive sem ferramentas publicadas e sem lead.
+- **A3 — bloqueio comercial.** Possível opt-out pendente emite esclarecimento também em `IDLE`; enquanto pendente, só pergunta/esclarecimento são autorizados; depois de opt-out registrado, até a recuperação de uma reserva (replay de `confirm_offer`) é recusada, sem anúncio, e a reunião é preservada.
+- **A4 — interrupção e contexto.** `INTERRUPTED(q)` zera a geração da pergunta; `COMPLETED(q)` tardio não restaura entrega (exige nova geração). Fala acima de 4.000 caracteres não decide pelo prefixo: mantém pendência, sem efeito comercial.
+- **A5 — consulta vazia e cache.** Consulta nova sem disponibilidade (ou recusada) invalida, sob trava, lista e autorização anteriores (evento `QUERY_EMPTY` com revisão nova); a repetição técnica legítima continua devolvendo a mesma lista, mas revalida a supressão canônica antes (ordem S → P) e, se suprimido, invalida a lista.
+- **A6 — saída verdadeira.** Nova porta `authorizeOutput(scope, output)` decide no instante da emissão a partir do estado atual: sessão inativa ⇒ nada; opt-out ⇒ só a confirmação do opt-out; pendente ⇒ só esclarecimento; texto livre do modelo só em `IDLE`; apresentação/releitura só da lista/oferta vigentes; `BOOKING_RESULT` só com a reunião persistida conferida **agora** (agendada, mesma oferta, tentativa e lead) e com o **texto do servidor**. A fase `BOOKED` histórica não basta: reunião cancelada ⇒ `NOT_BOOKED`/sem anúncio. O booleano permanente "reservado" foi eliminado; o filtro lexical ficou sempre ligado e virou regra estrutural (o modelo nunca afirma nada sobre agenda/horários/reunião, só pergunta) — defesa adicional, não prova. A simulação autoriza toda saída, inclusive texto livre, e registra o que foi retido.
+- **A7 — `CALL_OUTCOME` sem interlocução.** Exige ao menos uma fala final confiável do interlocutor nesta sessão (`lead_final_utterances`); sem isso, `NO_INTERLOCUTION`, sem alterar status nem histórico. DNC e `MEETING_SCHEDULED` preservados.
+- **Migration 0017 (integridade).** CHECK corrigido: `opt_out_recorded_at` e `opt_out_source` ambos nulos ou ambos preenchidos com origem conhecida (`LEAD_UTTERANCE`, `CLARIFICATION`, `RECOVERY`); novos CHECKs de turno (início e id juntos) e contagem ≥ 0. SQL, ORM e metadados coerentes. Upgrade conservador: início de fala legado sem turno é descartado (a próxima final é ignorada); linha legada `OPTED_OUT` sem supressão **não** é suprimida automaticamente nem ganha evidência inventada — continua comercialmente bloqueada e pode ser recuperada pela ferramenta (origem `RECOVERY`), inclusive após o fim da sessão. Sessões legadas começam com `lead_final_utterances = 0` (resultado comercial só após nova fala final).
+
+**Limitações remanescentes:** texto livre do modelo em `IDLE` é autorizado e só passa pelo filtro estrutural (não é prova de veracidade); depois da reserva, o modelo não fala livremente (só falas do servidor) — a experiência de encerramento depende da composição real (E4/E5); a validação com eventos reais de voz continua obrigatória antes de qualquer prospecção real.
+
+## 12. E2 simplificada — conexão direta (DEC-077)
+
+Substitui, para a integração real, os controles de fala das §§5, 10 e 11 (mantidos acima como histórico). Evidências: [E2V_RESEARCH_AND_VALIDATION.md](E2V_RESEARCH_AND_VALIDATION.md).
+
+**Fluxo.** `scheduling.find_slots` (inalterada: oferta da E1, lista com revisão, A5) → `scheduling.request_booking({ listRevision, option, leadConfirmation })` registra intenção `PENDING_EVIDENCE` (oferta desta sessão, vigente, sem opt-out, telefone não suprimido; um novo pedido substitui o anterior) → fim da chamada → relatório pós-chamada (canal `SESSION_REPORT` do pipeline de webhooks) → `DrizzlePostCallReconciliationService.ingest`: registro idempotente (digest) → avaliação PURA do histórico (`evaluatePostCallReport`) → efeitos → fechamento `RECONCILED` ou `NEEDS_REVIEW`.
+
+**Aceite.** Só com: chamada da ferramenta no histórico para a MESMA lista/opção; ordem provada (`TIMELINE`); última fala do lead antes dela = `AFFIRM` do classificador da PR 1; fala do agente imediatamente anterior terminando com a pergunta canônica de confirmação da oferta (`endsWithCanonicalReadback`, §12.2 A1); nenhuma fala posterior contraditória. Recusa ⇒ `REJECTED`; qualquer dúvida ⇒ `NEEDS_REVIEW`. Aceite ⇒ `bookOfferedSlot` da E1 com chave `booking-intent:<id>`, intenção travada no gancho (I) e marcada `BOOKED` na mesma transação; oferta vencida, horário ocupado ou lead bloqueado ⇒ revisão, nada reservado.
+
+**Opt-out.** Ferramenta: supressão canônica imediata (`TOOL`), intenção pendente `CANCELED`. Histórico: pedido sem ferramenta ⇒ supressão (`POST_CALL`); menção ambígua ⇒ revisão; ferramenta sem pedido no histórico ⇒ supressão mantida e revisão.
+
+**Resultado.** Proposto pela ferramenta; aplicado (D5, origem `CALL_OUTCOME`) só com fala do lead no histórico e sem opt-out — e, depois da auditoria #184 (§12.1 A7), só `CONTACTED`.
+
+**Barreira.** `post_call_reconciliations` aberta (relatório pendente/ausente/conflitante, revisão) ⇒ claim de envio recusa novas tentativas ao mesmo telefone (`POST_CALL_RECONCILIATION_PENDING`, sem cancelar). Relatório ausente além do prazo ⇒ `REPORT_MISSING`; relatório registrado cujo processamento não terminou no prazo ⇒ `REPORT_PROCESSING_INCOMPLETE` (ambos revisão). Relatório de sessão cujo `current_attempt_id` não é a tentativa informada ⇒ `SESSION_ATTEMPT_MISMATCH` (rejeitado). Adaptador do relatório real da Millis e autenticação por token na URL: `E2V_RESEARCH_AND_VALIDATION.md` §4.4. Só `resolveReview` (usuário) libera uma revisão.
+
+**Travas.** K → L → C → O → A → S → I → R → P. `request_booking` trava o lead primeiro (a FK da intenção pega `KEY SHARE` no lead; sem isso, impasse com o opt-out — encontrado e corrigido no teste de concorrência).
+
+**Persistência (0016/0017 regeneradas).** `scheduling_protocol_states` sem colunas de fala; `opt_out_recorded_at`/`opt_out_source` (`TOOL`|`POST_CALL`, CHECK sem brecha de NULL); `booking_intents` (uma pendente por sessão; `BOOKED` ⇔ reunião); `post_call_reconciliations` (status, digest, motivo de fim, motivos de revisão, resultado proposto/aplicado; o histórico NÃO é armazenado).
+
+**Removido.** `recordSpeech`, `recordLeadSpeechStarted`, `recordLeadUtterance`, `authorizeOutput`, `confirm_offer`, filtro de afirmações, esclarecimento de opt-out por fala, simulação de fala e respectivos testes (substituídos por testes no nível da ferramenta, do relatório e da concorrência). As fases de fala do redutor da PR 1 ficam inertes (nenhum evento as aciona); remoção candidata numa limpeza futura, para não reabrir a PR 1 auditada.
+
+**Pendências.** O adaptador do relatório real **já foi entregue** (`packages/integrations/src/millis/`, `PROVIDER-UNVERIFIED`, `E2V_RESEARCH_AND_VALIDATION.md` §4.4). Pendências reais: validar o relatório pelo canal telefônico direto (entrega, retentativa, atraso e autenticação de produção); compor o adaptador com segurança na E3 (credencial vinculada ao canal e ao escopo, associação sessão Millis ↔ tentativa, query redigida nos logs de toda a infraestrutura); composição/rotas (E3+).
+
+### 12.1 Correções da auditoria Codex da PR #184 (HEAD auditado `7b78261`)
+
+As regras acima continuam valendo; as correções as **estreitam** (comportamento conservador: na falta de evidência, revisão humana). Não se presume identificador único de invocação da Millis.
+
+| Achado | Regra corrigida |
+| :- | :- |
+| **A1** aceite do horário errado | A fala anterior ao "sim" precisa ser uma **proposta afirmativa** (verbo de confirmação/reserva), sem negação, indisponibilidade, alternativa, nova consulta nem data relativa, com **um** dia da semana e **um** horário completo, ambos iguais aos da oferta, e datas explícitas compatíveis (`proposesSlot`; "9:30" nunca vale por 9h). Substitui `mentionsSlot`. |
+| **A2** retry antigo substitui a escolha recente | Pedido igual ao pendente = idempotente; pedido igual a um já substituído (reentrega ou mudança de ideia, indistinguíveis) ⇒ intenção pendente em revisão (`REQUEST_ORDER_AMBIGUOUS`) e nenhuma nova intenção na sessão. Na reconciliação, o **último** pedido de reserva do histórico precisa ser o da intenção (`LAST_REQUEST_MISMATCH`). |
+| **A3** relatório incompleto libera discagem | `PostCallReport.integrity` (`COMPLETE`/`INCOMPLETE`), separado de `ordering`. Incompleto ⇒ `HISTORY_INCOMPLETE` (revisão, barreira mantida), sem aceite nem resultado comercial; opt-out preservado no histórico ainda é aplicado. |
+| **A4** falha parcial e conflito | O registro lê intenções **depois** de R; motivos já decididos nas intenções (`NEEDS_REVIEW`) voltam como motivos de revisão no reprocessamento. Todo efeito, exceto o opt-out preventivo, confere na própria transação (depois de I/L) que o relatório ainda é o vigente em R (`lockCurrentReport`: mesmo digest, sem conflito, não fechado); o fechamento também. Conflito ⇒ intenção pendente em revisão (`REPORT_CONFLICT`), em transação própria na ordem I. Reunião confirmada antes do conflito continua com a revisão humana. |
+| **A5** duas campanhas autorizadas | No claim (depois da trava P do telefone): outra tentativa já enviada e não terminada ao mesmo telefone, quando uma das duas é de agente com ferramentas da E2, ⇒ `DESTINATION_IN_FLIGHT` (campanhas legadas, sem reconciliação pós-chamada, mantêm o comportamento anterior — o primeiro gate mostrou suítes legadas que discam o mesmo telefone em paralelo) (a primeira grava `SEND_STARTED` na transação do seu claim ⇒ no máximo um `CLAIMED`); rejeição/não originação liberam; desfecho incerto mantém. Tentativa encerrada de agente com ferramentas da E2, com sessão e sem reconciliação ⇒ `POST_CALL_RECONCILIATION_PENDING`; `expireOverdue` adota essas sessões (prazo e revisão). |
+| **A6** ferramentas tardias | O registro do relatório **sela** a sessão (digest em R). `request_booking`, `record_outcome` e `find_slots` conferem o selo (os dois primeiros sob a trava R) ⇒ `SESSION_NOT_ACTIVE`. O opt-out tardio continua preventivo. |
+| **A7** `CALL_OUTCOME` sem evidência | Só `CONTACTED` é aplicado (interlocução). `NOT_INTERESTED`/`QUALIFIED` ⇒ revisão (`OUTCOME_NEEDS_EVIDENCE:<resultado>`). Possível opt-out ou histórico incompleto ⇒ `OUTCOME_SUSPENDED`. |
+| **M1** revisão antecipada | O prazo é reavaliado sob a trava; `resolveReview` exige `NEEDS_REVIEW` (`NOT_IN_REVIEW`). |
+| **M2** replay de conflito resolvido | `post_call_reconciliations.conflict_digests` (0017): reentrega de um conflito já decidido ⇒ `DUPLICATE` (`CONFLICT_ALREADY_DECIDED`), a decisão humana permanece; relatório novo ainda conflita. Relatório que chega depois de uma decisão humana sem relatório anterior ⇒ revisão (`REPORT_AFTER_RESOLUTION`). |
+| **B1** documentação | Pendências acima corrigidas. |
+
+Testes: `scheduling-audit184-booking.integration.test.ts` e `scheduling-audit184-barrier.integration.test.ts` (estado conjunto: reunião, intenção, motivo, supressão, histórico comercial e próximo claim; pausas determinísticas por orquestração das etapas e espera explícita pela trava), mais as regras puras em `post-call-evaluation.test.ts` e o adaptador.
+
+### 12.2 Correções estruturais da reauditoria Codex (HEAD auditado `1761eeb`)
+
+Princípio: nenhum interpretador de linguagem natural cada vez maior; na falta de evidência inequívoca, revisão humana. As regras do §12.1 para A7, M1, M2 e B1 (aprovadas) não mudam.
+
+| Achado | Causa estrutural | Correção |
+| :- | :- | :- |
+| **A1** "sim" respondendo a outra pergunta ("Posso ligar…", "9 da noite") | interpretar texto livre com expressões regulares | Removida a regra por regex (`proposesSlot`). O aceite só é reconhecido se a fala do agente **terminar com a pergunta canônica** que a própria VAP gera (`renderReadbackSpeech` + `renderSlotLabel`, com fuso), devolvida por `find_slots` em `confirmationQuestion`. Comparação ignora só caixa, acentos, pontuação e espaços; qualquer outra redação ⇒ revisão. |
+| **A3** fala perdida ou truncada decidindo | integridade só no relatório inteiro | Integridade **por fala**: fala cortada leva `truncated` e nunca sustenta opt-out (vira menção ⇒ revisão); fala de usuário sem texto legível (ex.: `text` no lugar de `content`) é perda (`SPEECH_UNREADABLE` ⇒ `INCOMPLETE`). |
+| **A5** janela entre duas consultas do claim; encerrada sem sessão | duas leituras separadas; reconciliação chaveada pela sessão | Ocupação decidida numa **única consulta** (um retrato) sob a trava do telefone: reconciliação aberta, tentativa em curso e órfã. `post_call_reconciliations` passa a ser chaveada pela **tentativa** (sessão opcional, única quando presente); tentativa da E2 encerrada **sem** sessão é órfã, adotada como revisão `SESSION_NOT_BOUND` e resolvível pela tentativa (`resolveReview({ attemptId })`). |
+| **A4** queda entre o registro do conflito e a retenção da intenção | retenção dependia de uma 2ª transação | Retenção recuperável: qualquer parada com a reconciliação em revisão retém a intenção pendente; sem reentrega, a decisão humana (`resolveReview`, I → R) encerra a intenção pendente (`CANCELED:REVIEW_RESOLVED`). `INTENT_PENDING` deixou de existir. |
+| **Relatório tardio** perdendo opt-out explícito | parada antes da avaliação | Em conflito ou relatório depois de decisão humana: decisões anteriores preservadas, mas o opt-out **explícito de fala íntegra** é aplicado (idempotente). |
+| **A2** resposta anunciando pedido inexistente | resposta fixa | `request_booking` responde `REQUEST_UNDER_REVIEW` quando nada foi registrado para a opção (reentrega ambígua ou sessão em revisão). |
+| **A6** lista publicada depois do selo | selo só na 1ª transação | Selo conferido sob a trava R em **todas** as transações de `find_slots` (pré-validação, publicação e descarte da lista). |
+
+Testes: `scheduling-reaudit184.integration.test.ts` (cenários concretos do relatório, pausas determinísticas: inserção não confirmada da adoção durante o claim, queda simulada entre as duas transações do conflito, relatório fechando entre as transações de `find_slots`), regras puras em `post-call-evaluation.test.ts` e o adaptador.

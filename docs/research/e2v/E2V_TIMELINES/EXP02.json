@@ -1,0 +1,376 @@
+{
+  "meta": {
+    "experiment": "E2-V",
+    "session_id": "e2v-00000000-0000-4000-8000-000000000002",
+    "started_at": "2026-11-27T12:34:10.299Z",
+    "commercial_effects": "NONE"
+  },
+  "entries": [
+    {
+      "seq": 1,
+      "t_ms": 0.3,
+      "wall": "2026-11-27T12:34:10.299Z",
+      "origin": "LOCAL",
+      "type": "start",
+      "known": true,
+      "data": {
+        "session_id": "e2v-00000000-0000-4000-8000-000000000002",
+        "agent": {
+          "mode": "agent_config",
+          "llm": "gpt-4o",
+          "voice": {
+            "provider": "elevenlabs",
+            "voice_id": "kd1lRcSdRGIfyKxQKjmH"
+          },
+          "language": "pt-BR",
+          "tools": [
+            {
+              "name": "e2v_consultar_agenda",
+              "response_mode": null,
+              "execute_after_message": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "seq": 2,
+      "t_ms": 1582.9,
+      "wall": "2026-11-27T12:34:11.881Z",
+      "origin": "DERIVED",
+      "type": "sdk_agent_state",
+      "known": true,
+      "data": {
+        "state": "idle"
+      }
+    },
+    {
+      "seq": 3,
+      "t_ms": 1582.9,
+      "wall": "2026-11-27T12:34:11.881Z",
+      "origin": "DERIVED",
+      "type": "sdk_ready",
+      "known": true,
+      "data": null
+    },
+    {
+      "seq": 4,
+      "t_ms": 1586.9,
+      "wall": "2026-11-27T12:34:11.885Z",
+      "origin": "DERIVED",
+      "type": "sdk_agent_state",
+      "known": true,
+      "data": {
+        "state": "prepare_answer"
+      }
+    },
+    {
+      "seq": 5,
+      "t_ms": 2027.3,
+      "wall": "2026-11-27T12:34:12.326Z",
+      "origin": "DERIVED",
+      "type": "sdk_latency",
+      "known": true,
+      "data": {
+        "ms": 441
+      }
+    },
+    {
+      "seq": 6,
+      "t_ms": 2027.4,
+      "wall": "2026-11-27T12:34:12.326Z",
+      "origin": "DERIVED",
+      "type": "sdk_agent_state",
+      "known": true,
+      "data": {
+        "state": "answer"
+      }
+    },
+    {
+      "seq": 7,
+      "t_ms": 5887.9,
+      "wall": "2026-11-27T12:34:16.186Z",
+      "origin": "DERIVED",
+      "type": "sdk_agent_state",
+      "known": true,
+      "data": {
+        "state": "idle"
+      }
+    },
+    {
+      "seq": 8,
+      "t_ms": 11200.6,
+      "wall": "2026-11-27T12:34:21.499Z",
+      "origin": "DERIVED",
+      "type": "sdk_agent_state",
+      "known": true,
+      "data": {
+        "state": "prepare_answer"
+      }
+    },
+    {
+      "seq": 9,
+      "t_ms": 12659.1,
+      "wall": "2026-11-27T12:34:22.958Z",
+      "origin": "DERIVED",
+      "type": "sdk_latency",
+      "known": true,
+      "data": {
+        "ms": 1459
+      }
+    },
+    {
+      "seq": 10,
+      "t_ms": 12659.1,
+      "wall": "2026-11-27T12:34:22.958Z",
+      "origin": "DERIVED",
+      "type": "sdk_agent_state",
+      "known": true,
+      "data": {
+        "state": "answer"
+      }
+    },
+    {
+      "seq": 11,
+      "t_ms": 16304.1,
+      "wall": "2026-11-27T12:34:26.603Z",
+      "origin": "DERIVED",
+      "type": "sdk_agent_state",
+      "known": true,
+      "data": {
+        "state": "prepare_answer"
+      }
+    },
+    {
+      "seq": 12,
+      "t_ms": 16573.1,
+      "wall": "2026-11-27T12:34:26.871Z",
+      "origin": "DERIVED",
+      "type": "sdk_latency",
+      "known": true,
+      "data": {
+        "ms": 268
+      }
+    },
+    {
+      "seq": 13,
+      "t_ms": 16573.1,
+      "wall": "2026-11-27T12:34:26.872Z",
+      "origin": "DERIVED",
+      "type": "sdk_agent_state",
+      "known": true,
+      "data": {
+        "state": "answer"
+      }
+    },
+    {
+      "seq": 14,
+      "t_ms": 25617.4,
+      "wall": "2026-11-27T12:34:35.916Z",
+      "origin": "DERIVED",
+      "type": "sdk_agent_state",
+      "known": true,
+      "data": {
+        "state": "idle"
+      }
+    },
+    {
+      "seq": 15,
+      "t_ms": 32778,
+      "wall": "2026-11-27T12:34:43.077Z",
+      "origin": "DERIVED",
+      "type": "sdk_agent_state",
+      "known": true,
+      "data": {
+        "state": "pause"
+      }
+    },
+    {
+      "seq": 16,
+      "t_ms": 34370,
+      "wall": "2026-11-27T12:34:44.669Z",
+      "origin": "DERIVED",
+      "type": "sdk_agent_state",
+      "known": true,
+      "data": {
+        "state": "prepare_answer"
+      }
+    },
+    {
+      "seq": 17,
+      "t_ms": 35716.4,
+      "wall": "2026-11-27T12:34:46.015Z",
+      "origin": "DERIVED",
+      "type": "sdk_agent_state",
+      "known": true,
+      "data": {
+        "state": "answer"
+      }
+    },
+    {
+      "seq": 18,
+      "t_ms": 36217.5,
+      "wall": "2026-11-27T12:34:46.516Z",
+      "origin": "DERIVED",
+      "type": "sdk_latency",
+      "known": true,
+      "data": {
+        "ms": 1847
+      }
+    },
+    {
+      "seq": 19,
+      "t_ms": 36217.6,
+      "wall": "2026-11-27T12:34:46.516Z",
+      "origin": "DERIVED",
+      "type": "sdk_agent_state",
+      "known": true,
+      "data": {
+        "state": "answer"
+      }
+    },
+    {
+      "seq": 20,
+      "t_ms": 39647.1,
+      "wall": "2026-11-27T12:34:49.946Z",
+      "origin": "DERIVED",
+      "type": "sdk_agent_state",
+      "known": true,
+      "data": {
+        "state": "prepare_answer"
+      }
+    },
+    {
+      "seq": 21,
+      "t_ms": 39931.9,
+      "wall": "2026-11-27T12:34:50.231Z",
+      "origin": "DERIVED",
+      "type": "sdk_latency",
+      "known": true,
+      "data": {
+        "ms": 285
+      }
+    },
+    {
+      "seq": 22,
+      "t_ms": 39931.9,
+      "wall": "2026-11-27T12:34:50.231Z",
+      "origin": "DERIVED",
+      "type": "sdk_agent_state",
+      "known": true,
+      "data": {
+        "state": "answer"
+      }
+    },
+    {
+      "seq": 23,
+      "t_ms": 49276.7,
+      "wall": "2026-11-27T12:34:59.575Z",
+      "origin": "DERIVED",
+      "type": "sdk_agent_state",
+      "known": true,
+      "data": {
+        "state": "idle"
+      }
+    },
+    {
+      "seq": 24,
+      "t_ms": 52045.4,
+      "wall": "2026-11-27T12:35:02.344Z",
+      "origin": "DERIVED",
+      "type": "sdk_agent_state",
+      "known": true,
+      "data": {
+        "state": "prepare_answer"
+      }
+    },
+    {
+      "seq": 25,
+      "t_ms": 53402.5,
+      "wall": "2026-11-27T12:35:03.701Z",
+      "origin": "DERIVED",
+      "type": "sdk_latency",
+      "known": true,
+      "data": {
+        "ms": 1357
+      }
+    },
+    {
+      "seq": 26,
+      "t_ms": 53402.6,
+      "wall": "2026-11-27T12:35:03.701Z",
+      "origin": "DERIVED",
+      "type": "sdk_agent_state",
+      "known": true,
+      "data": {
+        "state": "answer"
+      }
+    },
+    {
+      "seq": 27,
+      "t_ms": 56654.1,
+      "wall": "2026-11-27T12:35:06.953Z",
+      "origin": "DERIVED",
+      "type": "sdk_agent_state",
+      "known": true,
+      "data": {
+        "state": "prepare_answer"
+      }
+    },
+    {
+      "seq": 28,
+      "t_ms": 56904.2,
+      "wall": "2026-11-27T12:35:07.203Z",
+      "origin": "DERIVED",
+      "type": "sdk_latency",
+      "known": true,
+      "data": {
+        "ms": 250
+      }
+    },
+    {
+      "seq": 29,
+      "t_ms": 56904.2,
+      "wall": "2026-11-27T12:35:07.203Z",
+      "origin": "DERIVED",
+      "type": "sdk_agent_state",
+      "known": true,
+      "data": {
+        "state": "answer"
+      }
+    },
+    {
+      "seq": 30,
+      "t_ms": 72576.8,
+      "wall": "2026-11-27T12:35:22.876Z",
+      "origin": "DERIVED",
+      "type": "sdk_agent_state",
+      "known": true,
+      "data": {
+        "state": "idle"
+      }
+    },
+    {
+      "seq": 31,
+      "t_ms": 92555.9,
+      "wall": "2026-11-27T12:35:42.855Z",
+      "origin": "LOCAL",
+      "type": "stop",
+      "known": true,
+      "data": {
+        "reason": "provider_session_ended"
+      }
+    },
+    {
+      "seq": 32,
+      "t_ms": 92732.2,
+      "wall": "2026-11-27T12:35:43.031Z",
+      "origin": "DERIVED",
+      "type": "sdk_agent_state",
+      "known": true,
+      "data": {
+        "state": "idle"
+      }
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 import { normalizedProviderEventSchema, type ProviderWebhookRequest } from '@voice-agent/contracts';
 import { ingestCallStatus } from './provider-call-status-ingress.js';
+import { ingestSessionReport } from './provider-session-report.js';
 import { dispatchToolInvocation } from './provider-tool-invocation.js';
 import type {
   ProviderWebhookDependencies,
@@ -15,7 +16,7 @@ const INVALID_PAYLOAD: ProviderWebhookResponse = {
   body: { error: 'INVALID_PAYLOAD' },
 };
 
-export type ProviderWebhookChannel = 'CALL_STATUS' | 'TOOL_INVOCATION';
+export type ProviderWebhookChannel = 'CALL_STATUS' | 'TOOL_INVOCATION' | 'SESSION_REPORT';
 
 /**
  * Ordem fail-closed: provedor habilitado → autenticação da entrega →
@@ -44,7 +45,7 @@ export async function handleProviderWebhook(
     return INVALID_PAYLOAD;
   }
   const event = parsed.data;
-  return event.kind === 'CALL_STATUS'
-    ? ingestCallStatus(deps, request, event)
-    : dispatchToolInvocation(deps, request, event);
+  if (event.kind === 'CALL_STATUS') return ingestCallStatus(deps, request, event);
+  if (event.kind === 'TOOL_INVOCATION') return dispatchToolInvocation(deps, request, event);
+  return ingestSessionReport(deps, request, event);
 }

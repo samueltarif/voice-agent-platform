@@ -60,7 +60,7 @@ function harness(
   });
   const post = (channel: string, body: string) =>
     app.request(`/v1/provider-webhooks/fake/${channel}`, { method: 'POST', body });
-  return { post, logs };
+  return { app, post, logs };
 }
 
 const tool = JSON.stringify({
@@ -115,6 +115,22 @@ describe('008-OF4 provider webhook routes (offline fakes)', () => {
       ),
     ).toBe(true);
     expect(JSON.stringify(logs)).not.toContain('internal detail');
+  });
+
+  it('passes only single-valued URL parameters to the authenticator and never logs them', async () => {
+    const seen: Array<Readonly<Record<string, string>> | undefined> = [];
+    const capture: ProviderWebhookAuthenticator = {
+      authenticate: async (request) => {
+        seen.push(request.query);
+        return { kind: 'REJECTED', reason: 'INVALID_CREDENTIALS' };
+      },
+    };
+    const { app, logs } = harness({ auth: capture });
+    const url = '/v1/provider-webhooks/fake/session-reports?t=secret-token-value&dup=1&dup=2';
+    const response = await app.request(url, { method: 'POST', body: '{}' });
+    expect(response.status).toBe(401);
+    expect(seen).toEqual([{ t: 'secret-token-value' }]);
+    expect(JSON.stringify(logs)).not.toContain('secret-token-value');
   });
 
   it('never logs the opaque provider reference in clear text', async () => {

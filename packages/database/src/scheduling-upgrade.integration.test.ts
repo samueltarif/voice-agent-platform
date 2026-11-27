@@ -119,7 +119,7 @@ describe('E1 audit: upgrade from migration 0013 to 0014 with existing data', () 
     const applied = await tdb.db.execute(
       sql`SELECT count(*)::int AS n FROM drizzle.__drizzle_migrations`,
     );
-    // TEST_CHANGE_REASON (E2 PR 1, ASSERTION_EQUIVALENT): a 0015 aditiva entra no upgrade; 0000–0015 = 16.
-    expect(applied.rows[0]?.n).toBe(16);
+    // TEST_CHANGE_REASON (E2 PR 3, ASSERTION_EQUIVALENT): a 0017 aditiva entra no upgrade; 0000–0017 = 18.
+    expect(applied.rows[0]?.n).toBe(18);
   });
 });
