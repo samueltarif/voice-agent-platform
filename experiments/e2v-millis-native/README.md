@@ -46,3 +46,56 @@ Roteiro sugerido (≈ 2–3 min cada): (1) conversa simples — transcrições p
 - A escuta depende de detalhes internos do SDK 1.0.12 (verificados por teste); outra versão pode exigir ajuste.
 - A ferramenta não é executada de fato (sem endpoint público autorizado); observa-se a decisão do motor, não a resposta.
 - Nenhuma conexão real foi feita: o comportamento do fornecedor continua **PROVIDER-UNVERIFIED** até o experimento.
+
+---
+
+# 2ª etapa — agente dinâmico e consulta de agenda FICTÍCIA via webhook
+
+Resultado do 1º experimento real (27/11/2026, `agent_id`): recebidos `ontranscript` (parcial e final), `onresponsetext`, `start_answering`, `clear`, `pause`, `unpause` e `timestamp` (marcações por caractere — agora reconhecido no registro).
+
+## O que foi acrescentado (offline)
+
+- **Agente dinâmico** (só com `agent_config`; com `agent_id` vale o painel): LLM (`llm.model`), voz (provedor e `voice_id`), idioma e `first_message`, aplicados a uma cópia do JSON. O início da sessão registra o resumo (sem segredos).
+- **Ferramenta `e2v_consultar_agenda`**: webhook nativo da Millis apontando para o servidor experimental, autenticado pelo cabeçalho `x-e2v-token` (campo `header` da ferramenta). `response_mode` e `execute_after_message` continuam opcionais e comuns às ferramentas.
+- **Webhook experimental** (`webhook/`): só `127.0.0.1:8787`, uma rota (`POST /tool/e2v-agenda`), token comparado em tempo constante, corpo até 16 KB. **Não importa nada da VAP nem acessa banco.** Cenários: `success` (3 horários fictícios), `unavailable`, `error` (HTTP 500) e `timeout` (resposta após `E2V_TIMEOUT_MS`, padrão 30 s; desistência do cliente registrada como `aborted`). Troca de cenário em `127.0.0.1:8788` (nunca exposto).
+- **Registro do webhook** em `logs/webhook-<data>.jsonl`: requisição (cabeçalhos permitidos, corpo), resposta (status, corpo, latência), rejeições e trocas de cenário — **sem credenciais** (nem o token errado).
+- **Linha do tempo única**: `npm run timeline -- e2v-<sessão>.json logs/webhook-<data>.jsonl` junta os eventos da página e do webhook pelo horário.
+
+Testes: `npm test` — **25 aprovados** (16 anteriores + 9 novos: ajustes do agente, ferramenta autenticada, webhook com token ausente/errado, rotas, cenários, timeout/desistência, corpo grande/não JSON e linha do tempo).
+
+## Disponibilização HTTPS temporária — SOMENTE após autorização expressa
+
+A Millis chama o webhook pela internet; por isso é preciso um túnel HTTPS **temporário** apontando **só** para a porta 8787.
+
+1. Instalar uma vez: `winget install --id Cloudflare.cloudflared`.
+2. Terminal 1 (nesta pasta): `npm run webhook` — anotar o token mostrado (ou definir antes `$env:E2V_WEBHOOK_TOKEN` com 32+ caracteres; aí ele não é mostrado).
+3. Terminal 2: `cloudflared tunnel --url http://127.0.0.1:8787` — anotar a URL `https://….trycloudflare.com`.
+4. Terminal 3: `npm start` e abrir `http://127.0.0.1:5173` no Chrome.
+5. Na página: `agent_config` (modelo em `examples/`), ajustes desejados, marcar a consulta de agenda, colar a URL do túnel e o token.
+6. Trocar cenário entre sessões: `Invoke-RestMethod -Method Post "http://127.0.0.1:8788/scenario?set=timeout"`.
+7. **Ao terminar: Ctrl+C no túnel e no webhook.** Cada execução gera token novo; não reutilize URL nem token.
+
+Restrições: nunca expor as portas 5173 e 8788; o túnel fica aberto só durante a sessão; qualquer requisição sem token é recusada e registrada; nenhum dado real é enviado ou recebido.
+
+## Matriz sugerida (≈ 2 min por sessão)
+
+| # | Cenário | response_mode | execute_after_message | Observar |
+| :- | :- | :- | :- | :- |
+| 1 | success | — | — | ordem: transcrição final → `ai_action`? → requisição → resposta → `onresponsetext`; o que é falado durante a espera |
+| 2 | unavailable | — | — | como o motor comunica indisponibilidade |
+| 3 | error | — | — | reação a HTTP 500; repetição da chamada? |
+| 4 | timeout | — | — | tempo-limite do fornecedor (momento do `aborted`); fala durante a espera |
+| 5 | success | `strict` | — | diferença no texto falado após a resposta |
+| 6 | timeout | `strict` | — | idem, com falha |
+| 7 | success | — | `true` | se a ferramenta é executada antes/depois da fala |
+| 8 | success | — | `false` | comparação com o #7 |
+| 9 | success | — | — | troca de LLM/voz (agente dinâmico) |
+
+**Estimativa:** 9 sessões × ~2 min ≈ 18–25 min de conversa; 60–75 min de operador. Custo Millis ≈ US$ 1,20–2,00 (referência DEC-073 ≈ US$ 0,066/min), teto prudente **US$ 5**; túnel Cloudflare rápido sem custo; sem Twilio. Incertezas: preço do LLM/voz escolhidos; retentativas do fornecedor em erro/timeout (podem alongar sessões); tempo-limite real da Millis para webhooks; semântica de `response_mode`/`execute_after_message`; estabilidade do túnel rápido (sem garantia de disponibilidade).
+
+## Limitações da 2ª etapa
+
+- O formato exato do corpo enviado pela Millis ao webhook e o tratamento das respostas são **PROVIDER-UNVERIFIED**; o servidor aceita qualquer JSON e registra como veio.
+- Se a Millis não enviar o cabeçalho `header` configurado, todas as chamadas serão recusadas (401) — isso também é um resultado do experimento.
+- O relógio da página e o do webhook são da mesma máquina (mesma referência); o tempo do lado da Millis não é observável.
+- Horários fictícios fixos; não há reserva, nem leitura da agenda real, nem efeito comercial.

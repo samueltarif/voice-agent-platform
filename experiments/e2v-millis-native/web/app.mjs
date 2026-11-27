@@ -14,6 +14,8 @@ import {
   resolveAgent,
 } from '../src/session-config.mjs';
 import { withExperimentalTool } from '../src/experimental-tool.mjs';
+import { applyAgentOverrides, describeAgent } from '../src/agent-builder.mjs';
+import { withAgendaTool } from '../src/agenda-tool.mjs';
 
 const $ = (id) => document.getElementById(id);
 let client = null;
@@ -37,15 +39,34 @@ function render(entry) {
   $('events').prepend(row);
 }
 
-function buildAgent() {
-  const agent = resolveAgent({ agentId: $('agentId').value, agentConfig: $('agentConfig').value });
-  if (typeof agent === 'string' || !$('withTool').checked) return agent;
+function toolOptions() {
   const mode = $('responseMode').value;
   const after = $('executeAfterMessage').value;
-  return withExperimentalTool(agent, {
+  return {
     responseMode: mode === '' ? undefined : mode,
     executeAfterMessage: after === '' ? undefined : after === 'true',
+  };
+}
+
+function buildAgent() {
+  const agent = resolveAgent({ agentId: $('agentId').value, agentConfig: $('agentConfig').value });
+  if (typeof agent === 'string') return agent;
+  let config = applyAgentOverrides(agent, {
+    llmModel: $('llmModel').value,
+    voiceProvider: $('voiceProvider').value,
+    voiceId: $('voiceId').value,
+    language: $('language').value,
+    firstMessage: $('firstMessage').value,
   });
+  if ($('withTool').checked) config = withExperimentalTool(config, toolOptions());
+  if ($('withAgenda').checked) {
+    config = withAgendaTool(config, {
+      baseUrl: $('webhookBase').value.trim(),
+      token: $('webhookToken').value,
+      ...toolOptions(),
+    });
+  }
+  return config;
 }
 
 function wireDerived(sdk) {
@@ -76,10 +97,11 @@ async function start() {
   meta = newSessionMetadata();
   log.record('LOCAL', 'start', {
     session_id: meta.session_id,
-    mode: typeof agent === 'string' ? 'agent_id' : 'agent_config',
+    agent: describeAgent(agent),
   });
   client = Millis.createClient({ publicKey, endPoint: MILLIS_NATIVE_ENDPOINT });
   $('publicKey').value = '';
+  $('webhookToken').value = '';
   wireDerived(client);
   client.on('onsessionended', () => stop('provider_session_ended'));
   client.on('onclose', () => stop('ws_closed'));

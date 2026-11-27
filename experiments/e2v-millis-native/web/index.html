@@ -72,7 +72,39 @@
       <label><input id="metaInPrompt" type="checkbox" /> incluir metadados no prompt</label>
     </fieldset>
     <fieldset>
-      <legend>Ferramenta experimental (só com agent_config; sem efeito real)</legend>
+      <legend>Ajustes dinâmicos (só com agent_config; vazio = manter o JSON)</legend>
+      <label>LLM (llm.model): <input id="llmModel" /></label>
+      <label
+        >Voz — provedor:
+        <select id="voiceProvider">
+          <option value="">manter</option>
+          <option>elevenlabs</option>
+          <option>rime</option>
+          <option>openai</option>
+          <option>cartesia</option>
+          <option>playht</option>
+        </select>
+      </label>
+      <label>voice_id: <input id="voiceId" /></label>
+      <label>language: <input id="language" placeholder="pt-BR" size="6" /></label><br />
+      <label>first_message: <input id="firstMessage" size="60" /></label>
+    </fieldset>
+    <fieldset>
+      <legend>Consulta de agenda FICTÍCIA via webhook (só após autorização do túnel)</legend>
+      <label
+        ><input id="withAgenda" type="checkbox" /> incluir ferramenta e2v_consultar_agenda</label
+      ><br />
+      <label
+        >URL HTTPS base do túnel:
+        <input id="webhookBase" size="50" placeholder="https://....trycloudflare.com"
+      /></label>
+      <label
+        >Token do webhook (não é salvo):
+        <input id="webhookToken" type="password" autocomplete="off"
+      /></label>
+    </fieldset>
+    <fieldset>
+      <legend>Ferramentas experimentais — opções comuns (sem efeito real)</legend>
       <label><input id="withTool" type="checkbox" /> incluir ferramenta</label>
       <label
         >response_mode: <input id="responseMode" placeholder="ex.: strict (vazio = não enviar)"

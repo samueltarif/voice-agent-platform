@@ -23,9 +23,19 @@ export const KNOWN_PROVIDER_METHODS = Object.freeze([
   'ai_action',
   'onsessionended',
   'pong',
+  // Observado no 1º experimento real (27/11/2026): marcações temporais por caractere.
+  'timestamp',
 ]);
 
-const SECRET_KEYS = new Set(['public_key', 'publicKey', 'api_key', 'authorization', 'token']);
+const SECRET_KEYS = new Set([
+  'public_key',
+  'publicKey',
+  'api_key',
+  'authorization',
+  'token',
+  'x-e2v-token',
+  'cookie',
+]);
 
 export function redact(value) {
   if (Array.isArray(value)) return value.map(redact);

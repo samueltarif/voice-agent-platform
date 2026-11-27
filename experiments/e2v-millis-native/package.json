@@ -7,7 +7,9 @@
   "scripts": {
     "build": "esbuild web/app.mjs --bundle --format=esm --target=es2020 --outfile=dist/app.js",
     "start": "node server.mjs",
-    "test": "node --test \"test/*.test.mjs\""
+    "test": "node --test \"test/*.test.mjs\"",
+    "webhook": "node webhook/main.mjs",
+    "timeline": "node tools/merge-timeline.mjs"
   },
   "dependencies": {
     "@millisai/web-sdk": "1.0.12"
