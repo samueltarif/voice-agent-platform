@@ -5954,19 +5954,6 @@
           "notNull": true,
           "default": 0
         },
-        "lead_speech_started_seq": {
-          "name": "lead_speech_started_seq",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "opt_out_pending": {
-          "name": "opt_out_pending",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
         "version": {
           "name": "version",
           "type": "integer",
@@ -6022,10 +6009,6 @@
         "scheduling_protocol_states_seq_chk": {
           "name": "scheduling_protocol_states_seq_chk",
           "value": "\"scheduling_protocol_states\".\"seq\" >= 0 AND \"scheduling_protocol_states\".\"version\" >= 1"
-        },
-        "scheduling_protocol_states_speech_start_chk": {
-          "name": "scheduling_protocol_states_speech_start_chk",
-          "value": "\"scheduling_protocol_states\".\"lead_speech_started_seq\" IS NULL\n        OR (\"scheduling_protocol_states\".\"lead_speech_started_seq\" > 0 AND \"scheduling_protocol_states\".\"lead_speech_started_seq\" <= \"scheduling_protocol_states\".\"seq\")"
         }
       },
       "isRLSEnabled": false
