@@ -30,7 +30,9 @@ Data: 27/11/2026. Branch `exp/e2v-millis-native`. Classificação: **[DOC]** doc
 - **Interface**: ajustes aplicados **antes** da validação final (o `voice_id` pode vir só do campo).
 - **Registros**: remoção por nome de chave, de todos os valores de `header(s)` e dos valores secretos conhecidos em qualquer texto (erros, query, eco do fornecedor, exportação).
 
-## 3. Proposta de simplificação da E2 (não aplicada)
+## 3. Proposta de simplificação da E2 (versão inicial — substituída)
+
+> Substituída pela proposta revisada da 4ª rodada: `docs/architecture/E2_SIMPLIFICATION_PROPOSAL.md` na branch da PR #183 (resumo na §6).
 
 Premissa (DEC-076): a Millis conduz o diálogo; a VAP é autoridade sobre dados, autorização, agenda, supressão e isolamento. Na integração real (Twilio → Millis), a VAP **não recebe** transcrições, turnos nem eventos de fala — só chamadas de ferramenta (webhook) e, se configurado, o relatório pós-chamada. Controles que dependem desses eventos não têm insumo em produção.
 
@@ -69,3 +71,26 @@ Agrupado para minimizar sessões e TTS (voz ElevenLabs de tarifa padrão, não A
 | C — `execute_after_message: true` + mensagem "Um momento, vou consultar." | `success` | ≈ 1 min |
 
 Total ≈ 4,5–5 min de conversa; operador ≈ 30–40 min. Custo estimado: ≈ US$ 0,40–0,60 com voz de tarifa padrão (≈ US$ 0,08/min, derivado do teste de 96 s com TTS a 1/3); ≈ US$ 1,00 se repetir a Alcione. Teto prudente US$ 2. Túnel rápido sem custo; sem Twilio. Incertezas: modelo efetivo/tarifa do LLM; retentativas da Millis em erro/timeout; repetição do aviso de inatividade.
+
+## 5. 4º experimento real (27/11/2026) — resultados
+
+| Item | Classe | Resultado |
+| :- | :- | :- |
+| Webhook POST autenticado com `session_id` e parâmetros comerciais | REAL | Confirmado novamente |
+| Inatividade nativa (`inactivity_handling` + `max_idle`) | REAL | Aviso, retomada e encerramento funcionaram; **despedida não ouvida** |
+| HTTP 500 | REAL | Agente informou corretamente falha técnica |
+| `response_mode: strict` | REAL | O agente continua elaborando as próprias respostas; **não** garante reprodução literal |
+| `execute_after_message` | REAL | Texto final 13:57:44.897Z → requisição 13:57:45.143Z → HTTP 200 13:57:45.144Z → `onfunction` 13:57:45.323Z: ordena a execução após o TEXTO; **não comprova entrega integral do áudio** |
+| Indisponibilidade, `error_200`, timeout da ferramenta | LACUNA | Sem validação real |
+
+**Correções offline desta rodada**
+- **Timeout ≠ inatividade**: `correlate` classifica o fim `timeout` por evidência — `MAX_DURATION` (duração ≥ `max_duration`), `INACTIVITY_TIMEOUT` (intervalo desde a última fala do usuário ≥ `max_idle`, com indicação de aviso observado) ou `TIMEOUT_UNCLASSIFIED`; timeout da **ferramenta** (`aborted` no webhook) é listado à parte (`tool_timeouts`). Nenhum é resultado comercial.
+- **Despedida não ouvida** [HIP]: a página parava o áudio no instante do `onsessionended`, cortando a fila de reprodução. Agora aguarda o estado `idle` do SDK (fim da reprodução) ou 6 s; o registro mostra se chegou áudio depois do fim. Limite: se a Millis fechar o socket logo após enviar o áudio, o próprio SDK 1.0.12 para o áudio ao fechar (não alterável sem reescrever o SDK). Na conexão telefônica direta o comportamento pode diferir.
+- **Relatório pós-chamada** pronto para captura: rota `POST /session/e2v-report` (token no cabeçalho ou em `?t=`, pois cabeçalhos para `session_data_webhook` não estão documentados [LACUNA]; corpo até 512 KB; registrado sem o token) e opção na página.
+- Testes: **40 aprovados**.
+
+## 6. Proposta revisada (resumo)
+
+Conexão **direta** Twilio–Millis para a E2 simplificada e o piloto; proteções da VAP na **execução das ferramentas** (oferta emitida nesta sessão + aceite citado classificado pelo classificador da PR 1 + reserva transacional verificada) e na **auditoria pós-chamada** (opt-out faltante, reserva sem aceite no histórico); **Media Bridge** só por gatilho objetivo (transcrição exigida, falhas não explicadas no piloto, relatório pós-chamada indisponível). Detalhes, revisão arquivo a arquivo e plano agrupado: `docs/architecture/E2_SIMPLIFICATION_PROPOSAL.md` (PR #183).
+
+**Próxima sessão real (uma, ≈ 2–3 min):** `unavailable`, `error_200`, timeout da ferramenta (`timeout: 5`, webhook 15 s), despedida com o cliente corrigido e captura do **relatório pós-chamada** (`session_data_webhook`).

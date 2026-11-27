@@ -66,3 +66,13 @@ export function withAgendaTool(agentConfig, options) {
   const tools = (agentConfig.tools ?? []).filter((tool) => tool?.name !== AGENDA_TOOL_NAME);
   return { ...agentConfig, tools: [...tools, buildAgendaTool(options)] };
 }
+
+export const REPORT_PATH = '/session/e2v-report';
+
+/** URL do relatório pós-chamada (`session_data_webhook`), com o token efêmero na query. */
+export function sessionReportUrl(baseUrl, token) {
+  const url = new URL(agendaWebhookUrl(baseUrl));
+  url.pathname = REPORT_PATH;
+  url.searchParams.set('t', token);
+  return url.toString();
+}

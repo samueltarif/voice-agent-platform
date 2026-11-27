@@ -78,10 +78,59 @@ test('without evidence the pairing is TIME_ONLY or NONE, never invented', () => 
   assert.equal(near.functions[0].match, 'TIME_ONLY');
 });
 
-test('a provider timeout ends the session as INACTIVITY, with no commercial outcome', () => {
-  assert.deepEqual(
-    classifySessionEnd([{ type: 'onsessionended', data: { data: { status: 'timeout' } } }]),
-    { reason: 'INACTIVITY_TIMEOUT', provider_status: 'timeout', commercial_outcome: null },
-  );
+const start = (maxIdle, maxDuration, wall = at(0)) => ({
+  origin: 'LOCAL',
+  type: 'start',
+  wall,
+  data: {
+    agent: {
+      max_idle: maxIdle,
+      max_duration: maxDuration,
+      inactivity: { message: 'Você ainda está aí?' },
+    },
+  },
+});
+const ended = (wall, status = 'timeout') => ({
+  type: 'onsessionended',
+  wall,
+  data: { data: { status } },
+});
+
+test('regression (4th round): a provider timeout is NOT automatically inactivity', () => {
+  const inactive = classifySessionEnd([
+    start(14, 150),
+    { type: 'ontranscript', wall: at(10), data: { data: 'oi' } },
+    { type: 'onresponsetext', wall: at(17), data: { data: 'Você ainda está aí?' } },
+    ended(at(24)),
+  ]);
+  assert.equal(inactive.reason, 'INACTIVITY_TIMEOUT');
+  assert.equal(inactive.idle_gap_ms, 14_000);
+  assert.equal(inactive.inactivity_prompt_seen, true);
+  assert.equal(inactive.commercial_outcome, null);
+
+  const maxDuration = classifySessionEnd([
+    start(14, 30),
+    { type: 'ontranscript', wall: at(29), data: {} },
+    ended(at(30)),
+  ]);
+  assert.equal(maxDuration.reason, 'MAX_DURATION');
+
+  const unexplained = classifySessionEnd([
+    start(14, 150),
+    { type: 'ontranscript', wall: at(20), data: {} },
+    ended(at(25)),
+  ]);
+  assert.equal(unexplained.reason, 'TIMEOUT_UNCLASSIFIED');
+  assert.equal(classifySessionEnd([ended(at(5))]).reason, 'TIMEOUT_UNCLASSIFIED');
+  assert.equal(classifySessionEnd([ended(at(5), 'user_hangup')]).reason, 'user_hangup');
   assert.equal(classifySessionEnd([]).reason, 'UNKNOWN');
+});
+
+test('a webhook (tool) timeout is reported apart from the session end', () => {
+  const result = correlate(page([ended(at(40))]), [
+    { wall: at(10), kind: 'request', id: 'slow', body: {} },
+    { wall: at(15), kind: 'aborted', id: 'slow', after_ms: 5000 },
+  ]);
+  assert.deepEqual(result.tool_timeouts, ['slow']);
+  assert.notEqual(result.session_end.reason, 'INACTIVITY_TIMEOUT');
 });

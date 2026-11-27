@@ -95,13 +95,66 @@ function bestPair(fn, pairs, used) {
   return best;
 }
 
-/** Fim da sessão: `timeout` é INATIVIDADE, nunca desinteresse comercial. */
+const TOLERANCE_MS = 2_000;
+
+function sessionLimits(entries) {
+  const start = entries.find((e) => e.origin === 'LOCAL' && e.type === 'start');
+  const agent = start?.data?.agent ?? {};
+  return {
+    startWall: start?.wall ?? null,
+    maxIdle: agent.max_idle ?? null,
+    maxDuration: agent.max_duration ?? null,
+    prompt: agent.inactivity?.message ?? null,
+  };
+}
+
+function lastUserActivity(entries, before) {
+  const user = entries.filter((e) => e.type === 'ontranscript' && e.wall <= before);
+  return user.at(-1)?.wall ?? null;
+}
+
+function promptSeen(entries, prompt, after) {
+  if (!prompt) return false;
+  return entries.some(
+    (e) =>
+      e.type === 'onresponsetext' && e.wall >= after && JSON.stringify(e.data).includes(prompt),
+  );
+}
+
+/**
+ * Fim da sessão (4ª rodada): `timeout` do fornecedor NÃO é automaticamente
+ * inatividade. Classifica por evidência: duração ≥ `max_duration` ⇒
+ * `MAX_DURATION`; intervalo desde a última fala do usuário ≥ `max_idle` ⇒
+ * `INACTIVITY_TIMEOUT`; senão `TIMEOUT_UNCLASSIFIED`. Nenhum desses é
+ * resultado comercial.
+ */
 export function classifySessionEnd(entries) {
   const ended = [...entries].reverse().find((e) => e.type === 'onsessionended');
   if (!ended) return { reason: 'UNKNOWN', commercial_outcome: null };
   const status = first([ended.data?.data, ended.data?.payload, ended.data], ['status', 'reason']);
-  const reason = status === 'timeout' ? 'INACTIVITY_TIMEOUT' : String(status ?? 'ENDED');
-  return { reason, provider_status: status ?? null, commercial_outcome: null };
+  const base = { provider_status: status ?? null, commercial_outcome: null };
+  if (status !== 'timeout') return { reason: String(status ?? 'ENDED'), ...base };
+  const limits = sessionLimits(entries);
+  const endAt = Date.parse(ended.wall);
+  const elapsed = limits.startWall ? endAt - Date.parse(limits.startWall) : null;
+  if (
+    limits.maxDuration &&
+    elapsed !== null &&
+    elapsed >= limits.maxDuration * 1000 - TOLERANCE_MS
+  ) {
+    return { reason: 'MAX_DURATION', elapsed_ms: elapsed, ...base };
+  }
+  const lastUser = lastUserActivity(entries, ended.wall) ?? limits.startWall;
+  const gap = lastUser ? endAt - Date.parse(lastUser) : null;
+  if (limits.maxIdle && gap !== null && gap >= limits.maxIdle * 1000 - TOLERANCE_MS) {
+    return {
+      reason: 'INACTIVITY_TIMEOUT',
+      idle_gap_ms: gap,
+      inactivity_prompt_seen: promptSeen(entries, limits.prompt, lastUser),
+      ...base,
+    };
+  }
+  return { reason: 'TIMEOUT_UNCLASSIFIED', idle_gap_ms: gap, elapsed_ms: elapsed, ...base };
 }
 
 export function correlate(pageExport, webhookEntries) {
@@ -129,6 +182,8 @@ export function correlate(pageExport, webhookEntries) {
     });
   return {
     functions,
+    // Timeout da FERRAMENTA (cliente desistiu do webhook) é outro evento, nunca fim de sessão.
+    tool_timeouts: webhookEntries.filter((e) => e.kind === 'aborted').map((e) => e.id),
     unmatched_webhook_requests: pairs
       .filter((p) => !used.has(p.request.id))
       .map((p) => p.request.id),

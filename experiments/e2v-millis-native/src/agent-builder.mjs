@@ -45,6 +45,8 @@ export function describeAgent(agent) {
     language: agent.language ?? null,
     inactivity: agent.flow?.inactivity_handling ?? null,
     max_idle: agent.session_timeout?.max_idle ?? null,
+    max_duration: agent.session_timeout?.max_duration ?? null,
+    session_report: Boolean(agent.session_data_webhook),
     tools: (agent.tools ?? []).map((tool) => ({
       name: tool.name,
       method: tool.method ?? null,

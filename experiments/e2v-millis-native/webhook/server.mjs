@@ -19,6 +19,9 @@ import { safeHeaders } from './request-log.mjs';
 import { SCENARIOS, scenarioResponse } from './scenarios.mjs';
 
 export const BODY_LIMIT = 16 * 1024;
+/** Relatório pós-chamada (histórico inteiro): limite maior. */
+export const REPORT_BODY_LIMIT = 512 * 1024;
+export const REPORT_PATH = '/session/e2v-report';
 
 export function newWebhookToken() {
   return randomBytes(24).toString('base64url');
@@ -30,13 +33,13 @@ const digest = (value) =>
     .digest();
 const sameToken = (given, expected) => timingSafeEqual(digest(given), digest(expected));
 
-function readBody(req) {
+function readBody(req, limit = BODY_LIMIT) {
   return new Promise((resolve, reject) => {
     let size = 0;
     const chunks = [];
     req.on('data', (chunk) => {
       size += chunk.length;
-      if (size > BODY_LIMIT) {
+      if (size > limit) {
         reject(Object.assign(new Error('corpo grande demais'), { status: 413 }));
         req.destroy();
         return;
@@ -95,10 +98,34 @@ async function admit(req, res, ctx, base) {
   }
 }
 
+/**
+ * Relatório pós-chamada da Millis (`session_data_webhook`, [DOC]: POST com o
+ * histórico e as chamadas de função). Cabeçalhos customizados para esse
+ * webhook não estão documentados [LACUNA]; aceita o token no cabeçalho OU no
+ * parâmetro `t` da URL (token efêmero, removido do registro pelo valor).
+ */
+async function sessionReport(req, res, ctx, base) {
+  const given =
+    req.headers[TOKEN_HEADER] ?? new URL(req.url, 'http://127.0.0.1').searchParams.get('t');
+  if (req.method !== 'POST' || !sameToken(given, ctx.token)) {
+    ctx.log.write('rejected', { ...base, status: 401 });
+    return reply(res, 401, { status: 'UNAUTHORIZED' });
+  }
+  try {
+    const parsed = parseJson(await readBody(req, REPORT_BODY_LIMIT));
+    ctx.log.write('session_report', { ...base, body_json: parsed.ok, body: parsed.value });
+    return reply(res, 200, { status: 'RECEIVED' });
+  } catch (error) {
+    ctx.log.write('rejected', { ...base, status: error.status ?? 400 });
+    return reply(res, error.status ?? 400, { status: 'BAD_REQUEST' });
+  }
+}
+
 async function handle(req, res, ctx) {
   const id = randomUUID();
   const path = new URL(req.url, 'http://127.0.0.1').pathname;
   const base = { id, method: req.method, path, headers: safeHeaders(req.headers) };
+  if (path === REPORT_PATH) return sessionReport(req, res, ctx, base);
   const parsed = await admit(req, res, ctx, base);
   if (!parsed) return;
   const scenario = ctx.scenario();

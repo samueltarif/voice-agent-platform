@@ -16,7 +16,7 @@ import {
 import { withExperimentalTool } from '../src/experimental-tool.mjs';
 import { buildFinalAgentConfig, describeAgent } from '../src/agent-builder.mjs';
 import { redact } from '../src/redaction.mjs';
-import { withAgendaTool } from '../src/agenda-tool.mjs';
+import { sessionReportUrl, withAgendaTool } from '../src/agenda-tool.mjs';
 
 const $ = (id) => document.getElementById(id);
 let client = null;
@@ -73,6 +73,12 @@ function buildAgent(secrets) {
       withAgendaTool(c, { baseUrl: $('webhookBase').value.trim(), token, ...toolOptions() }),
     );
   }
+  if ($('withReport').checked) {
+    const token = $('webhookToken').value;
+    secrets.push(token);
+    const url = sessionReportUrl($('webhookBase').value.trim(), token);
+    tools.push((c) => ({ ...c, session_data_webhook: url }));
+  }
   return buildFinalAgentConfig(agent, {
     overrides: {
       llmModel: $('llmModel').value,
@@ -123,9 +129,27 @@ async function start() {
   $('publicKey').value = '';
   $('webhookToken').value = '';
   wireDerived(client);
-  client.on('onsessionended', () => stop('provider_session_ended'));
+  // 4ª rodada: a despedida por inatividade não foi ouvida. Parar o áudio no
+  // instante do `onsessionended` corta o que ainda está na fila; aguarda-se o
+  // fim da reprodução (estado `idle` do SDK) ou 6 s. O registro mostra se
+  // chegou áudio depois do fim (rajada após `onsessionended`).
+  client.on('onsessionended', () => stopAfterPlayback('provider_session_ended'));
   client.on('onclose', () => stop('ws_closed'));
   await client.start(agent, meta, $('metaInPrompt').checked);
+}
+
+function stopAfterPlayback(reason) {
+  const current = client;
+  if (!current) return;
+  log.record('LOCAL', 'awaiting_playback', { reason, max_ms: 6000 });
+  let done = false;
+  const finish = (why) => {
+    if (done || client !== current) return;
+    done = true;
+    stop(`${reason}:${why}`);
+  };
+  current.on('onagentstate', (state) => state === 'idle' && finish('playback_idle'));
+  setTimeout(() => finish('grace_elapsed'), 6000);
 }
 
 async function stop(reason = 'operator') {

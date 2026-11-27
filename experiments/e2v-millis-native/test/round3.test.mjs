@@ -146,3 +146,20 @@ test('page export never contains the public key or webhook token, even inside th
   assert.equal(exported.includes(publicKey), false);
   assert.equal(exported.includes(TOKEN), false);
 });
+
+test('post-call report URL carries the ephemeral token only in the query and is scrubbed from logs', async () => {
+  const { sessionReportUrl } = await import('../src/agenda-tool.mjs');
+  const url = sessionReportUrl('https://x.example.com', TOKEN);
+  assert.equal(new URL(url).pathname, '/session/e2v-report');
+  assert.equal(new URL(url).searchParams.get('t'), TOKEN);
+  const log = new EventLog();
+  log.addSecret(TOKEN);
+  log.frame(
+    'out',
+    JSON.stringify({
+      method: 'initiate',
+      data: { agent: { agent_config: { session_data_webhook: url } } },
+    }),
+  );
+  assert.equal(JSON.stringify(log.export()).includes(TOKEN), false);
+});

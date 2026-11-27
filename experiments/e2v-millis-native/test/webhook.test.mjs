@@ -12,7 +12,7 @@ async function listen(server) {
 async function setup({ timeoutMs = 50, acceptGet = false } = {}) {
   const token = newWebhookToken();
   const state = { scenario: 'success' };
-  const log = createRequestLog();
+  const log = createRequestLog({ secrets: [token] });
   const hook = createWebhookServer({
     token,
     scenario: () => state.scenario,
@@ -196,4 +196,33 @@ test('timeline merges page and webhook logs by wall clock', () => {
     mergeTimeline(page, hook).map((e) => e.type),
     ['ontranscript', 'request', 'onresponsetext'],
   );
+});
+
+test('post-call report: token via header or query, logged without the token, large body accepted', async () => {
+  const s = await setup();
+  try {
+    const report = { session_id: 'ms-1', chat: '[{"role":"user","content":"não me ligue mais"}]' };
+    const viaQuery = await fetch(`${s.url}/session/e2v-report?t=${s.token}`, {
+      method: 'POST',
+      body: JSON.stringify(report),
+    });
+    assert.equal(viaQuery.status, 200);
+    const viaHeader = await fetch(`${s.url}/session/e2v-report`, {
+      method: 'POST',
+      headers: { 'x-e2v-token': s.token },
+      body: JSON.stringify({ chat: 'x'.repeat(100_000) }),
+    });
+    assert.equal(viaHeader.status, 200);
+    assert.equal(
+      (await fetch(`${s.url}/session/e2v-report?t=wrong`, { method: 'POST', body: '{}' })).status,
+      401,
+    );
+    assert.equal((await fetch(`${s.url}/session/e2v-report?t=${s.token}`)).status, 401);
+    const reports = s.log.entries.filter((e) => e.kind === 'session_report');
+    assert.equal(reports.length, 2);
+    assert.equal(reports[0].body.session_id, 'ms-1');
+    assert.equal(JSON.stringify(s.log.entries).includes(s.token), false);
+  } finally {
+    s.close();
+  }
 });
