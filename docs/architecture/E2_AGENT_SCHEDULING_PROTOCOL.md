@@ -193,7 +193,7 @@ Substitui, para a integração real, os controles de fala das §§5, 10 e 11 (ma
 
 **Fluxo.** `scheduling.find_slots` (inalterada: oferta da E1, lista com revisão, A5) → `scheduling.request_booking({ listRevision, option, leadConfirmation })` registra intenção `PENDING_EVIDENCE` (oferta desta sessão, vigente, sem opt-out, telefone não suprimido; um novo pedido substitui o anterior) → fim da chamada → relatório pós-chamada (canal `SESSION_REPORT` do pipeline de webhooks) → `DrizzlePostCallReconciliationService.ingest`: registro idempotente (digest) → avaliação PURA do histórico (`evaluatePostCallReport`) → efeitos → fechamento `RECONCILED` ou `NEEDS_REVIEW`.
 
-**Aceite.** Só com: chamada da ferramenta no histórico para a MESMA lista/opção; ordem provada (`TIMELINE`); última fala do lead antes dela = `AFFIRM` do classificador da PR 1; fala do agente imediatamente anterior propondo afirmativamente o dia da semana e a hora da oferta (`proposesSlot`, §12.1 A1); nenhuma fala posterior contraditória. Recusa ⇒ `REJECTED`; qualquer dúvida ⇒ `NEEDS_REVIEW`. Aceite ⇒ `bookOfferedSlot` da E1 com chave `booking-intent:<id>`, intenção travada no gancho (I) e marcada `BOOKED` na mesma transação; oferta vencida, horário ocupado ou lead bloqueado ⇒ revisão, nada reservado.
+**Aceite.** Só com: chamada da ferramenta no histórico para a MESMA lista/opção; ordem provada (`TIMELINE`); última fala do lead antes dela = `AFFIRM` do classificador da PR 1; fala do agente imediatamente anterior terminando com a pergunta canônica de confirmação da oferta (`endsWithCanonicalReadback`, §12.2 A1); nenhuma fala posterior contraditória. Recusa ⇒ `REJECTED`; qualquer dúvida ⇒ `NEEDS_REVIEW`. Aceite ⇒ `bookOfferedSlot` da E1 com chave `booking-intent:<id>`, intenção travada no gancho (I) e marcada `BOOKED` na mesma transação; oferta vencida, horário ocupado ou lead bloqueado ⇒ revisão, nada reservado.
 
 **Opt-out.** Ferramenta: supressão canônica imediata (`TOOL`), intenção pendente `CANCELED`. Histórico: pedido sem ferramenta ⇒ supressão (`POST_CALL`); menção ambígua ⇒ revisão; ferramenta sem pedido no histórico ⇒ supressão mantida e revisão.
 
@@ -227,3 +227,19 @@ As regras acima continuam valendo; as correções as **estreitam** (comportament
 | **B1** documentação | Pendências acima corrigidas. |
 
 Testes: `scheduling-audit184-booking.integration.test.ts` e `scheduling-audit184-barrier.integration.test.ts` (estado conjunto: reunião, intenção, motivo, supressão, histórico comercial e próximo claim; pausas determinísticas por orquestração das etapas e espera explícita pela trava), mais as regras puras em `post-call-evaluation.test.ts` e o adaptador.
+
+### 12.2 Correções estruturais da reauditoria Codex (HEAD auditado `1761eeb`)
+
+Princípio: nenhum interpretador de linguagem natural cada vez maior; na falta de evidência inequívoca, revisão humana. As regras do §12.1 para A7, M1, M2 e B1 (aprovadas) não mudam.
+
+| Achado | Causa estrutural | Correção |
+| :- | :- | :- |
+| **A1** "sim" respondendo a outra pergunta ("Posso ligar…", "9 da noite") | interpretar texto livre com expressões regulares | Removida a regra por regex (`proposesSlot`). O aceite só é reconhecido se a fala do agente **terminar com a pergunta canônica** que a própria VAP gera (`renderReadbackSpeech` + `renderSlotLabel`, com fuso), devolvida por `find_slots` em `confirmationQuestion`. Comparação ignora só caixa, acentos, pontuação e espaços; qualquer outra redação ⇒ revisão. |
+| **A3** fala perdida ou truncada decidindo | integridade só no relatório inteiro | Integridade **por fala**: fala cortada leva `truncated` e nunca sustenta opt-out (vira menção ⇒ revisão); fala de usuário sem texto legível (ex.: `text` no lugar de `content`) é perda (`SPEECH_UNREADABLE` ⇒ `INCOMPLETE`). |
+| **A5** janela entre duas consultas do claim; encerrada sem sessão | duas leituras separadas; reconciliação chaveada pela sessão | Ocupação decidida numa **única consulta** (um retrato) sob a trava do telefone: reconciliação aberta, tentativa em curso e órfã. `post_call_reconciliations` passa a ser chaveada pela **tentativa** (sessão opcional, única quando presente); tentativa da E2 encerrada **sem** sessão é órfã, adotada como revisão `SESSION_NOT_BOUND` e resolvível pela tentativa (`resolveReview({ attemptId })`). |
+| **A4** queda entre o registro do conflito e a retenção da intenção | retenção dependia de uma 2ª transação | Retenção recuperável: qualquer parada com a reconciliação em revisão retém a intenção pendente; sem reentrega, a decisão humana (`resolveReview`, I → R) encerra a intenção pendente (`CANCELED:REVIEW_RESOLVED`). `INTENT_PENDING` deixou de existir. |
+| **Relatório tardio** perdendo opt-out explícito | parada antes da avaliação | Em conflito ou relatório depois de decisão humana: decisões anteriores preservadas, mas o opt-out **explícito de fala íntegra** é aplicado (idempotente). |
+| **A2** resposta anunciando pedido inexistente | resposta fixa | `request_booking` responde `REQUEST_UNDER_REVIEW` quando nada foi registrado para a opção (reentrega ambígua ou sessão em revisão). |
+| **A6** lista publicada depois do selo | selo só na 1ª transação | Selo conferido sob a trava R em **todas** as transações de `find_slots` (pré-validação, publicação e descarte da lista). |
+
+Testes: `scheduling-reaudit184.integration.test.ts` (cenários concretos do relatório, pausas determinísticas: inserção não confirmada da adoção durante o claim, queda simulada entre as duas transações do conflito, relatório fechando entre as transações de `find_slots`), regras puras em `post-call-evaluation.test.ts` e o adaptador.
