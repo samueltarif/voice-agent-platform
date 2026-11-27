@@ -167,6 +167,7 @@ A VAP mantém a forma **normalizada e neutra** (`packages/contracts/src/scheduli
 | Ferramentas | `assistant.tool_calls` ⇒ `TOOL_CALL` logo após o texto da mesma mensagem; argumentos = JSON decodificado; nome mapeado por tabela opcional (nome publicado na Millis → nome VAP; sem mapa, o nome fica como veio e a avaliação não reconhece a chamada ⇒ revisão) |
 | Resultados | mensagens `tool` **nunca** viram fala; só conferem o pareamento `tool_call_id`/nome |
 | Conferência cruzada | `function_calls` deve repetir as chamadas do `chat` na mesma ordem, nome e argumentos (ignorando o `session_id` injetado, que deve ser o da sessão) |
+| Integridade (auditoria #184 A3) | `INCOMPLETE` quando uma fala pode ter sido perdida (texto truncado, > 500 entradas, mensagem fora do formato, argumentos ilegíveis); separado da ordem |
 | Ordem | `TIMELINE` só sem nenhum desvio; qualquer desvio (papel desconhecido, conteúdo não textual, resultado sem chamada, id repetido, argumentos inválidos, `function_calls` ausente/divergente/de outra sessão, texto > 4000, > 500 entradas) ⇒ `UNKNOWN` (nenhuma decisão dependente de ordem; revisão) |
 | Fim | `error_message` ⇒ `ERROR`; `call_status: "timeout"` ⇒ `TIMEOUT_UNSPECIFIED` (nunca inatividade nem desinteresse, mesmo quando a última fala é a mensagem de inatividade); demais valores, inclusive os documentados e não observados (`user-ended`, `agent-ended`…) ⇒ `UNKNOWN` |
 | Duração e momento | `duration` em [0, 86400] senão nulo; `call_metrics/call_end_ts` (ou `ts`) plausível, senão o instante de recebimento |
