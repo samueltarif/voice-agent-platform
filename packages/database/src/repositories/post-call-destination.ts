@@ -13,7 +13,9 @@ import type { DatabaseExecutor } from './database-executor.js';
  * serializa os claims do mesmo destino):
  * - outra tentativa do mesmo tenant e telefone já ENVIADA e não terminada
  *   (`ORIGINATION_SENT`, `ORIGINATION_ACCEPTED`, `OUTCOME_UNKNOWN`,
- *   `RECONCILIATION_PENDING`) ocupa o destino — o `SEND_STARTED` da primeira
+ *   `RECONCILIATION_PENDING`) ocupa o destino quando uma das duas é de
+ *   agente com ferramentas da E2 (escopo dos achados; o comportamento das
+ *   campanhas legadas, sem reconciliação pós-chamada, não muda) — o `SEND_STARTED` da primeira
  *   é gravado na mesma transação do seu claim, então duas campanhas obtêm no
  *   máximo um `CLAIMED`; rejeição/não originação liberam o destino;
  * - tentativa ENCERRADA de agente com ferramentas da E2, com sessão e sem
@@ -27,12 +29,15 @@ const E2_TOOLS: SQL = sql.raw(
     .join(',')}]`,
 );
 
-/** A versão do agente da tentativa `a` publica ferramentas da E2? */
-export const E2_AGENT_VERSION: SQL = sql`EXISTS (
+/** A versão de agente (id, tenant) publica ferramentas da E2? */
+const e2Version = (versionId: SQL, organizationId: SQL): SQL => sql`EXISTS (
   SELECT 1 FROM agent_versions v
-  WHERE v.id = a.agent_version_id AND v.organization_id = a.organization_id
+  WHERE v.id = ${versionId} AND v.organization_id = ${organizationId}
     AND jsonb_typeof(v.configuration -> 'tools') = 'array'
     AND (v.configuration -> 'tools') ?| ${E2_TOOLS})`;
+
+/** A versão do agente da tentativa `a` publica ferramentas da E2? */
+export const E2_AGENT_VERSION: SQL = e2Version(sql`a.agent_version_id`, sql`a.organization_id`);
 
 /** Sessão encerrada de agente da E2 ainda sem reconciliação (tentativa `a`). */
 export const ORPHAN_E2_SESSION: SQL = sql`(a.state = 'CLOSED' AND a.call_session_id IS NOT NULL
@@ -46,6 +51,7 @@ export async function destinationOccupancy(
   executor: DatabaseExecutor,
   row: CallAttemptEntity,
 ): Promise<DestinationOccupancy | null> {
+  const mine = e2Version(sql`${row.agentVersionId}::uuid`, sql`${row.organizationId}::uuid`);
   const result = await executor.execute(sql`
     SELECT a.state AS state
     FROM call_attempts a
@@ -53,7 +59,8 @@ export async function destinationOccupancy(
     JOIN outbound_call_jobs mine ON mine.id = ${row.jobId} AND mine.organization_id = ${row.organizationId}
     WHERE a.organization_id = ${row.organizationId} AND a.id <> ${row.id}
       AND j.destination_phone = mine.destination_phone
-      AND (a.state IN ('ORIGINATION_SENT', 'ORIGINATION_ACCEPTED', 'OUTCOME_UNKNOWN', 'RECONCILIATION_PENDING')
+      AND ((a.state IN ('ORIGINATION_SENT', 'ORIGINATION_ACCEPTED', 'OUTCOME_UNKNOWN', 'RECONCILIATION_PENDING')
+          AND (${E2_AGENT_VERSION} OR ${mine}))
         OR ${ORPHAN_E2_SESSION})
     ORDER BY (a.state = 'CLOSED') ASC
     LIMIT 1`);

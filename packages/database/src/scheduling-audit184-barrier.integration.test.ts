@@ -91,7 +91,9 @@ describe('audit #184: incomplete history, destination occupancy, outcomes, revie
   });
 
   it('A5: two campaigns claiming the same phone at once — at most one CLAIMED', async () => {
-    const tenant = fx.tenantA;
+    const e2 = await setup(); // agente com as ferramentas da E2
+    await markE2AgentVersion(tdb.db, e2.tenant);
+    const tenant = e2.tenant;
     const phone = `+55119${String(Math.floor(Math.random() * 1e8)).padStart(8, '0')}`;
     for (let round = 0; round < 3; round += 1) {
       const scopes = await Promise.all(
@@ -142,8 +144,9 @@ describe('audit #184: incomplete history, destination occupancy, outcomes, revie
     expect(await nextClaim(tdb.db, s)).toBe('CLAIMED');
   });
 
-  it('A5: a closed session of an agent without E2 tools does not hold the phone (no regression)', async () => {
+  it('A5: agents without E2 tools keep the legacy behaviour (no regression)', async () => {
     const s = await setup();
+    expect(await nextClaim(tdb.db, s)).toBe('CLAIMED'); // em curso, mas sem reconciliação pós-chamada
     await s.endCall();
     expect(await nextClaim(tdb.db, s)).toBe('CLAIMED');
   });
