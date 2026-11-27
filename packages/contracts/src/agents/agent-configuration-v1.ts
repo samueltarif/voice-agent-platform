@@ -12,6 +12,9 @@ export const CANONICAL_TOOL_NAMES = [
   // a publicação exige o par completo e agenda válida (`evaluateSchedulingToolset`).
   'scheduling.find_slots',
   'scheduling.confirm_offer',
+  // E2 PR 3 (DEC-075, D2/D5): resultado comercial e opt-out pelo agente.
+  'lead.record_outcome',
+  'lead.record_opt_out',
 ] as const;
 export type CanonicalToolName = (typeof CANONICAL_TOOL_NAMES)[number];
 

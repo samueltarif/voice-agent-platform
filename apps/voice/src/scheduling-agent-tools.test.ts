@@ -12,7 +12,7 @@ import {
   createPublishedVersionToolAuthorizer,
 } from './published-version-toolset.js';
 import {
-  createSchedulingReplyGuard,
+  createSchedulingReplyFilter,
   createSchedulingToolDefinitions,
   SCHEDULING_CONTEXT_MISMATCH_MESSAGE,
   schedulingScopeForGrant,
@@ -67,6 +67,9 @@ function recordingPort() {
       throw new Error('not used');
     },
     recordLeadUtterance: async () => {
+      throw new Error('not used');
+    },
+    authorizeOutput: async () => {
       throw new Error('not used');
     },
   };
@@ -166,24 +169,29 @@ describe('E2 PR2 — scheduling tools bound to a legitimate grant', () => {
     expect(calls).toHaveLength(0);
   });
 
-  it('the reply guard lets the model talk about the booking only after a verified BOOKED', async () => {
+  it('the reply filter never unlocks, not even after a verified BOOKED (no "booked" boolean)', async () => {
     const grant = await issueTestToolGrant({
       organizationId: ORG,
       snapshot: snapshotWith([...BOTH]),
     });
-    const guard = createSchedulingReplyGuard();
-    let next: ConfirmOfferResult = { status: 'UNKNOWN', mayAnnounceBooking: false, speech: 'x' };
-    const port = { ...recordingPort().port, confirmOffer: async () => next };
-    const [, confirmOffer] = createSchedulingToolDefinitions(grant, port, guard);
-    const context = buildPublishedVersionToolExecutionContext(grant);
-    const say = (text: string) => {
-      const filter = guard.createReplyFilter();
-      return filter.push(text) + filter.flush();
+    const booked: ConfirmOfferResult = {
+      status: 'BOOKED',
+      recovered: false,
+      mayAnnounceBooking: true,
+      speech: 'x',
     };
-    await confirmOffer.execute({}, context);
-    expect(say('Sua reunião está marcada! Até logo.')).toBe(' Até logo.');
-    next = { status: 'BOOKED', recovered: false, mayAnnounceBooking: true, speech: 'x' };
-    await confirmOffer.execute({}, context);
-    expect(say('Sua reunião está marcada!')).toBe('Sua reunião está marcada!');
+    const port = { ...recordingPort().port, confirmOffer: async () => booked };
+    const [, confirmOffer] = createSchedulingToolDefinitions(grant, port);
+    const say = (text: string) => {
+      const filter = createSchedulingReplyFilter();
+      return (filter.push(text) + filter.flush()).trim();
+    };
+    expect(say('Sua reunião está marcada! Até logo.')).toBe('Até logo.');
+    expect(await confirmOffer.execute({}, buildPublishedVersionToolExecutionContext(grant))).toBe(
+      booked,
+    );
+    expect(say('Sua reunião está marcada!')).toBe('');
+    expect(say('Seu horário já consta na agenda.')).toBe('');
+    expect(say('Tenho outros horários amanhã.')).toBe('');
   });
 });

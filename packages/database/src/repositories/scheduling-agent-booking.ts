@@ -126,8 +126,8 @@ async function book(deps: BookingDeps, ctx: BookingContext): Promise<ConfirmOffe
 /** Leitura pontual do estado: o que NÃO pode virar reserva nova. */
 function preBookingRefusal(row: SchedulingProtocolStateEntity): SchedulingRefusal | null {
   const { phase, authorization } = row.state;
+  if (phase === 'OPTED_OUT' || row.optOutRecordedAt) return 'OPT_OUT_REQUESTED';
   if (row.optOutPending) return 'OPT_OUT_CLARIFICATION_PENDING';
-  if (phase === 'OPTED_OUT') return 'OPT_OUT_REQUESTED';
   if (phase === 'CLOSED') return 'SESSION_NOT_ACTIVE';
   return phase === 'AUTHORIZED' && authorization ? null : 'NOT_AUTHORIZED';
 }
@@ -153,8 +153,10 @@ export async function confirmOffer(
   const leadId = resolved.scheduling.leadId;
   const row = await readProtocolRow(deps.db, binding);
   if (!row) return refusedResult('NOT_AUTHORIZED');
-  if (row.state.phase === 'BOOKED') return recoverBooked(deps, { binding, leadId, row });
+  // A3: depois de opt-out (ou com possível opt-out pendente) nem a recuperação é anunciada.
   const refusal = preBookingRefusal(row);
+  const recoverable = row.state.phase === 'BOOKED' && refusal === 'NOT_AUTHORIZED';
+  if (recoverable) return recoverBooked(deps, { binding, leadId, row });
   if (refusal) return refusedResult(refusal);
   return book(deps, { binding, leadId, authorization: row.state.authorization! });
 }

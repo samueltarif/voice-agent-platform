@@ -44,4 +44,16 @@ export const AVAILABLE_CANONICAL_TOOLS: readonly CanonicalToolItem[] = [
     description:
       'Marca a reunião só depois da releitura do horário e do aceite explícito registrados pelo servidor. Exige também a consulta de horários. Ainda não é usada em chamadas reais.',
   },
+  {
+    name: 'lead.record_outcome',
+    label: 'Resultado Comercial da Ligação',
+    description:
+      'Registra contatado, qualificado ou sem interesse; nunca reabre um lead que pediu para não ser contatado nem mexe em reunião marcada. Ainda não é usada em chamadas reais.',
+  },
+  {
+    name: 'lead.record_opt_out',
+    label: 'Pedido para Não Receber Ligações',
+    description:
+      'Registra a supressão do telefone. O pedido dito pelo cliente é gravado pelo servidor mesmo sem esta ferramenta. Ainda não é usada em chamadas reais.',
+  },
 ];

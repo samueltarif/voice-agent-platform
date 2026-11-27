@@ -118,3 +118,13 @@ export {
   setCampaignSchedulingCalendar,
   type BoundCallSession,
 } from './scheduling-session-fixtures.js';
+// E2 PR 2/3 (DEC-075): consultas do harness offline do agendamento pelo agente.
+export {
+  createAgentScenario,
+  leadStatusOf,
+  leadStatusOrigins,
+  meetingsOfLead,
+  protocolPhase,
+  SchedulingHarness,
+  type AgentScenario,
+} from './scheduling-agent-harness.js';

@@ -12,6 +12,7 @@ import type { SchedulingEventDeps } from './scheduling-agent-events.js';
 import {
   gate,
   OFFER_REFUSAL,
+  voidLists,
   offered,
   queryKeyOf,
   refused,
@@ -74,6 +75,28 @@ function issueList(
   });
 }
 
+/**
+ * A5: consulta NOVA sem vagas, ou recusada, nunca deixa valendo a lista e a
+ * autorização anteriores — descartadas sob a trava S (o retry técnico da
+ * MESMA consulta vigente continua devolvendo a lista, pelo `gate`).
+ */
+function voidPrevious(
+  deps: OfferDeps,
+  input: {
+    readonly binding: SchedulingBinding;
+    readonly gate: Omit<GateInput, 'now'>;
+    readonly result: FindSlotsResult;
+  },
+): Promise<FindSlotsResult> {
+  return deps.db.transaction(async (tx) => {
+    const locked = await lockProtocol(tx, input.binding);
+    const post = await gate(tx, locked, { ...input.gate, now: deps.clock() });
+    if (post.done) return post.done;
+    const applied = await voidLists(tx, locked!, deps.clock());
+    return applied.step.ignored ? refused('BOOKING_IN_FLIGHT') : input.result;
+  });
+}
+
 export async function findSlots(
   deps: OfferDeps,
   scope: SchedulingAgentScope,
@@ -90,8 +113,9 @@ export async function findSlots(
   });
   if (!timezone) return refused('SCHEDULING_UNAVAILABLE');
   const queryKey = queryKeyOf(scheduling.calendarId, args);
+  const leadId = scheduling.leadId;
   const pre = await deps.db.transaction(async (tx) =>
-    gate(tx, await lockProtocol(tx, binding), { queryKey, timezone, now: deps.clock() }),
+    gate(tx, await lockProtocol(tx, binding), { queryKey, timezone, leadId, now: deps.clock() }),
   );
   if (pre.done) return pre.done;
   const now = deps.clock();
@@ -105,9 +129,20 @@ export async function findSlots(
     now,
     ttlMinutes: OFFER_TTL_MINUTES,
   });
-  if (outcome.kind !== 'OFFERED') return refused(OFFER_REFUSAL[outcome.kind]);
-  if (outcome.offers.length === 0) {
-    return { status: 'NO_AVAILABILITY', speech: SCHEDULING_SPEECH.NO_AVAILABILITY };
+  const gateInput = { queryKey, timezone, leadId };
+  if (outcome.kind !== 'OFFERED') {
+    return voidPrevious(deps, {
+      binding,
+      gate: gateInput,
+      result: refused(OFFER_REFUSAL[outcome.kind]),
+    });
   }
-  return issueList(deps, { binding, offers: outcome.offers, gate: { queryKey, timezone } });
+  if (outcome.offers.length === 0) {
+    const empty: FindSlotsResult = {
+      status: 'NO_AVAILABILITY',
+      speech: SCHEDULING_SPEECH.NO_AVAILABILITY,
+    };
+    return voidPrevious(deps, { binding, gate: gateInput, result: empty });
+  }
+  return issueList(deps, { binding, offers: outcome.offers, gate: gateInput });
 }

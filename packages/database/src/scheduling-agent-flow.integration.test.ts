@@ -114,15 +114,16 @@ describe('E2 PR2: offer, contextual confirmation and booking (offline)', () => {
     });
     // O interlocutor fala POR CIMA da releitura (antes da entrega completa).
     expect((await harness.leadSays('Sim.')).ignored).toBe('UTTERANCE_BEFORE_DELIVERY');
-    await service.recordLeadSpeechStarted(scope);
+    await service.recordLeadSpeechStarted(scope, { turnId: 'early' });
     await service.recordSpeech(scope, { type: 'SPEECH_COMPLETED', generationId: generation });
     // Começou ANTES da entrega completa: continua inelegível.
-    const early = await service.recordLeadUtterance(scope, 'Sim.');
+    const early = await service.recordLeadUtterance(scope, { turnId: 'early', text: 'Sim.' });
     expect(early.ignored).toBe('UTTERANCE_BEFORE_DELIVERY');
     expect(early.phase).toBe('AWAITING_CONFIRMATION');
     expect(await service.confirmOffer(scope)).toMatchObject({ reason: 'NOT_AUTHORIZED' });
     // Fala final sem início registrado pelo servidor é ignorada.
-    expect((await service.recordLeadUtterance(scope, 'Sim.')).ignored).toBe(
+    const orphan = { turnId: 'orphan', text: 'Sim.' };
+    expect((await service.recordLeadUtterance(scope, orphan)).ignored).toBe(
       'UTTERANCE_WITHOUT_START',
     );
   });
@@ -198,7 +199,9 @@ describe('E2 PR2: offer, contextual confirmation and booking (offline)', () => {
       phase: 'AWAITING_CONFIRMATION',
       optOutClarificationPending: true,
     });
-    expect(view.speech).toContain('você prefere não receber mais ligações');
+    // TEST_CHANGE_REASON (E2 PR 3, ASSERTION_EQUIVALENT): pergunta reescrita sem dupla negação
+    // ("sim" = parar de ligar); a asserção continua exigindo a pergunta de opt-out.
+    expect(view.speech).toContain('você quer que a gente pare de ligar para você?');
     // Um aceite posterior não autoriza nada enquanto o pedido não for esclarecido.
     expect((await harness.leadSays('Sim, pode marcar.')).directives).not.toContainEqual(
       expect.objectContaining({ kind: 'BOOK' }),

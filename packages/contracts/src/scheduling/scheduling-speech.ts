@@ -54,8 +54,10 @@ export const SCHEDULING_SPEECH = Object.freeze({
   UNKNOWN:
     'Ainda estou verificando a marcação da reunião e não posso confirmar agora. Vou conferir antes de seguir.',
   CLARIFY: 'Desculpe, não entendi. Pode repetir, por favor?',
+  // Pergunta SEM dupla negação: "sim" = parar de ligar; "não" = continuar.
   OPT_OUT_CLARIFICATION:
-    'Antes de continuar: você prefere não receber mais ligações nossas? Pode responder sim ou não.',
+    'Antes de continuar: você quer que a gente pare de ligar para você? Responda sim ou não.',
+  OPT_OUT_RECORDED: 'Tudo bem. Registrei o seu pedido e não vamos mais ligar para você.',
 } as const);
 
 const REFUSAL_SPEECH: Readonly<Record<SchedulingRefusal, string>> = {
@@ -65,7 +67,8 @@ const REFUSAL_SPEECH: Readonly<Record<SchedulingRefusal, string>> = {
   OPT_OUT_REQUESTED: 'Tudo bem, não vamos mais seguir com o agendamento.',
   OPT_OUT_CLARIFICATION_PENDING: SCHEDULING_SPEECH.OPT_OUT_CLARIFICATION,
   BOOKING_IN_FLIGHT: 'Estou concluindo a marcação; só um instante.',
-  ALREADY_BOOKED: 'A reunião desta ligação já está marcada.',
+  // A6: a fase histórica não prova reunião ativa — texto neutro, sem afirmar marcação.
+  ALREADY_BOOKED: 'Não consigo abrir um novo agendamento nesta ligação.',
   LEAD_NOT_BOOKABLE: 'Não consigo marcar uma nova reunião neste momento.',
   NOT_AUTHORIZED: 'Ainda não tenho a sua confirmação para um horário específico.',
 };

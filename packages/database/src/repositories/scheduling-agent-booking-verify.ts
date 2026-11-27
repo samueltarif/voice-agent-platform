@@ -77,7 +77,7 @@ function matches(meeting: MeetingEntity, input: VerifyInput): boolean {
   );
 }
 
-async function sessionIsActive(db: DatabaseInstance, binding: SchedulingBinding) {
+export async function sessionIsActive(db: DatabaseInstance, binding: SchedulingBinding) {
   const [session] = await db
     .select({ state: callSessions.runtimeState })
     .from(callSessions)
@@ -97,7 +97,9 @@ export async function verifiedBooking(
 ): Promise<ConfirmOfferResult | null> {
   const meeting = await persistedMeeting(db, input.binding);
   if (meeting === null) return null;
-  if (meeting === 'MISSING' || !matches(meeting, input)) return UNKNOWN_RESULT;
+  if (meeting === 'MISSING') return UNKNOWN_RESULT;
+  // A6: a fase BOOKED histórica não prova reunião ativa (ex.: cancelada depois).
+  if (!matches(meeting, input)) return notBookedResult('MEETING_NOT_ACTIVE');
   if (!(await sessionIsActive(db, input.binding))) return refusedResult('SESSION_NOT_ACTIVE');
   const timezone = await calendarTimezone(db, {
     organizationId: input.binding.organizationId,

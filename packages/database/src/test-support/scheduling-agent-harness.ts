@@ -1,11 +1,7 @@
 import { randomUUID } from 'node:crypto';
-import { and, count, eq } from 'drizzle-orm';
 import type { SchedulingAgentScope, SchedulingProtocolView } from '@voice-agent/contracts';
 import type { DatabaseInstance } from '../client/connection.js';
-import { readProtocolRow } from '../repositories/scheduling-agent-scope.js';
 import type { DrizzleSchedulingAgentService } from '../repositories/scheduling-agent-service.js';
-import { meetingSlotOffers } from '../schema/meeting-slot-offers.js';
-import { meetings } from '../schema/meetings.js';
 import {
   createPublishedAgent,
   type DurableOutboundFixture,
@@ -106,9 +102,9 @@ export class SchedulingHarness {
   }
 
   /** O interlocutor começa e termina de falar (transcrição final). */
-  async leadSays(text: string): Promise<SchedulingProtocolView> {
-    await this.service.recordLeadSpeechStarted(this.scope);
-    return this.service.recordLeadUtterance(this.scope, text);
+  async leadSays(text: string, turnId = `turn-${randomUUID()}`): Promise<SchedulingProtocolView> {
+    await this.service.recordLeadSpeechStarted(this.scope, { turnId });
+    return this.service.recordLeadUtterance(this.scope, { turnId, text });
   }
 
   /** Consulta → apresentação completa → escolha → releitura completa. Devolve a oferta lida. */
@@ -136,26 +132,10 @@ export class SchedulingHarness {
   }
 }
 
-export async function meetingsOfLead(db: DatabaseInstance, organizationId: string, leadId: string) {
-  return db
-    .select()
-    .from(meetings)
-    .where(and(eq(meetings.organizationId, organizationId), eq(meetings.leadId, leadId)));
-}
-
-export async function offersOfLead(db: DatabaseInstance, organizationId: string, leadId: string) {
-  const [row] = await db
-    .select({ n: count() })
-    .from(meetingSlotOffers)
-    .where(
-      and(
-        eq(meetingSlotOffers.organizationId, organizationId),
-        eq(meetingSlotOffers.leadId, leadId),
-      ),
-    );
-  return row?.n ?? 0;
-}
-
-export async function protocolPhase(db: DatabaseInstance, scope: SchedulingAgentScope) {
-  return (await readProtocolRow(db, scope))?.state.phase ?? null;
-}
+export {
+  leadStatusOf,
+  leadStatusOrigins,
+  meetingsOfLead,
+  offersOfLead,
+  protocolPhase,
+} from './scheduling-agent-queries.js';

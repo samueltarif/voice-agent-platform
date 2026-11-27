@@ -1,5 +1,12 @@
 import type {
+  AgentOutput,
   ConfirmOfferResult,
+  LeadTurn,
+  OutputDecision,
+  LeadAgentPort,
+  RecordOptOutResult,
+  RecordOutcomeArguments,
+  RecordOutcomeResult,
   FindSlotsArguments,
   FindSlotsResult,
   SchedulingAgentPort,
@@ -7,16 +14,16 @@ import type {
   SchedulingProtocolView,
   SchedulingSpeechEvent,
 } from '@voice-agent/contracts';
-import { findSlotsArgumentsSchema } from '@voice-agent/contracts';
+import { findSlotsArgumentsSchema, recordOutcomeArgumentsSchema } from '@voice-agent/contracts';
 import type { DatabaseInstance } from '../client/connection.js';
 import { DrizzleMeetingBookingService } from './meeting-booking-service.js';
 import { confirmOffer, type BookingDeps } from './scheduling-agent-booking.js';
-import {
-  recordLeadSpeechStarted,
-  recordLeadUtterance,
-  recordSpeech,
-} from './scheduling-agent-events.js';
+import { recordLeadSpeechStarted } from './scheduling-agent-events.js';
+import { recordSpeech } from './scheduling-agent-speech.js';
+import { recordOptOut, recordOutcome } from './scheduling-agent-lead-tools.js';
+import { recordLeadUtterance } from './scheduling-agent-utterance.js';
 import { findSlots } from './scheduling-agent-offers.js';
+import { authorizeOutput } from './scheduling-agent-output.js';
 import { DrizzleSchedulingSessionContextResolver } from './scheduling-session-context-resolver.js';
 import { DrizzleSchedulingSlotRepository } from './scheduling-slot-repository.js';
 
@@ -26,13 +33,13 @@ export interface SchedulingAgentServiceOptions {
 }
 
 /**
- * E2 PR 2 (DEC-075) — serviço canônico do agendamento pelo agente, OFFLINE:
+ * E2 PR 2/3 (DEC-075) — serviço canônico do agendamento e do lead pelo agente, OFFLINE:
  * nenhuma composição de produção, rota ou telefonia o registra. Reutiliza a
  * E1 (`offerSlots`, `bookOfferedSlot` com ganchos na mesma transação) e o
  * protocolo puro da PR 1 (`advanceBookingProtocol`), persistido em
  * `scheduling_protocol_states`.
  */
-export class DrizzleSchedulingAgentService implements SchedulingAgentPort {
+export class DrizzleSchedulingAgentService implements SchedulingAgentPort, LeadAgentPort {
   private readonly deps: BookingDeps & { readonly slots: DrizzleSchedulingSlotRepository };
 
   constructor(db: DatabaseInstance, options: SchedulingAgentServiceOptions = {}) {
@@ -63,11 +70,32 @@ export class DrizzleSchedulingAgentService implements SchedulingAgentPort {
     return recordSpeech(this.deps, scope, event);
   }
 
-  recordLeadSpeechStarted(scope: SchedulingAgentScope): Promise<SchedulingProtocolView> {
-    return recordLeadSpeechStarted(this.deps, scope);
+  recordLeadSpeechStarted(
+    scope: SchedulingAgentScope,
+    turn: LeadTurn,
+  ): Promise<SchedulingProtocolView> {
+    return recordLeadSpeechStarted(this.deps, scope, turn);
   }
 
-  recordLeadUtterance(scope: SchedulingAgentScope, text: string): Promise<SchedulingProtocolView> {
-    return recordLeadUtterance(this.deps, scope, text);
+  recordLeadUtterance(
+    scope: SchedulingAgentScope,
+    utterance: LeadTurn & { readonly text: string },
+  ): Promise<SchedulingProtocolView> {
+    return recordLeadUtterance(this.deps, scope, utterance);
+  }
+
+  authorizeOutput(scope: SchedulingAgentScope, output: AgentOutput): Promise<OutputDecision> {
+    return authorizeOutput(this.deps, scope, output);
+  }
+
+  recordOutcome(
+    scope: SchedulingAgentScope,
+    args: RecordOutcomeArguments,
+  ): Promise<RecordOutcomeResult> {
+    return recordOutcome(this.deps, scope, recordOutcomeArgumentsSchema.parse(args));
+  }
+
+  recordOptOut(scope: SchedulingAgentScope): Promise<RecordOptOutResult> {
+    return recordOptOut(this.deps, scope);
   }
 }

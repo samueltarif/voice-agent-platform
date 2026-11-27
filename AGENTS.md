@@ -82,6 +82,13 @@ Antes de criar ou alterar qualquer arquivo, o agente DEVE seguir este ciclo de i
    - **CallSession / State Machine**: Autoridade sobre o estado da chamada em tempo real.
    - **LLM/Provedor NUNCA decidem autonomamente**: tenant, autorizações, precificação, faturamento, ciclo de vida da chamada ou publicação de versões.
 5. **Declaração de Capacidades (Provider Claims)**: Qualquer comportamento ainda não homologado contra provedor real em testes com tráfego telefônico deve ser classificado estritamente como `PROVIDER-UNVERIFIED`. É proibido assumir status `VALIDATED` a partir de documentação de fornecedores.
+6. **Premissa arquitetural de responsabilidades (DEC-076, reafirma DEC-042/DEC-073)**:
+   - **Millis AI**: motor principal de raciocínio, interpretação contextual, condução comercial, STT, TTS e gerenciamento do diálogo (inclusive turnos e *barge-in*), no lugar do "Conversation Orchestrator" do item 4 sempre que puder ser usada com segurança.
+   - **Twilio**: infraestrutura de telefonia.
+   - **VAP**: plataforma empresarial — dados, ferramentas, CRM, campanhas, agenda, conhecimento, autorização, isolamento multiempresa, supressão e financeiro.
+   - **Não reconstruir** funcionalidades conversacionais oferecidas pela Millis quando puderem ser utilizadas com segurança. **Antes** de desenvolver novo controle conversacional, verificar as capacidades reais do fornecedor (item 5).
+   - **Não presumir** eventos de transcrição, turnos, interrupção ou reprodução na integração Twilio WSS direta (`PROVIDER-UNVERIFIED` até comprovação).
+   - Todos os controles de segurança e integridade transacional vigentes são preservados (autoridade do servidor sobre reserva, opt-out, supressão, autorização e isolamento).
 
 ---
 

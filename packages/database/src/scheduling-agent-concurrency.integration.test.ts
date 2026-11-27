@@ -202,9 +202,10 @@ describe('E2 PR2: atomic booking, concurrency and reconciliation', () => {
     for (const forged of [otherTenant, otherVersion]) {
       expect(await service.confirmOffer(forged)).toMatchObject({ reason: 'CONTEXT_REFUSED' });
       expect(await service.findSlots(forged, {})).toMatchObject({ reason: 'CONTEXT_REFUSED' });
-      expect((await service.recordLeadUtterance(forged, 'Me descadastre.')).refusal).toBe(
-        'CONTEXT_REFUSED',
-      );
+      expect(
+        (await service.recordLeadUtterance(forged, { turnId: 'forged', text: 'Me descadastre.' }))
+          .refusal,
+      ).toBe('CONTEXT_REFUSED');
     }
     expect(await meetingsOfLead(tdb.db, scope.organizationId, leadId)).toHaveLength(0);
     expect(await protocolPhase(tdb.db, scope)).toBe('AUTHORIZED');

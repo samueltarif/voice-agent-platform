@@ -9,6 +9,7 @@ import {
   type ProtocolOfferList,
   type SchedulingRefusal,
 } from '@voice-agent/contracts';
+import { isLeadPhoneSuppressed } from './attempt-lead-association.js';
 import type { DatabaseExecutor } from './database-executor.js';
 import { commercialBlock } from './scheduling-agent-scope.js';
 import { applyProtocolEvent, type LockedProtocol } from './scheduling-protocol-store.js';
@@ -87,12 +88,29 @@ export async function gate(
   const block = commercialBlock(locked);
   if (block) return { done: refused(block) };
   const live = liveListFor(locked, input.queryKey, input.now);
-  return { done: live ? offered(live, input.timezone, true) : null };
+  if (!live) return { done: null };
+  // A5: lista em cache só volta se a supressão canônica ainda permitir (P depois de S).
+  if (await isLeadPhoneSuppressed(tx, locked.row.organizationId, input.leadId)) {
+    await voidLists(tx, locked, input.now);
+    return { done: refused('LEAD_NOT_BOOKABLE') };
+  }
+  return { done: offered(live, input.timezone, true) };
+}
+
+/**
+ * A5: consulta nova sem vagas (ou recusada) descarta, sob a trava S, a lista,
+ * a seleção e a autorização anteriores, consumindo uma revisão.
+ */
+export async function voidLists(tx: DatabaseExecutor, locked: LockedProtocol, now: Date) {
+  const revision = locked.row.state.maxRevision + 1;
+  const queryKey = `void-${revision}`;
+  return applyProtocolEvent(tx, locked, { body: { type: 'QUERY_EMPTY', revision, queryKey }, now });
 }
 
 export interface GateInput {
   readonly queryKey: string;
   readonly timezone: string;
+  readonly leadId: string;
   readonly now: Date;
 }
 

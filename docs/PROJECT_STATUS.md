@@ -389,7 +389,7 @@ Componentes de campanha e billing existem no código, mas a operação comercial
 | :--- | :--- | :--- |
 | **E0** | Registro da ligação WSS, decisões, lacunas da Millis, estratégia de segurança e diagnóstico financeiro (DEC-073) | **INTEGRADA em 26/11/2026** (PR #178, merge `e0cded7`; só documentação) |
 | **E1** | Leads, agendas, disponibilidade, ofertas e reserva transacional de reuniões, offline (DEC-074) | **INTEGRADA e TESTADA em 26/11/2026** (PR #177, HEAD `7f18423`, merge `1f30bc4`; gate Linux pós-merge na main `e0cded7`: 2.917 aprovados / 45 ignorados / 0 falhas; 1ª auditoria: BLOQUEADA, 10 achados corrigidos; 2ª: 4 bloqueantes corrigidos; 3ª: aprovada; gates Linux e Windows: 2.917 aprovados / 45 ignorados / 0 falhas no mesmo SHA — Windows com `VITEST_MAX_WORKERS=1` após 1ª execução com 7 timeouts fora da E1) |
-| **E2** | Ferramentas do agente (consultar e oferecer horários, marcar com confirmação, resultado do lead, opt-out), em 3 PRs (DEC-075) | **PR 1 INTEGRADA e TESTADA em 26/11/2026** (PR #180, HEAD `5b1c1c3`, merge `2100145`, árvore idêntica; contexto, política D1, autorização, máquina de estados e classificador; sem ferramentas operacionais; auditorias Codex 1ª–4ª e Antigravity 5ª + revalidação final aprovada; gates Linux e Windows 3.017 / 45 / 0; Linux pós-merge 3.017 / 45 / 0); **PR 2 AUTORIZADA e EM REVISÃO** (26/11/2026: `find_slots`/`confirm_offer` offline, estado do protocolo persistido na migration 0016, consumo da autorização e reserva na mesma transação; sem composição de produção); **PR 3 NÃO autorizada** |
+| **E2** | Ferramentas do agente (consultar e oferecer horários, marcar com confirmação, resultado do lead, opt-out), em 3 PRs (DEC-075) | **PR 1 INTEGRADA e TESTADA em 26/11/2026** (PR #180, HEAD `5b1c1c3`, merge `2100145`, árvore idêntica; contexto, política D1, autorização, máquina de estados e classificador; sem ferramentas operacionais; auditorias Codex 1ª–4ª e Antigravity 5ª + revalidação final aprovada; gates Linux e Windows 3.017 / 45 / 0; Linux pós-merge 3.017 / 45 / 0); **PR 2 AUTORIZADA e EM REVISÃO** (26/11/2026: `find_slots`/`confirm_offer` offline, estado do protocolo persistido na migration 0016, consumo da autorização e reserva na mesma transação; sem composição de produção); **PR 3 AUTORIZADA e EM REVISÃO** (26/11/2026: PR empilhada sobre a #182 — opt-out gravado pelo servidor, esclarecimento de possível opt-out, `CALL_OUTCOME` (migration 0017), `lead.record_outcome`/`lead.record_opt_out`, simulação comercial offline integrada); #182 e PR 3 sem merge até a auditoria consolidada da E2; **auditoria consolidada Codex (26/11/2026): BLOQUEADA (A1–A7 + integridade da 0017) — correções aplicadas na branch da #183 (checkpoint `cc68b9f` preservado), aguardando revalidação independente consolidada**; **premissa arquitetural DEC-076 (27/11/2026): Millis conduz a conversa, Twilio é telefonia, VAP é a plataforma empresarial; E2-V (validação das capacidades reais da Millis antes da simplificação definitiva da E2) PROPOSTA, não autorizada; #182/#183 bloqueadas para merge até a definição arquitetural e a revalidação**; **E2-V (27/11/2026): 4 rodadas de experimentos reais autorizados no WebSocket nativo da Millis (branch `exp/e2v-millis-native`); proposta de simplificação da E2 (conexão direta Twilio–Millis, proteções na execução das ferramentas e auditoria pós-chamada; Media Bridge só por gatilho) em `docs/architecture/E2_SIMPLIFICATION_PROPOSAL.md` — PROPOSTA, aguardando decisões do operador**; validação com voz real obrigatória antes de prospecção |
 | E3 | Telas (agenda, reuniões, lead, ligação de teste) | NÃO autorizada |
 | E4 | Adaptadores Twilio WSS e Millis (agente temporário, webhooks) | NÃO autorizada |
 | E5 | Montagem supervisionada e gateway HTTPS mínimo | NÃO autorizada |
@@ -399,13 +399,17 @@ Componentes de campanha e billing existem no código, mas a operação comercial
 
 ### Metodologia de validação proporcional ao risco (26/11/2026)
 
-Acordada pelo operador ao encerrar a E2 PR 1:
+Acordada pelo operador ao encerrar a E2 PR 1 (atualizada na E2 PR 3: validação agrupada por fase):
 - **Claude:** implementação, autorrevisão adversarial do próprio diff e testes (direcionados e gate Linux completo). A autorrevisão **não substitui** a auditoria independente.
 - **Antigravity:** auditorias direcionadas a achados específicos e revalidações enxutas do diff corrigido.
 - **Codex:** preferencialmente componentes críticos e auditorias consolidadas.
 - **Auditoria consolidada da E2** (PR 1 a PR 3) antes de iniciar a E3.
 - **Não repetir auditorias** de componentes inalterados sem evidência concreta de regressão.
-- Gate Windows executado pelo operador no HEAD aprovado antes de cada merge de código; mudança só de documentação não repete o gate completo (§10).
+- ~~Gate Windows executado pelo operador no HEAD aprovado antes de cada merge de código~~ — **substituído em 26/11/2026 (E2 PR 3) pela validação agrupada por fase**, sem enfraquecer controles:
+  - cada PR de código entrega gate **Linux completo** (`pnpm check:disposable`) na sua versão final, autorrevisão adversarial e testes direcionados;
+  - PRs de uma fase podem ser **empilhadas** e ficam sem merge até a **auditoria independente consolidada** da fase, sobre o diff acumulado desde a main;
+  - o **gate Windows** é executado **uma vez**, pelo operador, no HEAD final do conjunto integrado e auditado, antes do merge da fase; achado ou correção depois disso exige novo gate Linux e Windows no novo HEAD;
+  - merge só com autorização expressa; mudança só de documentação não repete o gate completo (§10).
 
 ## 10. Como consultar e manter este documento
 
