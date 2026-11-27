@@ -9,11 +9,17 @@ async function listen(server) {
   return `http://127.0.0.1:${server.address().port}`;
 }
 
-async function setup({ timeoutMs = 50 } = {}) {
+async function setup({ timeoutMs = 50, acceptGet = false } = {}) {
   const token = newWebhookToken();
   const state = { scenario: 'success' };
   const log = createRequestLog();
-  const hook = createWebhookServer({ token, scenario: () => state.scenario, log, timeoutMs });
+  const hook = createWebhookServer({
+    token,
+    scenario: () => state.scenario,
+    log,
+    timeoutMs,
+    acceptGet,
+  });
   const control = createControlServer({ state, log });
   const url = await listen(hook);
   const controlUrl = await listen(control);
@@ -50,17 +56,50 @@ test('rejects missing or wrong token without running the scenario or logging it'
   }
 });
 
-test('only POST to the tool path exists', async () => {
+test('regression (2nd real experiment): authenticated GET is 405 and logged; other paths 404', async () => {
   const s = await setup();
   try {
-    assert.equal(
-      (await fetch(`${s.url}/tool/e2v-agenda`, { headers: { 'x-e2v-token': s.token } })).status,
-      404,
-    );
+    const get = await fetch(`${s.url}/tool/e2v-agenda?preferencia=ter%C3%A7a`, {
+      headers: { 'x-e2v-token': s.token },
+    });
+    assert.equal(get.status, 405);
+    assert.equal(get.headers.get('allow'), 'POST');
+    const unauth = await fetch(`${s.url}/tool/e2v-agenda`);
+    assert.equal(unauth.status, 401);
     assert.equal(
       (await fetch(`${s.url}/`, { method: 'POST', headers: { 'x-e2v-token': s.token } })).status,
       404,
     );
+    assert.deepEqual(
+      s.log.entries.map((e) => [e.kind, e.method, e.status]),
+      [
+        ['rejected', 'GET', 405],
+        ['rejected', 'GET', 401],
+        ['rejected', 'POST', 404],
+      ],
+    );
+    assert.deepEqual(s.log.entries[0].query, { preferencia: 'terça' });
+    assert.equal(
+      s.log.entries.some((e) => e.kind === 'request'),
+      false,
+    );
+    assert.equal(JSON.stringify(s.log.entries).includes(s.token), false);
+  } finally {
+    s.close();
+  }
+});
+
+test('contingency: with acceptGet, an authenticated GET runs the scenario with query params', async () => {
+  const s = await setup({ acceptGet: true });
+  try {
+    const get = await fetch(`${s.url}/tool/e2v-agenda?preferencia=quarta`, {
+      headers: { 'x-e2v-token': s.token },
+    });
+    assert.equal(get.status, 200);
+    assert.equal((await get.json()).status, 'OFFERED');
+    assert.equal((await fetch(`${s.url}/tool/e2v-agenda?x=1`)).status, 401);
+    const request = s.log.entries.find((e) => e.kind === 'request');
+    assert.deepEqual([request.method, request.body], ['GET', { preferencia: 'quarta' }]);
   } finally {
     s.close();
   }

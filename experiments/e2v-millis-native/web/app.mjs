@@ -21,6 +21,7 @@ const $ = (id) => document.getElementById(id);
 let client = null;
 let log = null;
 let meta = null;
+let unsubscribe = () => {};
 
 function render(entry) {
   const row = document.createElement('tr');
@@ -91,7 +92,8 @@ async function start() {
     return alertBox(error.message);
   }
   log = new EventLog();
-  log.subscribe(render);
+  unsubscribe();
+  unsubscribe = log.subscribe(render);
   $('events').replaceChildren();
   installWebSocketTap(window, log, { endpointPrefix: MILLIS_NATIVE_ENDPOINT });
   meta = newSessionMetadata();

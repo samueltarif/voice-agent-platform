@@ -4,7 +4,10 @@
  * - Escuta só em 127.0.0.1. A exposição HTTPS temporária (túnel) é passo
  *   separado, apenas com autorização (README).
  * - Uma rota: `POST /tool/e2v-agenda`, com `x-e2v-token` (comparação em tempo
- *   constante). Sem token válido: 401, sem executar o cenário.
+ *   constante). Sem token válido: 401, sem executar o cenário. Outro método
+ *   autenticado: 405 registrado (a Millis chamou via GET no 2º experimento);
+ *   `acceptGet` (E2V_ACCEPT_GET=1) aceita GET com os parâmetros na query,
+ *   como contingência de diagnóstico — o token continua obrigatório.
  * - Não importa nada da VAP, não acessa banco e não tem efeito: devolve o
  *   cenário escolhido (sucesso, indisponibilidade, erro ou timeout).
  * - Controle do cenário em OUTRA porta, também só 127.0.0.1 (nunca exposta).
@@ -53,6 +56,10 @@ function parseJson(text) {
   }
 }
 
+function queryOf(req) {
+  return Object.fromEntries(new URL(req.url, 'http://127.0.0.1').searchParams);
+}
+
 function reply(res, status, body) {
   if (res.destroyed) return;
   res.writeHead(status, {
@@ -62,31 +69,39 @@ function reply(res, status, body) {
   res.end(JSON.stringify(body));
 }
 
+/** Autenticação e método; devolve o corpo já lido ou `null` (resposta enviada). */
+async function admit(req, res, ctx, base) {
+  if (base.path !== AGENDA_TOOL_PATH) {
+    ctx.log.write('rejected', { ...base, status: 404 });
+    return reply(res, 404, { status: 'NOT_FOUND' }) ?? null;
+  }
+  if (!sameToken(req.headers[TOKEN_HEADER], ctx.token)) {
+    const token_present = req.headers[TOKEN_HEADER] !== undefined;
+    ctx.log.write('rejected', { ...base, status: 401, token_present });
+    return reply(res, 401, { status: 'UNAUTHORIZED' }) ?? null;
+  }
+  if (req.method === 'GET' && ctx.acceptGet) return { ok: true, value: queryOf(req) };
+  if (req.method !== 'POST') {
+    // 2º experimento real: a Millis chamou via GET. Registra (autenticado) e recusa.
+    ctx.log.write('rejected', { ...base, status: 405, query: queryOf(req) });
+    res.setHeader('allow', ctx.acceptGet ? 'POST, GET' : 'POST');
+    return reply(res, 405, { status: 'METHOD_NOT_ALLOWED' }) ?? null;
+  }
+  try {
+    return parseJson(await readBody(req));
+  } catch (error) {
+    ctx.log.write('rejected', { ...base, status: error.status ?? 400 });
+    return reply(res, error.status ?? 400, { status: 'BAD_REQUEST' }) ?? null;
+  }
+}
+
 async function handle(req, res, ctx) {
   const id = randomUUID();
   const path = new URL(req.url, 'http://127.0.0.1').pathname;
   const base = { id, method: req.method, path, headers: safeHeaders(req.headers) };
-  if (req.method !== 'POST' || path !== AGENDA_TOOL_PATH) {
-    ctx.log.write('rejected', { ...base, status: 404 });
-    return reply(res, 404, { status: 'NOT_FOUND' });
-  }
-  if (!sameToken(req.headers[TOKEN_HEADER], ctx.token)) {
-    ctx.log.write('rejected', {
-      ...base,
-      status: 401,
-      token_present: req.headers[TOKEN_HEADER] !== undefined,
-    });
-    return reply(res, 401, { status: 'UNAUTHORIZED' });
-  }
-  let text;
-  try {
-    text = await readBody(req);
-  } catch (error) {
-    ctx.log.write('rejected', { ...base, status: error.status ?? 400 });
-    return reply(res, error.status ?? 400, { status: 'BAD_REQUEST' });
-  }
+  const parsed = await admit(req, res, ctx, base);
+  if (!parsed) return;
   const scenario = ctx.scenario();
-  const parsed = parseJson(text);
   ctx.log.write('request', { ...base, scenario, body_json: parsed.ok, body: parsed.value });
   const started = performance.now();
   const response = scenarioResponse(scenario, { timeoutMs: ctx.timeoutMs });
@@ -105,10 +120,16 @@ async function handle(req, res, ctx) {
   });
 }
 
-export function createWebhookServer({ token, scenario, log, timeoutMs = 30_000 }) {
+export function createWebhookServer({
+  token,
+  scenario,
+  log,
+  timeoutMs = 30_000,
+  acceptGet = false,
+}) {
   if (typeof token !== 'string' || token.length < 32)
     throw new Error('token do webhook ausente ou curto');
-  const ctx = { token, scenario, log, timeoutMs };
+  const ctx = { token, scenario, log, timeoutMs, acceptGet };
   return createServer((req, res) => {
     handle(req, res, ctx).catch(() => reply(res, 500, { status: 'INTERNAL' }));
   });

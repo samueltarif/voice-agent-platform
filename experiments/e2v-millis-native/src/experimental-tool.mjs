@@ -23,6 +23,9 @@ export function buildExperimentalTool({ responseMode, executeAfterMessage } = {}
       'TESTE E2-V. Chame somente quando o interlocutor disser claramente que quer receber um ' +
       'contato de teste. Não marca reunião, não grava dados e não tem efeito real.',
     webhook: NOOP_WEBHOOK,
+    // 2º experimento real: sem `method`, a Millis chamou via GET. Campo explícito
+    // (nome PROVIDER-UNVERIFIED; conferir na próxima sessão real).
+    method: 'POST',
     header: {},
     params: [
       {

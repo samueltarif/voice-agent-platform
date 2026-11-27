@@ -99,3 +99,24 @@ Restrições: nunca expor as portas 5173 e 8788; o túnel fica aberto só durant
 - Se a Millis não enviar o cabeçalho `header` configurado, todas as chamadas serão recusadas (401) — isso também é um resultado do experimento.
 - O relógio da página e o do webhook são da mesma máquina (mesma referência); o tempo do lado da Millis não é observável.
 - Horários fictícios fixos; não há reserva, nem leitura da agenda real, nem efeito comercial.
+
+---
+
+# Descobertas do 2º experimento real (27/11/2026) e correções
+
+**Observado** (sessões reais com o protótipo `f8e7295`):
+
+- `agent_config` **inline aceito** com `llm.model = "gpt-4o"`.
+- `llm.model = "azure_gpt-5.6-luna"` **rejeitado** na conexão (a sessão não iniciou).
+- O webhook **foi alcançado**: a Millis chamou `/tool/e2v-agenda` **três vezes via GET** (a ferramenta não declarava método) e recebeu 404 — o servidor só aceitava POST.
+- A sessão foi **encerrada ≈ 20 s após o último estado `idle`** — compatível com `session_timeout.max_idle = 20` do modelo de configuração (hipótese, não confirmada).
+- A segunda conexão (após a recusa do modelo) registrou **só 32 eventos locais/derivados**: a captura do WebSocket se perdeu.
+
+**Correções (offline):**
+
+1. **Método explícito:** as ferramentas declaram `method: "POST"` (nome do campo **PROVIDER-UNVERIFIED** — o SDK 1.0.12 não o tipa; confirmar na próxima sessão real). O webhook, para o caminho certo e token válido, responde a outro método com **405** (`Allow: POST`) e **registra** método e parâmetros da query — sem credenciais. Contingência de diagnóstico: `E2V_ACCEPT_GET=1` aceita GET **autenticado** com os parâmetros da query (o token continua obrigatório).
+2. **Captura após reconexão:** a 2ª instalação da escuta devolvia um no-op e o envoltório do `WebSocket` continuava ligado ao registro da sessão anterior. Agora o envoltório é único e o registro de destino é trocado a cada sessão; cada socket fica preso ao registro da sessão que o criou (quadros tardios do socket antigo não contaminam a nova). A página também cancela a exibição do registro anterior.
+
+**Regressão:** `npm test` — **27 aprovados** (25 + 2 novos: GET autenticado ⇒ 405 registrado e a contingência GET). O teste de reconexão e o de método falhavam antes da correção. As asserções de `method: "POST"` nas duas ferramentas foram acrescentadas aos testes existentes.
+
+**Limitações:** se a Millis ignorar `method`, as chamadas continuarão chegando via GET (agora visíveis como 405 no registro, ou atendidas com `E2V_ACCEPT_GET=1`); o formato exato dos parâmetros enviados pela Millis segue não verificado; a causa do encerramento por inatividade é inferida.

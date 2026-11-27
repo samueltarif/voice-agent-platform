@@ -72,3 +72,24 @@ test('installing twice does not double-log', () => {
   socket.receive({ method: 'pause' });
   assert.equal(log.entries.filter((e) => e.type === 'pause').length, 1);
 });
+
+test('regression (2nd real experiment): after a failed first session, the second session is captured by ITS log', () => {
+  MockSocket.instances = [];
+  const scope = { WebSocket: MockSocket };
+  const first = new EventLog();
+  installWebSocketTap(scope, first, { endpointPrefix: MILLIS_NATIVE_ENDPOINT });
+  const rejected = new scope.WebSocket(MILLIS_NATIVE_ENDPOINT);
+  rejected.open();
+  rejected.close(1008);
+  const second = new EventLog();
+  installWebSocketTap(scope, second, { endpointPrefix: MILLIS_NATIVE_ENDPOINT });
+  const socket = new scope.WebSocket(MILLIS_NATIVE_ENDPOINT);
+  socket.open();
+  for (const frame of SCRIPTED_SESSION) socket.receive(frame);
+  const provider = second.entries.filter((e) => e.origin === 'PROVIDER');
+  assert.equal(provider.length, 12);
+  assert.equal(first.entries.filter((e) => e.origin === 'PROVIDER').length, 0);
+  // Quadros tardios do socket anterior não contaminam a sessão nova.
+  rejected.receive({ method: 'clear' });
+  assert.equal(second.entries.filter((e) => e.type === 'clear').length, 1);
+});

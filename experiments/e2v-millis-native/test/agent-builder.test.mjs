@@ -35,6 +35,8 @@ test('agenda tool: authenticated header, HTTPS only, options forwarded only when
   const tool = buildAgendaTool({ baseUrl: 'https://abc.example.com', token: TOKEN });
   assert.equal(tool.webhook, 'https://abc.example.com/tool/e2v-agenda');
   assert.deepEqual(tool.header, { [TOKEN_HEADER]: TOKEN });
+  // Regressão do 2º experimento real: sem método explícito a Millis usou GET.
+  assert.equal(tool.method, 'POST');
   assert.equal('response_mode' in tool, false);
   assert.equal('execute_after_message' in tool, false);
   const strict = buildAgendaTool({
@@ -65,7 +67,12 @@ test('the description sent to the log never includes the webhook token', () => {
   const summary = describeAgent(config);
   assert.equal(JSON.stringify(summary).includes(TOKEN), false);
   assert.deepEqual(summary.tools, [
-    { name: AGENDA_TOOL_NAME, response_mode: 'strict', execute_after_message: null },
+    {
+      name: AGENDA_TOOL_NAME,
+      method: 'POST',
+      response_mode: 'strict',
+      execute_after_message: null,
+    },
   ]);
   assert.deepEqual(describeAgent('abcd'), { mode: 'agent_id', agent_id: 'abcd' });
 });

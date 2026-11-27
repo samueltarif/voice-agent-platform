@@ -21,9 +21,14 @@ const stamp = new Date().toISOString().replace(/[:.]/g, '-');
 const log = createRequestLog({ file: `logs/webhook-${stamp}.jsonl` });
 const timeoutMs = Number(process.env.E2V_TIMEOUT_MS ?? 30_000);
 
-createWebhookServer({ token, scenario: () => state.scenario, log, timeoutMs }).listen(PORT, HOST);
+const acceptGet = process.env.E2V_ACCEPT_GET === '1';
+createWebhookServer({ token, scenario: () => state.scenario, log, timeoutMs, acceptGet }).listen(
+  PORT,
+  HOST,
+);
 createControlServer({ state, log }).listen(CONTROL_PORT, HOST);
 console.log(`Webhook E2-V em http://${HOST}:${PORT} (só local; cenário: ${state.scenario})`);
 console.log(`Controle: POST http://${HOST}:${CONTROL_PORT}/scenario?set=<${SCENARIOS.join('|')}>`);
+if (acceptGet) console.log('ATENÇÃO: GET autenticado aceito (contingência de diagnóstico).');
 console.log(`Registro: logs/webhook-${stamp}.jsonl`);
 if (!provided) console.log(`Token desta execução (cole na página; não é salvo): ${token}`);

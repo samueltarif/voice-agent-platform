@@ -51,6 +51,7 @@ test('initiate mirror follows the SDK shape and never carries the key', () => {
 test('experimental tool has no reachable webhook and only forwards defined options', () => {
   const plain = buildExperimentalTool();
   assert.equal(plain.webhook, NOOP_WEBHOOK);
+  assert.equal(plain.method, 'POST');
   assert.ok(new URL(plain.webhook).hostname.endsWith('.invalid'));
   assert.equal('response_mode' in plain, false);
   assert.equal('execute_after_message' in plain, false);

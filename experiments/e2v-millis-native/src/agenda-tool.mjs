@@ -32,6 +32,9 @@ export function buildAgendaTool({ baseUrl, token, responseMode, executeAfterMess
       'TESTE E2-V. Consulta horários FICTÍCIOS de reunião. Use quando o interlocutor quiser ' +
       'saber horários disponíveis. Não marca nada.',
     webhook: agendaWebhookUrl(baseUrl),
+    // 2º experimento real: sem `method`, a Millis chamou via GET. Campo explícito
+    // (nome PROVIDER-UNVERIFIED; conferir na próxima sessão real).
+    method: 'POST',
     header: { [TOKEN_HEADER]: token },
     params: [
       {

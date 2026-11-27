@@ -42,6 +42,7 @@ export function describeAgent(agent) {
     language: agent.language ?? null,
     tools: (agent.tools ?? []).map((tool) => ({
       name: tool.name,
+      method: tool.method ?? null,
       response_mode: tool.response_mode ?? null,
       execute_after_message: tool.execute_after_message ?? null,
     })),
