@@ -1,0 +1,4 @@
+node_modules/
+dist/
+*.json.log
+e2v-*.json

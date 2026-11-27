@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; connect-src 'self' wss://api-west.millis.ai:8080; script-src 'self' blob:; worker-src blob:; style-src 'unsafe-inline'"
+    />
+    <title>E2-V — Millis nativa (experimento local)</title>
+    <style>
+      body {
+        font:
+          14px system-ui,
+          sans-serif;
+        margin: 16px;
+      }
+      fieldset {
+        margin-bottom: 12px;
+      }
+      textarea {
+        width: 100%;
+        height: 140px;
+        font-family: monospace;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        font-family: monospace;
+        font-size: 12px;
+      }
+      td {
+        border-bottom: 1px solid #ddd;
+        padding: 2px 6px;
+        vertical-align: top;
+      }
+      .origin-provider {
+        background: #eef6ff;
+      }
+      .origin-client {
+        background: #f6f6f6;
+      }
+      .origin-derived {
+        background: #fff7e6;
+      }
+      .origin-local {
+        background: #eefbea;
+      }
+      .unknown {
+        outline: 2px solid #c00;
+      }
+      #status {
+        color: #a00;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>E2-V — WebSocket nativo da Millis (sem Twilio)</h1>
+    <p>
+      <strong>Só com autorização expressa do operador.</strong> Conectar consome créditos da Millis.
+    </p>
+    <fieldset>
+      <legend>Sessão</legend>
+      <label
+        >Chave pública (não é salva):
+        <input id="publicKey" type="password" autocomplete="off" /></label
+      ><br />
+      <label>agent_id: <input id="agentId" size="40" /></label> ou agent_config (JSON):
+      <textarea
+        id="agentConfig"
+        placeholder='{"prompt":"...","voice":{"provider":"elevenlabs","voice_id":"..."},"language":"pt-BR"}'
+      ></textarea>
+      <label><input id="metaInPrompt" type="checkbox" /> incluir metadados no prompt</label>
+    </fieldset>
+    <fieldset>
+      <legend>Ferramenta experimental (só com agent_config; sem efeito real)</legend>
+      <label><input id="withTool" type="checkbox" /> incluir ferramenta</label>
+      <label
+        >response_mode: <input id="responseMode" placeholder="ex.: strict (vazio = não enviar)"
+      /></label>
+      <label
+        >execute_after_message:
+        <select id="executeAfterMessage">
+          <option value="">não enviar</option>
+          <option>true</option>
+          <option>false</option>
+        </select>
+      </label>
+    </fieldset>
+    <label
+      ><input id="confirmRealUse" type="checkbox" /> Confirmo que este experimento real foi
+      AUTORIZADO</label
+    >
+    <p>
+      <button id="start">Conectar</button> <button id="stop">Encerrar</button>
+      <button id="mute">Silenciar microfone</button> <button id="unmute">Reativar</button>
+      <button id="export">Exportar registro (JSON)</button>
+    </p>
+    <p id="status"></p>
+    <table>
+      <thead>
+        <tr>
+          <td>#</td>
+          <td>t (ms)</td>
+          <td>origem</td>
+          <td>evento</td>
+          <td>dados</td>
+        </tr>
+      </thead>
+      <tbody id="events"></tbody>
+    </table>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

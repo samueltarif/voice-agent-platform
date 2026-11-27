@@ -1,0 +1,12 @@
+{
+  "prompt": "Você é um agente de TESTE (E2-V). Fale português do Brasil, frases curtas. Não marque reuniões nem prometa nada. Se o interlocutor pedir claramente um contato de teste, use a ferramenta e2v_registrar_interesse_teste quando disponível e diga apenas que é um teste.",
+  "first_message": "Olá! Este é um teste do agente de voz. Pode falar quando quiser.",
+  "language": "pt-BR",
+  "voice": { "provider": "elevenlabs", "voice_id": "PREENCHER_VOICE_ID" },
+  "session_timeout": {
+    "max_duration": 180,
+    "max_idle": 20,
+    "message": "Encerrando o teste. Obrigado!"
+  },
+  "flow": { "interruption": { "allowed": true, "keep_interruption_message": true } }
+}

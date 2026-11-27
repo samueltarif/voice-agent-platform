@@ -1,0 +1,18 @@
+{
+  "name": "e2v-millis-native-poc",
+  "version": "0.0.0",
+  "private": true,
+  "description": "E2-V — prova de conceito isolada do WebSocket nativo da Millis (microfone do computador, sem Twilio). Fora do workspace pnpm.",
+  "type": "module",
+  "scripts": {
+    "build": "esbuild web/app.mjs --bundle --format=esm --target=es2020 --outfile=dist/app.js",
+    "start": "node server.mjs",
+    "test": "node --test \"test/*.test.mjs\""
+  },
+  "dependencies": {
+    "@millisai/web-sdk": "1.0.12"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.0"
+  }
+}
