@@ -1,29 +1,28 @@
 import { and, eq } from 'drizzle-orm';
-import type { DatabaseInstance } from '../client/connection.js';
 import { contactSuppressions, contacts } from '../schema/contacts.js';
 import { leads, type LeadEntity } from '../schema/leads.js';
 import type { DatabaseExecutor } from './database-executor.js';
 import { recordLeadOptOut } from './lead-opt-out.js';
 import type { SchedulingActor } from './scheduling-audit-entry.js';
-import { reserveSeq, type LockedProtocol } from './scheduling-protocol-store.js';
+import { markSession, type LockedProtocol } from './scheduling-protocol-store.js';
 import { lockSuppressionKey } from './suppression-linearization-lock.js';
 
 /**
- * E2 PR 3 (DEC-075, D2) — opt-out CANÔNICO gravado pelo servidor, na MESMA
- * transação do evento que o reconheceu. Ordem: L (lead, travado antes pelo
- * chamador) → A → S (protocolo) → P (telefone, aqui, sempre por último).
+ * E2 (DEC-075 D2; DEC-077) — opt-out CANÔNICO gravado pelo servidor: pela
+ * ferramenta (preventivo, `TOOL`) ou pela reconciliação pós-chamada
+ * (`POST_CALL`). Ordem: L (lead, travado antes pelo chamador) → A → S
+ * (protocolo) → [I → R, pelo chamador] → P (telefone, aqui, sempre por último).
  * - Com lead: `recordLeadOptOut` da E1 (supressão SEMPRE; `DO_NOT_CALL`, ou
  *   reunião ativa preservada).
  * - Sem lead para o destino: supressão canônica do telefone mesmo assim.
  * A supressão nunca é removida; nada aqui depende do modelo nem do toolset.
  */
 
-/** `RECOVERY` = conclusão posterior de um pedido já reconhecido na fala (nunca criação). */
-export type OptOutSource = 'LEAD_UTTERANCE' | 'CLARIFICATION' | 'RECOVERY';
+export type OptOutSource = 'TOOL' | 'POST_CALL';
 
 /** Lead do destino discado (contato com o mesmo telefone no tenant), sem trava. */
 export async function leadIdForPhone(
-  db: DatabaseInstance,
+  db: DatabaseExecutor,
   scope: { readonly organizationId: string; readonly phoneE164: string },
 ): Promise<string | null> {
   const [row] = await db
@@ -77,9 +76,9 @@ export interface CanonicalOptOutInput {
 /** Grava a supressão (P) e marca a sessão; devolve se uma reunião ativa foi preservada. */
 export async function recordCanonicalOptOut(
   tx: DatabaseExecutor,
-  locked: LockedProtocol,
+  locked: LockedProtocol | null,
   input: CanonicalOptOutInput,
-): Promise<{ readonly meetingPreserved: boolean; readonly locked: LockedProtocol }> {
+): Promise<{ readonly meetingPreserved: boolean; readonly locked: LockedProtocol | null }> {
   let meetingPreserved = false;
   if (input.lead) {
     const result = await recordLeadOptOut(tx, { lead: input.lead, actor: input.actor });
@@ -87,12 +86,10 @@ export async function recordCanonicalOptOut(
   } else {
     await suppressPhoneOnly(tx, input);
   }
-  const marked = await reserveSeq(tx, locked, {
-    optOutPending: false,
-    optOutQuestionGeneration: null,
-    optOutQuestionDeliveredSeq: null,
-    optOutRecordedAt: input.now,
-    optOutSource: input.source,
-  });
+  // Sem o estado da sessão (vínculo mudou), a supressão vale do mesmo jeito (fail-safe).
+  const marked =
+    !locked || locked.row.optOutRecordedAt
+      ? locked
+      : await markSession(tx, locked, { optOutRecordedAt: input.now, optOutSource: input.source });
   return { meetingPreserved, locked: marked };
 }

@@ -8,7 +8,7 @@ import {
   type SchedulingAgentScope,
 } from '@voice-agent/contracts';
 import type { MeetingSlotOfferEntity } from '../schema/meeting-slot-offers.js';
-import type { SchedulingEventDeps } from './scheduling-agent-events.js';
+import type { SchedulingEventDeps } from './scheduling-agent-deps.js';
 import {
   gate,
   OFFER_REFUSAL,
@@ -19,6 +19,7 @@ import {
   windowOf,
   type GateInput,
 } from './scheduling-agent-offer-steps.js';
+import { ensureReconciliation } from './post-call-reconciliation-store.js';
 import { calendarTimezone, resolveAgentScope } from './scheduling-agent-scope.js';
 import {
   applyProtocolEvent,
@@ -28,7 +29,7 @@ import {
 import type { DrizzleSchedulingSlotRepository } from './scheduling-slot-repository.js';
 
 /**
- * E2 PR 2 (DEC-075, D3) — consulta e OFERTA (`scheduling.find_slots`).
+ * E2 (DEC-075 D3; DEC-077) — consulta e OFERTA (`scheduling.find_slots`).
  * Disponibilidade real da agenda FIXADA (E1 `offerSlots`, ordem L → C → A → P),
  * até 3 opções em ordem cronológica, validade de 15 min sem renovação.
  * A lista só passa a existir no protocolo numa segunda transação sob a trava
@@ -70,7 +71,7 @@ function issueList(
       body: { type: 'OFFER_LIST_ISSUED', list },
       now: deps.clock(),
     });
-    if (applied.step.ignored) return refused('BOOKING_IN_FLIGHT');
+    if (applied.step.ignored) return refused('OFFER_NOT_CURRENT');
     return offered(list, input.gate.timezone, false);
   });
 }
@@ -93,7 +94,27 @@ function voidPrevious(
     const post = await gate(tx, locked, { ...input.gate, now: deps.clock() });
     if (post.done) return post.done;
     const applied = await voidLists(tx, locked!, deps.clock());
-    return applied.step.ignored ? refused('BOOKING_IN_FLIGHT') : input.result;
+    return applied.step.ignored ? refused('OFFER_NOT_CURRENT') : input.result;
+  });
+}
+
+/** 1ª transação (A → S → R): retry técnico, bloqueios e abertura da reconciliação. */
+function preGate(
+  deps: OfferDeps,
+  input: {
+    readonly binding: SchedulingBinding;
+    readonly phoneE164: string;
+    readonly gate: Omit<GateInput, 'now'>;
+  },
+) {
+  const { binding, phoneE164 } = input;
+  return deps.db.transaction(async (tx) => {
+    const locked = await lockProtocol(tx, binding);
+    // DEC-077: ferramenta usada ⇒ a sessão passa a exigir reconciliação pós-chamada.
+    const leadId = input.gate.leadId;
+    if (locked?.active)
+      await ensureReconciliation(tx, binding, { phoneE164, leadId, now: deps.clock() });
+    return gate(tx, locked, { ...input.gate, now: deps.clock() });
   });
 }
 
@@ -114,9 +135,8 @@ export async function findSlots(
   if (!timezone) return refused('SCHEDULING_UNAVAILABLE');
   const queryKey = queryKeyOf(scheduling.calendarId, args);
   const leadId = scheduling.leadId;
-  const pre = await deps.db.transaction(async (tx) =>
-    gate(tx, await lockProtocol(tx, binding), { queryKey, timezone, leadId, now: deps.clock() }),
-  );
+  const phoneE164 = resolved.destinationPhoneE164;
+  const pre = await preGate(deps, { binding, phoneE164, gate: { queryKey, timezone, leadId } });
   if (pre.done) return pre.done;
   const now = deps.clock();
   const outcome = await deps.slots.offerSlots({

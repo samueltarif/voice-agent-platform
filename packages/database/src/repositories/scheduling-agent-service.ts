@@ -1,91 +1,63 @@
 import type {
-  AgentOutput,
-  ConfirmOfferResult,
-  LeadTurn,
-  OutputDecision,
+  FindSlotsArguments,
+  FindSlotsResult,
   LeadAgentPort,
+  RecordOptOutArguments,
   RecordOptOutResult,
   RecordOutcomeArguments,
   RecordOutcomeResult,
-  FindSlotsArguments,
-  FindSlotsResult,
+  RequestBookingArguments,
+  RequestBookingResult,
   SchedulingAgentPort,
   SchedulingAgentScope,
-  SchedulingProtocolView,
-  SchedulingSpeechEvent,
 } from '@voice-agent/contracts';
-import { findSlotsArgumentsSchema, recordOutcomeArgumentsSchema } from '@voice-agent/contracts';
+import {
+  findSlotsArgumentsSchema,
+  recordOptOutArgumentsSchema,
+  recordOutcomeArgumentsSchema,
+  requestBookingArgumentsSchema,
+} from '@voice-agent/contracts';
 import type { DatabaseInstance } from '../client/connection.js';
-import { DrizzleMeetingBookingService } from './meeting-booking-service.js';
-import { confirmOffer, type BookingDeps } from './scheduling-agent-booking.js';
-import { recordLeadSpeechStarted } from './scheduling-agent-events.js';
-import { recordSpeech } from './scheduling-agent-speech.js';
+import { ensureReconciliation } from './post-call-reconciliation-store.js';
+import { requestBooking } from './scheduling-agent-booking-intent.js';
+import type { SchedulingEventDeps } from './scheduling-agent-deps.js';
 import { recordOptOut, recordOutcome } from './scheduling-agent-lead-tools.js';
-import { recordLeadUtterance } from './scheduling-agent-utterance.js';
-import { findSlots } from './scheduling-agent-offers.js';
-import { authorizeOutput } from './scheduling-agent-output.js';
+import { findSlots, type OfferDeps } from './scheduling-agent-offers.js';
+import { leadIdForPhone } from './scheduling-agent-opt-out.js';
+import { resolveAgentScope } from './scheduling-agent-scope.js';
 import { DrizzleSchedulingSessionContextResolver } from './scheduling-session-context-resolver.js';
 import { DrizzleSchedulingSlotRepository } from './scheduling-slot-repository.js';
 
-export interface SchedulingAgentServiceOptions {
-  readonly clock?: () => Date;
-  readonly testHooks?: BookingDeps['testHooks'];
-}
-
 /**
- * E2 PR 2/3 (DEC-075) — serviço canônico do agendamento e do lead pelo agente, OFFLINE:
- * nenhuma composição de produção, rota ou telefonia o registra. Reutiliza a
- * E1 (`offerSlots`, `bookOfferedSlot` com ganchos na mesma transação) e o
- * protocolo puro da PR 1 (`advanceBookingProtocol`), persistido em
- * `scheduling_protocol_states`.
+ * E2 (DEC-075; simplificada pela DEC-077) — serviço canônico das ferramentas
+ * de agendamento e do lead, OFFLINE: nenhuma composição de produção, rota ou
+ * telefonia o registra. Na conexão direta, a plataforma só vê a EXECUÇÃO das
+ * ferramentas; aceite, opt-out faltante e resultado comercial são decididos
+ * na reconciliação pós-chamada (`DrizzlePostCallReconciliationService`).
+ * Todo argumento é revalidado aqui (a porta não confia no chamador).
  */
 export class DrizzleSchedulingAgentService implements SchedulingAgentPort, LeadAgentPort {
-  private readonly deps: BookingDeps & { readonly slots: DrizzleSchedulingSlotRepository };
+  private readonly deps: OfferDeps;
 
-  constructor(db: DatabaseInstance, options: SchedulingAgentServiceOptions = {}) {
+  constructor(db: DatabaseInstance, options: { readonly clock?: () => Date } = {}) {
     const clock = options.clock ?? (() => new Date());
     this.deps = {
       db,
       clock,
       resolver: new DrizzleSchedulingSessionContextResolver(db),
       slots: new DrizzleSchedulingSlotRepository(db),
-      bookings: new DrizzleMeetingBookingService(db, clock),
-      testHooks: options.testHooks,
     };
   }
 
   findSlots(scope: SchedulingAgentScope, args: FindSlotsArguments): Promise<FindSlotsResult> {
-    // Defesa em profundidade: o motor já valida, mas a porta não confia no chamador.
     return findSlots(this.deps, scope, findSlotsArgumentsSchema.parse(args));
   }
 
-  confirmOffer(scope: SchedulingAgentScope): Promise<ConfirmOfferResult> {
-    return confirmOffer(this.deps, scope);
-  }
-
-  recordSpeech(
+  requestBooking(
     scope: SchedulingAgentScope,
-    event: SchedulingSpeechEvent,
-  ): Promise<SchedulingProtocolView> {
-    return recordSpeech(this.deps, scope, event);
-  }
-
-  recordLeadSpeechStarted(
-    scope: SchedulingAgentScope,
-    turn: LeadTurn,
-  ): Promise<SchedulingProtocolView> {
-    return recordLeadSpeechStarted(this.deps, scope, turn);
-  }
-
-  recordLeadUtterance(
-    scope: SchedulingAgentScope,
-    utterance: LeadTurn & { readonly text: string },
-  ): Promise<SchedulingProtocolView> {
-    return recordLeadUtterance(this.deps, scope, utterance);
-  }
-
-  authorizeOutput(scope: SchedulingAgentScope, output: AgentOutput): Promise<OutputDecision> {
-    return authorizeOutput(this.deps, scope, output);
+    args: RequestBookingArguments,
+  ): Promise<RequestBookingResult> {
+    return requestBooking(this.deps, scope, requestBookingArgumentsSchema.parse(args));
   }
 
   recordOutcome(
@@ -95,7 +67,31 @@ export class DrizzleSchedulingAgentService implements SchedulingAgentPort, LeadA
     return recordOutcome(this.deps, scope, recordOutcomeArgumentsSchema.parse(args));
   }
 
-  recordOptOut(scope: SchedulingAgentScope): Promise<RecordOptOutResult> {
-    return recordOptOut(this.deps, scope);
+  recordOptOut(
+    scope: SchedulingAgentScope,
+    args: RecordOptOutArguments,
+  ): Promise<RecordOptOutResult> {
+    return recordOptOut(this.deps, scope, recordOptOutArgumentsSchema.parse(args));
   }
+
+  /**
+   * Para a composição, no início de uma chamada de agente com ferramentas da
+   * E2: a sessão passa a exigir reconciliação pós-chamada mesmo que nenhuma
+   * ferramenta seja usada (opt-out dito sem ferramenta é pego no histórico).
+   */
+  openReconciliation(scope: SchedulingAgentScope): Promise<boolean> {
+    return openReconciliation(this.deps, scope);
+  }
+}
+
+async function openReconciliation(deps: SchedulingEventDeps, scope: SchedulingAgentScope) {
+  const resolved = await resolveAgentScope(deps.resolver, scope);
+  if (!resolved.ok) return false;
+  const { binding, destinationPhoneE164: phoneE164 } = resolved;
+  const organizationId = binding.organizationId;
+  const leadId = await leadIdForPhone(deps.db, { organizationId, phoneE164 });
+  await deps.db.transaction((tx) =>
+    ensureReconciliation(tx, binding, { phoneE164, leadId, now: deps.clock() }),
+  );
+  return true;
 }

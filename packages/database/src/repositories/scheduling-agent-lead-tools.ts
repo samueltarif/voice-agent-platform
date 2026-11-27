@@ -2,28 +2,34 @@ import {
   renderRefusalSpeech,
   SCHEDULING_SPEECH,
   type LeadToolRefusal,
+  type RecordOptOutArguments,
   type RecordOptOutResult,
   type RecordOutcomeArguments,
   type RecordOutcomeResult,
   type SchedulingAgentScope,
 } from '@voice-agent/contracts';
 import type { LeadEntity } from '../schema/leads.js';
+import { closePendingIntent } from './booking-intent-store.js';
 import type { DatabaseExecutor } from './database-executor.js';
-import { applyLeadStatusChange, lockLead } from './lead-status-writer.js';
-import type { SchedulingEventDeps } from './scheduling-agent-events.js';
+import { lockLead } from './lead-status-writer.js';
+import { ensureReconciliation, updateReconciliation } from './post-call-reconciliation-store.js';
+import type { SchedulingEventDeps } from './scheduling-agent-deps.js';
 import { leadIdForPhone, recordCanonicalOptOut } from './scheduling-agent-opt-out.js';
 import { resolveAgentScope } from './scheduling-agent-scope.js';
 import {
-  applyProtocolEvent,
   lockProtocol,
   type LockedProtocol,
   type SchedulingBinding,
 } from './scheduling-protocol-store.js';
 
 /**
- * E2 PR 3 (DEC-075, D2/D5) — `lead.record_outcome` e `lead.record_opt_out`.
- * Lead e telefone vêm do contexto confiável; ordem L → A → S (→ P no opt-out).
- * Sessão inativa nunca aceita pedido NOVO.
+ * E2 (DEC-075 D2/D5; simplificada pela DEC-077) — `lead.record_opt_out` e
+ * `lead.record_outcome`. Lead e telefone vêm do contexto confiável.
+ * - opt-out: supressão canônica PREVENTIVA e imediata (fail-safe), sem exigir
+ *   evidência; cancela a intenção de agendamento pendente; aceito também com
+ *   a sessão encerrada. Ordem L → A → S → I → R → P.
+ * - resultado: só PROPOSTO (R); aplicado na reconciliação pós-chamada com
+ *   interlocução comprovada no histórico. Ordem A → S → R.
  */
 
 interface LeadTx {
@@ -32,72 +38,49 @@ interface LeadTx {
   readonly lead: LeadEntity | null;
   readonly binding: SchedulingBinding;
   readonly phoneE164: string;
+  readonly leadId: string | null;
   readonly now: Date;
 }
 
 type Locked<T> = { readonly refusal: LeadToolRefusal } | { readonly value: T };
 
-interface LeadLockRequest {
-  readonly scope: SchedulingAgentScope;
-  /** Recuperação de evidência JÁ reconhecida é aceita mesmo com a sessão encerrada. */
-  readonly allowInactive: boolean;
-}
-
 async function withLeadLocks<T>(
   deps: SchedulingEventDeps,
-  request: LeadLockRequest,
+  request: { readonly scope: SchedulingAgentScope; readonly lockLead: boolean },
   run: (ctx: LeadTx) => Promise<T>,
 ): Promise<Locked<T>> {
-  const { scope } = request;
-  const resolved = await resolveAgentScope(deps.resolver, scope);
+  const resolved = await resolveAgentScope(deps.resolver, request.scope);
   if (!resolved.ok) return { refusal: 'CONTEXT_REFUSED' };
   const { binding, destinationPhoneE164: phoneE164 } = resolved;
   const organizationId = binding.organizationId;
   const leadId = await leadIdForPhone(deps.db, { organizationId, phoneE164 });
   return deps.db.transaction(async (tx): Promise<Locked<T>> => {
-    const lead = leadId ? await lockLead(tx, organizationId, leadId) : null;
+    const lead = leadId && request.lockLead ? await lockLead(tx, organizationId, leadId) : null;
     const locked = await lockProtocol(tx, binding);
     if (!locked) return { refusal: 'CONTEXT_REFUSED' };
     const now = deps.clock();
-    if (!locked.active && !request.allowInactive) {
-      if (locked.row.state.phase !== 'CLOSED') {
-        await applyProtocolEvent(tx, locked, { body: { type: 'SESSION_CLOSED' }, now });
-      }
-      return { refusal: 'SESSION_NOT_ACTIVE' };
-    }
-    return { value: await run({ tx, locked, lead, binding, phoneE164, now }) };
+    return { value: await run({ tx, locked, lead, binding, phoneE164, now, leadId }) };
   });
 }
 
-const OUTCOME_REFUSAL: Readonly<Record<string, LeadToolRefusal>> = {
-  ACTIVE_MEETING_PRESERVED: 'MEETING_PRESERVED',
-  LEAD_DO_NOT_CALL: 'LEAD_DO_NOT_CALL',
-};
+const keyOf = (binding: SchedulingBinding) => ({
+  organizationId: binding.organizationId,
+  sessionId: binding.sessionId,
+});
 
-function outcomeBlocked(row: LeadTx['locked']['row']): LeadToolRefusal | null {
-  // A7: só com interlocução confiável (fala final do interlocutor processada nesta sessão);
-  // silêncio, ausência de resposta ou falha técnica nunca viram resultado comercial.
-  if (row.leadFinalUtterances < 1) return 'NO_INTERLOCUTION';
-  if (row.state.phase === 'OPTED_OUT' || row.optOutRecordedAt) return 'OPT_OUT_REQUESTED';
-  return row.optOutPending ? 'OPT_OUT_CLARIFICATION_PENDING' : null;
-}
-
-async function applyOutcome(
+async function proposeOutcome(
   ctx: LeadTx,
   outcome: RecordOutcomeArguments['outcome'],
 ): Promise<RecordOutcomeResult> {
-  if (!ctx.lead) return { status: 'REFUSED', reason: 'NO_LEAD_FOR_DESTINATION' };
-  const blocked = outcomeBlocked(ctx.locked.row);
-  if (blocked) return { status: 'REFUSED', reason: blocked };
-  const changed = await applyLeadStatusChange(ctx.tx, {
-    lead: ctx.lead,
-    to: outcome,
-    origin: 'CALL_OUTCOME',
-    actor: { type: 'AGENT', id: ctx.binding.agentId },
+  if (!ctx.locked.active) return { status: 'REFUSED', reason: 'SESSION_NOT_ACTIVE' };
+  if (ctx.locked.row.optOutRecordedAt) return { status: 'REFUSED', reason: 'OPT_OUT_REQUESTED' };
+  await ensureReconciliation(ctx.tx, ctx.binding, {
+    phoneE164: ctx.phoneE164,
+    leadId: ctx.leadId,
+    now: ctx.now,
   });
-  if (changed.kind === 'CHANGED') return { status: 'RECORDED', outcome };
-  if (changed.reason === 'SAME_STATUS') return { status: 'ALREADY_RECORDED', outcome };
-  return { status: 'REFUSED', reason: OUTCOME_REFUSAL[changed.reason] ?? 'TRANSITION_NOT_ALLOWED' };
+  await updateReconciliation(ctx.tx, keyOf(ctx.binding), { proposedOutcome: outcome });
+  return { status: 'PROPOSED', outcome };
 }
 
 export async function recordOutcome(
@@ -105,55 +88,52 @@ export async function recordOutcome(
   scope: SchedulingAgentScope,
   args: RecordOutcomeArguments,
 ): Promise<RecordOutcomeResult> {
-  const request = { scope, allowInactive: false };
-  const result = await withLeadLocks(deps, request, (ctx) => applyOutcome(ctx, args.outcome));
+  const result = await withLeadLocks(deps, { scope, lockLead: false }, (ctx) =>
+    proposeOutcome(ctx, args.outcome),
+  );
   return 'refusal' in result ? { status: 'REFUSED', reason: result.refusal } : result.value;
 }
 
-/**
- * A2: a ferramenta NUNCA cria um opt-out. Só conclui ou recupera um pedido
- * que o servidor reconheceu na fala do interlocutor nesta sessão — evidência
- * do protocolo (`optOutSeq`, escrito só pelo redutor a partir do classificador).
- * O caminho obrigatório é automático, na própria fala final.
- */
-async function applyOptOut(ctx: LeadTx): Promise<RecordOptOutResult> {
-  const row = ctx.locked.row;
-  const speech = SCHEDULING_SPEECH.OPT_OUT_RECORDED;
-  if (row.optOutRecordedAt) {
-    return {
-      status: 'RECORDED',
-      meetingPreserved: ctx.lead?.status === 'MEETING_SCHEDULED',
-      speech,
-    };
-  }
-  if (row.state.optOutSeq === null) {
-    return {
-      status: 'REFUSED',
-      reason: 'NO_OPT_OUT_EVIDENCE',
-      speech: renderRefusalSpeech('NOT_AUTHORIZED'),
-    };
-  }
+async function preventiveOptOut(
+  ctx: LeadTx,
+  args: RecordOptOutArguments,
+): Promise<RecordOptOutResult> {
+  const key = keyOf(ctx.binding);
+  await closePendingIntent(ctx.tx, key, { status: 'CANCELED', reason: 'OPT_OUT', now: ctx.now });
+  await ensureReconciliation(ctx.tx, ctx.binding, {
+    phoneE164: ctx.phoneE164,
+    leadId: ctx.leadId,
+    now: ctx.now,
+  });
+  await updateReconciliation(ctx.tx, key, {
+    optOutToolAt: ctx.now,
+    optOutToolPhrase: args.leadPhrase ? args.leadPhrase.slice(0, 300) : null,
+  });
   const recorded = await recordCanonicalOptOut(ctx.tx, ctx.locked, {
     lead: ctx.lead,
     organizationId: ctx.binding.organizationId,
     sessionId: ctx.binding.sessionId,
     phoneE164: ctx.phoneE164,
     actor: { type: 'AGENT', id: ctx.binding.agentId },
-    source: 'RECOVERY',
+    source: 'TOOL',
     now: ctx.now,
   });
+  const speech = SCHEDULING_SPEECH.OPT_OUT_RECORDED;
   return { status: 'RECORDED', meetingPreserved: recorded.meetingPreserved, speech };
 }
 
 export async function recordOptOut(
   deps: SchedulingEventDeps,
   scope: SchedulingAgentScope,
+  args: RecordOptOutArguments,
 ): Promise<RecordOptOutResult> {
-  const result = await withLeadLocks(deps, { scope, allowInactive: true }, applyOptOut);
+  const result = await withLeadLocks(deps, { scope, lockLead: true }, (ctx) =>
+    preventiveOptOut(ctx, args),
+  );
   if ('value' in result) return result.value;
-  const speech =
-    result.refusal === 'SESSION_NOT_ACTIVE'
-      ? renderRefusalSpeech('SESSION_NOT_ACTIVE')
-      : renderRefusalSpeech('CONTEXT_REFUSED');
-  return { status: 'REFUSED', reason: result.refusal, speech };
+  return {
+    status: 'REFUSED',
+    reason: result.refusal,
+    speech: renderRefusalSpeech('CONTEXT_REFUSED'),
+  };
 }

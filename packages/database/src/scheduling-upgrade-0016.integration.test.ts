@@ -13,6 +13,7 @@ import { DrizzleCallAttemptRepository } from './repositories/call-attempt-reposi
 import { DrizzleCallSessionRepository } from './repositories/call-session-repository.js';
 import { schedulingProtocolStates } from './schema/scheduling-protocol-states.js';
 import { createDisposableTestDatabase } from './test-support/disposable-test-database.js';
+import { claimSendOnLegacySchema } from './test-support/legacy-schema-claim.js';
 import { insertLegacyOutboundTenant } from './test-support/legacy-schema-fixtures.js';
 import { SCHEDULING_TEST_NOW } from './test-support/scheduling-fixtures.js';
 
@@ -82,7 +83,7 @@ describe('E2 PR2: upgrade from 0015 to 0016 with existing sessions', () => {
       now: SCHEDULING_TEST_NOW,
     });
     if (prepared.kind !== 'PREPARED') throw new Error(prepared.reason);
-    const claim = await new DrizzleCallAttemptRepository(tdb.db).claimSend({
+    const claim = await claimSendOnLegacySchema(tdb.db, {
       ...scope,
       ownerId: 'e2-upgrade',
       leaseMs: 60_000,

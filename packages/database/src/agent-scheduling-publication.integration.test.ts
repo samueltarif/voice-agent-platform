@@ -79,14 +79,19 @@ describe('E2 PR2: scheduling toolset and calendar at publication', () => {
     });
     const published = await publish({
       ...BASE,
-      tools: ['scheduling.find_slots', 'scheduling.confirm_offer'],
+      tools: ['scheduling.find_slots', 'scheduling.request_booking', 'lead.record_opt_out'],
       scheduling: { calendarId: calendar.id },
     });
     expect(published.status).toBe('PUBLISHED');
   });
 
   it('refuses an incomplete scheduling toolset', async () => {
-    for (const tools of [['scheduling.find_slots'], ['scheduling.confirm_offer']] as const) {
+    for (const tools of [
+      ['scheduling.find_slots'],
+      ['scheduling.request_booking'],
+      // DEC-077: com agendamento, a ferramenta de opt-out é obrigatória.
+      ['scheduling.find_slots', 'scheduling.request_booking'],
+    ] as const) {
       await expect(publish({ ...BASE, tools: [...tools] })).rejects.toMatchObject({
         code: SCHEDULING_PUBLICATION_ERROR_CODES.TOOLS_INCOMPLETE,
       });
@@ -101,7 +106,7 @@ describe('E2 PR2: scheduling toolset and calendar at publication', () => {
       await expect(
         publish({
           ...BASE,
-          tools: ['scheduling.find_slots', 'scheduling.confirm_offer'],
+          tools: ['scheduling.find_slots', 'scheduling.request_booking', 'lead.record_opt_out'],
           scheduling: { calendarId },
         }),
       ).rejects.toMatchObject({ code: SCHEDULING_PUBLICATION_ERROR_CODES.CALENDAR_NOT_FOUND });

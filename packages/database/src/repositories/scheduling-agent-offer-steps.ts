@@ -15,18 +15,12 @@ import { commercialBlock } from './scheduling-agent-scope.js';
 import { applyProtocolEvent, type LockedProtocol } from './scheduling-protocol-store.js';
 import type { OfferSlotsOutcome } from './scheduling-slot-repository.js';
 
-/** E2 PR 2 (DEC-075, D3) — passos puros e travados da oferta (`scheduling.find_slots`). */
+/** E2 (DEC-075 D3; DEC-077) — passos puros e travados da oferta (`scheduling.find_slots`). */
 
 const DAY_MS = 86_400_000;
 const SEARCH_DAYS = 7;
-const LIVE_PHASES = new Set([
-  'PRESENTING',
-  'AWAITING_SELECTION',
-  'READBACK_PENDING',
-  'READBACK_SPEAKING',
-  'AWAITING_CONFIRMATION',
-  'AUTHORIZED',
-]);
+/** Na conexão direta a lista vigente fica em `PRESENTING` (não há eventos de fala). */
+const LIVE_PHASES = new Set(['PRESENTING']);
 
 export const refused = (reason: SchedulingRefusal): FindSlotsResult => ({
   status: 'REFUSED',

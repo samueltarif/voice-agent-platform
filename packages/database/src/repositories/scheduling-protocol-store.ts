@@ -14,7 +14,7 @@ import {
 import type { DatabaseExecutor } from './database-executor.js';
 
 /**
- * E2 PR 2 (DEC-075, desenho §6) — trava S e escrita do estado do protocolo.
+ * E2 (DEC-075/DEC-077) — trava S e escrita do estado do protocolo.
  *
  * Ordem: tentativa (A, `FOR KEY SHARE`) → sessão (`FOR SHARE`) → linha de
  * estado (`FOR UPDATE`). Compatível com a ordem existente A → S das
@@ -112,15 +112,8 @@ export async function lockProtocol(
 }
 
 export interface ApplyOptions {
-  readonly leadSpeechStartedSeq?: number | null;
-  readonly leadTurnId?: string | null;
-  readonly lastFinalTurnId?: string | null;
-  readonly leadFinalUtterances?: number;
-  readonly optOutPending?: boolean;
-  readonly optOutQuestionGeneration?: string | null;
-  readonly optOutQuestionDeliveredSeq?: number | null;
   readonly optOutRecordedAt?: Date | null;
-  readonly optOutSource?: string | null;
+  readonly optOutSource?: 'TOOL' | 'POST_CALL' | null;
 }
 
 /** Atribui o próximo `seq`, aplica o redutor puro e grava, sob a trava já obtida. */
@@ -140,8 +133,8 @@ export async function applyProtocolEvent(
   return { step, locked: { ...locked, row } };
 }
 
-/** Avança só o contador (ex.: início da fala do interlocutor), sem evento do protocolo. */
-export async function reserveSeq(
+/** Grava marcas da sessão (ex.: opt-out canônico) sem evento do protocolo. */
+export async function markSession(
   tx: DatabaseExecutor,
   locked: LockedProtocol,
   options: ApplyOptions,

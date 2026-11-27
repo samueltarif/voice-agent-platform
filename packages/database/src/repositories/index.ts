@@ -80,4 +80,7 @@ export * from './meeting-cancellation-service.js';
 export * from './meeting-queries.js';
 export * from './scheduling-session-context-resolver.js';
 export * from './scheduling-agent-service.js';
+export * from './post-call-reconciliation-service.js';
+export type { PostCallAttempt } from './post-call-record.js';
+export type { ReviewResolution, ReviewResolutionResult } from './post-call-review.js';
 export * from './agent-scheduling-publication-guard.js';

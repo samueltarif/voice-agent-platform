@@ -13,7 +13,7 @@ import type { DatabaseExecutor } from './database-executor.js';
 import type { SchedulingBinding, LockedProtocol } from './scheduling-protocol-store.js';
 
 /**
- * E2 PR 2 (DEC-075) — escopo do agente derivado SÓ do servidor: a concessão
+ * E2 (DEC-075/DEC-077) — escopo do agente derivado SÓ do servidor: a concessão
  * dá tenant, sessão, agente, versão e a agenda da versão (valor); o
  * resolvedor da PR 1 deriva tentativa, job, destino, lead e agenda fixada.
  * Leitura pontual (sem trava): os efeitos revalidam sob a trava S.
@@ -80,10 +80,7 @@ export async function resolveAgentScope(
 export function commercialBlock(locked: LockedProtocol): SchedulingRefusal | null {
   const phase = locked.row.state.phase;
   if (!locked.active || phase === 'CLOSED') return 'SESSION_NOT_ACTIVE';
-  if (phase === 'OPTED_OUT' || locked.row.optOutRecordedAt) return 'OPT_OUT_REQUESTED';
-  if (locked.row.optOutPending) return 'OPT_OUT_CLARIFICATION_PENDING';
-  if (phase === 'BOOKED') return 'ALREADY_BOOKED';
-  return phase === 'BOOKING' ? 'BOOKING_IN_FLIGHT' : null;
+  return phase === 'OPTED_OUT' || locked.row.optOutRecordedAt ? 'OPT_OUT_REQUESTED' : null;
 }
 
 export async function calendarTimezone(
